@@ -32,6 +32,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,29 +40,22 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.collect.Lists;
-
-public class CallstackState implements AbstractState, Partitionable,
-AbstractQueryableState, Serializable {
+public class CallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
-
   protected final CallstackState previousState;
   protected final String currentFunction;
   protected transient CFANode callerNode;
   private final int depth;
 
-  public CallstackState(CallstackState pPreviousElement, @Nonnull String pFunction,
-      @Nonnull CFANode pCallerNode) {
-
-    previousState = pPreviousElement;
-    currentFunction = checkNotNull(pFunction);
-    callerNode = checkNotNull(pCallerNode);
-
-    if (pPreviousElement == null) {
+  public CallstackState(CallstackState previousElement, @Nonnull String function, @Nonnull CFANode callerNode) {
+    this.previousState = previousElement;
+    this.currentFunction = checkNotNull(function);
+    this.callerNode = checkNotNull(callerNode);
+    if (previousElement == null) {
       depth = 1;
     } else {
-      depth = pPreviousElement.getDepth() + 1;
+      depth = previousElement.getDepth() + 1;
     }
   }
 

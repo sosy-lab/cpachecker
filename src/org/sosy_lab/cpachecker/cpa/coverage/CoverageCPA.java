@@ -145,4 +145,8 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
     }
   }
 
+  public static CoverageData getCoverageData() {
+    return cov;
+  }
+
 }

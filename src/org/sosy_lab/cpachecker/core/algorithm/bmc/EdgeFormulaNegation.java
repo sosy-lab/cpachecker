@@ -28,9 +28,11 @@ import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,17 +42,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 
-public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
-    implements ExpressionTreeCandidateInvariant {
+public class EdgeFormulaNegation extends LocationFormulaInvariant {
 
   private final AssumeEdge edge;
 
@@ -69,11 +68,8 @@ public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
   }
 
   @Override
-  public BooleanFormula getFormula(
-      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
-      throws CPATransferException, InterruptedException {
-    PathFormula clearContext = pPFMGR.makeEmptyPathFormula(pContext);
-    PathFormula invariantPathFormula = pPFMGR.makeAnd(clearContext, edge);
+  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
+    PathFormula invariantPathFormula = pPFMGR.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
     return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
   }
 
@@ -115,10 +111,5 @@ public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
     for (CFANode location : locations) {
       pInvariantGenerator.injectInvariant(location, getNegatedAssumeEdge());
     }
-  }
-
-  @Override
-  public ExpressionTree<Object> asExpressionTree() {
-    return LeafExpression.<Object>of((Object) getNegatedAssumeEdge().getExpression(), getNegatedAssumeEdge().getTruthAssumption());
   }
 }

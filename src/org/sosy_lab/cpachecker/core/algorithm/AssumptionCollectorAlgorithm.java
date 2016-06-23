@@ -27,8 +27,16 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,11 +45,14 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,7 +61,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
@@ -66,20 +76,8 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -131,10 +129,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
     if (this.cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
-    }
-    if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
-      throw new InvalidConfigurationException(
-          "ARGCPA needed for for export of assumption automaton in AssumptionCollectionAlgorithm");
     }
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
@@ -367,16 +361,18 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
-        List<CFAEdge> edges = s.getEdgesToChild(child);
+        CFAEdge edge = s.getEdgeToChild(child);
 
-        if (edges.size() > 1) {
+        if (edge instanceof MultiEdge) {
+          assert (((MultiEdge) edge).getEdges().size() > 1);
+
           sb.append("    MATCH \"");
-          escape(edges.get(0).getRawStatement(), sb);
+          escape(((MultiEdge) edge).getEdges().get(0).getRawStatement(), sb);
           sb.append("\" -> ");
           sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 
           boolean first = true;
-          for (CFAEdge innerEdge : from(edges).skip(1)) {
+          for (CFAEdge innerEdge : from(((MultiEdge) edge).getEdges()).skip(1)) {
 
             if (!first) {
               multiEdgeID++;
@@ -403,7 +399,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         } else {
 
           sb.append("    MATCH \"");
-          escape(Iterables.getOnlyElement(edges).getRawStatement(), sb);
+          escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
 
           AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
@@ -522,15 +518,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (exportAssumptions) {
         if (assumptionsFile != null) {
           try {
-            MoreFiles.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
+            Files.writeFile(assumptionsFile, resultAssumption);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
         }
 
         if (assumptionAutomatonFile != null) {
-          try (Writer w =
-              MoreFiles.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
+          try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
            produceAssumptionAutomaton(w, pReached);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");

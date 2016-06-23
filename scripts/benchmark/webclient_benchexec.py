@@ -28,13 +28,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-import json
 import logging
 import os
 import shutil
 import threading
 
-from requests import HTTPError
+import urllib.request as urllib2
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -50,9 +49,6 @@ _print_lock = threading.Lock()
 
 def init(config, benchmark):
     global _webclient
-    
-    if not config.debug:
-        logging.getLogger('requests').setLevel(logging.WARNING)
 
     if not benchmark.config.cpu_model:
         logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
@@ -128,12 +124,6 @@ def _submitRunsParallel(runSet, benchmark):
     global _webclient
 
     logging.info('Submitting runs...')
-    
-    meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), "revision": _webclient.tool_revision()}, \
-                                       "benchmark" : benchmark.name,
-                                       "timestamp" : benchmark.instance,
-                                       "runSet" : runSet.real_name or "",
-                                       "generator": "benchmark.webcliebt_benchexec.py"})
 
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
     submission_futures = {}
@@ -145,14 +135,11 @@ def _submitRunsParallel(runSet, benchmark):
         logging.warning("Memory requirement is not supported by the WebInterface.")
         
     cpu_model = benchmark.requirements.cpu_model
-    priority = benchmark.config.cloudPriority
     result_files_pattern = benchmark.result_files_pattern
-    if result_files_pattern is None:
-        logging.warning("No result files pattern is given and the result will not contain any result files.")
+    priority = benchmark.config.cloudPriority
 
     for run in runSet.runs:
-        submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, 
-                                           result_files_pattern, meta_information, priority)
+        submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, result_files_pattern, priority)
         submission_futures[submisson_future] = run
 
     executor.shutdown(wait=False)
@@ -169,10 +156,8 @@ def _submitRunsParallel(runSet, benchmark):
                     logging.info('Submitted run %s/%s', submissonCounter, len(runSet.runs))
 
 
-            except (HTTPError, WebClientError) as e:
+            except (urllib2.URLError, WebClientError) as e:
                 logging.warning('Could not submit run %s: %s.', run.identifier, e)
-                return result_futures # stop submitting runs 
-            
             finally:
                 submissonCounter += 1
     finally:
@@ -203,14 +188,10 @@ def _handle_results(result_futures, output_handler, benchmark):
             
     executor.shutdown(wait=True)
 
-IGNORED_VALUES = set(['command', 'timeLimit', 'coreLimit', 'returnvalue', 'exitsignal'])
-"""result values that are ignored because they are redundant"""
-
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """
     Call handle_result with appropriate parameters to fit into the BenchExec expectations.
     """
-    result_values = {}
 
     def _open_output_log(output_path):
         log_file = open(run.log_file, 'wb')
@@ -219,37 +200,41 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         return log_file
 
     def _handle_run_info(values):
-        def parseTimeValue(s):
-            if s[-1] != 's':
-                raise ValueError('Cannot parse "{0}" as a time value.'.format(s))
-            return float(s[:-1])
+        if "memory" in values:
+            values["memUsage"] = int(values.pop("memory").strip('B'))
 
-        for key, value in values.items():
-            if key == "memory":
-                result_values["memory"] = int(value.strip('B'))
-            elif key in ["walltime", "cputime"]:
-                result_values[key] = parseTimeValue(value)
-            elif key == "exitcode":
-                result_values["exitcode"] = int(value)
-            elif (key == "terminationreason" or
-                  key.startswith("energy-") or key.startswith("cputime-cpu")):
-                result_values[key] = value
-            elif key not in IGNORED_VALUES:
-                result_values['vcloud-'+key] = value
+        run.walltime = float(values["walltime"].strip('s'))
+        run.cputime = float(values["cputime"].strip('s'))
+        return_value = int(values["exitcode"])
+        termination_reason = values.pop("terminationreason", None)
 
-        return None
+        # remove irrelevant columns
+        values.pop("command", None)
+        values.pop("timeLimit", None)
+        values.pop("coreLimit", None)
+
+        # prefix other values with @vcloud- to make them hidden by default
+        for key in list(values.keys()):
+            if not key in {'cputime', 'walltime', 'memUsage'} \
+                    and not key.startswith('energy'):
+                values['@vcloud-'+key] = values.pop(key)
+
+        run.values.update(values)
+        return return_value, termination_reason
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
         output_handler.store_system_info(
-            values.get("os", "-"), values.get("cpuModel", "-"), values.get("cores", "-"),
-            values.get("frequency", "-"), values.get("memory", "-"),
+            values.pop("os", "-"), values.pop("cpuModel", "-"), values.pop("cores", "-"),
+            values.pop("frequency", "-"), values.pop("memory", "-"),
             host, runSet=run.runSet)
 
-        for key, value in values.items():
-            result_values['vcloud-'+key] = value
+        # prefix other values with @vcloud- to make them hidden by default
+        for key in list(values.keys()):
+            values['@vcloud-'+key] = values.pop(key)
 
-        result_values["host"] = host
+        values["host"] = host
+        run.values.update(values)
 
     def _handle_stderr_file(result_zip_file, files, output_path):
         if RESULT_FILE_STDERR in files:
@@ -257,12 +242,13 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             shutil.move(os.path.join(output_path, RESULT_FILE_STDERR), run.log_file + ".stdError")
             os.rmdir(output_path)
 
-    handle_result(
+    (return_value, termination_reason) = handle_result(
         zip_content, run.log_file + ".output", run.identifier, benchmark.result_files_pattern,
         _open_output_log, _handle_run_info, _handle_host_info, _handle_stderr_file)
 
-    if result_values:
+    if return_value is not None:
+        run.after_execution(return_value, termination_reason=termination_reason)
+
         with _print_lock:
             output_handler.output_before_run(run)
-            run.set_result(result_values, ["host"])
             output_handler.output_after_run(run)

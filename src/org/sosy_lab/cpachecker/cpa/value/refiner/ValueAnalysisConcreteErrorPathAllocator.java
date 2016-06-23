@@ -23,13 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -60,12 +66,11 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -74,17 +79,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 
 public class ValueAnalysisConcreteErrorPathAllocator {
@@ -105,39 +104,40 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
 
-    List<Pair<ValueAnalysisState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
+    List<Pair<ValueAnalysisState, CFAEdge>> path = new ArrayList<>(pPath.size());
 
-    PathIterator it = pPath.fullPathIterator();
+    PathIterator it = pPath.pathIterator();
 
     while (it.hasNext()) {
-      List<CFAEdge> innerEdges = new ArrayList<>();
-
-      do {
-        it.advance();
-        innerEdges.add(it.getIncomingEdge());
-      } while (!it.isPositionWithState());
-
-      ValueAnalysisState state =
-          AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
+      it.advance();
+      ValueAnalysisState state = AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
+      CFAEdge edge = it.getIncomingEdge();
 
       if (state == null) {
         return null;
       }
 
-      path.add(Pair.of(state, innerEdges));
+      path.add(Pair.of(state, edge));
     }
 
     return createConcreteStatePath(path);
   }
 
-  public CFAPathWithAssumptions allocateAssignmentsToPath(
-      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
+  public RichModel allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+
+    pPath.remove(pPath.size() - 1);
+
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
+
+    CFAPathWithAssumptions pathWithAssignments =
+        CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
+
+    RichModel model = RichModel.empty();
+
+    return model.withAssignmentInformation(pathWithAssignments);
   }
 
-  private ConcreteStatePath createConcreteStatePath(
-      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
+  private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
@@ -146,88 +146,75 @@ public class ValueAnalysisConcreteErrorPathAllocator {
      * representing each memory location, which would be necessary if we
      * wanted to exactly map each memory location to a LeftHandSide.*/
     Map<LeftHandSide, Address> variableAddresses =
-        generateVariableAddresses(FluentIterable.from(pPath).transform(Pair::getFirst));
+        generateVariableAddresses(
+            FluentIterable.from(pPath).transform(Pair.<ValueAnalysisState>getProjectionToFirst()));
 
-    for (Pair<ValueAnalysisState, List<CFAEdge>> edgeStatePair : pPath) {
+    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
 
       ValueAnalysisState valueState = edgeStatePair.getFirst();
-      List<CFAEdge> edges = edgeStatePair.getSecond();
+      CFAEdge edge = edgeStatePair.getSecond();
 
-      if (edges.size() > 1) {
-        Iterator<CFAEdge> it = Lists.reverse(edges).iterator();
-        List<SingleConcreteState> intermediateStates = new ArrayList<>();
-        Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
-        boolean isFirstIteration = true;
-        while (it.hasNext()) {
-          CFAEdge innerEdge = it.next();
-          ConcreteState state =
-              createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
+      ConcreteStatePathNode node;
 
-          // intermediate edge
-          if (isFirstIteration) {
-            intermediateStates.add(new SingleConcreteState(innerEdge, state));
-            isFirstIteration = false;
+      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
-            // last edge of (dynamic) multi edge
-          } else {
-            intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
-          }
-        }
-        result.addAll(Lists.reverse(intermediateStates));
-
-        // a normal edge, no special handling required
+        node = createMultiEdge(valueState, (MultiEdge) edge, variableAddresses);
       } else {
-        result.add(
-            new SingleConcreteState(
-                Iterables.getOnlyElement(edges),
-                new ConcreteState(
-                    ImmutableMap.<LeftHandSide, Object>of(),
-                    allocateAddresses(valueState, variableAddresses),
-                    variableAddresses,
-                    MEMORY_NAME)));
+        ConcreteState concreteState = createConcreteState(valueState, variableAddresses);
+        node = ConcreteStatePath.valueOfPathNode(concreteState, edge);
       }
+
+      result.add(node);
     }
+
 
     return new ConcreteStatePath(result);
   }
 
-  private ConcreteState createConcreteStateForMultiEdge(
-      ValueAnalysisState pValueState, Set<CLeftHandSide> alreadyAssigned, CFAEdge innerEdge) {
-    ConcreteState state;
-
-    // We know only values for LeftHandSides that have not yet been assigned.
-    if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
-      state = createConcreteState(pValueState);
-    } else {
-      state = ConcreteState.empty();
-    }
-
-    // add handled edges to alreadyAssigned list if necessary
-    if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
-
-      if (stmt instanceof CAssignment) {
-        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
-        alreadyAssigned.add(lhs);
-      }
-    }
-
-    return state;
-  }
-
   public static ConcreteState createConcreteState(ValueAnalysisState pValueState) {
-    Map<LeftHandSide, Address> variableAddresses =
-        generateVariableAddresses(Collections.singleton(pValueState));
-    // We assign every variable to the heap, thats why the variable map is empty.
-    return new ConcreteState(
-        ImmutableMap.<LeftHandSide, Object>of(),
-        allocateAddresses(pValueState, variableAddresses),
-        variableAddresses,
-        MEMORY_NAME);
+    Map<LeftHandSide, Address> variableAddresses = generateVariableAddresses(Collections.singleton(pValueState));
+    return createConcreteState(pValueState, variableAddresses);
   }
 
-  private boolean allValuesForLeftHandSideKnown(
-      CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+  private ConcreteStatePathNode createMultiEdge(ValueAnalysisState pValueState, MultiEdge multiEdge,
+      Map<LeftHandSide, Address> pVariableAddresses) {
+
+    int size = multiEdge.getEdges().size();
+
+    ConcreteState[] singleConcreteStates = new ConcreteState[size];
+
+    ListIterator<CFAEdge> iterator = multiEdge.getEdges().listIterator(size);
+
+    Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
+
+    // we have the state for the last edge
+    iterator.previous();
+    singleConcreteStates[size - 1] = createConcreteState(pValueState, pVariableAddresses);
+
+    int index = size - 2;
+
+    while (iterator.hasPrevious()) {
+      CFAEdge cfaEdge = iterator.previous();
+
+      ConcreteState state;
+
+      // We know only values for LeftHandSides that have not yet been assigned.
+      if (allValuesForLeftHandSideKnown(cfaEdge, alreadyAssigned)) {
+        state = createConcreteState(pValueState, pVariableAddresses);
+      } else {
+        state = ConcreteState.empty();
+      }
+      singleConcreteStates[index] = state;
+
+      addLeftHandSide(cfaEdge, alreadyAssigned);
+      index--;
+    }
+
+    return ConcreteStatePath.valueOfPathNode(Arrays.asList(singleConcreteStates), multiEdge);
+  }
+
+  private boolean allValuesForLeftHandSideKnown(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+
     if (pCfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return isDeclarationValueKnown((CDeclarationEdge) pCfaEdge, pAlreadyAssigned);
     } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
@@ -235,6 +222,18 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
 
     return false;
+  }
+
+  private void addLeftHandSide(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatement stmt = ((CStatementEdge)pCfaEdge).getStatement();
+
+      if(stmt instanceof CAssignment) {
+        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+        pAlreadyAssigned.add(lhs);
+      }
+    }
   }
 
   private boolean isStatementValueKnown(CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
@@ -363,7 +362,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     long biggestStoredOffsetInPath = 0;
 
     for (MemoryLocation loc : pCollection) {
-      if (loc.isReference() && loc.getOffset() > biggestStoredOffsetInPath) {
+      if (loc.getOffset() > biggestStoredOffsetInPath) {
         biggestStoredOffsetInPath = loc.getOffset();
       }
     }
@@ -409,6 +408,17 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
   }
 
+  //TODO move to util? (without param generated addresses)
+  private static ConcreteState createConcreteState(ValueAnalysisState pValueState,
+      Map<LeftHandSide, Address> pVariableAddressMap) {
+
+
+    Map<LeftHandSide, Object> variables = ImmutableMap.of();
+    Map<String, Memory> allocatedMemory = allocateAddresses(pValueState, pVariableAddressMap);
+    // We assign every variable to the heap, thats why the variable map is empty.
+    return new ConcreteState(variables, allocatedMemory, pVariableAddressMap, MEMORY_NAME);
+  }
+
   private static Map<String, Memory> allocateAddresses(ValueAnalysisState pValueState,
       Map<LeftHandSide, Address> pVariableAddressMap) {
 
@@ -445,10 +455,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);
-      Address address = baseAddress;
-      if (heapLoc.isReference()) {
-        address = baseAddress.addOffset(BigInteger.valueOf(heapLoc.getOffset()));
-      }
+      Address address = baseAddress.addOffset( BigInteger.valueOf(heapLoc.getOffset()));
       result.put(address, value);
     }
 

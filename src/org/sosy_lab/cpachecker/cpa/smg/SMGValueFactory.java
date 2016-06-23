@@ -30,7 +30,4 @@ public class SMGValueFactory {
     counter++;
     return Integer.valueOf(counter);
   }
-  public static void prepareForTest() {
-    counter = 5;
-  }
 }

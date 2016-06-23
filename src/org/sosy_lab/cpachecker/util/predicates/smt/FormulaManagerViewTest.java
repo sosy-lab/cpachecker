@@ -25,12 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.truth.Truth;
+import java.util.Collection;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +36,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -55,12 +51,15 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
 public class FormulaManagerViewTest extends SolverBasedTest0 {
 
-  @Parameters(name = "{0}")
+  @Parameters(name="{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
   }
@@ -85,15 +84,13 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.encodeBitvectorAs", "INTEGER")
         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
         .build();
-    mgrv = new FormulaManagerView(context.getFormulaManager(),
-        viewConfig, LogManager.createTestLogManager());
+    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
+        viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
   }
 
-  /**
-   * strip the most outer NOT, if there is one, else return the formula unchanged.
-   */
+  /** strip the most outer NOT, if there is one, else return the formula unchanged. */
   private BooleanFormula stripNot(final BooleanFormula f) {
     return mgrv.stripNegation(f).or(f);
   }
@@ -110,8 +107,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
 
     assertThat(mgrv.extractAtoms(f, false))
-        .containsExactly(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4),
-            stripNot(atom5));
+        .containsExactly(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
   }
 
   private void testExtractAtoms_SplitEqualities(
@@ -122,16 +118,15 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula f = bmgrv.or(ImmutableList.of(
         bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
 
-    Set<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
-    Set<BooleanFormula> expected = ImmutableSet
-        .of(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
+    Collection<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
+    Set<BooleanFormula> expected = ImmutableSet.of(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
 
     // Assert that atoms contains all of atom1-5
     // and another atom that is equivalent to atom1ineq
     assertThat(atoms).hasSize(6);
     assertThat(atoms).containsAllIn(expected);
 
-    atoms = Sets.difference(atoms, expected);
+    atoms.removeAll(expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
     assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
   }
@@ -160,19 +155,13 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     testExtractAtoms_SplitEqualities_numeral(rmgr);
   }
 
-  private void testExtractAtoms_SplitEqualities_bitvectors(BitvectorFormulaManager bvmgr)
-      throws SolverException, InterruptedException {
+  private void testExtractAtoms_SplitEqualities_bitvectors(BitvectorFormulaManager bvmgr) throws SolverException, InterruptedException {
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
-    BooleanFormula atom1ineq =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
-    BooleanFormula atom2 =
-        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
-    BooleanFormula atom3 =
-        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
-    BooleanFormula atom4 =
-        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
-    BooleanFormula atom5 =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
+    BooleanFormula atom1ineq = bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
+    BooleanFormula atom2 = bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
+    BooleanFormula atom3 = bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
+    BooleanFormula atom4 = bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
+    BooleanFormula atom5 = bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
 
     testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
   }
@@ -184,89 +173,9 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testExtractAtoms_SplitEqualities_bvReplaceByInt()
-      throws SolverException, InterruptedException {
+  public void testExtractAtoms_SplitEqualities_bvReplaceByInt() throws SolverException, InterruptedException {
     // BitvectorFormulaManagerView here!
     testExtractAtoms_SplitEqualities_bitvectors(mgrv.getBitvectorFormulaManager());
-  }
-
-  private void assertIsConjunctive(BooleanFormula f) {
-    if (!mgrv.isPurelyConjunctive(f)) {
-      Truth.assert_()
-          .fail("Formula <%s> is not detected as purely conjunctive but it should be.", f);
-    }
-  }
-
-  private void assertIsNotConjunctive(BooleanFormula f) {
-    if (mgrv.isPurelyConjunctive(f)) {
-      Truth.assert_().fail("Formula <%s> is detected as purely conjunctive but is not.", f);
-    }
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Simple() {
-    assertIsConjunctive(bmgrv.makeBoolean(true));
-    assertIsConjunctive(bmgrv.makeBoolean(false));
-    assertIsConjunctive(bmgrv.makeVariable("a"));
-    assertIsConjunctive(bmgrv.not(bmgrv.makeVariable("a")));
-    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.not(bmgrv.makeVariable("b"))));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Atom() {
-    BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), imgr.makeNumber(1));
-    assertIsConjunctive(atom);
-    assertIsConjunctive(bmgrv.not(atom));
-    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), atom));
-    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.not(atom)));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Negation() {
-    assertIsNotConjunctive(bmgrv.not(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Disjunction() {
-    assertIsNotConjunctive(bmgrv.or(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Equivalence() {
-    assertIsNotConjunctive(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-    assertIsNotConjunctive(
-        bmgr.not(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Implication() {
-    assertIsNotConjunctive(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-    assertIsNotConjunctive(
-        bmgr.not(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_Xor() {
-    assertIsNotConjunctive(bmgrv.xor(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
-    assertIsNotConjunctive(bmgr.not(bmgrv.xor(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_BooleanIfThenElse() {
-    assertIsNotConjunctive(bmgrv
-        .ifThenElse(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"), bmgrv.makeVariable("c")));
-  }
-
-  @Test
-  public void testIsPurelyConjunctive_IfThenElse() {
-    IntegerFormula ifThenElse =
-        bmgrv.ifThenElse(bmgrv.makeVariable("a"), imgr.makeNumber(0), imgr.makeNumber(1));
-    BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), ifThenElse);
-    assertIsNotConjunctive(atom);
-    assertIsNotConjunctive(bmgrv.not(atom));
-    assertIsNotConjunctive(bmgrv.and(bmgrv.makeVariable("a"), atom));
-    assertIsNotConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.not(atom)));
   }
 
   @Test

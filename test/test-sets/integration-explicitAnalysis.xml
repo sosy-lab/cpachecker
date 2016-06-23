@@ -8,7 +8,6 @@
   <!-- SV-Comp files assume that malloc always succeeds (needed for counterexample check) -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-  <resultfiles>dummy</resultfiles>
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
@@ -35,7 +34,7 @@
 
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">Size of reached set</column>
+    <column title="reached">reached set</column>
     <column title="refinements">Number of refinements</column>
     <column title="refinements_succ">Number of successful refinements</column>
     <column title="refinements_fail">Number of failed refinements</column>

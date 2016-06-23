@@ -23,30 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +37,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 /**
  * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
@@ -202,7 +202,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
+    return FluentIterable.from(targetsPaths).transform(new Function<ARGPath, ARGState>() {
+      @Override
+      public ARGState apply(ARGPath targetsPath) {
+        return targetsPath.getLastState();
+      }}).toSet();
   }
 
   public ARGState getRoot() {
@@ -248,9 +252,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     }
     result.append("}");
 
-    try {
-      MoreFiles.writeFile(
-          file.getPath(refinementCounter, interpolationCounter), Charset.defaultCharset(), result);
+    try (Writer w = Files.openOutputFile(file.getPath(refinementCounter, interpolationCounter))) {
+      w.write(result.toString());
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write interpolation tree to file");
     }
@@ -427,7 +430,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * @return the target states that were interpolated
    */
   public Collection<ARGState> getInterpolatedTargetsInSubtree(ARGState state) {
-    return from(getTargetsInSubtree(state)).filter(interpolants::containsKey).toSet();
+    return FluentIterable.from(getTargetsInSubtree(state)).filter(new Predicate<ARGState>() {
+      @Override
+      public boolean apply(ARGState targetState) {
+        return interpolants.containsKey(targetState);
+      }}).toSet();
   }
 
   /**

@@ -79,6 +79,19 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   }
 
   @Override
+  public <T extends ConfigurableProgramAnalysis> Collection<T> retrieveWrappedCpas(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return ImmutableList.of(pType.cast(this));
+    } else if (pType.isAssignableFrom(wrappedCpa.getClass())) {
+      return ImmutableList.of(pType.cast(wrappedCpa));
+    } else if (wrappedCpa instanceof WrapperCPA) {
+      return ((WrapperCPA)wrappedCpa).retrieveWrappedCpas(pType);
+    } else {
+      return ImmutableList.of();
+    }
+  }
+
+  @Override
   public ImmutableList<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return ImmutableList.of(wrappedCpa);
   }

@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /**
@@ -63,7 +64,7 @@ class LocationBasedConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public LocationBasedConstraintsPrecision join(final ConstraintsPrecision pOther) {
+  public Precision join(Precision pOther) {
     assert pOther instanceof LocationBasedConstraintsPrecision;
 
     LocationBasedConstraintsPrecision that = (LocationBasedConstraintsPrecision) pOther;

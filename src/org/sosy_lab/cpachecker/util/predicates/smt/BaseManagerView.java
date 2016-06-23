@@ -48,7 +48,7 @@ abstract class BaseManagerView {
     return wrappingHandler.wrap(targetType, toWrap);
   }
 
-  public final Formula unwrap(Formula f) {
+  final Formula unwrap(Formula f) {
     return wrappingHandler.unwrap(f);
   }
 

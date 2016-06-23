@@ -1,0 +1,15 @@
+Using the CPAchecker Eclipse Plugin
+===================================
+
+The Eclipse Plugin for CPAchecker is outdated
+and does not work with current versions of CPAchecker and Eclipse!
+
+
+Install CPAchecker -- Eclipse Plugin for C projects (experimental)
+------------------------------------------------------------------
+
+1. Install Eclipse 3.5 with CDT 6, Eclipse 3.6 with CDT 7, or Eclipse 3.7 with CDT 7.
+
+2. Add the URL http://www.sosy-lab.org/~dbeyer/eclipse-download/ as an update site to Eclipse.
+
+3. Install CPAclipse plugin.

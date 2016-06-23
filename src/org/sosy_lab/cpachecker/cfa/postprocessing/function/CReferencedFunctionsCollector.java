@@ -1,3 +1,5 @@
+package org.sosy_lab.cpachecker.cfa.postprocessing.function;
+
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -21,7 +23,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.postprocessing.function;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -53,9 +57,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-
-import java.util.HashSet;
-import java.util.Set;
 
 
 /**
@@ -104,10 +105,13 @@ class CReferencedFunctionsCollector {
       CStatementEdge statementEdge = (CStatementEdge)edge;
       statementEdge.getStatement().accept(collector);
       break;
-
-      default:
-        assert false; // TODO should this be an assertionError directly?
-        break;
+    case MultiEdge:
+      //TODO
+      assert false;
+      break;
+    default:
+      assert false;
+      break;
     }
   }
 

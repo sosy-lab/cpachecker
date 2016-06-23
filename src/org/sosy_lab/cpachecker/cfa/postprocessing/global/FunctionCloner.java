@@ -23,10 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
+import javax.annotation.Nonnull;
+
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -69,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -91,16 +98,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nonnull;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /** This Class can be used to clone a function from the CFA.
  * You need to specify a new functionName.
@@ -229,6 +230,28 @@ class FunctionCloner implements CFAVisitor {
         } else {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }
+        break;
+      }
+
+      case MultiEdge: {
+        final MultiEdge e = (MultiEdge) edge;
+        final List<CFAEdge> clonedEdges = new ArrayList<>(e.getEdges().size());
+        CFANode pred = start;
+        for (final CFAEdge child : e) {
+          // do not add inner nodes to nodeMapping, they are only accessible via the MultiEdge
+          final CFANode succ = cloneNode(child.getSuccessor(), false);
+          clonedEdges.add(cloneEdge(child, pred, succ));
+          pred = succ;
+        }
+
+        assert pred == end : "cloned end-node must be in nodeMapping";
+
+        // only nodes in the middle are double connected with their nodes
+        for (int i = 1; i < clonedEdges.size() - 1; i++) {
+          CFACreationUtils.addEdgeUnconditionallyToCFA(clonedEdges.get(i));
+        }
+
+        newEdge = new MultiEdge(start, end, clonedEdges);
         break;
       }
 

@@ -23,38 +23,40 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
+
+import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.SortedSet;
+
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
 import com.google.common.collect.UnmodifiableIterator;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedSet;
 
 public class CFAUtils {
 
@@ -182,12 +184,27 @@ public class CFAUtils {
     };
   }
 
+  public static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+      @Override
+      public CFANode apply(CFAEdge pInput) {
+        return pInput.getPredecessor();
+      }
+    };
+
+
+  public static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+    @Override
+    public CFANode apply(CFAEdge pInput) {
+      return pInput.getSuccessor();
+    }
+  };
+
   /**
    * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode,
    * excluding the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
-    return enteringEdges(node).transform(CFAEdge::getPredecessor);
+    return enteringEdges(node).transform(TO_PREDECESSOR);
   }
 
   /**
@@ -195,7 +212,7 @@ public class CFAUtils {
    * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
-    return allEnteringEdges(node).transform(CFAEdge::getPredecessor);
+    return allEnteringEdges(node).transform(TO_PREDECESSOR);
   }
 
   /**
@@ -203,7 +220,7 @@ public class CFAUtils {
    * excluding the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> successorsOf(final CFANode node) {
-    return leavingEdges(node).transform(CFAEdge::getSuccessor);
+    return leavingEdges(node).transform(TO_SUCCESSOR);
   }
 
   /**
@@ -211,8 +228,25 @@ public class CFAUtils {
    * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
-    return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
+    return allLeavingEdges(node).transform(TO_SUCCESSOR);
   }
+
+  public static final Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
+    @Override
+    public String apply(CFANode pInput) {
+      return pInput.getFunctionName();
+    }
+  };
+
+  /**
+   * A comparator for comparing {@link CFANode}s by their node numbers.
+   */
+  public static final Comparator<CFANode> NODE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
+    @Override
+    public int compare(CFANode pO1, CFANode pO2) {
+      return Integer.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
+    }
+  };
 
   /**
    * Returns a predicate for CFA edges with the given edge type.
@@ -222,7 +256,14 @@ public class CFAUtils {
    */
   public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
     checkNotNull(pType);
-    return pInput -> pInput.getEdgeType() == pType;
+    return new Predicate<CFAEdge>() {
+
+      @Override
+      public boolean apply(CFAEdge pInput) {
+        return pInput.getEdgeType() == pType;
+      }
+
+    };
   }
 
   /**
@@ -273,7 +314,6 @@ public class CFAUtils {
     }
     return false;
   }
-
 
   /**
    * This Visitor searches for backwards edges in the CFA, if some backwards edges
@@ -345,56 +385,23 @@ public class CFAUtils {
     return Collections3.subSetWithPrefix(variables, prefix);
   }
 
-  /**
-   * Get all (sub)-paths through the given nodes connected only via blank edges.
-   *
-   * @param pNode the node to get the blank paths for.
-   * @return all (sub)-paths through the given nodes connected only via blank edges.
-   */
-  public static Iterable<List<CFANode>> getBlankPaths(CFANode pNode) {
-    List<List<CFANode>> blankPaths = new ArrayList<>();
-    Queue<List<CFANode>> waitlist = Queues.newArrayDeque();
-    waitlist.offer(ImmutableList.of(pNode));
-    while (!waitlist.isEmpty()) {
-      List<CFANode> currentPath = waitlist.poll();
-      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
-      List<BlankEdge> leavingBlankEdges =
-          CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
-      if (pathSucc.getNumLeavingEdges() <= 0
-          || leavingBlankEdges.size() < pathSucc.getNumLeavingEdges()) {
-        blankPaths.add(currentPath);
-      } else {
-        for (CFAEdge leavingEdge : leavingBlankEdges) {
-          CFANode successor = leavingEdge.getSuccessor();
-          if (!currentPath.contains(successor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().addAll(currentPath).add(successor).build();
-            waitlist.offer(newPath);
-          }
-        }
-      }
+  public static ImmutableMap<String, CFAEdge> getLabeledEdges(CFA pCfa) {
+    ImmutableMap.Builder<String, CFAEdge> result = ImmutableMap.<String, CFAEdge>builder();
+    for (CLabelNode n: Iterables.filter(pCfa.getAllNodes(), CLabelNode.class)) {
+      CFAEdge e = Iterables.getOnlyElement(CFAUtils.leavingEdges(n));
+      result.put(n.getLabel(), e);
     }
-    waitlist.addAll(blankPaths);
-    blankPaths.clear();
-    while (!waitlist.isEmpty()) {
-      List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
-      List<BlankEdge> enteringBlankEdges =
-          CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
-      if (pathPred.getNumEnteringEdges() <= 0
-          || enteringBlankEdges.size() < pathPred.getNumEnteringEdges()) {
-        blankPaths.add(currentPath);
-      } else {
-        for (CFAEdge enteringEdge : enteringBlankEdges) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          if (!currentPath.contains(predecessor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().add(predecessor).addAll(currentPath).build();
-            waitlist.offer(newPath);
-          }
-        }
-      }
-    }
-    return blankPaths;
+    return result.build();
   }
+
+  public static ImmutableMultimap<Integer, CFAEdge> getLineEdges(CFA pCfa) {
+    Builder<Integer, CFAEdge> result = ImmutableMultimap.<Integer, CFAEdge>builder();
+    for (CFANode n: pCfa.getAllNodes()) {
+      for (CFAEdge e: CFAUtils.leavingEdges(n)) {
+        result.put(e.getFileLocation().getStartingLineNumber(), e);
+      }
+    }
+    return result.build();
+  }
+
 }

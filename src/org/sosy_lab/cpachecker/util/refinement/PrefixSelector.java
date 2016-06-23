@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Ordering;
-
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.TreeSet;
+
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+
+import com.google.common.base.Optional;
 
 public class PrefixSelector {
 
@@ -43,9 +43,12 @@ public class PrefixSelector {
   public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
 
-    List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
+    List<Comparator<InfeasiblePrefix>> comperators = createComperators(pPrefixPreference);
 
-    return Ordering.compound(comparators).min(pInfeasiblePrefixes);
+    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comperators));
+    sortedPrefixes.addAll(pInfeasiblePrefixes);
+
+    return sortedPrefixes.first();
   }
 
   public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
@@ -65,20 +68,41 @@ public class PrefixSelector {
     return minScore;
   }
 
-  private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
+  private List<Comparator<InfeasiblePrefix>> createComperators(List<PrefixPreference> pPrefixPreference) {
 
     ScorerFactory factory = new ScorerFactory(classification, loopStructure);
 
-    List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
+    List<Comparator<InfeasiblePrefix>> comperators = new ArrayList<>();
     for(PrefixPreference preference : pPrefixPreference) {
-      comparators.add(factory.createScorer(preference).getComparator());
+      comperators.add(factory.createScorer(preference).getComperator());
     }
 
-    return comparators;
+    return comperators;
   }
 
-  public static final List<PrefixPreference> NO_SELECTION =
-      Collections.singletonList(PrefixPreference.NONE);
+  private static class ChainedComparator implements Comparator<InfeasiblePrefix> {
+
+    List<Comparator<InfeasiblePrefix>> comperators;
+
+    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComperators) {
+      comperators = pComperators;
+    }
+
+    @Override
+    public int compare(final InfeasiblePrefix onePrefix, final InfeasiblePrefix otherPrefix) {
+      for (Comparator<InfeasiblePrefix> comperator : comperators) {
+        int result = comperator.compare(onePrefix, otherPrefix);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      return 0;
+    }
+  }
+
+  public static List<PrefixPreference> NO_SELECTION = Collections.singletonList(PrefixPreference.NONE);
 
   public enum PrefixPreference {
 
@@ -181,8 +205,13 @@ public class PrefixSelector {
       return this;
     }
 
-    public Comparator<InfeasiblePrefix> getComparator() {
-      return Comparator.comparingInt(this::computeScore);
+    public Comparator<InfeasiblePrefix> getComperator() {
+      return new Comparator<InfeasiblePrefix>() {
+
+        @Override
+        public int compare(InfeasiblePrefix onePrefix, InfeasiblePrefix otherPrefix) {
+          return computeScore(onePrefix) - computeScore(otherPrefix);
+        }};
     }
   }
 
@@ -199,7 +228,7 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return sign * classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      return sign * classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfVariables(), loopStructure);
     }
   }
 
@@ -216,7 +245,7 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfVariables(), loopStructure);
 
       if(score != Integer.MAX_VALUE) {
         score = 0;
@@ -261,7 +290,7 @@ public class PrefixSelector {
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
-      for (String variable : pPrefix.extractSetOfIdentifiers()) {
+      for (String variable : pPrefix.extractSetOfVariables()) {
         count = count + classification.get().getAssignedVariables().count(variable);
       }
 
@@ -280,7 +309,7 @@ public class PrefixSelector {
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
-      for (String variable : pPrefix.extractSetOfIdentifiers()) {
+      for (String variable : pPrefix.extractSetOfVariables()) {
         count = count + classification.get().getAssumedVariables().count(variable);
       }
 

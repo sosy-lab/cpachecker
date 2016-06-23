@@ -1,30 +1,23 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
-import com.google.common.collect.Table.Cell;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -35,51 +28,21 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 
 /**
  * Return a path-formula describing all possible transitions inside the loop.
- *
- * <p><b>Warning: </b></p> this class is deprecated and probably should not be
- * used, it's better to find transitions dynamically using CPAs.
  */
 @Options(prefix="cpa.slicing")
-public class LoopTransitionFinder implements StatisticsProvider {
-
-  /**
-   * Statistics for formula slicing.
-   */
-  private static class Stats implements Statistics {
-    final Timer LBEencodingTimer = new Timer();
-
-    @Override
-    public void printStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
-      out.printf("Time spent in LBE Encoding: %s (Max: %s), (Avg: %s)%n",
-          LBEencodingTimer,
-          LBEencodingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
-          LBEencodingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-    }
-
-    @Override
-    public String getName() {
-      return "LBE Encoding of Loops";
-    }
-  }
+public class LoopTransitionFinder {
 
   @Option(secure=true, description="Apply AND- LBE transformation to loop "
       + "transition relation.")
@@ -89,37 +52,28 @@ public class LoopTransitionFinder implements StatisticsProvider {
       + "ignore the function nested in the loop. UNSOUND!")
   private boolean ignoreFunctionCallsInLoop = false;
 
-  @Option(
-      secure = true,
-      description =
-          "Time for loop generation before aborting.\n"
-              + "(Use seconds or specify a unit; 0 for infinite)"
-  )
-  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-   private TimeSpan timeForLoopGeneration = TimeSpan.ofSeconds(0);
-
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final LogManager logger;
   private final LoopStructure loopStructure;
-  private final Stats statistics;
+  private final FormulaSlicingStatistics statistics;
   private final ShutdownNotifier shutdownNotifier;
 
   private final Map<CFANode, Table<CFANode, CFANode, EdgeWrapper>> LBEcache;
 
   public LoopTransitionFinder(
       Configuration config,
-      LoopStructure pLoopStructure, PathFormulaManager pPfmgr,
+      CFA pCfa, PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      FormulaSlicingStatistics pStatistics, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     shutdownNotifier = pShutdownNotifier;
     config.inject(this);
-    statistics = new Stats();
+    statistics = pStatistics;
     pfmgr = pPfmgr;
     fmgr = pFmgr;
     logger = pLogger;
-    loopStructure = pLoopStructure;
+    loopStructure = pCfa.getLoopStructure().get();
 
     LBEcache = new HashMap<>();
   }
@@ -133,15 +87,6 @@ public class LoopTransitionFinder implements StatisticsProvider {
     Preconditions.checkState(loopStructure.getAllLoopHeads()
         .contains(loopHead));
 
-    ShutdownManager loopGenerationShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-    ResourceLimitChecker limits = null;
-    if (!timeForLoopGeneration.isEmpty()) {
-      WalltimeLimit l = WalltimeLimit.fromNowOn(timeForLoopGeneration);
-      limits =
-          new ResourceLimitChecker(
-              loopGenerationShutdown, Collections.<ResourceLimit>singletonList(l));
-      limits.start();
-    }
 
     PathFormula out;
     statistics.LBEencodingTimer.start();
@@ -151,11 +96,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       statistics.LBEencodingTimer.stop();
     }
 
-    if (!timeForLoopGeneration.isEmpty()) {
-      limits.cancel();
-    }
-
-    return out;
+    return out.updateFormula(fmgr.simplify(out.getFormula()));
   }
 
 
@@ -259,9 +200,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       CFANode predecessor = e.getPredecessor();
 
       // Do not perform reduction on nodes ending in a loop-head.
-      if (loopStructure.getAllLoopHeads().contains(predecessor)) {
-        continue;
-      }
+      if (loopStructure.getAllLoopHeads().contains(predecessor)) continue;
 
       // Successor equivalent to our predecessor.
       Collection<EdgeWrapper> candidates = out.row(predecessor).values();
@@ -440,9 +379,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       PathFormula out = first.toPathFormula(prev);
 
       for (EdgeWrapper edge : edges) {
-        if (edge == first) {
-          continue;
-        }
+        if (edge == first) continue;
         out = pfmgr.makeOr(out, edge.toPathFormula(prev));
       }
       return out;
@@ -469,10 +406,5 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
     sb.append(prefix).append(")");
     return sb.toString();
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(statistics);
   }
 }

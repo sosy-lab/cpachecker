@@ -28,12 +28,18 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -45,6 +51,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
@@ -65,6 +72,9 @@ public abstract class RefinementStrategy {
   private final StatInt nonTrivialPathStates = new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
   private final StatInt falsePathSuffixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
 
+  private final StatInt equalPrecisionsOnPaths = new StatInt(StatKind.SUM, "Equal precisions along paths");
+  private final StatInt differentPrecisionsOnPaths = new StatInt(StatKind.SUM, "Different precisions along paths");
+
   private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
   private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
@@ -78,7 +88,9 @@ public abstract class RefinementStrategy {
         .put(nonTrivialPathStates)
         .put(falsePathSuffixStates)
         .put(differentNontrivialInterpolants)
-        .put(equalNontrivialInterpolants);
+        .put(equalNontrivialInterpolants)
+        .put(differentPrecisionsOnPaths)
+        .put(equalPrecisionsOnPaths);
     }
   };
 
@@ -90,19 +102,52 @@ public abstract class RefinementStrategy {
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
 
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
-    // Hook
-    startRefinementOfPath();
+  public boolean needsInterpolants() {
+    return true;
+  }
+
+  @ForOverride
+  protected void analyzePathPrecisions(ARGReachedSet argReached, List<ARGState> path) {
+    int equalPrecisions = 0;
+    int differentPrecisions = 0;
+
+    UnmodifiableReachedSet reached = argReached.asReachedSet();
+    PredicatePrecision lastPaPrec = null;
+    for (ARGState state : path) {
+      Precision prec = reached.getPrecision(state);
+      PredicatePrecision paPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+      if (lastPaPrec != null) {
+        if (lastPaPrec.equals(paPrec)) {
+          equalPrecisions++;
+        } else {
+          differentPrecisions++;
+        }
+      }
+      lastPaPrec = paPrec;
+    }
+
+    equalPrecisionsOnPaths.setNextValue(equalPrecisions);
+    differentPrecisionsOnPaths.setNextValue(differentPrecisions);
+  }
+
+
+  public void performRefinement(ARGReachedSet pReached, List<ARGState> pAbstractionStatesTrace,
+      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample)
+          throws CPAException, InterruptedException {
 
     // The last state along the path is the target (error) state
-    ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
+    ARGState lastElement = pAbstractionStatesTrace.get(pAbstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
+
+    Set<Property> propertiesAtTarget = lastElement.getViolatedProperties();
+
+    // Hook
+    startRefinementOfPath(pReached, pAbstractionStatesTrace, lastElement);
 
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;
     try {
       rootOfInfeasibleArgAndChangedElements =
-          evaluateInterpolantsOnPath(lastElement, abstractionStatesTrace, pInterpolants);
+          evaluateInterpolantsOnPath(lastElement, pAbstractionStatesTrace, pInterpolants);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     }
@@ -111,13 +156,9 @@ public abstract class RefinementStrategy {
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
 
     // Hook
-    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample);
+    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample, propertiesAtTarget);
 
-    // TODO find a way to uncomment this assert. In combination with
-    // PredicateCPAGlobalRefiner and the PredicateAbstractionGlobalRefinementStrategy
-    // this assert doesn't hold, as the updated elements are removed from the
-    // reached set one step later
-    // assert !pReached.asReachedSet().contains(lastElement);
+    assert !pReached.asReachedSet().contains(lastElement);
   }
 
   // returns a pair consisting of the root of the infeasible part of the ARG and a list of all
@@ -125,7 +166,7 @@ public abstract class RefinementStrategy {
   private Pair<ARGState, List<ARGState>> evaluateInterpolantsOnPath(
       ARGState pTargetState,
       List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants) throws SolverException, InterruptedException {
+      List<BooleanFormula> pInterpolants) throws RefinementFailedException, SolverException, InterruptedException {
 
     // Skip the last element of the path, itp is always false there
     abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
@@ -198,6 +239,13 @@ public abstract class RefinementStrategy {
     numberOfAffectedStates.setNextValue(changedElements.size());
     if (infeasiblePartOfARG == pTargetState) {
       pathLengthToInfeasibility++;
+
+      if (changedElements.isEmpty()) {
+        // The only reason why this might appear is that the very last block is
+        // infeasible in itself, however, we check for such cases during strengthen,
+        // so they shouldn't appear here.
+        throw new RefinementFailedException(Reason.InterpolationFailed, null);
+      }
     }
 
     // Update global statistics
@@ -212,7 +260,7 @@ public abstract class RefinementStrategy {
   }
 
   @ForOverride
-  protected abstract void startRefinementOfPath();
+  protected abstract void startRefinementOfPath(ARGReachedSet pReached, List<ARGState> pAbstractionStatesTrace, ARGState pLastElement);
 
   /**
    * Perform refinement on one state given the interpolant that was determined
@@ -229,19 +277,21 @@ public abstract class RefinementStrategy {
   /**
    * Do any necessary work after one path has been refined.
    *
-   * @param unreachableState The first state in the path which is infeasible (this identifies the path).
-   * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
-   * @param reached The reached set.
-   * @param repeatedCounterexample Whether the counterexample has been found before.
+   * @param pUnreachableState The first state in the path which is infeasible (this identifies the path).
+   * @param pAffectedStates The list of states that were affected by the refinement (ordered from root to target state).
+   * @param pReached The reached set.
+   * @param pRepeatedCounterexample Whether the counterexample has been found before.
+   * @param pPropertiesAtTarget Properties that would have been violated at the target location.
    * @throws CPAException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
   @ForOverride
   protected abstract void finishRefinementOfPath(
-      final ARGState unreachableState,
-      List<ARGState> affectedStates,
-      ARGReachedSet reached,
-      boolean repeatedCounterexample) throws CPAException, InterruptedException;
+      final ARGState pUnreachableState,
+      List<ARGState> pAffectedStates,
+      ARGReachedSet pReached,
+      boolean pRepeatedCounterexample,
+      Set<Property> pPropertiesAtTarget) throws CPAException, InterruptedException;
 
   public abstract Statistics getStatistics();
 }

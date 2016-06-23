@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 
 
 abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
-  private final TypeInfo info;
+  private final BitVectorInfo info;
 
-  public AbstractFormula(TypeInfo pInfo) {
+  public AbstractFormula(BitVectorInfo pInfo) {
     this.info = pInfo;
   }
 
   @Override
-  public TypeInfo getTypeInfo() {
+  public BitVectorInfo getBitVectorInfo() {
     return this.info;
   }
 

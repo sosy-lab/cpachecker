@@ -1,17 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableSet;
-
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Policy with a local bound.
@@ -39,8 +39,6 @@ public class PolicyBound {
    */
   private final ImmutableSet<Template> dependencies;
 
-  private int hashCache = 0;
-
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
@@ -66,11 +64,6 @@ public class PolicyBound {
     return new PolicyBound(formula, newValue, predecessor, dependencies);
   }
 
-  public PolicyBound withNoDependencies() {
-    return new PolicyBound(formula, bound, predecessor,
-        ImmutableSet.<Template>of());
-  }
-
   /**
    * @return Unique identifier for value determination.
    *
@@ -88,7 +81,7 @@ public class PolicyBound {
   }
 
   public PolicyAbstractedState getPredecessor() {
-    return predecessor;
+    return predecessor.getLatestVersion();
   }
 
   public PathFormula getFormula() {
@@ -105,10 +98,7 @@ public class PolicyBound {
 
   @Override
   public int hashCode() {
-    if (hashCache == 0) {
-      hashCache = Objects.hashCode(predecessor, bound, formula);
-    }
-    return hashCache;
+    return Objects.hashCode(predecessor, bound, formula);
   }
 
   @Override
@@ -120,15 +110,9 @@ public class PolicyBound {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) {
-      return true;
-    }
-    if (other == null) {
-      return false;
-    }
-    if (other.getClass() != this.getClass()) {
-      return false;
-    }
+    if (this == other) return true;
+    if (other == null) return false;
+    if (other.getClass() != this.getClass()) return false;
     PolicyBound o = (PolicyBound) other;
     return
         predecessor.equals(o.predecessor)

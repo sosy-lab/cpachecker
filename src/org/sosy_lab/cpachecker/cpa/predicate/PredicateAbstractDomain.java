@@ -47,10 +47,9 @@ public class PredicateAbstractDomain implements AbstractDomain {
 
   private final PredicateAbstractionManager mgr;
 
-  public PredicateAbstractDomain(Configuration config, PredicateAbstractionManager pPredAbsManager)
-      throws InvalidConfigurationException {
+  public PredicateAbstractDomain(PredicateCPA pCpa, Configuration config) throws InvalidConfigurationException {
     config.inject(this, PredicateAbstractDomain.class);
-    mgr = pPredAbsManager;
+    mgr = pCpa.getPredicateManager();
   }
 
   @Override

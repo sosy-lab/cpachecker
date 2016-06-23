@@ -23,8 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -37,7 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -59,17 +67,16 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.ConjunctiveCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.NullCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampleFilter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-@Options
+@Options(prefix="cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA implements
     ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -77,19 +84,19 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(secure=true, name="cpa.arg.inCPAEnabledAnalysis",
+  @Option(secure=true,
   description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
     + "behave differntly during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="cpa.arg.deleteInCPAEnabledAnalysis",
+  @Option(secure=true,
       description="inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="counterexample.export.filters", deprecatedName="cpa.arg.errorPath.filters",
+  @Option(secure=true, name="errorPath.filters",
       description="Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-      + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
+      + " Only relevant with analysis.stopAfterError=false and cpa.arg.errorPath.exportImmediately=true."
       + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter.")
   @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<Class<? extends CounterexampleFilter>> cexFilterClasses
@@ -97,7 +104,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
           PathEqualityCounterexampleFilter.class);
   private final CounterexampleFilter cexFilter;
 
-  @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",
+  @Option(secure=true, name="errorPath.exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
 
@@ -113,6 +120,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final ProofChecker wrappedProofChecker;
 
   private final CEXExporter cexExporter;
+  private final CounterexamplesSummary cexSummary;
   private final MachineModel machineModel;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
@@ -121,6 +129,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
+
+    PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
+    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
+      precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
+    } else {
+      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inCPAEnabledAnalysis);
+    }
 
     if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)cpa).getReducer();
@@ -151,18 +166,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
-    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa);
+    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
     cexExporter = new CEXExporter(config, logger, argPathExporter);
-    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
-        dumpErrorPathImmediately ? null : cexExporter, argPathExporter);
     machineModel = cfa.getMachineModel();
-
-    PrecisionAdjustment wrappedPrec = cpa.getPrecisionAdjustment();
-    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
-      precisionAdjustment = new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
-    } else {
-      precisionAdjustment = new ARGPrecisionAdjustment(cpa.getPrecisionAdjustment(), inCPAEnabledAnalysis, stats);
-    }
+    cexSummary = new CounterexamplesSummary(config, logger, machineModel);
+    stats =
+        new ARGStatistics(
+            config, logger, dumpErrorPathImmediately ? null : cexExporter, cexSummary);
   }
 
   private CounterexampleFilter createCounterexampleFilter(Configuration config,
@@ -187,6 +197,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       }
       return new ConjunctiveCounterexampleFilter(filters);
     }
+  }
+
+  public CounterexamplesSummary getCexSummary() {
+    return cexSummary;
   }
 
   @Override
@@ -232,7 +246,35 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    pStatsCollection.add(cexSummary);
     super.collectStatistics(pStatsCollection);
+  }
+
+  public Map<ARGState, CounterexampleInfo> getCounterexamples() {
+    return cexSummary.getCounterexamples();
+  }
+
+  public void addFeasibleCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample) {
+    checkArgument(pTargetState.isTarget());
+    checkArgument(!pCounterexample.isSpurious());
+
+    // With BAM, the targetState and the last state of the path
+    // may actually be not identical.
+    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
+
+    cexSummary.addFeasibleCounterexample(pTargetState, pCounterexample);
+  }
+
+  public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {
+    cexSummary.countInfeasibleCounterexample(pPath, pTargetState);
+  }
+
+  public void removeInfeasibleState(Set<ARGState> pToRemove) {
+    cexSummary.removeInfeasibleState(pToRemove);
+  }
+
+  public void clearCounterexamples(Set<ARGState> pToRemove) {
+    cexSummary.clearCounterexamples(pToRemove);
   }
 
   ARGToDotWriter getRefinementGraphWriter() {
@@ -253,10 +295,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   void exportCounterexampleOnTheFly(ARGState pTargetState,
-    CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
+    CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
     if (dumpErrorPathImmediately) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo);
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }

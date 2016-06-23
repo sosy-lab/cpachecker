@@ -25,7 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import com.google.common.base.Optional;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -88,14 +95,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
 
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
@@ -154,7 +154,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   Formula makeBaseAddressOfTerm(final Formula address) {
-    return ffmgr.declareAndCallUF("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
+    return ffmgr.declareAndCallUninterpretedFunction("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
   }
 
   static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
@@ -308,7 +308,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           offset += getSizeof(memberType);
         }
       }
-    } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {
+    } else if (!(baseType instanceof CFunctionType)) {
       // This adds a constraint *a = a for the case where we previously tracked
       // a variable directly and now via its address (we do not want to loose
       // the value previously stored in the variable).
@@ -505,15 +505,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
+      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, final CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
-
-    if (rhs instanceof CExpression) {
-      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
-    }
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
     return assignmentHandler.handleAssignment(lhs, lhsForChecking, rhs, false, null);
@@ -651,7 +647,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
       if (initializer != null) {
         result = assignmentHandler.handleAssignment(lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
-      } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
+      } else if (isRelevantVariable(declaration)) {
         result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
       } else {
         result = bfmgr.makeBoolean(true);
@@ -791,7 +787,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @Override
-  public int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeFreshIndex(pName, pType, pSsa);
   }
 

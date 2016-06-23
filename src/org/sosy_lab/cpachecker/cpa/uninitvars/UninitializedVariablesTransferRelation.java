@@ -23,6 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -67,15 +76,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 /**
  * Needs typesCPA to properly deal with field references.
  * If run without typesCPA, uninitialized field references may not be detected.
@@ -98,60 +98,54 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     UninitializedVariablesState successor = ((UninitializedVariablesState)element).clone();
     successor.clearProperties();
 
-    handleEdge(cfaEdge, successor);
+    switch (cfaEdge.getEdgeType()) {
+
+    case DeclarationEdge:
+      handleDeclaration(successor, (CDeclarationEdge)cfaEdge);
+      break;
+
+    case StatementEdge:
+      handleStatement(successor, ((CStatementEdge)cfaEdge).getStatement(), cfaEdge);
+      break;
+
+    case ReturnStatementEdge:
+      //this is the return-statement of a function
+      //set a local variable tracking the return statement's initialization status
+      if (isExpressionUninitialized(successor, ((CReturnStatementEdge)cfaEdge).getExpression().orNull(), cfaEdge)) {
+        setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
+      } else {
+        setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
+      }
+      break;
+
+    case FunctionReturnEdge:
+      //handle statement like a = func(x) in the CFunctionSummaryEdge
+      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)cfaEdge;
+      CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
+      handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
+      break;
+
+    case AssumeEdge:
+      // just check if there are uninitialized variable usages
+      if (printWarnings) {
+        isExpressionUninitialized(successor, ((CAssumeEdge)cfaEdge).getExpression(), cfaEdge);
+      }
+      break;
+
+    case FunctionCallEdge:
+      //on calling a function, check initialization status of the parameters
+      handleFunctionCall(successor, (CFunctionCallEdge)cfaEdge);
+      break;
+
+    case BlankEdge:
+      break;
+
+    default:
+      throw new UnrecognizedCFAEdgeException(cfaEdge);
+    }
 
     return successor;
   }
-
-  private void handleEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException {
-    switch (cfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
-        break;
-
-      case StatementEdge:
-        handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
-        break;
-
-      case ReturnStatementEdge:
-        //this is the return-statement of a function
-        //set a local variable tracking the return statement's initialization status
-        if (isExpressionUninitialized(successor, ((CReturnStatementEdge) cfaEdge).getExpression()
-            .orNull(), cfaEdge)) {
-          setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
-        } else {
-          setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
-        }
-        break;
-
-      case FunctionReturnEdge:
-        //handle statement like a = func(x) in the CFunctionSummaryEdge
-        CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
-        CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
-        handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
-        break;
-
-      case AssumeEdge:
-        // just check if there are uninitialized variable usages
-        if (printWarnings) {
-          isExpressionUninitialized(successor, ((CAssumeEdge) cfaEdge).getExpression(), cfaEdge);
-        }
-        break;
-
-      case FunctionCallEdge:
-        //on calling a function, check initialization status of the parameters
-        handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
-        break;
-
-      case BlankEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(cfaEdge);
-    }
-  }
-
 
   private void addWarning(CFAEdge edge, String variable, CRightHandSide expression,
                                                       UninitializedVariablesState element) {

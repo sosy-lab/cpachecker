@@ -48,7 +48,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   private CFANode parent;
 
   protected RandomPathWaitlist() {
-    super(new LinkedList<>());
+    super(new LinkedList<AbstractState>());
     successorsOfParent = 0;
   }
 

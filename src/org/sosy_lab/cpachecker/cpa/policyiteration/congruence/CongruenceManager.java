@@ -1,7 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.congruence;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -13,22 +16,19 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.TemplateManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.stator.congruence")
 public class CongruenceManager {
@@ -95,7 +95,7 @@ public class CongruenceManager {
 
     Map<Template, Congruence> abstraction = new HashMap<>();
 
-    statistics.congruenceTimer.start();
+    statistics.startCongruenceTimer();
     try (ProverEnvironment env = solver.newProverEnvironment()) {
       //noinspection ResultOfMethodCallIgnored
       env.push(p.getFormula());
@@ -137,7 +137,7 @@ public class CongruenceManager {
     } catch (SolverException ex) {
       throw new CPATransferException("Solver exception: ", ex);
     } finally {
-      statistics.congruenceTimer.stop();
+      statistics.stopCongruenceTimer();
     }
 
     return new CongruenceState(abstraction);

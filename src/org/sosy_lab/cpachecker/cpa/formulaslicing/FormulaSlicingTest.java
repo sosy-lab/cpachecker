@@ -1,50 +1,20 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.truth.TruthJUnit;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
-import java.nio.file.Paths;
-import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
-
 import java.util.HashMap;
 import java.util.Map;
 
-@RunWith(Parameterized.class)
+import org.junit.Test;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestResults;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 public class FormulaSlicingTest {
-
-  @Parameters(name="{0}")
-  public static Object[] getWeakeningStrategies() {
-    return WEAKENING_STRATEGY.values();
-  }
-
-  @Parameter(0)
-  public WEAKENING_STRATEGY weakeningStrategy;
-
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
-
-  @Test public void expand_equality_true_assert() throws Exception {
-    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo
-        (WEAKENING_STRATEGY.SYNTACTIC);
-    check("expand_equality_true_assert.c", ImmutableMap.of(
-        "rcnf.expandEquality", "true"
-    ));
-  }
-
-  @Test public void expand_equality_false_assert() throws Exception {
-    check("expand_equality_false_assert.c", ImmutableMap.of(
-        "rcnf.expandEquality", "true"
-    ));
-  }
 
   @Test public void simplest_true_assert() throws Exception {
     check("simplest_true_assert.c");
@@ -66,9 +36,10 @@ public class FormulaSlicingTest {
     check("slice_with_branches_false_assert.c");
   }
 
-  @Test
-  public void slicing_nested_true_assert() throws Exception {
-    check("slicing_nested_true_assert.c");
+  @Test public void slicing_nested_true_assert() throws Exception {
+    check("slicing_nested_true_assert.c", ImmutableMap.of(
+        "cpa.slicing.ignoreFunctionCallsInLoop", "true"
+    ));
   }
 
   @Test public void slicing_nested_false_assert() throws Exception {
@@ -91,7 +62,8 @@ public class FormulaSlicingTest {
       fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
     }
 
-    TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
+    TestResults results = CPATestRunner.runAndLogToSTDOUT(
+        getProperties(extra), fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
@@ -108,24 +80,20 @@ public class FormulaSlicingTest {
                     .add("cpa.location.LocationCPA")
                     .add("cpa.callstack.CallstackCPA")
                     .add("cpa.functionpointer.FunctionPointerCPA")
-                    .add("cpa.loopstack.LoopstackCPA")
                     .add("cpa.formulaslicing.FormulaSlicingCPA")
-                    .add("cpa.assumptions.storage.AssumptionStorageCPA")
                     .build()
             ))
     )
         .put("solver.z3.requireProofs", "false")
-        .put("solver.solver", "z3")
+        .put("solver.solver", "Z3")
         .put("specification", "config/specification/default.spc")
         .put("parser.usePreprocessor", "true")
-        .put("analysis.traversal.order", "dfs")
+        .put("analysis.traversal.order", "bfs")
         .put("analysis.traversal.useCallstack", "true")
-        .put("analysis.traversal.useLoopstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
-        .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
-        .put("cfa.findLiveVariables", "true")
-        .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
+
+        .put("log.consoleLevel", "FINE")
         .build());
     props.putAll(extra);
     return props;

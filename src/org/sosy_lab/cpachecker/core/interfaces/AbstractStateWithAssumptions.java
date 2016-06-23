@@ -28,6 +28,9 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Sub-interface for {@link AbstractState}s that marks states
@@ -39,9 +42,10 @@ public interface AbstractStateWithAssumptions extends AbstractState {
 
   /**
    * Get the list of assumptions in form of statements.
+   *
    * @return A (possibly empty list) of statements.
    */
-  List<AStatement> getAssumptions();
+  ImmutableList<Pair<AStatement, Boolean>> getAssumptions();
 
   /**
    * Get the list of assumptions transformed into AssumeEdges.

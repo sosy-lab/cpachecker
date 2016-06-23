@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 
 public class ValueAnalysisTest {
   // Specification Tests
@@ -37,13 +37,13 @@ public class ValueAnalysisTest {
   public void ignoreVariablesTest1() throws Exception {
     // check whether a variable can be ignored (this will lead to a spurious counterexample be found)
 
-    Map<String, String> prop =
-        ImmutableMap.of(
-            "CompositeCPA.cpas",
-                "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
-            "specification", "config/specification/default.spc",
-            "ValueAnalysisCPA.precision.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
-            "cpa.composite.precAdjust", "COMPONENT");
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA",
+        "specification",     "config/specification/default.spc",
+        "ValueAnalysisCPA.precision.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
+        "cpa.composite.precAdjust", "COMPONENT",
+        "log.consoleLevel", "FINER"
+      );
 
       TestResults results = CPATestRunner.run(
           prop,

@@ -23,18 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
-
-import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -44,8 +32,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.concurrency.Threads;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> extends AbstractInvariantGenerator implements StatisticsProvider {
+import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+
+
+public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> implements InvariantGenerator, StatisticsProvider {
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -53,7 +54,7 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
 
   private final AdjustableInvariantGenerator<T> invariantGenerator;
 
-  private final AtomicReference<Future<FormulaAndTreeSupplier>> taskFuture = new AtomicReference<>();
+  private final AtomicReference<Future<InvariantSupplier>> taskFuture = new AtomicReference<>();
 
   public AutoAdjustingInvariantGenerator(ShutdownNotifier pShutdownNotifier, AdjustableInvariantGenerator<T> pInitialGenerator) {
     shutdownNotifier = pShutdownNotifier;
@@ -68,17 +69,17 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
   @Override
   public void start(final CFANode pInitialLocation) {
     invariantGenerator.start(pInitialLocation);
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    taskFuture.set(executor.submit(new Callable<FormulaAndTreeSupplier>() {
+    ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
+    taskFuture.set(executor.submit(new Callable<InvariantSupplier>() {
 
       @Override
-      public FormulaAndTreeSupplier call() throws Exception {
+      public InvariantSupplier call() throws Exception {
         while (!cancelled.get() && !invariantGenerator.isProgramSafe() && invariantGenerator.adjustAndContinue(pInitialLocation)) {
           if (shutdownNotifier.shouldShutdown()) {
             cancel();
           }
         }
-        return new FormulaAndTreeSupplier(invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
+        return invariantGenerator.get();
       }
 
     }));
@@ -93,29 +94,16 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
-    return getInternal();
-  }
-
-  @Override
-  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
-    return getInternal();
-  }
-
-  private FormulaAndTreeSupplier getInternal() throws CPAException, InterruptedException {
-    Future<FormulaAndTreeSupplier> futureResult = taskFuture.get();
+    Future<InvariantSupplier> futureResult = taskFuture.get();
     if (futureResult.isDone()) {
       try {
         return futureResult.get();
       } catch (ExecutionException e) {
-        if (e.getCause() instanceof InterruptedException) {
-          return new FormulaAndTreeSupplier(
-              invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
-        }
-        Throwables.propagateIfPossible(e.getCause(), CPAException.class);
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       }
     }
-    return new FormulaAndTreeSupplier(invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
+    return invariantGenerator.get();
   }
 
   @Override

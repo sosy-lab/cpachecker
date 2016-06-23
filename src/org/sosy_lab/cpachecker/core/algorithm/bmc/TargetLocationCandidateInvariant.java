@@ -25,39 +25,29 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
 
-public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInvariant {
 
-  public TargetLocationCandidateInvariant(Set<CFANode> pLocations) {
-    super(pLocations);
-  }
+public enum TargetLocationCandidateInvariant implements CandidateInvariant {
+
+  INSTANCE;
 
   @Override
-  public BooleanFormula getFormula(
-      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
-      throws CPATransferException, InterruptedException {
+  public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException,
+      InterruptedException {
     return pFMGR.getBooleanFormulaManager().makeBoolean(false);
   }
 
   @Override
-  public BooleanFormula getAssertion(
-      Iterable<AbstractState> pReachedSet,
-      FormulaManagerView pFMGR,
-      PathFormulaManager pPFMGR,
-      int pDefaultIndex) {
+  public BooleanFormula getAssertion(Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) {
     Iterable<AbstractState> targetStates = from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
     return pFMGR.getBooleanFormulaManager().not(
         BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));
@@ -75,27 +65,6 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
   @Override
   public void attemptInjection(InvariantGenerator pInvariantGenerator) {
     // Not implemented
-  }
-
-  @Override
-  public String toString() {
-    return "No target locations reachable from: " + getLocations();
-  }
-
-  @Override
-  public int hashCode() {
-    return getLocations().hashCode();
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    if (this == pObj) {
-      return true;
-    }
-    if (pObj instanceof TargetLocationCandidateInvariant) {
-      return getLocations().equals(((TargetLocationCandidateInvariant) pObj).getLocations());
-    }
-    return false;
   }
 
 }

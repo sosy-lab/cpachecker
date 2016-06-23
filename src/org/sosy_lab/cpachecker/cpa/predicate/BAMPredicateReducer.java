@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -38,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -231,9 +232,8 @@ public class BAMPredicateReducer implements Reducer {
       rootPredicatePrecision = ((ReducedPredicatePrecision)expandedPredicatePrecision).getRootPredicatePrecision();
     }
 
-    return new ReducedPredicatePrecision(
-        rootPredicatePrecision,
-        ImmutableSetMultimap.<LocationInstance, AbstractionPredicate>of(),
+    return new ReducedPredicatePrecision(rootPredicatePrecision,
+        ImmutableMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
         localPredicates,
         functionPredicates,
         globalPredicates);
@@ -244,13 +244,12 @@ public class BAMPredicateReducer implements Reducer {
     /* the top-level-precision of the main-block */
     private final PredicatePrecision rootPredicatePrecision;
 
-    private ReducedPredicatePrecision(
-        PredicatePrecision pRootPredicatePrecision,
-        ImmutableSetMultimap<LocationInstance, AbstractionPredicate> pLocalInstPredicates,
-        ImmutableSetMultimap<CFANode, AbstractionPredicate> pLocalPredicates,
-        ImmutableSetMultimap<String, AbstractionPredicate> pFunctionPredicates,
-        ImmutableSet<AbstractionPredicate> pGlobalPredicates) {
-      super(pLocalInstPredicates, pLocalPredicates, pFunctionPredicates, pGlobalPredicates);
+    private ReducedPredicatePrecision(PredicatePrecision pRootPredicatePrecision,
+        Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
+        Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
+        Multimap<String, AbstractionPredicate> pFunctionPredicates,
+        Iterable<AbstractionPredicate> pGlobalPredicates) {
+      super(pLocationInstancePredicates, pLocalPredicates, pFunctionPredicates, pGlobalPredicates);
       assert !(pRootPredicatePrecision instanceof ReducedPredicatePrecision);
       this.rootPredicatePrecision = pRootPredicatePrecision;
     }
@@ -298,14 +297,10 @@ public class BAMPredicateReducer implements Reducer {
     AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-    // De-serialized AbstractionFormula are missing the Regions which we need for expand(),
-    // so we re-create them here.
-    rootAbstraction = pamgr.buildAbstraction(
-        rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
-    reducedAbstraction = pamgr.buildAbstraction(
-        reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
+    // create region predicates for every atom in formula
+    pamgr.extractPredicates(reducedAbstraction.asInstantiatedFormula());
 
-    Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
+    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
@@ -327,9 +322,13 @@ public class BAMPredicateReducer implements Reducer {
     SSAMap newSSA = builder.build();
     PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
 
+
+    Region reducedRegion = pamgr.buildRegionFromFormula(reducedAbstraction.asFormula());
+    Region rootRegion = pamgr.buildRegionFromFormula(rootAbstraction.asFormula());
+
     AbstractionFormula newAbstractionFormula =
-        pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
-            relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
+        pamgr.expand(reducedRegion, rootRegion, relevantRootPredicates, newSSA,
+            reducedAbstraction.getBlockFormula());
 
     PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
 
@@ -413,9 +412,8 @@ public class BAMPredicateReducer implements Reducer {
     // everything is prepared, so build a new AbstractionState.
     // we do this as 'future abstraction', because we do not have enough information
     // (necessary classes and managers) for the abstraction-process at this place.
-    PredicateAbstractState rebuildState =
-        PredicateAbstractState.mkNonAbstractionState(
-            executedFunctionWithSSA, rootState.getAbstractionFormula(), abstractionLocations);
+    PredicateAbstractState rebuildState = new PredicateAbstractState.ComputeAbstractionState(
+            executedFunctionWithSSA, rootState.getAbstractionFormula(), exitLocation, abstractionLocations);
 
     logger.log(Level.ALL,
             "\noldAbs: ", rootState.getAbstractionFormula().asInstantiatedFormula(),

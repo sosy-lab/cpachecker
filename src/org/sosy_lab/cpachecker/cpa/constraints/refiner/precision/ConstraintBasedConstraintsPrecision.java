@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 
@@ -128,7 +129,7 @@ class ConstraintBasedConstraintsPrecision
    * @return the join of both precisions
    */
   @Override
-  public ConstraintBasedConstraintsPrecision join(final ConstraintsPrecision pOther) {
+  public Precision join(Precision pOther) {
     assert pOther instanceof ConstraintBasedConstraintsPrecision;
 
     ConstraintBasedConstraintsPrecision other = (ConstraintBasedConstraintsPrecision) pOther;

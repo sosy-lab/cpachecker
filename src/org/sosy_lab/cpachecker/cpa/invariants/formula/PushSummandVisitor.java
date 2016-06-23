@@ -119,11 +119,11 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
   public NumeralFormula<T> visit(Constant<T> pConstant, T pToPush) throws IllegalStateException {
     checkNotConsumed();
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    NumeralFormula<T> toPush = ifm.asConstant(pConstant.getTypeInfo(), pToPush);
+    NumeralFormula<T> toPush = ifm.asConstant(pConstant.getBitVectorInfo(), pToPush);
     NumeralFormula<T> sum = ifm.add(pConstant, toPush);
     this.consumed = true;
     T sumValue = sum.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
-    return InvariantsFormulaManager.INSTANCE.asConstant(pConstant.getTypeInfo(), sumValue);
+    return InvariantsFormulaManager.INSTANCE.asConstant(pConstant.getBitVectorInfo(), sumValue);
   }
 
   /**
@@ -134,7 +134,7 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
   protected NumeralFormula<T> visitDefault(NumeralFormula<T> pFormula, T pToPush) throws IllegalStateException {
     checkNotConsumed();
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    NumeralFormula<T> toPush = ifm.asConstant(pFormula.getTypeInfo(), pToPush);
+    NumeralFormula<T> toPush = ifm.asConstant(pFormula.getBitVectorInfo(), pToPush);
     return ifm.add(pFormula, toPush);
   }
 

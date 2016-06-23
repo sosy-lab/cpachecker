@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -72,7 +71,7 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
   @Override
   protected Optional<ImmutableList<BooleanFormula>> getCounterexampleRepresentation(List<BooleanFormula> formulas) throws InterruptedException {
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
+    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithUnsatCoreGeneration()) {
 
       for (BooleanFormula f : formulas) {
         thmProver.push(f);

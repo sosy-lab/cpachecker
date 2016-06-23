@@ -32,9 +32,9 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 
-public abstract class Expression {
-  public static abstract class Location extends Expression {
-    public static class AliasedLocation extends Location {
+abstract class Expression {
+  static abstract class Location extends Expression {
+    static class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
         this.address = address;
@@ -59,7 +59,7 @@ public abstract class Expression {
       private final Formula address;
     }
 
-    public static class UnaliasedLocation extends Location {
+    static class UnaliasedLocation extends Location {
 
       private UnaliasedLocation(final String variableName) {
         this.variableName = variableName;
@@ -113,8 +113,8 @@ public abstract class Expression {
     }
   }
 
-  public static class Value extends Expression {
-    public static class Nondet extends Value {
+  static class Value extends Expression {
+    static class Nondet extends Value {
       private Nondet() {
         super(null);
       }
@@ -163,24 +163,6 @@ public abstract class Expression {
       return toStringHelper(this)
                     .add("value", value)
                     .toString();
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (!(pOther instanceof Value)) {
-        return false;
-      }
-      Value otherValue = (Value) pOther;
-      if (this instanceof Nondet || otherValue instanceof Nondet) {
-        return false;
-      }
-
-      return getValue().equals(otherValue.getValue());
-    }
-
-    @Override
-    public int hashCode() {
-      return value != null ? value.hashCode() : 0;
     }
 
     private final Formula value;
@@ -249,5 +231,5 @@ public abstract class Expression {
 
   public abstract Kind getKind();
 
-  public enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
+  static enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
 }

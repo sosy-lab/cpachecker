@@ -26,31 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-
-import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Appenders;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractWeavedOnLocations;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,14 +37,49 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 
 public abstract class PathTranslator {
+
+  private static Function<CAstNode, String> RAW_SIGNATURE_FUNCTION = new Function<CAstNode, String>() {
+
+    @Override
+    public String apply(CAstNode pArg0) {
+      return pArg0.toASTString();
+    }
+  };
 
   protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
     // We assume, that each node has one location.
     // TODO: the location is invalid for all concurrent programs,
     //       because interleaving threads are not handled.
-    return FluentIterable.from(extractLocations(state))
+    return FluentIterable.from(extractWeavedOnLocations(state))
         .filter(CFunctionEntryNode.class)
         .first().orNull();
   }
@@ -106,7 +117,7 @@ public abstract class PathTranslator {
   protected void translateSinglePath0(ARGPath pPath, EdgeVisitor callback) {
     assert pPath.size() >= 1;
 
-    PathIterator pathIt = pPath.fullPathIterator();
+    PathIterator pathIt = pPath.pathIterator();
     ARGState firstElement = pathIt.getAbstractState();
 
     Stack<FunctionBody> functionStack = new Stack<>();
@@ -118,12 +129,7 @@ public abstract class PathTranslator {
       pathIt.advance();
 
       CFAEdge currentCFAEdge = pathIt.getIncomingEdge();
-      ARGState childElement;
-      if (pathIt.isPositionWithState()) {
-        childElement = pathIt.getAbstractState();
-      } else {
-        childElement = pathIt.getPreviousAbstractState();
-      }
+      ARGState childElement = pathIt.getAbstractState();
 
       callback.visit(childElement, currentCFAEdge, functionStack);
     }
@@ -165,27 +171,34 @@ public abstract class PathTranslator {
    * @param functionStack the current callstack
    * @param predecessor the previous node
    */
-  protected String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack, CFANode predecessor) {
+  protected String startFunction(ARGState pFirstFunctionElement,
+      Stack<FunctionBody> pFunctionStack, CFANode pPredecessor) {
+
+    Preconditions.checkNotNull(pFirstFunctionElement);
+    Preconditions.checkNotNull(pFunctionStack);
+    Preconditions.checkNotNull(pPredecessor);
+
     // create the first stack element using the first element of the function
-    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
+    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(pFirstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
     String lFunctionHeader = functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function
-    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getStateId(),
+    FunctionBody newFunction = new FunctionBody(pFirstFunctionElement.getStateId(),
         lFunctionHeader);
 
     // register function
     mFunctionDecls.add(lFunctionHeader + ";");
     mFunctionBodies.add(newFunction);
-    functionStack.push(newFunction); // add function to current stack
+    pFunctionStack.push(newFunction); // add function to current stack
     return freshFunctionName;
   }
 
   /**
    * Processes an edge of the CFA and will write code to the output function body.
+   *
    * @param childElement the state after the given edge
    * @param edge the edge to process
    * @param functionStack the current callstack
@@ -228,15 +241,7 @@ public abstract class PathTranslator {
     // for every element
     functionStack = cloneStack(functionStack);
 
-    // we do not have a single edge, instead a dynamic multi-edge
-    if (edge == null) {
-      List<CFAEdge> edges = nextEdge.getParentState().getEdgesToChild(childElement);
-      for (CFAEdge inner : edges) {
-        callback.visit(childElement, inner, functionStack);
-      }
-    } else {
-      callback.visit(childElement, edge, functionStack);
-    }
+    callback.visit(childElement, edge, functionStack);
 
     // how many parents does the child have?
     // ignore parents not on the error path
@@ -298,7 +303,7 @@ public abstract class PathTranslator {
       // get the next ARG state, create a new edge using the same stack and add it to the waitlist
       ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
       CFAEdge e = currentElement.getEdgeToChild(elem);
-      Edge newEdge = new Edge(elem, currentElement, e, functionStack);
+      Edge newEdge = new Edge(elem, e, functionStack);
       return Collections.singleton(newEdge);
 
     } else if (relevantChildrenOfElement.size() > 1) {
@@ -335,7 +340,7 @@ public abstract class PathTranslator {
         // create a new block starting with this condition
         currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
 
-        Edge newEdge = new Edge(elem, currentElement, e, newStack);
+        Edge newEdge = new Edge(elem, e, newStack);
         result.add(newEdge);
       }
       return result;
@@ -399,6 +404,15 @@ public abstract class PathTranslator {
       }
     }
 
+    case MultiEdge: {
+      StringBuilder sb = new StringBuilder();
+
+      for (CFAEdge edge : (MultiEdge) pCFAEdge) {
+        sb.append(processSimpleEdge(edge, currentBlock));
+      }
+      return sb.toString();
+    }
+
     default:
       throw new AssertionError("Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
@@ -408,7 +422,7 @@ public abstract class PathTranslator {
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
 
-    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), CExpression::toASTString);
+    List<String> lArguments = Lists.transform(lFunctionCallEdge.getArguments(), RAW_SIGNATURE_FUNCTION);
     String lArgumentString = "(" + Joiner.on(", ").join(lArguments) + ")";
 
     CFunctionSummaryEdge summaryEdge = lFunctionCallEdge.getSummaryEdge();

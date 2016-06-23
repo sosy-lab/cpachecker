@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,8 +56,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -71,8 +72,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     @Option(secure=true,
     description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
-      + "behave differently during merge.")
+      + "behave differntly during merge.")
     private boolean inCPAEnabledAnalysis = false;
+
+    @Option(secure=true, description="Separate the target states when building the product.")
+    private boolean separateTargetStates = false;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -148,19 +152,26 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), getConfiguration(), cfa);
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
+
+      final TransferRelation compositeTransfer;
+      if (options.separateTargetStates) {
+        compositeTransfer = new CompositeTransferRelationNoFullCrossProd(transferRelations.build(), getConfiguration(), cfa);
+      } else {
+        compositeTransfer = new CompositeTransferRelation(transferRelations.build(), getConfiguration(), cfa);
+      }
+
+
 
       PrecisionAdjustment compositePrecisionAdjustment;
       if (simplePrec) {
         compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
       } else {
         compositePrecisionAdjustment =
-            new CompositePrecisionAdjustment(precisionAdjustments.build(), getLogger());
+            new CompositePrecisionAdjustment(precisionAdjustments.build());
       }
 
-      return new CompositeCPA(
-          compositeDomain, compositeTransfer, compositeMerge, compositeStop,
+      return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);
     }
 
@@ -194,7 +205,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   private final AbstractDomain abstractDomain;
-  private final CompositeTransferRelation transferRelation;
+  private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
@@ -202,9 +213,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  protected CompositeCPA(
-      AbstractDomain abstractDomain,
-      CompositeTransferRelation transferRelation,
+  protected CompositeCPA(AbstractDomain abstractDomain,
+      TransferRelation transferRelation,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
@@ -317,13 +327,39 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
+  public <T extends ConfigurableProgramAnalysis> Collection<T> retrieveWrappedCpas(Class<T> pType) {
+    Builder<T> result = ImmutableList.builder();
+
+    if (pType.isAssignableFrom(getClass())) {
+      result.add(pType.cast(this));
+    }
+
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (pType.isAssignableFrom(cpa.getClass())) {
+        result.add(pType.cast(cpa));
+      } else if (cpa instanceof WrapperCPA) {
+        Collection<T> c = ((WrapperCPA)cpa).retrieveWrappedCpas(pType);
+        if (c != null) {
+          result.addAll(c);
+        }
+      }
+    }
+
+    return result.build();
+  }
+
+  @Override
   public ImmutableList<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return cpas;
   }
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
+    if (transferRelation instanceof CompositeTransferRelation) {
+      return ((CompositeTransferRelation) transferRelation).areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
+    } else {
+      throw new RuntimeException("Not yet implemented.");
+    }
   }
 
   @Override

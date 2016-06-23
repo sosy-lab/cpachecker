@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 
 
@@ -55,10 +54,6 @@ public class StatTimer extends AbstractStatValue {
   @Override
   public String toString() {
     return timer.toString();
-  }
-
-  public TimeSpan getConsumedTime() {
-    return timer.getSumTime();
   }
 
 }

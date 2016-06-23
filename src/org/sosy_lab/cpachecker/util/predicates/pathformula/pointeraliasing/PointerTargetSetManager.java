@@ -26,8 +26,14 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 
-import com.google.common.base.Equivalence;
-import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
@@ -51,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -61,16 +66,10 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Equivalence;
+import com.google.common.collect.ImmutableList;
 
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
-
-public class PointerTargetSetManager {
+class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -114,7 +113,7 @@ public class PointerTargetSetManager {
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
                                    final SSAMapBuilder resultSSA,
-                                   final CtoFormulaConverter conv)
+                                   final CToFormulaConverterWithPointerAliasing conv)
                                        throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
@@ -438,29 +437,25 @@ public class PointerTargetSetManager {
   /**
    * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
    */
-  protected int getSize(CType cType) {
+  int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
   /**
    * The method is used to speed up member offset computation for declared composite types.
    */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
+  int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 
 
-  protected BooleanFormula getNextBaseAddressInequality(final String newBase,
+  BooleanFormula getNextBaseAddressInequality(final String newBase,
                                                         final PersistentSortedMap<String, CType> bases,
                                                         final String lastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
     if (lastBase != null) {
-      final CType lastType = bases.get(lastBase);
-      final int lastSize =
-          lastType.isIncomplete()
-              ? options.defaultAllocationSize()
-              : typeHandler.getSizeof(lastType);
+      final int lastSize = typeHandler.getSizeof(bases.get(lastBase));
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
                                                   formulaManager.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
@@ -503,22 +498,15 @@ public class PointerTargetSetManager {
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
-  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
-      final String base,
-      final CType currentType,
-      final @Nullable CType containerType,
-      final int properOffset,
-      final int containerOffset,
-      PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-      final PersistentSortedMap<CompositeField, Boolean> fields) {
+  PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(final String base,
+                          final CType currentType,
+                          final @Nullable CType containerType,
+                          final int properOffset,
+                          final int containerOffset,
+                          PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+                          final PersistentSortedMap<CompositeField, Boolean> fields) {
     final CType cType = CTypeUtils.simplifyType(currentType);
-    /* Remove assertion: it fails on a correct code (gcc compiles it)
-     * struct A;
-     * ...
-     * struct A *var;
-     * var = kmalloc(16);
-     */
-    //assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
+    assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
     if (cType instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) cType;
       Integer length = CTypeUtils.getArrayLength(arrayType);

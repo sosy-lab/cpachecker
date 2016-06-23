@@ -45,6 +45,12 @@ public class AutomatonMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return () -> new AutomatonMatchesWaitlist(pSecondaryStrategy);
+    return new WaitlistFactory() {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new AutomatonMatchesWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

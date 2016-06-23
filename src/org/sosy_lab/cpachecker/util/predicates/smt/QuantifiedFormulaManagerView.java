@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -34,8 +33,9 @@ import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public class QuantifiedFormulaManagerView
   extends BaseManagerView
@@ -68,24 +68,6 @@ public class QuantifiedFormulaManagerView
   @Override
   public BooleanFormula forall(List<? extends Formula> pVariables, BooleanFormula pBody) {
     return manager.forall(unwrap(pVariables), pBody);
-  }
-
-  @Override
-  public BooleanFormula forall(
-      BooleanFormula pBody, Formula... quantifiedArgs) {
-    return forall(Lists.newArrayList(quantifiedArgs), pBody);
-  }
-
-  @Override
-  public BooleanFormula exists(
-      BooleanFormula pBody, Formula... quantifiedArgs) {
-    return exists(Lists.newArrayList(quantifiedArgs), pBody);
-  }
-
-  @Override
-  public BooleanFormula mkQuantifier(Quantifier q,
-      List<? extends Formula> pVariables, BooleanFormula pBody) {
-    return manager.mkQuantifier(q, unwrap(pVariables), pBody);
   }
 
   public <T extends Formula> BooleanFormula forall(T pVariable, BooleanFormula pBody) {
@@ -129,7 +111,7 @@ public class QuantifiedFormulaManagerView
 
   /**
    * @return  An (restricted) existential quantified formula.
-   * @see #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)
+   * @see{@link #all(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)}
    */
   public <R extends IntegerFormula> BooleanFormula exists (
       final R pVariable,
@@ -161,5 +143,41 @@ public class QuantifiedFormulaManagerView
     return ImmutableList.of(
         ifm.greaterOrEquals(pVariable, pLowerBound),
         ifm.lessOrEquals(pVariable, pUpperBound));
+  }
+
+  @Override
+  @Deprecated
+  public boolean isQuantifier(BooleanFormula pF) {
+    return manager.isQuantifier(pF);
+  }
+
+  @Override
+  @Deprecated
+  public boolean isForall(BooleanFormula pF) {
+    return manager.isForall(pF);
+  }
+
+  @Override
+  @Deprecated
+  public boolean isExists(BooleanFormula pF) {
+    return manager.isExists(pF);
+  }
+
+  @Override
+  @Deprecated
+  public int numQuantifierBound(BooleanFormula pF) {
+    return manager.numQuantifierBound(pF);
+  }
+
+  @Override
+  @Deprecated
+  public BooleanFormula getQuantifierBody(BooleanFormula pF) {
+    return manager.getQuantifierBody(pF);
+  }
+
+  @Override
+  @Deprecated
+  public boolean isBoundByQuantifier(Formula pF) {
+    return manager.isBoundByQuantifier(pF);
   }
 }

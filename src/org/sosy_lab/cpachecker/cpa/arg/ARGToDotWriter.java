@@ -23,25 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Multimap;
 
 public class ARGToDotWriter {
 
@@ -166,40 +168,27 @@ public class ARGToDotWriter {
     builder.append(" [");
 
     if (state.getChildren().contains(succesorState)) {
-      List<CFAEdge> edges = state.getEdgesToChild(succesorState);
+      final CFAEdge edge = state.getEdgeToChild(succesorState);
 
-      // there is no direct edge between the nodes, use a dummy-edge
-      if (edges.isEmpty()) {
+      if (edge == null) {
+        // there is no direct edge between the nodes, use a dummy-edge
         builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
-
-        // edge exists, use info from edge
       } else {
+        // edge exists, use info from edge
         boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
-        if (colored) {
+        if (edge.getPredecessor() instanceof ShadowCFANode) {
+          builder.append("style=\"bold\" color=\"green\" ");
+        } else if (colored) {
           builder.append("color=\"red\" ");
         }
 
         builder.append("label=\"");
-        if (edges.size() > 1) {
-
-          builder
-              .append("Lines ")
-              .append(edges.get(0).getLineNumber())
-              .append(" - ")
-              .append(edges.get(edges.size() - 1).getLineNumber());
-        } else {
-          builder.append("Line ").append(edges.get(0).getLineNumber());
-        }
-        builder.append(": \\l");
-
-        for (CFAEdge edge : edges) {
-          builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
-          builder.append("\\l");
-        }
-
+        builder.append("Line ");
+        builder.append(edge.getLineNumber());
+        builder.append(": ");
+        builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
         builder.append("\"");
       }
-
       builder.append(" id=\"");
       builder.append(state.getStateId());
       builder.append(" -> ");
@@ -245,17 +234,22 @@ public class ARGToDotWriter {
     final String stateNodeId = Integer.toString(currentElement.getStateId());
     final String hintNodeId = stateNodeId + "hint";
 
-    String hintLabel = "";
-//    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-//    if (abstraction != null && abstraction.isAbstractionState()) {
-//      final StringBuilder labelBuilder = new StringBuilder();
-//      labelBuilder.append(abstraction.getAbstractionFormula().asFormula().toString());
-//      hintLabel = labelBuilder.toString();
+    final StringBuilder labelBuilder = new StringBuilder();
+
+//    Collection<PredicateAbstractState> abstraction = AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class);
+//    for (PredicateAbstractState e: abstraction) {
+//      final String formual = GlobalInfo.getInstance().getPredicateFormulaManagerView().simplify(e.getPathFormula().getFormula()).toString();
+//      labelBuilder.append(formual + "\n");
 //    }
+
+    Collection<AutomatonState> automatonStates = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
+    for (AutomatonState q: automatonStates) {
+      labelBuilder.append(q.toString() + "\n");
+    }
 
     final StringBuilder builder = new StringBuilder();
 
-    if (!hintLabel.isEmpty()) {
+    if (labelBuilder.length() > 0) {
       builder.append(" {");
       builder.append(" rank=same;\n");
 
@@ -266,7 +260,7 @@ public class ARGToDotWriter {
       builder.append(" \"");
       builder.append(hintNodeId);
       builder.append("\" [label=\"");
-      builder.append(escapeLabelString(hintLabel));
+      builder.append(escapeLabelString(labelBuilder.toString()));
       builder.append("\", shape=box, style=filled, fillcolor=gray];\n");
 
       builder.append(" ");
@@ -302,16 +296,24 @@ public class ARGToDotWriter {
 
     builder.append(currentElement.getStateId());
 
-    for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
-      builder.append(" @ ");
-      builder.append(loc.toString());
-      builder.append("\\n");
-      builder.append(loc.getFunctionName());
-      if (loc instanceof FunctionEntryNode) {
-        builder.append(" entry");
-      } else if (loc instanceof FunctionExitNode) {
-        builder.append(" exit");
+    Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
+    if (locs != null) {
+      for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
+        builder.append(" @ ");
+        builder.append(loc.toString());
+        if (loc instanceof ShadowCFANode) {
+          builder.append(" ~ weaved ");
+        }
+        builder.append("\\n");
+        builder.append(loc.getFunctionName());
+        if (loc instanceof FunctionEntryNode) {
+          builder.append(" entry");
+        } else if (loc instanceof FunctionExitNode) {
+          builder.append(" exit");
+        }
+        builder.append("\\n");
       }
+    } else {
       builder.append("\\n");
     }
 

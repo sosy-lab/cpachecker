@@ -23,22 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+
 
 /**
  * Implements an Action with side-effects that has no return value.
  * The Action can be executed multiple times.
  */
-abstract class AutomatonAction {
+public abstract class AutomatonAction {
   private AutomatonAction() {}
   private static ResultValue<String> defaultResultValue = new ResultValue<>("");
 
@@ -91,6 +91,54 @@ abstract class AutomatonAction {
     }
   }
 
+  /**
+   * Perform a feasibility check for the current abstract state.
+   */
+  public static class CheckFeasibility extends AutomatonAction {
+
+    static CheckFeasibility instance = new CheckFeasibility();
+
+    public static CheckFeasibility getInstance() {
+      return instance;
+    }
+
+    private CheckFeasibility() {
+    }
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "CheckFeasibility";
+    }
+
+  }
+
+  public static class SetMarkerVariable extends AutomatonAction {
+
+    static SetMarkerVariable instance = new SetMarkerVariable();
+
+    public static SetMarkerVariable getInstance() {
+      return instance;
+    }
+
+    private SetMarkerVariable() {
+    }
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "SetMarkerVariable";
+    }
+
+  }
 
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */

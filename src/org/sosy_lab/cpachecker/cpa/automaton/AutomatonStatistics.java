@@ -48,6 +48,7 @@ class AutomatonStatistics extends AbstractStatistics {
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
 
     put(out, 0, "Number of states", mCpa.getAutomaton().getNumberOfStates());
+    put(out, 0, "Number of matches", trans.statNumberOfMatches);
     put(out, 0, "Total time for successor computation", trans.totalPostTime);
 
     if (trans.totalPostTime.getSumTime().compareTo(TimeSpan.ofMillis(500)) >= 0) {
@@ -61,6 +62,8 @@ class AutomatonStatistics extends AbstractStatistics {
     if (trans.totalStrengthenTime.getNumberOfIntervals() > 0) {
       put(out, 0, "Total time for strengthen operator", trans.totalStrengthenTime);
     }
+
+    put(out, 0, "Total time for inactivity checks", trans.inactivityCheckTime);
 
     int stateBranchings = trans.automatonSuccessors.getValueCount()
         - trans.automatonSuccessors.getTimesWithValue(0)

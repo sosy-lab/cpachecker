@@ -48,6 +48,12 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return () -> new CallstackSortedWaitlist(pSecondaryStrategy);
+    return new WaitlistFactory() {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new CallstackSortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

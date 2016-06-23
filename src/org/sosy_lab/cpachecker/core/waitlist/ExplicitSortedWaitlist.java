@@ -50,6 +50,12 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return () -> new ExplicitSortedWaitlist(pSecondaryStrategy);
+    return new WaitlistFactory() {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ExplicitSortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

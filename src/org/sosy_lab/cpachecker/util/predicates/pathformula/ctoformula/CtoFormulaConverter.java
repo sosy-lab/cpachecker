@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.areEqualWithMatchingPointerArray;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.*;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Optional;
@@ -36,6 +35,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -59,8 +59,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -109,7 +111,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.UfDeclaration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -172,7 +174,7 @@ public class CtoFormulaConverter {
   // Index to be used for first assignment to a variable (must be higher than VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final FunctionDeclaration<?> stringUfDecl;
+  private final UfDeclaration<?> stringUfDecl;
 
   protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
@@ -196,7 +198,7 @@ public class CtoFormulaConverter {
 
     this.direction = pDirection;
 
-    stringUfDecl = ffmgr.declareUF(
+    stringUfDecl = ffmgr.declareUninterpretedFunction(
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
@@ -246,10 +248,27 @@ public class CtoFormulaConverter {
     }
   }
 
+  /**
+   * This is a workaround for handling 'weaved' variables.
+   *  See {@code org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory}}
+   */
+  private boolean isAlwaysRelevantVariable(final CSimpleDeclaration var) {
+
+    if (var.getFileLocation() == null || var.getFileLocation().equals(FileLocation.DUMMY)) {
+      return true;
+    }
+    if (var.getFileLocation().getFileName().isEmpty()) {
+      return true;
+    }
+
+    return false;
+  }
+
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      return var.getName().equals(RETURN_VARIABLE_NAME) ||
-           variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      return var.getName().equals(RETURN_VARIABLE_NAME)
+          || isAlwaysRelevantVariable(var)
+          || variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
     }
     return true;
   }
@@ -287,7 +306,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for an assignment
    * and updates the SSA map.
    */
-  public int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
@@ -407,7 +426,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(
+      result = ffmgr.callUninterpretedFunction(
           stringUfDecl, nfmgr.makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
@@ -461,7 +480,7 @@ public class CtoFormulaConverter {
         return value;
       }
 
-      final Formula overflowUF = ffmgr.declareAndCallUF(
+      final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
           // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
           String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
           numberType,
@@ -847,6 +866,23 @@ public class CtoFormulaConverter {
           ssa, pts, constraints, errorConditions);
     }
 
+    case MultiEdge: {
+      List<BooleanFormula> multiEdgeFormulas = new ArrayList<>(((MultiEdge)edge).getEdges().size());
+
+      // unroll the MultiEdge
+      for (CFAEdge singleEdge : (MultiEdge)edge) {
+        if (singleEdge instanceof BlankEdge) {
+          continue;
+        }
+        multiEdgeFormulas.add(createFormulaForEdge(singleEdge, function, ssa, pts, constraints, errorConditions));
+        shutdownNotifier.shutdownIfNecessary();
+      }
+
+      // Big conjunction at the end is better than creating a new conjunction
+      // after each edge for some SMT solvers.
+      return bfmgr.and(multiEdgeFormulas);
+    }
+
     default:
       throw new UnrecognizedCFAEdgeException(edge);
     }
@@ -1230,11 +1266,11 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split = fmgr.splitIfThenElse(pF);
-    if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.get();
+    if (bfmgr.isIfThenElse(pF)) {
+      Triple<BooleanFormula, T, T> parts = bfmgr.splitIfThenElse(pF);
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
+
       if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
         return parts.getFirst();
       } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {

@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-
-import java.util.Collection;
 
 final class SMGJoinMapTargetAddress {
   private SMG smg;
@@ -48,44 +46,23 @@ final class SMGJoinMapTargetAddress {
 
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);
-    SMGEdgePointsTo pt2 = pSMG1.getPointer(pAddress2);
     if (pt.getObject().notNull()) {
       target = pMapping1.get(pt.getObject());
-    }
-
-    SMGTargetSpecifier tg;
-
-    /*When mapping optional object to other abstract object, use tg of other object.*/
-    if ((pt.getObject().isAbstract() && pt.getObject().getKind() != SMGObjectKind.OPTIONAL)
-        || pt2 == null
-        || pt2.getObject().getKind() == SMGObjectKind.OPTIONAL) {
-      tg = pt.getTargetSpecifier();
-    } else {
-      tg = pt2.getTargetSpecifier();
     }
 
     // TODO: Ugly, refactor
     Collection<SMGEdgePointsTo> edges = smg.getPTEdges().values();
     for (SMGEdgePointsTo edge : edges) {
       if ((edge.getObject() == target) &&
-          (edge.getOffset() == pt.getOffset())
-          && edge.getTargetSpecifier() == tg) {
+          (edge.getOffset() == pt.getOffset())) {
         value = edge.getValue();
         return;
       }
     }
 
-    if(pAddress1.equals(pAddress2)) {
-      value = pAddress1;
-    } else {
-      value = SMGValueFactory.getNewValue();
-    }
-
+    value = SMGValueFactory.getNewValue();
     smg.addValue(value);
-
-    SMGEdgePointsTo nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset(), tg);
-
-    smg.addPointsToEdge(nPtEdge);
+    smg.addPointsToEdge(new SMGEdgePointsTo(value, target, pt.getOffset()));
     mapping1.map(pAddress1, value);
     mapping2.map(pAddress2, value);
   }

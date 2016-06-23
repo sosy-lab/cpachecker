@@ -23,57 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.math.IntMath;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.core.counterexample.Address;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteExpressionEvaluator;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
-import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
-import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
-import org.sosy_lab.cpachecker.core.counterexample.Memory;
-import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,6 +31,43 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.counterexample.Address;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
+import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
+import org.sosy_lab.cpachecker.core.counterexample.Memory;
+import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.AssignableTerm.Function;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.math.IntMath;
 
 
 public class AssignmentToPathAllocator {
@@ -113,22 +99,32 @@ public class AssignmentToPathAllocator {
 
   /**
    * Provide a path with concrete values (like a test case).
+   * Additionally, provides the information, at which {@link CFAEdge} edge which
+   * {@link AssignableTerm} terms have been assigned.
    */
-  public CFAPathWithAssumptions allocateAssignmentsToPath(ARGPath pPath,
-      Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
-    ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath, pModel, pSSAMaps);
-    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(ARGPath pPath,
+      RichModel pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
+
+    // create concrete state path, also remember at wich edge which terms were used.
+    Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> concreteStatePath = createConcreteStatePath(pPath,
+        pModel, pSSAMaps);
+
+    // create the concrete error path.
+    CFAPathWithAssumptions pathWithAssignments =
+        CFAPathWithAssumptions.of(concreteStatePath.getFirst(), assumptionToEdgeAllocator);
+
+    return Pair.of(pathWithAssignments, concreteStatePath.getSecond());
   }
 
 
-  private ConcreteStatePath createConcreteStatePath(
-      ARGPath pPath, Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps)
+  private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(
+      ARGPath pPath, RichModel pModel, List<SSAMap> pSSAMaps)
           throws InterruptedException {
 
-    ConcreteExpressionEvaluator evaluator = createPredicateAnalysisEvaluator(pModel);
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
     List<ConcreteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
-    Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
+    Multimap<CFAEdge, AssignableTerm> usedAssignableTerms = HashMultimap.create();
+    Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
 
     /* Its too inefficient to recreate every assignment from scratch,
        but the ssaIndex of the Assignable Terms are needed, thats
@@ -137,309 +133,114 @@ public class AssignmentToPathAllocator {
        to the objects we want to store in the concrete State, so we can avoid
        recreating those objects */
 
-    Map<String, ValueAssignment> variableEnvironment = new HashMap<>();
+    Map<String, Assignment> variableEnvironment = new HashMap<>();
     Map<LeftHandSide, Object> variables = new HashMap<>();
-    Multimap<String, ValueAssignment> functionEnvironment = HashMultimap.create();
+    Multimap<String, Assignment> functionEnvironment = HashMultimap.create();
     //TODO Persistent Map
     Map<String, Map<Address, Object>> memory = new HashMap<>();
 
     int ssaMapIndex = 0;
 
-    /*We always look at the precise path, with resolved multi edges*/
-    PathIterator pathIt = pPath.fullPathIterator();
-
-    while (pathIt.hasNext()) {
+    for (CFAEdge cfaEdge : pPath.getInnerEdges()) {
       shutdownNotifier.shutdownIfNecessary();
-      CFAEdge cfaEdge = pathIt.getOutgoingEdge();
 
-      // TODO is all this copying really necessary?
-      variables = new HashMap<>(variables);
-      memory = new HashMap<>(memory);
-      variableEnvironment = new HashMap<>(variableEnvironment);
-      functionEnvironment = HashMultimap.create(functionEnvironment);
-      Collection<ValueAssignment> terms =
-          assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
+      /*We always look at the precise path, with resolved multi edges*/
+      if (cfaEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        MultiEdge multiEdge = (MultiEdge)cfaEdge;
 
-      SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
+        List<ConcreteState> singleConcreteStates =
+            new ArrayList<>(multiEdge.getEdges().size());
 
-      boolean hasNextPositionAState;
+        int multiEdgeIndex = 0;
+        for (CFAEdge singleCfaEdge : multiEdge) {
 
-      if (pathIt.hasNext()) {
-        pathIt.advance();
-        hasNextPositionAState = pathIt.isPositionWithState();
-        pathIt.rewind();
+          variableEnvironment = new HashMap<>(variableEnvironment);
+          variables = new HashMap<>(variables);
+          functionEnvironment = HashMultimap.create(functionEnvironment);
+          memory = new HashMap<>(memory);
+          Collection<AssignableTerm> terms =
+              assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
+
+          SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
+
+          ConcreteState concreteState = createSingleConcreteState(
+              singleCfaEdge, ssaMap, variableEnvironment, variables,
+              functionEnvironment, memory, addressOfVariables, terms,
+              pModel, usedAssignableTerms);
+
+          singleConcreteStates.add(multiEdgeIndex, concreteState);
+          ssaMapIndex++;
+          multiEdgeIndex++;
+        }
+
+        ConcreteStatePathNode edge =
+            ConcreteStatePath.valueOfPathNode(singleConcreteStates, multiEdge);
+        pathWithAssignments.add(edge);
       } else {
-        hasNextPositionAState = false;
-      }
+        variableEnvironment = new HashMap<>(variableEnvironment);
+        functionEnvironment = HashMultimap.create(functionEnvironment);
+        Collection<AssignableTerm> terms =
+            assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
 
-      if (!hasNextPositionAState) {
-        pathWithAssignments.add(
-            createIntermediateConcreteStateNode(
-                cfaEdge,
-                pSSAMaps.get(ssaMapIndex),
-                variableEnvironment,
+        SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
+
+        ConcreteStatePathNode concreteStatePathNode =
+            createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvironment,
                 variables,
-                functionEnvironment,
-                memory,
-                addressOfVariables,
-                terms,
-                evaluator));
+                functionEnvironment, memory, addressOfVariables,
+                terms, pModel, usedAssignableTerms);
 
-        // we are on a normal position in the ARG (state is available)
-      } else {
-        pathWithAssignments.add(
-            createSingleConcreteStateNode(
-                cfaEdge,
-                ssaMap,
-                variableEnvironment,
-                variables,
-                functionEnvironment,
-                memory,
-                addressOfVariables,
-                terms,
-                evaluator));
+        pathWithAssignments.add(concreteStatePathNode);
+        ssaMapIndex++;
       }
-      ssaMapIndex++;
-
-      pathIt.advance();
     }
 
-    return new ConcreteStatePath(pathWithAssignments);
-  }
-
-  private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(Iterable<ValueAssignment> pModel) {
-
-    Multimap<String, ValueAssignment> uninterpretedFunctions =
-        FluentIterable.from(pModel)
-            .filter(ValueAssignment::isFunction)
-            .index(ValueAssignment::getName);
-
-    return new PredicateAnalysisConcreteExpressionEvaluator(uninterpretedFunctions);
-  }
-
-  private static class PredicateAnalysisConcreteExpressionEvaluator implements ConcreteExpressionEvaluator {
-
-    private final Multimap<String, ValueAssignment> uninterpretedFunctions;
-
-    public PredicateAnalysisConcreteExpressionEvaluator(
-        Multimap<String, ValueAssignment> pUninterpretedFunction) {
-      uninterpretedFunctions = pUninterpretedFunction;
-    }
-
-    @Override
-    public boolean shouldEvaluateExpressionWithThisEvaluator(AExpression pExp) {
-
-      if (pExp instanceof CExpression) {
-        CExpression cExp = (CExpression) pExp;
-        if (hasUninterpretedFunctionName(cExp)) {
-          String functionName = getUninterpretedFunctionName(cExp);
-          return uninterpretedFunctions.containsKey(functionName);
-        }
-      }
-
-      return false;
-    }
-
-    private String getUninterpretedFunctionName(CExpression pCExp) {
-
-      String typeName = getTypeString(pCExp.getExpressionType());
-
-      if (pCExp instanceof CBinaryExpression) {
-
-        CBinaryExpression binExp = (CBinaryExpression) pCExp;
-        String opString = binExp.getOperator().getOperator();
-
-        switch (binExp.getOperator()) {
-          case MULTIPLY:
-          case MODULO:
-          case DIVIDE:
-            opString = "_" + opString;
-            break;
-          default:
-            // default
-        }
-
-        return typeName + "_" + opString + "_";
-
-      } else if (pCExp instanceof CUnaryExpression) {
-        CUnaryExpression unExp = (CUnaryExpression) pCExp;
-        String op = unExp.getOperator().getOperator();
-
-        return typeName + "_" + op + "_";
-      } else if (pCExp instanceof CCastExpression) {
-        CCastExpression castExp = (CCastExpression) pCExp;
-        CType type2 = castExp.getOperand().getExpressionType();
-        String typeName2 = getTypeString(type2);
-        return "__cast_" + typeName2 + "_to_" + typeName + "__";
-      }
-
-      return "";
-    }
-
-    private String getTypeString(CType pExpressionType) {
-
-      if(pExpressionType instanceof CSimpleType) {
-
-        CSimpleType simpleType = (CSimpleType) pExpressionType;
-
-        switch (simpleType.getType()) {
-          case INT:
-          case CHAR:
-          case BOOL:
-            return "Integer";
-          case FLOAT:
-          case DOUBLE:
-            return "Rational";
-          default:
-            return "";
-        }
-      }
-
-      return "";
-    }
-
-    private boolean hasUninterpretedFunctionName(CExpression pCExp) {
-      return pCExp instanceof CBinaryExpression || pCExp instanceof CUnaryExpression || pCExp instanceof CCastExpression;
-    }
-
-    @Override
-    public Value evaluate(ABinaryExpression pBinExp, Value pOp1, Value pOp2) {
-
-      CBinaryExpression cBinExp = (CBinaryExpression) pBinExp;
-      String functionName = getUninterpretedFunctionName(cBinExp);
-      Value[] operands = {pOp1, pOp2};
-
-      for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
-        if (matchOperands(valueAssignment, operands)) {
-          return asValue(valueAssignment.getValue());
-        }
-      }
-
-      return Value.UnknownValue.getInstance();
-    }
-
-    private boolean matchOperands(ValueAssignment pValueAssignment, Value[] operands) {
-      ImmutableList<Object> arguments = pValueAssignment.getArgumentsInterpretation();
-
-      if (arguments.size() != operands.length) {
-        return false;
-      }
-
-      for (int i = 0; i < operands.length; i++) {
-        Value operandI = operands[i];
-        Value argumentI = asValue(arguments.get(i));
-
-        if (!argumentI.equals(operandI)) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    private Value asValue(Object pValue) {
-
-      if (pValue == null || !(pValue instanceof Number)) {
-        return Value.UnknownValue.getInstance();
-      }
-
-      return new NumericValue((Number) pValue);
-    }
-
-    @Override
-    public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
-
-      if (!pOperand.isNumericValue()) {
-        return UnknownValue.getInstance();
-      }
-
-      CUnaryExpression cUnaryExp = (CUnaryExpression) pUnaryExpression;
-      String functionName = getUninterpretedFunctionName(cUnaryExp);
-      Value[] operands = {pOperand};
-
-      for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
-        if (matchOperands(valueAssignment, operands)) {
-          return asValue(valueAssignment.getValue());
-        }
-      }
-
-      return Value.UnknownValue.getInstance();
-    }
-
-    @Override
-    public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
-
-      if (!pOperand.isNumericValue()) {
-        return UnknownValue.getInstance();
-      }
-
-      CCastExpression cUnaryExp = (CCastExpression) pCastExpression;
-      String functionName = getUninterpretedFunctionName(cUnaryExp);
-      Value[] operands = {pOperand};
-
-      for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
-        if (matchOperands(valueAssignment, operands)) {
-          return asValue(valueAssignment.getValue());
-        }
-      }
-
-      return Value.UnknownValue.getInstance();
-    }
+    ConcreteStatePath concreteStatePath = new ConcreteStatePath(pathWithAssignments);
+    return Pair.of(concreteStatePath, usedAssignableTerms);
   }
 
   private ConcreteStatePathNode createSingleConcreteStateNode(
       CFAEdge cfaEdge, SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvoirment,
+      Map<String, Assignment> variableEnvoirment,
       Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvoirment,
+      Multimap<String, Assignment> functionEnvoirment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms, ConcreteExpressionEvaluator pEvaluator) {
+      Collection<AssignableTerm> terms, RichModel pModel,
+      Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
 
-    Map<String, Memory> allocatedMemory =
-        createConcreteStateNode0(
-            ssaMap, variableEnvoirment, variables, functionEnvoirment, memory, terms);
+    ConcreteState concreteState = createSingleConcreteState(cfaEdge, ssaMap,
+        variableEnvoirment, variables,
+        functionEnvoirment, memory,
+        addressOfVariables, terms, pModel, usedAssignableTerms);
 
-    return new SingleConcreteState(
-        cfaEdge,
-        new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator));
+    return ConcreteStatePath.valueOfPathNode(concreteState, cfaEdge);
   }
 
-  private ConcreteStatePathNode createIntermediateConcreteStateNode(
-      CFAEdge cfaEdge,
-      SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvoirment,
+  private ConcreteState createSingleConcreteState(
+      CFAEdge cfaEdge, SSAMap ssaMap,
+      Map<String, Assignment> variableEnvironment,
       Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvoirment,
+      Multimap<String, Assignment> functionEnvironment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms,
-      ConcreteExpressionEvaluator pEvaluator) {
+      Collection<AssignableTerm> terms, RichModel pModel,
+      Multimap<CFAEdge, AssignableTerm> usedAssignableTerms) {
 
-    Map<String, Memory> allocatedMemory =
-        createConcreteStateNode0(
-            ssaMap, variableEnvoirment, variables, functionEnvoirment, memory, terms);
+    Set<Assignment> termSet = new HashSet<>();
 
-    return new IntermediateConcreteState(
-        cfaEdge,
-        new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator));
-  }
+    createAssignments(pModel, terms, termSet, variableEnvironment, variables, functionEnvironment, memory);
 
-  private Map<String, Memory> createConcreteStateNode0(
-      SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvoirment,
-      Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvoirment,
-      Map<String, Map<Address, Object>> memory,
-      Collection<ValueAssignment> terms) {
-    Set<ValueAssignment> termSet = new HashSet<>();
-
-    createAssignments(terms, termSet, variableEnvoirment, variables, functionEnvoirment, memory);
-
-    removeDeallocatedVariables(ssaMap, variableEnvoirment);
+    removeDeallocatedVariables(ssaMap, variableEnvironment);
 
     Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
-    return allocatedMemory;
+
+    ConcreteState concreteState = new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName);
+
+    // for legacy functionality, remember used assignable terms per cfa edge.
+    usedAssignableTerms.putAll(cfaEdge, terms);
+
+    return concreteState;
   }
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
@@ -493,7 +294,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private void removeDeallocatedVariables(SSAMap pMap, Map<String, ValueAssignment> variableEnvoirment) {
+  private void removeDeallocatedVariables(SSAMap pMap, Map<String, Assignment> variableEnvoirment) {
 
     Set<String> variableNames = new HashSet<>(variableEnvoirment.keySet());
 
@@ -507,15 +308,17 @@ public class AssignmentToPathAllocator {
   /**
    * We need the variableEnvironment and functionEnvironment for their SSAIndeces.
    */
-  private void createAssignments(
-      Collection<ValueAssignment> terms,
-      Set<ValueAssignment> termSet,
-      Map<String, ValueAssignment> variableEnvironment,
+  private void createAssignments(RichModel pModel,
+      Collection<AssignableTerm> terms,
+      Set<Assignment> termSet,
+      Map<String, Assignment> variableEnvironment,
       Map<LeftHandSide, Object> pVariables,
-      Multimap<String, ValueAssignment> functionEnvironment,
+      Multimap<String, Assignment> functionEnvironment,
       Map<String, Map<Address, Object>> memory) {
 
-    for (final ValueAssignment term : terms) {
+    for (AssignableTerm term : terms) {
+
+      Assignment assignment = new Assignment(term, pModel.get(term));
       String fullName = term.getName();
       Pair<String, Integer> pair = FormulaManagerView.parseName(fullName);
       if (pair.getSecond() != null) {
@@ -523,7 +326,7 @@ public class AssignmentToPathAllocator {
         int newIndex = pair.getSecondNotNull();
 
         if (variableEnvironment.containsKey(canonicalName)) {
-          ValueAssignment oldVariable = variableEnvironment.get(canonicalName);
+          AssignableTerm oldVariable = variableEnvironment.get(canonicalName).getTerm();
 
           int oldIndex = FormulaManagerView.parseName(oldVariable.getName()).getSecondNotNull();
 
@@ -531,62 +334,65 @@ public class AssignmentToPathAllocator {
 
             //update variableEnvironment for subsequent calculation
             variableEnvironment.remove(canonicalName);
-            variableEnvironment.put(canonicalName, term);
+            variableEnvironment.put(canonicalName, assignment);
 
             LeftHandSide oldlhs = createLeftHandSide(canonicalName);
             LeftHandSide lhs = createLeftHandSide(canonicalName);
             pVariables.remove(oldlhs);
-            pVariables.put(lhs, term.getValue());
+            pVariables.put(lhs, assignment.getValue());
           }
         } else {
           //update variableEnvironment for subsequent calculation
-          variableEnvironment.put(canonicalName, term);
+          variableEnvironment.put(canonicalName, assignment);
 
           LeftHandSide lhs = createLeftHandSide(canonicalName);
-          pVariables.put(lhs, term.getValue());
+          pVariables.put(lhs, assignment.getValue());
         }
       }
 
-      if (!term.getArgumentsInterpretation().isEmpty()) {
+      if (term instanceof Function) {
 
-        String name = term.getName();
+        Function function = (Function) term;
+        String name = getName(function);
 
         if (functionEnvironment.containsKey(name)) {
           boolean replaced = false;
-          Set<ValueAssignment> assignments = new HashSet<>(functionEnvironment.get(name));
-          for (ValueAssignment oldAssignment : assignments) {
+          Set<Assignment> assignments = new HashSet<>(functionEnvironment.get(name));
+          for (Assignment oldAssignment : assignments) {
+            Function oldFunction = (Function) oldAssignment.getTerm();
 
-            if (isSmallerSSA(oldAssignment, term)) {
+            if (isSmallerSSA(oldFunction, function)) {
 
               //update functionEnvironment for subsequent calculation
               functionEnvironment.remove(name, oldAssignment);
-              functionEnvironment.put(name, term);
+              functionEnvironment.put(name, assignment);
               replaced = true;
-              removeHeapValue(memory, term);
-              addHeapValue(memory, term);
+              removeHeapValue(memory, assignment);
+              addHeapValue(memory, assignment);
 
             }
           }
 
           if (!replaced) {
-            functionEnvironment.put(name, term);
-            addHeapValue(memory, term);
+            functionEnvironment.put(name, assignment);
+            addHeapValue(memory, assignment);
           }
         } else {
-          functionEnvironment.put(name, term);
-          addHeapValue(memory, term);
+          functionEnvironment.put(name, assignment);
+          addHeapValue(memory, assignment);
         }
       }
-      termSet.add(term);
+      termSet.add(assignment);
     }
   }
 
-  private void removeHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
-    String heapName = getName(pFunctionAssignment);
+  private void removeHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
+    Function function = (Function) pFunctionAssignment.getTerm();
+    String heapName = getName(function);
     Map<Address, Object> heap = memory.get(heapName);
 
-    if (pFunctionAssignment.getArgumentsInterpretation().size() == 1) {
-      Address address = Address.valueOf(pFunctionAssignment.getArgumentsInterpretation().get(FIRST));
+    if (function.getArity() == 1) {
+      Address address = Address.valueOf(function.getArgument(FIRST));
 
       heap.remove(address);
     } else {
@@ -594,18 +400,19 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private void addHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
-    String heapName = getName(pFunctionAssignment);
+  private void addHeapValue(Map<String, Map<Address, Object>> memory, Assignment pFunctionAssignment) {
+    Function function = (Function) pFunctionAssignment.getTerm();
+    String heapName = getName(function);
     Map<Address, Object> heap;
 
     if (!memory.containsKey(heapName)) {
-      memory.put(heapName, new HashMap<>());
+      memory.put(heapName, new HashMap<Address, Object>());
     }
 
     heap = memory.get(heapName);
 
-    if (pFunctionAssignment.getArgumentsInterpretation().size() == 1) {
-      Address address = Address.valueOf(pFunctionAssignment.getArgumentsInterpretation().get(FIRST));
+    if (function.getArity() == 1) {
+      Address address = Address.valueOf(function.getArgument(FIRST));
 
       Object value = pFunctionAssignment.getValue();
       heap.put(address, value);
@@ -615,14 +422,18 @@ public class AssignmentToPathAllocator {
   }
 
   private Map<LeftHandSide, Address> getVariableAddresses(
-      AssignableTermsInPath assignableTerms) {
+      AssignableTermsInPath assignableTerms, RichModel pModel) {
 
     Map<LeftHandSide, Address> addressOfVariables = new HashMap<>();
 
-    for (ValueAssignment constant : assignableTerms.getConstants()) {
+    for (AssignableTerm constant : assignableTerms.getConstants()) {
       String name = constant.getName();
-      if (name.startsWith(ADDRESS_PREFIX)) {
-        Address address = Address.valueOf(constant.getValue());
+      if (name.startsWith(ADDRESS_PREFIX)
+          && pModel.containsKey(constant)) {
+
+        Object addressValue = pModel.get(constant);
+
+        Address address = Address.valueOf(addressValue);
 
         //TODO ugly, refactor?
         String constantName = name.substring(ADDRESS_PREFIX.length());
@@ -634,7 +445,7 @@ public class AssignmentToPathAllocator {
     return ImmutableMap.copyOf(addressOfVariables);
   }
 
-  private boolean isSmallerSSA(ValueAssignment pOldFunction, ValueAssignment pFunction) {
+  private boolean isSmallerSSA(Function pOldFunction, Function pFunction) {
 
     String name = FormulaManagerView.parseName(pFunction.getName()).getFirstNotNull();
     String oldName = FormulaManagerView.parseName(pOldFunction.getName()).getFirstNotNull();
@@ -650,17 +461,16 @@ public class AssignmentToPathAllocator {
       return false;
     }
 
-    int arity = pFunction.getArgumentsInterpretation().size();
+    int arity = pFunction.getArity();
 
-    int oldArity = pOldFunction.getArgumentsInterpretation().size();
+    int oldArity = pOldFunction.getArity();
 
     if (arity != oldArity) {
       return false;
     }
 
     for (int c = 0; c < arity; c++) {
-      if (!pOldFunction.getArgumentsInterpretation().get(c).equals(
-          pFunction.getArgumentsInterpretation().get(c))) {
+      if (!pOldFunction.getArgument(c).equals(pFunction.getArgument(c))) {
         return false;
       }
     }
@@ -674,24 +484,24 @@ public class AssignmentToPathAllocator {
    * allocation is used to determine the model at each edge of the path.
    *
    */
-  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps,
-      Iterable<ValueAssignment> pModel) {
+  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps, RichModel pModel) {
 
     // Create a map that holds all AssignableTerms that occurred
     // in the given path. The referenced path is the precise path, with multi edges resolved.
-    Multimap<Integer, ValueAssignment> assignedTermsPosition = HashMultimap.create();
+    Multimap<Integer, AssignableTerm> assignedTermsPosition = HashMultimap.create();
 
-    Set<ValueAssignment> constants = new HashSet<>();
-    Set<ValueAssignment> functionsWithoutSSAIndex = new HashSet<>();
+    Set<AssignableTerm> constants = new HashSet<>();
+    Set<Function> functionsWithoutSSAIndex = new HashSet<>();
 
-    for (ValueAssignment term : pModel) {
+    for (AssignableTerm term : pModel.keySet()) {
 
       int ssaIdx = getSSAIndex(term);
-      if (term.isFunction()) {
+      if (term instanceof Function) {
+        Function function = (Function) term;
         if (ssaIdx == -2) {
-          functionsWithoutSSAIndex.add(term);
+          functionsWithoutSSAIndex.add(function);
         } else {
-          int index = findFirstOccurrenceOfVariableFunction(term, pSsaMaps);
+          int index = findFirstOccurrenceOfVariable(function, pSsaMaps);
           if (index >= 0) {
             assignedTermsPosition.put(index, term);
           }
@@ -709,7 +519,7 @@ public class AssignmentToPathAllocator {
     return new AssignableTermsInPath(assignedTermsPosition, constants, functionsWithoutSSAIndex);
   }
 
-  private int getSSAIndex(ValueAssignment pTerm) {
+  private int getSSAIndex(AssignableTerm pTerm) {
     Integer out = FormulaManagerView.parseName(pTerm.getName()).getSecond();
     if (out != null) {
       return out;
@@ -717,7 +527,7 @@ public class AssignmentToPathAllocator {
     return -2;
   }
 
-  private String getName(ValueAssignment pTerm) {
+  private String getName(AssignableTerm pTerm) {
     return FormulaManagerView.parseName(pTerm.getName()).getFirst();
   }
 
@@ -726,7 +536,7 @@ public class AssignmentToPathAllocator {
    * for the first index where a given variable appears.
    * @return -1 if the variable with the given SSA-index never occurs, or an index of pSsaMaps
    */
-  int findFirstOccurrenceOfVariable(ValueAssignment pVar, List<SSAMap> pSsaMaps) {
+  int findFirstOccurrenceOfVariable(AssignableTerm pVar, List<SSAMap> pSsaMaps) {
 
     // both indices are inclusive bounds of the range where we still need to look
     int lower = 0;
@@ -785,7 +595,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  int findFirstOccurrenceOfVariableFunction(ValueAssignment pTerm, List<SSAMap> pSsaMaps) {
+  int findFirstOccurrenceOfVariable(Function pTerm, List<SSAMap> pSsaMaps) {
 
     int lower = 0;
     int upper = pSsaMaps.size() - 1;
@@ -824,31 +634,56 @@ public class AssignmentToPathAllocator {
     }
   }
 
+  // TODO: Why is this generic class not in the package core.counterexample?
+  private static final class Assignment {
+
+    private final AssignableTerm term;
+    private final Object value;
+
+    public Assignment(AssignableTerm pTerm, Object pValue) {
+      term = pTerm;
+      value = pValue;
+    }
+
+    public AssignableTerm getTerm() {
+      return term;
+    }
+
+    public Object getValue() {
+      return value;
+    }
+
+    @Override
+    public String toString() {
+      return "term: " + term.toString() + "value: " + value.toString();
+    }
+  }
+
   private static final class AssignableTermsInPath {
 
-    private final Multimap<Integer, ValueAssignment> assignableTermsAtPosition;
-    private final Set<ValueAssignment> constants;
-    private final Set<ValueAssignment> ufFunctionsWithoutSSAIndex;
+    private final Multimap<Integer, AssignableTerm> assignableTermsAtPosition;
+    private final Set<AssignableTerm> constants;
+    private final Set<Function> ufFunctionsWithoutSSAIndex;
 
     public AssignableTermsInPath(
-        Multimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
-        Set<ValueAssignment> pConstants, Set<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
+        Multimap<Integer, AssignableTerm> pAssignableTermsAtPosition,
+        Set<AssignableTerm> pConstants, Set<Function> pUfFunctionsWithoutSSAIndex) {
 
       assignableTermsAtPosition = ImmutableMultimap.copyOf(pAssignableTermsAtPosition);
       constants = ImmutableSet.copyOf(pConstants);
       ufFunctionsWithoutSSAIndex = ImmutableSet.copyOf(pUfFunctionsWithoutSSAIndex);
     }
 
-    public Multimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
+    public Multimap<Integer, AssignableTerm> getAssignableTermsAtPosition() {
       return assignableTermsAtPosition;
     }
 
-    public Set<ValueAssignment> getConstants() {
+    public Set<AssignableTerm> getConstants() {
       return constants;
     }
 
     @SuppressWarnings("unused")
-    public Set<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
+    public Set<Function> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
 

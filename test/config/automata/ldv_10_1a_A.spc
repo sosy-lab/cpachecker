@@ -1,0 +1,14 @@
+OBSERVER AUTOMATON AUTOMATON_10_1a
+INITIAL STATE Unlocked;
+
+STATE USEALL Unlocked :
+  MATCH {LDV_IN_INTERRUPT = $1;} -> ASSUME {((int)$1)==2} PRINT  "LDV_IN_INTERRUPT: 1->2" GOTO Locked;
+  MATCH {LDV_IN_INTERRUPT = $1;} -> ASSUME {((int)$1)==1} PRINT  "LDV_IN_INTERRUPT: 1->1" GOTO Unlocked;
+
+STATE USEALL Locked :
+  MATCH {LDV_IN_INTERRUPT = $1;} -> ASSUME {((int)$1)==2} PRINT  "LDV_IN_INTERRUPT: 2->2" GOTO Locked;
+  MATCH {LDV_IN_INTERRUPT = $1;} -> ASSUME {((int)$1)==1} PRINT  "LDV_IN_INTERRUPT: 2->1" GOTO Unlocked;
+  MATCH CALL {alloc_atomic($1)} -> ASSUME {((int)$1)==32} ERROR;
+  MATCH CALL {alloc_atomic($1)} -> ASSUME {((int)$1)!=32} GOTO Locked;
+
+END AUTOMATON

@@ -24,16 +24,16 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
-import static com.google.common.collect.Lists.transform;
+import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-import java.util.List;
-import java.util.Objects;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 public class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
@@ -49,11 +49,8 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
 
   @Override
   public String toASTString() {
-    StringBuilder sb = new StringBuilder();
-    Joiner.on("").appendTo(sb, transform(designators, CDesignator::toASTString));
-    sb.append(" = ");
-    sb.append(right.toASTString());
-    return sb.toString();
+      return from(designators).transform(CDesignator.TO_AST_STRING).join(Joiner.on(""))
+          + " = " + right.toASTString();
   }
 
   public List<CDesignator> getDesignators() {

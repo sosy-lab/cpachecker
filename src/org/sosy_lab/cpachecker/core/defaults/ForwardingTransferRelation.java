@@ -23,13 +23,20 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -55,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -75,12 +83,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
 
 /** This Transfer-Relation forwards the method 'getAbstractSuccessors()'
  * to an edge-specific sub-method ('AssumeEdge', 'DeclarationEdge', ...).
@@ -193,6 +196,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
       break;
 
+    case MultiEdge:
+      successor = handleMultiEdge((MultiEdge) cfaEdge);
+      break;
+
     default:
       successor = handleSimpleEdge(cfaEdge);
     }
@@ -253,6 +260,42 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
+  }
+
+  /** This method just forwards the handling to every inner edge. */
+  @SuppressWarnings("unchecked")
+  protected S handleMultiEdge(MultiEdge cfaEdge) throws CPATransferException {
+    for (final CFAEdge innerEdge : cfaEdge) {
+      edge = innerEdge;
+      final S intermediateResult = handleSimpleEdge(innerEdge);
+      Preconditions.checkState(state.getClass().isAssignableFrom(intermediateResult.getClass()),
+            "We assume equal types for input- and output-values. " +
+            "Thus this implementation only works with exactly one input- and one output-state (and they should have same type)." +
+            "If there are more successors during a MultiEdge, you need to override this method.");
+      state = (T)intermediateResult;
+    }
+    edge = cfaEdge; // reset edge
+    return (S)state;
+  }
+
+  /** This method just forwards the handling to every inner edge.
+   * It uses a frontier of abstract states.
+   * This function can be used, if the generic type S is a collection of T. */
+  @SuppressWarnings("unchecked")
+  protected S handleMultiEdgeReturningCollection(MultiEdge cfaEdge) throws CPATransferException {
+    Collection<T> frontier = Collections.singleton(state);
+    for (final CFAEdge innerEdge : cfaEdge) {
+      edge = innerEdge;
+      final Collection<T> tmp = new HashSet<>();
+      for (T frontierState : frontier) {
+        state = frontierState;
+        final S intermediateResult = handleSimpleEdge(innerEdge);
+        tmp.addAll((Collection<T>)intermediateResult); // unsafe cast, part 1
+      }
+      frontier = tmp;
+    }
+    edge = cfaEdge; // reset edge
+    return (S)frontier; // unsafe cast, part 2
   }
 
   /** This is a fast check, if the edge should be analyzed.
@@ -617,21 +660,12 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     if (isBooleanExpression(pExpression)) {
       if (pExpression instanceof CBinaryExpression) {
         CBinaryExpression binExp = (CBinaryExpression) pExpression;
-        BinaryOperator operator = binExp.getOperator();
         if (isBooleanExpression(binExp.getOperand1())
             && binExp.getOperand2().equals(CIntegerLiteralExpression.ZERO)) {
-          if (operator == BinaryOperator.EQUALS) {
-            return simplifyAssumption(binExp.getOperand1(), !pAssumeTruth);
-          } else if (operator == BinaryOperator.NOT_EQUALS) {
-            return simplifyAssumption(binExp.getOperand1(), pAssumeTruth);
-          } //TODO what else?
+          return simplifyAssumption(binExp.getOperand1(), !pAssumeTruth);
         } else if (isBooleanExpression(binExp.getOperand2())
             && binExp.getOperand1().equals(CIntegerLiteralExpression.ZERO)) {
-          if (operator == BinaryOperator.EQUALS) {
-            return simplifyAssumption(binExp.getOperand2(), !pAssumeTruth);
-          } else if (operator == BinaryOperator.NOT_EQUALS) {
-            return simplifyAssumption(binExp.getOperand2(), pAssumeTruth);
-          } //TODO what else?
+          return simplifyAssumption(binExp.getOperand2(), !pAssumeTruth);
         }
       }
     }

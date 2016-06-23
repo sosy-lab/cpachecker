@@ -23,22 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import com.google.common.base.Preconditions;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Preconditions;
 
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
@@ -52,7 +54,14 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
     for (CFANode node : pCFA.getAllNodes()) {
       // This part adds lines, which are only on edges, such as "return" or "goto"
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        cov.handleEdgeCoverage(edge, false);
+        if (edge instanceof MultiEdge) {
+          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+            cov.handleEdgeCoverage(innerEdge, CoverageCountMode.EXISTING);
+          }
+
+        } else {
+          cov.handleEdgeCoverage(edge, CoverageCountMode.EXISTING);
+        }
       }
     }
 
@@ -68,13 +77,21 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    handleEdge(pCfaEdge);
+    if (pCfaEdge instanceof MultiEdge) {
+      for (CFAEdge innerEdge : ((MultiEdge) pCfaEdge).getEdges()) {
+        handleNonMultiEdge(innerEdge);
+      }
+
+    } else {
+      handleNonMultiEdge(pCfaEdge);
+    }
+
     return Collections.singleton(pElement);
   }
 
-  private void handleEdge(CFAEdge pEdge) {
+  private void handleNonMultiEdge(CFAEdge pEdge) {
 
-    cov.handleEdgeCoverage(pEdge, true);
+    cov.handleEdgeCoverage(pEdge, CoverageCountMode.VISITED);
 
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
       cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());

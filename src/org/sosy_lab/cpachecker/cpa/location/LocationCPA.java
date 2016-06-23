@@ -49,8 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -58,7 +57,11 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Optional;
 
-public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+/**
+ * CPA for tracking the program counter (which is modeled by nodes of the CFA).
+ */
+public class LocationCPA implements ConfigurableProgramAnalysis,
+  ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   private final LocationStateFactory stateFactory;
   private final AbstractDomain abstractDomain = new FlatLatticeDomain();
@@ -120,13 +123,18 @@ public class LocationCPA implements ConfigurableProgramAnalysis, ConfigurablePro
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(AbstractState pElement,
+      CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+          throws CPATransferException, InterruptedException {
+
     return pSuccessors.equals(transferRelation.getAbstractSuccessorsForEdge(
         pElement, SingletonPrecision.getInstance(), pCfaEdge));
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException, InterruptedException {
+
     return abstractDomain.isLessOrEqual(pElement, pOtherElement);
   }
 }

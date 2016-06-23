@@ -176,7 +176,6 @@ public class UseDefBasedInterpolator {
    * of the given variable declaration.
    */
   private List<MemoryLocation> obtainMemoryLocationsForType(ASimpleDeclaration use) {
-
     return ((CType) use.getType()).accept(
         new MemoryLocationCreator(use.getQualifiedName(), machineModel));
   }
@@ -203,11 +202,6 @@ public class UseDefBasedInterpolator {
      */
     private int currentOffset = 0;
 
-    /**
-     * marker to know if traversal went through a complex type
-     */
-    private boolean withinComplexType = false;
-
     private MemoryLocationCreator(final String pQualifiedName, final MachineModel pModel) {
       model = pModel;
       qualifiedName = pQualifiedName;
@@ -215,8 +209,6 @@ public class UseDefBasedInterpolator {
 
     @Override
     public List<MemoryLocation> visit(final CArrayType pArrayType) throws IllegalArgumentException {
-      withinComplexType = true;
-
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
@@ -231,8 +223,6 @@ public class UseDefBasedInterpolator {
 
     @Override
     public List<MemoryLocation> visit(final CCompositeType pCompositeType) throws IllegalArgumentException {
-      withinComplexType = true;
-
       switch (pCompositeType.getKind()) {
         case STRUCT: return createMemoryLocationsForStructure(pCompositeType);
         case UNION:  return createMemoryLocationsForUnion(pCompositeType);
@@ -243,8 +233,6 @@ public class UseDefBasedInterpolator {
 
     @Override
     public List<MemoryLocation> visit(final CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      withinComplexType = true;
-
       CType definition = pElaboratedType.getRealType();
       if (definition != null) {
         return definition.accept(this);
@@ -296,15 +284,10 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createSingleMemoryLocation(final int pSize) {
-      if (withinComplexType) {
-        List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
+      List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
+      currentOffset = currentOffset + pSize;
 
-        currentOffset = currentOffset + pSize;
-
-        return memory;
-      }
-
-      return Collections.singletonList(MemoryLocation.valueOf(qualifiedName));
+      return memory;
     }
 
     private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {

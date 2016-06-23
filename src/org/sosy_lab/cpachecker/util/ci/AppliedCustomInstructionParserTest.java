@@ -23,13 +23,24 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,17 +54,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.truth.Truth;
 
 public class AppliedCustomInstructionParserTest {
 
@@ -63,7 +64,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException {
+  public void init() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
     String testProgram = ""
           + "extern int test3(int);"
           + "int test(int p) {"
@@ -106,7 +107,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            LogManager.createTestLogManager(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
@@ -217,7 +218,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException, InvalidConfigurationException {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -234,11 +235,10 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            LogManager.createTestLogManager(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
             cfa);
-
-    Path p = MoreFiles.createTempFile("test_acis", null, null);
-    try (Writer file = MoreFiles.openOutputFile(p, StandardCharsets.US_ASCII)) {
+    Path p = Paths.createTempPath("test_acis", null);
+    try (Writer file = Files.openOutputFile(p)) {
       file.append("main\n");
       CFANode node;
       Deque<CFANode> toVisit = new ArrayDeque<>();
@@ -264,8 +264,7 @@ public class AppliedCustomInstructionParserTest {
     }
     int startNodeNr = expectedStart.getNodeNumber();
 
-    CustomInstructionApplications cia =
-        aciParser.parse(p, MoreFiles.createTempFile("ci_spec", "txt", null));
+    CustomInstructionApplications cia = aciParser.parse(p);
     Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
     Truth.assertThat(cis.size()).isEqualTo(4);
     List<CFANode> aciNodes = new ArrayList<>(2);

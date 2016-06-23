@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -72,15 +71,21 @@ public class CoverageReport {
 
   private final Collection<CoverageWriter> reportWriters;
 
+  private void registerWriterIfEnabled(CoverageWriter pReportWriter) {
+    if (pReportWriter.isEnabled()) {
+      this.reportWriters.add(pReportWriter);
+    }
+  }
+
   public CoverageReport(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.reportWriters = Lists.newArrayList();
-    this.reportWriters.add(new CoverageReportGcov(pConfig, pLogger));
-    this.reportWriters.add(new CoverageReportStdoutSummary(pConfig));
 
+    registerWriterIfEnabled(new CoverageReportGcov(pConfig, pLogger));
+    registerWriterIfEnabled(new CoverageReportStdoutSummary(pConfig));
   }
 
   public void writeCoverageReport(
@@ -88,7 +93,7 @@ public class CoverageReport {
       final ReachedSet pReached,
       final CFA pCfa) {
 
-    if (!enabled) {
+    if (!enabled || reportWriters.isEmpty()) {
       return;
     }
 
@@ -119,7 +124,14 @@ public class CoverageReport {
     //Add information about existing locations
     for (CFANode node : pCfa.getAllNodes()) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        handleExistedEdge(node.getLeavingEdge(i), infosPerFile);
+        CFAEdge edge = node.getLeavingEdge(i);
+        if (edge instanceof MultiEdge) {
+          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+            handleExistedEdge(innerEdge, infosPerFile);
+          }
+        } else {
+          handleExistedEdge(edge, infosPerFile);
+        }
       }
     }
 
@@ -133,15 +145,13 @@ public class CoverageReport {
       if (argState != null ) {
         for (ARGState child : argState.getChildren()) {
           if (!child.isCovered()) {
-            List<CFAEdge> edges = argState.getEdgesToChild(child);
-            if (edges.size() > 1) {
-              for (CFAEdge innerEdge : edges) {
+            CFAEdge edge = argState.getEdgeToChild(child);
+            if (edge instanceof MultiEdge) {
+              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
                 handleCoveredEdge(innerEdge, infosPerFile);
               }
-
-              //BAM produces paths with no edge connection thus the list will be empty
-            } else if (!edges.isEmpty()) {
-              handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
+            } else {
+              handleCoveredEdge(edge, infosPerFile);
             }
           }
         }
@@ -153,7 +163,13 @@ public class CoverageReport {
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
           if (reachedNodes.contains(edge.getSuccessor())) {
-            handleCoveredEdge(edge, infosPerFile);
+            if (edge instanceof MultiEdge) {
+              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+                handleCoveredEdge(innerEdge, infosPerFile);
+              }
+            } else {
+              handleCoveredEdge(edge, infosPerFile);
+            }
           }
         }
       }
@@ -193,6 +209,11 @@ public class CoverageReport {
   private void handleCoveredEdge(
       final CFAEdge pEdge,
       final Map<String, FileCoverageInformation> pCollectors) {
+
+    if (pEdge == null) {
+      //BAM is working
+      return;
+    }
 
     FileLocation loc = pEdge.getFileLocation();
     if (loc.getStartingLineNumber() == 0) {

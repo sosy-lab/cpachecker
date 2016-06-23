@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-import gmp.Mpfr;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +40,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.collect.Sets;
+import com.google.common.math.DoubleMath;
+
 import apron.Coeff;
 import apron.DoubleScalar;
 import apron.MpfrScalar;
@@ -53,9 +54,7 @@ import apron.Texpr0CstNode;
 import apron.Texpr0DimNode;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
-import com.google.common.collect.Sets;
-import com.google.common.math.DoubleMath;
+import gmp.Mpfr;
 
 
 public class ApronRequirementsTranslator extends CartesianRequirementsTranslator<ApronState> {
@@ -69,13 +68,6 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
   @Override
   protected List<String> getVarsInRequirements(ApronState pRequirement) {
     Collection<String> result = getConvexHullRequiredVars(pRequirement, null); // TODO
-    stateToRequiredVars = Pair.of(pRequirement, result);
-    return new ArrayList<>(result);
-  }
-
-  @Override
-  protected List<String> getVarsInRequirements(final ApronState pRequirement, final @Nullable Collection<String> pRequiredVars) {
-    Collection<String> result = getConvexHullRequiredVars(pRequirement, pRequiredVars);
     stateToRequiredVars = Pair.of(pRequirement, result);
     return new ArrayList<>(result);
   }
@@ -210,7 +202,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
       assert (false);
     }
 
-    String left = convertLeftConstraintPartToFormula(varNames, map, varsConsidered);
+    String left = convertLeftConstraintPartToFormula(constraint, varNames, map, varsConsidered);
     if(left == null) {
       return null;
     }
@@ -248,7 +240,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     throw new AssertionError("Cannot deal with this non-integer scalar");
   }
 
-  private @Nullable String convertLeftConstraintPartToFormula(final List<String> varNames,
+  private @Nullable String convertLeftConstraintPartToFormula(final Tcons0 constraint, final List<String> varNames,
       final SSAMap map, final Collection<String> varsConsidered) {
     boolean toConsider = false;
     StringBuilder sb = new StringBuilder();

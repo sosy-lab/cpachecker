@@ -23,40 +23,72 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
+
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * Helper class for running CPA tests.
  */
 public class CPATestRunner {
 
+  public static TestResults runAndLogToSTDOUT(
+      Map<String, String> pProperties,
+      String pSourceCodeFilePath) throws Exception {
+    return run(pProperties, pSourceCodeFilePath, true);
+  }
+
   public static TestResults run(
       Map<String, String> pProperties,
       String pSourceCodeFilePath) throws Exception {
+    return run(pProperties, pSourceCodeFilePath, false);
+  }
+
+  public static TestResults run(
+      Configuration pConfig,
+      String pSourceCodeFilePath,
+      boolean writeLogToSTDOUT) throws Exception {
+
+    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+
+    Handler h;
+    if (writeLogToSTDOUT) {
+      h = new StreamHandler(System.out, new SimpleFormatter());
+    } else {
+      h = stringLogHandler;
+    }
+
+    LogManager logger = new BasicLogManager(pConfig, h);
+    ShutdownManager shutdownManager = ShutdownManager.create();
+    CPAchecker cpaChecker = new CPAchecker(pConfig, logger, shutdownManager);
+
+    try {
+      CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
+      return new TestResults(stringLogHandler.getLog(), results);
+    } finally {
+      logger.flush();
+    }
+
+  }
+
+  public static TestResults run(
+      Map<String, String> pProperties,
+      String pSourceCodeFilePath,
+      boolean writeLogToSTDOUT) throws Exception {
 
     Configuration config = TestDataTools.configurationForTest()
         .setOptions(pProperties)
         .build();
 
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    stringLogHandler.setLevel(Level.INFO);
-    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
-    LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
-
-    ShutdownManager shutdownManager = ShutdownManager.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-    logger.flush();
-    return new TestResults(stringLogHandler.getLog(), results);
+    return run(config, pSourceCodeFilePath, writeLogToSTDOUT);
   }
 }

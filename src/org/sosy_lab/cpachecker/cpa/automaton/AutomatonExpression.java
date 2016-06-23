@@ -23,44 +23,82 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-interface AutomatonExpression {
+import java.util.logging.Level;
+
+public interface AutomatonExpression {
 
   ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
+  public static class StringExpression implements AutomatonExpression {
 
-  static class StringExpression implements AutomatonExpression {
-    private String toPrint;
-    public StringExpression(String pString) {
-      super();
-      this.toPrint = pString;
+    public static StringExpression empty() {
+      return new StringExpression("");
     }
+
+    private String pRawExpression;
+
+    public StringExpression(String pString) {
+      this.pRawExpression = pString;
+    }
+
+    public String getRawExpression() {
+      return pRawExpression;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((pRawExpression == null) ? 0 : pRawExpression.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      StringExpression other = (StringExpression) obj;
+      if (pRawExpression == null) {
+        if (other.pRawExpression != null) {
+          return false;
+        }
+      } else if (!pRawExpression.equals(other.pRawExpression)) {
+        return false;
+      }
+      return true;
+    }
+
     @Override
     public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
-      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
+      String str = pRawExpression.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace $location
       str = str.replaceAll("\\$[Ll]ocation", pArgs.getCfaEdge().getFileLocation().toString());
       // replace $file
       str = str.replaceAll("\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName());
-      // replace $states
-      str = str.replaceAll("\\$[Ss]tates", pArgs.getAbstractStates().toString());
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {
-        return new ResultValue<>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
+        return new ResultValue<>("Failure in Variable Replacement in String \"" + pRawExpression + "\"","ActionExpr.Print");
       } else {
         return new ResultValue<>(str);
       }
     }
+
   }
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
@@ -152,7 +190,7 @@ interface AutomatonExpression {
     /**
      * @returns null if cannotEvaluate() == true
      */
-    resultType getValue() {
+    public resultType getValue() {
       return value;
     }
   }

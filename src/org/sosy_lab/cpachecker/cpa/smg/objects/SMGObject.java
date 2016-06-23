@@ -26,36 +26,13 @@ package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
 public abstract class SMGObject {
-  private final int size;
-  private final String label;
-  private final int level;
-  private final SMGObjectKind kind;
+  final private int size;
+  final private String label;
 
-
-
-  static private final SMGObject nullObject = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
-
+  static private final SMGObject nullObject = new SMGObject(0, "NULL") {
     @Override
     public String toString() {
       return "NULL";
-    }
-
-    @Override
-    public SMGObject copy() {
-      // fancy way of referencing itself
-      return SMGObject.getNullObject();
-    }
-
-    @Override
-    public SMGObject copy(int level) {
-      // fancy way of referencing itself
-      return SMGObject.getNullObject();
-    }
-
-    @Override
-    public boolean isMoreGeneral(SMGObject pOther) {
-      /*There is no object that can replace the null object in an smg.*/
-      return false;
     }
   };
 
@@ -63,34 +40,15 @@ public abstract class SMGObject {
     return nullObject;
   }
 
-  public SMGObjectKind getKind() {
-    return kind;
-  }
-
-  protected SMGObject(int pSize, String pLabel, SMGObjectKind pKind) {
+  protected SMGObject(int pSize, String pLabel) {
     size = pSize;
     label = pLabel;
-    level = 0;
-    kind = pKind;
-  }
-
-  protected SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
-    size = pSize;
-    label = pLabel;
-    level = pLevel;
-    kind = pKind;
   }
 
   protected SMGObject(SMGObject pOther) {
     size = pOther.size;
     label = pOther.label;
-    level = pOther.level;
-    kind = pOther.kind;
   }
-
-  public abstract SMGObject copy();
-
-  public abstract SMGObject copy(int pNewLevel);
 
   public String getLabel() {
     return label;
@@ -119,26 +77,17 @@ public abstract class SMGObject {
     throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");
   }
 
-  /**
-   * Compares objects and determines, if this object is more general than given object.
-   * If this object is more general than the given object, then a smg resulting in replacing
-   * the given object with this object would cover strictly more states.
-   *
-   * @param pOther other object to be compared with this object.
-   * @return Returns true iff this object is more general than given object.
-   *  False otherwise.
-   */
-  public abstract boolean isMoreGeneral(SMGObject pOther);
+  public boolean isMoreGeneral(SMGObject pOther) {
+    if (size != pOther.size) {
+      throw new IllegalArgumentException("isMoreGeneral called on incompatible pair of objects");
+    }
+    return false;
+  }
 
   /**
    * @param pOther object to join with
-   * @param pIncreaseLevel increase Nesting level.
    */
-  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
+  public SMGObject join(SMGObject pOther) {
     throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
-  }
-
-  public int getLevel() {
-    return level;
   }
 }

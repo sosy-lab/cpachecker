@@ -23,54 +23,157 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.regex.Matcher;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import javax.annotation.Nonnull;
 
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
 public class Automaton {
+
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
   private final Map<String, AutomatonVariable> initVars;
-  private final List<AutomatonInternalState> states;
+  private final Set<AutomatonInternalState> states = Sets.newHashSet();
+  private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
+  private final ImmutableSet<SafetyProperty> encodedProperties;
+  private final Multimap<AutomatonTransition, SafetyProperty> relevantPropertiesForTransitions;
+  private final AutomatonSafetyPropertyFactory propertyFactory ;
+  private String headerFile;
 
-  public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
+  private Optional<Boolean> isObservingOnly = Optional.absent();
+
+  public Automaton(
+      final AutomatonSafetyPropertyFactory pPropFact,
+      final String pName,
+      final Map<String, AutomatonVariable> pVars,
+      final List<AutomatonInternalState> pRawStates,
+      final String pInitialStateName,
+      final String pHeaderFile)
+      throws InvalidAutomatonException {
+    this(pPropFact, pName, pVars, pRawStates, pInitialStateName);
+    headerFile = pHeaderFile;
+  }
+
+  public Automaton(AutomatonSafetyPropertyFactory pPropFact,
+      String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pRawStates,
       String pInitialStateName) throws InvalidAutomatonException {
+
+    this.propertyFactory = Preconditions.checkNotNull(pPropFact);
     this.name = pName;
     this.initVars = pVars;
-    this.states = pStates;
+    headerFile = null;
+    relevantPropertiesForTransitions = HashMultimap.create();
+    Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pRawStates.size());
+    List<AutomatonInternalState> postprocessedStates = postprocessStates(pRawStates);
+    Builder<SafetyProperty> encodedPropertiesBuilder = ImmutableSet.builder();
 
-    Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
-    for (AutomatonInternalState s : pStates) {
-      if (statesMap.put(s.getName(), s) != null) {
-        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
+    for (AutomatonInternalState q : postprocessedStates) {
+
+      // Check for duplicated state names in the input
+      if (nameToState.put(q.getName(), q) != null) {
+        throw new InvalidAutomatonException("State " + q.getName() + " exists twice in automaton " + pName);
+      }
+
+      // The collection of states is a set (unique names)
+      this.states.add(q);
+      if (q.isTarget()) {
+        this.targetStates.add(q);
+      }
+
+      for (AutomatonTransition t: q.getTransitions()) {
+        encodedPropertiesBuilder.addAll(t.getViolatedWhenEnteringTarget());
+        encodedPropertiesBuilder.addAll(t.getViolatedWhenAssertionFailed());
+
+        // Add a reference from the properties to the automaton.
+        for (SafetyProperty p: t.getViolatedWhenAssertionFailed()) {
+          p.setAutomaton(this);
+        }
+        for (SafetyProperty p: t.getViolatedWhenEnteringTarget()) {
+          p.setAutomaton(this);
+        }
       }
     }
 
-    initState = statesMap.get(pInitialStateName);
+    encodedProperties = encodedPropertiesBuilder.build();
+
+    initState = nameToState.get(pInitialStateName);
     if (initState == null) {
       throw new InvalidAutomatonException("Inital state " + pInitialStateName + " not found in automaton " + pName);
     }
 
     // set the FollowStates of all Transitions
-    for (AutomatonInternalState s : pStates) {
-      s.setFollowStates(statesMap);
+    for (AutomatonInternalState q : pRawStates) {
+      q.setFollowStates(nameToState);
     }
   }
 
-  public List<AutomatonInternalState> getStates() {
+  /**
+   * The transitions of the automaton can be annotated with C expressions that
+   *  should get woven during the analysis. This method is responsible for performing the type inference,
+   *  or adding the references to the variable declarations.
+   *
+   * @param pStates   The states (with transitions) to adjust.
+   * @return          A copy of the states with modified transitions.
+   */
+  private List<AutomatonInternalState> postprocessStates(List<AutomatonInternalState> pStates) {
+    return pStates; //TODO: Implement this
+  }
+
+  public Set<AutomatonInternalState> getStates() {
     return states;
+  }
+
+  public String getHeaderFile() {
+    return headerFile;
+  }
+
+  public int getTransitionsToTargetStatesCount() {
+    ArrayList<AutomatonTransition> result = Lists.newArrayList();
+
+    for (AutomatonInternalState q: states) {
+      for (AutomatonTransition t: q.getTransitions()) {
+
+        if (t.getFollowState().isTarget()) {
+          result.add(t);
+        }
+      }
+    }
+
+    return result.size();
+  }
+
+  public AutomatonSafetyPropertyFactory getPropertyFactory() {
+    return propertyFactory;
+  }
+
+  public Set<AutomatonInternalState> getTargetStates() {
+    return targetStates;
   }
 
   public String getName() {
@@ -89,7 +192,7 @@ public class Automaton {
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
    * @param pOut the appendable to write to
    */
-  void writeDotFile(Appendable pOut) throws IOException {
+  public void writeDotFile(Appendable pOut) throws IOException {
     pOut.append("digraph " + name + "{\n");
 
     boolean errorState = false;
@@ -119,9 +222,21 @@ public class Automaton {
   }
 
   private static String formatState(AutomatonInternalState s, String color) {
-    String name = s.getName().replace("_predefinedState_", "");
-    String shape = s.getDoesMatchAll() ? "doublecircle" : "circle";
-    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
+    StringBuilder sb = new StringBuilder();
+
+    final String name = s.getName().replace("_predefinedState_", "");
+    sb.append(String.format("%d [label=\"%s\" ", s.getStateId(), name));
+
+    String shape = s.isTarget() ? "doublecircle" : "circle";
+    sb.append("shape=\"" + shape + "\" ");
+
+    if (s.getDoesMatchAll()) {
+      sb.append("style=filled ");
+    }
+
+    sb.append(String.format("]\n"));
+
+    return sb.toString();
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
@@ -144,8 +259,100 @@ public class Automaton {
           if (!t.meetsObserverRequirements()) {
             throw new InvalidConfigurationException("The transition " + t
                 + " in state \"" + s + "\" is not valid for an ObserverAutomaton.");
-          }
         }
       }
     }
+
+    this.isObservingOnly = Optional.of(Boolean.TRUE);
+  }
+
+  public boolean getIsObservingOnly() {
+    if (isObservingOnly.isPresent()) {
+      return isObservingOnly.get();
+    }
+    return false;
+  }
+
+  public Set<AutomatonInternalState> getStatesThatMightReachTargetOverapprox(AutomatonInternalState pTarget) {
+    // All target states is a valid overapproximation
+    //    TODO!!
+    return targetStates;
+  }
+
+  public Set<AutomatonInternalState> getReachableTargetStatesOverapprox() {
+    return ImmutableSet.copyOf(states);
+  }
+
+  /**
+   * @return  The set of safety properties that are encoded in the automaton.
+   */
+  public ImmutableSet<? extends SafetyProperty> getEncodedProperties() {
+    return encodedProperties;
+  }
+
+  /**
+   * Returns the set of properties that are relevant for a given transition.
+   *
+   * <p>The relevant properties are those properties, that can be reached when traversing
+   * through the automaton starting at the given transition.</p>
+   *
+   * @param pTransition The transition of the automaton to start the search at.
+   * @return A set of properties that are relevant for the transition.
+   */
+  ImmutableSet<? extends SafetyProperty> getIsRelevantForProperties(
+      final @Nonnull AutomatonTransition pTransition) {
+    if (encodedProperties.size() <= 1) {
+      return getEncodedProperties();
+    } else {
+      if (relevantPropertiesForTransitions.containsKey(pTransition)) {
+        return ImmutableSet.copyOf(relevantPropertiesForTransitions.get(pTransition));
+      } else {
+        ImmutableSet<? extends SafetyProperty> foundProperties =
+            findRelevantProperties(pTransition);
+        relevantPropertiesForTransitions.putAll(pTransition, foundProperties);
+        return foundProperties;
+      }
+    }
+  }
+
+  /**
+   * Search for relevant properties in the automaton using a wait list algorithm.
+   *
+   * @param pTransition The transition to start with.
+   * @return A set of properties that are relevant for the transition.
+   */
+  private ImmutableSet<? extends SafetyProperty> findRelevantProperties(
+      final @Nonnull AutomatonTransition pTransition) {
+    Set<SafetyProperty> foundProperties = new HashSet<>();
+    Set<AutomatonInternalState> visitedStates = new HashSet<>();
+    Queue<AutomatonTransition> waitList = new LinkedList<>();
+    waitList.add(pTransition);
+
+    while (!waitList.isEmpty()) {
+      AutomatonTransition transition = waitList.poll();
+      AutomatonInternalState followState = transition.getFollowState();
+      if (visitedStates.contains(followState)) { // already visited this state
+        continue;
+      }
+
+      if (followState.isTarget()) { // add the safety properties of a target state
+        if (!transition.getViolatedWhenAssertionFailed().isEmpty()) {
+          for (SafetyProperty property : transition.getViolatedWhenAssertionFailed()) {
+            foundProperties.add(property);
+          }
+        }
+        if (!transition.getViolatedWhenEnteringTarget().isEmpty()) {
+          for (SafetyProperty property : transition.getViolatedWhenEnteringTarget()) {
+            foundProperties.add(property);
+          }
+        }
+      }
+
+      visitedStates.add(followState);
+      waitList.addAll(followState.getTransitions());
+    }
+
+    return ImmutableSet.copyOf(foundProperties);
+  }
+
 }

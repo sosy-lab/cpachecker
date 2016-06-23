@@ -25,12 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.AArrayType;
-
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -39,9 +33,15 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.AArrayType;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
     justification="handled by serialization proxy")
-public final class CArrayType extends AArrayType implements CType {
+public final class CArrayType extends AArrayType implements CType, Serializable {
 
   private static final long serialVersionUID = -6314468260643330323L;
 
@@ -83,11 +83,6 @@ public final class CArrayType extends AArrayType implements CType {
   @Override
   public boolean isVolatile() {
     return isVolatile;
-  }
-
-  @Override
-  public boolean isIncomplete() {
-    return length == null; // C standard § 6.2.5 (22)
   }
 
   @Override
@@ -151,7 +146,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public CArrayType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    // C11 standard 6.7.3 (9) specifies that qualifiers like const and volatile
+    // C11 standard 6.7.2.4 (9) specifies that qualifiers like const and volatile
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
     return new CArrayType(false, false,

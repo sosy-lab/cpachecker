@@ -23,12 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -38,17 +44,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 /** This Writer can dump a cfa with blocks into a file. */
 public class BlockToDotWriter {
@@ -62,7 +61,7 @@ public class BlockToDotWriter {
 
   /** dump the cfa with blocks and colourful nodes. */
   public void dump(final Path filename, final LogManager logger) {
-    try (Writer w = MoreFiles.openOutputFile(filename, Charset.defaultCharset())) {
+    try (Writer w = Files.openOutputFile(filename)) {
       dump(w);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write blocks to dot file");
@@ -80,7 +79,7 @@ public class BlockToDotWriter {
     final List<CFAEdge> edges = new ArrayList<>();
 
     // dump nodes of all blocks
-    dumpBlock(app, new HashSet<>(), blockPartitioning.getMainBlock(), hierarchy, edges, 0);
+    dumpBlock(app, new HashSet<CFANode>(), blockPartitioning.getMainBlock(), hierarchy, edges, 0);
 
     // we have to dump edges after the nodes and sub-graphs,
     // because Dot generates wrong graphs for edges from an inner block to an outer block.
@@ -100,9 +99,12 @@ public class BlockToDotWriter {
 
     // sort blocks, largest blocks first
     List<Block> sortedBlocks = Lists.newArrayList(blockPartitioning.getBlocks());
-    Collections.sort(
-        sortedBlocks,
-        Comparator.<Block>comparingInt((block) -> block.getNodes().size()).reversed());
+    Collections.sort(sortedBlocks, new Comparator<Block>() {
+      @Override
+      public int compare(Block b1, Block b2) {
+        return b2.getNodes().size() - b1.getNodes().size();
+      }
+    });
 
     // build hierarchy, worst case runtime O(n^2), iff mainBlock contains all other blocks 'directly'.
     final Multimap<Block, Block> hierarchy = HashMultimap.create();

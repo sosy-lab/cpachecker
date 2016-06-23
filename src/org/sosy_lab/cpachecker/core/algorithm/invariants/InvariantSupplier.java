@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
 
 
 public interface InvariantSupplier {
@@ -40,18 +39,15 @@ public interface InvariantSupplier {
    * @param node The CFANode.
    * @param fmgr The formula manager which should be used for creating the invariant formula.
    * @param pfmgr The {@link PathFormulaManager} which should be used for creating the invariant formula.
-   * @param pContext the context of the formula.
    * @return An invariant boolean formula without SSA indices.
    */
-  BooleanFormula getInvariantFor(
-      CFANode node, FormulaManagerView fmgr, PathFormulaManager pfmgr, PathFormula pContext);
+  BooleanFormula getInvariantFor(CFANode node, FormulaManagerView fmgr, PathFormulaManager pfmgr);
 
   static enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;
 
     @Override
-    public BooleanFormula getInvariantFor(
-        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pfmgr, PathFormula pContext) {
+    public BooleanFormula getInvariantFor(CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pfmgr) {
       return pFmgr.getBooleanFormulaManager().makeBoolean(true);
     }
   }

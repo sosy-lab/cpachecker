@@ -37,7 +37,7 @@ public enum CompoundMathematicalIntervalManagerFactory implements CompoundInterv
   }
 
   @Override
-  public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pBitVectorInfo) {
+  public CompoundIntervalManager createCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
     return CompoundMathematicalIntervalManager.INSTANCE;
   }
 

@@ -228,8 +228,8 @@ public class NondeterministicFiniteAutomaton<T> {
   public State createState() {
     State lState = StatePool.STATE_POOL.get(this);
 
-    mOutgoingEdges.add(new HashSet<>());
-    mIncomingEdges.add(new HashSet<>());
+    mOutgoingEdges.add(new HashSet<Edge>());
+    mIncomingEdges.add(new HashSet<Edge>());
 
     return lState;
   }

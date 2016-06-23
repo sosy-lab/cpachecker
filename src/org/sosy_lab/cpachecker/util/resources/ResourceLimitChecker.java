@@ -23,20 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.resources;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.math.LongMath;
-import com.google.common.primitives.Longs;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.Concurrency;
+import javax.annotation.Nonnull;
+import javax.management.JMException;
+
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -45,12 +46,12 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 
-import java.math.RoundingMode;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.management.JMException;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.math.LongMath;
+import com.google.common.primitives.Longs;
 
 /**
  * This class handles one or more limits for the usage of external resources.
@@ -79,9 +80,8 @@ public final class ResourceLimitChecker {
       thread = null;
 
     } else {
-      thread =
-          Concurrency.newDaemonThread(
-              "Resource limit checker", new ResourceLimitCheckRunnable(shutdownManager, limits));
+      Runnable runnable = new ResourceLimitCheckRunnable(shutdownManager, limits);
+      thread = Threads.newThread(runnable, "Resource limit checker", true);
     }
   }
 
@@ -130,10 +130,14 @@ public final class ResourceLimitChecker {
 
     ImmutableList<ResourceLimit> limitsList = limits.build();
     if (!limitsList.isEmpty()) {
-      logger.log(
-          Level.INFO,
-          "Using the following resource limits:",
-          Joiner.on(", ").join(Lists.transform(limitsList, ResourceLimit::getName)));
+      logger.log(Level.INFO, "Using the following resource limits:",
+          Joiner.on(", ").join(Lists.transform(limitsList,
+              new Function<ResourceLimit, String>() {
+                @Override
+                public String apply(@Nonnull ResourceLimit pInput) {
+                  return pInput.getName();
+                }
+              })));
     }
     return new ResourceLimitChecker(shutdownManager, limitsList);
   }

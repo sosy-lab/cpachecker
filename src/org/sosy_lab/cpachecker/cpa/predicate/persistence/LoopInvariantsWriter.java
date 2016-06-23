@@ -28,32 +28,31 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Maps;
 
 
 public class LoopInvariantsWriter {
@@ -105,13 +104,12 @@ public class LoopInvariantsWriter {
       return;
     }
 
-    try (Writer writer = MoreFiles.openOutputFile(invariantsFile, Charset.defaultCharset())) {
-      for (CFANode loc :
-          from(cfa.getAllLoopHeads().get())
-              .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
+    try (Writer writer = Files.openOutputFile(invariantsFile)) {
+      for (CFANode loc : from(cfa.getAllLoopHeads().get())
+                           .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
 
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        BooleanFormula formula = absmgr.convertRegionToFormula(region);
+        BooleanFormula formula = absmgr.toConcrete(region);
 
         writer.append("loop__");
         writer.append(loc.getFunctionName());
@@ -135,13 +133,11 @@ public class LoopInvariantsWriter {
     Set<String> uniqueDefs = new HashSet<>();
     StringBuilder asserts = new StringBuilder();
 
-    try (Writer writer =
-        MoreFiles.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
-      for (CFANode loc :
-          from(cfa.getAllLoopHeads().get())
-              .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
+    try (Writer writer = Files.openOutputFile(invariantPrecisionsFile)) {
+      for (CFANode loc : from(cfa.getAllLoopHeads().get())
+                           .toSortedSet(CFAUtils.NODE_NUMBER_COMPARATOR)) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        BooleanFormula formula = absmgr.convertRegionToFormula(region);
+        BooleanFormula formula = absmgr.toConcrete(region);
         Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);
 
         for (String def : locInvariant.getSecond()) {

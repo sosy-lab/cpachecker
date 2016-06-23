@@ -39,10 +39,10 @@ public class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
       BooleanFormula<ConstantType> pCondition,
       NumeralFormula<ConstantType> pPositiveCase,
       NumeralFormula<ConstantType> pNegativeCase) {
-    super(pPositiveCase.getTypeInfo());
+    super(pPositiveCase.getBitVectorInfo());
     Preconditions.checkNotNull(pCondition);
     Preconditions.checkNotNull(pNegativeCase);
-    Preconditions.checkArgument(pPositiveCase.getTypeInfo().equals(pNegativeCase.getTypeInfo()));
+    Preconditions.checkArgument(pPositiveCase.getBitVectorInfo().equals(pNegativeCase.getBitVectorInfo()));
     this.condition = pCondition;
     this.positiveCase = pPositiveCase;
     this.negativeCase = pNegativeCase;

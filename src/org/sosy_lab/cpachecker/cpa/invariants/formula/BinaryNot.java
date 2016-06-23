@@ -41,7 +41,7 @@ public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> imple
    * @param pToFlip the operand of the bit flip operation.
    */
   private BinaryNot(NumeralFormula<ConstantType> pToFlip) {
-    super(pToFlip.getTypeInfo());
+    super(pToFlip.getBitVectorInfo());
     this.flipped = pToFlip;
   }
 

@@ -44,6 +44,12 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return () -> new ReversePostorderSortedWaitlist(pSecondaryStrategy);
+    return new WaitlistFactory() {
+
+      @Override
+      public Waitlist createWaitlistInstance() {
+        return new ReversePostorderSortedWaitlist(pSecondaryStrategy);
+      }
+    };
   }
 }

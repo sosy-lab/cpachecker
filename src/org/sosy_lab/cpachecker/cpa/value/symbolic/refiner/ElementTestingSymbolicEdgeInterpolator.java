@@ -33,12 +33,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -77,7 +74,6 @@ public class ElementTestingSymbolicEdgeInterpolator
   private final StrongestPostOperator<ForgettingCompositeState> strongestPost;
   private final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant>
       interpolantManager;
-  private final MachineModel machineModel;
 
   private final ShutdownNotifier shutdownNotifier;
   private Precision valuePrecision;
@@ -101,7 +97,6 @@ public class ElementTestingSymbolicEdgeInterpolator
     shutdownNotifier = pShutdownNotifier;
     valuePrecision = VariableTrackingPrecision.createStaticPrecision(
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
-    machineModel = pCfa.getMachineModel();
   }
 
   @Override
@@ -109,30 +104,15 @@ public class ElementTestingSymbolicEdgeInterpolator
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
       final Deque<ForgettingCompositeState> pCallstack,
-      final PathPosition pLocationInPath,
+      final int pLocationInPath,
       final SymbolicInterpolant pInputInterpolant
   ) throws CPAException, InterruptedException {
 
     interpolationQueries = 0;
 
     ForgettingCompositeState originState = pInputInterpolant.reconstructState();
-    final Optional<ForgettingCompositeState> maybeSuccessor;
-    if (pCurrentEdge == null) {
-      PathIterator it = pLocationInPath.fullPathIterator();
-      Optional<ForgettingCompositeState> intermediate = Optional.of(originState);
-      do {
-        if (!intermediate.isPresent()) {
-          break;
-        }
-
-        intermediate = strongestPost.getStrongestPost(intermediate.get(), valuePrecision,
-            it.getOutgoingEdge());
-        it.advance();
-      } while (!it.isPositionWithState());
-      maybeSuccessor = intermediate;
-    } else {
-      maybeSuccessor = strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
-    }
+    Optional<ForgettingCompositeState> maybeSuccessor =
+        strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
 
     if (!maybeSuccessor.isPresent()) {
       return interpolantManager.getFalseInterpolant();
@@ -145,10 +125,10 @@ public class ElementTestingSymbolicEdgeInterpolator
       return pInputInterpolant;
     }
 
-    ARGPath suffix = pLocationInPath.iterator().getSuffixExclusive();
+    ARGPath suffix = getSuffix(pErrorPath, pLocationInPath);
 
     // if the suffix is contradicting by itself, the interpolant can be true
-    if (!isPathFeasible(suffix, ForgettingCompositeState.getInitialState(machineModel))) {
+    if (!isPathFeasible(suffix, ForgettingCompositeState.getInitialState())) {
       return interpolantManager.getTrueInterpolant();
     }
 
@@ -241,6 +221,11 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
 
     return pSuccessorState;
+  }
+
+  private ARGPath getSuffix(ARGPath pErrorPath, int pLocationInPath) {
+
+    return pErrorPath.obtainSuffix(pLocationInPath + 1);
   }
 
   private boolean isPathFeasible(

@@ -358,7 +358,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
 
   @Override
   public String getName() {
-    return "Bounds CPA";
+    return "Loopstack CPA";
   }
 
   public void setMaxLoopIterations(int pMaxLoopIterations) {

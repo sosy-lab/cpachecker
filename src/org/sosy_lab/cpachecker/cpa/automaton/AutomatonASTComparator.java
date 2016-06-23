@@ -35,6 +35,8 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -80,22 +82,79 @@ import com.google.common.collect.Lists;
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
  */
-class AutomatonASTComparator {
+public class AutomatonASTComparator {
 
   /**
    * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
    * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
    * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.
    */
-  private static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression";
-  private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
-  private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
+  static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression";
+  static final String NUMBERED_JOKER_EXPR = JOKER_EXPR + "_Num";
+  static final String NAMED_JOKER_EXPR = JOKER_EXPR + "_Named";
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
+  static final Pattern NUMBERED_PATTERN = Pattern.compile("\\d+");
+  static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
+  static final Pattern NAMED_PATTERN = Pattern.compile("[a-zA-Z_]\\w*");
+  static final Pattern NAMED_JOKER_PATTERN = Pattern.compile("\\$[a-zA-Z_]\\w*");
+  static final Pattern GENERIC_JOKER_PATTERN = Pattern.compile("\\$\\w*");
+
+  public static class ASTMatcherProvider {
+    private final String patter;
+    private final ASTMatcher matcher;
+
+    public ASTMatcherProvider(String pPattern, CParser pParser, Scope pScope)
+        throws InvalidAutomatonException, InvalidConfigurationException {
+
+      patter = pPattern;
+      String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
+      matcher = parse(tmp, pParser, pScope).accept(ASTMatcherGenerator.INSTANCE);
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((patter == null) ? 0 : patter.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ASTMatcherProvider other = (ASTMatcherProvider) obj;
+      if (patter == null) {
+        if (other.patter != null) {
+          return false;
+        }
+      } else if (!patter.equals(other.patter)) {
+        // We only compare the pattern string, but not its accepted language!
+        return false;
+      }
+      return true;
+    }
+
+    public ASTMatcher getMatcher() {
+      return matcher;
+    }
+
+    public String getPatternString() {
+      return patter;
+    }
+  }
+
+  static ASTMatcherProvider generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     // $?-Jokers, $1-Jokers and function declaration
-    String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
-    return parse(tmp, parser, scope).accept(ASTMatcherGenerator.INSTANCE);
+    return new ASTMatcherProvider(pPattern, parser, scope);
   }
 
   static CStatement generateSourceAST(String pSource, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
@@ -104,29 +163,46 @@ class AutomatonASTComparator {
     return parse(tmp, parser, scope);
   }
 
-  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
+  static List<AStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     String tmp = addFunctionDeclaration(pSource);
 
     return parseBlockOfStatements(tmp, parser, scope);
   }
 
+  static List<AAstNode> generateSourceASTOfCode(String pSource, CParser parser, Scope scope)
+      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    String tmp = addFunctionDeclaration(pSource);
+
+    return parseBlockOfCode(tmp, parser, scope);
+  }
+
+
   @VisibleForTesting
   static String replaceJokersInPattern(String pPattern) {
-    String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
-    Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
-    StringBuffer result = new StringBuffer();
+    final String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
+
+    final Matcher matcher = GENERIC_JOKER_PATTERN.matcher(tmp);
+    final StringBuffer result = new StringBuffer();
+
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
-      String key = tmp.substring(matcher.start()+1, matcher.end());
-      try {
-        int varKey = Integer.parseInt(key);
-        result.append(" " + NUMBERED_JOKER_EXPR + varKey + " ");
-      } catch (NumberFormatException e) {
-        // did not work, but i cant log it down here. Should not be able to happen anyway (regex captures only ints)
-        result.append(matcher.group());
+      final String key = tmp.substring(matcher.start()+1, matcher.end());
+
+      if (NAMED_PATTERN.matcher(key).matches()) {
+        result.append(" " + NAMED_JOKER_EXPR + key + " ");
+
+      } else {
+        try {
+          result.append(" " + NUMBERED_JOKER_EXPR + key + " ");
+
+        } catch (NumberFormatException e) {
+        //  did not work, but i cant log it down here. Should not be able to happen anyway (regex captures only ints)
+          result.append(matcher.group());
+        }
       }
     }
+
     matcher.appendTail(result);
     return result.toString();
   }
@@ -156,7 +232,7 @@ class AutomatonASTComparator {
    */
   private static CStatement parse(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
-      CAstNode statement = parser.parseSingleStatement(code, scope);
+      CAstNode statement = parser.parseSingleStatement(replaceJokersInPattern(code), scope);
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
@@ -177,26 +253,33 @@ class AutomatonASTComparator {
    * @param code The C code to parse.
    * @return The AST.
    */
-  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
-    List<CAstNode> statements;
+  private static List<AStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    List<AAstNode> codeBlock = parseBlockOfCode(code, parser, scope);
 
-    statements = parser.parseStatements(code, scope);
-
-    for (CAstNode statement : statements) {
+    for (AAstNode statement : codeBlock) {
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Code in assumption: <"
       + statement.toASTString() + "> is not a valid assumption.");
+      } else if (statement.toString().contains("__CPAchecker_TMP_")) {
+        throw new InvalidAutomatonException("Invalid assumptions. Disjunctions "
+            + "are not allowed. Conjunctions need to split into separate "
+            + "statements, separated by a semi-colon.");
       }
     }
 
-    Function<CAstNode, CStatement> function = new Function<CAstNode, CStatement>() {
+    Function<AAstNode, CStatement> function = new Function<AAstNode, CStatement>() {
       @Override
-      public CStatement apply(CAstNode statement) {
+      public CStatement apply(AAstNode statement) {
         return (CStatement) statement;
       }
     };
 
-    return ImmutableList.copyOf(Lists.transform(statements, function));
+    return ImmutableList.<AStatement>copyOf(Lists.transform(codeBlock, function));
+  }
+
+  private static List<AAstNode> parseBlockOfCode(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    List<CAstNode> result = parser.parseStatements(replaceJokersInPattern(code), scope);
+    return ImmutableList.<AAstNode>copyOf(result);
   }
 
 
@@ -608,8 +691,7 @@ class AutomatonASTComparator {
       // RawSignature returns the raw code before preprocessing.
       // This does not matter in this case because only very small sniplets, generated by method "addFunctionDeclaration" are tested, no preprocessing
 
-      String value = pSource.toASTString();
-      pArgs.putTransitionVariable(number, value);
+      pArgs.putTransitionVariable(number, pSource);
       return true;
     }
 

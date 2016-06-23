@@ -44,8 +44,6 @@ public interface ConstraintsPrecision extends Precision {
    */
   boolean isTracked(Constraint pConstraint, CFANode pLocation);
 
-  ConstraintsPrecision join(ConstraintsPrecision pOther);
-
   ConstraintsPrecision withIncrement(Increment pIncrement);
 
   class Increment {

@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.List;
-import java.util.Map;
 
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 
 /**
@@ -40,23 +40,21 @@ import com.google.common.collect.ImmutableMap;
  * For spurious counterexamples, this stores the interpolants.
  */
 public class CounterexampleTraceInfo {
+
     private final boolean spurious;
     private final ImmutableList<BooleanFormula> interpolants;
-    private final ImmutableList<ValueAssignment> mCounterexampleModel;
+    private final RichModel mCounterexampleModel;
     private final ImmutableList<BooleanFormula> mCounterexampleFormula;
-    private final ImmutableMap<Integer, Boolean> branchingPreds;
+    private final ImmutableMultimap<Integer, Integer> branchingDirections;
 
-    private CounterexampleTraceInfo(
-        boolean pSpurious,
-        ImmutableList<BooleanFormula> pInterpolants,
-        ImmutableList<ValueAssignment> pCounterexampleModel,
-        ImmutableList<BooleanFormula> pCounterexampleFormula,
-        ImmutableMap<Integer, Boolean> pBranchingPreds) {
+    private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
+        RichModel pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
+        ImmutableMultimap<Integer, Integer> pBranchingPreds) {
       spurious = pSpurious;
       interpolants = pInterpolants;
       mCounterexampleModel = pCounterexampleModel;
       mCounterexampleFormula = pCounterexampleFormula;
-      branchingPreds = pBranchingPreds;
+      branchingDirections = pBranchingPreds;
     }
 
     public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
@@ -64,7 +62,7 @@ public class CounterexampleTraceInfo {
           ImmutableList.copyOf(pInterpolants),
           null,
           ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
+          ImmutableMultimap.<Integer, Integer>of()
           );
     }
 
@@ -73,19 +71,17 @@ public class CounterexampleTraceInfo {
           null,
           null,
           ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
+          ImmutableMultimap.<Integer, Integer>of()
           );
     }
 
-  public static CounterexampleTraceInfo feasible(
-      List<BooleanFormula> pCounterexampleFormula,
-      Iterable<ValueAssignment> pModel,
-      Map<Integer, Boolean> preds) {
+    public static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
+        RichModel pModel, Multimap<Integer, Integer> preds) {
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
-          ImmutableList.copyOf(pModel),
+          checkNotNull(pModel),
           ImmutableList.copyOf(pCounterexampleFormula),
-          ImmutableMap.copyOf(preds)
+          ImmutableMultimap.copyOf(preds)
           );
     }
 
@@ -117,13 +113,13 @@ public class CounterexampleTraceInfo {
       return mCounterexampleFormula;
     }
 
-    public ImmutableList<ValueAssignment> getModel() {
+    public RichModel getModel() {
       checkState(!spurious);
       return mCounterexampleModel;
     }
 
-    public Map<Integer, Boolean> getBranchingPredicates() {
+    public Multimap<Integer, Integer> getBranchingDirections() {
       checkState(!spurious);
-      return branchingPreds;
+      return branchingDirections;
     }
 }

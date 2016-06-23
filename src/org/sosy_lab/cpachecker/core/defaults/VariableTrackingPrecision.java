@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -90,7 +89,7 @@ public abstract class VariableTrackingPrecision implements Precision {
         if (joinedPrecision == null) {
           joinedPrecision = prec;
         } else {
-          joinedPrecision = joinedPrecision.join(prec);
+          joinedPrecision = (VariableTrackingPrecision) joinedPrecision.join(prec);
         }
       }
     }
@@ -117,8 +116,15 @@ public abstract class VariableTrackingPrecision implements Precision {
   }
 
   public static Predicate<Precision> isMatchingCPAClass(final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
-     return pPrecision -> pPrecision instanceof VariableTrackingPrecision
-         && ((VariableTrackingPrecision) pPrecision).getCPAClass() == cpaClass;
+     return new Predicate<Precision>() {
+
+      @Override
+      public boolean apply(Precision pPrecision) {
+        if (!(pPrecision instanceof VariableTrackingPrecision)) {
+          return false;
+        }
+          return ((VariableTrackingPrecision)pPrecision).getCPAClass() == cpaClass;
+      }};
   }
 
   /**
@@ -163,13 +169,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param writer the write to write the precision to
    */
   public abstract void serialize(Writer writer) throws IOException;
-
-  /**
-   * This method joins this precision with another precision
-   *
-   * @param otherPrecision the precision to join with
-   */
-  public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
   /**
    * This methods compares if this precision tracks the same variables as another precision.
@@ -358,7 +357,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+    public Precision join(Precision consolidatedPrecision) {
       Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
       return this;
     }
@@ -426,20 +425,6 @@ public abstract class VariableTrackingPrecision implements Precision {
           trackFloatVariables,
           trackAddressedVariables
           );
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(ConfigurablePrecision.class)
-          .add("CPA", cpaClass.getSimpleName())
-          .add("blacklist", variableBlacklist)
-          .add("whitelist", variableWhitelist)
-          .add("trackBooleanVariables", trackBooleanVariables)
-          .add("trackIntEqualVariables", trackIntEqualVariables)
-          .add("trackIntAddVariables", trackIntAddVariables)
-          .add("trackFloatVariables", trackFloatVariables)
-          .add("trackAddressedVariables", trackAddressedVariables)
-          .toString();
     }
 
   }
@@ -532,7 +517,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+    public Precision join(Precision consolidatedPrecision) {
       checkArgument(getClass().equals(consolidatedPrecision.getClass()));
       checkArgument(super.baseline.equals(((LocalizedRefinablePrecision)consolidatedPrecision).getBaseline()));
 
@@ -642,7 +627,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+    public Precision join(Precision consolidatedPrecision) {
       Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
       checkArgument(super.baseline.equals(((ScopedRefinablePrecision)consolidatedPrecision).getBaseline()));
 

@@ -26,9 +26,18 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -91,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -145,21 +155,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation
@@ -232,8 +233,6 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
-  private int currentNumberOfIterations = 0;
-
   private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
   private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
 
@@ -245,7 +244,8 @@ public class ValueAnalysisTransferRelation
 
       writer.put(totalAssumptions)
             .put(deterministicAssumptions)
-            .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+            .put("Level of Determinism", StatisticsUtils.toPercent(deterministicAssumptions.getValue(),
+                                                                        totalAssumptions.getValue()));
     }
 
     @Override
@@ -271,18 +271,6 @@ public class ValueAnalysisTransferRelation
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
   }
 
-  int getCurrentNumberOfIterations() {
-    return currentNumberOfIterations;
-  }
-
-  int getCurrentLevelOfDeterminism() {
-    if (totalAssumptions.getValue() == 0) {
-      return 100;
-    } else {
-      return (int) Math.round((deterministicAssumptions.getValue() * 100) / (double)totalAssumptions.getValue());
-    }
-  }
-
   @Override
   protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
     // always return a new state (requirement for strengthening states with interpolants)
@@ -305,7 +293,6 @@ public class ValueAnalysisTransferRelation
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
     oldState = (ValueAnalysisState)pAbstractState;
-    currentNumberOfIterations++;
   }
 
   @Override
@@ -337,7 +324,7 @@ public class ValueAnalysisTransferRelation
       String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName);
+      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -396,7 +383,7 @@ public class ValueAnalysisTransferRelation
         = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
 
-    if (optionalReturnVarDeclaration.isPresent()) {
+    if(optionalReturnVarDeclaration.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
     }
 
@@ -426,7 +413,7 @@ public class ValueAnalysisTransferRelation
 
     Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
-    if (returnVarName.isPresent()) {
+    if(returnVarName.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
     }
 
@@ -452,10 +439,10 @@ public class ValueAnalysisTransferRelation
         JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
 
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
-        OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
+        Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.getAsInt());
+          assignedArray.setValue(newValue, maybeIndex.get());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -508,7 +495,7 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if (returnVarName.isPresent()) {
+    if(returnVarName.isPresent()) {
       newElement.forget(functionReturnVar);
     }
 
@@ -541,14 +528,14 @@ public class ValueAnalysisTransferRelation
         && !((JFieldDeclaration) declaration).isStatic();
   }
 
-  private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
+  private Optional<Integer> getIndex(JArraySubscriptExpression pExpression) {
     final ExpressionValueVisitor evv = getVisitor();
     final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
 
     if (indexValue.isUnknown()) {
-      return OptionalInt.empty();
+      return Optional.absent();
     } else {
-      return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
+      return Optional.of((int) ((NumericValue) indexValue).longValue());
     }
   }
 
@@ -589,7 +576,7 @@ public class ValueAnalysisTransferRelation
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
 
-    if (value.isExplicitlyKnown()) {
+    if(value.isExplicitlyKnown()) {
       deterministicAssumptions.inc();
     }
 
@@ -698,9 +685,9 @@ public class ValueAnalysisTransferRelation
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.valueOf(varName);
+      memoryLocation = MemoryLocation.valueOf(varName,0);
     } else {
-      memoryLocation = MemoryLocation.valueOf(functionName, varName);
+      memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
     }
 
     if (addressedVariables.contains(decl.getQualifiedName())
@@ -959,9 +946,9 @@ public class ValueAnalysisTransferRelation
     String varName = pIdExpression.getName();
 
     if (isGlobal(pIdExpression)) {
-      return MemoryLocation.valueOf(varName);
+      return MemoryLocation.valueOf(varName, 0);
     } else {
-      return MemoryLocation.valueOf(functionName, varName);
+      return MemoryLocation.valueOf(functionName, varName, 0);
     }
   }
 
@@ -1078,13 +1065,10 @@ public class ValueAnalysisTransferRelation
 
   private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
 
-    long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
-
     if (pStruct.isOnFunctionStack()) {
-      return MemoryLocation.valueOf(
-          pStruct.getFunctionName(), pStruct.getIdentifier(), baseOffset + pOffset);
+      return MemoryLocation.valueOf(pStruct.getFunctionName(), pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
     } else {
-      return MemoryLocation.valueOf(pStruct.getIdentifier(), baseOffset + pOffset);
+      return MemoryLocation.valueOf(pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
     }
   }
 
@@ -1133,12 +1117,12 @@ public class ValueAnalysisTransferRelation
       // the array enclosing the array specified in the given array subscript expression
       ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
+      Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
       int index;
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.getAsInt();
+        index = maybeIndex.get();
 
       } else {
         return null;
@@ -1172,10 +1156,10 @@ public class ValueAnalysisTransferRelation
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
       ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
-      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
+      Optional<Integer> maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.get());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
@@ -1234,12 +1218,10 @@ public class ValueAnalysisTransferRelation
 
       if (isEqualityAssumption(binaryOperator)) {
         if (isEligibleForAssignment(leftValue) && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
-          assignConcreteValue(
-              lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
+          assignConcreteValue(lVarInBinaryExp, leftValue, rightValue, pE.getExpressionType());
 
         } else if (isEligibleForAssignment(rightValue) && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
-          assignConcreteValue(
-              rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
+          assignConcreteValue(rVarInBinaryExp, rightValue, leftValue, pE.getExpressionType());
         }
       }
 
@@ -1248,16 +1230,14 @@ public class ValueAnalysisTransferRelation
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
           if (optimizeBooleanVariables && (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars)) {
-            assignableState.assignConstant(
-                leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
+            assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
 
         } else if (optimizeBooleanVariables && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(
-                rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
+            assignableState.assignConstant(rightMemLoc, new NumericValue(1L), pE.getExpressionType());
           }
         }
       }
@@ -1377,7 +1357,8 @@ public class ValueAnalysisTransferRelation
       if (declaration != null) {
         assignableState.assignConstant(declaration.getQualifiedName(), pValue);
       } else {
-        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
+        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName(),
+            0);
         assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
       }
     }
@@ -1598,6 +1579,10 @@ public class ValueAnalysisTransferRelation
       } else if (ae instanceof PointerState) {
 
         CFAEdge edge = cfaEdge;
+        if (edge instanceof MultiEdge) {
+          MultiEdge multiEdge = (MultiEdge) edge;
+          edge = multiEdge.getEdges().get(multiEdge.getEdges().size() - 1);
+        }
 
         ARightHandSide rightHandSide = getRightHandSide(edge);
         ALeftHandSide leftHandSide = getLeftHandSide(edge);

@@ -23,21 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -48,7 +50,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -65,14 +68,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * Used to store the types of the cfa that are
@@ -81,36 +85,44 @@ import javax.annotation.Nullable;
  */
 public class CProgramScope implements Scope {
 
-  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>>
-      TO_C_SIMPLE_DECLARATIONS =
-          new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
+  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>> TO_C_SIMPLE_DECLARATIONS =
+      new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
+
+        @Override
+        public Iterable<? extends CSimpleDeclaration> apply(CFANode pNode) {
+
+          return CFAUtils.leavingEdges(pNode).transformAndConcat(new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
 
             @Override
-            public Iterable<? extends CSimpleDeclaration> apply(final CFANode pNode) {
+            public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
 
-              return CFAUtils.leavingEdges(pNode)
-                  .transformAndConcat(
-                      new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
+              if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+                CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
+                return Collections.singleton(dcl);
+              }
+              if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+                FunctionCallEdge fce = (FunctionCallEdge) pEdge;
+                AFunctionDeclaration decl = fce.getSuccessor().getFunctionDefinition();
+                return from(decl.getParameters()).filter(CSimpleDeclaration.class);
+              }
 
-                        @Override
-                        public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
+              if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
+                MultiEdge edge = (MultiEdge) pEdge;
+                Collection<CSimpleDeclaration> result = new ArrayList<>();
 
-                          if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                            CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
-                            return Collections.singleton(dcl);
-                          }
+                for (CFAEdge innerEdge : edge.getEdges()) {
+                  Iterables.addAll(result, apply(innerEdge));
+                }
 
-                          if (pNode instanceof FunctionEntryNode) {
-                            FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
-                            return from(entryNode.getFunctionParameters())
-                                .filter(CSimpleDeclaration.class);
-                          }
+                return result;
+              }
 
-                          return Collections.emptySet();
-                        }
-                      });
+              return Collections.emptySet();
             }
-          };
+
+          });
+        }
+      };
 
   private static final Predicate<CSimpleDeclaration> HAS_NAME = new Predicate<CSimpleDeclaration>() {
 
@@ -279,7 +291,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public boolean isGlobalScope() {
-    return functionName == null;
+    return false;
   }
 
   @Override
@@ -292,8 +304,8 @@ public class CProgramScope implements Scope {
 
     CSimpleDeclaration result;
 
-    if (!isGlobalScope()) {
-      result = qualifiedDeclarations.get(createScopedNameOf(pName));
+    if (simulatesFunctionScope()) {
+      result = qualifiedDeclarations.get(getCurrentFunctionName() + "::" + pName);
       if (result != null) {
         return result;
       }
@@ -319,8 +331,8 @@ public class CProgramScope implements Scope {
   @Override
   public CComplexType lookupType(String pName) {
     CComplexType result = null;
-    if (!isGlobalScope()) {
-      String functionQualifiedName = createScopedNameOf(pName);
+    if (simulatesFunctionScope()) {
+      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypes);
       if (result != null) {
         return result;
@@ -348,8 +360,8 @@ public class CProgramScope implements Scope {
   @Override
   public CType lookupTypedef(String pName) {
     CType result = null;
-    if (!isGlobalScope()) {
-      String functionQualifiedName = createScopedNameOf(pName);
+    if (simulatesFunctionScope()) {
+      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypeDefs);
       if (result != null) {
         return result;
@@ -379,7 +391,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    if (!isGlobalScope()) {
+    if (simulatesFunctionScope()) {
       return getCurrentFunctionName() + "::" + pName;
     }
     return pName;
@@ -416,8 +428,12 @@ public class CProgramScope implements Scope {
     return new CProgramScope(this, pFunctionName);
   }
 
+  public boolean simulatesFunctionScope() {
+    return functionName != null;
+  }
+
   public String getCurrentFunctionName() {
-    Preconditions.checkState(!isGlobalScope());
+    Preconditions.checkState(simulatesFunctionScope());
     return functionName;
   }
 
@@ -528,10 +544,16 @@ public class CProgramScope implements Scope {
     }
 
     // Construct multimap that may contain duplicates
-    Multimap<String, CComplexType> typesMap =
-        from(typeCollector.getCollectedTypes())
-            .filter(CComplexType.class)
-            .index(CComplexType::getQualifiedName);
+    Multimap<String, CComplexType> typesMap = from(typeCollector.getCollectedTypes())
+        .filter(CComplexType.class)
+        .index(new Function<CComplexType, String>() {
+
+      @Override
+      public String apply(CComplexType pArg0) {
+        return pArg0.getQualifiedName();
+      }
+
+    });
 
     // Get unique types
     Map<String, CComplexType> uniqueTypes = Maps.newHashMap();
@@ -549,16 +571,28 @@ public class CProgramScope implements Scope {
     FluentIterable<CTypeDefDeclaration> plainTypeDefs = pTypeDcls.filter(CTypeDefDeclaration.class);
 
     // Construct multimap that may contain duplicates
-    Multimap<String, CTypeDefDeclaration> typeDefDeclarationsMap =
-        plainTypeDefs.index(CTypeDefDeclaration::getQualifiedName);
+    Multimap<String, CTypeDefDeclaration> typeDefDeclarationsMap = plainTypeDefs.index(new Function<CTypeDefDeclaration, String>() {
+
+      @Override
+      public String apply(CTypeDefDeclaration pArg0) {
+        return pArg0.getQualifiedName();
+      }
+
+    });
 
     // Get unique type defs
     Map<String, CType> uniqueTypeDefs = Maps.newHashMap();
 
     for (Map.Entry<String, Collection<CTypeDefDeclaration>> typeDefEntry : typeDefDeclarationsMap.asMap().entrySet()) {
       String qualifiedName = typeDefEntry.getKey();
-      FluentIterable<CType> types =
-          from(typeDefEntry.getValue()).transform(CTypeDefDeclaration::getType);
+      FluentIterable<CType> types = from(typeDefEntry.getValue()).transform(new Function<CTypeDefDeclaration, CType>() {
+
+        @Override
+        public CType apply(CTypeDefDeclaration pArg0) {
+          return pArg0.getType();
+        }
+
+      });
       putIfUnique(uniqueTypeDefs, qualifiedName, types, pLogger);
     }
 
@@ -567,11 +601,21 @@ public class CProgramScope implements Scope {
 
   private static Map<String, CSimpleDeclaration> extractUniqueSimpleDeclarations(
       Map<String, CSimpleDeclaration> pQualifiedDeclarations) {
-    return Maps.transformEntries(
-        Maps.filterEntries(
-            from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(),
-            entry -> entry.getValue().size() == 1),
-        (key, values) -> Iterables.getOnlyElement(values));
+    return Maps.transformEntries(Maps.filterEntries(from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(), new Predicate<Map.Entry<String, Collection<CSimpleDeclaration>>>() {
+
+      @Override
+      public boolean apply(Entry<String, Collection<CSimpleDeclaration>> pArg0) {
+        return pArg0.getValue().size() == 1;
+      }
+
+    }), new Maps.EntryTransformer<String, Collection<CSimpleDeclaration>, CSimpleDeclaration>() {
+
+      @Override
+      public CSimpleDeclaration transformEntry(String pArg0, @Nonnull Collection<CSimpleDeclaration> pArg1) {
+        return pArg1.iterator().next();
+      }
+
+    });
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {

@@ -1,16 +1,18 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import apron.Abstract1;
-import apron.Environment;
-import apron.SetUp;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -22,21 +24,28 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+import apron.Abstract1;
+import apron.Environment;
+import apron.SetUp;
 
 public class ApronPolyhedraTest {
   static {
-    SetUp.init(NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
+    SetUp.init(
+        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
   }
 
   private PolyhedraWideningManager pwm;
   private LogManager logger;
 
-  @Before
-  public void setUp() {
-    logger = LogManager.createTestLogManager();
+  @Before public void setUp() throws InvalidConfigurationException {
+    Handler h = new StreamHandler(System.out, new SimpleFormatter());
+    Configuration config = TestDataTools.configurationForTest().build();
+    logger = new BasicLogManager(config, h);
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 
     pwm = new PolyhedraWideningManager(stats, logger);

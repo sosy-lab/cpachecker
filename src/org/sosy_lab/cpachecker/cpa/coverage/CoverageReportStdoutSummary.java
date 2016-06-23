@@ -37,6 +37,8 @@ class CoverageReportStdoutSummary {
     long numTotalFunctions = 0;
     long numTotalLines = 0;
 
+    long numCondsOnInfeasiblePaths = 0;
+
     long numVisitedConditions = 0;
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
@@ -49,6 +51,8 @@ class CoverageReportStdoutSummary {
 
       numTotalConditions =+ info.allAssumes.size();
       numVisitedConditions =+ info.visitedAssumes.size();
+
+      numCondsOnInfeasiblePaths =+ info.assumesOnInfeasiblePaths.size();
 
       numTotalLines =+ info.allLines.size();
 
@@ -76,6 +80,11 @@ class CoverageReportStdoutSummary {
       StatisticsUtils.write(pStdOut, 1, 25, "Visited conditions", numVisitedConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
+
+      if (numCondsOnInfeasiblePaths > 0) {
+        final double infeasiblePathCoverage = numCondsOnInfeasiblePaths / (double) numTotalConditions;
+        StatisticsUtils.write(pStdOut, 1, 25, "Infeasible path condition coverage", String.format("%.3f", infeasiblePathCoverage));
+      }
     }
 
     pStdOut.println();

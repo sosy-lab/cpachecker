@@ -23,43 +23,114 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA.ControlAutomatonOptions;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Map;
+import java.util.Set;
 
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
-  private final @Nullable PrecisionAdjustment wrappedPrec;
-  private final AutomatonState topState;
+  private final AutomatonState bottomState;
+  private final AutomatonState inactiveState;
 
-  @Option(secure=true, name="topOnFinalSelfLoopingState",
-      description="An implicit precision: consider states with a self-loop and no other outgoing edges as TOP.")
-  private boolean topOnFinalSelfLoopingState = false;
+  /**
+   *  We use {@link Supplier} because it should be possible
+   *  to have different strategies for one instance of the CPA;
+   *  this is used, for example, in context of verifying several properties.
+   */
+  private final Supplier<PropertyBudgeting> budgeting;
+
+  @Option(secure=true, name="limit.violations",
+      description="Handle at most k (> 0) violation of one property.")
+  private int violationsLimit = 1;
+
+  enum TargetStateVisitBehaviour {
+    SIGNAL, // Signal the target state (default)
+    BOTTOM, // Change to the automata state BOTTOM (when splitting states on a violation)
+    INACTIVE, // Change to the automata state INACTIVE (when NOT splitting states on a violation)
+  }
+  @Option(secure=true, description="Behaviour on a property that has already been fully handled.")
+  private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
+
+  @Option(secure=true, description="Behaviour on a property for which the resources were exhausted.")
+  private Action onExhaustedBudget = Action.CONTINUE;
 
   public ControlAutomatonPrecisionAdjustment(
       Configuration pConfig,
-      AutomatonState pTopState,
-      PrecisionAdjustment pWrappedPrecisionAdjustment)
+      ControlAutomatonOptions pOptions,
+      Supplier<PropertyBudgeting> pBudgeting,
+      AutomatonState pBottomState,
+      AutomatonState pInactiveState)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
-    this.topState = pTopState;
-    this.wrappedPrec = pWrappedPrecisionAdjustment;
+    if (pOptions.splitOnTargetStatesToInactive
+        && (onHandledTarget != TargetStateVisitBehaviour.SIGNAL
+            && onHandledTarget != TargetStateVisitBehaviour.BOTTOM)) {
+      throw new InvalidConfigurationException("Splitting to INACTIVE requires an adjustment of handled target states to either SIGNAL or BOTTOM!");
+    }
+
+    this.bottomState = pBottomState;
+    this.inactiveState = pInactiveState;
+    this.budgeting = pBudgeting;
+  }
+
+  private void signalDisablingProperties(Set<? extends Property> pProperty) {
+    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+    for (Property p: pProperty) {
+      argCpa.getCexSummary().signalPropertyDisabled(p);
+    }
+  }
+
+  private int feasibleViolationsOf(Set<? extends Property> pProperties) {
+
+    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+    Multiset<Property> reachedViolations = argCpa.getCexSummary().getFeasiblePropertyViolations();
+
+    int result = Integer.MAX_VALUE;
+    for (Property p: pProperties) {
+      result = Math.min(result, reachedViolations.count(p));
+    }
+
+    return result;
+  }
+
+  private boolean isPropertyBudgetExhausted(Property pProperty) {
+    int timesFeasible = feasibleViolationsOf(ImmutableSet.of(pProperty));
+
+    return (violationsLimit > 0
+                   && timesFeasible >= violationsLimit) // the new state is the ith+1
+        || budgeting.get().isTargetBudgedExhausted(pProperty);
   }
 
   @Override
@@ -71,32 +142,91 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AbstractState pFullState)
     throws CPAException, InterruptedException {
 
-    Optional<PrecisionAdjustmentResult> wrappedPrecResult = wrappedPrec.prec(pState,
-        pPrecision, pStates, pStateProjection, pFullState);
+    // Casts to the AutomataCPA-specific types
+    final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
+    final AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
+    final Automaton automaton = ((AutomatonState) pState).getOwningAutomaton();
+    final AutomatonState state = (AutomatonState) pState;
 
-    if (!wrappedPrecResult.isPresent()) {
-      return wrappedPrecResult;
+    final AutomatonState stateOnHandledTarget;
+    switch (onHandledTarget) {
+      case BOTTOM: stateOnHandledTarget = bottomState; break;
+      case INACTIVE: stateOnHandledTarget = inactiveState; break;
+      default: stateOnHandledTarget = state;
     }
 
-    AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
+    Map<SafetyProperty, Optional<PresenceCondition>> exhaustedProperties = Maps.newHashMap();
+
+    Set<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
+    Set<? extends SafetyProperty> disabled = pi.getBlacklist().keySet();
+    Set<? extends SafetyProperty> activeProperties = Sets.difference(encoded, disabled);
+
+//    if (activeProperties.isEmpty()) {
+//      return Optional.of(PrecisionAdjustmentResult.create(
+//          inactiveState,
+//          pi, Action.CONTINUE));
+//    }
+
+    for (SafetyProperty p: activeProperties) {
+      if (budgeting.get().isTransitionBudgedExhausted(p)) {
+        exhaustedProperties.put(p, Optional.<PresenceCondition>absent()); // FIXME: Make it variability aware!
+      }
+    }
+
+    // Specific handling of potential target states!!!
+    if (state.isTarget()) {
+
+      // A property might have already been disabled!
+      //    Handling of blacklisted (disabled) states:
+      final Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
+      final PresenceCondition targetRegion = PresenceConditions.extractPresenceCondition(pFullState);
+
+      if (areBlacklisted(pi, violated, targetRegion)) { // FIXME: Make it variability aware!
+        return Optional.of(PrecisionAdjustmentResult.create(
+            stateOnHandledTarget,
+            pi, Action.CONTINUE));
+      }
+
+      // Handle a target state
+      //    We might disable certain target states
+      //      (they should not be considered as target states)
+      if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
+        for (SafetyProperty p: violated) {
+          if (isPropertyBudgetExhausted(p)) {
+            exhaustedProperties.put(p, Optional.<PresenceCondition>absent());
+          }
+        }
+      }
+    }
+
+    if (exhaustedProperties.size() > 0) {
+      final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
+      signalDisablingProperties(exhaustedProperties.keySet()); // FIXME: Make it variability aware!
+
+      return Optional.of(PrecisionAdjustmentResult.create(
+          state.isTarget() ? stateOnHandledTarget : inactiveState,
+          piPrime, onExhaustedBudget));
+    }
 
     // Handle the BREAK state
     if (internalState.getName().equals(AutomatonInternalState.BREAK.getName())) {
-      return Optional.of(wrappedPrecResult.get().withAction(Action.BREAK));
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
     }
 
-    // Handle SINK state
-    if (topOnFinalSelfLoopingState
-        && internalState.isFinalSelfLoopingState()) {
+    // No precision adjustment
+    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+  }
 
-      AbstractState adjustedSate = topState;
-      Precision adjustedPrecision = pPrecision;
-      return Optional.of(PrecisionAdjustmentResult.create(
-          adjustedSate,
-          adjustedPrecision, Action.CONTINUE));
+  private boolean areBlacklisted(final AutomatonPrecision pPrecision,
+      final Set<SafetyProperty> pProperties, final PresenceCondition pForRegion)
+          throws InterruptedException, CPAException {
+
+    boolean result = pPrecision.areBlackListed(pProperties, pForRegion);
+    if (!result) {
+      result = PropertyStats.INSTANCE.checkAllBlacklisted(pProperties, pForRegion);
     }
 
-    return wrappedPrecResult;
+    return result;
   }
 
 }

@@ -23,22 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.ImmutableSet;
 
 
 public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
@@ -52,6 +54,20 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     ValidVars validVariables = state.getValidVariables();
 
     switch (pCfaEdge.getEdgeType()) {
+    case MultiEdge:
+      Collection<AbstractState> predecessors, successors;
+      predecessors = Collections.singleton(pState);
+
+      for (CFAEdge edge: ((MultiEdge)pCfaEdge).getEdges()) {
+        successors = new ArrayList<>();
+        for (AbstractState predState: predecessors) {
+          successors.addAll(getAbstractSuccessorsForEdge(predState, pPrecision, edge));
+        }
+
+        predecessors = successors;
+      }
+
+      return predecessors;
     case BlankEdge:
       if (pCfaEdge.getDescription().equals("Function start dummy edge") && !(pCfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         validVariables = validVariables.extendLocalVarsFunctionCall(pCfaEdge.getSuccessor().getFunctionName(),

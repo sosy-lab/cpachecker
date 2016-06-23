@@ -27,9 +27,12 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -64,13 +67,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -130,9 +131,9 @@ public final class ErrorPathShrinker {
   private static List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
     int targetPos = indexOf(path.asStatesList(), IS_TARGET_STATE);
     if (targetPos > 0) {
-      return path.getFullPath().subList(0, targetPos);
+      return path.getInnerEdges().subList(0, targetPos);
     } else {
-      return path.getFullPath();
+      return path.getInnerEdges();
     }
   }
 
@@ -157,6 +158,10 @@ public final class ErrorPathShrinker {
         final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
         handleFunctionReturnEdge(fnkReturnEdge, summaryEdge.getExpression());
 
+        break;
+
+      case MultiEdge:
+        handleMultiEdge((MultiEdge) cfaEdge);
         break;
 
       default:
@@ -198,6 +203,14 @@ public final class ErrorPathShrinker {
       default:
         throw new AssertionError("unknown edge type");
     }
+  }
+
+  private void handleMultiEdge(MultiEdge cfaEdge) {
+    for (final CFAEdge innerEdge : Lists.reverse(cfaEdge.getEdges())) {
+      currentCFAEdge = innerEdge;
+      handleSimpleEdge(innerEdge);
+    }
+    currentCFAEdge = cfaEdge; // reset edge
   }
 
   private void handleBlankEdge(BlankEdge cfaEdge) {

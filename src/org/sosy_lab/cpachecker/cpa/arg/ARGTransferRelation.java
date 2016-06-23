@@ -25,9 +25,10 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,12 +36,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 public class ARGTransferRelation implements TransferRelation {
 
@@ -64,15 +63,7 @@ public class ARGTransferRelation implements TransferRelation {
     element.markExpanded();
 
     AbstractState wrappedState = element.getWrappedState();
-    Collection<? extends AbstractState> successors;
-    try {
-      successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
-    } catch (UnsupportedCodeException e) {
-      // setting parent of this unsupported code part
-      e.setParentState(element);
-      throw e;
-    }
-
+    Collection<? extends AbstractState> successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }

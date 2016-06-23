@@ -23,9 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import com.google.common.base.Splitter;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
@@ -37,7 +48,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -46,23 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Splitter;
 
 
 /**
@@ -138,10 +134,12 @@ class EclipseJavaParser implements Parser {
 
     for (String path : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings().split(javaPath)) {
       Path directory = Paths.get(path);
-      if (!Files.exists(directory)) {
+      if (!directory.exists()) {
         logger.log(Level.WARNING, "Path " + directory + " could not be found.");
+      } else if (!directory.canRead()) {
+        logger.log(Level.WARNING, "Path " + directory + " can not be read.");
       } else {
-        resultList.add(directory.toAbsolutePath().toString());
+        resultList.add(directory.toAbsolutePath().getPath());
       }
     }
 
@@ -167,7 +165,7 @@ class EclipseJavaParser implements Parser {
 
     // write CFA to file
     if (exportTypeHierarchy && exportTypeHierarchyFile != null) {
-      try (Writer w = Files.newBufferedWriter(exportTypeHierarchyFile, StandardCharsets.UTF_8)) {
+      try (Writer w = exportTypeHierarchyFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
         THDotBuilder.generateDOT(w, pScope);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -196,13 +194,12 @@ class EclipseJavaParser implements Parser {
     return new Scope(mainClassName, typeHierarchy, logger);
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private List<JavaFileAST> getASTsOfProgram() throws JParserException {
     Set<Path> sourceFileToBeParsed = getJavaFilesInSourcePaths();
     List<JavaFileAST> astsOfFoundFiles = new LinkedList<>();
 
     for (Path file : sourceFileToBeParsed) {
-      String fileName = file.getFileName().toString();
+      String fileName = file.getName();
       CompilationUnit ast = parse(file, IGNORE_METHOD_BODY);
       astsOfFoundFiles.add(new JavaFileAST(fileName, ast));
     }
@@ -221,12 +218,11 @@ class EclipseJavaParser implements Parser {
     return sourceFileToBeParsed;
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private Set<Path> getJavaFilesInPath(String path) {
 
     Path mainDirectory = Paths.get(path);
 
-    assert Files.isDirectory(mainDirectory) : "Could not find directory at" + path;
+    assert mainDirectory.isDirectory() : "Could not find directory at" + path;
 
     Set<Path> sourceFileToBeParsed = new HashSet<>();
     Queue<Path> directorysToBeSearched = new LinkedList<>();
@@ -238,8 +234,8 @@ class EclipseJavaParser implements Parser {
 
       Path directory = directorysToBeSearched.poll();
 
-      if (Files.isDirectory(directory)) {
-        for (String fileName : directory.toFile().list()) {
+      if (directory.exists() && directory.canRead()) {
+        for (String fileName : directory.list()) {
           addFileWhereAppropriate(fileName, directory,
               sourceFileToBeParsed, directorysToBeSearched, directorysReached);
         }
@@ -252,29 +248,30 @@ class EclipseJavaParser implements Parser {
   private void addFileWhereAppropriate(String fileName, Path directory,
       Set<Path> sourceFileToBeParsed, Queue<Path> directorysToBeSearched, Set<Path> pDirectorysReached) {
 
-    Path file = directory.toAbsolutePath().resolve(fileName);
+    Path file =
+        Paths.get(directory.getAbsolutePath(), fileName);
 
     if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
       addJavaFile(file, sourceFileToBeParsed);
-    } else if (Files.isDirectory(file)) {
+    } else if (file.isDirectory()) {
       addDirectory(file, directorysToBeSearched, pDirectorysReached);
     }
   }
 
   private void addDirectory(Path file, Queue<Path> directorysToBeSearched, Set<Path> directorysReached) {
-    if (Files.isDirectory(file) && !directorysReached.contains(file)) {
+    if (file.exists() && file.canRead() && !directorysReached.contains(file)) {
       directorysToBeSearched.add(file);
       directorysReached.add(file);
     } else {
-      logger.log(Level.WARNING, "No permission to read directory " + file.getFileName() + ".");
+      logger.log(Level.WARNING, "No permission to read directory " + file.getName() + ".");
     }
   }
 
   private void addJavaFile(Path file, Set<Path> sourceFileToBeParsed) {
-    if (Files.isReadable(file) && !sourceFileToBeParsed.contains(file)) {
+    if (file.exists() && file.canRead() && !sourceFileToBeParsed.contains(file)) {
       sourceFileToBeParsed.add(file);
     } else {
-      logger.log(Level.WARNING, "No permission to read java file " + file.getFileName() + ".");
+      logger.log(Level.WARNING, "No permission to read java file " + file.getName() + ".");
     }
   }
 
@@ -305,8 +302,8 @@ class EclipseJavaParser implements Parser {
     String source;
 
     try {
-      source = MoreFiles.toString(file, encoding);
-      parser.setUnitName(file.normalize().toString());
+      source = file.asCharSource(encoding).read();
+      parser.setUnitName(file.getCanonicalPath());
       parser.setSource(source.toCharArray());
       parser.setIgnoreMethodBodies(ignoreMethodBody);
       return (CompilationUnit) parser.createAST(null);
@@ -382,7 +379,7 @@ class EclipseJavaParser implements Parser {
     for (String sourcePath : javaSourcePaths) {
       Path file = Paths.get(sourcePath, classFilePathPart);
 
-      if (Files.exists(file)) {
+      if (file.exists()) {
         return file;
       }
     }

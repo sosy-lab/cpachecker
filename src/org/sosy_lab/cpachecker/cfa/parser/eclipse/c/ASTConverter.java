@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.*;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
@@ -41,6 +45,7 @@ import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
@@ -136,7 +141,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -170,16 +174,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 @Options(prefix="cfa")
 class ASTConverter {
@@ -630,14 +630,6 @@ class ASTConverter {
     // TODO: consider always adding a const modifier if there is an initializer
     CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
-    if (type instanceof CArrayType) {
-      // Replace with pointer type.
-      // This should actually be handled by Eclipse, because the C standard says in §5.4.2.1 (3)
-      // that array types of operands are converted to pointer types except in a very few
-      // specific cases (for which there will never be a temporary variable).
-      type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
-    }
-
     CVariableDeclaration decl = new CVariableDeclaration(loc,
                                                scope.isGlobalScope(),
                                                CStorageClass.AUTO,
@@ -860,7 +852,7 @@ class ASTConverter {
     } else {
       assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
 
-      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<>());
+      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
       if (!wayToInnerField.isEmpty()) {
         fullFieldReference = owner;
         boolean isPointerDereference = e.isPointerDereference();
@@ -1280,12 +1272,7 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
-      CType type;
-      if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
-        type = CNumericTypes.INT;
-      } else {
-        type = typeConverter.convert(e.getExpressionType());
-      }
+      CType type = typeConverter.convert(e.getExpressionType());
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }
@@ -1371,27 +1358,8 @@ class ASTConverter {
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
-    TypeIdOperator typeIdOperator = operatorConverter.convertTypeIdOperator(e);
-    CType expressionType;
-    CType typeId = convert(e.getTypeId());
-
-    if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
-      // sizeof and _Alignof always return int, CDT sometimes provides wrong type
-      expressionType = CNumericTypes.INT;
-      if (typeId.isIncomplete()) {
-        // Cannot compute alignment
-        throw new CFAGenerationRuntimeException(
-            "Invalid application of "
-                + typeIdOperator.getOperator()
-                + " to incomplete type "
-                + typeId,
-            e,
-            niceFileNameFunction);
-      }
-    } else {
-      expressionType = typeConverter.convert(e.getExpressionType());
-    }
-    return new CTypeIdExpression(getLocation(e), expressionType, typeIdOperator, typeId);
+    return new CTypeIdExpression(getLocation(e), typeConverter.convert(e.getExpressionType()),
+        operatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
   private CExpression convert(IASTTypeIdInitializerExpression e) {
@@ -1407,7 +1375,11 @@ class ASTConverter {
 
   public CAstNode convert(final IASTStatement s) {
 
-    if (s instanceof IASTExpressionStatement) {
+    if (s instanceof IASTDeclarationStatement) {
+      IASTDeclarationStatement decl = (IASTDeclarationStatement) s;
+      return convert (decl);
+
+    } else if (s instanceof IASTExpressionStatement) {
       return convert((IASTExpressionStatement) s);
 
     } else if (s instanceof IASTReturnStatement) {
@@ -1419,6 +1391,16 @@ class ASTConverter {
     } else {
       throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s, niceFileNameFunction);
     }
+  }
+
+  public CAstNode convert(final IASTDeclarationStatement s) {
+    if (s.getDeclaration() instanceof IASTSimpleDeclaration) {
+      IASTSimpleDeclaration decl = (IASTSimpleDeclaration) s.getDeclaration();
+      List<CDeclaration> converted = convert(decl);
+      Preconditions.checkState(converted.size() == 1);
+      return converted.iterator().next();
+    }
+    return null;
   }
 
   public CStatement convert(final IASTExpressionStatement s) {

@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.Iterables.transform;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Objects;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -38,15 +37,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 public final class CEnumType implements CComplexType {
-
-  private static final long serialVersionUID = -986078271714119880L;
 
   private final ImmutableList<CEnumerator> enumerators;
   private final String name;
@@ -71,11 +65,6 @@ public final class CEnumType implements CComplexType {
   @Override
   public boolean isVolatile() {
     return isVolatile;
-  }
-
-  @Override
-  public boolean isIncomplete() {
-    return false;
   }
 
   public ImmutableList<CEnumerator> getEnumerators() {
@@ -118,7 +107,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append(name);
 
     lASTString.append(" {\n  ");
-    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, CEnumerator::toASTString));
+    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, CEnumerator.TO_AST_STRING));
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 
@@ -132,14 +121,7 @@ public final class CEnumType implements CComplexType {
            "enum " + name;
   }
 
-  @SuppressFBWarnings(
-    value = "SE_NO_SUITABLE_CONSTRUCTOR",
-    justification = "handled by serialization proxy"
-  )
-  public static final class CEnumerator extends AbstractSimpleDeclaration
-      implements CSimpleDeclaration, Serializable {
-
-    private static final long serialVersionUID = -2526725372840523651L;
+  public static final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
     private final @Nullable Long  value;
     private CEnumType             enumType;
@@ -236,31 +218,6 @@ public final class CEnumType implements CComplexType {
       return pV.visit(this);
     }
 
-    private Object writeReplace() {
-      return new SerializationProxy(this);
-    }
-
-    private static final class SerializationProxy implements Serializable {
-
-      private static final long serialVersionUID = 3895126689420077689L;
-      private final FileLocation fileLocation;
-      private final @Nullable Long value;
-      private final CEnumType enumType;
-      private final String qualifiedName;
-
-      private SerializationProxy(CEnumerator enumerator) {
-        fileLocation = enumerator.getFileLocation();
-        value = enumerator.value;
-        enumType = enumerator.enumType;
-        qualifiedName = enumerator.qualifiedName;
-      }
-
-      private Object readResolve() {
-        CEnumerator result = new CEnumerator(fileLocation, qualifiedName, qualifiedName, value);
-        result.setEnum(enumType);
-        return result;
-      }
-    }
   }
 
   @Override
@@ -324,9 +281,6 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
-      return this;
-    }
     return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
   }
 }

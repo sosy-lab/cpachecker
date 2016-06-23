@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -38,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -49,13 +54,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 
 public class ReachingDefTransferRelation implements TransferRelation {
@@ -64,11 +64,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private CFANode main;
 
-  private final LogManagerWithoutDuplicates logger;
+  private LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
   public ReachingDefTransferRelation(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
   }
 
@@ -87,8 +87,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (nodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
     }
-    List<AbstractState> successors = new ArrayList<>();
-    List<CFAEdge> definitions = new ArrayList<>();
+    Vector<AbstractState> successors = new Vector<>();
+    Vector<CFAEdge> definitions = new Vector<>();
     for (CFANode node : nodes) {
       for (CFAEdge cfaedge : CFAUtils.leavingEdges(node)) {
         shutdownNotifier.shutdownIfNecessary();
@@ -118,7 +118,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    logger.log(Level.FINE, "Compute succesor for ", pState, "along edge", pCfaEdge);
+    logger.log(Level.INFO, "Compute succesor for ", pState, "along edge", pCfaEdge);
 
     if (localVariablesPerFunction == null) { throw new CPATransferException(
         "Incorrect initialization of reaching definition transfer relation."); }
@@ -150,6 +150,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
     }
     case FunctionReturnEdge: {
       result = handleReturnEdge((ReachingDefState) pState);
+      break;
+    }
+    case MultiEdge: {
+      result = handleMultiEdge((ReachingDefState) pState, (MultiEdge) pCfaEdge);
       break;
     }
     case BlankEdge:
@@ -194,7 +198,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     } else if (statement instanceof CFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
       left = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
-      logger.logOnce(Level.WARNING,
+      logger.log(Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
           "or considers extra global variables.");
     } else {
@@ -209,7 +213,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     varExtractor.resetWarning();
     String var = left.accept(varExtractor);
     if (varExtractor.getWarning() != null) {
-      logger.logOnce(Level.WARNING, varExtractor.getWarning());
+      logger.log(Level.WARNING, varExtractor.getWarning());
     }
 
     if (var == null) {
@@ -252,6 +256,27 @@ public class ReachingDefTransferRelation implements TransferRelation {
     logger.log(Level.FINE, "Return from internal function call. ",
         "Remove local variables and parameters of function from reaching definition.");
     return pState.pop();
+  }
+
+  private ReachingDefState handleMultiEdge(ReachingDefState pState, MultiEdge edge) throws CPATransferException {
+    for (CFAEdge simpleEdge : edge.getEdges()) {
+
+      switch (simpleEdge.getEdgeType()) {
+      case StatementEdge: {
+        pState = handleStatementEdge(pState, (CStatementEdge) simpleEdge);
+        break;
+      }
+      case DeclarationEdge: {
+        pState = handleDeclarationEdge(pState, (CDeclarationEdge) simpleEdge);
+        break;
+      }
+      case BlankEdge:
+        break;
+      default:
+        throw new CPATransferException("Unknown CFA edge type incorporated in MultiEdge.");
+      }
+    }
+    return pState;
   }
 
   @Override

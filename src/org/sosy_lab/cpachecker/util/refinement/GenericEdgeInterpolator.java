@@ -24,7 +24,8 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import com.google.common.base.Optional;
+import java.util.Deque;
+import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,13 +38,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Deque;
-import java.util.Set;
+import com.google.common.base.Optional;
 
 /**
  * Generic {@link EdgeInterpolator} that creates interpolants based on
@@ -145,7 +143,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
       final Deque<S> pCallstack,
-      final PathPosition pOffset,
+      final int pOffset,
       final I pInputInterpolant
   ) throws CPAException, InterruptedException {
 
@@ -157,22 +155,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
     // TODO callstack-management depends on a forward-iteration on a single path.
     // TODO Thus interpolants have to be computed from front to end. Can we assure this?
-    final Optional<S> maybeSuccessor;
-    if (pCurrentEdge == null) {
-      PathIterator it = pOffset.fullPathIterator();
-      Optional<S> intermediate = Optional.of(initialState);
-      do {
-        if (!intermediate.isPresent()) {
-          break;
-        }
-
-        intermediate = getInitialSuccessor(intermediate.get(), it.getOutgoingEdge(), pCallstack);
-        it.advance();
-      } while (!it.isPositionWithState());
-      maybeSuccessor = intermediate;
-    } else {
-      maybeSuccessor = getInitialSuccessor(initialState, pCurrentEdge, pCallstack);
-    }
+    final Optional<S> maybeSuccessor = getInitialSuccessor(initialState, pCurrentEdge, pCallstack);
 
     if (!maybeSuccessor.isPresent()) {
       return interpolantManager.getFalseInterpolant();
@@ -195,7 +178,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.createInterpolant(initialSuccessor);
     }
 
-    ARGPath remainingErrorPath = pOffset.iterator().getSuffixExclusive();
+    ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
     // interpolant
@@ -315,20 +298,17 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    */
   private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
     return
-    // if the edge is null this is a dynamic multi edge
-    cfaEdge != null
-
         // renames from calledFn::___cpa_temp_result_var_ to callerFN::assignedVar
         // if the former is relevant, so is the latter
-        && cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+        cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
 
-    // for the next two edge types this would also work, but variables
-    // from the calling/returning function would be added to interpolant
-    // as they are not "cleaned up" by the transfer relation
-    // so these two stay out for now
+        // for the next two edge types this would also work, but variables
+        // from the calling/returning function would be added to interpolant
+        // as they are not "cleaned up" by the transfer relation
+        // so these two stay out for now
 
-    //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-    //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
-    ;
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+        //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+        ;
   }
 }

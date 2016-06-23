@@ -2,10 +2,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.io.MoreFiles;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -45,26 +44,28 @@ import java.util.logging.Level;
     String fileName = pYytext.replaceFirst("#include ", "").trim();
     
     Path file = Paths.get(fileName);
-    Path currentFile = filesStack.peek();
-    file = currentFile.resolveSibling(file);
+    if (!file.isAbsolute()) {
+      Path currentFile = filesStack.peek();
+      file = Paths.get(currentFile.getParent().getPath(), file.getPath());    
+    }
 
     if (scannedFiles.contains(file)) {
       logger.log(Level.WARNING, "File \"" + file + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
       return null;
     }
 
-    MoreFiles.checkReadableFile(file);
+    Files.checkReadableFile(file);
     scannedFiles.add(file);
     filesStack.push(file);
     return file;
   }
   
   private Location getStartLocation() {
-    return new Location(filesStack.peek().toString(), yyline+1,yycolumn+1-yylength());
+    return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1-yylength());
   }
 
   private Location getEndLocation() {
-    return new Location(filesStack.peek().toString(), yyline+1,yycolumn+1);
+    return new Location(filesStack.peek().getPath(), yyline+1,yycolumn+1);
   }
   
   private Symbol symbol(String name, int sym) {
@@ -78,7 +79,7 @@ import java.util.logging.Level;
   private void error() throws IOException {
     Location start = getStartLocation();
     StringBuilder msg = new StringBuilder();
-    msg.append(filesStack.getLast().toString());
+    msg.append(filesStack.getLast().getPath());
     msg.append(" (Illegal character <");
     msg.append(yytext());
     msg.append("> at column ");
@@ -123,7 +124,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
         "#include" {InputCharacter}+ 
         { Path file = getFile(yytext()); 
           if (file != null) {
-            yypushStream(Files.newBufferedReader(file, StandardCharsets.US_ASCII));
+            yypushStream(file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream());
           }
         }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
@@ -136,21 +137,29 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "OBSERVER"          { return symbol("OBSERVER", AutomatonSym.OBSERVER); }
 <YYINITIAL> "CONTROL"           { return symbol("CONTROL", AutomatonSym.CONTROL); }
 <YYINITIAL> "LOCAL"             { return symbol("LOCAL", AutomatonSym.LOCAL); }
+<YYINITIAL> "HEADER"            { return symbol("HEADER", AutomatonSym.HEADER); }
 <YYINITIAL> "INITIAL"           { return symbol("INITIAL", AutomatonSym.INITIAL); }
 <YYINITIAL> "STATE"             { return symbol("STATE", AutomatonSym.STATE); }
 <YYINITIAL> "ERROR"             { return symbol("ERROR", AutomatonSym.ERROR); }
 <YYINITIAL> "STOP"              { return symbol("STOP", AutomatonSym.STOP); }
+<YYINITIAL> "INACTIVE"          { return symbol("INACTIVE", AutomatonSym.INACTIVE); }
 <YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
+<YYINITIAL> "ENTRY"             { return symbol("ENTRY", AutomatonSym.ENTRY); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }
+<YYINITIAL> "CALL"             { return symbol("CALL", AutomatonSym.CALL); }
+<YYINITIAL> "RETURN"             { return symbol("RETURN", AutomatonSym.RETURN); }
 <YYINITIAL> "LABEL"             { return symbol("LABEL", AutomatonSym.LABEL); }
 <YYINITIAL> "EVAL"              { return symbol("EVAL", AutomatonSym.EVAL); }
 <YYINITIAL> "CHECK"             { return symbol("EVAL", AutomatonSym.CHECK); }
 <YYINITIAL> "MODIFY"            { return symbol("MODIFY", AutomatonSym.MODIFY); }
 <YYINITIAL> "DO"                { return symbol("DO", AutomatonSym.DO); }
+<YYINITIAL> "ENCODE"            { return symbol("ENCODE", AutomatonSym.ENCODE); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", AutomatonSym.GOTO); }
+<YYINITIAL> "SPLIT"             { return symbol("SPLIT", AutomatonSym.SPLIT); }
+<YYINITIAL> "NEGATION"          { return symbol("NEGATION", AutomatonSym.NEGATION); }
 <YYINITIAL> "true"              { return symbol("TRUE", AutomatonSym.TRUE); }
 <YYINITIAL> "false"             { return symbol("FALSE", AutomatonSym.FALSE); }
 <YYINITIAL> "TRUE"              { return symbol("TRUE", AutomatonSym.TRUE); }

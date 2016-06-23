@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *   </pre>
  */
 @Immutable
-public class DeferredAllocationPool implements Serializable {
+class DeferredAllocationPool implements Serializable {
 
   private static final long serialVersionUID = -6957524864610223235L;
 
@@ -86,7 +86,7 @@ public class DeferredAllocationPool implements Serializable {
     this.baseVariables = baseVariables;
   }
 
-  public DeferredAllocationPool(final String pointerVariable,
+  DeferredAllocationPool(final String pointerVariable,
                          final boolean isZeroing,
                          final CIntegerLiteralExpression size,
                          final String baseVariable) {
@@ -117,17 +117,17 @@ public class DeferredAllocationPool implements Serializable {
     return size;
   }
 
-  public DeferredAllocationPool addPointerVariable(final String pointerVariable) {
+  DeferredAllocationPool addPointerVariable(final String pointerVariable) {
     assert !pointerVariables.contains(pointerVariable)
         : "Pointer variable " + pointerVariable + " added twice to deferred allocation pool.";
     return new DeferredAllocationPool(this, this.pointerVariables.with(pointerVariable));
   }
 
-  public DeferredAllocationPool removePointerVariable(final String pointerVariable) {
+  DeferredAllocationPool removePointerVariable(final String pointerVariable) {
     return new DeferredAllocationPool(this, pointerVariables.without(pointerVariable));
   }
 
-  public DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
+  DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
     return new DeferredAllocationPool(mergeLists(this.pointerVariables, other.pointerVariables),
                                       this.isZeroing && other.isZeroing,
                                       this.size != null && other.size != null ?
@@ -168,7 +168,7 @@ public class DeferredAllocationPool implements Serializable {
   private final PersistentList<String> baseVariables; // actually a set
 
 
-  public static <T> PersistentList<T> mergeLists(final PersistentList<T> list1,
+  static <T> PersistentList<T> mergeLists(final PersistentList<T> list1,
                                           final PersistentList<T> list2) {
     if (list1 == list2) {
       return list1;

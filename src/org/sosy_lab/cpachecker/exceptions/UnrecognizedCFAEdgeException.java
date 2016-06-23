@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.exceptions;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
 /**
  * Exception thrown if a CPA cannot handle a specific CFAEdge.
@@ -35,6 +36,9 @@ public class UnrecognizedCFAEdgeException extends CPATransferException {
     }
 
     private static String createMessage(CFAEdge edge) {
+      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        return "Some CPAs do not support MultiEdges. Please set the configuration option \"cfa.useMultiEdges\" to \"false\".";
+      }
       return "Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getDescription() + ")";
     }
 

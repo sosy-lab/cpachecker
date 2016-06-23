@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
 import com.google.common.base.Objects;
 
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 public abstract class SMGEdge {
   final protected int value;
@@ -39,7 +40,6 @@ public abstract class SMGEdge {
   public int getValue() {
     return value;
   }
-
   public SMGObject getObject() {
     return object;
   }

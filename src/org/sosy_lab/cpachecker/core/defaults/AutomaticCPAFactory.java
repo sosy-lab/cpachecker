@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ClassToInstanceMap;
-import com.google.common.collect.MutableClassToInstanceMap;
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
@@ -43,14 +46,10 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.lang.annotation.Annotation;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ClassToInstanceMap;
+import com.google.common.collect.MutableClassToInstanceMap;
 
 /**
  * CPAFactory implementation that can be used to automatically instantiate
@@ -151,14 +150,9 @@ public class AutomaticCPAFactory implements CPAFactory {
         }
       }
 
-      if (!optional && actualParam == null) {
-        if (formalParam == ConfigurableProgramAnalysis.class) {
-          throw new InvalidConfigurationException(
-              "Child CPA necessary for " + type.getSimpleName() + " but was not specified.");
-        } else {
-          throw new IllegalStateException(
-              formalParam.getSimpleName() + " instance needed to create " + type.getSimpleName());
-        }
+      if (!optional) {
+        Preconditions.checkNotNull(actualParam,
+            "%s instance needed to create %s-CPA!", formalParam.getSimpleName(), type.getSimpleName());
       }
       actualParameters[i] = actualParam;
     }

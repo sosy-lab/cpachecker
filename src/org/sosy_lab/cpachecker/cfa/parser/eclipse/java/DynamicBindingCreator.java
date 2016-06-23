@@ -596,7 +596,7 @@ class DynamicBindingCreator {
     // That way, even if the method is not overridden, it is tracked
     // with an empty list
     if (!subMethodsOfMethod.containsKey(functionName)) {
-      subMethodsOfMethod.put(functionName, new LinkedList<>());
+      subMethodsOfMethod.put(functionName, new LinkedList<MethodDefinition>());
     }
 
     final MethodDefinition toBeRegistered = getMethodDefinition(declaration, entryNode);
@@ -684,7 +684,7 @@ class DynamicBindingCreator {
 
    // If Method not yet parsed, it needs to be added
    if (!subMethodsOfMethod.containsKey(overridenMethodName)) {
-      subMethodsOfMethod.put(overridenMethodName, new LinkedList<>());
+     subMethodsOfMethod.put(overridenMethodName, new LinkedList<MethodDefinition>());
    }
      subMethodsOfMethod.get(overridenMethodName).add(pToBeRegistered);
   }

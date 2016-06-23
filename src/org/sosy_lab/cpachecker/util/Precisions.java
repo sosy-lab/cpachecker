@@ -23,13 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class Precisions {
 
@@ -105,4 +124,108 @@ public class Precisions {
       return pNewPrecision;
     }
   }
+
+  public static Precision replaceByFunction(Precision pOldPrecision, Function<Precision, Precision> pFunction) {
+
+    if (pOldPrecision instanceof CompositePrecision) {
+      return ((CompositePrecision) pOldPrecision).replacePrecision(pFunction);
+    }
+
+    Precision result = pFunction.apply(pOldPrecision);
+
+    if (result == pOldPrecision ) {
+      return null;
+    }
+
+    return result;
+  }
+
+  public static void updatePropertyBlacklistOnWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
+
+    final HashSet<SafetyProperty> toBlacklist = Sets.newHashSet(
+      Collections2.transform(pToBlacklist, new Function<Property, SafetyProperty>() {
+        @Override
+        public SafetyProperty apply(Property pProp) {
+          Preconditions.checkArgument(pProp instanceof SafetyProperty);
+          return (SafetyProperty) pProp;
+        }
+
+      }).iterator());
+
+    // update the precision:
+    //  (optional) disable some automata transitions (global precision)
+    for (AbstractState e: pReachedSet.getWaitlist()) {
+
+      final Precision pi = pReachedSet.getPrecision(e);
+      final Precision piPrime = withPropertyBlacklist(pi, toBlacklist);
+
+      if (piPrime != null) {
+        pReachedSet.updatePrecision(e, piPrime);
+      }
+    }
+
+    for (Property p: pToBlacklist) {
+      pCpa.getCexSummary().signalPropertyDisabled(p);
+    }
+  }
+
+  public static Precision withPropertyBlacklist(final Precision pi, final HashSet<SafetyProperty> toBlacklist) {
+    final Map<SafetyProperty, Optional<PresenceCondition>> blacklist = Maps.asMap(toBlacklist, new Function<SafetyProperty, Optional<PresenceCondition>>() {
+      @Override
+      public Optional<PresenceCondition> apply(SafetyProperty pArg0) {
+        return Optional.absent();
+      }
+    });
+
+
+    final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
+      @Override
+      public Precision apply(Precision pPrecision) {
+        if (pPrecision instanceof AutomatonPrecision) {
+          return AutomatonPrecision.initBlacklist(blacklist);
+        }
+        return null;
+      }
+    });
+    return piPrime;
+  }
+
+  public static void disablePropertiesForWaitlist(final ReachedSet pReachedSet,
+      final Map<Property, Optional<PresenceCondition>> pToBlacklist) {
+
+    Map<SafetyProperty, Optional<PresenceCondition>> toBlackList = Maps.newHashMap();
+    for (Entry<Property, Optional<PresenceCondition>> e: pToBlacklist.entrySet()) {
+      toBlackList.put((SafetyProperty)e.getKey(), e.getValue());
+    }
+
+    // update the precision:
+    //  (optional) disable some automata transitions (global precision)
+    for (AbstractState e: pReachedSet.getWaitlist()) {
+
+      final Precision pi = pReachedSet.getPrecision(e);
+      final Precision piPrime = blacklistProperties(pi, toBlackList);
+
+      if (piPrime != null) {
+        pReachedSet.updatePrecision(e, piPrime);
+      }
+    }
+
+  }
+
+  public static Precision blacklistProperties(final Precision pi,
+      final Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist) {
+
+    final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
+      @Override
+      public Precision apply(Precision pPrecision) {
+        if (pPrecision instanceof AutomatonPrecision) {
+          AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
+          return pi.cloneAndAddBlacklisted(toBlacklist);
+        }
+        return null;
+      }
+    });
+    return piPrime;
+  }
+
 }

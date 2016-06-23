@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -46,11 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 
 /**
@@ -117,11 +118,14 @@ public class CFADeclarationMover {
       secondRealFunctionEdge.add(declEndEdge);
     }
 
+    Iterator<CFAEdge> it = declarations.iterator();
+
     // insert declarations into the desired destination
-    for (CFAEdge decl : declarations) {
+    while (it.hasNext()) {
+      CFAEdge decl = it.next();
       CFANode middleNode = new CFANode(functionName);
       cfa.addNode(middleNode);
-      moveDeclEdgeToNewLocation((CDeclarationEdge) decl, actNode, middleNode);
+      moveDeclEdgeToNewLocation((CDeclarationEdge)decl, actNode, middleNode);
       actNode = middleNode;
     }
 
@@ -186,6 +190,7 @@ public class CFADeclarationMover {
       return edge;
     case CallToReturnEdge:
     case FunctionReturnEdge:
+    case MultiEdge:
     default:
       throw new AssertionError("should never happen");
     }

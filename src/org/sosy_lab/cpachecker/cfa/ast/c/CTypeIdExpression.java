@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import java.util.Objects;
 
 public final class CTypeIdExpression extends AbstractExpression implements CExpression {
 
@@ -71,22 +71,17 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   }
 
   public enum TypeIdOperator {
-    SIZEOF("sizeof"),
-    ALIGNOF("_Alignof"),
-    TYPEOF("typeof"),
+    SIZEOF,
+    TYPEID,
+    ALIGNOF,
+    TYPEOF,
     ;
-
-    private final String cRepresentation;
-
-    private TypeIdOperator(String pCRepresentation) {
-      cRepresentation = pCRepresentation;
-    }
 
     /**
      * Returns the string representation of this operator
      */
     public String getOperator() {
-      return cRepresentation;
+      return toString().toLowerCase();
     }
   }
 

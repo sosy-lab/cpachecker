@@ -23,19 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.Iterables;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 
 public class SMGAbstractionManagerTest {
@@ -74,17 +73,18 @@ public class SMGAbstractionManagerTest {
   }
 
   @Test
-  public void testExecute() throws SMGInconsistentException {
-    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false, null, 4, false);
-    SMGAbstractionManager manager = new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
-    manager.execute();
+  public void testExecute() {
+    SMGAbstractionManager manager = new SMGAbstractionManager(smg);
+    CLangSMG afterAbstraction = manager.execute();
 
-    SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");
-    Set<SMGEdgeHasValue> hvs = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
+    SMGRegion globalVar = afterAbstraction.getObjectForVisibleVariable("pointer");
+    Set<SMGEdgeHasValue> hvs = afterAbstraction.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
     Assert.assertEquals(1, hvs.size());
     SMGEdgeHasValue hv = Iterables.getOnlyElement(hvs);
-    SMGEdgePointsTo pt = smg.getPointer(hv.getValue());
+    SMGEdgePointsTo pt = afterAbstraction.getPointer(hv.getValue());
     SMGObject segment = pt.getObject();
     Assert.assertTrue(segment.isAbstract());
+    Set<SMGObject> heap = afterAbstraction.getHeapObjects();
+    Assert.assertEquals(2, heap.size());
   }
 }

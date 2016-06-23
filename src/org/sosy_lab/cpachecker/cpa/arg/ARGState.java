@@ -23,23 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -48,11 +33,21 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Sets;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
 
@@ -78,8 +73,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private final int stateId;
 
-  // If this is a target state, we may store additional information here.
-  private transient CounterexampleInfo counterexample;
+  @Nullable private Integer stateLevel;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
@@ -110,6 +104,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       assert !pOtherParent.children.contains(this);
       parents.add(pOtherParent);
       pOtherParent.children.add(this);
+
+      signalStateRelationshipChange();
     } else {
       assert pOtherParent.children.contains(this);
     }
@@ -139,8 +135,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // by an analysis. Possible traces might be 'interrupted' by covered states.
     // Covered states do not have children, so we expect the return value null in this case.
 
-    final Iterable<CFANode> currentLocs = extractLocations(this);
-    final Iterable<CFANode> childLocs = extractLocations(pChild);
+    //
+    //    -----> l1 -----> lw(l1) -----> l2 ----->
+    //
+    final Iterable<CFANode> currentLocs = AbstractStates.extractLocations(this);
+    final Iterable<CFANode> childLocs = AbstractStates.extractWeavedOnLocations(pChild);
 
     // first try to get a normal edge
     for (CFANode currentLoc : currentLocs) {
@@ -173,37 +172,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return null;
   }
 
-  /**
-   * Returns the edges from the current state to the child state, or an empty list
-   * if there is no path between both states.
-   */
-  public List<CFAEdge> getEdgesToChild(ARGState pChild) {
-    CFAEdge singleEdge = getEdgeToChild(pChild);
-
-    // no direct connection, this is only possible for ARG holes during dynamic
-    // multiedges, it is guaranteed that there is exactly one path and no other
-    // leaving edges from the parent to the child
-    if (singleEdge == null) {
-      List<CFAEdge> allEdges = new ArrayList<>();
-      CFANode currentLoc = AbstractStates.extractLocation(this);
-      CFANode childLoc = AbstractStates.extractLocation(pChild);
-
-      while (!currentLoc.equals(childLoc)) {
-        // we didn't find a proper connection to the child so we return an empty list
-        if (currentLoc.getNumLeavingEdges() != 1) {
-          return Collections.emptyList();
-        }
-
-        final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
-        allEdges.add(leavingEdge);
-        currentLoc = leavingEdge.getSuccessor();
-      }
-      return allEdges;
-    } else {
-      return Collections.singletonList(singleEdge);
-    }
-  }
-
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     Set<ARGState> result = new HashSet<>();
@@ -234,6 +202,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       pCoveredBy.mCoveredByThis = new LinkedHashSet<>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
+
+    signalStateRelationshipChange();
   }
 
   public void uncover() {
@@ -242,6 +212,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
     mCoveredBy.mCoveredByThis.remove(this);
     mCoveredBy = null;
+
+    signalStateRelationshipChange();
   }
 
   public boolean isCovered() {
@@ -270,11 +242,15 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   public void setNotCovering() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     mayCover = false;
+
+    signalStateRelationshipChange();
   }
 
   void setHasCoveredParent(boolean pHasCoveredParent) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     hasCoveredParent = pHasCoveredParent;
+
+    signalStateRelationshipChange();
   }
 
   // merged-with marker so that stop can return true for merged elements
@@ -284,6 +260,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
+
+    signalStateRelationshipChange();
   }
 
   public ARGState getMergedWith() {
@@ -298,36 +276,16 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   void markExpanded() {
     wasExpanded = true;
+
+    signalStateRelationshipChange();
   }
 
   void deleteChild(ARGState child) {
     assert (children.contains(child));
     children.remove(child);
     child.parents.remove(this);
-  }
 
-  // counterexample
-
-  /**
-   * Store additional information about the counterexample that leads to this target state.
-   */
-  public void addCounterexampleInformation(CounterexampleInfo pCounterexample) {
-    checkState(counterexample == null);
-    checkArgument(isTarget());
-    checkArgument(!pCounterexample.isSpurious());
-    // With BAM, the targetState and the last state of the path
-    // may actually be not identical.
-    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
-    counterexample = pCounterexample;
-  }
-
-  /**
-   * Get additional information about the counterexample that is associated with this target state,
-   * if present.
-   */
-  public Optional<CounterexampleInfo> getCounterexampleInformation() {
-    checkState(isTarget());
-    return Optional.fromNullable(counterexample);
+    signalStateRelationshipChange();
   }
 
   // small and less important stuff
@@ -418,8 +376,15 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return from(elements).transform(ARGState::getStateId);
+    return from(elements).transform(TO_STATE_ID);
   }
+
+  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
+    @Override
+    public Integer apply(ARGState pInput) {
+      return pInput.stateId;
+    }
+  };
 
   // removal from ARG
 
@@ -461,6 +426,23 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       mCoveredByThis.clear();
       mCoveredByThis = null;
     }
+
+    signalStateRelationshipChange();
+  }
+
+  private void signalStateRelationshipChange() {
+    stateLevel = null;
+  }
+
+  public Integer getStateLevel() {
+    if (stateLevel == null) {
+      int maxParentStateLevel = -1;
+      for (ARGState e: getParents()) {
+        maxParentStateLevel = Math.max(maxParentStateLevel, e.getStateLevel());
+      }
+      stateLevel = maxParentStateLevel + 1;
+    }
+    return stateLevel;
   }
 
   /**
@@ -483,6 +465,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       parent.children.remove(this);
     }
     parents.clear();
+
+    signalStateRelationshipChange();
   }
 
   /**

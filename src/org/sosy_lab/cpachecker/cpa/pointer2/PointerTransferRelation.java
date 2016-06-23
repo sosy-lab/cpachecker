@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -62,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -80,13 +84,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
@@ -97,13 +98,12 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
     PointerState pointerState = (PointerState) pState;
-    PointerState resultState = getAbstractSuccessor(pointerState, pCfaEdge);
+    PointerState resultState = getAbstractSuccessor(pointerState, pPrecision, pCfaEdge);
     return resultState == null ? Collections.<AbstractState>emptySet() : Collections.<AbstractState>singleton(resultState);
   }
 
-  private PointerState getAbstractSuccessor(PointerState pState, CFAEdge pCfaEdge)
-      throws CPATransferException {
-
+  private PointerState getAbstractSuccessor(PointerState pState, Precision pPrecision,
+      CFAEdge pCfaEdge) throws CPATransferException {
     PointerState resultState = pState;
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge:
@@ -119,6 +119,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
       break;
     case FunctionReturnEdge:
+      break;
+    case MultiEdge:
+      for (CFAEdge edge : ((MultiEdge) pCfaEdge)) {
+        resultState = getAbstractSuccessor(resultState, pPrecision, edge);
+      }
       break;
     case ReturnStatementEdge:
       resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);

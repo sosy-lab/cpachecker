@@ -3,9 +3,10 @@
 # the location of the java command
 [ -z "$JAVA" ] && JAVA=java
 
-# the default heap and stack sizes of the Java VM
+# the default heap size of the Java VM
 DEFAULT_HEAP_SIZE="1200M"
-DEFAULT_STACK_SIZE="1024k"
+MIN_HEAP_SIZE="512M"
+MIN_HEAP_TOMAX=false
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -14,9 +15,9 @@ DEFAULT_STACK_SIZE="1024k"
 java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
-  echo "Java not found, please install Java 1.8 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-8-jre" 1>&2
-  echo "If you have installed Java 8, but it is not in your PATH," 1>&2
+  echo "Java not found, please install Java 1.7 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-7-jre" 1>&2
+  echo "If you have installed Java 7, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
@@ -27,10 +28,10 @@ if [ $result -ne 0 ]; then
   exit 1
 fi
 java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
-if [ -z "$java_version" ] || [ "$java_version" -lt 18 ] ; then
-  echo "Your Java version is too old, please install Java 1.8 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-8-jre" 1>&2
-  echo "If you have installed Java 8, but it is not in your PATH," 1>&2
+if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
+  echo "Your Java version is too old, please install Java 1.7 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-7-jre" 1>&2
+  echo "If you have installed Java 7, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
@@ -69,9 +70,18 @@ while [ $# -gt 0 ]; do
        shift
        JAVA_HEAP_SIZE=$1
        ;;
-   "-stack")
+   "-startWithMaxHeap")
+       MIN_HEAP_TOMAX=true
+       ;;
+   "-disable-jit")
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xint"
+       ;;
+   "-compile")
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xcomp -XX:CompileThreshold=100"
+       ;;
+   "-compile-threshold")
        shift
-       JAVA_STACK_SIZE=$1
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -XX:CompileThreshold=$1"
        ;;
    "-debug")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
@@ -106,11 +116,9 @@ else
   echo "Running CPAchecker with default heap size (${JAVA_HEAP_SIZE}). Specify a larger value with -heap if you have more RAM."
 fi
 
-if [ -n "$JAVA_STACK_SIZE" ]; then
-  echo "Running CPAchecker with Java stack of size ${JAVA_STACK_SIZE}."
-else
-  JAVA_STACK_SIZE="$DEFAULT_STACK_SIZE"
-  echo "Running CPAchecker with default stack size (${JAVA_STACK_SIZE}). Specify a larger value with -stack if needed."
+if [ $MIN_HEAP_TOMAX ]; then
+    echo "Starting with an initial heap of: ${JAVA_HEAP_SIZE}"
+    MIN_HEAP_SIZE="${JAVA_HEAP_SIZE}"
 fi
 
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
@@ -136,9 +144,10 @@ esac
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
 # PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
 $EXEC "$JAVA" \
-	-Xss${JAVA_STACK_SIZE} \
+	-Xss1024k \
 	-XX:+PerfDisableSharedMem \
 	$JAVA_VM_ARGUMENTS \
+	-Xms${MIN_HEAP_SIZE} \
 	-Xmx${JAVA_HEAP_SIZE} \
 	$JAVA_ASSERTIONS \
 	org.sosy_lab.cpachecker.cmdline.CPAMain \

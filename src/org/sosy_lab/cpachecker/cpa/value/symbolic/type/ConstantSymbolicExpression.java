@@ -37,7 +37,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   private static final long serialVersionUID = 8720056661933193765L;
 
   private final Value value;
-  private final Type type;
+  private final transient Type type;
 
   /**
    * Create a new <code>ConstantSymbolicExpression</code> object with the given value and type.

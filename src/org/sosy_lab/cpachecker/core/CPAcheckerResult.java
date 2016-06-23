@@ -25,12 +25,21 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -48,27 +57,26 @@ public class CPAcheckerResult {
   public static enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
 
   private final Result result;
+  private final AlgorithmResult algorithmResult;
 
-  private final String violatedPropertyDescription;
+  private final PropertySummary propertySummary;
 
   private final @Nullable ReachedSet reached;
-
-  private final @Nullable CFA cfa;
 
   private final @Nullable Statistics stats;
 
   private @Nullable Statistics proofGeneratorStats = null;
 
-  CPAcheckerResult(
-      Result result,
-      String violatedPropertyDescription,
-      @Nullable ReachedSet reached,
-      @Nullable CFA cfa,
-      @Nullable Statistics stats) {
-    this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
-    this.result = checkNotNull(result);
+  CPAcheckerResult(Result pResult,
+        PropertySummary pSummary,
+        @Nullable AlgorithmResult pAlgResult,
+        @Nullable ReachedSet reached,
+        @Nullable Statistics stats) {
+
+    this.propertySummary = checkNotNull(pSummary);
+    this.result = checkNotNull(pResult);
+    this.algorithmResult = pAlgResult;
     this.reached = reached;
-    this.cfa = cfa;
     this.stats = stats;
   }
 
@@ -79,18 +87,15 @@ public class CPAcheckerResult {
     return result;
   }
 
+  public AlgorithmResult getAlgorithmResult() {
+    return algorithmResult;
+  }
+
   /**
    * Return the final reached set.
    */
   public UnmodifiableReachedSet getReached() {
     return reached;
-  }
-
-  /**
-   * Return the CFA.
-   */
-  public CFA getCfa() {
-    return cfa;
   }
 
   public void addProofGeneratorStatistics(Statistics pProofGeneratorStatistics) {
@@ -110,30 +115,95 @@ public class CPAcheckerResult {
     }
   }
 
+  private Collection<Property> sortPropertiesByStrings(Set<Property> pProps) {
+    List<Property> result = Lists.newArrayList(pProps);
+    Collections.sort(result, new java.util.Comparator<Property>() {
+      @Override
+      public int compare(Property pO1, Property pO2) {
+        return pO1.toString().compareTo(pO2.toString());
+      }
+    });
+
+    return result;
+  }
+
   public void printResult(PrintStream out) {
     if (result == Result.NOT_YET_STARTED) {
       return;
     }
 
-    out.println("Verification result: " + getResultString());
+    out.print("Verification result: ");
+    out.println(getResultString());
+
+    out.println(String.format("\tNumber of considered properties: %d", propertySummary.getConsideredProperties().size()));
+    out.println(String.format("\tNumber of violated properties: %d", propertySummary.getViolatedProperties().size()));
+
+    out.println(String.format("\tNumber of conditional violated properties: %d", propertySummary.getConditionalViolatedProperties().keySet().size()));
+
+    if (propertySummary.getUnknownProperties().isPresent()) {
+      out.println(String.format("\tNumber of unknown properties: %d", propertySummary.getUnknownProperties().get().size()));
+    }
+
+    if (propertySummary.getSatisfiedProperties().isPresent()) {
+      out.println(String.format("\tNumber of satisfied properties: %d", propertySummary.getSatisfiedProperties().get().size()));
+    }
+
+    if (propertySummary.getRelevantProperties().isPresent()) {
+      out.println(String.format("\tNumber of relevant properties: %d", propertySummary.getRelevantProperties().get().size()));
+    }
+
+    out.println("\tStatus by property:");
+
+    for (Property prop: sortPropertiesByStrings(propertySummary.getViolatedProperties())) {
+      out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "FALSE", propertySummary)));
+    }
+
+    if (propertySummary.getUnknownProperties().isPresent()) {
+      for (Property prop: sortPropertiesByStrings(propertySummary.getUnknownProperties().get())) {
+        out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "UNKNOWN", propertySummary)));
+      }
+    }
+
+    if (propertySummary.getSatisfiedProperties().isPresent()) {
+      for (Property prop: sortPropertiesByStrings(propertySummary.getSatisfiedProperties().get())) {
+        out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "TRUE", propertySummary)));
+      }
+    }
+
   }
 
-  public String getResultString() {
+  private String verdictWithRelevance(Property pProp, String pString, PropertySummary pPropertySummary) {
+    if (pPropertySummary.getRelevantProperties().isPresent()) {
+      boolean relevant = pPropertySummary.getRelevantProperties().get().contains(pProp);
+      if (!relevant) {
+        return String.format("%s (irrelevant)", pString);
+      }
+    }
+    return pString;
+  }
+
+  private String getResultString() {
+    StringBuilder ret = new StringBuilder();
+
     switch (result) {
       case UNKNOWN:
-        return "UNKNOWN, incomplete analysis.";
+        ret.append("UNKNOWN, incomplete analysis.");
+        break;
       case FALSE:
-        StringBuilder sb = new StringBuilder();
-        sb.append("FALSE. Property violation");
-        if (!violatedPropertyDescription.isEmpty()) {
-          sb.append(" (").append(violatedPropertyDescription).append(")");
-        }
-        sb.append(" found by chosen configuration.");
-        return sb.toString();
+        ret.append("FALSE. Property violation");
+        break;
       case TRUE:
-        return "TRUE. No property violation found by chosen configuration.";
+        ret.append("TRUE. No property violation found by chosen configuration.");
+        break;
       default:
-        return "UNKNOWN result: " + result;
+        ret.append("UNKNOWN result: " + result);
     }
+
+    if (!propertySummary.getViolatedProperties().isEmpty()) {
+      ret.append(" (").append(Joiner.on(", ").join(propertySummary.getViolatedProperties())).append(")");
+      ret.append(" found by chosen configuration.");
+    }
+
+    return ret.toString();
   }
 }

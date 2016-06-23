@@ -32,17 +32,19 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -83,6 +85,10 @@ public class CoverageStatistics extends AbstractStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
+    if (!(writeToStdout || writeToFile)) {
+      return;
+    }
+
     if (cov.getCoverageMode() == CoverageMode.REACHED) {
       computeCoverageFromReached(pReached);
     }
@@ -116,7 +122,18 @@ public class CoverageStatistics extends AbstractStatistics {
         boolean visited = reachedLocations.contains(edge.getPredecessor())
             && reachedLocations.contains(edge.getSuccessor());
 
-        cov.handleEdgeCoverage(edge, visited);
+        CoverageCountMode countAs = visited
+            ? CoverageCountMode.VISITED
+                : CoverageCountMode.EXISTING;
+
+        if (edge instanceof MultiEdge) {
+          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+            cov.handleEdgeCoverage(innerEdge, countAs);
+          }
+
+        } else {
+          cov.handleEdgeCoverage(edge, countAs);
+        }
       }
     }
 

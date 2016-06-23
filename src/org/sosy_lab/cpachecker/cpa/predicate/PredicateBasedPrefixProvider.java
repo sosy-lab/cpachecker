@@ -24,8 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.GET_BLOCK_FORMULA;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -44,15 +49,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
-import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateBasedPrefixProvider implements PrefixProvider {
@@ -92,14 +95,14 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath pPath)
       throws CPAException, InterruptedException {
 
-    List<ARGState> abstractionStates = filterAbstractionStates(pPath);
+    List<ARGState> abstractionStates = transformPath(pPath);
     List<BooleanFormula> blockFormulas = from(abstractionStates)
         .transform(AbstractStates.toState(PredicateAbstractState.class))
         .transform(GET_BLOCK_FORMULA)
         .toList();
 
     List<Object> terms = new ArrayList<>(abstractionStates.size());
-    List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
+    List<InfeasiblePrefix> infeasiblePrefixes = new ArrayList<>();
 
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<Object> prover =
@@ -143,18 +146,10 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
               // create and add infeasible prefix, mind that the ARGPath has not (!)
               // failing assume operations replaced with no-ops, as this is not needed here,
               // and it would be cumbersome for ABE, so lets skip it
-              ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
-
-              // put prefix data into a simple container for now
-              rawPrefixes.add(new RawInfeasiblePrefix(currentPrefixPath,
+              infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(ARGUtils.getOnePathTo(currentState),
                   interpolantSequence,
-                  finalPathFormula));
-
-              // stop once threshold for max. length of prefix is reached, relevant
-              // e.g., for ECA programs where error paths often exceed 10.000 transition
-              if (currentPrefixPath.size() >= maxPrefixLength) {
-                break;
-              }
+                  finalPathFormula,
+                  solver.getFormulaManager()));
 
               // remove reason for UNSAT from solver stack
               prover.pop();
@@ -177,7 +172,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
           currentBlockIndex++;
 
           // put hard-limit on number of prefixes
-          if (rawPrefixes.size() == maxPrefixCount) {
+          if (infeasiblePrefixes.size() == maxPrefixCount) {
             break;
           }
         }
@@ -186,18 +181,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
       }
     }
 
-    // finally, create actual prefixes after solver stack is empty again,
-    // doing it that way avoids problems with SMTInterpol (cf. commit 20405)
-    List<InfeasiblePrefix> infeasiblePrefixes = new ArrayList<>(rawPrefixes.size());
-    for (RawInfeasiblePrefix rawPrefix : rawPrefixes) {
-      infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(rawPrefix, solver.getFormulaManager()));
-    }
-
     return infeasiblePrefixes;
   }
 
   private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
-      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException, InterruptedException {
+      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 
@@ -233,11 +221,16 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @return true, if all states in the path are abstraction states, else false
    */
   private boolean isSingleBlockEncoded(final ARGPath pPath) {
-    return from(pPath.asStatesList()).allMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+    return from(pPath.asStatesList()).allMatch(isAbstractionState());
+  }
+
+  private Predicate<AbstractState> isAbstractionState() {
+    return Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+        toState(PredicateAbstractState.class));
   }
 
   private boolean isAbstractionState(ARGState pCurrentState) {
-    return PredicateAbstractState.getPredicateState(pCurrentState).isAbstractionState();
+    return AbstractStates.toState(PredicateAbstractState.class).apply(pCurrentState).isAbstractionState();
   }
 
   private PathFormula makeEmpty(PathFormula formula) {

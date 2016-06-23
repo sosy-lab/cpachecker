@@ -26,18 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
-import org.sosy_lab.solver.api.FormulaType;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +34,18 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
 public class IntConverter extends Converter {
@@ -204,11 +204,8 @@ public class IntConverter extends Converter {
       return Pair.of(terms.get(0).getFirst().substring(2), new Type<FormulaType<?>>(FormulaType.IntegerType));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
-      return Pair.of(
-          format(
-              "(%s %s)",
-              unaryOps.get(op.getFirst()),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+      return Pair.of(format("(%s %s)",unaryOps.get(op.getFirst()),
+          Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
           Iterables.getOnlyElement(terms).getSecond());
 
     } else if (terms.size() == 1 && ignorableFunctions.contains(op.getFirst())) {
@@ -223,10 +220,10 @@ public class IntConverter extends Converter {
       String operator;
       if (binOps.containsKey(op.getFirst())) {
         operator = binOps.get(op.getFirst());
-        type = new Type<>(FormulaType.BooleanType);
+        type = new Type<FormulaType<?>>(FormulaType.BooleanType);
       } else {
         operator = arithmeticOps.get(op.getFirst());
-        type = new Type<>(FormulaType.IntegerType);
+        type = new Type<FormulaType<?>>(FormulaType.IntegerType);
       }
       return Pair.of(format("(%s %s %s)",
           operator,
@@ -252,10 +249,8 @@ public class IntConverter extends Converter {
 
     } else if (binBooleanOps.contains(op.getFirst())) {
       return Pair.of(
-          format(
-              "(%s %s)",
-              op.getFirst(),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+          format("(%s %s)",
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
           new Type<FormulaType<?>>(FormulaType.BooleanType));
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
@@ -275,10 +270,8 @@ public class IntConverter extends Converter {
         logger.log(Level.SEVERE, "unhandled term:", op, terms);
       }
       return Pair.of(
-          format(
-              "(%s %s)",
-              op.getFirst(),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+          format("(%s %s)",
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst()))),
           op.getSecond());
     }
   }

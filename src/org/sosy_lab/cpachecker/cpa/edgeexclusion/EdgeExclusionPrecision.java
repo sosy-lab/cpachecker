@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.edgeexclusion;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Queue;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Instances of this class are precisions for the edge exclusion CPA. They
@@ -102,7 +103,13 @@ public class EdgeExclusionPrecision implements Precision {
     setBuilder.addAll(excludedEdges);
     Queue<CFAEdge> waitlist = new ArrayDeque<>(pAdditionalExcludedEdges);
     while (!waitlist.isEmpty()) {
-      setBuilder.add(waitlist.poll());
+      CFAEdge current = waitlist.poll();
+      if (current instanceof MultiEdge) {
+        for (CFAEdge edge : (MultiEdge) current) {
+          waitlist.offer(edge);
+        }
+      }
+      setBuilder.add(current);
     }
     return new EdgeExclusionPrecision(setBuilder.build());
   }
@@ -115,12 +122,27 @@ public class EdgeExclusionPrecision implements Precision {
    * @return {@code true} if the edge is excluded, {@code false} otherwise.
    */
   public boolean isExcluded(CFAEdge pEdge) {
-    return excludedEdges.contains(pEdge);
+    if (excludedEdges.contains(pEdge)) {
+      return true;
+    }
+    if (pEdge instanceof MultiEdge) {
+      for (CFAEdge edge : (MultiEdge) pEdge) {
+        if (isExcluded(edge)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
   public String toString() {
     return excludedEdges.isEmpty() ? "no precision" : excludedEdges.toString();
+  }
+
+  @Override
+  public Precision join(Precision pOther) {
+    throw new RuntimeException("Not yet implemented. Implement this method if required.");
   }
 
 }

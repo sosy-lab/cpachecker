@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -36,43 +34,50 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
-import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.export.GraphMLBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -83,19 +88,32 @@ import java.util.logging.Level;
 import javax.management.JMException;
 
 @Options
-class MainCPAStatistics implements Statistics {
+public class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   // Beyond this many states, we omit some statistics because they are costly.
-  private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
+  private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 100000;
 
   @Option(secure=true, name="reachedSet.export",
       description="print reached set to text file")
   private boolean exportReachedSet = false;
 
+  @Option(secure=true, name="reachedSet.printDetailedStatistics",
+      description="print detailed statistics on the reached set?")
+  private boolean reachedSetStatistics = true;
+
+  @Option(secure=true, name="cfa.printDetailedStatistics",
+      description="print detailed statistics on the reached set?")
+  private boolean cfaStatistics = false;
+
   @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetFile = Paths.get("reached.txt");
+
+  @Option(secure=true, name="statistics.iteration.file",
+      description="Dump statistics on the progress of the analysis to...")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path iterationStatsFile = Paths.get("iteration-stats.csv");
 
   @Option(secure=true, name="reachedSet.dot",
       description="print reached set to graph file")
@@ -106,18 +124,21 @@ class MainCPAStatistics implements Statistics {
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
-  private final Configuration config;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
   private final CoverageReport coverageReport;
   private Thread memStatsThread;
 
+  private PrintWriter iterationStatsTarget = null;
+  private int iterationStatsCounter = 0;
+  private Collection<IterationStatistics> iterationStats;
+
   private final Timer programTime = new Timer();
   final Timer creationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
+  final Timer createAutomatonASTMatcherTime = new Timer();
   private final Timer analysisTime = new Timer();
-  final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
@@ -125,9 +146,7 @@ class MainCPAStatistics implements Statistics {
   private Statistics cfaCreatorStatistics;
   private CFA cfa;
 
-  public MainCPAStatistics(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
-    config = pConfig;
+  public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
     config.inject(this);
 
@@ -135,11 +154,18 @@ class MainCPAStatistics implements Statistics {
 
     if (monitorMemoryUsage) {
       memStats = new MemoryStatistics(pLogger);
-      memStatsThread =
-          Concurrency.newDaemonThread("CPAchecker memory statistics collector", memStats);
+      memStatsThread = Threads.newThread(memStats, "CPAchecker memory statistics collector", true);
       memStatsThread.start();
     } else {
       memStats = null;
+    }
+
+    if (iterationStatsFile != null) {
+      try {
+        iterationStatsTarget = new PrintWriter(iterationStatsFile.toFile());
+      } catch (FileNotFoundException e) {
+        logger.log(Level.WARNING, "Iteration statistics cannot be opened!", e);
+      }
     }
 
     programTime.start();
@@ -256,7 +282,9 @@ class MainCPAStatistics implements Statistics {
     out.println("CPAchecker general statistics");
     out.println("-----------------------------");
 
-    printCfaStatistics(out);
+    if (cfaStatistics) {
+      printCfaStatistics(out);
+    }
 
     if (result != Result.NOT_YET_STARTED) {
       try {
@@ -274,6 +302,9 @@ class MainCPAStatistics implements Statistics {
     out.println();
 
     printMemoryStatistics(out);
+
+    out.println();
+
   }
 
 
@@ -286,7 +317,7 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
+      try (Writer w = Files.openOutputFile(pOutputFile)) {
 
         if (writeDotFormat) {
 
@@ -327,6 +358,7 @@ class MainCPAStatistics implements Statistics {
       }
     };
     DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
+    GraphMLBuilder.generateGraphML(sb, cfa, nodeLabelFormatter);
   }
 
   private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
@@ -364,8 +396,10 @@ class MainCPAStatistics implements Statistics {
     out.println("Size of reached set:             " + reachedSize);
 
     if (!reached.isEmpty()) {
-      if (reachedSize < MAX_SIZE_FOR_REACHED_STATISTICS) {
-        printReachedSetStatisticsDetails(reached, out);
+      if (reachedSetStatistics) {
+        if (reachedSize < MAX_SIZE_FOR_REACHED_STATISTICS) {
+          printReachedSetStatisticsDetails(reached, out);
+        }
       }
 
       if (reached.hasWaitingState()) {
@@ -414,7 +448,7 @@ class MainCPAStatistics implements Statistics {
       out.println("    Avg states per location:     " + reachedSize / locs);
       out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
 
-      Set<String> functions = from(locations).transform(CFANode::getFunctionName).toSet();
+      Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
       out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
     }
 
@@ -458,15 +492,13 @@ class MainCPAStatistics implements Statistics {
   private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
       Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
+    out.println("  Time for matcher creation:  " + createAutomatonASTMatcherTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
       cfaCreatorStatistics.printStatistics(out, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
-    if (resultAnalysisTime.getNumberOfIntervals() > 0) {
-      out.println("Time for analyzing result:    " + resultAnalysisTime);
-    }
     out.println("Total time for CPAchecker:    " + programTime);
     out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Time for statistics:          " + statisticsTime);
@@ -500,4 +532,34 @@ class MainCPAStatistics implements Statistics {
     cfa = pCfa;
   }
 
+  @Override
+  public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) {
+    if (iterationStats == null) {
+      iterationStats = Lists.newArrayList();
+      for (Statistics s: subStats) {
+        if (s instanceof IterationStatistics) {
+          iterationStats.add((IterationStatistics)s);
+        }
+      }
+    }
+
+    for(IterationStatistics s: iterationStats) {
+      s.printIterationStatistics(System.out, pReached);
+    }
+
+    if (iterationStatsTarget != null) {
+      StringBuilder line = new StringBuilder();
+
+      iterationStatsCounter++;
+      line.append(Integer.toString(iterationStatsCounter));
+      line.append("\t");
+      line.append(pReached.size());
+      line.append("\t");
+      line.append(pReached.getWaitlist().size());
+      line.append("\t");
+
+      iterationStatsTarget.println(line.toString());
+      iterationStatsTarget.flush();
+    }
+  }
 }

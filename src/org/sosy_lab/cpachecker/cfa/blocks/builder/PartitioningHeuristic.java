@@ -56,7 +56,8 @@ public abstract class PartitioningHeuristic {
    * @return BlockPartitioning
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
-  public final BlockPartitioning buildPartitioning(CFANode mainFunction, BlockPartitioningBuilder builder) {
+  public final BlockPartitioning buildPartitioning(CFANode mainFunction) {
+    BlockPartitioningBuilder builder = new BlockPartitioningBuilder();
 
     //traverse CFG
     Set<CFANode> seen = new HashSet<>();

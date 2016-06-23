@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.TreeTraverser;
 
 /**
@@ -56,6 +58,22 @@ public class CPAs {
     } else {
       return null;
     }
+  }
+
+  public static <T extends ConfigurableProgramAnalysis> Collection<T> retrieveCPAs(ConfigurableProgramAnalysis
+      cpa, Class<T> pType) {
+    Builder<T> result = ImmutableList.builder();
+
+    if (pType.isAssignableFrom(cpa.getClass())) {
+      result.add(pType.cast(cpa));
+    } else if (cpa instanceof WrapperCPA) {
+      Collection<T> c = ((WrapperCPA)cpa).retrieveWrappedCpas(pType);
+      if (c != null) {
+        result.addAll(c);
+      }
+    }
+
+    return result.build();
   }
 
   /**

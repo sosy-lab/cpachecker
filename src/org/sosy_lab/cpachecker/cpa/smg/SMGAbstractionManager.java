@@ -23,76 +23,38 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateFinder;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
 
 public class SMGAbstractionManager {
-
-  private final LogManager logger;
-
-  private final CLangSMG smg;
-  private final SMGState smgState;
+  private CLangSMG smg;
   private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
-  private final boolean onlyDll;
 
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate) {
-    smg = pSMG;
-    onlyDll = false;
-    smgState = pSMGstate;
-    logger = pLogger;
+  public SMGAbstractionManager(CLangSMG pSMG) {
+    smg = new CLangSMG(pSMG);
   }
 
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, boolean pOnlyDll, SMGState pSMGstate) {
-    smg = pSMG;
-    onlyDll = pOnlyDll;
-    smgState = pSMGstate;
-    logger = pLogger;
-  }
+  private boolean hasCandidates() {
+    SMGSingleLinkedListFinder sllCandidateFinder = new SMGSingleLinkedListFinder();
+    abstractionCandidates.addAll(sllCandidateFinder.traverse(smg));
 
-  private boolean hasCandidates() throws SMGInconsistentException {
-    SMGDoublyLinkedListCandidateFinder dllCandidateFinder =
-        new SMGDoublyLinkedListCandidateFinder();
-
-    Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg, smgState);
-    abstractionCandidates.addAll(candidates);
-
-    if (!onlyDll) {
-      SMGSingleLinkedListFinder sllCandidateFinder =
-          new SMGSingleLinkedListFinder();
-      abstractionCandidates.addAll(sllCandidateFinder.traverse(smg, smgState));
-    }
-
-    return (!abstractionCandidates.isEmpty());
+    return (! abstractionCandidates.isEmpty());
   }
 
   private SMGAbstractionCandidate getBestCandidate() {
-
-    SMGAbstractionCandidate bestCandidate = abstractionCandidates.get(0);
-
-    for (SMGAbstractionCandidate candidate : abstractionCandidates) {
-      if (candidate.getScore() > bestCandidate.getScore()) {
-        bestCandidate = candidate;
-      }
-    }
-
-    return bestCandidate;
+    return abstractionCandidates.get(0);
   }
 
-  public void execute() throws SMGInconsistentException {
+  public CLangSMG execute() {
     while (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
-      logger.log(Level.ALL, "Execute abstraction of " + best.toString());
-      best.execute(smg, smgState);
+      smg = best.execute(smg);
       invalidateCandidates();
-      logger.log(Level.ALL, "Finish executing abstraction of " + best.toString());
     }
+    return smg;
   }
 
   private void invalidateCandidates() {

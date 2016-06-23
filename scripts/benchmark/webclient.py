@@ -44,15 +44,17 @@ import zlib
 from time import sleep
 from time import time
 
-import requests
-from requests import HTTPError
-import urllib.parse 
+import urllib.parse as urllib
+import urllib.request as urllib2
+from  http.client import HTTPConnection
+from  http.client import HTTPSConnection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
 
 try:
-    import sseclient  # @UnresolvedImport
+    import sseclient
+    from requests import HTTPError
 except:
     pass
 
@@ -88,6 +90,18 @@ class WebClientError(Exception):
         self.value = value
     def _str_(self):
         return repr(self.value)
+
+class AutoCloseHTTPConnection(HTTPConnection):
+
+    def __del__(self):
+        self.close()
+        logging.debug("Closed connection")
+
+class AutoCloseHTTPSConnection(HTTPSConnection):
+
+    def __del__(self):
+        self.close()
+        logging.debug("Closed connection")
 
 class PollingResultDownloader:
 
@@ -155,24 +169,22 @@ try:
             else:
                 raise StopIteration()
 
+        def __del__(self):
+            if hasattr(self, 'resp'):
+                self.resp.close()
+
     class SseResultDownloader:
 
-        def __init__(self, web_interface, result_poll_interval):
+        def __init__(self, web_interface, web_interface_url, result_poll_interval):
             logging.debug("Server-Send Events are used to get state of runs.")
 
             self._web_interface = web_interface
-            self._run_finished_url = web_interface._web_interface_url + "runs/finished"
+            self._run_finished_url = web_interface_url + "runs/finished"
             self._result_poll_interval = result_poll_interval
             self._sse_client = None
             self._shutdown = False
             self._new_runs = False
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
-
-        def _log_future_exception_and_fallback(self, result):
-            if result.exception() is not None:
-                logging.warning('Error during result processing.', exc_info=True)
-                if not self._shutdown:
-                    self._fall_back()
 
         def _should_reconnect(self, error):
             if self._new_runs:
@@ -199,15 +211,21 @@ try:
                 for run_id in run_ids:
                     params.append(("run", run_id))
 
-                headers = {"Accept-Encoding": "UTF-8"}
-                
+                headers = {}
+                headers["Accept-Encoding"] = "UTF-8"
+                if self._web_interface._base64_user_pwd:
+                    headers["Authorization"] = "Basic " + self._web_interface._base64_user_pwd
+
+                for k, v in self._web_interface.default_headers.items():
+                    if k not in headers:
+                        headers[k] = v
+
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(
                         self._run_finished_url, self._should_reconnect,
-                        session = self._web_interface._connection,
-                        headers=headers,
-                        data=params)
+                        verify='/etc/ssl/certs',
+                        headers=headers, data=params)
 
                 except Exception as e:
                     logging.warning("Creating SSE connection failed: %s", e)
@@ -262,7 +280,7 @@ try:
                 self._sse_client.resp.close()
             else:
                 future = self._state_receive_executor.submit(self._start_sse_connection)
-                future.add_done_callback(self._log_future_exception_and_fallback)
+                future.add_done_callback(_log_future_exception)
 
         def shutdown(self, wait=True):
             self._shutdown = True
@@ -314,24 +332,19 @@ class WebInterface:
         if not web_interface_url[-1] == '/':
             web_interface_url += '/'
 
-        default_headers = {'Connection': 'Keep-Alive'}
+        self.default_headers = {'Connection': 'Keep-Alive'}
         if user_agent:
-            default_headers['User-Agent'] = \
+            self.default_headers['User-Agent'] = \
                 '{}/{} (Python/{} {}/{})'.format(user_agent, version, platform.python_version(), platform.system(), platform.release())
 
-        urllib.parse.urlparse(web_interface_url) # sanity check
-        self._web_interface_url = web_interface_url
+        self._webclient = urllib.urlparse(web_interface_url)
         logging.info('Using VerifierCloud at %s', web_interface_url)
 
-        self._connection = requests.Session()
-        self._connection.headers.update(default_headers)
-        self._connection.verify='/etc/ssl/certs'
         if user_pwd:
-            self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
         else:
             self._base64_user_pwd = None
-        
+
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
@@ -346,7 +359,7 @@ class WebInterface:
         self._tool_name = self._request_tool_name()
 
         try:
-            self._result_downloader = SseResultDownloader(self, result_poll_interval)
+            self._result_downloader = SseResultDownloader(self, web_interface_url, result_poll_interval)
         except:
             self._result_downloader = PollingResultDownloader(self, result_poll_interval)
 
@@ -375,14 +388,15 @@ class WebInterface:
 
     def _resolved_tool_revision(self, svn_branch, svn_revision):
 
-        path = "tool/version?svnBranch=" + svn_branch + "&revision=" + svn_revision
+        path = self._webclient.path + "tool/version?svnBranch=" + svn_branch \
+                             + "&revision=" + svn_revision
 
         (resolved_svn_revision, _) = self._request("GET", path)
         self._svn_branch = svn_branch
         self._svn_revision = resolved_svn_revision.decode("UTF-8")
 
     def _request_tool_name(self):
-        path = "tool/name"
+        path = self._webclient.path + "tool/name"
         (tool_name, _) = self._request("GET", path)
         return tool_name.decode("UTF-8")
 
@@ -437,8 +451,8 @@ class WebInterface:
                    "Content-Encoding": "deflate",
                    "Accept": "text/plain"}
 
-        paramsCompressed = zlib.compress(urllib.parse.urlencode(params, doseq=True).encode('utf-8'))
-        path = "runs/witness_validation/"
+        paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
+        path = self._webclient.path + "runs/witness_validation/"
 
         (run_id, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
 
@@ -447,8 +461,7 @@ class WebInterface:
 
         return self._create_and_add_run_future(run_id)
 
-    def submit(self, run, limits, cpu_model, result_files_pattern, meta_information=None, \
-               priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
+    def submit(self, run, limits, cpu_model, result_files_pattern=None, priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
         """
         Submits a single run to the VerifierCloud.
         @note: flush() should be called after the submission of the last run.
@@ -458,86 +471,78 @@ class WebInterface:
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
         @param cpu_model: substring of CPU model to use or 'None' for no restriction
-        @param result_files_pattern: the result is filtered with the given glob pattern, '**' is no restriction and None or the empty string do not match any file.
-        @param meta_information: meta information about the submitted run as JSON string
+        @param result_files_pattern: the result is filtered with the given glob pattern, defaults to no restriction
         @param priority: the priority of the submitted run, defaults to 'IDLE'
         @param user_pwd: overrides the user name and password given in the constructor (optional)
         @param svn_branch: overrids the svn branch given in the constructor (optional)
         @param svn_revision: overrides the svn revision given in the constructor (optional)
         """
-        return self._submit(run, limits, cpu_model, result_files_pattern, meta_information,
-                            priority, user_pwd, svn_branch, svn_revision)
+        return self._submit(run, limits, cpu_model, result_files_pattern, priority, user_pwd, svn_branch, svn_revision)
 
-    def _submit(self, run, limits, cpu_model, result_files_pattern, meta_information, 
-                priority, user_pwd, svn_branch, svn_revision, counter=0):
+    def _submit(self, run, limits, cpu_model, result_files_pattern, priority, user_pwd, svn_branch, svn_revision, counter=0):
 
-        params = []
-        opened_files = [] # open file handles are passed to the request library
-        
+        programTextHashs = []
         for programPath in run.sourcefiles:
-            norm_path = self._normalize_path_for_cloud(programPath)
-            params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
+            programTextHashs.append(self._get_sha1_hash(programPath))
+        params = {'programTextHash': programTextHashs}
 
-        params.append(('svnBranch', svn_branch or self._svn_branch))
-        params.append(('revision', svn_revision or self._svn_revision))
+        params['svnBranch'] = svn_branch or self._svn_branch
+        params['revision'] = svn_revision or self._svn_revision
 
         if run.propertyfile:
-            file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
-            opened_files.append(file)
+            with open(run.propertyfile, 'r') as propertyFile:
+                propertyText = propertyFile.read()
+                params['propertyText'] = propertyText
 
         if MEMLIMIT in limits:
-            params.append(('memoryLimitation', str(limits[MEMLIMIT])))
+            params['memoryLimitation'] = limits[MEMLIMIT]
         if TIMELIMIT in limits:
-            params.append(('timeLimitation', str(limits[TIMELIMIT])))
+            params['timeLimitation'] = limits[TIMELIMIT]
         if SOFTTIMELIMIT in limits:
-            params.append(('softTimeLimitation', str(limits[SOFTTIMELIMIT])))
+            params['softTimeLimitation'] = limits[SOFTTIMELIMIT]
         if CORELIMIT in limits:
-            params.append(('coreLimitation', str(limits[CORELIMIT])))
+            params['coreLimitation'] = limits[CORELIMIT]
         if cpu_model:
-            params.append(('cpuModel', cpu_model))
+            params['cpuModel'] = cpu_model
 
         if result_files_pattern:
-            params.append(('resultFilesPattern', result_files_pattern))
+            params['resultFilesPattern'] = result_files_pattern;
         else:
-            params.append(('resultFilesPattern', ''))
-        
+            params['resultFilesPattern'] = ''
         if priority:
-            params.append(('priority', priority))
+            params['priority'] = priority
 
-        (invalidOption, files) = self._handle_options(run, params, limits)
-        opened_files.extend(files)
+        invalidOption = self._handle_options(run, params, limits)
         if invalidOption:
             raise WebClientError('Command {0}  contains option "{1}" that is not usable with the webclient. '\
                 .format(run.options, invalidOption))
 
-        params.append(('groupId', str(self._group_id)))
-        params.append(('metaInformation', meta_information))
+        params['groupId'] = self._group_id;
 
         # prepare request
-        headers = {"Accept": "text/plain"}
-        path = "runs/"
-        (run_id, statusCode) = self._request("POST", path, files=params, headers=headers, \
-                                             expectedStatusCodes=[200, 412], user_pwd=user_pwd)
+        headers = {"Content-Type": "application/x-www-form-urlencoded",
+                   "Content-Encoding": "deflate",
+                   "Accept": "text/plain"}
 
-        for opened_file in opened_files:
-            opened_file.close()
-        
+        paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
+        path = self._webclient.path + "runs/"
+
+        (run_id, statusCode) = self._request("POST", path, paramsCompressed, headers, [200, 412], user_pwd)
+
         # program files given as hash value are not known by the cloud system
         if statusCode == 412 and counter < 1:
             headers = {"Content-Type": "application/octet-stream",
                    "Content-Encoding": "deflate"}
 
             # upload all used program files
-            filePath = "files/"
+            filePath = self._webclient.path + "files/"
             for programPath in run.sourcefiles:
                 with open(programPath, 'rb') as programFile:
                     compressedProgramText = zlib.compress(programFile.read(), 9)
-                    self._request('POST', filePath, data=compressedProgramText, headers=headers,\
-                                   expectedStatusCodes=[200, 204], user_pwd=user_pwd)
+                    self._request('POST', filePath, compressedProgramText, headers, [200, 204], user_pwd)
 
             # retry submission of run
-            return self._submit(run, limits, cpu_model, result_files_pattern, meta_information, 
-                                priority, user_pwd, svn_branch, svn_revision, counter + 1)
+            return self._submit(run, limits, cpu_model, result_files_pattern, priority, user_pwd, svn_branch, svn_revision, counter + 1)
 
         else:
             run_id = run_id.decode("UTF-8")
@@ -545,15 +550,14 @@ class WebInterface:
             return self._create_and_add_run_future(run_id)
 
     def _handle_options(self, run, params, rlimits):
-        opened_files = []
-        
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
+        options = []
         if self._tool_name == "CPAchecker":
-            params.append(("option", "statistics.print=true"))
+            options.append("statistics.print=true")
 
-            if 'softtimelimit' in rlimits:
-                params.append(("option", "limits.time.cpu=" + str(rlimits['softtimelimit']) + "s"))
+            if 'softtimelimit' in rlimits and not '-timelimit' in options:
+                options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
 
         if run.options:
             i = iter(run.options)
@@ -564,49 +568,55 @@ class WebInterface:
                         continue
 
                     if option == "-heap":
-                        params.append(('heap', next(i)))
-                    elif option == "-stack":
-                        params.append(('stack', next(i)))
-                        
+                        params['heap'] = next(i)
+
                     elif option == "-noout":
-                        params.append(("option", "output.disable=true"))
+                        options.append("output.disable=true")
                     elif option == "-outputpath":
-                        params.append(("option", "output.path=" + next(i)))
+                        options.append("output.path=" + next(i))
                     elif option == "-logfile":
-                        params.append(("option", "log.file=" + next(i)))
+                        options.append("log.file=" + next(i))
                     elif option == "-nolog":
-                        params.append(("option", "log.level=OFF"))
-                        params.append(("option", "log.consoleLevel=OFF"))
+                        options.append("log.level=OFF")
+                        options.append("log.consoleLevel=OFF")
                     elif option == "-stats":
                         # ignore, is always set by this script
                         pass
                     elif option == "-disable-java-assertions":
-                        params.append(('disableJavaAssertions', 'true'))
+                        params['disableJavaAssertions'] = 'true'
+                    elif option == "-compile":
+                        params['forceCompilation'] = 'true'
                     elif option == "-java":
-                        params.append(("option", "language=JAVA"))
+                        options.append("language=JAVA")
                     elif option == "-32":
-                        params.append(("option", "analysis.machineModel=Linux32"))
+                        options.append("analysis.machineModel=Linux32")
                     elif option == "-64":
-                        params.append(("option", "analysis.machineModel=Linux64"))
+                        options.append("analysis.machineModel=Linux64")
                     elif option == "-entryfunction":
-                        params.append(("option", "analysis.entryFunction=" + next(i)))
+                        options.append("analysis.entryFunction=" + next(i))
                     elif option == "-timelimit":
-                        params.append(("option", "limits.time.cpu=" + next(i)))
+                        options.append("limits.time.cpu=" + next(i))
                     elif option == "-skipRecursion":
-                        params.append(("option", "cpa.callstack.skipRecursion=true"))
-                        params.append(("option", "analysis.summaryEdges=true"))
+                        options.append("cpa.callstack.skipRecursion=true")
+                        options.append("analysis.summaryEdges=true")
                     elif option == "-cbmc":
-                        params.append(("option", "analysis.checkCounterexamples=true"))
-                        params.append(("option", "counterexample.checker=CBMC"))
+                        options.append("analysis.checkCounterexamples=true")
+                        options.append("counterexample.checker=CBMC")
                     elif option == "-preprocess":
-                        params.append(("option", "parser.usePreprocessor=true"))
+                        options.append("parser.usePreprocessor=true")
                     elif option == "-generateReport":
-                        params.append(('generateReport', 'true'))
+                        params['generateReport'] = 'true'
 
                     elif option == "-spec":
                         spec_path = next(i)
-                        file = self._add_file_to_params(params, "specificationText", spec_path)
-                        opened_files.append(file)
+                        with open(spec_path, 'r') as  spec_file:
+                            file_text = spec_file.read()
+                            if spec_path[-8:] == ".graphml":
+                                params['errorWitnessText'] = file_text
+                            elif spec_path[-4:] == ".prp":
+                                params['propertyText'] = file_text
+                            else:
+                                params['specificationText'] = file_text
 
                     elif option == "-config":
                         configPath = next(i)
@@ -614,34 +624,23 @@ class WebInterface:
                         if not (tokens[0] == "config" and len(tokens) == 2):
                             logging.warning('Configuration %s of run %s is not from the default config directory.',
                                             configPath, run.identifier)
-                            return (configPath, opened_files)
+                            return configPath
                         config = tokens[1].split('.')[0]
-                        params.append(('configuration', config))
+                        params['configuration'] = config
 
                     elif option == "-setprop":
-                        params.append(("option", next(i)))
+                        options.append(next(i))
 
                     elif option[0] == '-' and 'configuration' not in params :
-                        params.append(('configuration', option[1:]))
+                        params['configuration'] = option[1:]
                     else:
-                        return (option, opened_files)
+                        return option
 
                 except StopIteration:
                     break
 
-        return (None, opened_files)
-
-    def _add_file_to_params(self, params, name, path):
-        norm_path = self._normalize_path_for_cloud(path)
-        file = open(path, 'rb')
-        params.append((name, (norm_path, file)))
-        return file
-    
-    def _normalize_path_for_cloud(self, path):
-        norm_path = os.path.normpath(path)
-        if '..' in norm_path or os.path.isabs(norm_path):
-            norm_path = os.path.basename(norm_path)
-        return norm_path
+        params['option'] = options
+        return None
 
     def flush_runs(self):
         """
@@ -650,20 +649,22 @@ class WebInterface:
         This method forces the web interface to do this immediately and starts downloading of results.
         """
         headers = {"Content-Type": "application/x-www-form-urlencoded",
+                   "Content-Encoding": "deflate",
                    "Connection": "Keep-Alive"}
 
         params = {"groupId": self._group_id}
-        path = "runs/flush"
-        self._request("POST", path, data=params, headers=headers, expectedStatusCodes=[200, 204])
+        paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
+        path = self._webclient.path + "runs/flush"
+        self._request("POST", path, paramsCompressed, headers, expectedStatusCodes=[200, 204])
 
         self._result_downloader.start()
 
     def _is_finished(self, run_id):
         headers = {"Accept": "text/plain"}
-        path = "runs/" + run_id + "/state"
+        path = self._webclient.path + "runs/" + run_id + "/state"
 
         try:
-            (state, _) = self._request("GET", path, headers=headers)
+            (state, _) = self._request("GET", path, "", headers)
 
             state = state.decode('utf-8')
             if state == "FINISHED":
@@ -674,15 +675,15 @@ class WebInterface:
 
             return state
 
-        except requests.HTTPError as e:
-            logging.warning('Could not get run state %s: %s', run_id, e.response)
+        except urllib2.HTTPError as e:
+            logging.warning('Could not get run state %s: %s', run_id, e.reason)
             return False
 
     def _download_result(self, run_id):
         # download result as zip file
         headers = {"Accept": "application/zip"}
-        path = "runs/" + run_id + "/result"
-        (zip_content, _) = self._request("GET", path, headers=headers)
+        path = self._webclient.path + "runs/" + run_id + "/result"
+        (zip_content, _) = self._request("GET", path, {}, headers)
         return zip_content
 
     def _download_result_async(self, run_id):
@@ -701,9 +702,7 @@ class WebInterface:
                 logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
 
                 # client error
-                if type(exception) is HTTPError and exception.response and  \
-                    400 <= exception.response.status_code and exception.response.status_code <= 499:
-                    
+                if type(exception) is urllib2.HTTPError and 400 <= exception.code and exception.code <= 499:
                     attempts = self._download_attempts.pop(run_id, 1);
                     if attempts < 10:
                         self._download_attempts[run_id] = attempts + 1;
@@ -749,64 +748,80 @@ class WebInterface:
 
         self._write_hash_code_cache()
         self._executor.shutdown(wait=True)
-        self._connection.close()
 
     def _stop_run(self, run_id):
         with self._unfinished_runs_lock:
             self._unfinished_runs.pop(run_id, None)
 
-        path = "runs/" + run_id
+        path = self._webclient.path + "runs/" + run_id
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
-        except HTTPError as e:
+        except urllib2.HTTPError as e:
             logging.info("Stopping of run %s failed: %s", run_id, e.reason)
 
 
-    def _request(self, method, path, data=None, headers=None, files=None, expectedStatusCodes=[200], user_pwd=None):
-        url = self._web_interface_url + path
+    def _request(self, method, path, body={}, headers={}, expectedStatusCodes=[200], user_pwd=None):
+        connection = self._get_connection()
+
         if user_pwd:
-            auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
-        else:
-            auth = None
-        
+            base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
+            headers["Authorization"] = "Basic " + base64_user_pwd
+        elif self._base64_user_pwd:
+            headers["Authorization"] = "Basic " + self._base64_user_pwd
+
+        for k, v in self.default_headers.items():
+            if k not in headers:
+                headers[k] = v
+
         counter = 0
         while (counter < 5):
             counter += 1
             # send request
             try:
-                response = self._connection.request(method, url, data=data, files=files, headers=headers, auth=auth)
-                
+                connection.request(method, path, body=body, headers=headers)
+                response = connection.getresponse()
             except Exception as e:
                 if (counter < 5):
                     logging.debug("Exception during %s request to %s: %s", method, path, e)
+                    # create new TCP connection and try to send the request
+                    connection.close()
                     sleep(1)
                     continue
                 else:
                     raise
 
-            if response.status_code in expectedStatusCodes:
-                return (response.content, response.status_code)
+            if response.status in expectedStatusCodes:
+                return (response.read(), response.getcode())
 
             else:
                 message = ""
-                if response.status_code == 401:
+                if response.status == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
-                
-                elif response.status_code == 404:
+                elif response.status == 404:
                     message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
-                    
-                elif response.status_code == 503:
+                elif response.status == 503:
                     message = 'Error 503: Service Unavailable.'
-                    if counter < 5:
-                        logging.debug(message)
-                        sleep(60)
-                        continue
-                    
+                    sleep(60)
                 else:
-                    message += response.content.decode('UTF-8')
-                    
+                    message += response.read().decode('UTF-8')
                 logging.warning(message)
-                raise requests.HTTPError(path, message, response=response)
+                raise urllib2.HTTPError(path, response.getcode(), message , response.getheaders(), None)
+
+    def _get_connection(self):
+        connection = getattr(self._thread_local, 'connection', None)
+
+        if connection is None:
+            if self._webclient.scheme == 'http':
+                self._thread_local.connection = AutoCloseHTTPConnection(self._webclient.netloc, timeout=CONNECTION_TIMEOUT)
+            elif self._webclient.scheme == 'https':
+                self._thread_local.connection = AutoCloseHTTPSConnection(self._webclient.netloc, timeout=CONNECTION_TIMEOUT)
+            else:
+                raise WebClientError("Unknown protocol {0}.".format(self._webclient.scheme))
+
+            connection = self._thread_local.connection
+
+        return connection
+
 
 def _open_output_log(output_path):
     log_file_path = output_path + "output.log"
@@ -935,3 +950,7 @@ def _parse_cloud_file(file):
         values[key] = value
 
     return values
+
+def _log_future_exception(result):
+    if result.exception() is not None:
+        logging.warning('Error during result processing.', exc_info=True)

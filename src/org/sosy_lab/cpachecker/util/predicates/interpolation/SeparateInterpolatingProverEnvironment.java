@@ -25,18 +25,16 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 
 /**
  * This is a class that allows to use a different SMT solver for interpolation
@@ -93,16 +91,24 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
     itpEnv.close();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public BooleanFormula getInterpolant(List<T> pFormulasOfA)
-      throws SolverException, InterruptedException {
+  public <E extends Formula> E evaluate(E f) {
+    if (f instanceof BooleanFormula) {
+      return (E)itpEnv.evaluate(convertToItp((BooleanFormula) f));
+    }
+    throw new UnsupportedOperationException("Evaluation in interpolating "
+        + "environment supports only BooleanFormula's");
+  }
+
+  @Override
+  public BooleanFormula getInterpolant(List<T> pFormulasOfA) throws SolverException {
     BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
     return convertToMain(itpF);
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas)
-      throws SolverException, InterruptedException {
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas) {
     final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(partitionedFormulas);
     final List<BooleanFormula> result = new ArrayList<>();
     for (BooleanFormula itp : itps) {
@@ -112,8 +118,7 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree)
-      throws SolverException, InterruptedException {
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree) {
     final List<BooleanFormula> itps = itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
     final List<BooleanFormula> result = new ArrayList<>();
     for (BooleanFormula itp : itps) {
@@ -133,10 +138,5 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   @Override
   public Model getModel() throws SolverException {
     return itpEnv.getModel();
-  }
-
-  @Override
-  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
-    return itpEnv.getModelAssignments();
   }
 }

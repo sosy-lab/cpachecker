@@ -27,24 +27,36 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -65,30 +77,20 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -101,19 +103,18 @@ public final class InterpolationManager {
   private final Timer interpolantVerificationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
-  public void printStatistics(StatisticsWriter w0) {
-    w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
-    StatisticsWriter w1 = w0.beginLevel();
+  public void printStatistics(PrintStream out) {
+    out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
-      w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+      out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
     }
-    w1.put("Refinement sat check", satCheckTimer);
+    out.println("    Refinement sat check:             " + satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
-      w1.put("Reused formulas on solver stack", reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
+      out.println("    Reused formulas on solver stack:  " + reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
     }
-    w1.put("Interpolant computation", getInterpolantTimer);
+    out.println("    Interpolant computation:          " + getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-      w1.put("Interpolant verification", interpolantVerificationTimer);
+      out.println("    Interpolant verification:         " + interpolantVerificationTimer);
     }
   }
 
@@ -203,8 +204,7 @@ public final class InterpolationManager {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor =
-          Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {
@@ -212,6 +212,10 @@ public final class InterpolationManager {
     } else {
       interpolator = null;
     }
+  }
+
+  public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
+    return fmgr.dumpFormula(bfmgr.and(cex.getCounterExampleFormulas()));
   }
 
   /**
@@ -327,38 +331,22 @@ public final class InterpolationManager {
             currentInterpolator.close();
           }
         }
-      } catch (SolverException itpException) {
-        logger.logUserException(
-            Level.FINEST,
-            itpException,
-            "Interpolation failed, attempting to solve without interpolation");
+      } catch (SolverException e) {
+        logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        // (this happens for example for MathSAT).
-        // If solving works but creating the model for the error path not,
-        // we at least return an empty model.
-        try (ProverEnvironment prover =
-            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
           if (!prover.isUnsat()) {
-            try {
-              return getErrorPath(f, prover, elementsOnPath);
-            } catch (SolverException modelException) {
-              logger.log(
-                  Level.WARNING,
-                  "Solver could not produce model, variable assignment of error path can not be dumped.");
-              logger.logDebugException(modelException);
-              return CounterexampleTraceInfo.feasible(
-                  f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
-            }
+            return getErrorPath(f, prover, elementsOnPath);
           }
-        } catch (SolverException solvingException) {
-          // in case of exception throw original one below but do not forget e2
-          itpException.addSuppressed(solvingException);
+        } catch (SolverException e2) {
+          // in case of exception throw original one below
+          logger.logDebugException(e2, "Solving trace failed even without interpolation");
         }
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
     } finally {
@@ -528,9 +516,9 @@ public final class InterpolationManager {
                                                                                                    loopStructure,
                                                                                                    fmgr);
     assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple::getFirst))
+    assert ImmutableMultiset.copyOf(from(result).transform(Triple.<BooleanFormula>getProjectionToFirst()))
             .equals(ImmutableMultiset.copyOf(traceFormulas))
-        : "Ordered list does not contain the same formulas with the same count";
+            : "Ordered list does not contain the same formulas with the same count";
     return result;
   }
 
@@ -603,8 +591,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(
-          f, pProver.getModelAssignments(), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMultimap.<Integer, Integer>of());
     }
 
     // add formula to solver environment
@@ -615,9 +602,8 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      List<ValueAssignment> model = pProver.getModelAssignments();
-      return CounterexampleTraceInfo.feasible(
-          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      Model model = getModel(pProver);
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -626,8 +612,18 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(
-          f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
+          HashMultimap.<Integer, Integer>create());
+    }
+  }
+
+  private Model getModel(BasicProverEnvironment<?> pItpProver) {
+    try {
+      return pItpProver.getModel();
+    } catch (SolverException e) {
+      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
+      logger.logDebugException(e);
+      return Model.empty();
     }
   }
 
@@ -693,7 +689,6 @@ public final class InterpolationManager {
         throws SolverException, CPATransferException, InterruptedException {
 
       // Check feasibility of counterexample
-      shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
       satCheckTimer.start();
 
@@ -878,9 +873,8 @@ public final class InterpolationManager {
         }
       }
 
-      assert Iterables.elementsEqual(
-          from(traceFormulas).transform(Triple::getFirst),
-          from(currentlyAssertedFormulas).transform(Triple::getFirst));
+      assert Iterables.elementsEqual(from(traceFormulas).transform(Triple.getProjectionToFirst()),
+              from(currentlyAssertedFormulas).transform(Triple.getProjectionToFirst()));
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible

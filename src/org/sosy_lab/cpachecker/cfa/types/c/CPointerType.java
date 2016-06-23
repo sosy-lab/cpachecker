@@ -63,11 +63,6 @@ public final class CPointerType implements CType, Serializable {
   }
 
   @Override
-  public boolean isIncomplete() {
-    return false;
-  }
-
-  @Override
   public String toString() {
     String decl;
 

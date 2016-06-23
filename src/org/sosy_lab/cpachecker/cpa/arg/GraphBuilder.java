@@ -23,6 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -30,26 +51,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
-public enum GraphBuilder {
+enum GraphBuilder {
 
   ARG_PATH {
 
@@ -83,24 +85,23 @@ public enum GraphBuilder {
         for (ARGState child : argEdges.getSecond()) {
 
           String childStateId = getId(child);
-          List<CFAEdge> allEdgeToNextState = s.getEdgesToChild(child);
+          CFAEdge edgeToNextState = s.getEdgeToChild(child);
           String prevStateId = sourceStateNodeId;
-          CFAEdge edgeToNextState;
 
-          if (allEdgeToNextState.size() == 1) {
-            edgeToNextState = Iterables.getOnlyElement(allEdgeToNextState);
-
-            // this is a dynamic multi edge
-          } else {
+          if (edgeToNextState instanceof MultiEdge) {
             // The successor state might have several incoming MultiEdges.
             // In this case the state names like ARG<successor>_0 would occur
             // several times.
             // So we add this counter to the state names to make them unique.
             multiEdgeCount++;
 
+            // Write out a long linear chain of pseudo-states (one state encodes multiple edges)
+            // because the AutomatonCPA also iterates through the MultiEdge.
+            List<CFAEdge> edges = ((MultiEdge)edgeToNextState).getEdges();
+
             // inner part (without last edge)
-            for (int i = 0; i < allEdgeToNextState.size() - 1; i++) {
-              CFAEdge innerEdge = allEdgeToNextState.get(i);
+            for (int i = 0; i < edges.size()-1; i++) {
+              CFAEdge innerEdge = edges.get(i);
               String pseudoStateId = getId(child, i, multiEdgeCount);
 
               assert (!(innerEdge instanceof AssumeEdge));
@@ -111,7 +112,7 @@ public enum GraphBuilder {
             }
 
             // last edge connecting it with the real successor
-            edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
+            edgeToNextState = edges.get(edges.size()-1);
           }
 
           Optional<Collection<ARGState>> state =
@@ -131,9 +132,12 @@ public enum GraphBuilder {
       }
     }
 
+    @Override
+    public GraphType getGraphType() {
+      return GraphType.ERROR_WITNESS;
+    }
   },
-
-  CFA_FROM_ARG {
+  PROOF {
 
     @Override
     public String getId(ARGState pState) {
@@ -177,113 +181,61 @@ public enum GraphBuilder {
         CFANode current = waitlist.poll();
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
-          final Collection<ARGState> locationStates;
           if (subProgramNodes.contains(successor)) {
-            locationStates = states.get(successor);
+            appendEdge(
+                pDocument,
+                pEdgeAppender,
+                leavingEdge,
+                Optional.of(states.get(successor)),
+                pValueMap);
             if (visited.add(successor)) {
               waitlist.offer(successor);
             }
           } else {
-            locationStates = Collections.<ARGState>emptySet();
+            String sourceId = current.toString();
+            pEdgeAppender.appendNewEdgeToSink(
+                pDocument,
+                sourceId,
+                leavingEdge,
+                Optional.<Collection<ARGState>>absent(),
+                pValueMap);
           }
-          appendEdge(pDocument, pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
         }
       }
     }
 
-  },
-
-  CFA_FULL {
-
-    @Override
-    public String getId(ARGState pState) {
-      return Joiner.on(",").join(AbstractStates.extractLocations(pState));
-    }
-
-    @Override
-    public void buildGraph(ARGState pRootState,
-        final Predicate<? super ARGState> pPathStates,
-        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+    private void appendEdge(
         GraphMlBuilder pDocument,
-        Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender) {
-
-      // normally there is only one node per state, thus we assume that there is only one root-node
-      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
-
-      // Get all successor nodes of edges
-      final Set<CFANode> subProgramNodes = new HashSet<>();
-      final Multimap<CFANode, ARGState> states = HashMultimap.create();
-
-      subProgramNodes.add(rootNode);
-      for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
-        for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is relevant
-          if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
-            for (CFANode location : AbstractStates.extractLocations(target)) {
-              subProgramNodes.add(location);
-              states.put(location, target);
-            }
-          }
+        EdgeAppender pEdgeAppender,
+        CFAEdge pEdge,
+        Optional<Collection<ARGState>> pStates,
+        Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      if (pEdge instanceof MultiEdge) {
+        Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
+        while (edgeIterator.hasNext()) {
+          CFAEdge edge = edgeIterator.next();
+          appendEdge(
+              pDocument,
+              pEdgeAppender,
+              edge,
+              edgeIterator.hasNext() ? Optional.<Collection<ARGState>>absent() : pStates,
+              pValueMap);
         }
+      } else {
+        String sourceId = pEdge.getPredecessor().toString();
+        String targetId = pEdge.getSuccessor().toString();
+        pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
       }
+    }
 
-      Queue<CFANode> waitlist = new ArrayDeque<>();
-      Set<CFANode> visited = new HashSet<>();
-      waitlist.offer(rootNode);
-      visited.add(rootNode);
-      Set<CFAEdge> appended = new HashSet<>();
-      while (!waitlist.isEmpty()) {
-        CFANode current = waitlist.poll();
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-          CFANode successor = leavingEdge.getSuccessor();
-          final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(successor)) {
-            locationStates = Optional.of(states.get(successor));
-          } else {
-            locationStates = Optional.absent();
-          }
-          if (visited.add(successor)) {
-            waitlist.offer(successor);
-          }
-          if (appended.add(leavingEdge)) {
-            appendEdge(pDocument, pEdgeAppender, leavingEdge, locationStates, pValueMap);
-          }
-        }
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(predecessor)) {
-            locationStates = Optional.of(states.get(predecessor));
-          } else {
-            locationStates = Optional.absent();
-          }
-          if (visited.add(predecessor)) {
-            waitlist.offer(predecessor);
-          }
-          if (appended.add(enteringEdge)) {
-            appendEdge(pDocument, pEdgeAppender, enteringEdge, locationStates, pValueMap);
-          }
-        }
-      }
+    @Override
+    public GraphType getGraphType() {
+      return GraphType.PROOF_WITNESS;
     }
 
   };
 
-  private static void appendEdge(
-      GraphMlBuilder pDocument,
-      EdgeAppender pEdgeAppender,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pStates,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-
-    String sourceId = pEdge.getPredecessor().toString();
-    String targetId = pEdge.getSuccessor().toString();
-    if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
-      pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
-    }
-  }
+  public abstract GraphType getGraphType();
 
   public abstract String getId(ARGState pState);
 

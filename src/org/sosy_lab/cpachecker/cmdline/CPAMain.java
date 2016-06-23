@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
+import static org.sosy_lab.common.DuplicateOutputStream.mergeStreams;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Closer;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Map;
+import java.util.logging.Level;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -44,32 +42,23 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
-import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.StringWriter;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Closer;
 
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CPAMain {
 
@@ -80,7 +69,7 @@ public class CPAMain {
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
-    LoggingOptions logOptions;
+    LogManager logManager = null;
     String outputDirectory = null;
     try {
       try {
@@ -95,14 +84,13 @@ public class CPAMain {
         System.exit(ERROR_EXIT_CODE);
       }
 
-      logOptions = new LoggingOptions(cpaConfig);
+      logManager = new BasicLogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
       ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
       System.exit(ERROR_EXIT_CODE);
       return;
     }
-    final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
 
     // create everything
@@ -111,7 +99,6 @@ public class CPAMain {
     CPAchecker cpachecker = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
-    ReportGenerator reportGenerator = null;
     MainOptions options = new MainOptions();
     try {
       cpaConfig.inject(options);
@@ -127,7 +114,6 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator = new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile());
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -161,7 +147,7 @@ public class CPAMain {
     Thread.interrupted(); // clear interrupted flag
 
     try {
-      printResultAndStatistics(result, outputDirectory, options, reportGenerator, logManager);
+      printResultAndStatistics(result, outputDirectory, options, logManager);
     } catch (IOException e) {
       logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
@@ -232,8 +218,7 @@ public class CPAMain {
       LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
-        MoreFiles.writeFile(
-            options.configurationOutputFile, Charset.defaultCharset(), config.asPropertiesString());
+        Files.writeFile(options.configurationOutputFile, config.asPropertiesString());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not dump configuration to file");
       }
@@ -332,13 +317,8 @@ public class CPAMain {
   }
 
   @SuppressWarnings("deprecation")
-  private static void printResultAndStatistics(
-      CPAcheckerResult mResult,
-      String outputDirectory,
-      MainOptions options,
-      ReportGenerator reportGenerator,
-      LogManager logManager)
-      throws IOException {
+  private static void printResultAndStatistics(CPAcheckerResult mResult,
+      String outputDirectory, MainOptions options, LogManager logManager) throws IOException {
 
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
@@ -348,8 +328,8 @@ public class CPAMain {
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
-        MoreFiles.createParentDirs(options.exportStatisticsFile);
-        file = closer.register(Files.newOutputStream(options.exportStatisticsFile));
+        Files.createParentDirs(options.exportStatisticsFile);
+        file = closer.register(options.exportStatisticsFile.asByteSink().openStream());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
       }
@@ -357,12 +337,9 @@ public class CPAMain {
 
     PrintStream stream = makePrintStream(mergeStreams(console, file));
 
-    StringWriter statistics = new StringWriter();
     try {
       // print statistics
-      PrintStream statisticsStream =
-          makePrintStream(mergeStreams(stream, new WriterOutputStream(statistics)));
-      mResult.printStatistics(statisticsStream);
+      mResult.printStatistics(stream);
       stream.println();
 
       // print result
@@ -382,39 +359,6 @@ public class CPAMain {
     } finally {
       closer.close();
     }
-
-    // export report
-    if (mResult.getResult() != Result.NOT_YET_STARTED) {
-       boolean generated =
-          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
-
-      if (generated) {
-        try {
-          Path pathToReportGenerator = getPathToReportGenerator();
-          if (pathToReportGenerator != null) {
-            stream.println("Run " + pathToReportGenerator + " to show graphical report.");
-          }
-        } catch (SecurityException | URISyntaxException e) {
-          logManager.logUserException(WARNING, e, "Could not find script for generating report.");
-        }
-      }
-    }
-  }
-
-  private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
-    Path curDir = Paths.get("").toAbsolutePath();
-    Path baseDir =
-        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-            .getParent();
-
-    if (baseDir != null) {
-      Path reportGenerator =
-          curDir.relativize(baseDir.resolve("scripts").resolve("report-generator.py"));
-      if (Files.isExecutable(reportGenerator)) {
-        return reportGenerator;
-      }
-    }
-    return null;
   }
 
   @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",

@@ -29,8 +29,8 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.collect.ImmutableSortedSet;
@@ -39,6 +39,8 @@ import com.google.common.collect.ImmutableSortedSet;
 public class FormulaMeasuring {
 
   public static class FormulaMeasures {
+    private int trues = 0;
+    private int falses = 0;
     private int conjunctions = 0;
     private int disjunctions = 0;
     private int negations = 0;
@@ -48,7 +50,9 @@ public class FormulaMeasuring {
     public int getAtoms() { return atoms; }
     public int getConjunctions() { return conjunctions; }
     public int getDisjunctions() { return disjunctions; }
+    public int getFalses() { return falses; }
     public int getNegations() { return negations; }
+    public int getTrues() { return trues; }
     public ImmutableSortedSet<String> getVariables() { return ImmutableSortedSet.copyOf(this.variables); }
   }
 
@@ -67,7 +71,7 @@ public class FormulaMeasuring {
   }
 
   private static class FormulaMeasuringVisitor
-      extends DefaultBooleanFormulaVisitor<TraversalProcess> {
+      implements BooleanFormulaVisitor<TraversalProcess> {
 
     private final FormulaMeasures measures;
     private final FormulaManagerView fmgr;
@@ -78,17 +82,24 @@ public class FormulaMeasuring {
     }
 
     @Override
-    protected TraversalProcess visitDefault() {
-      return TraversalProcess.CONTINUE;
+    public TraversalProcess visitFalse() {
+      measures.falses++;
+      return null;
     }
 
     @Override
-    public TraversalProcess visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
+    public TraversalProcess visitTrue() {
+      measures.trues++;
+      return null;
+    }
+
+    @Override
+    public TraversalProcess visitAtom(BooleanFormula pAtom) {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);
       measures.variables.addAll(fmgr.extractVariableNames(atom));
-      return TraversalProcess.CONTINUE;
+      return null;
     }
 
     @Override
@@ -106,6 +117,31 @@ public class FormulaMeasuring {
     @Override
     public TraversalProcess visitOr(List<BooleanFormula> pOperands) {
       measures.disjunctions++;
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      // TODO count?
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      // TODO count?
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitQuantifier(Quantifier quantifier,
+        BooleanFormula body) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      // TODO count?
       return TraversalProcess.CONTINUE;
     }
   }

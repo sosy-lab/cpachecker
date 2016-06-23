@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 
 public class AutomatonStateARGCombiningHelper {
@@ -69,12 +71,14 @@ public class AutomatonStateARGCombiningHelper {
     String qualifiedName = toReplace.getOwningAutomatonName()+"::" +toReplace.getInternalStateName();
 
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
-      AutomatonSafetyProperty violatedProp = null;
 
-      if (toReplace.isTarget() && toReplace.getViolatedProperties().size() > 0) {
-        Property prop = toReplace.getViolatedProperties().iterator().next();
+      final Map<AutomatonSafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
+
+      for (Entry<? extends Property, ResultValue<?>> pi: toReplace.getViolatedPropertyInstances().entrySet()) {
+        Property prop = pi.getKey();
+        ResultValue<?> instance = pi.getValue();
         assert prop instanceof AutomatonSafetyProperty;
-        violatedProp = (AutomatonSafetyProperty) prop;
+        violatedProperties.put((AutomatonSafetyProperty)prop, instance);
       }
 
       return AutomatonState.automatonStateFactory(
@@ -82,10 +86,10 @@ public class AutomatonStateARGCombiningHelper {
           qualifiedAutomatonStateNameToInternalState.get(qualifiedName),
           nameToCPA.get(toReplace.getOwningAutomatonName()),
           toReplace.getAssumptions(),
-          toReplace.getCandidateInvariants(),
+          toReplace.getShadowCode(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
-          violatedProp);
+          violatedProperties);
     }
 
     throw new CPAException("Changing state failed, unknown state.");

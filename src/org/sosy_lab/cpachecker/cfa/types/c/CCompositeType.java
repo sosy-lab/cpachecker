@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -37,7 +33,10 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-public final class CCompositeType implements CComplexType {
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+
+public final class CCompositeType implements CComplexType, Serializable {
 
   private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
@@ -88,10 +87,6 @@ public final class CCompositeType implements CComplexType {
     return origName;
   }
 
-  @Override
-  public boolean isIncomplete() {
-    return false;
-  }
 
   @Override
   public String toString() {
@@ -277,9 +272,6 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
-      return this;
-    }
     return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name, origName);
   }
 

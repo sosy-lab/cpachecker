@@ -1,56 +1,33 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Policy iteration precision is simply a set of templates.
  */
 public class PolicyPrecision implements Precision, Iterable<Template> {
-  private final ImmutableList<Template> templates;
+  private final ImmutableSet<Template> templates;
 
   public PolicyPrecision(Set<Template> pTemplates) {
-    templates =
-        Ordering.from(
-                Comparator.<Template>comparingInt(
-                        (template) -> template.getLinearExpression().size())
-                    .thenComparing(Template::toString))
-            .immutableSortedCopy(pTemplates);
+    templates = ImmutableSet.copyOf(pTemplates);
   }
 
   public static PolicyPrecision empty() {
     return new PolicyPrecision(ImmutableSet.<Template>of());
   }
 
-  /**
-   * Iterator over contained templates, in sorted order.
-   */
   @Override
   public Iterator<Template> iterator() {
     return templates.iterator();
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (!(o instanceof PolicyPrecision)) {
-      return false;
-    }
-    if (o == this) {
-      return true;
-    }
-    PolicyPrecision other = (PolicyPrecision) o;
-    return other.templates.equals(templates);
-  }
-
-  @Override
-  public int hashCode() {
-    return templates.hashCode();
+  public Precision join(Precision pOther) {
+    throw new RuntimeException("Not yet implemented. Implement this method if required.");
   }
 }

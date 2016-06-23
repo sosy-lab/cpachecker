@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -37,29 +31,56 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
-class CompositePrecisionAdjustment implements PrecisionAdjustment {
-  private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
-  private final ImmutableList<Function<AbstractState, AbstractState>> stateProjectionFunctions;
+public class CompositePrecisionAdjustment implements PrecisionAdjustment {
+  protected final ImmutableList<PrecisionAdjustment> precisionAdjustments;
+  protected final ImmutableList<StateProjectionFunction> stateProjectionFunctions;
+  protected final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
 
-  private final LogManager logger;
-
-  CompositePrecisionAdjustment(
-      ImmutableList<PrecisionAdjustment> precisionAdjustments, LogManager pLogger) {
+  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
-    logger = pLogger;
 
-    ImmutableList.Builder<Function<AbstractState, AbstractState>> stateProjectionFunctions =
-        ImmutableList.builder();
+    ImmutableList.Builder<StateProjectionFunction> stateProjectionFunctions = ImmutableList.builder();
+    ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
+
     for (int i = 0; i < precisionAdjustments.size(); i++) {
-      stateProjectionFunctions.add(getStateProjectionFunction(i));
+      stateProjectionFunctions.add(new StateProjectionFunction(i));
+      precisionProjectionFunctions.add(new PrecisionProjectionFunction(i));
     }
     this.stateProjectionFunctions = stateProjectionFunctions.build();
+    this.precisionProjectionFunctions = precisionProjectionFunctions.build();
   }
 
-  private final Function<AbstractState, AbstractState> getStateProjectionFunction(int i) {
-    return compState -> ((CompositeState) compState).get(i);
+  protected static class StateProjectionFunction
+    implements Function<AbstractState, AbstractState> {
+    private final int dimension;
+
+    public StateProjectionFunction(int d) {
+      dimension = d;
+    }
+
+    @Override
+    public AbstractState apply(AbstractState from) {
+      return ((CompositeState)from).get(dimension);
+    }
+  }
+
+  protected static class PrecisionProjectionFunction
+  implements Function<Precision, Precision> {
+    private final int dimension;
+
+    public PrecisionProjectionFunction(int d) {
+      dimension = d;
+    }
+
+    @Override
+    public Precision apply(Precision from) {
+      return ((CompositePrecision)from).get(dimension);
+    }
   }
 
   /* (non-Javadoc)
@@ -72,21 +93,10 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
-    return prec0(pElement, pPrecision, pElements, projection, fullState, 1);
-  }
-
-  private Optional<PrecisionAdjustmentResult> prec0(
-      AbstractState pElement,
-      Precision pPrecision,
-      UnmodifiableReachedSet pElements,
-      Function<AbstractState, AbstractState> projection,
-      AbstractState fullState,
-      int depth)
-      throws CPAException, InterruptedException {
 
     CompositeState comp = (CompositeState) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
-    assert (comp.getWrappedStates().size() == prec.getWrappedPrecisions().size());
+    assert (comp.getWrappedStates().size() == prec.getPrecisions().size());
     int dim = comp.getWrappedStates().size();
 
     ImmutableList.Builder<AbstractState> outElements = ImmutableList.builder();
@@ -128,17 +138,6 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
     Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
 
-    PrecisionAdjustmentResult out = PrecisionAdjustmentResult.create(outElement, outPrecision, action);
-
-    if (!modified) {
-
-      logger.log(Level.FINER, "Precision adjustment iteration has converged.");
-      return Optional.of(out);
-    } else {
-
-      // Recursion is acceptable here as we have very small chains.
-      logger.log(Level.FINER, "Starting new fixpoint iteration of precision adjustment");
-      return prec0(outElement, outPrecision, pElements, projection, fullState, depth+1);
-    }
+    return Optional.of(PrecisionAdjustmentResult.create(outElement, outPrecision, action));
   }
 }

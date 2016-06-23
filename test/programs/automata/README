@@ -1,0 +1,5 @@
+This directory contains test files for the automaton CPA. Use the test files
+only with a corresponding automaton specification which can be found in
+$CPACHECKER_ROOT/test/config/automata.
+Each files has a comment which mentions the corresponding automata
+specifications.

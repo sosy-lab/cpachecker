@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import com.google.common.base.Optional;
-import com.google.common.reflect.ClassPath;
-import com.google.common.reflect.ClassPath.ClassInfo;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,15 +57,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.reflect.ClassPath;
+import com.google.common.reflect.ClassPath.ClassInfo;
 
 public class CPASelfCheck {
 
@@ -71,7 +71,7 @@ public class CPASelfCheck {
    */
   public static void main(String[] args) throws Exception {
     config = Configuration.defaultConfiguration();
-    logManager = BasicLogManager.create(config);
+    logManager = new BasicLogManager(config);
 
     CFA cfa = createCFA();
     FunctionEntryNode main = cfa.getMainFunction();

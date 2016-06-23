@@ -25,15 +25,15 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 public final class CSimpleType implements CType, Serializable {
 
@@ -49,8 +49,6 @@ public final class CSimpleType implements CType, Serializable {
   private final boolean isLongLong;
   private boolean   isConst;
   private boolean   isVolatile;
-
-  private int hashCache = 0;
 
   public CSimpleType(final boolean pConst, final boolean pVolatile,
       final CBasicType pType, final boolean pIsLong, final boolean pIsShort,
@@ -112,28 +110,20 @@ public final class CSimpleType implements CType, Serializable {
   }
 
   @Override
-  public boolean isIncomplete() {
-    return false;
-  }
-
-  @Override
   public int hashCode() {
-      if (hashCache == 0) {
-          final int prime = 31;
-          int result = 7;
-          result = prime * result + Objects.hashCode(isComplex);
-          result = prime * result + Objects.hashCode(isConst);
-          result = prime * result + Objects.hashCode(isVolatile);
-          result = prime * result + Objects.hashCode(isImaginary);
-          result = prime * result + Objects.hashCode(isLong);
-          result = prime * result + Objects.hashCode(isLongLong);
-          result = prime * result + Objects.hashCode(isShort);
-          result = prime * result + Objects.hashCode(isSigned);
-          result = prime * result + Objects.hashCode(isUnsigned);
-          result = prime * result + Objects.hashCode(type);
-          hashCache = result;
-      }
-      return hashCache;
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isComplex);
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(isImaginary);
+      result = prime * result + Objects.hashCode(isLong);
+      result = prime * result + Objects.hashCode(isLongLong);
+      result = prime * result + Objects.hashCode(isShort);
+      result = prime * result + Objects.hashCode(isSigned);
+      result = prime * result + Objects.hashCode(isUnsigned);
+      result = prime * result + Objects.hashCode(type);
+      return result;
   }
 
   /**
@@ -225,14 +215,6 @@ public final class CSimpleType implements CType, Serializable {
     if (newType == CBasicType.INT && !isSigned && !isUnsigned) {
       newIsSigned = true;
     }
-
-    if ((isConst == pForceConst)
-        && (isVolatile == pForceVolatile)
-        && (type == newType)
-        && (isSigned == newIsSigned)) {
-      return this;
-    }
-
     return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
   }
 }

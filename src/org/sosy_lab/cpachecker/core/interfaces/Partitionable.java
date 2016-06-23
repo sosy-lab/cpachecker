@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import javax.annotation.Nullable;
-
 /**
  * Interface for classes that allow their objects to be partitioned.
  */
@@ -56,7 +54,6 @@ public interface Partitionable {
    *
    * @return a key indicating the part of the partition this object belongs to
    */
-  @Nullable
-  Object getPartitionKey();
+  public Object getPartitionKey();
 
 }

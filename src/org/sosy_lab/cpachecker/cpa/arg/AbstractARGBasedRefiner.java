@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -34,65 +32,61 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats.StatHandle;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
+import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
-import java.util.Collection;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-/**
- * Base implementation for {@link Refiner}s that provides access to ARG utilities
- * (e.g., it provide an error path to the actual refinement code).
- *
- * To use this, implement {@link ARGBasedRefiner} and call
- * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
- */
-public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
+public abstract class AbstractARGBasedRefiner implements Refiner {
 
   private int refinementNumber;
 
-  private final ARGBasedRefiner refiner;
   private final ARGCPA argCpa;
   private final LogManager logger;
 
-  protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
-    refiner = pRefiner;
-    argCpa = pCpa;
-    logger = pLogger;
-  }
+  private int counterexamplesCounter = 0;
 
-  /**
-   * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
-   */
-  public static Refiner forARGBasedRefiner(
-      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
-    checkArgument(
-        !(pRefiner instanceof Refiner),
-        "ARGBasedRefiners may not implement Refiner, choose between these two!");
-
-    if (!(pCpa instanceof WrapperCPA)) {
+  protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+    if (pCpa instanceof WrapperCPA) {
+      argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
+    } else {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    ARGCPA argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
     if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger());
+    this.logger = argCpa.getLogger();
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
-        = arg ->  arg instanceof CFunctionCallEdge ? arg.toString() : null;
+        = new Function<CFAEdge, String>() {
+    @Override
+    public String apply(CFAEdge arg) {
+
+      if (arg instanceof CFunctionCallEdge) {
+        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg;
+        return funcEdge.toString();
+      } else {
+        return null;
+      }
+    }
+  };
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
@@ -113,9 +107,26 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     }
 
     final CounterexampleInfo counterexample;
-    try {
-      counterexample = performRefinementForPath(reached, path);
-    } catch (RefinementFailedException e) {
+
+    final Set<Property> violatedProperties = lastElement.getViolatedProperties();
+
+    if (violatedProperties.size() > 1) {
+      logger.logf(Level.WARNING, "Simultaneous refinement for several (%d) properties!", violatedProperties.size());
+    }
+
+    try (StatHandle f = PropertyStats.INSTANCE.startRefinement(violatedProperties)) {
+      try (Contexts stat = Stats.beginRootContext(violatedProperties.toArray())) {
+
+        Stats.incCounter("Number of Refinements", 1);
+
+        try(StatCpuTimer t = Stats.startTimer("Precision Refinement Time")) {
+
+          counterexample = performRefinement(reached, path);
+
+
+        }
+      }
+    } catch (RefinementFailedException  e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
       }
@@ -124,8 +135,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       // so it can be used for debugging
       // we don't know if the path is precise here, so we assume it is imprecise
       // (this only affects the CEXExporter)
-      lastElement.addCounterexampleInformation(
-          CounterexampleInfo.feasibleImprecise(e.getErrorPath()));
+      argCpa.addFeasibleCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), RichModel
+          .empty()));
       throw e;
     }
 
@@ -138,12 +149,15 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
-      lastElement.addCounterexampleInformation(counterexample);
+      argCpa.addFeasibleCounterexample(lastElement, counterexample);
 
-      logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
+      logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample);
+      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
+      counterexamplesCounter++;
+    } else {
+      argCpa.countInfeasibleCounterexample(path, lastElement);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
@@ -158,10 +172,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    * @param pPath the potential error path
    * @return Information about the counterexample.
    */
-  protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
-    return refiner.performRefinementForPath(pReached, pPath);
-  }
+  protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
+            throws CPAException, InterruptedException;
 
   /**
    * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code> is not
@@ -179,17 +191,5 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   @Nullable
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
-    }
-  }
-
-  @Override
-  public String toString() {
-    return refiner.toString();
   }
 }

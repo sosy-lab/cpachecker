@@ -23,12 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assert_;
-import static org.mockito.Matchers.anyVararg;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static com.google.common.truth.Truth.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+
+import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
@@ -37,34 +61,8 @@ import com.google.common.truth.Subject;
 import com.google.common.truth.SubjectFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
-
-import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.io.IOException;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -76,19 +74,18 @@ public class AutomatonInternalTest {
   private final CParser parser;
 
   private static final Path defaultSpecPath = Paths.get("test/config/automata/defaultSpecification.spc");
-  private static final CharSource defaultSpec =
-      MoreFiles.asCharSource(defaultSpecPath, StandardCharsets.UTF_8);
+  private static final CharSource defaultSpec = defaultSpecPath.asCharSource(StandardCharsets.UTF_8);
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = TestDataTools.configurationForTest().build();
-    logger = LogManager.createTestLogManager();
+    logger = TestLogManager.getInstance();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
     parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);
   }
 
   @Test
-  public void testScanner() throws IOException {
+  public void testScanner() throws InvalidConfigurationException, IOException {
     ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
     try (Reader input = defaultSpec.openBufferedStream()) {
       AutomatonScanner s = new AutomatonScanner(input, defaultSpecPath, logger, sf1);
@@ -104,7 +101,8 @@ public class AutomatonInternalTest {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (Reader input = defaultSpec.openBufferedStream()) {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpecPath, logger, sf);
-      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser, CProgramScope.empty()).parse();
+      AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config, "");
+      Symbol symbol = new AutomatonParser(scanner, sf, logger, propFactory, parser, CProgramScope.empty()).parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {
@@ -193,7 +191,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() {
+  public void testJokerReplacementInAST() throws InvalidAutomatonException, InvalidConfigurationException {
     // tests the replacement of Joker expressions in the AST comparison
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
@@ -207,8 +205,8 @@ public class AutomatonInternalTest {
   public void transitionVariableReplacement() {
     LogManager mockLogger = mock(LogManager.class);
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, mockLogger);
-    args.putTransitionVariable(1, "hi");
-    args.putTransitionVariable(2, "hello");
+    args.putTransitionVariable(1, TestDataTools.makeVariable("hi", CNumericTypes.INT));
+    args.putTransitionVariable(2, TestDataTools.makeVariable("hello", CNumericTypes.INT));
     // actual test
     String result = args.replaceVariables("$1 == $2");
     assertThat(result).isEqualTo("hi == hello");
@@ -222,7 +220,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() {
+  public void testASTcomparison() throws InvalidAutomatonException, InvalidConfigurationException {
 
    assert_().about(astMatcher).that("x= $?;").matches("x=5;");
    assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
@@ -281,12 +279,10 @@ public class AutomatonInternalTest {
     }
 
     private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
-      CAstNode sourceAST;
-      ASTMatcher matcher;
-      sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
-      matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
+      CStatement sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+      ASTMatcherProvider provider = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
 
-      return matcher.matches(sourceAST, args);
+      return provider.getMatcher().matches(sourceAST, args);
     }
 
     public Matches matches(final String src) {
@@ -319,8 +315,8 @@ public class AutomatonInternalTest {
                 ASTMatcherSubject.this.failWithBadResults(
                     "has variable", pVar, "has variables", args.getTransitionVariables().keySet());
               }
-              final String actualValue = args.getTransitionVariable(pVar);
-              if (!actualValue.equals(pExpectedValue)) {
+              final AAstNode actualValue = args.getTransitionVariable(pVar);
+              if (!actualValue.toASTString().equals(pExpectedValue)) {
                 ASTMatcherSubject.this.failWithBadResults(
                     "matches <" + src + "> with value of variable $" + pVar + " being",
                     pExpectedValue, "has value", actualValue);

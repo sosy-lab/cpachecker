@@ -1,7 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -36,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
@@ -48,13 +49,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 /**
- * Policy iteration CPA.
+ * New version of policy iteration, now with path focusing.
  */
 @Options(prefix="cpa.stator.policy")
 public class PolicyCPA extends SingleEdgeTransferRelation
@@ -88,8 +87,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
-      CFA cfa,
-      ReachedSetFactory pReachedSetFactory
+      CFA cfa
   ) throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
@@ -125,6 +123,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         statistics, pathFormulaManager);
     StateFormulaConversionManager stateFormulaConversionManager =
         new StateFormulaConversionManager(
+            config,
             formulaManager,
             pathFormulaManager, pCongruenceManager, templateManager,
             invariantGenerator);
@@ -133,7 +132,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
             formulaManager, pLogger, templateManager, pathFormulaManager,
             stateFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
-        FormulaLinearizationManager(formulaManager, statistics);
+        FormulaLinearizationManager(
+          formulaManager.getBooleanFormulaManager(),
+          formulaManager,
+        formulaManager.getIntegerFormulaManager(), statistics);
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
 
@@ -147,8 +149,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         formulaLinearizationManager,
         pCongruenceManager,
         pPwm,
-        invariantGenerator, stateFormulaConversionManager,
-        pReachedSetFactory);
+        invariantGenerator, stateFormulaConversionManager);
     stopOperator = new StopSepOperator(this);
   }
 

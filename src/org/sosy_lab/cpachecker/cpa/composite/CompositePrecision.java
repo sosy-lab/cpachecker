@@ -23,20 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 
-class CompositePrecision implements WrapperPrecision {
+public class CompositePrecision implements WrapperPrecision {
 
-  private final ImmutableList<Precision> precisions;
+  private final List<Precision> precisions;
 
-  CompositePrecision(List<Precision> precisions) {
+  public CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
+  }
+
+  public List<Precision> getPrecisions() {
+    return precisions;
   }
 
   @Override
@@ -55,7 +61,7 @@ class CompositePrecision implements WrapperPrecision {
     return precisions.hashCode();
   }
 
-  Precision get(int idx) {
+  public Precision get(int idx) {
     return precisions.get(idx);
   }
 
@@ -114,7 +120,70 @@ class CompositePrecision implements WrapperPrecision {
   }
 
   @Override
-  public ImmutableList<Precision> getWrappedPrecisions() {
+  public Precision replacePrecision(Function<Precision, Precision> pFunction) {
+
+    Precision result = pFunction.apply(this);
+    if (result != null && result != this) {
+      return result;
+    }
+
+    ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
+    boolean changed = false;
+
+    for (Precision oldWrapped : precisions) {
+
+      final Precision newWrapped;
+
+      if (oldWrapped instanceof WrapperPrecision) {
+        newWrapped = ((WrapperPrecision)oldWrapped).replacePrecision(pFunction);
+      } else {
+        newWrapped = pFunction.apply(oldWrapped);
+      }
+
+      if (newWrapped != null && newWrapped != oldWrapped) {
+        changed = true;
+        newPrecisions.add(newWrapped);
+
+      } else {
+        newPrecisions.add(oldWrapped);
+      }
+
+    }
+
+    return changed ? new CompositePrecision(newPrecisions.build()) : null;
+  }
+
+  @Override
+  public int getNumberOfWrapped() {
+    return precisions.size();
+  }
+
+  @Override
+  public Iterable<Precision> getWrappedPrecisions() {
     return precisions;
+  }
+
+  @Override
+  public Precision join(Precision pOther) {
+    Preconditions.checkArgument(pOther instanceof CompositePrecision);
+    CompositePrecision other = (CompositePrecision) pOther;
+    Preconditions.checkArgument(other.getNumberOfWrapped() == this.getNumberOfWrapped());
+
+    ImmutableList.Builder<Precision> joinedPrecisions = ImmutableList.builder();
+    boolean changed = false;
+
+    for (int index=0; index<precisions.size(); index++) {
+      final Precision thisComp = this.precisions.get(index);
+      final Precision otherComp = other.precisions.get(index);
+
+      final Precision joinedComp = thisComp.join(otherComp);
+      joinedPrecisions.add(joinedComp);
+
+      if (!joinedComp.equals(otherComp)) {
+        changed = true;
+      }
+    }
+
+    return changed ? new CompositePrecision(joinedPrecisions.build()) : null;
   }
 }

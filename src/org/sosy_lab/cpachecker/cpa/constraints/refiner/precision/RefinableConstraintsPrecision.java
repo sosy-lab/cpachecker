@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /**
@@ -70,11 +71,11 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public ConstraintsPrecision join(ConstraintsPrecision pOther) {
+  public Precision join(Precision pOther) {
     assert pOther instanceof RefinableConstraintsPrecision;
     final ConstraintsPrecision otherDelegate = ((RefinableConstraintsPrecision) pOther).delegate;
 
-    return new RefinableConstraintsPrecision(delegate.join(otherDelegate));
+    return new RefinableConstraintsPrecision((RefinableConstraintsPrecision)delegate.join(otherDelegate));
   }
 
   @Override

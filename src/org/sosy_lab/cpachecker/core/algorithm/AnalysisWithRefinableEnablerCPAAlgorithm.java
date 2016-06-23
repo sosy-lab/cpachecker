@@ -493,7 +493,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     } else {
       newPrec = builtNewVariableTrackingPrecision(initialPrecision, precisions);
     }
-    shutdownNotifier.shutdownIfNecessary();
+
 
     try {
       // assure that refinement fails if same path is encountered twice and precision not refined on that path
@@ -526,7 +526,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     for(Precision joinPrec : pPrecisions) {
       if (seen.add(joinPrec)) {
-        vtPrec = vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
+        vtPrec = (VariableTrackingPrecision) vtPrec.join(Precisions.asIterable(joinPrec)
             .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0));
       }
     }

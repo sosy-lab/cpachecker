@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import java.math.BigInteger;
+
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -106,9 +104,8 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     return pFormula.accept(evaluationVisitor, environment);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(Typed pBitVectorType) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(
-        pBitVectorType.getTypeInfo());
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorType pBitVectorType) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorType.getBitVectorInfo());
   }
 
   @Override
@@ -197,7 +194,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     CompoundInterval computedLeftValue = cim.multiply(parameter, rightValue);
     for (CompoundInterval interval : computedLeftValue.splitIntoIntervals()) {
       CompoundInterval borderA = interval;
-      CompoundInterval borderB = cim.add(borderA, cim.add(rightValue, cim.negate(rightValue.signum())));
+      CompoundInterval borderB = cim.negate(cim.add(borderA, cim.add(rightValue, rightValue.signum())));
       computedLeftValue = cim.union(computedLeftValue, cim.span(borderA, borderB));
     }
 
@@ -288,8 +285,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
       }
     }
 
-    NumeralFormula<CompoundInterval> parameter =
-        InvariantsFormulaManager.INSTANCE.asConstant(pUnion.getTypeInfo(), pParameter);
+    NumeralFormula<CompoundInterval> parameter = InvariantsFormulaManager.INSTANCE.asConstant(pUnion.getBitVectorInfo(), pParameter);
     BooleanFormula<CompoundInterval> disjunctiveForm = LogicalNot.of(LogicalAnd.of(
         LogicalNot.of(Equal.of(pUnion.getOperand1(), parameter)),
         LogicalNot.of(Equal.of(pUnion.getOperand2(), parameter))));
@@ -329,9 +325,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (newValue.containsAllPossibleValues()) {
       environment.remove(memoryLocation);
     } else {
-      environment.put(
-          memoryLocation,
-          InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getTypeInfo(), newValue));
+      environment.put(memoryLocation, InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getBitVectorInfo(), newValue));
     }
     return true;
   }
@@ -375,49 +369,11 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundIntervalManager targetManager = getCompoundIntervalManager(pCast);
-    TypeInfo targetInfo = pCast.getTypeInfo();
-    TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo && sourceInfo instanceof BitVectorInfo) {
-      BitVectorInfo targetBVInfo = (BitVectorInfo) targetInfo;
-      BitVectorInfo sourceBVInfo = (BitVectorInfo) sourceInfo;
-      if (targetBVInfo.getRange().contains(sourceBVInfo.getRange())) {
-        if (!pCast.getCasted().accept(this, targetManager.cast(sourceInfo, pParameter))) {
-          return false;
-        }
-      } else if (!targetInfo.isSigned()) {
-        BigInteger numberOfPotentialOrigins =
-            sourceBVInfo.getRange().size().divide(targetBVInfo.getRange().size());
-        CompoundIntervalManager sourceManager = getCompoundIntervalManager(pCast.getCasted());
-        CompoundInterval originFactors =
-            sourceManager.span(
-                sourceManager.singleton(BigInteger.ZERO),
-                sourceManager.singleton(numberOfPotentialOrigins.subtract(BigInteger.ONE)));
-        if (sourceInfo.isSigned()) {
-          originFactors =
-              sourceManager.add(
-                  originFactors,
-                  sourceManager.singleton(
-                      numberOfPotentialOrigins.divide(BigInteger.valueOf(2).negate())));
-        }
-        CompoundInterval potentialOrigins =
-            sourceManager.add(
-                sourceManager.multiply(
-                    originFactors,
-                    sourceManager.singleton(
-                        targetBVInfo
-                            .getRange()
-                            .size()
-                            .min(sourceBVInfo.getRange().getUpperBound()))),
-                targetManager.cast(sourceInfo, pParameter));
-        if (!pCast.getCasted().accept(this, potentialOrigins)) {
-          return false;
-        }
-      }
-      return targetManager.doIntersect(evaluate(pCast), pParameter);
+    CompoundIntervalManager cim = getCompoundIntervalManager(pCast);
+    if (!pCast.getCasted().accept(this, cim.cast(pCast.getCasted().getBitVectorInfo(), pParameter))) {
+      return false;
     }
-    // TODO try to gain more information from casts between other types
-    return true;
+    return cim.doIntersect(evaluate(pCast), pParameter);
   }
 
   /**
@@ -430,8 +386,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
   private NumeralFormula<CompoundInterval> getFromEnvironment(Variable<CompoundInterval> pVariable) {
     NumeralFormula<CompoundInterval> result = environment.get(pVariable.getMemoryLocation());
     if (result == null) {
-      return InvariantsFormulaManager.INSTANCE.asConstant(
-          pVariable.getTypeInfo(), getCompoundIntervalManager(pVariable).allPossibleValues());
+      return InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getBitVectorInfo(), getCompoundIntervalManager(pVariable).allPossibleValues());
     }
     return result;
   }

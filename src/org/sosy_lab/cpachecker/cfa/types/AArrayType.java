@@ -31,7 +31,6 @@ import java.util.Objects;
 
 public abstract class AArrayType implements Type {
 
-  private static final long serialVersionUID = -2838888440949947901L;
 
   private final Type elementType;
 

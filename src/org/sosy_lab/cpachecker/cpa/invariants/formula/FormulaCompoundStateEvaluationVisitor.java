@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.util.Map;
+import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Instances of this class are visitors for compound state invariants formulae
@@ -48,12 +48,12 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(Typed pTyped) {
-    return getCompoundIntervalManager(pTyped.getTypeInfo());
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorType pBitvectorType) {
+    return getCompoundIntervalManager(pBitvectorType.getBitVectorInfo());
   }
 
   @Override
@@ -113,6 +113,9 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
             return BooleanConstant.getFalse();
           }
         }
+        if (value instanceof Constant && operand1.isSingleton()) {
+          return BooleanConstant.fromBool(getCompoundIntervalManager(pEqual.getOperand1()).contains(operand2, operand1));
+        }
         if (value instanceof Variable) {
           if (value.equals(var)) {
             return BooleanConstant.getTrue();
@@ -136,6 +139,9 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
           if (exclusion.getExcluded().equals(pEqual.getOperand1())) {
             return BooleanConstant.getFalse();
           }
+        }
+        if (value instanceof Constant && operand2.isSingleton()) {
+          return BooleanConstant.fromBool(getCompoundIntervalManager(pEqual.getOperand1()).contains(operand1, operand2));
         }
         if (value instanceof Variable) {
           var = (Variable<CompoundInterval>) value;
@@ -263,7 +269,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   public CompoundInterval visit(Cast<CompoundInterval> pCast,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval casted = pCast.getCasted().accept(this, pEnvironment);
-    return getCompoundIntervalManager(pCast).cast(pCast.getTypeInfo(), casted);
+    return getCompoundIntervalManager(pCast).cast(pCast.getBitVectorInfo(), casted);
   }
 
   @Override

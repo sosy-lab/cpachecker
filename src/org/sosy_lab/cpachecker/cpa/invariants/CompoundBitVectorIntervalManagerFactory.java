@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
@@ -35,7 +35,7 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   ALLOW_SIGNED_WRAP_AROUND {
 
     @Override
-    public boolean isSignedWrapAroundAllowed() {
+    boolean isSignedWrapAroundAllowed() {
       return true;
     }
   },
@@ -43,7 +43,7 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   FORBID_SIGNED_WRAP_AROUND {
 
     @Override
-    public boolean isSignedWrapAroundAllowed() {
+    boolean isSignedWrapAroundAllowed() {
       return false;
     }
   };
@@ -66,18 +66,11 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   }
 
   @Override
-  public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pInfo) {
-    if (pInfo instanceof BitVectorInfo) {
-      return new CompoundBitVectorIntervalManager(
-          (BitVectorInfo) pInfo, isSignedWrapAroundAllowed(), compositeHandler);
-    }
-    if (pInfo instanceof FloatingPointTypeInfo) {
-      return new CompoundFloatingPointIntervalManager((FloatingPointTypeInfo) pInfo);
-    }
-    throw new AssertionError("Unsupported type: " + pInfo);
+  public CompoundIntervalManager createCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
+    return new CompoundBitVectorIntervalManager(pBitVectorInfo, isSignedWrapAroundAllowed(), compositeHandler);
   }
 
-  public abstract boolean isSignedWrapAroundAllowed();
+  abstract boolean isSignedWrapAroundAllowed();
 
   public void addOverflowEventHandler(OverflowEventHandler pOverflowEventHandler) {
     overflowEventHandlers.add(pOverflowEventHandler);

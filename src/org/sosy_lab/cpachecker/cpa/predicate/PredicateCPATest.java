@@ -27,15 +27,14 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.reflect.Invokable;
+import java.net.URLClassLoader;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -43,8 +42,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.util.test.LoggingClassLoader;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import java.net.URLClassLoader;
-import java.util.regex.Pattern;
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.reflect.Invokable;
 
 public class PredicateCPATest {
 
@@ -81,10 +82,10 @@ public class PredicateCPATest {
   private FluentIterable<String> loadPredicateCPA(Configuration config) throws Exception {
     ClassLoader myClassLoader = PredicateCPATest.class.getClassLoader();
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);
-    LogManager logger = LogManager.createTestLogManager();
+    LogManager logger = TestLogManager.getInstance();
 
     try (LoggingClassLoader cl = new LoggingClassLoader(
-          Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState).*)|(org\\.sosy_lab\\.solver\\..*)"),
+          Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(util|predicate|bdd|BDD).*)|(org\\.sosy_lab\\.solver\\..*)"),
           ((URLClassLoader)myClassLoader).getURLs(), myClassLoader
         )) {
       Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.test;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -40,7 +41,8 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -211,9 +213,14 @@ public class TestDataTools {
       ParserException, InterruptedException {
 
     CFACreator creator =
-        new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
+        new CFACreator(config, TestLogManager.getInstance(), ShutdownNotifier.createDummy());
 
     return creator.parseFileAndCreateCFA(cProgram);
+  }
+
+  public static CFA makeCFAFromCFile(final Path pFilePath)
+      throws IOException, InterruptedException, ParserException {
+    return makeCFA(pFilePath.asCharSource(Charset.defaultCharset()).read());
   }
 
   /**

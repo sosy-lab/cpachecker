@@ -44,19 +44,4 @@ public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
   public boolean isAbstract() {
     return true;
   }
-
-  @Override
-  public SMGObject copy() {
-    return new DummyAbstraction(this);
-  }
-
-  @Override
-  public SMGObject copy(int pNewLevel) {
-    return copy();
-  }
-
-  @Override
-  public boolean isMoreGeneral(SMGObject pOther) {
-    return false;
-  }
 }

@@ -23,44 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractParamName;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getLockId;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.isLastNodeOfThread;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-/** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
-  private static final String PROPERTY_DEADLOCK = "deadlock";
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+
+/** This immutable state represents a location state combined with a callstack state. */
+public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable {
 
   final static int MIN_THREAD_NUM = 0;
 
@@ -91,7 +74,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
         locks);
   }
 
-  public ThreadingState updateLocationAndCopy(String id, AbstractState stack, AbstractState loc) {
+  public ThreadingState updateThreadAndCopy(String id, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(threads.containsKey(id), "updating non-existing thread");
     return new ThreadingState(
@@ -193,17 +176,38 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
     return FluentIterable.from(threads.values()).transform(
-        s -> (AbstractStateWithLocations) s.getLocation());
+        new Function<ThreadState, AbstractStateWithLocations>() {
+          @Override
+          public AbstractStateWithLocations apply(ThreadState s) {
+            return (AbstractStateWithLocations) s.getLocation();
+          }
+        });
   }
+
+  private final static Function<AbstractStateWithLocations, Iterable<CFANode>> LOCATION_NODES =
+      new Function<AbstractStateWithLocations, Iterable<CFANode>>() {
+        @Override
+        public Iterable<CFANode> apply(AbstractStateWithLocations loc) {
+          return loc.getLocationNodes();
+        }
+      };
+
+  private final static Function<AbstractStateWithLocations, Iterable<CFAEdge>> OUTGOING_EDGES =
+      new Function<AbstractStateWithLocations, Iterable<CFAEdge>>() {
+        @Override
+        public Iterable<CFAEdge> apply(AbstractStateWithLocations loc) {
+          return loc.getOutgoingEdges();
+        }
+      };
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
-    return getLocations().transformAndConcat(AbstractStateWithLocations::getLocationNodes);
+    return getLocations().transformAndConcat(LOCATION_NODES);
   }
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return getLocations().transformAndConcat(AbstractStateWithLocations::getOutgoingEdges);
+    return getLocations().transformAndConcat(OUTGOING_EDGES);
   }
 
   @Override
@@ -227,104 +231,13 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return threads;
   }
 
-
-  @Override
-  public String getCPAName() {
-    return "ThreadingCPA";
-  }
-
-  @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (PROPERTY_DEADLOCK.equals(pProperty)) {
-      try {
-        return hasDeadlock();
-      } catch (UnrecognizedCodeException e) {
-        throw new InvalidQueryException("deadlock-check had a problem", e);
-      }
-    }
-    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-  }
-
-  /**
-   * check, whether one of the outgoing edges can be visited
-   * without requiring a already used lock.
-   */
-  private boolean hasDeadlock() throws UnrecognizedCodeException {
-    FluentIterable<CFAEdge> edges = FluentIterable.from(getOutgoingEdges());
-
-    // no need to check for existing locks after program termination -> ok
-
-    // no need to check for existing locks after thread termination
-    // -> TODO what about a missing ATOMIC_LOCK_RELEASE?
-
-    // no need to check VERIFIER_ATOMIC, ATOMIC_LOCK or LOCAL_ACCESS_LOCK,
-    // because they cannot cause deadlocks, as there is always one thread to go
-    // (=> the thread that has the lock).
-    // -> TODO what about a missing ATOMIC_LOCK_RELEASE?
-
-    // no outgoing edges, i.e. program terminates -> no deadlock possible
-    if (edges.isEmpty()) {
-      return false;
-    }
-
-    for (CFAEdge edge : edges) {
-      if (!needsAlreadyUsedLock(edge) && !isWaitingForOtherThread(edge)) {
-        // edge can be visited, thus there is no deadlock
-        return false;
-      }
-    }
-
-    // if no edge can be visited, there is a deadlock
-    return true;
-  }
-
-  /** check, if the edge required a lock, that is already used. This might cause a deadlock. */
-  private boolean needsAlreadyUsedLock(CFAEdge edge) throws UnrecognizedCodeException {
-    final String newLock = getLockId(edge);
-    return newLock != null && hasLock(newLock);
-  }
-
-  /** A thread might need to wait for another thread, if the other thread joins at
-   * the current edge. If the other thread never exits, we have found a deadlock. */
-  private boolean isWaitingForOtherThread(CFAEdge edge) throws UnrecognizedCodeException {
-    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      AStatement statement = ((AStatementEdge)edge).getStatement();
-      if (statement instanceof AFunctionCall) {
-        AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression)functionNameExp).getName();
-          if (THREAD_JOIN.equals(functionName)) {
-            final String joiningThread = extractParamName(statement, 0);
-            // check whether other thread is running and has at least one outgoing edge,
-            // then we have to wait for it.
-            if (threads.containsKey(joiningThread)
-                && !isLastNodeOfThread(getThreadLocation(joiningThread).getLocationNode())) {
-              return true;
-            }
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return checkProperty(pProperty);
-  }
-
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("not implemented by " + this.getClass().getCanonicalName());
-  }
-
   /** A ThreadState describes the state of a single thread. */
   private static class ThreadState {
 
     // String :: identifier for the thread TODO change to object or memory-location
     // CallstackState +  LocationState :: thread-position
     private final AbstractState location;
-    private final CallstackStateEqualsWrapper callstack;
+    private final AbstractState callstack;
 
     // Each thread is assigned to an Integer
     // TODO do we really need this? -> needed for identification of cloned functions.
@@ -332,7 +245,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
     ThreadState(AbstractState pLocation, AbstractState pCallstack, int  pNum) {
       location = pLocation;
-      callstack = new CallstackStateEqualsWrapper((CallstackState)pCallstack);
+      callstack =pCallstack;
       num= pNum;
     }
 
@@ -341,7 +254,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     }
 
     public AbstractState getCallstack() {
-      return callstack.getState();
+      return callstack;
     }
 
     public int getNum() {

@@ -23,31 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.base.Predicates.or;
-import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+import static com.google.common.base.Predicates.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.*;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Set;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -59,67 +46,51 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
-public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
+public abstract class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -801176497691618779L;
 
-  @Options(prefix="cpa.location")
-  public static class LocationStateFactory {
+  enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
 
-    private final LocationState[] states;
+  /**
+   * Location state of an analysis that runs FORWARDS
+   *  (from the entry point of the program).
+   */
+  static class ForwardsLocationState extends LocationState {
 
-    enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
+    private static final long serialVersionUID = -2214381183720196734L;
 
-    @Option(secure=true, description="With this option enabled, unction calls that occur"
-        + " in the CFA are followed. By disabling this option one can traverse a function"
-        + " without following function calls (in this case FunctionSummaryEdges are used)")
-    private boolean followFunctionCalls = true;
-
-    public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-
-      ImmutableSortedSet<CFANode> allNodes;
-      Collection<CFANode> tmpNodes = pCfa.getAllNodes();
-      if (tmpNodes instanceof ImmutableSortedSet) {
-        allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
-      } else {
-        allNodes = ImmutableSortedSet.copyOf(tmpNodes);
-      }
-
-      int maxNodeNumber = allNodes.last().getNodeNumber();
-      states = new LocationState[maxNodeNumber+1];
-      for (CFANode node : allNodes) {
-        LocationState state = locationType == LocationStateType.BACKWARD
-            ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
-            : locationType == LocationStateType.BACKWARDNOTARGET
-                ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
-                : new LocationState(node, followFunctionCalls);
-
-        states[node.getNodeNumber()] = state;
-      }
+    public ForwardsLocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
+      super(pLocationNode, pFollowFunctionCalls);
     }
 
-    public LocationState getState(CFANode node) {
-      return Preconditions.checkNotNull(states[checkNotNull(node).getNodeNumber()],
-          "LocationState for CFANode %s in function %s requested,"
-          + " but this node is not part of the current CFA.",
-          node, node.getFunctionName());
-    }
   }
 
-  private static class BackwardsLocationState extends LocationState implements Targetable {
+  /**
+   * Location state of an analysis that runs FORWARDS (from the entry point of the program).
+   * and that encodes SHADOW TRANSITIONS.
+   */
+  static class ForwardsShadowLocationState extends LocationState {
+
+    private static final long serialVersionUID = -4273114440243620843L;
+
+    public ForwardsShadowLocationState(CFANode pShadowLocation) {
+      super(pShadowLocation, false);
+    }
+
+  }
+
+
+  /**
+   * Location state of an analysis that runs BACKWARDS
+   *  (from the target states).
+   */
+  static class BackwardsLocationState extends LocationState implements Targetable {
 
     private static final long serialVersionUID = 6825257572921009531L;
 
-    @SuppressFBWarnings(
-      value = "SE_BAD_FIELD",
-      justification = "backwards analysis not serializable"
-    )
     private final CFA cfa;
     private boolean followFunctionCalls;
 
@@ -151,7 +122,11 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   }
 
-  private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
+  /**
+   * Location state of an analysis that runs BACKWARDS (from the target states).
+   *  This state always signals 'isTarget() == false'.
+   */
+  static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
 
     private static final long serialVersionUID = -2918748452708606128L;
 
@@ -165,22 +140,22 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
-  private transient CFANode locationNode;
-  private boolean followFunctionCalls;
+  private final transient CFANode locationNode;
+  private final boolean followFunctionCalls;
 
-  private LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
+  protected LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;
     followFunctionCalls = pFollowFunctionCalls;
   }
 
   @Override
   public CFANode getLocationNode() {
-      return locationNode;
+    return locationNode;
   }
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
-      return Collections.singleton(locationNode);
+      return Collections.singleton(getLocationNode());
   }
 
   @Override
@@ -222,9 +197,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
         }
       } else if (parts[0].toLowerCase().equals("functionname")) {
         return this.locationNode.getFunctionName().equals(parts[1]);
-      } else if (parts[0].toLowerCase().equals("label")) {
-        return this.locationNode instanceof CLabelNode ?
-            ((CLabelNode) this.locationNode).getLabel().equals(parts[1]) : false;
       } else {
         throw new InvalidQueryException("The Query \"" + pProperty
             + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");

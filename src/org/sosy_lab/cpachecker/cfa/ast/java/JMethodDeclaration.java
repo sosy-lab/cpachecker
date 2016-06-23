@@ -68,20 +68,12 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
   private final String simpleName;
 
   private static final JMethodDeclaration UNRESOLVED_METHOD =
-      new JMethodDeclaration(
-          FileLocation.DUMMY,
-          JMethodType.createUnresolvableType(),
+      new JMethodDeclaration(FileLocation.DUMMY,
+          JMethodType.createUnresolvableType(), "__Unresolved__",
           "__Unresolved__",
-          "__Unresolved__",
-          new ArrayList<>(),
-          VisibilityModifier.NONE,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          JClassType.createUnresolvableType());
+          new ArrayList<JParameterDeclaration>(),
+          VisibilityModifier.NONE, false, false, false, false,
+          false, false, JClassType.createUnresolvableType());
 
 
   public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName,

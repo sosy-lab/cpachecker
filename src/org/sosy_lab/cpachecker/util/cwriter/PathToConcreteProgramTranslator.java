@@ -27,7 +27,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -44,14 +44,14 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
    * because there is a goto to a missing label.
    *
    * @param pPath The path.
-   * @param assignments The variable assignments for the path.
+   * @param model The model
    * @return An appender that generates C code.
    */
-  public static Appender translateSinglePath(ARGPath pPath, CFAPathWithAssumptions assignments) {
+  public static Appender translateSinglePath(ARGPath pPath, RichModel model) {
     PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translateSinglePath0(pPath,
-        new ConcreteProgramEdgeVisitor(translator, assignments));
+        new ConcreteProgramEdgeVisitor(translator, model.getExactVariableValuePath(pPath.getInnerEdges())));
 
     return translator.generateCCode();
   }
@@ -65,21 +65,16 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
    * Currently when there are loops, the generated C code is invalid
    * because there is a goto to a missing label.
    *
-   * TODO: Using CFAPathWithAssumptions does not make sense for translatePaths,
-   * because CFAPathWithAssumptions encodes only a single path,
-   * and if there is only a single path, {@link #translateSinglePath(ARGPath, CFAPathWithAssumptions)}
-   * should be used.
-   *
    * @param argRoot The root of all given paths.
    * @param elementsOnErrorPath The set of states that are on all paths.
-   * @param assignments The variable assignments for the path.
+   * @param model The model
    * @return An appender that generates C code.
    */
-  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, CFAPathWithAssumptions assignments) {
+  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, RichModel model) {
     PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath,
-        new ConcreteProgramEdgeVisitor(translator, assignments));
+        new ConcreteProgramEdgeVisitor(translator, model.getCFAPathWithAssignments()));
 
     return translator.generateCCode();
   }

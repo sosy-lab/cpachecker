@@ -23,22 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import apron.DoubleScalar;
-import apron.Interval;
-import apron.Linexpr0;
-import apron.Linterm0;
-import apron.Scalar;
-import apron.Tcons0;
-import apron.Texpr0BinNode;
-import apron.Texpr0CstNode;
-import apron.Texpr0DimNode;
-import apron.Texpr0Intern;
-import apron.Texpr0Node;
-import apron.Texpr0UnNode;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -79,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -106,14 +99,22 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+
+import apron.DoubleScalar;
+import apron.Interval;
+import apron.Linexpr0;
+import apron.Linterm0;
+import apron.Scalar;
+import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
+import apron.Texpr0Intern;
+import apron.Texpr0Node;
+import apron.Texpr0UnNode;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
@@ -180,6 +181,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     } else {
       return new HashSet<>(successors);
     }
+  }
+
+  @Override
+  protected Collection<ApronState> handleMultiEdge(MultiEdge cfaEdge)
+      throws CPATransferException {
+    return super.handleMultiEdgeReturningCollection(cfaEdge);
   }
 
   @Override
@@ -600,12 +607,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
     Set<ApronState> possibleStates = new HashSet<>();
     if (functionEntryNode.getReturnVariable().isPresent()) {
-      possibleStates.add(
-          state.declareVariable(
-              MemoryLocation.valueOf(
-                  calledFunctionName, functionEntryNode.getReturnVariable().get().getName()),
-              getCorrespondingOctStateType(
-                  cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+      possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
+          getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
     } else {
       possibleStates.add(state);
     }
@@ -617,8 +620,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         continue;
       }
 
-      MemoryLocation formalParamName =
-          MemoryLocation.valueOf(calledFunctionName, paramNames.get(i));
+      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i), 0);
 
       if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
@@ -669,9 +671,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      MemoryLocation returnVarName =
-          MemoryLocation.valueOf(
-              calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName());
+      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName(), 0);
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -706,7 +706,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (decl.isGlobal()) {
         variableName = MemoryLocation.valueOf(decl.getName());
       } else {
-        variableName = MemoryLocation.valueOf(functionName, decl.getName());
+        variableName = MemoryLocation.valueOf(functionName, decl.getName(), 0);
       }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
@@ -836,7 +836,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(functionName, variableName);
+      return MemoryLocation.valueOf(functionName, variableName, 0);
     } else {
       return MemoryLocation.valueOf(variableName);
     }
@@ -855,10 +855,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName =
-        MemoryLocation.valueOf(
-            cfaEdge.getPredecessor().getFunctionName(),
-            ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getName());
+    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getName(), 0);
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here

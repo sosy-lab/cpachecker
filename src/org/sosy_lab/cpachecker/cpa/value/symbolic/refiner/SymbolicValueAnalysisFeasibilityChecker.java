@@ -27,7 +27,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -54,17 +53,16 @@ public class SymbolicValueAnalysisFeasibilityChecker
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(
-        pStrongestPostOperator,
-        getInitialCompositeState(pCfa.getMachineModel()),
-        ValueAnalysisCPA.class,
-        pLogger,
-        pConfig,
-        pCfa);
+    super(pStrongestPostOperator,
+          getInitialCompositeState(),
+          ValueAnalysisCPA.class,
+          pLogger,
+          pConfig,
+          pCfa);
   }
 
-  private static ForgettingCompositeState getInitialCompositeState(MachineModel pMachineModel) {
-    final ValueAnalysisState valueState = new ValueAnalysisState(pMachineModel);
+  private static ForgettingCompositeState getInitialCompositeState() {
+    final ValueAnalysisState valueState = new ValueAnalysisState();
     final ConstraintsState constraintsState = new ConstraintsState();
 
     return new ForgettingCompositeState(valueState, constraintsState);
