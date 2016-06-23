@@ -196,9 +196,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   )
   private boolean dumpInvariantGenerationAutomata = false;
 
-  @Option(secure = true, description = "Compute invariants with PredicateCPA")
-  private boolean computeInvariants = false;
-
   @Option(
     secure = true,
     deprecatedName = "useInvariantsForAbstraction",
@@ -288,11 +285,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     updateGlobalInvariants();
 
     semiCNFConverter = new RCNFManager(pConfig);
-
-  }
-
-  public boolean shouldInvariantsBeComputed() {
-    return computeInvariants;
   }
 
   public boolean appendToAbstractionFormula() {
@@ -415,6 +407,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       final List<ARGState> abstractionStatesTrace,
       final PathFormulaManager pPfmgr,
       final Solver pSolver) {
+
+    updateGlobalInvariants(); // we want to have the newest global invariants available
+
+    // skip without doing anything if we do not have a strategy for invariant generation
+    if (generationStrategy.isEmpty()) {
+      return;
+    }
 
     pfmgr = Preconditions.checkNotNull(pPfmgr);
     solver = Preconditions.checkNotNull(pSolver);

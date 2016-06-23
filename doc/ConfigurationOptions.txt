@@ -1484,9 +1484,6 @@ cpa.predicate.invariants.appendToAbstractionFormula = false
 # they can also be given from outside.
 cpa.predicate.invariants.appendToPathFormula = false
 
-# Compute invariants with PredicateCPA
-cpa.predicate.invariants.computeInvariants = false
-
 # Should the automata used for invariant generation be dumped to files?
 cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
 
