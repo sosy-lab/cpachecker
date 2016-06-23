@@ -648,6 +648,8 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
       Integer length = CTypeUtils.getArrayLength(arrayType);
       if (length == null) {
         length = options.defaultArrayLength();
+      } else if (length > options.maxArrayLength()) {
+        length = options.maxArrayLength();
       }
       int offset = 0;
       for (int i = 0; i < length; ++i) {

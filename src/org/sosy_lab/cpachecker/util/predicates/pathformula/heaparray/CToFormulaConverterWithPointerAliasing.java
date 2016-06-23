@@ -645,7 +645,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CType elementType = CTypeUtils.simplifyType(arrayType.getType());
       final Integer length = CTypeUtils.getArrayLength(arrayType);
       if (length != null) {
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < Math.min(length, options.maxArrayLength()); i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
                                              lhs.getFileLocation(),
                                              elementType,
