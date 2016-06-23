@@ -677,12 +677,7 @@ class PointerTargetSetManager {
     //assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
     if (cType instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) cType;
-      Integer length = CTypeUtils.getArrayLength(arrayType);
-      if (length == null) {
-        length = options.defaultArrayLength();
-      } else if (length > options.maxArrayLength()) {
-        length = options.maxArrayLength();
-      }
+      final int length = CTypeUtils.getArrayLength(arrayType, options);
       int offset = 0;
       for (int i = 0; i < length; ++i) {
         targets = addToTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);

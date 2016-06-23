@@ -92,6 +92,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -435,11 +436,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                                                   final CArrayType type) {
     // The string is either NULL terminated, or not.
     // If the length is not provided explicitly, NULL termination is used
-    Integer length = CTypeUtils.getArrayLength(type);
     final String s = e.getContentString();
-    if (length == null) {
-      length = s.length() + 1;
-    }
+    final int length = CTypeUtils.getArrayLength(type).orElse(s.length() + 1);
     assert length >= s.length();
 
     // create one CharLiteralExpression for each character of the string
@@ -553,9 +551,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
       final CType elementType = CTypeUtils.simplifyType(arrayType.getType());
-      final Integer length = CTypeUtils.getArrayLength(arrayType);
-      if (length != null) {
-        for (int i = 0; i < Math.min(length, options.maxArrayLength()); i++) {
+      final OptionalInt length = CTypeUtils.getArrayLength(arrayType);
+      if (length.isPresent()) {
+        final int l = Math.min(length.getAsInt(), options.maxArrayLength());
+        for (int i = 0; i < l; i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
                                              lhs.getFileLocation(),
                                              elementType,

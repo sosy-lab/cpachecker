@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
+import java.util.OptionalInt;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -48,16 +50,25 @@ class CTypeUtils {
   private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
 
   /**
-   * Return the length of an array if statically given, or null.
+   * Return the length of an array if statically given.
    */
-  static Integer getArrayLength(CArrayType t) {
-
+  static OptionalInt getArrayLength(CArrayType t) {
     final CExpression arrayLength = t.getLength();
     if (arrayLength instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+      return OptionalInt.of(((CIntegerLiteralExpression) arrayLength).getValue().intValue());
     }
 
-    return null;
+    return OptionalInt.empty();
+  }
+
+  /**
+   * Return the length of an array, honoring the options for maximum and default array length.
+   */
+  static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
+    OptionalInt length = getArrayLength(t);
+    return length.isPresent()
+        ? Integer.min(options.maxArrayLength(), length.getAsInt())
+        : options.defaultArrayLength();
   }
 
   /**

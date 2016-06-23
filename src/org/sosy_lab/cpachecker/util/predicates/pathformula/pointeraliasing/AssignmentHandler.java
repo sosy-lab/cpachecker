@@ -66,6 +66,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -514,16 +515,16 @@ class AssignmentHandler {
         "Impossible array assignment due to incompatible types: assignment of %s to %s",
         rvalueType, lvalueType);
 
-      Integer lvalueLength = CTypeUtils.getArrayLength(lvalueArrayType);
+      OptionalInt lvalueLength = CTypeUtils.getArrayLength(lvalueArrayType);
       // Try to fix the length if it's unknown (or too big)
       // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
-      if (lvalueLength == null && rvalue.isLocation()) {
+      if (!lvalueLength.isPresent() && rvalue.isLocation()) {
         lvalueLength = CTypeUtils.getArrayLength((CArrayType) rvalueType);
       }
       int length =
-          lvalueLength == null
-              ? options.defaultArrayLength()
-              : Integer.min(options.maxArrayLength(), lvalueLength);
+          lvalueLength.isPresent()
+              ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
+              : options.defaultArrayLength();
 
       result = bfmgr.makeBoolean(true);
       int offset = 0;
