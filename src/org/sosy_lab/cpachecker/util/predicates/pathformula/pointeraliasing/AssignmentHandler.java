@@ -466,7 +466,7 @@ class AssignmentHandler {
       final @Nonnull Set<CType> updatedTypes)
       throws InterruptedException {
     addRetentionForAssignment(lvalueType,
-                              lvalue.asAliased().getAddress(),
+                              lvalue.getAddress(),
                               pattern, updatedTypes);
     updateSSA(updatedTypes, ssa);
   }
@@ -571,8 +571,8 @@ class AssignmentHandler {
                rvalue.isValue() || // This is initialization, so the assignment is mandatory
                pts.tracksField(lvalueCompositeType, memberName) || // The field is tracked as essential
                // The variable representing the RHS was used somewhere (i.e. has SSA index)
-               !rvalue.asLocation().isAliased() &&
-                 conv.hasIndex(rvalue.asLocation().asUnaliased().getVariableName() +
+               !rvalue.isAliasedLocation() &&
+                 conv.hasIndex(rvalue.asUnaliasedLocation().getVariableName() +
                             CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
                             memberName,
                           newLvalueType,

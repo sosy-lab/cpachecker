@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 
 abstract class Expression {
   static abstract class Location extends Expression {
-    static class AliasedLocation extends Location {
+    static final class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
         this.address = address;
@@ -50,6 +50,30 @@ abstract class Expression {
       }
 
       @Override
+      @Deprecated
+      AliasedLocation asAliased() {
+        return this;
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliasedLocation() {
+        return this;
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliased() {
+        return null;
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliasedLocation() {
+        return null;
+      }
+
+      @Override
       public String toString() {
         return toStringHelper(this)
                       .add("address", address)
@@ -59,7 +83,7 @@ abstract class Expression {
       private final Formula address;
     }
 
-    static class UnaliasedLocation extends Location {
+    static final class UnaliasedLocation extends Location {
 
       private UnaliasedLocation(final String variableName) {
         this.variableName = variableName;
@@ -72,6 +96,30 @@ abstract class Expression {
       @Override
       Kind getKind() {
         return Kind.UNALIASED_LOCATION;
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliased() {
+        return null;
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliasedLocation() {
+        return null;
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliased() {
+        return this;
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliasedLocation() {
+        return this;
       }
 
       @Override
@@ -96,21 +144,20 @@ abstract class Expression {
       return this instanceof AliasedLocation;
     }
 
-    AliasedLocation asAliased() {
-      if (this instanceof AliasedLocation) {
-        return (AliasedLocation) this;
-      } else {
-        return null;
-      }
+    @Override
+    @Deprecated
+    final Location asLocation() {
+      return this;
     }
 
-    UnaliasedLocation asUnaliased() {
-      if (this instanceof UnaliasedLocation) {
-        return (UnaliasedLocation) this;
-      } else {
-        return null;
-      }
+    @Override
+    final Value asValue() {
+      return null;
     }
+
+    abstract AliasedLocation asAliased();
+
+    abstract UnaliasedLocation asUnaliased();
   }
 
   static class Value extends Expression {
@@ -156,6 +203,30 @@ abstract class Expression {
     @Override
     Kind getKind() {
       return Kind.DET_VALUE;
+    }
+
+    @Override
+    @Deprecated
+    final Location asLocation() {
+      return null;
+    }
+
+    @Override
+    @Deprecated
+    final AliasedLocation asAliasedLocation() {
+      return null;
+    }
+
+    @Override
+    @Deprecated
+    final UnaliasedLocation asUnaliasedLocation() {
+      return null;
+    }
+
+    @Override
+    @Deprecated
+    final Value asValue() {
+      return this;
     }
 
     @Override
@@ -215,37 +286,13 @@ abstract class Expression {
     return this.isLocation() && !this.asLocation().isAliased();
   }
 
-  Location asLocation() {
-    if (this instanceof Location) {
-      return (Location) this;
-    } else {
-      return null;
-    }
-  }
+  abstract Location asLocation();
 
-  AliasedLocation asAliasedLocation() {
-    if (this.isLocation()) {
-      return this.asLocation().asAliased();
-    } else {
-      return null;
-    }
-  }
+  abstract AliasedLocation asAliasedLocation();
 
-  UnaliasedLocation asUnaliasedLocation() {
-    if (this.isLocation()) {
-      return this.asLocation().asUnaliased();
-    } else {
-      return null;
-    }
-  }
+  abstract UnaliasedLocation asUnaliasedLocation();
 
-  Value asValue() {
-    if (this instanceof Value) {
-      return (Value) this;
-    } else {
-      return null;
-    }
-  }
+  abstract Value asValue();
 
   abstract Kind getKind();
 

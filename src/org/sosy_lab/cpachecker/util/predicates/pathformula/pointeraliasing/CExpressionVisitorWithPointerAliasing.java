@@ -200,11 +200,11 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
     if (e.isValue()) {
       return e.asValue().getValue();
-    } else if (e.asLocation().isAliased()) {
-      return !isSafe ? conv.makeDereference(type, e.asLocation().asAliased().getAddress(), ssa, errorConditions) :
-                       conv.makeSafeDereference(type, e.asLocation().asAliased().getAddress(), ssa);
+    } else if (e.isAliasedLocation()) {
+      return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions) :
+                       conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa);
     } else { // Unaliased location
-      return conv.makeVariable(e.asLocation().asUnaliased().getVariableName(), type, ssa);
+      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
     }
   }
 
@@ -353,7 +353,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     // TODO: is the second isUnaliasedLocation() check really needed?
     if (isRevealingType(resultType) && isUnaliasedLocation(operand) && result.isUnaliasedLocation()) {
-      final String variableName =  result.asLocation().asUnaliased().getVariableName();
+      final String variableName =  result.asUnaliasedLocation().getVariableName();
       if (pts.isDeferredAllocationPointer(variableName)) {
         assert usedDeferredAllocationPointers.containsKey(variableName) &&
                usedDeferredAllocationPointers.get(variableName).equals(CPointerType.POINTER_TO_VOID) :
