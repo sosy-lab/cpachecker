@@ -390,8 +390,8 @@ class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pa
         if (compositeType2.getKind() == ComplexTypeKind.UNION &&
             !compositeType2.getMembers().isEmpty() &&
             compositeType2.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
-          for (@SuppressWarnings("unused") CCompositeTypeMemberDeclaration ignored : compositeType2.getMembers()) {
-            membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
+          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType2.getMembers()) {
+            membersBuilder.add(new CCompositeTypeMemberDeclaration(memberDeclaration.getType(),
                                                                    getUnitedFieldBaseName(currentFieldIndex)));
             currentFieldIndex++;
           }
