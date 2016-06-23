@@ -514,19 +514,16 @@ class AssignmentHandler {
         "Impossible array assignment due to incompatible types: assignment of %s to %s",
         rvalueType, lvalueType);
 
-      Integer length = CTypeUtils.getArrayLength(lvalueArrayType);
+      Integer lvalueLength = CTypeUtils.getArrayLength(lvalueArrayType);
       // Try to fix the length if it's unknown (or too big)
       // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
-      if (length == null || length > options.maxArrayLength()) {
-        final Integer rLength;
-        if (rvalue.isLocation() &&
-            (rLength = CTypeUtils.getArrayLength((CArrayType) rvalueType)) != null &&
-            rLength <= options.maxArrayLength()) {
-          length = rLength;
-        } else {
-          length = options.defaultArrayLength();
-        }
+      if (lvalueLength == null && rvalue.isLocation()) {
+        lvalueLength = CTypeUtils.getArrayLength((CArrayType) rvalueType);
       }
+      int length =
+          lvalueLength == null
+              ? options.defaultArrayLength()
+              : Integer.min(options.maxArrayLength(), lvalueLength);
 
       result = bfmgr.makeBoolean(true);
       int offset = 0;
