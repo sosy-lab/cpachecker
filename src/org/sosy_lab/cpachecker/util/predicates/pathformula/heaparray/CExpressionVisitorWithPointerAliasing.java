@@ -76,7 +76,7 @@ import java.util.logging.Level;
 /**
  * A visitor the handle C expressions with the support for pointer aliasing.
  */
-class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
+class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
 
   /**
@@ -90,7 +90,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
      *
      * @param pDelegate The delegate.
      */
-    private AdaptingExpressionToFormulaVisitor(CExpressionVisitorWithHeapArray pDelegate) {
+    private AdaptingExpressionToFormulaVisitor(CExpressionVisitorWithPointerAliasing pDelegate) {
       super(pDelegate);
     }
 
@@ -116,7 +116,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
      */
     private Formula convert0(Expression value, CRightHandSide rhs) {
       CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
-      return ((CExpressionVisitorWithHeapArray)delegate).asValueFormula(value, type);
+      return ((CExpressionVisitorWithPointerAliasing)delegate).asValueFormula(value, type);
     }
 
     /**
@@ -128,7 +128,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
      */
     @Override
     public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
-      return convert0(((CExpressionVisitorWithHeapArray)delegate).visit(e), e);
+      return convert0(((CExpressionVisitorWithPointerAliasing)delegate).visit(e), e);
     }
   }
 
@@ -143,7 +143,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
    * @param errorConditions Additional error conditions.
    * @param pts The underlying set of pointer targets.
    */
-  CExpressionVisitorWithHeapArray(final CToFormulaConverterWithHeapArray cToFormulaConverter,
+  CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithPointerAliasing cToFormulaConverter,
                                           final CFAEdge cfaEdge,
                                           final String function,
                                           final SSAMapBuilder ssa,
@@ -155,7 +155,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
       @Override
       protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
         // recursive application of pointer-aliasing.
-        return asValueFormula(e.accept(CExpressionVisitorWithHeapArray.this),
+        return asValueFormula(e.accept(CExpressionVisitorWithPointerAliasing.this),
                               CTypeUtils.simplifyType(e.getExpressionType()));
       }
     };
@@ -286,7 +286,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
   @Override
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = CToFormulaConverterWithHeapArray.eliminateArrow(e, edge);
+    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, edge);
 
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
@@ -648,7 +648,7 @@ class CExpressionVisitorWithHeapArray extends DefaultCExpressionVisitor<Expressi
     return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }
 
-  private final CToFormulaConverterWithHeapArray conv;
+  private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

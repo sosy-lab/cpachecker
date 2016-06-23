@@ -84,7 +84,7 @@ class DynamicMemoryHandler {
 
   private static final String MALLOC_INDEX_SEPARATOR = "#";
 
-  private final CToFormulaConverterWithHeapArray conv;
+  private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
@@ -101,7 +101,7 @@ class DynamicMemoryHandler {
    * @param pConstraints Additional constraints.
    * @param pErrorConditions Additional error conditions.
    */
-  DynamicMemoryHandler(CToFormulaConverterWithHeapArray pConv,
+  DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints,
       ErrorConditions pErrorConditions) {
@@ -124,7 +124,7 @@ class DynamicMemoryHandler {
    * @throws InterruptedException If the execution was interrupted.
    */
   Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
-      final CExpressionVisitorWithHeapArray expressionVisitor) throws UnrecognizedCCodeException, InterruptedException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException, InterruptedException {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
@@ -300,7 +300,7 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
-      final CExpressionVisitorWithHeapArray expressionVisitor) throws UnrecognizedCCodeException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     if (parameters.size() != 1) {
       throw new UnrecognizedCCodeException(
@@ -364,7 +364,7 @@ class DynamicMemoryHandler {
       final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
     return functionName
         + "_"
-        + CToFormulaConverterWithHeapArray.getPointerAccessName(type)
+        + CToFormulaConverterWithPointerAliasing.getPointerAccessName(type)
         + MALLOC_INDEX_SEPARATOR
         + conv.makeFreshIndex(functionName, type, ssa);
   }
@@ -575,12 +575,12 @@ class DynamicMemoryHandler {
         if (pts.isTemporaryDeferredAllocationPointer(variable)) {
           if (!isAllocation) {
             // We can reveal the type from the LHS
-            if (CExpressionVisitorWithHeapArray.isRevealingType(lhsType)) {
+            if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
               handleDeferredAllocationTypeRevelation(variable, lhsType);
             // We can defer the allocation and start tracking the variable in the LHS
             } else if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
                        // TODO: remove the double-check (?)
-                       CExpressionVisitorWithHeapArray.isUnaliasedLocation(lhs) &&
+                       CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs) &&
                        lhsLocation.isUnaliasedLocation()) {
               final String variableName = lhsLocation.asUnaliasedLocation().getVariableName();
               if (pts.isDeferredAllocationPointer(variableName)) {
@@ -637,7 +637,7 @@ class DynamicMemoryHandler {
     // e.g. in `ps = (struct s *) tmp;' that'd be {"tmp" -> struct s *}
     for (final Map.Entry<String, CType> usedPointer : rhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
-      if (CExpressionVisitorWithHeapArray.isRevealingType(usedPointer.getValue())) {
+      if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         // The cast type is pointer or array type different from void *, so it can be used to reveal the type
         // of the allocation
         // e.g. return (struct s *)__tmp;
@@ -653,7 +653,7 @@ class DynamicMemoryHandler {
                  // rhsExpression.isUnaliasedLocation() returns just this
                  rhsExpression.isUnaliasedLocation()) {
         // An older criterion for the same condition is used for double-checking
-        assert CExpressionVisitorWithHeapArray.isUnaliasedLocation((CExpression) rhs)
+        assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation((CExpression) rhs)
             : "Wrong assumptions on deferred allocations tracking: rhs " + rhsExpression + " is not unaliased";
         // Check if the only variable is the rhs is the one we're currently dealing with during the iteration
         // (i.e. rhsUsedDeferredAllocationPointers doesn't contain any extra variables)
@@ -667,7 +667,7 @@ class DynamicMemoryHandler {
             // Check if the LHS is encoded as a variable
             !lhsLocation.isAliased()) {
           // Double-check
-          assert CExpressionVisitorWithHeapArray.isUnaliasedLocation(lhs)
+          assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)
             : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation + " is not unaliased";
           // Now check that lhsUsedDeferredAllocationPointers is filled correctly.
           // It should either contain the only pointer that was previously tracked and is now gone
@@ -693,7 +693,7 @@ class DynamicMemoryHandler {
           pts.addDeferredAllocationPointer(lhsLocation.asUnaliased().getVariableName(), usedPointer.getKey());
           passed = true;
           handled = true;
-        } else if (CExpressionVisitorWithHeapArray.isRevealingType(lhsType)) {
+        } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
           // The better case -- LHS has some pointer or array type different from void *
           // e.g.
           // struct s *ps;
@@ -720,11 +720,11 @@ class DynamicMemoryHandler {
       if (rhsUsedDeferredAllocationPointers.containsKey(usedPointer.getKey())) {
         continue;
       }
-      if (CExpressionVisitorWithHeapArray.isRevealingType(usedPointer.getValue())) {
+      if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         // *((int *)__tmp) = 5;
         handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (!lhsLocation.isAliased()) {
-        assert CExpressionVisitorWithHeapArray.isUnaliasedLocation(lhs)
+        assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(lhs)
             : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation +" is aliased";
         assert lhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey())
             : "Wrong assumptions on deferred allocations tracking: lhs " + lhsLocation + " does not match " + usedPointer;
@@ -773,9 +773,9 @@ class DynamicMemoryHandler {
           final CType operand1Type = CTypeUtils.simplifyType(binaryExpression.getOperand1().getExpressionType());
           final CType operand2Type = CTypeUtils.simplifyType(binaryExpression.getOperand2().getExpressionType());
           CType type = null;
-          if (CExpressionVisitorWithHeapArray.isRevealingType(operand1Type)) {
+          if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand1Type)) {
             type = operand1Type;
-          } else if (CExpressionVisitorWithHeapArray.isRevealingType(operand2Type)) {
+          } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand2Type)) {
             type = operand2Type;
           }
           if (type != null) {

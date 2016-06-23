@@ -87,7 +87,7 @@ class AssignmentHandler {
   private final BooleanFormulaManagerView bfmgr;
   private final ArrayFormulaManagerView afmgr;
 
-  private final CToFormulaConverterWithHeapArray conv;
+  private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
   private final String function;
   private final SSAMapBuilder ssa;
@@ -106,7 +106,7 @@ class AssignmentHandler {
    * @param pConstraints Additional constraints.
    * @param pErrorConditions Additional error conditions.
    */
-  AssignmentHandler(CToFormulaConverterWithHeapArray pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+  AssignmentHandler(CToFormulaConverterWithPointerAliasing pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
     conv = pConv;
 
@@ -151,7 +151,7 @@ class AssignmentHandler {
                                         CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final CExpressionVisitorWithHeapArray rhsVisitor = new CExpressionVisitorWithHeapArray(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
 
     final Expression rhsExpression;
     if (rhs == null) {
@@ -170,7 +170,7 @@ class AssignmentHandler {
     final Map<String, CType> rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
 
     // LHS handling
-    final CExpressionVisitorWithHeapArray lhsVisitor = new CExpressionVisitorWithHeapArray(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
@@ -209,7 +209,7 @@ class AssignmentHandler {
   BooleanFormula handleInitializationAssignments(
       final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
-    CExpressionVisitorWithHeapArray lhsVisitor = new CExpressionVisitorWithHeapArray(conv, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
@@ -260,13 +260,13 @@ class AssignmentHandler {
     final CType lhsType = CTypeUtils.simplifyType(
         pAssignments.get(0).getLeftHandSide().getExpressionType());
 
-    final CExpressionVisitorWithHeapArray rhsVisitor =
-        new CExpressionVisitorWithHeapArray(conv, edge, function, ssa, constraints,
+    final CExpressionVisitorWithPointerAliasing rhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
             errorConditions, pts);
     final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
 
-    final CExpressionVisitorWithHeapArray lhsVisitor =
-        new CExpressionVisitorWithHeapArray(
+    final CExpressionVisitorWithPointerAliasing lhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(
             conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
 
@@ -283,7 +283,7 @@ class AssignmentHandler {
       //    struct t t = { .s = s };
       return handleInitializationAssignments(pLeftHandSide, pAssignments);
     } else {
-      final String targetName = CToFormulaConverterWithHeapArray.getPointerAccessName(lhsType);
+      final String targetName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(lhsType);
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
       final int oldIndex = conv.getIndex(targetName, lhsType, ssa);
       final int newIndex =
@@ -349,7 +349,7 @@ class AssignmentHandler {
    */
   private boolean checkEqualityOfInitializers(
       final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
-      final @Nonnull CExpressionVisitorWithHeapArray pRhsVisitor)
+      final @Nonnull CExpressionVisitorWithPointerAliasing pRhsVisitor)
       throws UnrecognizedCCodeException {
     Value tmp = null;
     for (CExpressionAssignmentStatement assignment : pAssignments) {
@@ -530,7 +530,7 @@ class AssignmentHandler {
                // The variable representing the RHS was used somewhere (i.e. has SSA index)
                !rvalue.asLocation().isAliased() &&
                  conv.hasIndex(rvalue.asLocation().asUnaliased().getVariableName() +
-                            CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR +
+                            CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
                             memberName,
                           newLvalueType,
                           ssa))) {
@@ -615,7 +615,7 @@ class AssignmentHandler {
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithHeapArray.getPointerAccessName(lvalueType);
+    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
     final int newIndex = useOldSSAIndices ?
@@ -663,7 +663,7 @@ class AssignmentHandler {
    */
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithHeapArray.getPointerAccessName(type);
+      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
       conv.makeFreshIndex(ufName, type, ssa);
     }
   }
@@ -743,7 +743,7 @@ class AssignmentHandler {
 
     } else {
       final UnaliasedLocation newLvalue = Location.ofVariableName(lvalue.asUnaliased().getVariableName() +
-                                                                  CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR + memberName);
+                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName);
       return Pair.of(newLvalue, newLvalueType);
     }
 
@@ -775,7 +775,7 @@ class AssignmentHandler {
     }
     case UNALIASED_LOCATION: {
       final UnaliasedLocation newRvalue = Location.ofVariableName(rvalue.asUnaliasedLocation().getVariableName() +
-                                                                  CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR +
+                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
                                                                   memberName);
       return Pair.of(newRvalue, newLvalueType);
     }

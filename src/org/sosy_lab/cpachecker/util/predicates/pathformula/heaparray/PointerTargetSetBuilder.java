@@ -76,7 +76,7 @@ class PointerTargetSetBuilder {
   final static class RealPointerTargetSetBuilder implements org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder {
 
     private final FormulaManagerView formulaManager;
-    private final PointerTargetSetManagerHeapArray ptsMgr;
+    private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithPointerAliasingOptions options;
 
     // These fields all exist in PointerTargetSet and are documented there.
@@ -131,7 +131,7 @@ class PointerTargetSetBuilder {
      */
     public RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
-        final PointerTargetSetManagerHeapArray pPtsMgr,
+        final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions) {
       bases = pointerTargetSet.getBases();
       lastBase = pointerTargetSet.getLastBase();
@@ -174,7 +174,7 @@ class PointerTargetSetBuilder {
       final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
       // If type is incomplete, we can use a dummy size here because it is only used for the fake base.
       int size = type.isIncomplete() ? 0 : ptsMgr.getSize(type);
-      bases = bases.putAndCopy(name, PointerTargetSetManagerHeapArray.getFakeBaseType(size)); // To prevent adding spurious targets when merging
+      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size)); // To prevent adding spurious targets when merging
       lastBase = name;
       return nextInequality;
     }
@@ -531,7 +531,7 @@ class PointerTargetSetBuilder {
      */
     @Override
     public boolean isActualBase(final String name) {
-      return bases.containsKey(name) && !PointerTargetSetManagerHeapArray.isFakeBaseType(bases.get(name));
+      return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
     }
 
     /**

@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaType
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithHeapArray;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -181,11 +180,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               + ".useQuantifiersOnArrays=true\", you have to use a solver supporting quantifier "
               + "theories!";
 
-        converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
+        converter = new org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing(options, fmgr, pMachineModel,
             pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection,
             qfmgr);
       } else {
-        converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
+        converter = new org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing(options, fmgr, pMachineModel,
             pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
       }
     } else if (handlePointerAliasing) {

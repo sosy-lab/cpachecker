@@ -32,7 +32,6 @@ import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithHeapArray;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -156,8 +155,8 @@ public class SSAMapMerger {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-    } else if (handleHeapArray && CToFormulaConverterWithHeapArray.isPointerAccessSymbol(symbolName)) {
-      assert symbolName.equals(CToFormulaConverterWithHeapArray.getPointerAccessName(symbolType));
+    } else if (handleHeapArray && org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
+      assert symbolName.equals(org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing.getPointerAccessName(symbolType));
       return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getPointerAccessName(symbolType));

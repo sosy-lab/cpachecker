@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -82,7 +81,7 @@ import javax.annotation.Nullable;
 /**
  * A manager for pointer target sets.
  */
-class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
+class PointerTargetSetManager extends org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -139,7 +138,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param pTypeHandler A type handler for certain types.
    * @param pShutdownNotifier A notifier for external shutdowns to stop long-running algorithms.
    */
-  PointerTargetSetManagerHeapArray(FormulaEncodingWithPointerAliasingOptions pOptions,
+  PointerTargetSetManager(FormulaEncodingWithPointerAliasingOptions pOptions,
       FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandler,
       ShutdownNotifier pShutdownNotifier) {
     super(pOptions, pFormulaManager, pTypeHandler, pShutdownNotifier);
@@ -480,7 +479,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
         final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
-        final String newPrefix = variablePrefix + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR + memberName;
+        final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
           result = bfmgr.and(result, makeValueImportConstraints(
@@ -517,7 +516,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    */
   private Formula makeDereference(
       final CType type, final Formula address, final SSAMapBuilder ssa) {
-    final String ufName = CToFormulaConverterWithHeapArray.getPointerAccessName(type);
+    final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
 

@@ -106,7 +106,7 @@ import java.util.stream.Collectors;
  *
  * This supports pointer aliasing and models the heap with SMT arrays.
  */
-public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
+public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
   // Overrides just for visibility in other classes of this package
 
@@ -132,7 +132,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
   private final TypeHandlerWithPointerAliasing typeHandler;
-  final PointerTargetSetManagerHeapArray ptsMgr;
+  final PointerTargetSetManager ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
@@ -150,7 +150,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @param pTypeHandler            A handler for C types.
    * @param pDirection              The direction of the analysis.
    */
-  public CToFormulaConverterWithHeapArray(
+  public CToFormulaConverterWithPointerAliasing(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView pFormulaManager,
       final MachineModel machineModel,
@@ -166,7 +166,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
-    ptsMgr = new PointerTargetSetManagerHeapArray(options, fmgr, typeHandler,
+    ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler,
         shutdownNotifier);
 
     afmgr = pFormulaManager.getArrayFormulaManager();
@@ -191,7 +191,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @param pDirection                    The direction of the analysis.
    * @param pQuantifiedFormulaManagerView A formula manager supporting quantifiers.
    */
-  public CToFormulaConverterWithHeapArray(
+  public CToFormulaConverterWithPointerAliasing(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView pFormulaManager,
       final MachineModel pMachineModel,
@@ -208,7 +208,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
-    ptsMgr = new PointerTargetSetManagerHeapArray(options, fmgr, typeHandler,
+    ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler,
         shutdownNotifier);
 
     afmgr = pFormulaManager.getArrayFormulaManager();
@@ -724,7 +724,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
       Constraints pConstraints, ErrorConditions pErrorConditions) {
 
-    CExpressionVisitorWithHeapArray rhsVisitor = new CExpressionVisitorWithHeapArray(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
+    CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts);
     return rhsVisitor.asFormulaVisitor();
   }
 
@@ -986,7 +986,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
     final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
-    CExpressionVisitorWithHeapArray ev = new CExpressionVisitorWithHeapArray(this, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula( e.accept(ev), expressionType));
 
     if (options.deferUntypedAllocations()) {
