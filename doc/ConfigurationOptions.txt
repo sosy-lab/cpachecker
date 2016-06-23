@@ -1793,6 +1793,10 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
+# Use the theory of arrays for heap-memory encoding. This requires an SMT
+# solver that is capable of the theory of arrays.
+cpa.predicate.useArraysForHeap = false
+
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)

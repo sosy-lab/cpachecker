@@ -51,9 +51,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -318,10 +320,22 @@ class AssignmentHandler {
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
       final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhsValue.getValue());
-      final BooleanFormula copyOldValue =
-          fmgr.assignment(
-              newDereference,
-              conv.ptsMgr.makePointerDereference(targetName, targetType, oldIndex, counter));
+
+      final BooleanFormula copyOldValue;
+      if (options.useArraysForHeap()) {
+        final ArrayFormulaManagerView afmgr = fmgr.getArrayFormulaManager();
+        final ArrayFormula<?, ?> newArray =
+            afmgr.makeArray(targetName + "@" + newIndex, FormulaType.IntegerType, targetType);
+        final ArrayFormula<?, ?> oldArray =
+            afmgr.makeArray(targetName + "@" + oldIndex, FormulaType.IntegerType, targetType);
+        copyOldValue = fmgr.makeEqual(newArray, oldArray);
+
+      } else {
+        copyOldValue =
+            fmgr.assignment(
+                newDereference,
+                conv.ptsMgr.makePointerDereference(targetName, targetType, oldIndex, counter));
+      }
 
       return fmgr.getQuantifiedFormulaManager().forall(
           Collections.singletonList(counter),
@@ -684,6 +698,11 @@ class AssignmentHandler {
                                          final @Nullable Formula startAddress,
                                          final @Nonnull PointerTargetPattern pattern,
                                          final Set<CType> typesToRetain) throws InterruptedException {
+    if (options.useArraysForHeap()) {
+      // not necessary for heap-array encoding
+      return;
+    }
+
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = conv.getSizeof(lvalueType);
     if (isSimpleType(lvalueType)) {

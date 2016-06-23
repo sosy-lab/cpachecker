@@ -155,12 +155,13 @@ public class SSAMapMerger {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-    } else if (handleHeapArray && org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      assert symbolName.equals(org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithPointerAliasing.getPointerAccessName(symbolType));
-      return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getPointerAccessName(symbolType));
-      return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
+      if (handleHeapArray) {
+        return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
+      } else {
+        return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
+      }
     } else {
       return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
     }

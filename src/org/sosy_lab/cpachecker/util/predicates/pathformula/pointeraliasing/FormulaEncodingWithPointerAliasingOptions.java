@@ -65,6 +65,14 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "The default size in bytes for memory allocations when the value cannot be determined.")
   private int defaultAllocationSize = 4;
 
+  @Option(
+    secure = true,
+    description =
+        "Use the theory of arrays for heap-memory encoding. "
+            + "This requires an SMT solver that is capable of the theory of arrays."
+  )
+  private boolean useArraysForHeap = false;
+
   @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
   private int defaultArrayLength = 20;
 
@@ -147,6 +155,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public int defaultAllocationSize() {
     return defaultAllocationSize;
+  }
+
+  public boolean useArraysForHeap() {
+    return useArraysForHeap;
   }
 
   public int defaultArrayLength() {

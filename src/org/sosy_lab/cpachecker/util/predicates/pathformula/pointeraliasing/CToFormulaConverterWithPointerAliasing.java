@@ -783,7 +783,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return bfmgr.makeBoolean(true);
     }
 
-    if (declarationType instanceof CArrayType) {
+    if (!options.useArraysForHeap() && declarationType instanceof CArrayType) {
       CType elementType = ((CArrayType)declarationType).getType();
       if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType().isFloatingPointType()) {
 

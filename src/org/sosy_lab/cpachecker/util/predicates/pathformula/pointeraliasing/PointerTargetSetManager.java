@@ -54,9 +54,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeRes
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -119,6 +121,7 @@ public class PointerTargetSetManager {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
+  private final ArrayFormulaManagerView afmgr;
   private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
@@ -136,6 +139,7 @@ public class PointerTargetSetManager {
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
+    afmgr = options.useArraysForHeap() ? formulaManager.getArrayFormulaManager() : null;
     ffmgr = formulaManager.getFunctionFormulaManager();
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
@@ -154,7 +158,13 @@ public class PointerTargetSetManager {
       final FormulaType<?> targetType,
       final int ssaIndex,
       final Formula address) {
-    return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
+    if (options.useArraysForHeap()) {
+      final ArrayFormula<?, ?> arrayFormula =
+          afmgr.makeArray(targetName + "@" + ssaIndex, FormulaType.IntegerType, targetType);
+      return afmgr.select(arrayFormula, address);
+    } else {
+      return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
+    }
   }
 
   /**
@@ -166,7 +176,13 @@ public class PointerTargetSetManager {
    */
   protected Formula makePointerDereference(
       final String targetName, final FormulaType<?> targetType, final Formula address) {
-    return ffmgr.declareAndCallUF(targetName, targetType, address);
+    if (options.useArraysForHeap()) {
+      final ArrayFormula<?, ?> arrayFormula =
+          afmgr.makeArray(targetName, FormulaType.IntegerType, targetType);
+      return afmgr.select(arrayFormula, address);
+    } else {
+      return ffmgr.declareAndCallUF(targetName, targetType, address);
+    }
   }
 
   /**
@@ -186,9 +202,17 @@ public class PointerTargetSetManager {
       final int newIndex,
       final Formula address,
       final Formula value) {
-    final Formula lhs =
-        ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
-    return formulaManager.assignment(lhs, value);
+    if (options.useArraysForHeap()) {
+      final ArrayFormula<?, ?> oldFormula =
+          afmgr.makeArray(targetName + "@" + oldIndex, FormulaType.IntegerType, targetType);
+      final ArrayFormula<?, ?> arrayFormula =
+          afmgr.makeArray(targetName + "@" + newIndex, FormulaType.IntegerType, targetType);
+      return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
+    } else {
+      final Formula lhs =
+          ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
+      return formulaManager.assignment(lhs, value);
+    }
   }
 
   /**

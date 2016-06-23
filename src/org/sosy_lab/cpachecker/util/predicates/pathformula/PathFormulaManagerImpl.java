@@ -128,6 +128,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   )
   private boolean useNondetFlags = false;
 
+  private final boolean useArraysInSSAMapMerge;
+
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, AnalysisDirection pDirection)
@@ -152,6 +154,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     shutdownNotifier = pShutdownNotifier;
 
     if (handleArrays) {
+      useArraysInSSAMapMerge = false;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
@@ -161,6 +164,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
     } else if (handleHeapArray) {
+      useArraysInSSAMapMerge = true;
       final FormulaEncodingWithPointerAliasingOptions options =
           new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {
@@ -186,6 +190,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
         }
       }
+      useArraysInSSAMapMerge = options.useArraysForHeap();
+      if (options.useArraysForHeap()) {
+        try {
+          fmgr.getArrayFormulaManager();
+        } catch (UnsupportedOperationException e) {
+          throw new InvalidConfigurationException(
+              "Cannot use arrays with current solver, either choose a different solver or disable arrays.");
+        }
+      }
 
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
@@ -194,6 +207,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           aliasingTypeHandler, pDirection);
 
     } else {
+      useArraysInSSAMapMerge = false;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
@@ -294,7 +308,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(
             useNondetFlags,
-            handleHeapArray,
+            useArraysInSSAMapMerge,
             fmgr,
             converter,
             typeHandler,
@@ -474,7 +488,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(
             useNondetFlags,
-            handleHeapArray,
+            useArraysInSSAMapMerge,
             fmgr,
             converter,
             typeHandler,
