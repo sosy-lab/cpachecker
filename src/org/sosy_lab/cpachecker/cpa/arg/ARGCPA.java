@@ -120,7 +120,6 @@ public class ARGCPA
   private final MachineModel machineModel;
   private final AbstractDomain<ARGState> abstractDomain;
 
-  @SuppressWarnings("unchecked")
   private ARGCPA(ConfigurableProgramAnalysis<?> cpa,
                  Configuration config,
                  LogManager logger,
