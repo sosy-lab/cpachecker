@@ -30,6 +30,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,13 +72,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.solver.AssignableTerm.Variable;
-import org.sosy_lab.solver.Model;
-import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -654,19 +653,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
-  public Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Model model) {
-    if (model.isEmpty()) {
+  public Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> model) {
+    if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      return HashMultimap.<Integer, Integer>create();
+      return ImmutableMultimap.of();
     }
 
-    Multimap<Integer, Integer> preds = HashMultimap.<Integer, Integer>create();
+    Multimap<Integer, Integer> preds = LinkedHashMultimap.<Integer, Integer>create();
 
-    for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
-      AssignableTerm a = entry.getKey();
-      String canonicalName = FormulaManagerView.parseName(a.getName()).getFirstNotNull();
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
+    for (ValueAssignment entry : model) {
+      String canonicalName =
+          FormulaManagerView.parseName(entry.getName()).getFirstNotNull();
 
+      if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
         Matcher matcher = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName);
         if (matcher.matches()) {
           // Pattern matched, so it's a variable with __ART__ in it

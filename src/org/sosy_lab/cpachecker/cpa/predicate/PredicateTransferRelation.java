@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayState;
@@ -121,6 +122,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure=true, description = "try to reuse old abstractions from file during strengthening")
   private boolean strengthenWithReusedAbstractions = false;
+
+  @Option(secure = true, description = "Use formula reporting states for strengthening.")
+  private boolean strengthenWithFormulaReportingStates = false;
+
   @Option(description="file that consists of old abstractions, to be used during strengthening")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path strengthenWithReusedAbstractionsFile = Paths.get("abstractions.txt");
@@ -414,6 +419,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           element = strengthen(loc, element, (AbstractStateWithAssumptions) lElement);
         }
 
+        if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
+          element = strengthen(element, (FormulaReportingState) lElement);
+        }
+
         if (AbstractStates.isTargetState(lElement)) {
           targetStateFound = true;
         }
@@ -630,6 +639,22 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), fmgr.parse(asmpt));
 
     return replacePathFormula(pElement, pf);
+  }
+
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pElement, FormulaReportingState pFormulaReportingState) {
+
+    BooleanFormula formula =
+        pFormulaReportingState.getFormulaApproximation(fmgr, pathFormulaManager);
+
+    if (bfmgr.isTrue(formula) || bfmgr.isFalse(formula)) {
+      return pElement;
+    }
+
+    PathFormula previousPathFormula = pElement.getPathFormula();
+    PathFormula newPathFormula = pathFormulaManager.makeAnd(previousPathFormula, formula);
+
+    return replacePathFormula(pElement, newPathFormula);
   }
 
   /**

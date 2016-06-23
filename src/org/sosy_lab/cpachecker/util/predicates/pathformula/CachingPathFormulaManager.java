@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.collect.Multimap;
 
@@ -165,7 +165,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Model pModel) {
+  public Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 

@@ -32,6 +32,7 @@ import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import java.util.Collections;
 import java.util.List;
@@ -368,6 +370,7 @@ public class Goal implements SafetyProperty {
             assumptions,
             true,
             null,
+            ExpressionTrees.<AExpression>getTrue(),
             actions,
             sucessorStateName,
             null,

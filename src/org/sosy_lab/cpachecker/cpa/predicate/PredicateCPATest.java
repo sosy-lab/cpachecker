@@ -85,7 +85,7 @@ public class PredicateCPATest {
     LogManager logger = TestLogManager.getInstance();
 
     try (LoggingClassLoader cl = new LoggingClassLoader(
-          Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(util|predicate|bdd|BDD).*)|(org\\.sosy_lab\\.solver\\..*)"),
+          Pattern.compile("(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing).*)|(org\\.sosy_lab\\.solver\\..*)"),
           ((URLClassLoader)myClassLoader).getURLs(), myClassLoader
         )) {
       Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");

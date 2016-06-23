@@ -134,7 +134,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    *
    * @param variableName name of the variable
    * @param interval the interval to be assigned
-   * @param pThreshold threshold from property explicitAnalysis.threshold
+   * @param pThreshold threshold from property valueAnalysis.threshold
    * @return this
    */
   // see ExplicitState::assignConstant

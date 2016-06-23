@@ -195,6 +195,51 @@ public class ARGPathTest {
 
   }
 
+  @Test
+  public void testGetPrefixInclusive() {
+    assertThat(path.pathIterator().getPrefixInclusive()).isEqualTo(ARGPath.builder().build(firstARGState));
+    assertThat(path.reversePathIterator().getPrefixInclusive()).isEqualTo(path);
+
+    PathIterator it = path.pathIterator();
+    it.advance();
+    assertThat(it.getPrefixInclusive()).isEqualTo(ARGPath.builder().add(firstARGState, edges.get(0)).build(secondARGState));
+  }
+
+  @Test
+  public void testGetPrefixExclusive() {
+    PathIterator it = path.pathIterator();
+    it.advance();
+    assertThat(it.getPrefixExclusive()).isEqualTo(ARGPath.builder().build(firstARGState));
+  }
+
+  @Test(expected=IllegalStateException.class)
+  public void testGetPrefixExclusiveFails() {
+    path.pathIterator().getPrefixExclusive();
+  }
+
+
+  @Test
+  public void testGetSuffixInclusive() {
+    assertThat(path.reversePathIterator().getSuffixInclusive()).isEqualTo(ARGPath.builder().build(lastARGState));
+    assertThat(path.pathIterator().getSuffixInclusive()).isEqualTo(path);
+
+    PathIterator it = path.reversePathIterator();
+    it.advance();
+    assertThat(it.getSuffixInclusive()).isEqualTo(ARGPath.builder().add(thirdARGState, null).build(lastARGState));
+  }
+
+  @Test
+  public void testGetSuffixExclusive() {
+    PathIterator it = path.reversePathIterator();
+    it.advance();
+    assertThat(it.getSuffixExclusive()).isEqualTo(ARGPath.builder().build(lastARGState));
+  }
+
+  @Test(expected=IllegalStateException.class)
+  public void testGetSuffixExclusiveFails() {
+    path.reversePathIterator().getSuffixExclusive();
+  }
+
   @SuppressFBWarnings(
       value="DE_MIGHT_IGNORE",
       justification="We want the the excpetions to be thrown in the unit test,"

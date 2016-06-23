@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options
 public class SpecInferenceCPA implements ConfigurableProgramAnalysis {
 
   private final AutomatonDomain domain;
@@ -63,7 +62,6 @@ public class SpecInferenceCPA implements ConfigurableProgramAnalysis {
                            final LogManager pLogger,
                            final ShutdownNotifier pShutdownNotifier,
                            final CFA cfa) throws InvalidConfigurationException {
-    pConfig.inject(this, SpecInferenceCPA.class);
 
     domain = new AutomatonDomain();
     transfer = new SpecInferenceTransferRelation(pConfig);

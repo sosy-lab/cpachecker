@@ -153,7 +153,7 @@ public class BitVectorInfo {
     return from(size, signed);
   }
 
-  public static boolean isSupported(MachineModel pMachineModel, Type pType) {
+  public static boolean isSupported(Type pType) {
     Type type = pType;
     if (type instanceof CType) {
       type = ((CType) type).getCanonicalType();

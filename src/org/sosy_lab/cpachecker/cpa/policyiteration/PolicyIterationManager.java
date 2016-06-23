@@ -43,12 +43,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Optional;
@@ -502,7 +502,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // Maximize for each template subject to the overall constraints.
     statistics.startValueDeterminationTimer();
-    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
       for (BooleanFormula constraint : valDetConstraints.constraints) {
         optEnvironment.addConstraint(constraint);
@@ -527,17 +527,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         optEnvironment.addConstraint(consistencyConstraint);
 
-        OptEnvironment.OptStatus result;
+        OptimizationProverEnvironment.OptStatus result;
         try {
           statistics.startOPTTimer();
           result = optEnvironment.check();
         } finally {
           statistics.stopOPTTimer();
         }
-        if (result != OptEnvironment.OptStatus.OPT) {
+        if (result != OptimizationProverEnvironment.OptStatus.OPT) {
           shutdownNotifier.shutdownIfNecessary();
 
-          if (result == OptEnvironment.OptStatus.UNSAT) {
+          if (result == OptimizationProverEnvironment.OptStatus.UNSAT) {
             if (!runningCheapValueDetermination) {
               throw new CPATransferException("Inconsistent value determination "
                   + "problem");
@@ -653,18 +653,20 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final PathFormula p = state.getPathFormula();
 
     // Linearize.
+    statistics.linearizationTimer.start();
     final BooleanFormula linearizedFormula = linearizationManager.linearize(
         p.getFormula());
 
     // Add choice variables.
     BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
         linearizedFormula);
+    statistics.linearizationTimer.stop();
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
     final BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraints(state, true);
 
-    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
 
@@ -736,7 +738,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         logger.log(Level.FINE, "Optimizing for ", objective);
         int handle = optEnvironment.maximize(objective);
 
-        OptEnvironment.OptStatus status;
+        OptimizationProverEnvironment.OptStatus status;
         try {
           statistics.startOPTTimer();
           status = optEnvironment.check();
@@ -747,7 +749,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         switch (status) {
           case OPT:
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
-            Map<AssignableTerm, Object> model = optEnvironment.getModel();
+            Model model = optEnvironment.getModel();
 
             // Lower bound on unsigned variables is at least zero.
             boolean unsignedAndLower = template.isUnsigned() &&
@@ -766,8 +768,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               }
 
               if (linearizePolicy) {
+                statistics.linearizationTimer.start();
                 annotatedFormula = linearizationManager.convertToPolicy(
-                    annotatedFormula, optEnvironment);
+                    annotatedFormula, model);
+                statistics.linearizationTimer.stop();
               }
 
               PolicyBound policyBound = modelToPolicyBound(
@@ -831,11 +835,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState inputState,
       PathFormula inputPathFormula,
       BooleanFormula annotatedFormula,
-      Map<AssignableTerm, Object> model,
+      Model model,
       Rational bound) throws SolverException, InterruptedException {
 
+    statistics.linearizationTimer.start();
     final BooleanFormula policyFormula = linearizationManager.enforceChoice(
         annotatedFormula, model);
+    statistics.linearizationTimer.stop();
     final boolean dependsOnInitial;
 
     if (checkPolicyInitialCondition) {

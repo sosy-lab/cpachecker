@@ -33,7 +33,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct.ProductState;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import java.io.BufferedWriter;

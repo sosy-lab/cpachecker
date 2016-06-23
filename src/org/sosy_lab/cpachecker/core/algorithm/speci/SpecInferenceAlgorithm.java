@@ -43,7 +43,6 @@ public class SpecInferenceAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportSpcFile = Paths.get("specification.spc");
 
-  @Options
   public static class SpecInferenceAlgorithmFactory {
 
     private final ConfigurableProgramAnalysis cpa;
@@ -56,7 +55,6 @@ public class SpecInferenceAlgorithm implements Algorithm {
         Configuration pConfig, ShutdownNotifier pShutdownNotifier, @Nullable AlgorithmIterationListener pIterationListener)
             throws InvalidConfigurationException {
 
-      pConfig.inject(this);
       cpa = pCPA;
       logger = pLogger;
       shutdownNotifier = pShutdownNotifier;

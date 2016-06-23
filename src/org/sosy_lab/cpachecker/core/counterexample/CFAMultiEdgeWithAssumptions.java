@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -41,7 +42,7 @@ public final class CFAMultiEdgeWithAssumptions extends CFAEdgeWithAssumptions im
 
   private final List<CFAEdgeWithAssumptions> edgesWithAssignment;
 
-  private CFAMultiEdgeWithAssumptions(MultiEdge pEdge, List<AExpressionStatement> pAssignments,
+  private CFAMultiEdgeWithAssumptions(MultiEdge pEdge, Collection<AExpressionStatement> pAssignments,
       List<CFAEdgeWithAssumptions> pEdges, String pComments) {
     super(pEdge, pAssignments, pComments);
     edgesWithAssignment = ImmutableList.copyOf(pEdges);
@@ -95,7 +96,7 @@ public final class CFAMultiEdgeWithAssumptions extends CFAEdgeWithAssumptions im
    * the edges that are contained in the given multi edge.
    */
   public static CFAMultiEdgeWithAssumptions valueOf(MultiEdge pEdge, List<CFAEdgeWithAssumptions> pEdges,
-      List<AExpressionStatement> pAssumptions, String pComments) {
+      Collection<AExpressionStatement> pAssumptions, String pComments) {
     return new CFAMultiEdgeWithAssumptions(pEdge, pAssumptions, pEdges, pComments);
   }
 }

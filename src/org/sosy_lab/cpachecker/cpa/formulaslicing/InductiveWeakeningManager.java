@@ -26,8 +26,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import com.google.common.base.Verify;
@@ -249,11 +251,12 @@ public class InductiveWeakeningManager {
     query = fmgr.simplify(query);
     Set<BooleanFormula> out = new HashSet<>();
 
-    try (ProverEnvironment env = solver.newProverEnvironmentWithModelGeneration()) {
+    try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       //noinspection ResultOfMethodCallIgnored
       env.push(query);
 
       while (!env.isUnsat()) {
+        Model m = env.getModel();
 
         List<BooleanFormula> toPush = new ArrayList<>();
 
@@ -264,16 +267,11 @@ public class InductiveWeakeningManager {
           BooleanFormula primedAtom = fmgr.instantiate(
               fmgr.uninstantiate(atom), finalSSA
           );
-          Formula value = env.evaluate(primedAtom);
-
-          Verify.verify(
-              value.equals(bfmgr.makeBoolean(false))
-              || value.equals(bfmgr.makeBoolean(true))
-          );
+          Boolean value = m.evaluate(primedAtom);
 
           // Exclude the atom by enforcing the selector,
           // only if the atom is contained in the already present refinement.
-          if (value.equals(bfmgr.makeBoolean(false)) &&
+          if (!value &&
               inductiveSlice.contains(selector)) {
 
             logger.log(Level.FINE, "Abstracting away",
@@ -449,7 +447,7 @@ public class InductiveWeakeningManager {
      * Replace all atoms containing intermediate variables with "true".
      */
     @Override
-    public BooleanFormula visitAtom(BooleanFormula atom) {
+    public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
 
       if (!fmgr.getDeadFunctionNames(atom, finalSSA).isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);

@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 
@@ -74,6 +76,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -82,6 +85,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
@@ -93,6 +97,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(TestDataTools.makeDeclaration("test", CNumericTypes.INT, null).getSecond()),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -101,6 +106,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
@@ -113,6 +119,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -121,6 +128,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
@@ -132,6 +140,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -140,6 +149,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
+                ExpressionTrees.<AExpression>getTrue(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
   }

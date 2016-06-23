@@ -328,6 +328,7 @@ public final class ReducedAutomatonProduct {
               t.assumption,
               t.assumptionTruth,
               t.shadowCode,
+              t.candidateInvariants,
               t.actions,
               succ.getStateName(),
               null,

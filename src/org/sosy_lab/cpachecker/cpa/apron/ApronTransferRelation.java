@@ -99,10 +99,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-
 import apron.DoubleScalar;
 import apron.Interval;
 import apron.Linexpr0;
@@ -115,6 +111,10 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
@@ -607,8 +607,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
     Set<ApronState> possibleStates = new HashSet<>();
     if (functionEntryNode.getReturnVariable().isPresent()) {
-      possibleStates.add(state.declareVariable(MemoryLocation.valueOf(calledFunctionName, functionEntryNode.getReturnVariable().get().getName(), 0),
-          getCorrespondingOctStateType(cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+      possibleStates.add(
+          state.declareVariable(
+              MemoryLocation.valueOf(
+                  calledFunctionName, functionEntryNode.getReturnVariable().get().getName()),
+              getCorrespondingOctStateType(
+                  cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
     } else {
       possibleStates.add(state);
     }
@@ -620,7 +624,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         continue;
       }
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i), 0);
+      MemoryLocation formalParamName =
+          MemoryLocation.valueOf(calledFunctionName, paramNames.get(i));
 
       if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
@@ -671,7 +676,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
-      MemoryLocation returnVarName = MemoryLocation.valueOf(calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName(), 0);
+      MemoryLocation returnVarName =
+          MemoryLocation.valueOf(
+              calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName());
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -706,7 +713,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (decl.isGlobal()) {
         variableName = MemoryLocation.valueOf(decl.getName());
       } else {
-        variableName = MemoryLocation.valueOf(functionName, decl.getName(), 0);
+        variableName = MemoryLocation.valueOf(functionName, decl.getName());
       }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
@@ -836,7 +843,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(functionName, variableName, 0);
+      return MemoryLocation.valueOf(functionName, variableName);
     } else {
       return MemoryLocation.valueOf(variableName);
     }
@@ -855,7 +862,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       return Collections.singleton(state);
     }
 
-    MemoryLocation tempVarName = MemoryLocation.valueOf(cfaEdge.getPredecessor().getFunctionName(), ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getName(), 0);
+    MemoryLocation tempVarName =
+        MemoryLocation.valueOf(
+            cfaEdge.getPredecessor().getFunctionName(),
+            ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getName());
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here

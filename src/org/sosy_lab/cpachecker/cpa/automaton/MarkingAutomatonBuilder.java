@@ -34,6 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import java.util.Collection;
 import java.util.Deque;
@@ -258,6 +260,7 @@ public class MarkingAutomatonBuilder {
                 assumptions,
                 true,               //FIXME
                 newShadowCode,
+                ExpressionTrees.<AExpression>getTrue(),
                 t.getActions(),
                 t.getFollowState().getName(), null,
                 t.getViolatedWhenEnteringTarget(),
@@ -270,6 +273,7 @@ public class MarkingAutomatonBuilder {
               t.getAssumptions(),
               true,               //FIXME
               newShadowCode,
+              ExpressionTrees.<AExpression>getTrue(),
               t.getActions(),
               t.getFollowState().getName(), null,
               t.getViolatedWhenEnteringTarget(),
@@ -288,7 +292,8 @@ public class MarkingAutomatonBuilder {
     final AutomatonTransition initTransition = new AutomatonTransition(AutomatonBoolExpr.MatchProgramEntry.INSTANCE,
         ImmutableList.<AutomatonBoolExpr>of(),
         ImmutableList.<AStatement>of(), true,
-        initMarkersCode, ImmutableList.<AutomatonAction>of(), pInput.getInitialState().getName(),
+        initMarkersCode, ExpressionTrees.<AExpression>getTrue(), ImmutableList.<AutomatonAction>of(),
+        pInput.getInitialState().getName(),
         null, ImmutableSet.<SafetyProperty>of(), ImmutableSet.<SafetyProperty>of());
 
     final AutomatonInternalState resultInitialState = new AutomatonInternalState(resultInitialStateName,

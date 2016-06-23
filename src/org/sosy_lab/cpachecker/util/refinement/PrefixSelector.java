@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -43,9 +44,9 @@ public class PrefixSelector {
   public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
 
-    List<Comparator<InfeasiblePrefix>> comperators = createComperators(pPrefixPreference);
+    List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
 
-    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comperators));
+    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comparators));
     sortedPrefixes.addAll(pInfeasiblePrefixes);
 
     return sortedPrefixes.first();
@@ -68,30 +69,32 @@ public class PrefixSelector {
     return minScore;
   }
 
-  private List<Comparator<InfeasiblePrefix>> createComperators(List<PrefixPreference> pPrefixPreference) {
+  private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
 
     ScorerFactory factory = new ScorerFactory(classification, loopStructure);
 
-    List<Comparator<InfeasiblePrefix>> comperators = new ArrayList<>();
+    List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
     for(PrefixPreference preference : pPrefixPreference) {
-      comperators.add(factory.createScorer(preference).getComperator());
+      comparators.add(factory.createScorer(preference).getComparator());
     }
 
-    return comperators;
+    return comparators;
   }
 
-  private static class ChainedComparator implements Comparator<InfeasiblePrefix> {
+  private static class ChainedComparator implements Comparator<InfeasiblePrefix>, Serializable {
 
-    List<Comparator<InfeasiblePrefix>> comperators;
+    private static final long serialVersionUID = -6359291861139423226L;
 
-    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComperators) {
-      comperators = pComperators;
+    private final List<Comparator<InfeasiblePrefix>> comparators;
+
+    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComparators) {
+      comparators = pComparators;
     }
 
     @Override
     public int compare(final InfeasiblePrefix onePrefix, final InfeasiblePrefix otherPrefix) {
-      for (Comparator<InfeasiblePrefix> comperator : comperators) {
-        int result = comperator.compare(onePrefix, otherPrefix);
+      for (Comparator<InfeasiblePrefix> comparator : comparators) {
+        int result = comparator.compare(onePrefix, otherPrefix);
 
         if (result != 0) {
           return result;
@@ -102,7 +105,8 @@ public class PrefixSelector {
     }
   }
 
-  public static List<PrefixPreference> NO_SELECTION = Collections.singletonList(PrefixPreference.NONE);
+  public static final List<PrefixPreference> NO_SELECTION =
+      Collections.singletonList(PrefixPreference.NONE);
 
   public enum PrefixPreference {
 
@@ -205,7 +209,7 @@ public class PrefixSelector {
       return this;
     }
 
-    public Comparator<InfeasiblePrefix> getComperator() {
+    public Comparator<InfeasiblePrefix> getComparator() {
       return new Comparator<InfeasiblePrefix>() {
 
         @Override

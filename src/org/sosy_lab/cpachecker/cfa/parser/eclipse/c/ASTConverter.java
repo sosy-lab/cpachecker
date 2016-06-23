@@ -630,6 +630,14 @@ class ASTConverter {
     // TODO: consider always adding a const modifier if there is an initializer
     CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
+    if (type instanceof CArrayType) {
+      // Replace with pointer type.
+      // This should actually be handled by Eclipse, because the C standard says in §5.4.2.1 (3)
+      // that array types of operands are converted to pointer types except in a very few
+      // specific cases (for which there will never be a temporary variable).
+      type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+    }
+
     CVariableDeclaration decl = new CVariableDeclaration(loc,
                                                scope.isGlobalScope(),
                                                CStorageClass.AUTO,
@@ -1272,7 +1280,12 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
-      CType type = typeConverter.convert(e.getExpressionType());
+      CType type;
+      if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
+        type = CNumericTypes.INT;
+      } else {
+        type = typeConverter.convert(e.getExpressionType());
+      }
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }

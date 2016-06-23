@@ -31,10 +31,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.collect.Multimap;
 
@@ -90,7 +90,7 @@ public interface PathFormulaManager {
    * @param pModel A satisfying assignment that should contain values for branching predicates.
    * @return A map from ARG state id to a boolean value indicating direction.
    */
-  Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Model pModel);
+  Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
 
   /**
    * Convert a simple C expression to a formula consistent with the

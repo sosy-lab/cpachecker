@@ -14,7 +14,6 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
 %column
 
 %{
-  private StringBuilder string = new StringBuilder();
   private ComplexSymbolFactory sf;
 
   public FormulaScanner(java.io.Reader r, ComplexSymbolFactory sf) {

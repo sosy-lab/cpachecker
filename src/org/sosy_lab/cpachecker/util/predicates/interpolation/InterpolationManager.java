@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
@@ -56,7 +55,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -77,12 +75,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -214,10 +213,6 @@ public final class InterpolationManager {
     }
   }
 
-  public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
-    return fmgr.dumpFormula(bfmgr.and(cex.getCounterExampleFormulas()));
-  }
-
   /**
    * Counterexample analysis.
    * This method is just an helper to delegate the actual work
@@ -335,7 +330,7 @@ public final class InterpolationManager {
         logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+        try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
@@ -591,7 +586,8 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMultimap.<Integer, Integer>of());
+      return CounterexampleTraceInfo.feasible(
+          f, getModel(pProver), ImmutableMultimap.<Integer, Integer>of());
     }
 
     // add formula to solver environment
@@ -602,8 +598,9 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      Model model = getModel(pProver);
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), pmgr.getBranchingPredicateValuesFromModel(model));
+      List<ValueAssignment> model = getModel(pProver);
+      return CounterexampleTraceInfo.feasible(
+          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -612,18 +609,19 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
-          HashMultimap.<Integer, Integer>create());
+      return CounterexampleTraceInfo.feasible(
+          f, ImmutableList.<ValueAssignment>of(),
+          ImmutableMultimap.<Integer, Integer>of());
     }
   }
 
-  private Model getModel(BasicProverEnvironment<?> pItpProver) {
+  private List<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
     try {
-      return pItpProver.getModel();
+      return ImmutableList.copyOf(pItpProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+      return ImmutableList.of();
     }
   }
 

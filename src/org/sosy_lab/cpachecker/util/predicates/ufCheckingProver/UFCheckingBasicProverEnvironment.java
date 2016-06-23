@@ -35,16 +35,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.AssignableTerm.Function;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
-import com.google.common.collect.Iterables;
-
+/**
+ * Get the model, substitute implementation for UFs which were used to replace
+ * non-linear numerical operations (overflow/etc), and if the model does not
+ * hold anymore, generate a new one.
+ */
 public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironment<T> {
 
   private final BasicProverEnvironment<T> delegate;
@@ -142,15 +145,22 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
 
       final Model model = getModel();
       final List<BooleanFormula> constraints = new ArrayList<>();
-      for (Function uf : Iterables.filter(model.keySet(), Function.class)) {
-        final Object value = model.get(uf);
-        final BooleanFormula newAssignment = faMgr.evaluate(uf, value);
+
+      for (ValueAssignment entry : model) {
+        Formula f = entry.getKey();
+        if (!entry.isFunction()) {
+
+          // We are only interested in UFs.
+          continue;
+        }
+
+        final Object value = model.evaluate(f);
+        final BooleanFormula newAssignment = faMgr.evaluate(entry, value);
 
         if (!bfmgr.isTrue(newAssignment)) {
           constraints.add(newAssignment);
         }
       }
-
       if (constraints.isEmpty()) {
         logger.log(Level.FINE, "no UFs to improve");
         break;
@@ -182,10 +192,5 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public void close() {
     delegate.close();
-  }
-
-  @Override
-  public <E extends Formula> E evaluate(E f) {
-    return delegate.evaluate(f);
   }
 }

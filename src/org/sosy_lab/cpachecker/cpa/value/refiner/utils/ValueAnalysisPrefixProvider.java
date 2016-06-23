@@ -43,8 +43,12 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
   public ValueAnalysisPrefixProvider(LogManager pLogger, CFA pCfa, Configuration config)
       throws InvalidConfigurationException {
 
-    super(new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
-        new ValueAnalysisState(),
-        pLogger, pCfa, config, ValueAnalysisCPA.class);
+    super(
+        new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
+        new ValueAnalysisState(pCfa.getMachineModel()),
+        pLogger,
+        pCfa,
+        config,
+        ValueAnalysisCPA.class);
   }
 }

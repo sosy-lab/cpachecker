@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType implements CComplexType, Serializable {
+public final class CCompositeType implements CComplexType {
 
   private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;

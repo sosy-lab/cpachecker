@@ -28,6 +28,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
@@ -43,14 +44,21 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
@@ -67,17 +75,13 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-@Options(prefix = "cpa.arg")
+@Options(prefix="cpa.arg")
 public class ARGStatistics implements IterationStatistics {
 
   @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
 
-  @Option(
-    secure = true,
-    name = "export",
-    description = "export final ARG as .dot and/or .graphml file"
-  )
+  @Option(secure = true, name = "export", description = "export final ARG as .dot and/or .graphml file")
   private boolean exportARG = true;
 
   private enum ExportType {
@@ -99,18 +103,17 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path graphMLFile = Paths.get("ARG.graphml");
 
+  @Option(secure=true, name="proofWitness",
+      description="export a proof as .graphml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path proofWitness = null;
+
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
 
-  @Option(
-    secure = true,
-    name = "simplifiedARG.graphml",
-    description =
-        "export final ARG as "
-            + ".graphml file, showing only loop heads and function entries/exists"
-  )
+  @Option(secure = true, name = "simplifiedARG.graphml", description = "export final ARG as .graphml file, showing only loop heads and function entries/exists")
   @FileOption(Type.OUTPUT_FILE)
   private Path simplifiedGraphMLFile = Paths.get("ARGSimplified.graphml");
 
@@ -131,18 +134,17 @@ public class ARGStatistics implements IterationStatistics {
 
   private final @Nullable CEXExporter cexExporter;
   private final CounterexamplesSummary cexSummary;
+  private final ARGPathExporter argPathExporter;
 
-  public ARGStatistics(
-      final Configuration config,
-      final LogManager pLogger,
-      final @Nullable CEXExporter pCexExporter,
-      final CounterexamplesSummary pCexSummary)
+  public ARGStatistics(Configuration config, LogManager pLogger,
+    @Nullable CEXExporter pCexExporter, ARGPathExporter pARGPathExporter, CounterexamplesSummary pCexSummary)
       throws InvalidConfigurationException {
 
     config.inject(this);
 
     logger = pLogger;
     cexSummary = pCexSummary;
+    argPathExporter = pARGPathExporter;
     cexExporter = pCexExporter;
 
     if (argFile == null
@@ -260,6 +262,16 @@ public class ARGStatistics implements IterationStatistics {
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
+
+    if (proofWitness != null) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, proofWitness))) {
+        argPathExporter.writeProofWitness(w, rootState,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysTrue());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
 
     if (argFile != null && (exportType == ExportType.DOT || exportType == ExportType.BOTH)) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {

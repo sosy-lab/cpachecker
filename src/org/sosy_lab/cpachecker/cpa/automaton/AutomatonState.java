@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -52,6 +53,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.IOException;
@@ -86,6 +89,7 @@ public class AutomatonState
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
+          ExpressionTrees.<AExpression>getTrue(),
           0, 0, false, null);
     }
 
@@ -111,6 +115,7 @@ public class AutomatonState
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
+          ExpressionTrees.<AExpression>getTrue(),
           0, 0, true, null);
     }
 
@@ -136,6 +141,7 @@ public class AutomatonState
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
+          ExpressionTrees.<AExpression>getTrue(),
           0, 0, false, null);
     }
 
@@ -160,6 +166,7 @@ public class AutomatonState
           AutomatonInternalState.BOTTOM.getTransitions(),
           pAutomatonCPA, ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
+          ExpressionTrees.<AExpression>getTrue(),
           0, 0, false, null);
     }
 
@@ -183,6 +190,7 @@ public class AutomatonState
 
   private final ImmutableList<Pair<AStatement, Boolean>> assumptions;
   private final ImmutableList<AAstNode> shadowCode;
+  private transient final ExpressionTree<AExpression> candidateInvariants;
 
   private final Map<? extends Property, ResultValue<?>> violatedPropertyInstance;
 
@@ -193,28 +201,33 @@ public class AutomatonState
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes, List<AAstNode> pShadowCode,
+      ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches, int failedMatches,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     return automatonStateFactory(pVars, pInternalState, pInternalState.getTransitions(), pAutomatonCPA,
-        pInstantiatedAssumes, pShadowCode, successfulMatches, failedMatches, false, pViolatedProperties);
+        pInstantiatedAssumes, pShadowCode, pCandidateInvariants, successfulMatches, failedMatches,
+        false, pViolatedProperties);
   }
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes, List<AAstNode> pShadowCode,
+      ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches, int failedMatches, boolean pIntermediateTarget,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     return automatonStateFactory(pVars, pInternalState, pInternalState.getTransitions(), pAutomatonCPA,
-        pInstantiatedAssumes, pShadowCode, successfulMatches, failedMatches, pIntermediateTarget, pViolatedProperties);
+        pInstantiatedAssumes, pShadowCode, pCandidateInvariants,
+        successfulMatches, failedMatches, pIntermediateTarget, pViolatedProperties);
   }
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, List<AutomatonTransition> pOutgoingTransitions,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes, List<AAstNode> pShadowCode,
+      ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches, int failedMatches, boolean pIntermediateTarget,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
@@ -224,6 +237,7 @@ public class AutomatonState
       return new AutomatonState(pVars, pInternalState, pOutgoingTransitions,
           pAutomatonCPA,
           pInstantiatedAssumes, pShadowCode,
+          pCandidateInvariants,
           successfulMatches, failedMatches,
           pIntermediateTarget,
           pViolatedProperties);
@@ -237,7 +251,7 @@ public class AutomatonState
 
     return automatonStateFactory(pVars, pInternalState, pInternalState.getTransitions(), pAutomatonCPA,
         ImmutableList.<Pair<AStatement, Boolean>> of(),
-        ImmutableList.<AAstNode> of(),
+        ImmutableList.<AAstNode> of(), ExpressionTrees.<AExpression>getTrue(),
         successfulMatches, failedMatches, pIntermediateTarget, pViolatedProperties);
   }
 
@@ -247,6 +261,7 @@ public class AutomatonState
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       List<AAstNode> pShadowCode,
+      ExpressionTree<AExpression> pCandidateInvariants,
       int pSuccessfulMatches,
       int pFailedMatches,
       boolean pIntermediateTarget,
@@ -261,6 +276,7 @@ public class AutomatonState
     checkFeasibility = pIntermediateTarget;
     assumptions = pInstantiatedAssumes;
     shadowCode = ImmutableList.copyOf(pShadowCode);
+    candidateInvariants = pCandidateInvariants;
 
     if (isTarget()) {
       checkArgument(pViolatedProperties.size() > 0);
@@ -452,7 +468,8 @@ public class AutomatonState
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
       super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.getLeavingTransitions(),
-          pPreviousState.automatonCPA, pPreviousState.getAssumptions(), pPreviousState.getShadowCode(), -1, -1, false, null);
+          pPreviousState.automatonCPA, pPreviousState.getAssumptions(), pPreviousState.getShadowCode(),
+          pPreviousState.getCandidateInvariants(),-1, -1, false, null);
       previousState = pPreviousState;
     }
 
@@ -496,8 +513,7 @@ public class AutomatonState
     if (pProperty.equalsIgnoreCase(INTERNAL_STATE_IS_TARGET_PROPERTY)) { return getInternalState().isTarget(); }
     String[] parts = pProperty.split("==");
     if (parts.length != 2) {
-      throw new InvalidQueryException(
-          "The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+      throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     } else {
       String left = parts[0].trim();
       String right = parts[1].trim();
@@ -560,6 +576,10 @@ public class AutomatonState
   @Override
   public ImmutableList<Pair<AStatement, Boolean>> getAssumptions() {
     return assumptions;
+  }
+
+  public ExpressionTree<AExpression> getCandidateInvariants() {
+    return candidateInvariants;
   }
 
   public AutomatonInternalState getInternalState() {

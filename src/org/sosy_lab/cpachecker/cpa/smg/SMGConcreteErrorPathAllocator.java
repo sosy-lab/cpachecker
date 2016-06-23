@@ -33,7 +33,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -64,11 +63,12 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -109,18 +109,9 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public RichModel allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
-
-    pPath.remove(pPath.size() - 1);
-
+  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-
-    CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
-
-    RichModel model = RichModel.empty();
-
-    return model.withAssignmentInformation(pathWithAssignments);
+    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
@@ -339,7 +330,7 @@ public class SMGConcreteErrorPathAllocator {
       if(symbolicValue == 0) {
         value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGEdgePointsTo pointer;
+        SMGAddressValue pointer;
         try {
           pointer = pSMGState.getPointerFromValue(symbolicValue);
         } catch (SMGInconsistentException e) {
@@ -348,7 +339,7 @@ public class SMGConcreteErrorPathAllocator {
 
 
         //TODO ugly, use common representation
-        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
+        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset().getAsInt(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
         value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {

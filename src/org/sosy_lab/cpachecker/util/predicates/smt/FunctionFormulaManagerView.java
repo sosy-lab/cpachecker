@@ -108,6 +108,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
   }
 
 
+  @Override
   public <T extends Formula> T declareAndCallUninterpretedFunction(
       String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
 
@@ -141,6 +142,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
     return wrap(pFuncType.getReturnType(), f);
   }
 
+  @Override
   public <T extends Formula> T callUninterpretedFunction(
       UfDeclaration<T> pFuncType, Formula... pArgs) {
     return callUninterpretedFunction(pFuncType, Arrays.asList(pArgs));

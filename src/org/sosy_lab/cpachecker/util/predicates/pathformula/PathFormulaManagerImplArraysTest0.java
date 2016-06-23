@@ -102,8 +102,7 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
         .setOption("cpa.predicate.handleArrays", "true")
         .build();
 
-    solver = new Solver(factory, config, TestLogManager.getInstance(),
-        Suppliers.ofInstance(ShutdownNotifier.createDummy()));
+    solver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     mgv = solver.getFormulaManager();
 
     pfmgrFwd =

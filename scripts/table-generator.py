@@ -42,7 +42,7 @@ benchexec.tools.__path__ += [os.path.join(os.path.dirname(__file__), 'benchmark'
 import benchexec.tablegenerator
 
 benchexec.tablegenerator.DEFAULT_OUTPUT_PATH = 'test/results/'
-benchexec.tablegenerator.LIB_URL = 'http://www.sosy-lab.org/lib'
+benchexec.tablegenerator.LIB_URL = 'https://www.sosy-lab.org/lib'
 
 try:
     sys.exit(benchexec.tablegenerator.main())

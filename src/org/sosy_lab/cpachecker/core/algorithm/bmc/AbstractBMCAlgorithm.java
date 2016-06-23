@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -75,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -108,12 +110,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
 
-  @Option(secure=true, description="Adds pre-loop information to the induction hypothesis. "
-      + "This is unsound and should generally not be used; however "
-      + "it is provided as an implementation of the technique introduced in "
-      + "the SV-COMP 2013 competition contribution of ESBMC 1.20.")
-  private boolean havocLoopTerminationConditionVariablesOnly = false;
-
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -137,8 +133,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private final TargetLocationProvider targetLocationProvider;
 
   private final ShutdownRequestListener propagateSafetyInterrupt;
-
-  private Collection<CFANode> targetLocations;
 
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
@@ -180,7 +174,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
         @Override
         public void shutdownRequested(String pReason) {
-          if (invariantGenerator.isProgramSafe()) {
+          InvariantGenerator invariantGenerator = AbstractBMCAlgorithm.this.invariantGenerator;
+          if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
             pShutdownManager.requestShutdown(pReason);
           }
         }
@@ -190,12 +185,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       propagateSafetyInterrupt = null;
     }
 
+    shutdownNotifier = pShutdownManager.getNotifier();
+    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          invariantGeneratorNotifier, pCFA, pReachedSetFactory);
+          invariantGeneratorNotifier, pCFA, pReachedSetFactory, targetLocationProvider);
     } else if (induction && addInvariantsByAI) {
       invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
     } else {
@@ -210,9 +208,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    shutdownNotifier = pShutdownManager.getNotifier();
 
-    targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
@@ -251,8 +247,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
       AlgorithmStatus status;
 
-      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration();
-          @SuppressWarnings("resource")
+      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+           @SuppressWarnings("resource")
           KInductionProver kInductionProver = createInductionProver()) {
 
         do {
@@ -408,7 +404,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (safe) {
       pInductionProblem.assumeTruth(pReachedSet);
     } else {
-      analyzeCounterexample(pReachedSet, pProver);
+      analyzeCounterexample(program, pReachedSet, pProver);
     }
 
     // Now pop the program formula off of the stack
@@ -424,12 +420,16 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * Subclasses can use this method to further analyze the counterexample
    * if necessary.
    *
+   * @param pCounterexample the satisfiable formula that contains the specification violation
    * @param pReachedSet the reached used for analyzing
-   * @param pProver the prover that should be used
+   * @param pProver the prover that was used (has pCounterexample formula pushed onto it)
    * @throws CPATransferException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
-  protected void analyzeCounterexample(final ReachedSet pReachedSet, final ProverEnvironment pProver)
+  protected void analyzeCounterexample(
+      final BooleanFormula pCounterexample,
+      final ReachedSet pReachedSet,
+      final ProverEnvironment pProver)
       throws CPATransferException, InterruptedException {
     // by default, do nothing (just a hook for subclasses)
   }
@@ -499,7 +499,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         invariantGenerator,
         stats,
         reachedSetFactory,
-        havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
   }
 
@@ -509,14 +508,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the potential target locations.
    */
   protected Collection<CFANode> getTargetLocations() {
-    if (this.targetLocations != null) {
-      return this.targetLocations;
-    }
-    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
-    if (targetLocations == null) {
-      targetLocations = cfa.getAllNodes();
-    }
-    return this.targetLocations = targetLocations;
+    return targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
 
   }
 }

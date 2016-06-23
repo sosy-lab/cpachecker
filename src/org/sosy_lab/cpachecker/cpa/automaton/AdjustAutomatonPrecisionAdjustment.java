@@ -77,7 +77,7 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
     final PresenceCondition pc = PresenceConditions.extractPresenceCondition(pFullState);
     final Pair<AutomatonInternalState, PresenceCondition> cacheKey = Pair.of(state.getInternalState(), pc);
 
-    List<AutomatonTransition> relevantTransitions = null;
+    List<AutomatonTransition> relevantTransitions;
 
     //
     // Which transitions of relevant for this automaton state with the given precision?
@@ -123,6 +123,7 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
           state.getAutomatonCPA(),
           state.getAssumptions(),
           state.getShadowCode(),
+          state.getCandidateInvariants(),
           state.getMatches(),
           state.getFailedMatches(), false,
           state.getViolatedPropertyInstances());

@@ -82,6 +82,8 @@ final public class SMGJoin {
     Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
     Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
 
+    //TODO assert stack smg1 == stack smg2
+
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();

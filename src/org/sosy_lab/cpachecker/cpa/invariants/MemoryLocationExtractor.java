@@ -225,7 +225,7 @@ public class MemoryLocationExtractor {
   }
 
   public static MemoryLocation scope(String pVar, String pFunction) {
-    return MemoryLocation.valueOf(pFunction, pVar, 0);
+    return MemoryLocation.valueOf(pFunction, pVar);
   }
 
   public boolean isFunctionScoped(String pScopedVariableName) {

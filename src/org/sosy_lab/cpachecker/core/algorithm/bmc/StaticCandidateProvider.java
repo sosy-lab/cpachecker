@@ -33,6 +33,8 @@ import com.google.common.collect.Sets;
 
 public class StaticCandidateProvider implements CandidateGenerator {
 
+  private final Set<CandidateInvariant> confirmedInvariants = Sets.newLinkedHashSet();
+
   private final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
   private boolean produced = false;
@@ -60,6 +62,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
     for (CandidateInvariant candidate : pCandidates) {
       candidates.remove(candidate);
     }
+    Iterables.addAll(confirmedInvariants, pCandidates);
   }
 
   @Override
@@ -68,6 +71,10 @@ public class StaticCandidateProvider implements CandidateGenerator {
       return Collections.<CandidateInvariant>emptyIterator();
     }
     return candidates.iterator();
+  }
+
+  public Set<CandidateInvariant> getConfirmed() {
+    return Collections.unmodifiableSet(confirmedInvariants);
   }
 
 }

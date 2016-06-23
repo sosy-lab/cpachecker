@@ -30,14 +30,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -49,13 +47,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.Maps;
 
 @Options(prefix = "pcc.backwardtargets")
 public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy implements StatisticsProvider {
 
-  private final Algorithm algorithm;
+  private final AlgorithmWithPropertyCheck algorithm;
   private AbstractState[] backwardTargets;
 
   @Option(secure = true, description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
@@ -159,9 +158,7 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     super.collectStatistics(statsCollection);
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
-    }
+    algorithm.collectStatistics(statsCollection);
   }
 
 }

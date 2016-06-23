@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.lang.annotation.Target;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -55,6 +56,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
@@ -124,8 +126,7 @@ public final class AbstractStates {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  public static <T extends AbstractState & Targetable> Collection<T> extractsActiveTargets(AbstractState pState) {
+  public static <T extends Targetable & AbstractState> Collection<T> extractsActiveTargets(AbstractState pState) {
 
     if (pState instanceof AbstractSingleWrapperState) {
       AbstractState wrapped = ((AbstractSingleWrapperState)pState).getWrappedState();
@@ -134,7 +135,7 @@ public final class AbstractStates {
     } else if (pState instanceof AbstractWrapperState) {
       Collection<T> result = Lists.newArrayList();
       for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
-        result.addAll((Collection<? extends T>) extractsActiveTargets(wrapped));
+        result.addAll(AbstractStates.<T>extractsActiveTargets(wrapped));
       }
       return result;
 
@@ -148,12 +149,10 @@ public final class AbstractStates {
 
   public static <T extends Property> Set<T> extractViolatedProperties(AbstractState pState, Class<T> pType) {
     Set<T> result = Sets.newHashSet();
-    Collection<? extends Targetable> targetStates = extractsActiveTargets(pState);
 
-    for (Targetable e: targetStates) {
+    for (Targetable e: Iterables.filter(AbstractStates.extractsActiveTargets(pState), Targetable.class)) {
       for (Property p: e.getViolatedProperties()) {
         Preconditions.checkState(pType.isInstance(p));
-        @SuppressWarnings("unchecked")
         T property = (T) p;
         result.add(property);
       }

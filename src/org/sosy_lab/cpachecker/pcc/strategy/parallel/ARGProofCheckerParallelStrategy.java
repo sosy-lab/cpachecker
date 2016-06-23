@@ -521,7 +521,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
     public synchronized Collection<ARGState> getResult() throws InterruptedException {
       try {
-        if (numSetResults != max) {
+        while (numSetResults != max) {
           wait();
         }
         if (!success) {
@@ -535,7 +535,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       }
     }
 
-    public void increaseSetResults() {
+    private void increaseSetResults() {
       numSetResults++;
       if (numSetResults == max) {
         notify();

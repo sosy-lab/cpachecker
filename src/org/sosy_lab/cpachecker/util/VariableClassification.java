@@ -25,6 +25,21 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -89,7 +104,7 @@ public class VariableClassification {
       ImmutableMap.<String, Partition>of(),
       ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of());
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   VariableClassification(boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
@@ -120,7 +135,7 @@ public class VariableClassification {
     edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
   @VisibleForTesting
@@ -334,7 +349,7 @@ public class VariableClassification {
 
       // check for overflow
       if(newScore < oldScore) {
-        logger.log(Level.WARNING,
+        logger.logOnce(Level.WARNING,
             "Highest possible value reached in score computation."
                 + " Error path prefix preference may not be applied reliably.");
         logger.logf(Level.FINE,

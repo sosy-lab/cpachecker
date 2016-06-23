@@ -29,17 +29,17 @@ import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
 
@@ -92,12 +92,11 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
                       startOfSubTree + "@" + positionOfA + "=" + currentSubtree + " vs " + itpStack.size();
 
       // build partition B
-      final List<T> B = new ArrayList<>();
       for (Pair<BooleanFormula, Integer> externalChild : itpStack) {
-        B.add(itpProver.push(externalChild.getFirst()));
+        itpProver.push(externalChild.getFirst());
       }
       for (int i = positionOfA + 1; i < formulas.size(); i++) {
-        B.add(itpProver.push(formulas.get(i).getFirst()));
+        itpProver.push(formulas.get(i).getFirst());
       }
 
       final boolean check = itpProver.isUnsat();

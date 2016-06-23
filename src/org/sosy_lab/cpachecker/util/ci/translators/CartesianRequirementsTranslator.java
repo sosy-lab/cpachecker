@@ -61,6 +61,16 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
 
   protected abstract List<String> getVarsInRequirements(final T requirement);
 
+  protected List<String> getVarsInRequirements(final T requirement, final @Nullable Collection<String> pRequiredVars) {
+    List<String> list = new ArrayList<>();
+    for (String var : getVarsInRequirements(requirement)) {
+      if (pRequiredVars == null || pRequiredVars.contains(var)) {
+        list.add(var);
+      }
+    }
+    return list;
+  }
+
   @Override
   protected Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars) {
     List<String> firstReturn = writeVarDefinition(getVarsInRequirements(requirement), indices, pRequiredVars);

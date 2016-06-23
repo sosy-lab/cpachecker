@@ -505,11 +505,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, final CRightHandSide rhs,
+      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
+
+    if (rhs instanceof CExpression) {
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+    }
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
     return assignmentHandler.handleAssignment(lhs, lhsForChecking, rhs, false, null);

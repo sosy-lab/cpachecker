@@ -256,7 +256,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new ValueAnalysisState();
+    return new ValueAnalysisState(cfa.getMachineModel());
   }
 
   @Override

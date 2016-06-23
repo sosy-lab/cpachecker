@@ -175,6 +175,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public BitvectorFormula makeVariable(BitvectorType type, String pVar) {
+    return wrap(type, numericFormulaManager.makeVariable(pVar));
+  }
+
+  @Override
   public int getLength(BitvectorFormula pNumber) {
     return ((BitvectorType)getFormulaType(pNumber)).getSize();
   }

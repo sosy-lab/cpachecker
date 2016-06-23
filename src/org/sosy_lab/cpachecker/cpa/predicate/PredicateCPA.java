@@ -162,7 +162,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
     }
     blk.setCFA(cfa);
 
-    solver = Solver.create(config, logger, shutdownNotifierSupplier);
+    solver = Solver.create(config, logger, shutdownNotifierSupplier.get());
     FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
@@ -195,7 +195,8 @@ ProofChecker, AutoCloseable, AnalysisCache {
             solver,
             config,
             logger,
-            pShutdownNotifier);
+            pShutdownNotifier,
+            cfa.getLoopStructure());
 
     transfer = new PredicateTransferRelation(this, blk, config, direction, cfa);
 
@@ -324,7 +325,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     solver.close();
   }
 

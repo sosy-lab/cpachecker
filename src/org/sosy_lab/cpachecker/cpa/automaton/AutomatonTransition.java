@@ -30,8 +30,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
@@ -39,11 +43,10 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -61,6 +64,7 @@ public class AutomatonTransition {
   private final boolean assumptionTruth;
   private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AAstNode> shadowCode;
+  private final ExpressionTree<AExpression> candidateInvariants;
   private final ImmutableList<AutomatonAction> actions;
 
   private final ImmutableSet<? extends SafetyProperty> violatedWhenEnteringTarget;
@@ -75,15 +79,61 @@ public class AutomatonTransition {
   private final String followStateName;
   private AutomatonInternalState followState = null;
 
-  public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonAction> pActions, String pFollowStateName) {
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AStatement> pAssumptions,
+      boolean pAssumeTruth,
+      List<AAstNode> pOf,
+      ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      String pFollowStateName) {
 
+    this(pTrigger,
+        pAssertions,
+        pAssumptions,
+        pAssumeTruth,
+        pOf,
+        pCandidateInvariants,
+        pActions,
+        pFollowStateName, null,
+        ImmutableSet.<SafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of());
+  }
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AStatement> pAssumptions,
+      boolean pAssumeTruth,
+      List<AAstNode> pOf,
+      ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState) {
+
+    this(pTrigger,
+        pAssertions,
+        pAssumptions,
+        pAssumeTruth,
+        pOf,
+        pCandidateInvariants,
+        pActions,
+        pFollowState.getName(), pFollowState,
+        ImmutableSet.<SafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of());
+  }
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      ImmutableList<AutomatonAction> pOf,
+      String pTarget) {
     this(pTrigger,
         ImmutableList.<AutomatonBoolExpr>of(),
         ImmutableList.<AStatement>of(), true,
         ImmutableList.<AAstNode>of(),
-        pActions,
-        pFollowStateName, null,
+        ExpressionTrees.<AExpression>getTrue(),
+        pOf,
+        pTarget, null,
         ImmutableSet.<SafetyProperty>of(),
         ImmutableSet.<SafetyProperty>of());
   }
@@ -93,6 +143,7 @@ public class AutomatonTransition {
 
     this(pTrigger, pAssertions, ImmutableList.<AStatement>of(), true,
         ImmutableList.<AAstNode>of(),
+        ExpressionTrees.<AExpression>getTrue(),
         pActions, pFollowState.getName(), pFollowState,
         ImmutableSet.<SafetyProperty>of(),
         ImmutableSet.<SafetyProperty>of());
@@ -107,7 +158,9 @@ public class AutomatonTransition {
       Set<SafetyProperty> pViolatedWhenEnteringTarget) {
 
     this(pTrigger, ImmutableList.<AutomatonBoolExpr>of(),
-        pAssumption, pAssumeTruth, pShadowCode, pActions,
+        pAssumption, pAssumeTruth, pShadowCode,
+        ExpressionTrees.<AExpression>getTrue(),
+        pActions,
         pFollowState.getName(), pFollowState,
         Preconditions.checkNotNull(pViolatedWhenEnteringTarget),
         ImmutableSet.<SafetyProperty>of());
@@ -124,6 +177,7 @@ public class AutomatonTransition {
     this(pTrigger, pAssertions,
         pAssumption, pAssumeTruth,
         pShadowCode,
+        ExpressionTrees.<AExpression>getTrue(),
         pActions,
         pFollowState.getName(), pFollowState,
         ImmutableSet.<SafetyProperty>of(),
@@ -141,6 +195,7 @@ public class AutomatonTransition {
     this(pTrigger, pAssertions, pAssumption,
         pAssumeTruth,
         pShadowCode,
+        ExpressionTrees.<AExpression>getTrue(),
         pActions, pFollowStateName, null,
         ImmutableSet.<SafetyProperty>of(),
         ImmutableSet.<SafetyProperty>of());
@@ -151,6 +206,7 @@ public class AutomatonTransition {
       List<AStatement> pAssumption,
       boolean pAssumeTruth,
       List<AAstNode> pShadowCode,
+      ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState,
       Set<SafetyProperty> pViolatedWhenEnteringTarget) {
@@ -158,6 +214,7 @@ public class AutomatonTransition {
     this(pTrigger, pAssertions,
         pAssumption, pAssumeTruth,
         pShadowCode,
+        pCandidateInvariants,
         pActions,
         pFollowState.getName(), pFollowState,
         Preconditions.checkNotNull(pViolatedWhenEnteringTarget),
@@ -169,6 +226,7 @@ public class AutomatonTransition {
       @Nullable List<AStatement> pAssumption,
       boolean pAssumeTruth,
       @Nullable List<AAstNode> pShadowCode,
+      ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pFollowStateName,
       @Nullable AutomatonInternalState pFollowState,
@@ -188,6 +246,8 @@ public class AutomatonTransition {
       this.assumption = ImmutableList.<AStatement>copyOf(pAssumption);
       this.assumptionTruth = pAssumeTruth;
     }
+
+    this.candidateInvariants = checkNotNull(pCandidateInvariants);
 
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
@@ -403,12 +463,14 @@ public class AutomatonTransition {
     final ImmutableList<AStatement> assumption;
     final boolean assumptionTruth;
     final ImmutableList<AAstNode> shadowCode;
+    final ExpressionTree<AExpression> candidateInvariants;
     final ImmutableList<AutomatonAction> actions;
     final ImmutableSet<? extends SafetyProperty> violatedWhenEnteringTarget;
     final ImmutableSet<? extends SafetyProperty> violatedWhenAssertionFailed;
 
     public PlainAutomatonTransition(AutomatonBoolExpr pTrigger, AutomatonBoolExpr pAssertion,
         ImmutableList<AStatement> pAssumption, ImmutableList<AAstNode> pShadowCode,
+        ExpressionTree<AExpression> pCandidateInvariants,
         ImmutableList<AutomatonAction> pActions,
         ImmutableSet<? extends SafetyProperty> pViolatedWhenEnteringTarget,
         ImmutableSet<? extends SafetyProperty> pViolatedWhenAssertionFailed) {
@@ -417,6 +479,7 @@ public class AutomatonTransition {
       assumptionTruth = true;
 
       shadowCode = Preconditions.checkNotNull(pShadowCode);
+      candidateInvariants = Preconditions.checkNotNull(pCandidateInvariants);
 
       trigger = Preconditions.checkNotNull(pTrigger);
       assertion = Preconditions.checkNotNull(pAssertion);
@@ -432,6 +495,7 @@ public class AutomatonTransition {
           pT.assertion,
           pT.assumption,
           pT.shadowCode,
+          pT.candidateInvariants,
           pT.actions,
           pT.violatedWhenEnteringTarget,
           pT.violatedWhenAssertionFailed);
@@ -445,6 +509,7 @@ public class AutomatonTransition {
       result = prime * result + assertion.hashCode();
       result = prime * result + assumption.hashCode();
       result = prime * result + shadowCode.hashCode();
+      result = prime * result + candidateInvariants.hashCode();
       result = prime * result + trigger.hashCode();
       result = prime * result + violatedWhenEnteringTarget.hashCode();
       result = prime * result + violatedWhenAssertionFailed.hashCode();
@@ -480,6 +545,10 @@ public class AutomatonTransition {
         return false;
       }
 
+      if (!candidateInvariants.equals(other.candidateInvariants)) {
+        return false;
+      }
+
       if (!trigger.equals(other.trigger)) {
         return false;
       }
@@ -502,4 +571,8 @@ public class AutomatonTransition {
     return shadowCode;
   }
 
+
+  public ExpressionTree<AExpression> getCandidateInvariants() {
+    return candidateInvariants;
+  }
 }

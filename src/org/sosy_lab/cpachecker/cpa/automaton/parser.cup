@@ -50,9 +50,11 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -281,26 +283,31 @@ Transitions   ::= Transition:t Transitions:lst {: lst.addAll(0, t); RESULT = lst
             ;
  
 Transition   ::= Bool:trigger ARROW Split:a Encode:ec GOTO IDENTIFIER:follow NEGATION GOTO IDENTIFIER:followneg SEMICOLON
-               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()), 
+               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()),
                new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ec, ImmutableList.<AutomatonAction>of(), followneg.toString())); :}
              | Bool:trigger ARROW Split:a Encode:ec GOTO IDENTIFIER:follow NEGATION ERROR SEMICOLON
-               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()), 
-               new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AAstNode>of(), ImmutableList.<AutomatonAction>of(), AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
+               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ExpressionTrees.<AExpression>getTrue(), ImmutableList.<AutomatonAction>of(), follow.toString()),
+               new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false,
+               ImmutableList.<AAstNode>of(), ExpressionTrees.<AExpression>getTrue(),
+               ImmutableList.<AutomatonAction>of(), AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
              | Bool:trigger ARROW Split:a Encode:ec GOTO IDENTIFIER:follow NEGATION ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
-               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()), 
-               new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AAstNode>of(), ImmutableList.<AutomatonAction>of(), AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
+               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ec, ImmutableList.<AutomatonAction>of(), follow.toString()),
+               new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false,
+               ImmutableList.<AAstNode>of(), ExpressionTrees.<AExpression>getTrue(),
+               ImmutableList.<AutomatonAction>of(), AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, follow.toString(), null, ImmutableSet.<SafetyProperty>of(), propFact.createAssertionProperties(ass))); :}
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a,
+               true, ec, ExpressionTrees.<AExpression>getTrue(), acts, follow.toString(), null, ImmutableSet.<SafetyProperty>of(), propFact.createAssertionProperties(ass))); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts ERROR SEMICOLON
-               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, ExpressionTrees.<AExpression>getTrue(), acts, AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
-               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, ExpressionTrees.<AExpression>getTrue(), acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts STOP SEMICOLON
-               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, AutomatonInternalState.BOTTOM)); :}
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, ExpressionTrees.<AExpression>getTrue(), acts, AutomatonInternalState.BOTTOM)); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts INACTIVE SEMICOLON
-               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, AutomatonInternalState.INACTIVE)); :}
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, ExpressionTrees.<AExpression>getTrue(), acts, AutomatonInternalState.INACTIVE)); :}
              | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts BREAK SEMICOLON
-               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, acts, AutomatonInternalState.BREAK)); :}
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, ec, ExpressionTrees.<AExpression>getTrue(), acts, AutomatonInternalState.BREAK)); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}

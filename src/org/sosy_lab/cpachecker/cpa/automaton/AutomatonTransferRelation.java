@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownStat
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA.ControlAutomatonOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
@@ -433,6 +435,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             cpa,
             instantiatedAssumes,
             instantiatedShadowCode,
+            t.getCandidateInvariants(),
             pState.getMatches() + 1,
             pState.getFailedMatches(),
             checkFeasibility,

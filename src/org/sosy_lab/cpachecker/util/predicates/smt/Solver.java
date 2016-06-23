@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,25 +37,27 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.ConjunctionSplitter;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 import org.sosy_lab.solver.SolverContextFactory;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.google.common.base.Verify;
 import com.google.common.collect.Maps;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Encapsulation of an SMT solver.
@@ -68,15 +71,24 @@ import com.google.common.collect.Maps;
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
 @Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
-public final class Solver implements AnalysisCache, AutoCloseable {
+public final class Solver implements AutoCloseable, AnalysisCache {
 
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
 
-  private final UFCheckingProverOptions ufCheckingProverOptions;
+  @Option(secure = true, description = "Which SMT solver to use.")
+  private Solvers solver = Solvers.SMTINTERPOL;
 
-  private final Supplier<ShutdownNotifier> notifierSupplier;
+  @Option(
+      secure = true,
+      description =
+          "Which solver to use specifically for interpolation (default is to use the main one)."
+  )
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
+  private @Nullable Solvers interpolationSolver = null;
+
+  private final UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -103,14 +115,25 @@ public final class Solver implements AnalysisCache, AutoCloseable {
    */
   @VisibleForTesting
   public Solver(SolverContextFactory pSolverFactory,
-      Configuration config, LogManager pLogger,
-      Supplier<ShutdownNotifier> pNotifierSupplier) throws InvalidConfigurationException {
-
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
 
-    notifierSupplier = pNotifierSupplier;
-    solvingContext = pSolverFactory.getSolverContext();
-    interpolatingContext = pSolverFactory.getSolverContextForInterpolation();
+    if (solver.equals(interpolationSolver)) {
+      // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
+      // which copies formula from and to the main solver using string serialization.
+      // We don't need this if the solvers are the same anyway.
+      interpolationSolver = null;
+    }
+
+    solvingContext = pSolverFactory.generateContext(solver);
+
+    // Instantiate another SMT solver for interpolation if requested.
+    if (interpolationSolver != null) {
+      interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
+    } else {
+      interpolatingContext = solvingContext;
+    }
+
     fmgr = new FormulaManagerView(solvingContext.getFormulaManager(),
         config,
         pLogger
@@ -130,24 +153,10 @@ public final class Solver implements AnalysisCache, AutoCloseable {
    * The returned instance should be closed by calling {@link #close}
    * when it is not used anymore.
    */
-  public static Solver create(Configuration pConfig, LogManager pLogger,
-      Supplier<ShutdownNotifier> pNotifierSupplier)
-          throws InvalidConfigurationException {
-
-    SolverContextFactory factory = new SolverContextFactory(pConfig, pLogger, pNotifierSupplier.get());
-    return new Solver(factory, pConfig, pLogger, pNotifierSupplier);
-  }
-
   public static Solver create(Configuration config, LogManager logger,
-      final ShutdownNotifier pShutdownNotifier)
-          throws InvalidConfigurationException {
-
-    return create(config, logger, new Supplier<ShutdownNotifier>() {
-      @Override
-      public ShutdownNotifier get() {
-        return pShutdownNotifier;
-      }
-    });
+      ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
+    SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
+    return new Solver(factory, config, logger);
   }
 
   /**
@@ -160,47 +169,24 @@ public final class Solver implements AnalysisCache, AutoCloseable {
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
-   */
-  public ProverEnvironment newProverEnvironment() {
-    return newProverEnvironment(false, false, notifierSupplier.get());
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for more complicated queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
    *
-   * The solver is told to enable model generation.
-   */
-  public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return newProverEnvironment(true, false, notifierSupplier.get());
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for more complicated queries.
    * This creates a fresh, new, environment in the solver.
    * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
-   *
-   * The solver is told to enable unsat-core generation.
    */
-  public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
-    return newProverEnvironment(false, true, notifierSupplier.get());
+  public ProverEnvironment newProverEnvironment(ProverOptions... options) {
+    return newProverEnvironment0(options);
   }
 
-  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore,
-      ShutdownNotifier pNotifier) {
-
+  private ProverEnvironment newProverEnvironment0(ProverOptions... options) {
     ProverEnvironment pe = solvingContext
-        .newProverEnvironment(pNotifier, generateModels, generateUnsatCore);
+        .newProverEnvironment(options);
 
     if (checkUFs) {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
     }
+
+    pe = new ProverEnvironmentView(pe, fmgr.getFormulaWrappingHandler());
 
     return pe;
   }
@@ -232,18 +218,22 @@ public final class Solver implements AnalysisCache, AutoCloseable {
       ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr, ufCheckingProverOptions);
     }
 
+    ipeA = new InterpolatingProverEnvironmentWithAssumptionsView<>(
+        ipeA,
+        fmgr.getFormulaWrappingHandler());
+
     return ipeA;
   }
 
   /**
    * Direct reference to the underlying SMT solver for optimization queries.
    * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link OptEnvironment#close()}.
+   * This environment needs to be closed after it is used by calling {@link OptimizationProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public OptEnvironment newOptEnvironment() {
-    OptEnvironment environment = solvingContext.newOptEnvironment();
-    environment = new OptEnvironmentView(environment, fmgr);
+  public OptimizationProverEnvironment newOptEnvironment() {
+    OptimizationProverEnvironment environment = solvingContext.newOptimizationProverEnvironment();
+    environment = new OptimizationProverEnvironmentView(environment, fmgr);
     return environment;
   }
 
@@ -290,7 +280,7 @@ public final class Solver implements AnalysisCache, AutoCloseable {
   public List<BooleanFormula> unsatCore(Iterable<BooleanFormula> constraints)
       throws SolverException, InterruptedException {
 
-    try (ProverEnvironment prover = newProverEnvironmentWithUnsatCoreGeneration()) {
+    try (ProverEnvironment prover = newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
       for (BooleanFormula constraint : constraints) {
         addConstraint(constraint);
       }
@@ -304,14 +294,7 @@ public final class Solver implements AnalysisCache, AutoCloseable {
    * add children one by one. Keep going recursively.
    */
   private void addConstraint(BooleanFormula constraint) {
-
-    List<BooleanFormula> splittedConjunction = bfmgr.visit(new ConjunctionSplitter(fmgr), constraint);
-    if (splittedConjunction == null) {
-      // in this case, we could not split the constraint and use it "as is".
-      splittedConjunction = Collections.singletonList(constraint);
-    }
-
-    for (BooleanFormula f : splittedConjunction) {
+    for (BooleanFormula f : bfmgr.splitConjunctions(constraint)) {
       addConstraint(f);
     }
   }
@@ -350,7 +333,7 @@ public final class Solver implements AnalysisCache, AutoCloseable {
    * may not be used anymore after closing.
    */
   @Override
-  public void close() throws Exception {
+  public void close() {
     // Reliably close both formula managers and re-throw exceptions,
     // such that no exception gets lost and both managers get closed.
     // Taken from https://stackoverflow.com/questions/24705055/wrapping-multiple-autocloseables
@@ -411,4 +394,5 @@ public final class Solver implements AnalysisCache, AutoCloseable {
       unsatCache.clear();
     }
   }
+
 }

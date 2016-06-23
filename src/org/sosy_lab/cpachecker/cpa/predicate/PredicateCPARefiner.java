@@ -38,19 +38,14 @@ import com.google.common.collect.UnmodifiableIterator;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -66,7 +61,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -85,7 +79,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -95,6 +88,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.UnmodifiableIterator;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -115,11 +115,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(secure=true, description="Conjunct the formulas that were computed as preconditions to get (infeasible) interpolation problems!")
   private boolean conjunctPreconditionFormulas = false;
 
-  @Option(secure=true,
-      description="where to dump the counterexample formula in case the error location is reached")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
-
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
 
@@ -138,8 +133,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
-  private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
-  private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
 
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
@@ -148,9 +141,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private List<CFANode> lastErrorPath = null;
 
   private final PathChecker pathChecker;
-  private final Solver solver;
   private final PredicateAssumeStore assumesStore;
 
+  protected final Solver solver;
   protected final PrefixProvider prefixProvider;
   protected final LogManager logger;
   protected final PathFormulaManager pfmgr;
@@ -307,48 +300,45 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   /**
    * Creates a new CounterexampleInfo object out of the given parameters.
    */
-  protected CounterexampleInfo handleRealError(final ARGPath allStatesTrace, boolean branchingOccurred,
-      CounterexampleTraceInfo counterexample) throws InterruptedException, CPATransferException {
-    final ARGPath targetPath;
-    final CounterexampleTraceInfo preciseCounterexample;
+  protected CounterexampleInfo handleRealError(
+      final ARGPath allStatesTrace,
+      boolean branchingOccurred,
+      CounterexampleTraceInfo counterexample)
+      throws InterruptedException {
 
-    boolean isPreciseErrorPath = true;
-    preciseCouterexampleTime.start();
+    errorPathProcessing.start();
     try {
+      ARGPath targetPath;
       if (branchingOccurred) {
-        Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
-
-        if (preciseInfo != null) {
-          targetPath = preciseInfo.getFirst();
-          if (preciseInfo.getSecond() != null) {
-            preciseCounterexample = preciseInfo.getSecond();
-          } else {
-            logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
-            preciseCounterexample = counterexample;
-          }
-        } else {
-          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-          targetPath = allStatesTrace;
-          preciseCounterexample = counterexample;
-          isPreciseErrorPath = false;
+        Multimap<Integer, Integer> preds = counterexample.getBranchingDirections();
+        if (preds.isEmpty()) {
+          logger.log(Level.WARNING, "No information about ARG branches available!");
+          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
         }
+
+        // find correct path
+        try {
+          ARGState root = allStatesTrace.getFirstState();
+          ARGState target = allStatesTrace.getLastState();
+          Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
+
+          targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
+
+        } catch (IllegalArgumentException e) {
+          logger.logUserException(Level.WARNING, e, null);
+          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+
+          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
+        }
+
       } else {
         targetPath = allStatesTrace;
-        preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
       }
-    } finally {
-      preciseCouterexampleTime.stop();
-    }
 
-    CounterexampleInfo cex;
-    if (isPreciseErrorPath) {
-      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel());
-    } else {
-      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+      return pathChecker.createCounterexample(targetPath, counterexample, branchingOccurred);
+    } finally {
+      errorPathProcessing.stop();
     }
-    cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
-        dumpCounterexampleFile);
-    return cex;
   }
 
   /**
@@ -490,69 +480,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
-    errorPathProcessing.start();
-    try {
-      Multimap<Integer, Integer> directions = counterexample.getBranchingDirections();
-      if (directions.isEmpty()) {
-        logger.log(Level.WARNING, "No information about ARG branches available!");
-        return null;
-      }
-
-      // find correct path
-      ARGPath targetPath;
-      try {
-        ARGState root = pPath.getFirstState();
-        ARGState target = pPath.getLastState();
-        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
-
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
-            pathElements, directions);
-
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, null);
-        return null;
-      }
-
-      // try to create a better satisfying assignment by replaying this single path
-      CounterexampleTraceInfo info2;
-      try {
-        info2 = pathChecker.checkPath(targetPath);
-
-      } catch (SolverException | CPATransferException e) {
-        // path is now suddenly a problem
-        logger.logUserException(Level.WARNING, e, "Could not replay error path");
-        return null;
-      }
-
-      if (info2.isSpurious()) {
-        logger.log(Level.WARNING, "Inconsistent replayed error path!");
-        return Pair.of(targetPath, null);
-      } else {
-        return Pair.of(targetPath, info2);
-      }
-
-    } finally {
-      errorPathProcessing.stop();
-    }
-  }
-
-  private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
-      final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
-
-    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(targetPath);
-
-    RichModel model = counterexample.getModel();
-
-    Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
-        pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
-
-    CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-
-    model = model.withAssignmentInformation(pathWithAssignments);
-    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingDirections());
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
@@ -577,8 +504,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
         w0.beginLevel().put(errorPathProcessing);
         w0.beginLevel().put(getFormulasForPathTime);
-        w0.beginLevel().put(buildCounterexampeTraceTime);
-        w0.beginLevel().put(preciseCouterexampleTime);
         w0.beginLevel().put(prefixExtractionTime);
         w0.beginLevel().put(prefixSelectionTime);
       }

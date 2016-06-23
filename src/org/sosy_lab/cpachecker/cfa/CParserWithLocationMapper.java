@@ -201,9 +201,16 @@ public class CParserWithLocationMapper implements CParser {
 
   @Override
   public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
-    String tokenizedCode = processCode(pFilename, pCode, sourceOriginMapping);
+    return parseString(pFilename, pCode, sourceOriginMapping, CProgramScope.empty());
+  }
 
-    return realParser.parseString(pFilename, tokenizedCode, sourceOriginMapping);
+  @Override
+  public ParseResult parseString(
+      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
+      throws CParserException, InvalidConfigurationException {
+    String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
+
+    return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
   }
 
   @Override

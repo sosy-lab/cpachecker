@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -71,10 +72,13 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
+import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -600,7 +604,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
     BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
 
-    CompoundInterval value = formula.accept(new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory), pEnvironment);
+    FormulaCompoundStateEvaluationVisitor evaluator =
+        new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
+    CompoundInterval value = formula.accept(evaluator, pEnvironment);
 
     if (bitVectorInfo.isSigned()) {
       if (!value.hasLowerBound() || !value.hasUpperBound()) {
@@ -611,6 +617,26 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       }
       if (value.getUpperBound().compareTo(upperExclusiveBound) >= 0) {
         return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.allPossibleValues());
+      }
+      // Handle implementation-defined cast to signed
+      if (pCompoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory
+          && !((CompoundBitVectorIntervalManagerFactory) pCompoundIntervalManagerFactory).isSignedWrapAroundAllowed()) {
+        CompoundBitVectorInterval cbvi =
+            (CompoundBitVectorInterval) pFormula.accept(evaluator, pEnvironment);
+        final AtomicBoolean overflows = new AtomicBoolean();
+        OverflowEventHandler overflowEventHandler =
+            new OverflowEventHandler() {
+
+              @Override
+              public void signedOverflow() {
+                overflows.set(true);
+              }
+            };
+        cbvi.cast(bitVectorInfo, false, overflowEventHandler);
+        if (overflows.get()) {
+          return InvariantsFormulaManager.INSTANCE.asConstant(
+              bitVectorInfo, cim.allPossibleValues());
+        }
       }
       return formula;
     }

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -143,7 +144,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
       final Deque<S> pCallstack,
-      final int pOffset,
+      final PathPosition pOffset,
       final I pInputInterpolant
   ) throws CPAException, InterruptedException {
 
@@ -178,7 +179,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.createInterpolant(initialSuccessor);
     }
 
-    ARGPath remainingErrorPath = pErrorPath.obtainSuffix(pOffset + 1);
+    ARGPath remainingErrorPath = pOffset.iterator().getSuffixExclusive();
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
     // interpolant

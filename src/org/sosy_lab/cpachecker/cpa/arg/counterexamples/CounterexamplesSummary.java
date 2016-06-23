@@ -32,6 +32,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -42,13 +43,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -181,14 +180,14 @@ public class CounterexamplesSummary implements IterationStatistics {
     // So we create a map with all target states,
     // adding the CounterexampleInfo where we have it (null otherwise).
 
-    Map<ARGState, CounterexampleInfo> allCexs = new HashMap<>();
+    Map<ARGState, CounterexampleInfo> counterexamples = new HashMap<>();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
-      ViolationInfo vi = feasibleViolations.get(s);
+      ViolationInfo v = feasibleViolations.get(s);
       CounterexampleInfo cex = null;
-      if (vi != null) {
-        cex = vi.info;
+      if (v != null) {
+        cex = v.info;
       }
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
@@ -198,24 +197,31 @@ public class CounterexamplesSummary implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          RichModel model = createModelForPath(path);
-          cex = CounterexampleInfo.feasible(path, model);
+          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
+          // we use the imprecise version of the CounterexampleInfo, due to the possible
+          // merges which are done in the used CPAs, but if we can compute a path with assignments,
+          // it is probably precise
+          if (!assignments.isEmpty()) {
+            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+          } else {
+            cex = CounterexampleInfo.feasibleImprecise(path);
+          }
         }
       }
 
       if (cex != null) {
-        allCexs.put(s, cex);
+        counterexamples.put(s, cex);
       }
     }
 
-    return allCexs;
+    return counterexamples;
   }
 
-  private RichModel createModelForPath(ARGPath pPath) {
-    final ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
+  private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
-        CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
+        CPAs.asIterable(GlobalInfo.getInstance().getCPA().get()).filter
+            (ConfigurableProgramAnalysisWithConcreteCex.class);
 
     CFAPathWithAssumptions result = null;
 
@@ -231,10 +237,10 @@ public class CounterexamplesSummary implements IterationStatistics {
       }
     }
 
-    if(result == null) {
-      return RichModel.empty();
+    if (result == null) {
+      return CFAPathWithAssumptions.empty();
     } else {
-      return RichModel.empty().withAssignmentInformation(result);
+      return result;
     }
   }
 
@@ -356,14 +362,10 @@ public class CounterexamplesSummary implements IterationStatistics {
 
   public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {
 
-    Collection<? extends AbstractState> targetComps = AbstractStates.extractsActiveTargets(pTargetState);
-
-    for (AbstractState ee: targetComps) {
-      if (ee instanceof AutomatonState) {
-        AutomatonState qe = (AutomatonState) ee;
-        for (Property prop: qe.getViolatedProperties()) {
-          infeasibleCexFor.add(prop);
-        }
+    for (AutomatonState ee: Iterables.filter(AbstractStates.extractsActiveTargets(pTargetState), AutomatonState.class)) {
+      AutomatonState qe = (AutomatonState) ee;
+      for (Property prop: qe.getViolatedProperties()) {
+        infeasibleCexFor.add(prop);
       }
     }
 

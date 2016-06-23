@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.util.List;
+
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+
+import com.google.common.collect.ImmutableList;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
@@ -36,6 +41,9 @@ final class SMGJoinValues {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
   private boolean defined = false;
+
+  private List<SMGAbstractionCandidate> abstractionCandidates;
+  private final boolean recoverable;
 
   @SuppressWarnings("unused")
   private static boolean joinValuesIdentical(SMGJoinValues pJV, Integer pV1, Integer pV2) {
@@ -64,7 +72,17 @@ final class SMGJoinValues {
         return true;
       }
 
-      Integer newValue = SMGValueFactory.getNewValue();
+      // TODO can be deleted when equality check of value is resolved in main function
+
+      Integer newValue;
+
+      if(pV1 == pV2) {
+        newValue = pV1;
+      } else {
+        newValue = SMGValueFactory.getNewValue();
+      }
+
+
       pJV.destSMG.addValue(newValue);
       pJV.mapping1.map(pV1, newValue);
       pJV.mapping2.map(pV2, newValue);
@@ -93,13 +111,16 @@ final class SMGJoinValues {
       pJV.mapping2 = jto.getMapping2();
       pJV.value = jto.getValue();
       pJV.defined = true;
+      pJV.abstractionCandidates = jto.getAbstractionCandidates();
       return true;
     }
+
     if (jto.isRecoverable()) {
       return false;
     }
 
     pJV.defined = false;
+    pJV.abstractionCandidates = ImmutableList.of();
     return true;
   }
 
@@ -122,21 +143,30 @@ final class SMGJoinValues {
 //    }
 
     if (SMGJoinValues.joinValuesAlreadyJoined(this, pValue1, pValue2)) {
+      abstractionCandidates = ImmutableList.of();
+      recoverable = defined;
       return;
     }
 
     if (SMGJoinValues.joinValuesNonPointers(this, pValue1, pValue2)) {
+      abstractionCandidates = ImmutableList.of();
+      recoverable = defined;
       return;
     }
 
     if (SMGJoinValues.joinValuesMixedPointers(this, pValue1, pValue2)) {
+      abstractionCandidates = ImmutableList.of();
+      recoverable = true;
       return;
     }
 
     if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2)) {
+      recoverable = defined;
       return;
     }
 
+    abstractionCandidates = ImmutableList.of();
+    recoverable = false;
     // TODO: [JOIN] Recoverable failure
   }
 
@@ -170,5 +200,24 @@ final class SMGJoinValues {
 
   public boolean isDefined() {
     return defined;
+  }
+
+  /**
+   * Signifies, if the part of the sub-smg rooted at the
+   * given value can possibly be joined through abstraction.
+   *
+   * @return true, if join is defined, or join through abstraction may be a possibility,
+   * false otherwise.
+   */
+  public boolean isRecoverable() {
+    return recoverable;
+  }
+
+  public boolean subSmgHasAbstractionsCandidates() {
+    return false;
+  }
+
+  public List<SMGAbstractionCandidate> getAbstractionCandidates() {
+    return abstractionCandidates;
   }
 }
