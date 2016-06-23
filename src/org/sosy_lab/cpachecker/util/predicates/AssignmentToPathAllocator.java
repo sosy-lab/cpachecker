@@ -81,6 +81,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 
 
@@ -517,15 +518,15 @@ public class AssignmentToPathAllocator {
 
     for (final ValueAssignment term : terms) {
       String fullName = term.getName();
-      Pair<String, Integer> pair = FormulaManagerView.parseName(fullName);
-      if (pair.getSecond() != null) {
+      Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
+      if (pair.getSecond().isPresent()) {
         String canonicalName = pair.getFirst();
-        int newIndex = pair.getSecondNotNull();
+        int newIndex = pair.getSecond().getAsInt();
 
         if (variableEnvironment.containsKey(canonicalName)) {
           ValueAssignment oldVariable = variableEnvironment.get(canonicalName);
 
-          int oldIndex = FormulaManagerView.parseName(oldVariable.getName()).getSecondNotNull();
+          int oldIndex = FormulaManagerView.parseName(oldVariable.getName()).getSecond().getAsInt();
 
           if (oldIndex < newIndex) {
 
@@ -710,11 +711,7 @@ public class AssignmentToPathAllocator {
   }
 
   private int getSSAIndex(ValueAssignment pTerm) {
-    Integer out = FormulaManagerView.parseName(pTerm.getName()).getSecond();
-    if (out != null) {
-      return out;
-    }
-    return -2;
+    return FormulaManagerView.parseName(pTerm.getName()).getSecond().orElse(-2);
   }
 
   private String getName(ValueAssignment pTerm) {

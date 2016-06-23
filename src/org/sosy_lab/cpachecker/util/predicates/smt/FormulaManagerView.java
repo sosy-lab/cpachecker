@@ -30,7 +30,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
@@ -90,6 +89,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -881,7 +882,7 @@ public class FormulaManagerView {
 
   public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
     return from(pVariableNames).transform(pArg0 -> {
-      Pair<String, Integer> parsedVar = parseName(pArg0);
+      Pair<String, OptionalInt> parsedVar = parseName(pArg0);
       return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
     }).toSet();
   }
@@ -907,7 +908,7 @@ public class FormulaManagerView {
     return wrap(getFormulaType(pF),
         myFreeVariableNodeTransformer(unwrap(pF), new HashMap<>(),
             pFullSymbolName -> {
-              final Pair<String, Integer> indexedSymbol = parseName(pFullSymbolName);
+              final Pair<String, OptionalInt> indexedSymbol = parseName(pFullSymbolName);
               final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
 
               if (reInstantiateWithIndex > 0) {
@@ -933,12 +934,12 @@ public class FormulaManagerView {
    *
    * @throws IllegalArgumentException thrown if the given name is invalid
    */
-  public static Pair<String, Integer> parseName(final String name) {
+  public static Pair<String, OptionalInt> parseName(final String name) {
     String[] s = name.split(INDEX_SEPARATOR);
     if (s.length == 2) {
-      return Pair.of(s[0], Integer.parseInt(s[1]));
+      return Pair.of(s[0], OptionalInt.of(Integer.parseInt(s[1])));
     } else if (s.length == 1) {
-      return Pair.of(s[0], null);
+      return Pair.of(s[0], OptionalInt.empty());
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
@@ -1383,15 +1384,15 @@ public class FormulaManagerView {
    * SSA map.
    */
   public boolean isIntermediate(String varName, SSAMap ssa) {
-    Pair<String, Integer> p = parseName(varName);
+    Pair<String, OptionalInt> p = parseName(varName);
     String name = p.getFirst();
-    Integer idx = p.getSecond();
-    if (idx == null) {
+    OptionalInt idx = p.getSecond();
+    if (!idx.isPresent()) {
       if (ssa.containsVariable(varName)) {
         return true;
       }
     } else {
-      if (idx != ssa.getIndex(name)) {
+      if (idx.getAsInt() != ssa.getIndex(name)) {
         return true;
       }
     }

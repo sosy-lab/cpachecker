@@ -54,6 +54,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 
 enum CexTraceAnalysisDirection {
@@ -302,10 +303,10 @@ enum CexTraceAnalysisDirection {
         .transform(new Function<String, String>() {
            @Override
            public String apply(String pInput) {
-             Pair<String, Integer> name = FormulaManagerView.parseName(pInput);
+             Pair<String, OptionalInt> name = FormulaManagerView.parseName(pInput);
 
             // we want only variables to be in our set, and ignore everything without SSA index
-             if (name.getSecond() != null) {
+             if (name.getSecond().isPresent()) {
                return name.getFirst();
              } else {
                return null;
