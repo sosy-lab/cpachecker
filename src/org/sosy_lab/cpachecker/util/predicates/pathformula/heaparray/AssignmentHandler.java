@@ -317,8 +317,7 @@ class AssignmentHandler {
       final BooleanFormula selectFormula =
           fmgr.makeEqual(afmgr.select(newArray, counter), rhsValue.getValue());
       final BooleanFormula copyFormula =
-          fmgr.makeEqual(
-              newArray, afmgr.store(oldArray, counter, afmgr.select(oldArray, counter)));
+          fmgr.makeEqual(newArray, oldArray);
 
       return pQfmgr.forall(
           Collections.singletonList(counter),
