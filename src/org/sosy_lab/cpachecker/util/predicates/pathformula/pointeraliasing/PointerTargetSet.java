@@ -60,7 +60,7 @@ public final class PointerTargetSet implements Serializable {
    * </p>
    */
   @Immutable
-  public static class CompositeField implements Comparable<CompositeField>, Serializable {
+  static class CompositeField implements Comparable<CompositeField>, Serializable {
 
     private static final long serialVersionUID = -5194535211223682619L;
 
@@ -69,17 +69,9 @@ public final class PointerTargetSet implements Serializable {
       this.fieldName = fieldName;
     }
 
-    public static CompositeField of(final @Nonnull String compositeType, final @Nonnull String fieldName) {
+    static CompositeField of(final @Nonnull String compositeType, final @Nonnull String fieldName) {
       return new CompositeField(compositeType, fieldName);
     }
-
-//    public String compositeType() {
-//      return compositeType;
-//    }
-
-//    public String fieldName() {
-//      return fieldName;
-//    }
 
     @Override
     public String toString() {
@@ -119,11 +111,11 @@ public final class PointerTargetSet implements Serializable {
     return BASE_PREFIX + name;
   }
 
-  public static boolean isBaseName(final String name) {
+  static boolean isBaseName(final String name) {
     return name.startsWith(BASE_PREFIX);
   }
 
-  public static String getBase(final String baseName) {
+  static String getBase(final String baseName) {
     return baseName.replaceFirst(BASE_PREFIX, "");
   }
 
@@ -136,7 +128,7 @@ public final class PointerTargetSet implements Serializable {
     return EMPTY_INSTANCE;
   }
 
-  public boolean isEmpty() {
+  boolean isEmpty() {
     return bases.isEmpty() && fields.isEmpty()
         && lastBase == null && deferredAllocations.isEmpty();
   }
@@ -174,11 +166,12 @@ public final class PointerTargetSet implements Serializable {
     }
   }
 
-  public PointerTargetSet(final PersistentSortedMap<String, CType> bases,
-                           final String lastBase,
-                           final PersistentSortedMap<CompositeField, Boolean> fields,
-                           final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
-                           final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
+  PointerTargetSet(
+      final PersistentSortedMap<String, CType> bases,
+      final String lastBase,
+      final PersistentSortedMap<CompositeField, Boolean> fields,
+      final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
+      final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
     this.bases = bases;
     this.lastBase = lastBase;
     this.fields = fields;
@@ -198,19 +191,19 @@ public final class PointerTargetSet implements Serializable {
     return bases;
   }
 
-  public PersistentSortedMap<CompositeField, Boolean> getFields() {
+  PersistentSortedMap<CompositeField, Boolean> getFields() {
     return fields;
   }
 
-  public PersistentSortedMap<String, DeferredAllocationPool> getDeferredAllocations() {
+  PersistentSortedMap<String, DeferredAllocationPool> getDeferredAllocations() {
     return deferredAllocations;
   }
 
-  public PersistentSortedMap<String, PersistentList<PointerTarget>> getTargets() {
+  PersistentSortedMap<String, PersistentList<PointerTarget>> getTargets() {
     return targets;
   }
 
-  public String getLastBase() {
+  String getLastBase() {
     return lastBase;
   }
 
@@ -274,7 +267,7 @@ public final class PointerTargetSet implements Serializable {
     private final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
 
-    public SerializationProxy(PointerTargetSet pts) {
+    private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       lastBase = pts.lastBase;
       fields = pts.fields;

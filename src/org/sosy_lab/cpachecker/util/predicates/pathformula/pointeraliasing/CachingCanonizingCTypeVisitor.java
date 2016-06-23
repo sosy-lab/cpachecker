@@ -48,8 +48,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
   private class CTypeTransformerVisitor implements CTypeVisitor<CType, RuntimeException> {
 
-    public CTypeTransformerVisitor(final boolean ignoreConst,
-                                   final boolean ignoreVolatile) {
+    private CTypeTransformerVisitor(final boolean ignoreConst, final boolean ignoreVolatile) {
       this.ignoreConst = ignoreConst;
       this.ignoreVolatile = ignoreVolatile;
     }
@@ -205,8 +204,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
     private final boolean ignoreVolatile;
   }
 
-  public CachingCanonizingCTypeVisitor(final boolean ignoreConst,
-                             final boolean ignoreVolatile) {
+  CachingCanonizingCTypeVisitor(final boolean ignoreConst, final boolean ignoreVolatile) {
     typeVisitor = new CTypeTransformerVisitor(ignoreConst, ignoreVolatile);
   }
 

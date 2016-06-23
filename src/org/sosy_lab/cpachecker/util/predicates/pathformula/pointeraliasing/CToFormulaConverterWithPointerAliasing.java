@@ -1077,14 +1077,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * {@inheritDoc}
    */
   @Override
-  public int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
-    return super.makeFreshIndex(pName, pType, pSsa);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.getIndex(pName, pType, pSsa);
   }

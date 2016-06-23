@@ -75,7 +75,7 @@ import javax.annotation.Nullable;
 /**
  * A manager for pointer target sets.
  */
-public class PointerTargetSetManager {
+class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -133,8 +133,10 @@ public class PointerTargetSetManager {
    * @param pTypeHandler A type handler for certain types.
    * @param pShutdownNotifier A notifier for external shutdowns to stop long-running algorithms.
    */
-  public PointerTargetSetManager(FormulaEncodingWithPointerAliasingOptions pOptions,
-      FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandler,
+  PointerTargetSetManager(
+      FormulaEncodingWithPointerAliasingOptions pOptions,
+      FormulaManagerView pFormulaManager,
+      TypeHandlerWithPointerAliasing pTypeHandler,
       ShutdownNotifier pShutdownNotifier) {
     options = pOptions;
     formulaManager = pFormulaManager;
@@ -153,7 +155,7 @@ public class PointerTargetSetManager {
    * @param address The address to access
    * @return A formula representing {@code targetName@ssaIndex[address]}
    */
-  protected Formula makePointerDereference(
+  Formula makePointerDereference(
       final String targetName,
       final FormulaType<?> targetType,
       final int ssaIndex,
@@ -174,7 +176,7 @@ public class PointerTargetSetManager {
    * @param address The address to access
    * @return A formula representing {@code targetName[address]}
    */
-  protected Formula makePointerDereference(
+  Formula makePointerDereference(
       final String targetName, final FormulaType<?> targetType, final Formula address) {
     if (options.useArraysForHeap()) {
       final ArrayFormula<?, ?> arrayFormula =
@@ -195,7 +197,7 @@ public class PointerTargetSetManager {
    * @param value The value to write
    * @return A formula representing an assignment of the form {@code targetName@newIndex[address] = value}
    */
-  protected BooleanFormula makePointerAssignment(
+  BooleanFormula makePointerAssignment(
       final String targetName,
       final FormulaType<?> targetType,
       final int oldIndex,
@@ -225,12 +227,12 @@ public class PointerTargetSetManager {
    * @return The merged {@code PointerTargetSet}s.
    * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
    */
-  public MergeResult<PointerTargetSet>
-            mergePointerTargetSets(final PointerTargetSet pts1,
-                                   final PointerTargetSet pts2,
-                                   final SSAMapBuilder resultSSA,
-                                   final CtoFormulaConverter conv)
-                                       throws InterruptedException {
+  MergeResult<PointerTargetSet> mergePointerTargetSets(
+      final PointerTargetSet pts1,
+      final PointerTargetSet pts2,
+      final SSAMapBuilder resultSSA,
+      final CtoFormulaConverter conv)
+      throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
@@ -596,7 +598,7 @@ public class PointerTargetSetManager {
    * @param cType The type to determine the size of.
    * @return The size of a given type.
    */
-  protected int getSize(CType cType) {
+  int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
@@ -607,7 +609,7 @@ public class PointerTargetSetManager {
    * @param memberName The name of the member of the composite type.
    * @return The offset of the member in the composite type.
    */
-  public int getOffset(CCompositeType compositeType, final String memberName) {
+  int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 
@@ -619,9 +621,8 @@ public class PointerTargetSetManager {
    * @param lastBase The name of the last added base.
    * @return A formula for the next base address.
    */
-  protected BooleanFormula getNextBaseAddressInequality(final String newBase,
-                                                        final PersistentSortedMap<String, CType> bases,
-                                                        final String lastBase) {
+  BooleanFormula getNextBaseAddressInequality(
+      final String newBase, final PersistentSortedMap<String, CType> bases, final String lastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
     if (lastBase != null) {
@@ -682,7 +683,7 @@ public class PointerTargetSetManager {
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
-  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
+  PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
       final String base,
       final CType currentType,
       final @Nullable CType containerType,

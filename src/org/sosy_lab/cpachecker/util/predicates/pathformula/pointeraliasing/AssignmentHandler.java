@@ -459,10 +459,12 @@ class AssignmentHandler {
     return result;
   }
 
-  void finishAssignments(@Nonnull CType lvalueType,
-                         final @Nonnull AliasedLocation lvalue,
-                         final @Nonnull PointerTargetPattern pattern,
-                         final @Nonnull Set<CType> updatedTypes) throws InterruptedException {
+  private void finishAssignments(
+      @Nonnull CType lvalueType,
+      final @Nonnull AliasedLocation lvalue,
+      final @Nonnull PointerTargetPattern pattern,
+      final @Nonnull Set<CType> updatedTypes)
+      throws InterruptedException {
     addRetentionForAssignment(lvalueType,
                               lvalue.asAliased().getAddress(),
                               pattern, updatedTypes);

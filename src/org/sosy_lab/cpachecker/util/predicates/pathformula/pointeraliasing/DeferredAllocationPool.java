@@ -23,8 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -36,11 +42,6 @@ import java.util.List;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
-
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 /**
@@ -72,7 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *   </pre>
  */
 @Immutable
-public class DeferredAllocationPool implements Serializable {
+class DeferredAllocationPool implements Serializable {
 
   private static final long serialVersionUID = -6957524864610223235L;
 
@@ -86,10 +87,11 @@ public class DeferredAllocationPool implements Serializable {
     this.baseVariables = baseVariables;
   }
 
-  public DeferredAllocationPool(final String pointerVariable,
-                         final boolean isZeroing,
-                         final CIntegerLiteralExpression size,
-                         final String baseVariable) {
+  DeferredAllocationPool(
+      final String pointerVariable,
+      final boolean isZeroing,
+      final CIntegerLiteralExpression size,
+      final String baseVariable) {
     this(PersistentLinkedList.of(pointerVariable), isZeroing, size, PersistentLinkedList.of(baseVariable));
   }
 
@@ -101,33 +103,33 @@ public class DeferredAllocationPool implements Serializable {
          predecessor.baseVariables);
   }
 
-  public PersistentList<String> getPointerVariables() {
+  PersistentList<String> getPointerVariables() {
     return pointerVariables;
   }
 
-  public PersistentList<String> getBaseVariables() {
+  PersistentList<String> getBaseVariables() {
     return baseVariables;
   }
 
-  public boolean wasAllocationZeroing() {
+  boolean wasAllocationZeroing() {
     return isZeroing;
   }
 
-  public CIntegerLiteralExpression getSize() {
+  CIntegerLiteralExpression getSize() {
     return size;
   }
 
-  public DeferredAllocationPool addPointerVariable(final String pointerVariable) {
+  DeferredAllocationPool addPointerVariable(final String pointerVariable) {
     assert !pointerVariables.contains(pointerVariable)
         : "Pointer variable " + pointerVariable + " added twice to deferred allocation pool.";
     return new DeferredAllocationPool(this, this.pointerVariables.with(pointerVariable));
   }
 
-  public DeferredAllocationPool removePointerVariable(final String pointerVariable) {
+  DeferredAllocationPool removePointerVariable(final String pointerVariable) {
     return new DeferredAllocationPool(this, pointerVariables.without(pointerVariable));
   }
 
-  public DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
+  DeferredAllocationPool mergeWith(final DeferredAllocationPool other) {
     return new DeferredAllocationPool(mergeLists(this.pointerVariables, other.pointerVariables),
                                       this.isZeroing && other.isZeroing,
                                       this.size != null && other.size != null ?
@@ -168,8 +170,8 @@ public class DeferredAllocationPool implements Serializable {
   private final PersistentList<String> baseVariables; // actually a set
 
 
-  public static <T> PersistentList<T> mergeLists(final PersistentList<T> list1,
-                                          final PersistentList<T> list2) {
+  static <T> PersistentList<T> mergeLists(
+      final PersistentList<T> list1, final PersistentList<T> list2) {
     if (list1 == list2) {
       return list1;
     }
@@ -218,7 +220,7 @@ public class DeferredAllocationPool implements Serializable {
     private final long size;
     private final CType sizeType;
 
-    public SerializationProxy(DeferredAllocationPool pDeferredAllocationPool) {
+    private SerializationProxy(DeferredAllocationPool pDeferredAllocationPool) {
       isZeroing = pDeferredAllocationPool.isZeroing;
       pointerVariables = new ArrayList<>(pDeferredAllocationPool.pointerVariables);
       baseVariables = new ArrayList<>(pDeferredAllocationPool.baseVariables);

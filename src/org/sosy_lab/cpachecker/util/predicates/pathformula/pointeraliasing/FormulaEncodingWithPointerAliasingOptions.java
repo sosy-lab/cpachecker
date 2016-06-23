@@ -105,11 +105,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     }
   }
 
-  public boolean hasSuperfluousParameters(final String name) {
+  boolean hasSuperfluousParameters(final String name) {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
-  public boolean isDynamicMemoryFunction(final String name) {
+  boolean isDynamicMemoryFunction(final String name) {
     return isSuccessfulAllocFunctionName(name)
         || isSuccessfulZallocFunctionName(name)
         || isMemoryAllocationFunction(name)
@@ -117,43 +117,43 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         || isMemoryFreeFunction(name);
   }
 
-  public boolean isSuccessfulAllocFunctionName(final String name) {
+  boolean isSuccessfulAllocFunctionName(final String name) {
     return successfulAllocFunctionName.equals(name);
   }
 
-  public boolean isSuccessfulZallocFunctionName(final String name) {
+  boolean isSuccessfulZallocFunctionName(final String name) {
     return successfulZallocFunctionName.equals(name);
   }
 
-  public boolean isDynamicAllocVariableName(final String name) {
+  boolean isDynamicAllocVariableName(final String name) {
     return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
   }
 
-  public String getSuccessfulAllocFunctionName() {
+  String getSuccessfulAllocFunctionName() {
     return successfulAllocFunctionName;
   }
 
-  public String getSuccessfulZallocFunctionName() {
+  String getSuccessfulZallocFunctionName() {
     return successfulZallocFunctionName;
   }
 
-  public boolean makeMemoryAllocationsAlwaysSucceed() {
+  boolean makeMemoryAllocationsAlwaysSucceed() {
     return memoryAllocationsAlwaysSucceed;
   }
 
-  public boolean revealAllocationTypeFromLHS() {
+  boolean revealAllocationTypeFromLHS() {
     return revealAllocationTypeFromLhs;
   }
 
-  public boolean deferUntypedAllocations() {
+  boolean deferUntypedAllocations() {
     return deferUntypedAllocations;
   }
 
-  public int maxPreFilledAllocationSize() {
+  int maxPreFilledAllocationSize() {
     return maxPreFilledAllocationSize;
   }
 
-  public int defaultAllocationSize() {
+  int defaultAllocationSize() {
     return defaultAllocationSize;
   }
 
@@ -161,15 +161,15 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return useArraysForHeap;
   }
 
-  public int defaultArrayLength() {
+  int defaultArrayLength() {
     return defaultArrayLength;
   }
 
-  public int maxArrayLength() {
+  int maxArrayLength() {
     return maxArrayLength;
   }
 
-  public boolean isMemoryFreeFunction(final String name) {
+  boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
   }
 
@@ -177,11 +177,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return useQuantifiersOnArrays;
   }
 
-  public boolean handleStringLiteralInitializers() {
+  boolean handleStringLiteralInitializers() {
     return handleStringLiteralInitializers;
   }
 
-  public boolean handleImplicitInitialization() {
+  boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
   }
 }

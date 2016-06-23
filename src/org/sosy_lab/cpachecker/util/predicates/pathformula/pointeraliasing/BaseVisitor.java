@@ -43,10 +43,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException> {
 
-public class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
-
-  public BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
+  BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
     this.cfaEdge = cfaEdge;
     this.pts = pts;
   }
@@ -152,7 +151,7 @@ public class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCo
     throw new UnrecognizedCCodeException("Addess of label in place of lvalue", cfaEdge, e);
   }
 
-  public Variable getLastBase() {
+  Variable getLastBase() {
     return lastBase;
   }
 

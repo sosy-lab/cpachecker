@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-public class Variable {
+class Variable {
   private final String name;
   private final CType type;
 
@@ -36,11 +35,11 @@ public class Variable {
     type = pType;
   }
 
-  public String getName() {
+  String getName() {
     return name;
   }
 
-  public CType getType() {
+  CType getType() {
     assert type != null;
     return type;
   }
@@ -80,15 +79,7 @@ public class Variable {
     return type.toASTString(name);
   }
 
-  public Variable withName(String newName) {
-    return Variable.create(newName, type);
-  }
-
-  public Variable withType(CType pType) {
-    return Variable.create(name, pType);
-  }
-
-  public static Variable create(String pName, CType pT) {
+  static Variable create(String pName, CType pT) {
     return new Variable(pName, pT);
   }
 }

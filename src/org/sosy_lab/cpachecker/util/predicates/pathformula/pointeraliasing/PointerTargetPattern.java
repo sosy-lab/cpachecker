@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import java.io.Serializable;
-
-import javax.annotation.Nonnull;
+import com.google.common.base.Predicate;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -34,15 +32,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 
-import com.google.common.base.Predicate;
+import java.io.Serializable;
 
-public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
+import javax.annotation.Nonnull;
 
-  protected PointerTargetPattern() {
+class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
+
+  private PointerTargetPattern() {
     this.matchRange = false;
   }
 
-  protected PointerTargetPattern(final String base) {
+  private PointerTargetPattern(final String base) {
     this.base = base;
     this.containerOffset = 0;
     this.properOffset = 0;
@@ -52,7 +52,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Create PointerTargetPattern matching any possible target.
    */
-  public static PointerTargetPattern any() {
+  static PointerTargetPattern any() {
     return new PointerTargetPattern();
   }
 
@@ -61,31 +61,33 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
    * and offset 0.
    * @param base the base name specified
    */
-  public static PointerTargetPattern forBase(String base) {
+  static PointerTargetPattern forBase(String base) {
     return new PointerTargetPattern(base);
   }
 
-  public static PointerTargetPattern forLeftHandSide(final CLeftHandSide lhs,
+  static PointerTargetPattern forLeftHandSide(
+      final CLeftHandSide lhs,
       final CtoFormulaTypeHandler pTypeHandler,
       final PointerTargetSetManager pPtsMgr,
       final CFAEdge pCfaEdge,
-      final PointerTargetSetBuilder pPts) throws UnrecognizedCCodeException {
+      final PointerTargetSetBuilder pPts)
+      throws UnrecognizedCCodeException {
     LvalueToPointerTargetPatternVisitor v = new LvalueToPointerTargetPatternVisitor(pTypeHandler, pPtsMgr, pCfaEdge, pPts);
     return lhs.accept(v);
   }
 
-  public void setBase(final String base) {
+  void setBase(final String base) {
     this.base = base;
   }
 
-  public void setRange(final int startOffset, final int size) {
+  void setRange(final int startOffset, final int size) {
     this.containerOffset = startOffset;
     this.properOffset = startOffset + size;
     this.matchRange = true;
     this.containerType = null;
   }
 
-  public void setRange(final int size) {
+  void setRange(final int size) {
     assert containerOffset != null && properOffset != null : "Starting address is inexact";
     this.containerOffset += properOffset;
     this.properOffset = containerOffset + size;
@@ -93,17 +95,17 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     this.containerType = null;
   }
 
-  public void setProperOffset(final int properOffset) {
+  void setProperOffset(final int properOffset) {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
   }
 
-  public Integer getProperOffset() {
+  Integer getProperOffset() {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     return properOffset;
   }
 
-  public Integer getRemainingOffset(PointerTargetSetManager ptsMgr) {
+  Integer getRemainingOffset(PointerTargetSetManager ptsMgr) {
     assert !matchRange : "Contradiction in target pattern: remaining offset";
     if (containerType != null && containerOffset != null && properOffset != null) {
       return ptsMgr.getSize(containerType) - properOffset;
@@ -116,7 +118,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
    * Increase containerOffset by properOffset, unset properOffset and set containerType.
    * Useful for array subscript visitors.
    */
-  public void shift(final CType containerType) {
+  void shift(final CType containerType) {
     assert !matchRange : "Contradiction in target pattern: shift";
     this.containerType = containerType;
     if (containerOffset != null) {
@@ -133,7 +135,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
    * Increase containerOffset by properOffset, set properOffset and containerType.
    * Useful for field access visitors.
    */
-  public void shift(final CType containerType, final int properOffset) {
+  void shift(final CType containerType, final int properOffset) {
     shift(containerType);
     this.properOffset = properOffset;
   }
@@ -141,7 +143,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Unset everything, except base
    */
-  public void retainBase() {
+  void retainBase() {
     assert !matchRange : "Contradiction in target pattern: retainBase";
     containerType = null;
     properOffset = null;
@@ -151,7 +153,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Unset all criteria
    */
-  public void clear() {
+  void clear() {
     assert !matchRange : "Contradiction in target pattern: clear";
     base = null;
     containerType = null;
@@ -159,7 +161,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     containerOffset = null;
   }
 
-  public boolean matches(final @Nonnull PointerTarget target) {
+  boolean matches(final @Nonnull PointerTarget target) {
     if (!matchRange) {
       if (properOffset != null && properOffset != target.properOffset) {
         return false;
@@ -195,11 +197,11 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     return matches(pInput);
   }
 
-  public boolean isExact() {
+  boolean isExact() {
     return base != null && containerOffset != null && properOffset != null;
   }
 
-  public boolean isSemiExact() {
+  boolean isSemiExact() {
     return containerOffset != null && properOffset != null;
   }
 

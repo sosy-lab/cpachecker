@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import javax.annotation.Nonnull;
-
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -38,10 +36,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
+import javax.annotation.Nonnull;
+
 /**
  * Utility class with helper methods for CTypes.
  */
-public class CTypeUtils {
+class CTypeUtils {
 
   private CTypeUtils() { }
 
@@ -50,7 +50,7 @@ public class CTypeUtils {
   /**
    * Return the length of an array if statically given, or null.
    */
-  public static Integer getArrayLength(CArrayType t) {
+  static Integer getArrayLength(CArrayType t) {
 
     final CExpression arrayLength = t.getLength();
     if (arrayLength instanceof CIntegerLiteralExpression) {
@@ -66,7 +66,7 @@ public class CTypeUtils {
    * @param type any type to check, but normally a composite type
    * @return whether the {@code type} contains array
    */
-  public static boolean containsArray(CType type) {
+  static boolean containsArray(CType type) {
     type = simplifyType(type);
     if (type instanceof CArrayType) {
       return true;
@@ -95,7 +95,7 @@ public class CTypeUtils {
    * @param type The type of the memory location
    * @return The type of the base variable
    */
-  public static CType getBaseType(CType type) {
+  static CType getBaseType(CType type) {
     type = simplifyType(type);
     if (!(type instanceof CArrayType)) {
       return new CPointerType(false, false, type);
@@ -104,16 +104,7 @@ public class CTypeUtils {
     }
   }
 
-  static boolean isCompositeType(CType type) {
-    type = simplifyType(type);
-    assert !(type instanceof CElaboratedType) : "Unresolved elaborated type";
-    assert !(type instanceof CCompositeType) || ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT ||
-                                                ((CCompositeType) type).getKind() == ComplexTypeKind.UNION :
-           "Enums are not composite";
-    return type instanceof CArrayType || type instanceof CCompositeType;
-  }
-
-  public static CType implicitCastToPointer(CType type) {
+  static CType implicitCastToPointer(CType type) {
     type = CTypeUtils.simplifyType(type);
     if (type instanceof CArrayType) {
       return new CPointerType(false,
@@ -126,7 +117,7 @@ public class CTypeUtils {
     }
   }
 
-  public static boolean isSimpleType(final CType type) {
+  static boolean isSimpleType(final CType type) {
     return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
@@ -144,7 +135,7 @@ public class CTypeUtils {
    * @param type The type obtained form the CFA
    * @return The corresponding simplified canonical type
    */
-  public static CType simplifyType(final @Nonnull CType type) {
+  static CType simplifyType(final @Nonnull CType type) {
     return type.accept(typeVisitor);
   }
 
@@ -161,7 +152,7 @@ public class CTypeUtils {
    * @param type The type
    * @return The string representation of the type
    */
-  public static String typeToString(final CType type) {
+  static String typeToString(final CType type) {
     return simplifyType(type).toString();
   }
 }

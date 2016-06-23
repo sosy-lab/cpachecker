@@ -28,11 +28,11 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 
-public class CSizeofVisitor extends BaseSizeofVisitor
-                                   implements CTypeVisitor<Integer, IllegalArgumentException> {
+class CSizeofVisitor extends BaseSizeofVisitor
+    implements CTypeVisitor<Integer, IllegalArgumentException> {
 
-  public CSizeofVisitor(final MachineModel machineModel,
-                         final FormulaEncodingWithPointerAliasingOptions options) {
+  CSizeofVisitor(
+      final MachineModel machineModel, final FormulaEncodingWithPointerAliasingOptions options) {
     super(machineModel);
     this.options = options;
   }

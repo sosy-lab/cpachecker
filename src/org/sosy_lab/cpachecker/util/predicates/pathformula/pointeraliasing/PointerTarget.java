@@ -23,44 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import java.io.Serializable;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class PointerTarget implements Serializable {
+import java.io.Serializable;
 
-  /**
-   * This constructor is for variables of simple types (e.g. long, char etc.)
-   */
-  PointerTarget(String base) {
-    this.base = base;
-    this.containerType = null;
-    this.properOffset = 0;
-    this.containerOffset = 0;
-  }
+import javax.annotation.concurrent.Immutable;
 
-  /**
-   * This constructor is for structure fields (e.g. s->f) and array elements (e.g. p[5])
-   * NOTE: The container (structure or array) must not be contained in any other structure or array
-   */
-  PointerTarget(String base, CType containerType, int properOffset) {
-    this.base = base;
-    this.containerType = containerType;
-    this.properOffset = properOffset;
-    this.containerOffset = 0;
-  }
+@Immutable
+public final class PointerTarget implements Serializable {
 
   /**
    * This constructor is for fields of nested structures and arrays
    */
-  public PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
+  PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
     this.containerOffset = containerOffset;
   }
 
-  public String getBase() {
+  String getBase() {
     return base;
   }
 
@@ -72,20 +54,20 @@ public class PointerTarget implements Serializable {
     return containerOffset + properOffset;
   }
 
-  public int getProperOffset() {
+  int getProperOffset() {
     assert containerType != null : "The target's offset is ill-defined";
     return properOffset;
   }
 
-  public boolean isBase() {
+  boolean isBase() {
     return containerType == null;
   }
 
-  public CType getContainerType() {
+  CType getContainerType() {
     return containerType;
   }
 
-  public int getContainerOffset() {
+  int getContainerOffset() {
     assert containerType != null : "The target's container offset is ill-defined";
     return containerOffset;
   }

@@ -25,27 +25,27 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.solver.api.Formula;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
-
-public abstract class Expression {
-  public static abstract class Location extends Expression {
-    public static class AliasedLocation extends Location {
+abstract class Expression {
+  static abstract class Location extends Expression {
+    static class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
         this.address = address;
       }
 
-      public Formula getAddress() {
+      Formula getAddress() {
         return address;
       }
 
       @Override
-      public Kind getKind() {
+      Kind getKind() {
         return Kind.ALIASED_LOCATION;
       }
 
@@ -59,18 +59,18 @@ public abstract class Expression {
       private final Formula address;
     }
 
-    public static class UnaliasedLocation extends Location {
+    static class UnaliasedLocation extends Location {
 
       private UnaliasedLocation(final String variableName) {
         this.variableName = variableName;
       }
 
-      public String getVariableName() {
+      String getVariableName() {
         return variableName;
       }
 
       @Override
-      public Kind getKind() {
+      Kind getKind() {
         return Kind.UNALIASED_LOCATION;
       }
 
@@ -84,19 +84,19 @@ public abstract class Expression {
       private final String variableName;
     }
 
-    public static AliasedLocation ofAddress(final @Nonnull Formula address) {
+    static AliasedLocation ofAddress(final @Nonnull Formula address) {
       return new AliasedLocation(address);
     }
 
-    public static UnaliasedLocation ofVariableName(final @Nonnull String variableName) {
+    static UnaliasedLocation ofVariableName(final @Nonnull String variableName) {
       return new UnaliasedLocation(variableName);
     }
 
-    public boolean isAliased() {
+    boolean isAliased() {
       return this instanceof AliasedLocation;
     }
 
-    public AliasedLocation asAliased() {
+    AliasedLocation asAliased() {
       if (this instanceof AliasedLocation) {
         return (AliasedLocation) this;
       } else {
@@ -104,7 +104,7 @@ public abstract class Expression {
       }
     }
 
-    public UnaliasedLocation asUnaliased() {
+    UnaliasedLocation asUnaliased() {
       if (this instanceof UnaliasedLocation) {
         return (UnaliasedLocation) this;
       } else {
@@ -113,24 +113,24 @@ public abstract class Expression {
     }
   }
 
-  public static class Value extends Expression {
-    public static class Nondet extends Value {
+  static class Value extends Expression {
+    private static class Nondet extends Value {
       private Nondet() {
         super(null);
       }
 
       @Override
-      public Formula getValue() {
+      Formula getValue() {
         return null;
       }
 
       @Override
-      public boolean isNondet() {
+      boolean isNondet() {
         return true;
       }
 
       @Override
-      public Kind getKind() {
+      Kind getKind() {
         return Kind.NONDET;
       }
 
@@ -141,20 +141,20 @@ public abstract class Expression {
       }
     }
 
-    private Value(final Formula value) {
+    Value(final Formula value) {
       this.value = value;
     }
 
-    public Formula getValue() {
+    Formula getValue() {
       return value;
     }
 
-    public boolean isNondet() {
+    boolean isNondet() {
       return false;
     }
 
     @Override
-    public Kind getKind() {
+    Kind getKind() {
       return Kind.DET_VALUE;
     }
 
@@ -187,35 +187,35 @@ public abstract class Expression {
     private static final Value nondet = new Nondet();
   }
 
-  public static Value ofValue(final @Nullable Formula value) {
+  static Value ofValue(final @Nullable Formula value) {
     return value != null ? new Value(value) : null;
   }
 
-  public static Value nondetValue() {
+  static Value nondetValue() {
     return Value.nondet;
   }
 
-  public boolean isLocation() {
+  boolean isLocation() {
     return this instanceof Location;
   }
 
-  public boolean isValue() {
+  boolean isValue() {
     return this instanceof Value;
   }
 
-  public boolean isNondetValue() {
+  boolean isNondetValue() {
     return this == Value.nondet;
   }
 
-  public boolean isAliasedLocation() {
+  boolean isAliasedLocation() {
     return this.isLocation() && this.asLocation().isAliased();
   }
 
-  public boolean isUnaliasedLocation() {
+  boolean isUnaliasedLocation() {
     return this.isLocation() && !this.asLocation().isAliased();
   }
 
-  public Location asLocation() {
+  Location asLocation() {
     if (this instanceof Location) {
       return (Location) this;
     } else {
@@ -223,7 +223,7 @@ public abstract class Expression {
     }
   }
 
-  public AliasedLocation asAliasedLocation() {
+  AliasedLocation asAliasedLocation() {
     if (this.isLocation()) {
       return this.asLocation().asAliased();
     } else {
@@ -231,7 +231,7 @@ public abstract class Expression {
     }
   }
 
-  public UnaliasedLocation asUnaliasedLocation() {
+  UnaliasedLocation asUnaliasedLocation() {
     if (this.isLocation()) {
       return this.asLocation().asUnaliased();
     } else {
@@ -239,7 +239,7 @@ public abstract class Expression {
     }
   }
 
-  public Value asValue() {
+  Value asValue() {
     if (this instanceof Value) {
       return (Value) this;
     } else {
@@ -247,7 +247,12 @@ public abstract class Expression {
     }
   }
 
-  public abstract Kind getKind();
+  abstract Kind getKind();
 
-  public enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
+  enum Kind {
+    ALIASED_LOCATION,
+    UNALIASED_LOCATION,
+    DET_VALUE,
+    NONDET
+  }
 }
