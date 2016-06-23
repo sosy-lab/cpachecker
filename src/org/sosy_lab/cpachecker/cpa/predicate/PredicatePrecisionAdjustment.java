@@ -32,7 +32,6 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -70,7 +69,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
 
-  private InvariantSupplier invariants;
+  private PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
 
   public PredicatePrecisionAdjustment(
@@ -79,7 +78,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
-      InvariantSupplier pInvariantSupplier,
+      PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider) {
 
     logger = pLogger;
@@ -156,13 +155,14 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
-    // get invariants and add them
-    // the need to be instantiated
-    // TODO pointer target set is ignored, and perhaps the invariant does also contain
-    // variables which are not relevant in predicate CPA. This can lead to wrong behaviour
-    // as some variables might not get an index and come later on a second time, leading to
-    // unsatisfiable formulas
-    BooleanFormula invariant = fmgr.instantiate(invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula), pathFormula.getSsa());
+    // update/get invariants and add them, the need to be instantiated
+    // (we do only update global invariants (computed by a parallelalgorithm) here
+    // as everything else can only be computed during refinement)
+    invariants.updateGlobalInvariants();
+    BooleanFormula invariant =
+        fmgr.instantiate(
+            invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula),
+            pathFormula.getSsa());
 
     // we don't want to add trivially true invariants
     if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
