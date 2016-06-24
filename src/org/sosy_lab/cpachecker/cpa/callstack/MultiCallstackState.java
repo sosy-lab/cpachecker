@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -13,6 +14,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import com.google.common.collect.ImmutableMap;
 
 public class MultiCallstackState implements AbstractState, Partitionable {
+
+  static final String INITIAL_THREAD_NAME = "thread0";
 
   private final ImmutableMap<String, CallstackState> threadContextCallstacks;
 
@@ -36,7 +39,7 @@ public class MultiCallstackState implements AbstractState, Partitionable {
    * for stacking
    */
   protected MultiCallstackState(@Nullable MultiCallstackState previousState, String thread, String function, CFANode callerNode) {
-    assert previousState != null || thread.equals("thread0"); //TODO use dynamic name
+    assert previousState != null || thread.equals(INITIAL_THREAD_NAME); //TODO use dynamic name
     assert previousState != null || function.equals("main__0");  // creates a new context
     this.thread = thread;
 
@@ -51,10 +54,6 @@ public class MultiCallstackState implements AbstractState, Partitionable {
     copyOfStackHeads.put(thread, nextState);
 
     this.threadContextCallstacks = ImmutableMap.copyOf(copyOfStackHeads);
-  }
-
-  public static MultiCallstackState initialState(String function, CFANode callerNode) {
-    return new MultiCallstackState(null, "thread0", function, callerNode);
   }
 
   public CallstackState getCurrentStack() {

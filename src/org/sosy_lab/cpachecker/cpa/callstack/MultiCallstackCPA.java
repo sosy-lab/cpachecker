@@ -47,6 +47,7 @@ public class MultiCallstackCPA extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return MultiCallstackState.initialState(pNode.getFunctionName(), pNode);
+    return new MultiCallstackState(null, MultiCallstackState.INITIAL_THREAD_NAME,
+        pNode.getFunctionName(), pNode);
   }
 }
