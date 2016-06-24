@@ -37,20 +37,11 @@ import javax.annotation.Nullable;
 
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
-  private PointerTargetPattern(final String base, final int startOffset, final int size) {
-    this.base = base;
-    this.containerOffset = startOffset;
-    this.properOffset = startOffset + size;
-    this.matchRange = true;
-    this.containerType = null;
-  }
-
   private PointerTargetPattern(
       @Nullable String pBase,
       @Nullable CType pContainerType,
       @Nullable Integer pProperOffset,
       @Nullable Integer pContainerOffset) {
-    matchRange = false;
     base = pBase;
     containerType = pContainerType;
     properOffset = pProperOffset;
@@ -73,8 +64,8 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return new PointerTargetPattern(base, null, 0, 0);
   }
 
-  static PointerTargetPattern forRange(String base, int startOffset, int size) {
-    return new PointerTargetPattern(base, startOffset, size);
+  static Predicate<PointerTarget> forRange(String base, int startOffset, int size) {
+    return new RangePointerTargetPattern(base, startOffset, size);
   }
 
   static PointerTargetPattern forLeftHandSide(
@@ -88,36 +79,28 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return lhs.accept(v).build();
   }
 
-  PointerTargetPattern withRange(final int size) {
+  Predicate<PointerTarget> withRange(final int size) {
     assert containerOffset != null && properOffset != null : "Starting address is inexact";
     return forRange(base, containerOffset + properOffset, size);
   }
 
   boolean matches(final PointerTarget target) {
-    if (!matchRange) {
-      if (properOffset != null && properOffset != target.properOffset) {
+    if (properOffset != null && properOffset != target.properOffset) {
+      return false;
+    }
+    if (containerOffset != null && containerOffset != target.containerOffset) {
+      return false;
+    }
+    if (base != null && !base.equals(target.base)) {
+      return false;
+    }
+    if (containerType != null && !containerType.equals(target.containerType)) {
+      if (!(containerType instanceof CArrayType) || !(target.containerType instanceof CArrayType)) {
         return false;
-      }
-      if (containerOffset != null && containerOffset != target.containerOffset) {
-        return false;
-      }
-      if (base != null && !base.equals(target.base)) {
-        return false;
-      }
-      if (containerType != null && !containerType.equals(target.containerType)) {
-        if (!(containerType instanceof CArrayType) || !(target.containerType instanceof CArrayType)) {
-          return false;
-        } else {
-          return ((CArrayType) containerType).getType().equals(((CArrayType) target.containerType).getType());
-        }
-      }
-    } else {
-      final int offset = target.containerOffset + target.properOffset;
-      if (offset < containerOffset || offset >= properOffset) {
-        return false;
-      }
-      if (base != null && !base.equals(target.base)) {
-        return false;
+      } else {
+        return ((CArrayType) containerType)
+            .getType()
+            .equals(((CArrayType) target.containerType).getType());
       }
     }
     return true;
@@ -142,9 +125,32 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   private final @Nullable Integer properOffset;
   private final @Nullable Integer containerOffset;
 
-  private final boolean matchRange;
-
   private static final long serialVersionUID = -2918663736813010025L;
+
+  private static class RangePointerTargetPattern implements Predicate<PointerTarget> {
+
+    private final String base;
+    private final int startOffset;
+    private final int endOffset;
+
+    private RangePointerTargetPattern(final String pBase, final int pStartOffset, final int pSize) {
+      base = pBase;
+      startOffset = pStartOffset;
+      endOffset = pStartOffset + pSize;
+    }
+
+    @Override
+    public boolean apply(final PointerTarget target) {
+      final int offset = target.containerOffset + target.properOffset;
+      if (offset < startOffset || offset >= endOffset) {
+        return false;
+      }
+      if (base != null && !base.equals(target.base)) {
+        return false;
+      }
+      return true;
+    }
+  }
 
   static class PointerTargetPatternBuilder {
 

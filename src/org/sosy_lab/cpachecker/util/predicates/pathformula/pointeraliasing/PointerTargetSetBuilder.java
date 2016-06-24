@@ -106,11 +106,9 @@ public interface PointerTargetSetBuilder {
 
   PersistentList<PointerTarget> getAllTargets(CType type);
 
-  Iterable<PointerTarget> getMatchingTargets(CType type,
-      PointerTargetPattern pattern);
+  Iterable<PointerTarget> getMatchingTargets(CType type, Predicate<PointerTarget> pattern);
 
-  Iterable<PointerTarget> getSpuriousTargets(CType type,
-      PointerTargetPattern pattern);
+  Iterable<PointerTarget> getSpuriousTargets(CType type, Predicate<PointerTarget> pattern);
 
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
@@ -646,8 +644,8 @@ public interface PointerTargetSetBuilder {
      * @return A list of matching pointer targets.
      */
     @Override
-    public Iterable<PointerTarget> getMatchingTargets(final CType type,
-        final PointerTargetPattern pattern) {
+    public Iterable<PointerTarget> getMatchingTargets(
+        final CType type, final Predicate<PointerTarget> pattern) {
       return from(getAllTargets(type)).filter(pattern);
     }
 
@@ -659,8 +657,8 @@ public interface PointerTargetSetBuilder {
      * @return A list of spurious pointer targets.
      */
     @Override
-    public Iterable<PointerTarget> getSpuriousTargets(final CType type,
-        final PointerTargetPattern pattern) {
+    public Iterable<PointerTarget> getSpuriousTargets(
+        final CType type, final Predicate<PointerTarget> pattern) {
       return from(getAllTargets(type)).filter(not(pattern));
     }
 
@@ -781,12 +779,14 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public Iterable<PointerTarget> getMatchingTargets(CType pType, PointerTargetPattern pPattern) {
+    public Iterable<PointerTarget> getMatchingTargets(
+        CType pType, Predicate<PointerTarget> pPattern) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Iterable<PointerTarget> getSpuriousTargets(CType pType, PointerTargetPattern pPattern) {
+    public Iterable<PointerTarget> getSpuriousTargets(
+        CType pType, Predicate<PointerTarget> pPattern) {
       throw new UnsupportedOperationException();
     }
 

@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -758,7 +759,7 @@ class AssignmentHandler {
   }
 
   private void addExactRetentionConstraints(
-      final PointerTargetPattern pattern, final Set<CType> types) throws InterruptedException {
+      final Predicate<PointerTarget> pattern, final Set<CType> types) throws InterruptedException {
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
       final int oldIndex = conv.getIndex(ufName, type, ssa);
@@ -781,7 +782,7 @@ class AssignmentHandler {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula candidateAddress = conv.makeFormulaForTarget(target);
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
-      final PointerTargetPattern exact =
+      final Predicate<PointerTarget> exact =
           PointerTargetPattern.forRange(target.getBase(), target.getOffset(), size);
       List<BooleanFormula> consequent = new ArrayList<>();
       for (final CType type : types) {
