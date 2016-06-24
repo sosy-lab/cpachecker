@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.lang.reflect.Constructor;
+import com.google.common.testing.ClassSanityTester;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,11 +41,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.BAMFreshValueProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
-import com.google.common.testing.ClassSanityTester;
+import java.lang.reflect.Constructor;
 
 /**
  * Testing the custom SSA implementation.
  */
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class PathFormulaTest {
 
   private ClassSanityTester classSanityTester() throws Exception {

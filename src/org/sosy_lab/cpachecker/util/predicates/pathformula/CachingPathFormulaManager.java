@@ -132,9 +132,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
-    if (pOldFormula.getFormula() == null) {
-      return delegate.makeEmptyPathFormula(pOldFormula);
-    }
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {
       result = delegate.makeEmptyPathFormula(pOldFormula);

@@ -32,6 +32,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.truth.Truth;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,6 +60,7 @@ import org.sosy_lab.solver.test.SolverBasedTest0;
 import java.util.Set;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   @Parameters(name = "{0}")

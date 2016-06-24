@@ -28,6 +28,8 @@ import static org.junit.Assert.assertEquals;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +83,7 @@ import java.util.TreeMap;
 /**
  * Testing the custom SSA implementation.
  */
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
   @SuppressWarnings("hiding")

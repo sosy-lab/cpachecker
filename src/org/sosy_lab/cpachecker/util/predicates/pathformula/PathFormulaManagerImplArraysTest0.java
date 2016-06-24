@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeDeclaration;
 
 import com.google.common.collect.Lists;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -61,6 +63,7 @@ import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import java.util.Optional;
 
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
 
   private static final CArrayType unlimitedIntArrayType = new CArrayType(false, false, CNumericTypes.INT, null);

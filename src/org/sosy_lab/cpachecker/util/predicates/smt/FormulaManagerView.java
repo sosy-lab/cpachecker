@@ -96,6 +96,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 /**
  * This class is the central entry point for all formula creation
  * and manipulation operations for client code.
@@ -130,11 +132,11 @@ public class FormulaManagerView {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private IntegerFormulaManagerView integerFormulaManager;
-  private RationalFormulaManagerView rationalFormulaManager;
+  private final IntegerFormulaManagerView integerFormulaManager;
+  private @Nullable RationalFormulaManagerView rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
-  private QuantifiedFormulaManagerView quantifiedFormulaManager;
-  private ArrayFormulaManagerView arrayFormulaManager;
+  private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager;
+  private @Nullable ArrayFormulaManagerView arrayFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)

@@ -48,6 +48,8 @@ import org.sosy_lab.solver.api.FormulaType;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 public class SSAMapMerger {
 
   private final FormulaManagerView fmgr;
@@ -56,7 +58,7 @@ public class SSAMapMerger {
   private final ShutdownNotifier shutdownNotifier;
   private final CtoFormulaConverter converter;
   private final CtoFormulaTypeHandler typeHandler;
-  private final ArrayFormulaManagerView afmgr;
+  private final @Nullable ArrayFormulaManagerView afmgr;
   private final boolean useNondetFlags;
   private final boolean handleHeapArray;
   private final FormulaType<?> nondetFormulaType;

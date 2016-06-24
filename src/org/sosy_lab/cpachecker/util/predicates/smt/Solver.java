@@ -31,6 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -62,8 +64,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Encapsulation of an SMT solver.
@@ -98,7 +98,7 @@ public final class Solver implements AutoCloseable {
   description="Extract and cache unsat cores for satisfiability checking")
   private boolean cacheUnsatCores = true;
 
-  private final UFCheckingProverOptions ufCheckingProverOptions;
+  private final @Nullable UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;

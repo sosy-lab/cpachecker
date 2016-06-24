@@ -24,10 +24,15 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.INT_ZERO_INITIALIZER;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeAssignment;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeAssume;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeDeclaration;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -82,9 +87,9 @@ import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import com.google.common.collect.Lists;
 
 /**
  *
@@ -107,6 +112,10 @@ import com.google.common.collect.Lists;
  *
  */
 @SuppressWarnings("unused")
+@SuppressFBWarnings({
+  "NP_NONNULL_PARAM_VIOLATION",
+  "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"
+})
 @RunWith(Parameterized.class)
 public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
 
