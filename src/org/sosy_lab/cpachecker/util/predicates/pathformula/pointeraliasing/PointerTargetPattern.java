@@ -48,6 +48,14 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     this.matchRange = false;
   }
 
+  private PointerTargetPattern(final String base, final int startOffset, final int size) {
+    this.base = base;
+    this.containerOffset = startOffset;
+    this.properOffset = startOffset + size;
+    this.matchRange = true;
+    this.containerType = null;
+  }
+
   /**
    * Create PointerTargetPattern matching any possible target.
    */
@@ -64,6 +72,10 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return new PointerTargetPattern(base);
   }
 
+  static PointerTargetPattern forRange(String base, int startOffset, int size) {
+    return new PointerTargetPattern(base, startOffset, size);
+  }
+
   static PointerTargetPattern forLeftHandSide(
       final CLeftHandSide lhs,
       final TypeHandlerWithPointerAliasing pTypeHandler,
@@ -73,17 +85,6 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     LvalueToPointerTargetPatternVisitor v =
         new LvalueToPointerTargetPatternVisitor(pTypeHandler, pCfaEdge, pPts);
     return lhs.accept(v);
-  }
-
-  void setBase(final String base) {
-    this.base = base;
-  }
-
-  void setRange(final int startOffset, final int size) {
-    this.containerOffset = startOffset;
-    this.properOffset = startOffset + size;
-    this.matchRange = true;
-    this.containerType = null;
   }
 
   void setRange(final int size) {

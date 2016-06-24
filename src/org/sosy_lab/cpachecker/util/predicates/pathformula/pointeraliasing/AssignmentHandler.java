@@ -778,13 +778,12 @@ class AssignmentHandler {
                                                 final Formula startAddress,
                                                 final int size,
                                                 final Set<CType> types) throws InterruptedException {
-    final PointerTargetPattern exact = PointerTargetPattern.any();
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula candidateAddress = makeFormulaForTarget(target);
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
-      exact.setBase(target.getBase());
-      exact.setRange(target.getOffset(), size);
+      final PointerTargetPattern exact =
+          PointerTargetPattern.forRange(target.getBase(), target.getOffset(), size);
       BooleanFormula consequent = bfmgr.makeBoolean(true);
       for (final CType type : types) {
         final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
