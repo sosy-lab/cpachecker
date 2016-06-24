@@ -168,6 +168,8 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     static PointerTargetPatternBuilder forBase(String pBase) {
       PointerTargetPatternBuilder result = new PointerTargetPatternBuilder();
       result.base = pBase;
+      result.properOffset = 0;
+      result.containerOffset = 0;
       return result;
     }
 
