@@ -102,7 +102,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         .transform(GET_BLOCK_FORMULA)
         .toList();
 
-    List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
+    List<RawInfeasiblePrefix> rawPrefixes;
 
     try (InterpolatingProverEnvironmentWithAssumptions<?> prover = solver.newProverEnvironmentWithInterpolation()) {
       rawPrefixes = extractInfeasiblePrefixes(pPath, blockFormulas, prover);
