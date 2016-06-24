@@ -104,10 +104,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
 
-    try (@SuppressWarnings("unchecked")
-      InterpolatingProverEnvironmentWithAssumptions<Object> prover =
-      (InterpolatingProverEnvironmentWithAssumptions<Object>)solver.newProverEnvironmentWithInterpolation()) {
-
+    try (InterpolatingProverEnvironmentWithAssumptions<?> prover = solver.newProverEnvironmentWithInterpolation()) {
       rawPrefixes = extractInfeasiblePrefixes(pPath, blockFormulas, prover);
     }
 
