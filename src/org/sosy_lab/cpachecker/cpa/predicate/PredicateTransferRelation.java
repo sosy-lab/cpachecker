@@ -97,6 +97,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       + "new memory locations in the most pupulated region can be analyzed (<= 0 -- unliminted, > 0 -- unsound!)")
   private int maxTargetLimitRaisesPerLine = 0;
 
+  @Option(secure=true, description = "max number tracked memory locations in a non-global region "
+      + "(<= 0 -- unliminted, > 0 -- unsound!)")
+  private int maxTargetCount = 0;
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -166,6 +170,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           } else {
             pathFormula = pathFormula.raiseTargetLimit(edge);
           }
+      }
+
+      if (maxTargetCount > 0 && pathFormula.getPointerTargetSet().getTargets().getMaxTargetCount() > maxTargetCount) {
+        return Collections.emptySet();
       }
 
       // Check whether we should do a SAT check.s
