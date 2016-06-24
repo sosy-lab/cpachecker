@@ -8,7 +8,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.5-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.6-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -17,6 +17,8 @@
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
+    <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
+    <property name="source.exclude" value=""/>
 
     <import file="build/build-ivy.xml"/>
     <import file="build/build-compile.xml"/>
@@ -31,7 +33,7 @@
 
     <path id="classpath">
         <pathelement location="${class.dir}"/>
-        <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
+        <fileset dir="lib" includes="*.jar"/>
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
     </path>
 
@@ -50,7 +52,7 @@
 
     <target name="clean">
         <delete includeEmptyDirs="true">
-            <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
         </delete>
 
         <!-- Clean subprojects -->
@@ -71,6 +73,13 @@
 
     <target name="tests" depends="unit-tests, python-unit-tests, benchmark-tests" description="Run all tests"/>
 
+    <target name="all-checks" description="Run all tests and checks">
+        <!-- We have to use antcall here to run clean twice. -->
+        <antcall target="clean"/>
+        <antcall target="build-project-ecj"/>
+        <antcall target="clean"/>
+        <antcall target="standard-checks"/>
+    </target>
 
     <!-- Auxiliary targets -->
 
@@ -125,6 +134,11 @@
     <target name="build-project" depends="build-dependencies">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <copy todir="${class.dir}">
+          <fileset dir="${source.dir}">
+            <exclude name="**/*.java" />
+          </fileset>
+        </copy>
         <echo message="Compiling CPAchecker"/>
         <javac debug="true"
                debuglevel="source,lines,vars"
@@ -137,8 +151,7 @@
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint:deprecation"/>
-            <!-- exclude for now since necessary JARs might not be installed -->
-            <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+            <exclude name="${source.exclude}"/>
             <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
@@ -167,6 +180,8 @@
         </java>
         <echo message="Options collected." level="info"/>
     </target>
+
+    <target name="standard-checks" depends="tests, findbugs"/>
 
     <!-- Release for Windows -->
     <target name="zip" depends="jar">
