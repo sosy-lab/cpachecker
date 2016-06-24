@@ -81,7 +81,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
         pBMCStatistics,
         true /* invariant generator */,
         pAggregatedReachedSets);
-    Verify.verify(checkIfInductionIsPossible(pCFA, pLogger, getLoopHeads()));
+    Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
     candidateGenerator = Objects.requireNonNull(pCandidateGenerator);
   }
 

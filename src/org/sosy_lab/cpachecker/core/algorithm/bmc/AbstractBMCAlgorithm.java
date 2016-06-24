@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -174,7 +173,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
 
     if (induction) {
-      induction = checkIfInductionIsPossible(pCFA, pLogger, loopHeads);
+      induction = checkIfInductionIsPossible(pCFA, pLogger);
+      // if there is no loop we do not need induction, although loop information is available
+      induction = induction && cfa.getLoopStructure().get().getCount() > 0 && !loopHeads.isEmpty();
     }
 
     if (induction) {
@@ -267,20 +268,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   }
 
-  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Set<CFANode> loopHeads) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
     }
 
-    LoopStructure loops = cfa.getLoopStructure().get();
-
-    if (loops.getCount() == 0) {
-      // induction is unnecessary, program has no loops
-      return false;
-    }
-
-    return !loopHeads.isEmpty();
+    return true;
   }
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
