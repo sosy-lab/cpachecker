@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
-import java.io.PrintStream;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Multiset.Entry;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -48,8 +46,7 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import java.io.PrintStream;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of appearances
@@ -77,7 +74,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getInitialState(CFANode pNode) {
-    return new RepetitionsInPathConditionState(ImmutableMap.<CFAEdge, Integer>of(), threshold, false);
+    return new RepetitionsInPathConditionState(ImmutableMultiset.of(), threshold, false);
   }
 
   private boolean isInteresting(CFAEdge edge) {
@@ -97,15 +94,18 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
       return current;
     }
 
-    Integer repetitions = firstNonNull(current.frequencyMap.get(pEdge), 0);
+    int repetitions = current.frequencyMap.count(pEdge);
     repetitions++;
 
     boolean thresholdReached = (threshold >= 0) && (repetitions >= threshold);
 
     maxRepetitionsInPath = Math.max(repetitions, maxRepetitionsInPath);
 
-    Map<CFAEdge, Integer> newFrequencyMap = Maps.newHashMap(current.frequencyMap);
-    newFrequencyMap.put(pEdge, repetitions);
+    Multiset<CFAEdge> newFrequencyMap =
+        ImmutableMultiset.<CFAEdge>builder()
+            .addAll(current.frequencyMap)
+            .setCount(pEdge, repetitions)
+            .build();
 
     return new RepetitionsInPathConditionState(newFrequencyMap, threshold, thresholdReached);
   }
@@ -138,13 +138,13 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
   private static class RepetitionsInPathConditionState implements AbstractState, AvoidanceReportingState {
 
-    private final ImmutableMap<CFAEdge, Integer> frequencyMap;
+    private final ImmutableMultiset<CFAEdge> frequencyMap;
     private final int threshold;
     private final boolean thresholdReached;
 
-    private RepetitionsInPathConditionState(Map<CFAEdge, Integer> pFrequencyMap,
-        int pThreshold, boolean pThresholdReached) {
-      frequencyMap = ImmutableMap.copyOf(pFrequencyMap);
+    private RepetitionsInPathConditionState(
+        Multiset<CFAEdge> pFrequencyMap, int pThreshold, boolean pThresholdReached) {
+      frequencyMap = ImmutableMultiset.copyOf(pFrequencyMap);
       threshold = pThreshold;
       thresholdReached = pThresholdReached;
     }
@@ -162,11 +162,8 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();
-      for (Entry<CFAEdge, Integer> entry : frequencyMap.entrySet()) {
-        builder.append(entry.getValue())
-               .append("x(")
-               .append(entry.getKey())
-               .append(") ");
+      for (Entry<CFAEdge> entry : frequencyMap.entrySet()) {
+        builder.append(entry.getCount()).append("x(").append(entry.getElement()).append(") ");
       }
       return builder.toString();
     }
