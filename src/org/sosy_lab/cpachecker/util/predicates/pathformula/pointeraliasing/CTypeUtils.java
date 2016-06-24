@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 import java.util.OptionalInt;
 
-import javax.annotation.Nonnull;
-
 /**
  * Utility class with helper methods for CTypes.
  */
@@ -146,7 +144,7 @@ class CTypeUtils {
    * @param type The type obtained form the CFA
    * @return The corresponding simplified canonical type
    */
-  static CType simplifyType(final @Nonnull CType type) {
+  static CType simplifyType(final CType type) {
     return type.accept(typeVisitor);
   }
 

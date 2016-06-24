@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import javax.annotation.Nullable;
+
 class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException> {
 
   BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
@@ -151,6 +153,7 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
     throw new UnrecognizedCCodeException("Addess of label in place of lvalue", cfaEdge, e);
   }
 
+  @Nullable
   Variable getLastBase() {
     return lastBase;
   }
@@ -158,5 +161,5 @@ class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeExcep
   private final PointerTargetSetBuilder pts;
   private final CFAEdge cfaEdge;
 
-  private Variable lastBase = null;
+  private @Nullable Variable lastBase = null;
 }

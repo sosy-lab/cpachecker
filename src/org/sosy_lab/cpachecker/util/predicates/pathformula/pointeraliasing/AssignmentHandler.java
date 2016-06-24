@@ -69,7 +69,6 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -263,8 +262,8 @@ class AssignmentHandler {
    * @see #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)
    */
   private BooleanFormula handleInitializationAssignmentsWithQuantifier(
-      final @Nonnull CLeftHandSide pLeftHandSide,
-      final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
+      final CLeftHandSide pLeftHandSide,
+      final List<CExpressionAssignmentStatement> pAssignments,
       final boolean pUseOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
 
@@ -375,8 +374,8 @@ class AssignmentHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   private boolean checkEqualityOfInitializers(
-      final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
-      final @Nonnull CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      final List<CExpressionAssignmentStatement> pAssignments,
+      final CExpressionVisitorWithPointerAliasing pRhsVisitor)
       throws UnrecognizedCCodeException {
     Value tmp = null;
     for (CExpressionAssignmentStatement assignment : pAssignments) {
@@ -403,14 +402,15 @@ class AssignmentHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  BooleanFormula makeAssignment(@Nonnull CType lvalueType,
-                                final @Nonnull CType rvalueType,
-                                final @Nonnull Location lvalue,
-                                final @Nonnull Expression rvalue,
-                                final @Nullable PointerTargetPattern pattern,
-                                final boolean useOldSSAIndices,
-                                      @Nullable Set<CType> updatedTypes)
-  throws UnrecognizedCCodeException, InterruptedException {
+  BooleanFormula makeAssignment(
+      CType lvalueType,
+      final CType rvalueType,
+      final Location lvalue,
+      final Expression rvalue,
+      final @Nullable PointerTargetPattern pattern,
+      final boolean useOldSSAIndices,
+      @Nullable Set<CType> updatedTypes)
+      throws UnrecognizedCCodeException, InterruptedException {
     // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
     // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
     // case of initialization assignments)
@@ -461,10 +461,10 @@ class AssignmentHandler {
   }
 
   private void finishAssignments(
-      @Nonnull CType lvalueType,
-      final @Nonnull AliasedLocation lvalue,
-      final @Nonnull PointerTargetPattern pattern,
-      final @Nonnull Set<CType> updatedTypes)
+      CType lvalueType,
+      final AliasedLocation lvalue,
+      final PointerTargetPattern pattern,
+      final Set<CType> updatedTypes)
       throws InterruptedException {
     addRetentionForAssignment(lvalueType,
                               lvalue.getAddress(),
@@ -485,14 +485,15 @@ class AssignmentHandler {
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
-                                                   @Nonnull CType rvalueType,
-                                                   final @Nonnull  Location lvalue,
-                                                   final @Nonnull  Expression rvalue,
-                                                   final boolean useOldSSAIndices,
-                                                   final @Nullable Set<CType> updatedTypes,
-                                                   final @Nullable Set<Variable> updatedVariables)
-  throws UnrecognizedCCodeException {
+  private BooleanFormula makeDestructiveAssignment(
+      CType lvalueType,
+      CType rvalueType,
+      final Location lvalue,
+      final Expression rvalue,
+      final boolean useOldSSAIndices,
+      final @Nullable Set<CType> updatedTypes,
+      final @Nullable Set<Variable> updatedVariables)
+      throws UnrecognizedCCodeException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     rvalueType = CTypeUtils.simplifyType(rvalueType);
     BooleanFormula result;
@@ -619,14 +620,15 @@ class AssignmentHandler {
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  private BooleanFormula makeSimpleDestructiveAssignment(@Nonnull CType lvalueType,
-                                                         @Nonnull CType rvalueType,
-                                                         final @Nonnull Location lvalue,
-                                                               @Nonnull Expression rvalue,
-                                                         final boolean useOldSSAIndices,
-                                                         final @Nullable Set<CType> updatedTypes,
-                                                         final @Nullable Set<Variable> updatedVariables)
-  throws UnrecognizedCCodeException {
+  private BooleanFormula makeSimpleDestructiveAssignment(
+      CType lvalueType,
+      CType rvalueType,
+      final Location lvalue,
+      Expression rvalue,
+      final boolean useOldSSAIndices,
+      final @Nullable Set<CType> updatedTypes,
+      final @Nullable Set<Variable> updatedVariables)
+      throws UnrecognizedCCodeException {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     rvalueType = CTypeUtils.simplifyType(rvalueType);
     // Arrays and functions are implicitly converted to pointers
@@ -694,10 +696,12 @@ class AssignmentHandler {
     return result;
   }
 
-  private void addRetentionForAssignment(@Nonnull CType lvalueType,
-                                         final @Nullable Formula startAddress,
-                                         final @Nonnull PointerTargetPattern pattern,
-                                         final Set<CType> typesToRetain) throws InterruptedException {
+  private void addRetentionForAssignment(
+      CType lvalueType,
+      final @Nullable Formula startAddress,
+      final PointerTargetPattern pattern,
+      final Set<CType> typesToRetain)
+      throws InterruptedException {
     if (options.useArraysForHeap()) {
       // not necessary for heap-array encoding
       return;
@@ -845,7 +849,7 @@ class AssignmentHandler {
    * @param types A set of types that should be added to the SSA map.
    * @param ssa The current SSA map.
    */
-  private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
+  private void updateSSA(final Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
       conv.makeFreshIndex(ufName, type, ssa);

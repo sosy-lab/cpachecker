@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
@@ -69,7 +69,7 @@ public final class PointerTargetSet implements Serializable {
       this.fieldName = fieldName;
     }
 
-    static CompositeField of(final @Nonnull String compositeType, final @Nonnull String fieldName) {
+    static CompositeField of(final String compositeType, final String fieldName) {
       return new CompositeField(compositeType, fieldName);
     }
 
@@ -168,7 +168,7 @@ public final class PointerTargetSet implements Serializable {
 
   PointerTargetSet(
       final PersistentSortedMap<String, CType> bases,
-      final String lastBase,
+      final @Nullable String lastBase,
       final PersistentSortedMap<CompositeField, Boolean> fields,
       final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
@@ -203,6 +203,7 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
+  @Nullable
   String getLastBase() {
     return lastBase;
   }
@@ -225,7 +226,7 @@ public final class PointerTargetSet implements Serializable {
   private final PersistentSortedMap<String, CType> bases;
 
   // The last added memory region (used to create the chain of inequalities between bases).
-  private final String lastBase;
+  private final @Nullable String lastBase;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.

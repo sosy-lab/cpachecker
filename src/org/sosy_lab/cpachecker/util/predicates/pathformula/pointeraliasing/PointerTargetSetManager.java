@@ -121,7 +121,7 @@ class PointerTargetSetManager {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
-  private final ArrayFormulaManagerView afmgr;
+  private final @Nullable ArrayFormulaManagerView afmgr;
   private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
 

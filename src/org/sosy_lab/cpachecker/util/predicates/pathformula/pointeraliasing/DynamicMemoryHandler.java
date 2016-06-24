@@ -64,7 +64,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -371,7 +370,7 @@ class DynamicMemoryHandler {
    * @param e The C expression.
    * @return The value, if the expression is an integer literal, or {@code null}
    */
-  private static Integer tryEvaluateExpression(CExpression e) {
+  private static @Nullable Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression)e).getValue().intValue();
     }
@@ -409,7 +408,7 @@ class DynamicMemoryHandler {
    * @param e The expression type to get the size from.
    * @return The size of the expression.
    */
-  private static CType getSizeofType(CExpression e) {
+  private static @Nullable CType getSizeofType(CExpression e) {
     if (e instanceof CUnaryExpression &&
         ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
       return CTypeUtils.simplifyType(((CUnaryExpression) e).getOperand().getExpressionType());
@@ -432,7 +431,7 @@ class DynamicMemoryHandler {
    * @param sizeLiteral the size specified at the allocation site.
    * @return the recovered array type or the {@code type} parameter in case the type can't be recovered
    */
-  private CType refineType(final @Nonnull CType type, final @Nonnull CIntegerLiteralExpression sizeLiteral) {
+  private CType refineType(final CType type, final CIntegerLiteralExpression sizeLiteral) {
     assert sizeLiteral.getValue() != null;
 
     final int size = sizeLiteral.getValue().intValue();
@@ -478,7 +477,8 @@ class DynamicMemoryHandler {
    * @param sizeLiteral The allocation size.
    * @return The type of the allocated dynamic variable.
    */
-  private CType getAllocationType(final @Nonnull CType type, final @Nullable CIntegerLiteralExpression sizeLiteral) {
+  private CType getAllocationType(
+      final CType type, final @Nullable CIntegerLiteralExpression sizeLiteral) {
     if (type instanceof CPointerType) {
       return sizeLiteral != null ? refineType(((CPointerType) type).getType(), sizeLiteral) :
                                    ((CPointerType) type).getType();
@@ -497,9 +497,9 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException if the execution was interrupted.
    */
-  private void handleDeferredAllocationTypeRevelation(final @Nonnull String pointerVariable,
-                                                      final @Nonnull CType type)
-                                                          throws UnrecognizedCCodeException, InterruptedException {
+  private void handleDeferredAllocationTypeRevelation(
+      final String pointerVariable, final CType type)
+      throws UnrecognizedCCodeException, InterruptedException {
     final DeferredAllocationPool deferredAllocationPool = pts.removeDeferredAllocation(pointerVariable);
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       makeAllocation(deferredAllocationPool.wasAllocationZeroing(),

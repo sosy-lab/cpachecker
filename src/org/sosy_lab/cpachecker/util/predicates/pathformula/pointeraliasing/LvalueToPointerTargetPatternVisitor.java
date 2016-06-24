@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import javax.annotation.Nullable;
+
 
 class LvalueToPointerTargetPatternVisitor
 extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
@@ -280,7 +282,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     }
   }
 
-  private static Integer tryEvaluateExpression(CExpression e) {
+  private static @Nullable Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression)e).getValue().intValue();
     }

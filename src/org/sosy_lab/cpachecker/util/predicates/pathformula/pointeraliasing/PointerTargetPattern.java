@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import java.io.Serializable;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
@@ -99,11 +99,13 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     this.properOffset = properOffset;
   }
 
+  @Nullable
   Integer getProperOffset() {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     return properOffset;
   }
 
+  @Nullable
   Integer getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
     assert !matchRange : "Contradiction in target pattern: remaining offset";
     if (containerType != null && containerOffset != null && properOffset != null) {
@@ -160,7 +162,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     containerOffset = null;
   }
 
-  boolean matches(final @Nonnull PointerTarget target) {
+  boolean matches(final PointerTarget target) {
     if (!matchRange) {
       if (properOffset != null && properOffset != target.properOffset) {
         return false;
@@ -204,10 +206,10 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return containerOffset != null && properOffset != null;
   }
 
-  private String base = null;
-  private CType containerType = null;
-  private Integer properOffset = null;
-  private Integer containerOffset = null;
+  private @Nullable String base = null;
+  private @Nullable CType containerType = null;
+  private @Nullable Integer properOffset = null;
+  private @Nullable Integer containerOffset = null;
 
   private boolean matchRange = false;
 

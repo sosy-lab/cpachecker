@@ -55,6 +55,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
+import javax.annotation.Nullable;
+
 
 public interface PointerTargetSetBuilder {
 
@@ -74,9 +76,8 @@ public interface PointerTargetSetBuilder {
 
   void addEssentialFields(final List<Pair<CCompositeType, String>> fields);
 
-  void addTemporaryDeferredAllocation(boolean isZeroing,
-      CIntegerLiteralExpression size,
-      String baseVariable);
+  void addTemporaryDeferredAllocation(
+      boolean isZeroing, @Nullable CIntegerLiteralExpression size, String baseVariable);
 
   void addDeferredAllocationPointer(String newPointerVariable,
       String originalPointerVariable);
@@ -460,10 +461,11 @@ public interface PointerTargetSetBuilder {
      * @param size he size of the memory.
      * @param baseVariable The name of the base variable.
      */
-    private void addDeferredAllocation(final String pointerVariable,
-                                      final boolean isZeroing,
-                                      final CIntegerLiteralExpression size,
-                                      final String baseVariable) {
+    private void addDeferredAllocation(
+        final String pointerVariable,
+        final boolean isZeroing,
+        final @Nullable CIntegerLiteralExpression size,
+        final String baseVariable) {
       deferredAllocations = deferredAllocations.putAndCopy(pointerVariable,
                                                            new DeferredAllocationPool(pointerVariable,
                                                                                       isZeroing,
@@ -479,9 +481,10 @@ public interface PointerTargetSetBuilder {
      * @param baseVariable The name of the base variable.
      */
     @Override
-    public void addTemporaryDeferredAllocation(final boolean isZeroing,
-                                               final CIntegerLiteralExpression size,
-                                               final String baseVariable) {
+    public void addTemporaryDeferredAllocation(
+        final boolean isZeroing,
+        final @Nullable CIntegerLiteralExpression size,
+        final String baseVariable) {
       addDeferredAllocation(baseVariable, isZeroing, size, baseVariable);
     }
 

@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import java.io.Serializable;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
@@ -35,7 +36,7 @@ public final class PointerTarget implements Serializable {
   /**
    * This constructor is for fields of nested structures and arrays
    */
-  PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
+  PointerTarget(String base, @Nullable CType containerType, int properOffset, int containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;
@@ -63,6 +64,7 @@ public final class PointerTarget implements Serializable {
     return containerType == null;
   }
 
+  @Nullable
   CType getContainerType() {
     return containerType;
   }
@@ -100,7 +102,7 @@ public final class PointerTarget implements Serializable {
   }
 
   final String base;
-  final CType containerType;
+  final @Nullable CType containerType;
   final int properOffset;
   final int containerOffset;
 

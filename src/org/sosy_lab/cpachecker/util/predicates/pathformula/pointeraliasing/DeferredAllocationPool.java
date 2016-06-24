@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 
@@ -77,10 +78,11 @@ class DeferredAllocationPool implements Serializable {
 
   private static final long serialVersionUID = -6957524864610223235L;
 
-  private DeferredAllocationPool(final PersistentList<String> pointerVariables,
-                                 final boolean isZeroing,
-                                 final CIntegerLiteralExpression size,
-                                 final PersistentList<String> baseVariables) {
+  private DeferredAllocationPool(
+      final PersistentList<String> pointerVariables,
+      final boolean isZeroing,
+      final @Nullable CIntegerLiteralExpression size,
+      final PersistentList<String> baseVariables) {
     this.pointerVariables = pointerVariables;
     this.isZeroing = isZeroing;
     this.size = size;
@@ -90,7 +92,7 @@ class DeferredAllocationPool implements Serializable {
   DeferredAllocationPool(
       final String pointerVariable,
       final boolean isZeroing,
-      final CIntegerLiteralExpression size,
+      final @Nullable CIntegerLiteralExpression size,
       final String baseVariable) {
     this(PersistentLinkedList.of(pointerVariable), isZeroing, size, PersistentLinkedList.of(baseVariable));
   }
@@ -115,6 +117,7 @@ class DeferredAllocationPool implements Serializable {
     return isZeroing;
   }
 
+  @Nullable
   CIntegerLiteralExpression getSize() {
     return size;
   }
@@ -166,7 +169,7 @@ class DeferredAllocationPool implements Serializable {
 
   private final PersistentList<String> pointerVariables; // actually a set
   private final boolean isZeroing;
-  private final CIntegerLiteralExpression size;
+  private final @Nullable CIntegerLiteralExpression size;
   private final PersistentList<String> baseVariables; // actually a set
 
 

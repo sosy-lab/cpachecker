@@ -26,6 +26,11 @@
  * including conditional updates for maybe-aliased pointers.
  * This package assumes that pointers of different types are never aliased.
  */
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "SE_BAD_FIELD",
-    justification = "serialization of formulas is currently unsupported")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+  value = "SE_BAD_FIELD",
+  justification = "serialization of formulas is currently unsupported"
+)
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
