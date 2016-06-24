@@ -23,35 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 // TODO diff this class with the original CallstackCPA to and merge them to provide both functionalities. The Real different functionalities might be in the states and transferrelation
-@Options
-public class MultiCallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker,
-    ReachedSetAdjustingCPA {
-
-  @Option(secure=false, description = "TODO")
-  private boolean useMultithreadedCallstack = false;   // TODO
+public class MultiCallstackCPA extends AbstractCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(MultiCallstackCPA.class);
@@ -60,44 +43,10 @@ public class MultiCallstackCPA extends AbstractCPA implements ConfigurableProgra
   public MultiCallstackCPA(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
     super("sep", "sep", new MultiCallstackTransferRelation(config, pLogger));
-    config.inject(this);
-  }
-
-  @Override
-  public Reducer getReducer() {
-    return null;
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return MultiCallstackState.initialState(pNode.getFunctionName(), pNode);
   }
-
-  @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
-      throws CPATransferException, InterruptedException {
-    throw new UnsupportedOperationException("not impelemnted yet");
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    boolean is = getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
-
-    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
-  }
-
-  @Override
-  public boolean adjustPrecision() {
-    throw new UnsupportedOperationException("not impelemnted yet");
-    // TODO implement
-//    CallstackTransferRelation ctr = (CallstackTransferRelation) getTransferRelation();
-//    ++ctr.recursionBoundDepth;
-//    return true;
-  }
-
-  @Override
-  public void adjustReachedSet(ReachedSet pReachedSet) {
-    // No action required
-  }
-
 }

@@ -2629,6 +2629,3 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# TODO
-useMultithreadedCallstack = false

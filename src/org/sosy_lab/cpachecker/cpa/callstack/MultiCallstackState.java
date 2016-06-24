@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -8,16 +7,13 @@ import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 import com.google.common.collect.ImmutableMap;
 
-public class MultiCallstackState implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
+public class MultiCallstackState implements AbstractState, Partitionable {
 
-  private static final long serialVersionUID = -2816326882252001347L;
   private final ImmutableMap<String, CallstackState> threadContextCallstacks;
 
   /** It is not granted that thread is inside threadContextCallStack */
@@ -86,29 +82,6 @@ public class MultiCallstackState implements AbstractState, Partitionable, Abstra
     }
 
     return new MultiCallstackState(thread, copyOfStackHeads);
-  }
-
-  @Override
-  public String getCPAName() {
-    return "MultiCallstackCPA";
-  }
-
-  @Override
-  public boolean checkProperty(String property) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public Object evaluateProperty(String property) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public void modifyProperty(String modification) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-
   }
 
   @Override
