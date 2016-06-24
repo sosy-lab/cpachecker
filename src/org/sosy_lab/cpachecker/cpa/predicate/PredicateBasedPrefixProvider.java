@@ -98,92 +98,13 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         .transform(GET_BLOCK_FORMULA)
         .toList();
 
-    List<Object> terms = new ArrayList<>(abstractionStates.size());
     List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
 
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<Object> prover =
       (InterpolatingProverEnvironmentWithAssumptions<Object>)solver.newProverEnvironmentWithInterpolation()) {
 
-      List<BooleanFormula> pathFormula = new ArrayList<>();
-      PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
-
-      int currentBlockIndex = 0;
-
-      PathIterator iterator = pPath.pathIterator();
-      while (iterator.hasNext()) {
-        ARGState currentState = iterator.getAbstractState();
-
-        if(iterator.getIndex() == 0) {
-          assert(isAbstractionState(currentState));
-        }
-
-        // only compute prefixes at abstraction states
-        if (isAbstractionState(currentState)) {
-
-          BooleanFormula currentBlockFormula = blockFormulas.get(currentBlockIndex);
-          pathFormula.add(currentBlockFormula);
-
-          try {
-            formula = pathFormulaManager.makeAnd(makeEmpty(formula), currentBlockFormula);
-            Object term = prover.push(formula.getFormula());
-            terms.add(term);
-
-            if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
-
-              logger.log(Level.FINE, "found infeasible prefix, ending with edge ",
-                  iterator.getOutgoingEdge(),
-                  " in block # ",
-                  currentBlockIndex,
-                  ", that resulted in an unsat-formula");
-
-              List<BooleanFormula> interpolantSequence = extractInterpolantSequence(terms, prover);
-              List<BooleanFormula> finalPathFormula = new ArrayList<>(pathFormula);
-
-              // create and add infeasible prefix, mind that the ARGPath has not (!)
-              // failing assume operations replaced with no-ops, as this is not needed here,
-              // and it would be cumbersome for ABE, so lets skip it
-              ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
-
-              // put prefix data into a simple container for now
-              rawPrefixes.add(new RawInfeasiblePrefix(currentPrefixPath,
-                  interpolantSequence,
-                  finalPathFormula));
-
-              // stop once threshold for max. length of prefix is reached, relevant
-              // e.g., for ECA programs where error paths often exceed 10.000 transition
-              if (currentPrefixPath.size() >= maxPrefixLength) {
-                break;
-              }
-
-              // remove reason for UNSAT from solver stack
-              prover.pop();
-
-              // replace respective term by tautology
-              terms.remove(terms.size() - 1);
-              formula = pathFormulaManager.makeAnd(makeEmpty(formula), makeTrue());
-              terms.add(prover.push(formula.getFormula()));
-
-              // replace failing block formula by tautology, too
-              pathFormula.remove(pathFormula.size() - 1);
-              pathFormula.add(makeTrue());
-            }
-          }
-
-          catch (SolverException e) {
-            throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
-          }
-
-          currentBlockIndex++;
-
-          // put hard-limit on number of prefixes
-          if (rawPrefixes.size() == maxPrefixCount) {
-            break;
-          }
-        }
-
-        iterator.advance();
-      }
+      rawPrefixes = extractInfeasiblePrefixes(pPath, blockFormulas, prover);
     }
 
     // finally, create actual prefixes after solver stack is empty again,
@@ -194,6 +115,95 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     }
 
     return infeasiblePrefixes;
+  }
+
+  private <T> List<RawInfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath pPath, List<BooleanFormula> blockFormulas,
+      InterpolatingProverEnvironmentWithAssumptions<T> prover)
+      throws CPAException, InterruptedException {
+    List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
+    List<T> terms = new ArrayList<>(blockFormulas.size());
+
+    List<BooleanFormula> pathFormula = new ArrayList<>();
+    PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
+
+    int currentBlockIndex = 0;
+
+    PathIterator iterator = pPath.pathIterator();
+    while (iterator.hasNext()) {
+      ARGState currentState = iterator.getAbstractState();
+
+      if(iterator.getIndex() == 0) {
+        assert(isAbstractionState(currentState));
+      }
+
+      // only compute prefixes at abstraction states
+      if (isAbstractionState(currentState)) {
+
+        BooleanFormula currentBlockFormula = blockFormulas.get(currentBlockIndex);
+        pathFormula.add(currentBlockFormula);
+
+        try {
+          formula = pathFormulaManager.makeAnd(makeEmpty(formula), currentBlockFormula);
+          T term = prover.push(formula.getFormula());
+          terms.add(term);
+
+          if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
+
+            logger.log(Level.FINE, "found infeasible prefix, ending with edge ",
+                iterator.getOutgoingEdge(),
+                " in block # ",
+                currentBlockIndex,
+                ", that resulted in an unsat-formula");
+
+            List<BooleanFormula> interpolantSequence = extractInterpolantSequence(terms, prover);
+            List<BooleanFormula> finalPathFormula = new ArrayList<>(pathFormula);
+
+            // create and add infeasible prefix, mind that the ARGPath has not (!)
+            // failing assume operations replaced with no-ops, as this is not needed here,
+            // and it would be cumbersome for ABE, so lets skip it
+            ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
+
+            // put prefix data into a simple container for now
+            rawPrefixes.add(new RawInfeasiblePrefix(currentPrefixPath,
+                interpolantSequence,
+                finalPathFormula));
+
+            // stop once threshold for max. length of prefix is reached, relevant
+            // e.g., for ECA programs where error paths often exceed 10.000 transition
+            if (currentPrefixPath.size() >= maxPrefixLength) {
+              break;
+            }
+
+            // remove reason for UNSAT from solver stack
+            prover.pop();
+
+            // replace respective term by tautology
+            terms.remove(terms.size() - 1);
+            formula = pathFormulaManager.makeAnd(makeEmpty(formula), makeTrue());
+            terms.add(prover.push(formula.getFormula()));
+
+            // replace failing block formula by tautology, too
+            pathFormula.remove(pathFormula.size() - 1);
+            pathFormula.add(makeTrue());
+          }
+        }
+
+        catch (SolverException e) {
+          throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
+        }
+
+        currentBlockIndex++;
+
+        // put hard-limit on number of prefixes
+        if (rawPrefixes.size() == maxPrefixCount) {
+          break;
+        }
+      }
+
+      iterator.advance();
+    }
+
+    return rawPrefixes;
   }
 
   private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
