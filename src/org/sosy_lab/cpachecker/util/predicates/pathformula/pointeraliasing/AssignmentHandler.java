@@ -281,14 +281,14 @@ class AssignmentHandler {
     final CExpressionVisitorWithPointerAliasing rhsVisitor =
         new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
             errorConditions, pts);
-    final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
+    final Expression rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor);
 
     final CExpressionVisitorWithPointerAliasing lhsVisitor =
         new CExpressionVisitorWithPointerAliasing(
             conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
 
-    if (rhsValue == null
+    if (!rhsValue.isValue()
         || !checkEqualityOfInitializers(pAssignments, rhsVisitor)
         || !lhsLocation.isAliased()) {
       // Fallback case, if we have no initialization of the form "<variable> = <value>"
@@ -320,7 +320,7 @@ class AssignmentHandler {
 
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
-      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhsValue.getValue());
+      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhsValue.asValue().getValue());
 
       final BooleanFormula copyOldValue;
       if (options.useArraysForHeap()) {

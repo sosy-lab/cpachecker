@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.solver.api.Formula;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 abstract class Expression {
@@ -64,13 +64,13 @@ abstract class Expression {
       @Override
       @Deprecated
       UnaliasedLocation asUnaliased() {
-        return null;
+        throw new IllegalStateException();
       }
 
       @Override
       @Deprecated
       UnaliasedLocation asUnaliasedLocation() {
-        return null;
+        throw new IllegalStateException();
       }
 
       @Override
@@ -101,13 +101,13 @@ abstract class Expression {
       @Override
       @Deprecated
       AliasedLocation asAliased() {
-        return null;
+        throw new IllegalStateException();
       }
 
       @Override
       @Deprecated
       AliasedLocation asAliasedLocation() {
-        return null;
+        throw new IllegalStateException();
       }
 
       @Override
@@ -132,12 +132,12 @@ abstract class Expression {
       private final String variableName;
     }
 
-    static AliasedLocation ofAddress(final @Nonnull Formula address) {
-      return new AliasedLocation(address);
+    static AliasedLocation ofAddress(final Formula address) {
+      return new AliasedLocation(checkNotNull(address));
     }
 
-    static UnaliasedLocation ofVariableName(final @Nonnull String variableName) {
-      return new UnaliasedLocation(variableName);
+    static UnaliasedLocation ofVariableName(final String variableName) {
+      return new UnaliasedLocation(checkNotNull(variableName));
     }
 
     boolean isAliased() {
@@ -152,7 +152,7 @@ abstract class Expression {
 
     @Override
     final Value asValue() {
-      return null;
+      throw new IllegalStateException();
     }
 
     abstract AliasedLocation asAliased();
@@ -164,11 +164,6 @@ abstract class Expression {
     private static class Nondet extends Value {
       private Nondet() {
         super(null);
-      }
-
-      @Override
-      Formula getValue() {
-        return null;
       }
 
       @Override
@@ -188,11 +183,11 @@ abstract class Expression {
       }
     }
 
-    Value(final Formula value) {
+    Value(final @Nullable Formula value) {
       this.value = value;
     }
 
-    Formula getValue() {
+    @Nullable Formula getValue() {
       return value;
     }
 
@@ -208,19 +203,19 @@ abstract class Expression {
     @Override
     @Deprecated
     final Location asLocation() {
-      return null;
+      throw new IllegalStateException();
     }
 
     @Override
     @Deprecated
     final AliasedLocation asAliasedLocation() {
-      return null;
+      throw new IllegalStateException();
     }
 
     @Override
     @Deprecated
     final UnaliasedLocation asUnaliasedLocation() {
-      return null;
+      throw new IllegalStateException();
     }
 
     @Override
@@ -254,12 +249,12 @@ abstract class Expression {
       return value != null ? value.hashCode() : 0;
     }
 
-    private final Formula value;
+    private final @Nullable Formula value;
     private static final Value nondet = new Nondet();
   }
 
-  static Value ofValue(final @Nullable Formula value) {
-    return value != null ? new Value(value) : null;
+  static Value ofValue(final Formula value) {
+    return new Value(checkNotNull(value));
   }
 
   static Value nondetValue() {
