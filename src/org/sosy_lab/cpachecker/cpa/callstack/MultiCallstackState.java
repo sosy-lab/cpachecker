@@ -85,8 +85,7 @@ public class MultiCallstackState implements AbstractState, Partitionable {
 
   @Override
   public Object getPartitionKey() {
-    // TODO Auto-generated method stub
-    return null;
+    return threadContextCallstacks;
   }
 
   @Override
