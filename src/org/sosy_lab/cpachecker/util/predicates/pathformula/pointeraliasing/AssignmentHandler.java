@@ -55,13 +55,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.IntegerFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -274,8 +271,6 @@ class AssignmentHandler {
     assert fmgr.getIntegerFormulaManager() != null : "Need a formula manager for "
         + "integers to handle initialization assignments with quantifiers";
 
-    final IntegerFormulaManagerView ifmgr = fmgr.getIntegerFormulaManager();
-
     final CType lhsType = CTypeUtils.simplifyType(
         pAssignments.get(0).getLeftHandSide().getExpressionType());
 
@@ -310,14 +305,15 @@ class AssignmentHandler {
               ? conv.getIndex(targetName, lhsType, ssa)
               : conv.getFreshIndex(targetName, lhsType, ssa);
 
-      final IntegerFormula lowerBound =
-          (IntegerFormula) ifmgr.unwrap(lhsLocation.asAliased().getAddress());
-      final IntegerFormula upperBound =
-          ifmgr.add(lowerBound, ifmgr.makeNumber(pAssignments.size()));
+      final Formula lowerBound = lhsLocation.asAliased().getAddress();
+      final Formula upperBound =
+          fmgr.makePlus(
+              lowerBound, fmgr.makeNumber(conv.voidPointerFormulaType, pAssignments.size()));
 
-      final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + oldIndex + "@counter");
+      final Formula counter =
+          fmgr.makeVariable(conv.voidPointerFormulaType, targetName + "@" + oldIndex + "@counter");
       final List<BooleanFormula> rangeConstraint =
-          makeRangeConstraint(ifmgr, counter, lowerBound, upperBound);
+          makeRangeConstraint(counter, lowerBound, upperBound);
 
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
@@ -350,21 +346,17 @@ class AssignmentHandler {
   /**
    * Creates a list of {@code BooleanFormula}s that are range constraints for universal quantifiers.
    *
-   * @param pIntegerFormulaManager A formula manager for integers.
    * @param pVariable The index variable of the quantifier.
    * @param pLowerBound The lower bound of the constraints.
    * @param pUpperBound The upper bound of the constraints.
    * @param <R> The type of the index variable.
    * @return A list of constraint formulae.
    */
-  private <R extends IntegerFormula> List<BooleanFormula> makeRangeConstraint(
-      final IntegerFormulaManager pIntegerFormulaManager,
-      final R pVariable,
-      final R pLowerBound,
-      final R pUpperBound) {
+  private <R extends Formula> List<BooleanFormula> makeRangeConstraint(
+      final R pVariable, final R pLowerBound, final R pUpperBound) {
     return ImmutableList.of(
-        pIntegerFormulaManager.greaterOrEquals(pVariable, pLowerBound),
-        pIntegerFormulaManager.lessOrEquals(pVariable, pUpperBound));
+        fmgr.makeGreaterOrEqual(pVariable, pLowerBound, false),
+        fmgr.makeLessOrEqual(pVariable, pUpperBound, false));
   }
 
   /**

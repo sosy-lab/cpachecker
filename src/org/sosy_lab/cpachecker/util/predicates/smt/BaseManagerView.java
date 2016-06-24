@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.List;
-
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+
+import java.util.List;
 
 /**
  * Abstract helper class that does nothing more than providing access
@@ -48,7 +48,7 @@ abstract class BaseManagerView {
     return wrappingHandler.wrap(targetType, toWrap);
   }
 
-  public final Formula unwrap(Formula f) {
+  final Formula unwrap(Formula f) {
     return wrappingHandler.unwrap(f);
   }
 
