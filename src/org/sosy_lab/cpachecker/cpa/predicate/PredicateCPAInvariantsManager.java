@@ -280,8 +280,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     specification = pSpecification;
     cfa = pCfa;
 
-    globalInvariants =
-        new FormulaInvariantsSupplier(pAggregatedReachedSets, logger, cfa.getMachineModel());
+    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets);
     updateGlobalInvariants();
 
     semiCNFConverter = new RCNFManager(pConfig);
@@ -755,8 +754,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
-    InvariantSupplier invSup =
-        new FormulaInvariantsSupplier(invGen.get(), logger, cfa.getMachineModel());
+    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get());
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {

@@ -188,6 +188,16 @@ public final class PointerTargetSet implements Serializable {
     return bases;
   }
 
+  /**
+   * Returns, if a variable is the actual base of a pointer.
+   *
+   * @param name The name of the variable.
+   * @return True, if the variable is an actual base, false otherwise.
+   */
+  public boolean isActualBase(final String name) {
+    return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+  }
+
   PersistentSortedMap<CompositeField, Boolean> getFields() {
     return fields;
   }

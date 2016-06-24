@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -54,8 +55,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
 import java.util.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Verify;
+import java.util.logging.Level;
 
 
 public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
@@ -78,7 +78,8 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       ErrorConditions pErrorConditions) {
 
     // Create a CRightHandSideVisitor with support for arrays!
-    return new ExpressionToFormulaVisitorWithArrays(this, fmgr, machineModel, pEdge, pFunction, pSsa, pConstraints);
+    return new ExpressionToFormulaVisitorWithArrays(
+        this, fmgr, machineModel, pEdge, pFunction, pSsa, pConstraints, pPts);
   }
 
   @Override

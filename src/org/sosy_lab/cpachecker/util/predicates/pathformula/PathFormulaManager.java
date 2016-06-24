@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -65,6 +67,18 @@ public interface PathFormulaManager {
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
+
+  /**
+   * Takes a variable name and its type to create the corresponding formula out of it. The
+   * <code>pContext</code> is used to supply this method with the necessary {@link SSAMap}
+   * and (if necessary) the {@link PointerTargetSet}.
+   *
+   * @param pContext the context in which the variable should be created
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @return the created formula, which is always <b>instantiated</b>
+   */
+  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
 
   /**
    * Build a formula containing a predicate for all branching situations in the

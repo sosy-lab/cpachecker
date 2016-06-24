@@ -31,11 +31,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,12 +39,8 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -66,7 +58,6 @@ import javax.annotation.Nullable;
 public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
-  private final CtoFormulaTypeHandler typeConverter;
 
   private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
@@ -74,9 +65,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private final Map<UnmodifiableReachedSet, ReachedSetBasedFormulaSupplier>
       singleInvariantSuppliers = new HashMap<>();
 
-  public FormulaInvariantsSupplier(
-      AggregatedReachedSets pAggregated, LogManager pLogger, MachineModel pMachineModel) {
-    typeConverter = new CtoFormulaTypeHandler(pLogger, pMachineModel);
+  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
     aggregatedReached = pAggregated;
     updateInvariants(); // at initialization we want to update the invariants the first time
   }
@@ -105,39 +94,27 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
       lastUsedReachedSets = tmp;
       lastInvariantSupplier =
-          new AggregatedInvariantSupplier(
-              ImmutableSet.copyOf(singleInvariantSuppliers.values()), typeConverter);
+          new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
     }
   }
 
   private static class AddPointerInformationVisitor extends FormulaTransformationVisitor {
 
-    private final PointerTargetSet pts;
-    private final FormulaManagerView fmgr;
-    private final FunctionFormulaManagerView ffmgr;
-    private final PersistentMap<String, CType> bases;
-    private final CtoFormulaTypeHandler typeConverter;
+    private final PathFormula context;
+    private final PathFormulaManager pfgmr;
 
     protected AddPointerInformationVisitor(
-        FormulaManagerView pFmgr, PointerTargetSet pPts, CtoFormulaTypeHandler pTypeHandler) {
+        FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
       super(pFmgr);
-      fmgr = pFmgr;
-      ffmgr = pFmgr.getFunctionFormulaManager();
-      pts = pPts;
-      bases = pts.getBases();
-      typeConverter = pTypeHandler;
+      pfgmr = pPfmgr;
+      context = pContext;
     }
 
     @Override
     public Formula visitFreeVariable(Formula atom, String varName) {
-      if (bases.containsKey(varName)) {
-        CType baseType = bases.get(varName);
-        String uf = CToFormulaConverterWithPointerAliasing.getPointerAccessName(baseType);
-        String baseVarName = PointerTargetSet.getBaseName(varName);
-        return ffmgr.declareAndCallUF(
-            uf,
-            fmgr.getFormulaType(atom),
-            fmgr.makeVariable(typeConverter.getPointerType(), baseVarName));
+      if (context.getPointerTargetSet().isActualBase(varName)) {
+        return pfgmr.makeFormulaForVariable(
+            context, varName, context.getPointerTargetSet().getBases().get(varName));
       }
 
       return atom;
@@ -168,13 +145,10 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     private final Collection<ReachedSetBasedFormulaSupplier> invariantSuppliers;
     private final Map<InvariantsCacheKey, BooleanFormula> cache = new HashMap<>();
-    private final CtoFormulaTypeHandler typeConverter;
 
     private AggregatedInvariantSupplier(
-        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers,
-        CtoFormulaTypeHandler pTypeHandler) {
+        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers) {
       invariantSuppliers = checkNotNull(pInvariantSuppliers);
-      typeConverter = pTypeHandler;
     }
 
     @Override
@@ -202,9 +176,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       if (pContext != null) {
         invariant =
             pFmgr.transformRecursively(
-                new AddPointerInformationVisitor(
-                    pFmgr, pContext.getPointerTargetSet(), typeConverter),
-                invariant);
+                new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr), invariant);
       }
 
       return verifyNotNull(invariant);

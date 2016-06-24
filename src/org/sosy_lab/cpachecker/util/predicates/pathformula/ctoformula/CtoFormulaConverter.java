@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -399,6 +400,23 @@ public class CtoFormulaConverter {
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
     return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+  }
+
+  /**
+   * Takes a variable name and its type and create the corresponding formula out of it. The
+   * <code>pContextSSA</code> is used to supply this method with the necessary {@link SSAMap}
+   * and (if necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
+   *
+   * @param pContextSSA the SSAMap indices from which the variable should be created
+   * @param pContextPTS the PointerTargetSet which should be used for formula generation
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @return the created formula
+   */
+  public Formula makeFormulaForVariable(
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+    Preconditions.checkArgument(!(pType instanceof CEnumType));
+    return makeVariable(pVarName, pType, pContextSSA.builder());
   }
 
   /**
@@ -1326,7 +1344,7 @@ public class CtoFormulaConverter {
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
+    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints, pts);
   }
 
   /**

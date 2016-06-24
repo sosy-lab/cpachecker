@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -75,10 +77,13 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -1142,6 +1147,52 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Formula makeFormulaForVariable(
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+    Preconditions.checkArgument(!(pType instanceof CFunctionType));
+
+    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS);
+
+    SSAMapBuilder ssa = pContextSSA.builder();
+    try {
+      if (e.isValue()) {
+        return e.asValue().getValue();
+      } else if (e.isAliasedLocation()) {
+        return makeSafeDereference(pType, e.asAliasedLocation().getAddress(), ssa);
+      } else {
+        return makeVariable(e.asUnaliasedLocation().getVariableName(), pType, ssa);
+      }
+    } finally {
+      if (!ssa.build().equals(pContextSSA)) {
+        logger.log(
+            Level.INFO,
+            "SSA map would be changed at a point where we cannot change it, this might not be good.");
+      }
+    }
+  }
+
+  protected Expression makeFormulaForVariable(String pVarName, CType pType, PointerTargetSet pts) {
+    if (!pts.isActualBase(pVarName) && !CTypeUtils.containsArray(pType)) {
+      Variable variable = Variable.create(pVarName, pType);
+
+      final String variableName = variable.getName();
+      // TODO are we allowed to just ignore the deferred allocatoin pointers here?
+      // they are handled in CExpressionVisitiorWithPointerAliasing
+      //      if (pts.isDeferredAllocationPointer(variableName)) {
+      //        usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
+      //      }
+      return UnaliasedLocation.ofVariableName(variableName);
+    } else {
+      final Formula address =
+          makeConstant(PointerTargetSet.getBaseName(pVarName), CTypeUtils.getBaseType(pType));
+      return AliasedLocation.ofAddress(address);
+    }
   }
 
   /**

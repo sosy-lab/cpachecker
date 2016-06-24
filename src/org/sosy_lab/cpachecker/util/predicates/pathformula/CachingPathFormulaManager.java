@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -140,6 +141,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       pathFormulaCacheHits++;
     }
     return result;
+  }
+
+  @Override
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+    return delegate.makeFormulaForVariable(pContext, pVarName, pType);
   }
 
   @Override

@@ -320,6 +320,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return pathFormula;
   }
 
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+    return converter.makeFormulaForVariable(
+        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
+  }
+
   /**
    * Build a formula containing a predicate for all branching situations in the
    * ARG. If a satisfying assignment is created for this formula, it can be used
@@ -332,7 +342,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath) throws CPATransferException, InterruptedException {
+  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
+      throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
     for (final ARGState pathElement : elementsOnPath) {
