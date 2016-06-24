@@ -32,7 +32,7 @@ public class MultiCallstackState implements AbstractState, Partitionable {
    */
   protected MultiCallstackState(String thread, Map<String, CallstackState> stacks) {
     this.thread = thread;
-    this.threadContextCallstacks = ImmutableMap.<String, CallstackState>copyOf(stacks);
+    this.threadContextCallstacks = ImmutableMap.copyOf(stacks);
   }
 
   /**
@@ -44,7 +44,7 @@ public class MultiCallstackState implements AbstractState, Partitionable {
     this.thread = thread;
 
     CallstackState nextState;
-    HashMap<String, CallstackState> copyOfStackHeads = new HashMap<String, CallstackState>();
+    HashMap<String, CallstackState> copyOfStackHeads = new HashMap<>();
     if(previousState == null) {
       nextState = new CallstackState(null, function, callerNode);
     } else {
@@ -73,7 +73,7 @@ public class MultiCallstackState implements AbstractState, Partitionable {
 
   /** TODO Note! If a new context was created and a function returns after this, then new created context must be known by the state!! */
   public MultiCallstackState getPreviousState() throws NullPointerException {
-    HashMap<String, CallstackState> copyOfStackHeads = new HashMap<String, CallstackState>(this.threadContextCallstacks);
+    HashMap<String, CallstackState> copyOfStackHeads = new HashMap<>(this.threadContextCallstacks);
     if(getCurrentStack().getPreviousState() == null) {
       copyOfStackHeads.remove(thread);
     } else {
