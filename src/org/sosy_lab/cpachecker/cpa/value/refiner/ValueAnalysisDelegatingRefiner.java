@@ -74,7 +74,7 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
             new ValueAnalysisPrefixProvider(logger, cfa, config),
             PredicateRefiner.create0(cpa),
             new PredicateBasedPrefixProvider(
-                config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager())),
+                config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager(), predicateCpa.getShutdownNotifier())),
         cpa);
   }
 }

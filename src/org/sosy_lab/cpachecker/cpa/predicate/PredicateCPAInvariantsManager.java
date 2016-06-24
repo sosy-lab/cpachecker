@@ -870,7 +870,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               shutdownNotifier,
               logger);
 
-      infeasiblePrefixes = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr).extractInfeasiblePrefixes(argPath);
+      infeasiblePrefixes =
+          new PredicateBasedPrefixProvider(config, logger, solver, pfmgr, shutdownNotifier)
+              .extractInfeasiblePrefixes(argPath);
     }
 
     @Override

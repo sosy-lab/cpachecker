@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.GET_BLOCK_FORMULA;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -63,6 +64,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   private int maxPrefixLength = 1024;
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final Solver solver;
 
@@ -76,7 +78,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   public PredicateBasedPrefixProvider(Configuration config,
       LogManager pLogger,
       Solver pSolver,
-      PathFormulaManager pPathFormulaManager) {
+      PathFormulaManager pPathFormulaManager,
+      ShutdownNotifier pShutdownNotifier) {
     try {
       config.inject(this);
     } catch (InvalidConfigurationException e) {
@@ -84,6 +87,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     }
 
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     solver = pSolver;
     pathFormulaManager = pPathFormulaManager;
   }
@@ -130,6 +134,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     PathIterator iterator = pPath.pathIterator();
     while (iterator.hasNext()) {
+      // if we should shutdown we do just break out of this while loop
+      if (shutdownNotifier.shouldShutdown()) {
+        break;
+      }
+
       ARGState currentState = iterator.getAbstractState();
 
       if(iterator.getIndex() == 0) {

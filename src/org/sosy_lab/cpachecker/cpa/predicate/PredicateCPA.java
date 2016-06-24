@@ -175,7 +175,7 @@ public class PredicateCPA
 
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
-    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
+    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager, shutdownNotifier);
     invariantsManager =
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
