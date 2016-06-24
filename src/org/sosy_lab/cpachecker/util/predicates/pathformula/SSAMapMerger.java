@@ -159,7 +159,8 @@ public class SSAMapMerger {
     return bfmgr.and(lResult);
   }
 
-  BooleanFormula addMergeAssumptions(
+
+   BooleanFormula addMergeAssumptions(
       final BooleanFormula pFormula,
       final SSAMap ssa1,
       final PointerTargetSet pts1,
@@ -180,6 +181,10 @@ public class SSAMapMerger {
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
+        // assumption violated
+        // ssa2 is not the merge result of ssa1 and further ssa maps
+        // simplify following PCC coverage check which will likely fail anyway
+        // and return coarsest overapproximation
         return bfmgr.makeBoolean(true);
 
       } else if (index2 > 1) {
