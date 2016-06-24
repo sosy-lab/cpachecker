@@ -37,17 +37,6 @@ import javax.annotation.Nullable;
 
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
-  private PointerTargetPattern() {
-    this.matchRange = false;
-  }
-
-  private PointerTargetPattern(final String base) {
-    this.base = base;
-    this.containerOffset = 0;
-    this.properOffset = 0;
-    this.matchRange = false;
-  }
-
   private PointerTargetPattern(final String base, final int startOffset, final int size) {
     this.base = base;
     this.containerOffset = startOffset;
@@ -56,11 +45,23 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     this.containerType = null;
   }
 
+  private PointerTargetPattern(
+      @Nullable String pBase,
+      @Nullable CType pContainerType,
+      @Nullable Integer pProperOffset,
+      @Nullable Integer pContainerOffset) {
+    matchRange = false;
+    base = pBase;
+    containerType = pContainerType;
+    properOffset = pProperOffset;
+    containerOffset = pContainerOffset;
+  }
+
   /**
    * Create PointerTargetPattern matching any possible target.
    */
   static PointerTargetPattern any() {
-    return new PointerTargetPattern();
+    return new PointerTargetPattern(null, null, null, null);
   }
 
   /**
@@ -69,7 +70,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    * @param base the base name specified
    */
   static PointerTargetPattern forBase(String base) {
-    return new PointerTargetPattern(base);
+    return new PointerTargetPattern(base, null, 0, 0);
   }
 
   static PointerTargetPattern forRange(String base, int startOffset, int size) {
@@ -84,80 +85,12 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       throws UnrecognizedCCodeException {
     LvalueToPointerTargetPatternVisitor v =
         new LvalueToPointerTargetPatternVisitor(pTypeHandler, pCfaEdge, pPts);
-    return lhs.accept(v);
+    return lhs.accept(v).build();
   }
 
   PointerTargetPattern withRange(final int size) {
     assert containerOffset != null && properOffset != null : "Starting address is inexact";
     return forRange(base, containerOffset + properOffset, size);
-  }
-
-  void setProperOffset(final int properOffset) {
-    assert !matchRange : "Contradiction in target pattern: properOffset";
-    this.properOffset = properOffset;
-  }
-
-  @Nullable
-  Integer getProperOffset() {
-    assert !matchRange : "Contradiction in target pattern: properOffset";
-    return properOffset;
-  }
-
-  @Nullable
-  Integer getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
-    assert !matchRange : "Contradiction in target pattern: remaining offset";
-    if (containerType != null && containerOffset != null && properOffset != null) {
-      return typeHandler.getSizeof(containerType) - properOffset;
-    } else {
-      return null;
-    }
-  }
-
-  /**
-   * Increase containerOffset by properOffset, unset properOffset and set containerType.
-   * Useful for array subscript visitors.
-   */
-  void shift(final CType containerType) {
-    assert !matchRange : "Contradiction in target pattern: shift";
-    this.containerType = containerType;
-    if (containerOffset != null) {
-      if (properOffset != null) {
-        containerOffset += properOffset;
-      } else {
-        containerOffset = null;
-      }
-    }
-    properOffset = null;
-  }
-
-  /**
-   * Increase containerOffset by properOffset, set properOffset and containerType.
-   * Useful for field access visitors.
-   */
-  void shift(final CType containerType, final int properOffset) {
-    shift(containerType);
-    this.properOffset = properOffset;
-  }
-
-  /**
-   * Unset everything, except base
-   */
-  void retainBase() {
-    assert !matchRange : "Contradiction in target pattern: retainBase";
-    containerType = null;
-    properOffset = null;
-    containerOffset = null;
-  }
-
-  /**
-   * Unset all criteria
-   */
-  void clear() {
-    assert !matchRange : "Contradiction in target pattern: clear";
-    base = null;
-    containerType = null;
-    properOffset = null;
-    containerOffset = null;
   }
 
   boolean matches(final PointerTarget target) {
@@ -204,12 +137,98 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return containerOffset != null && properOffset != null;
   }
 
-  private @Nullable String base = null;
-  private @Nullable CType containerType = null;
-  private @Nullable Integer properOffset = null;
-  private @Nullable Integer containerOffset = null;
+  private final @Nullable String base;
+  private final @Nullable CType containerType;
+  private final @Nullable Integer properOffset;
+  private final @Nullable Integer containerOffset;
 
   private final boolean matchRange;
 
   private static final long serialVersionUID = -2918663736813010025L;
+
+  static class PointerTargetPatternBuilder {
+
+    private @Nullable String base = null;
+    private @Nullable CType containerType = null;
+    private @Nullable Integer properOffset = null;
+    private @Nullable Integer containerOffset = null;
+
+    private PointerTargetPatternBuilder() {}
+
+    static PointerTargetPatternBuilder any() {
+      return new PointerTargetPatternBuilder();
+    }
+
+    static PointerTargetPatternBuilder forBase(String pBase) {
+      PointerTargetPatternBuilder result = new PointerTargetPatternBuilder();
+      result.base = pBase;
+      return result;
+    }
+
+    private PointerTargetPattern build() {
+      return new PointerTargetPattern(base, containerType, properOffset, containerOffset);
+    }
+
+    void setProperOffset(final int properOffset) {
+      this.properOffset = properOffset;
+    }
+
+    @Nullable
+    Integer getProperOffset() {
+      return properOffset;
+    }
+
+    @Nullable
+    Integer getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
+      if (containerType != null && containerOffset != null && properOffset != null) {
+        return typeHandler.getSizeof(containerType) - properOffset;
+      } else {
+        return null;
+      }
+    }
+
+    /**
+     * Increase containerOffset by properOffset, unset properOffset and set containerType.
+     * Useful for array subscript visitors.
+     */
+    void shift(final CType containerType) {
+      this.containerType = containerType;
+      if (containerOffset != null) {
+        if (properOffset != null) {
+          containerOffset += properOffset;
+        } else {
+          containerOffset = null;
+        }
+      }
+      properOffset = null;
+    }
+
+    /**
+     * Increase containerOffset by properOffset, set properOffset and containerType.
+     * Useful for field access visitors.
+     */
+    void shift(final CType containerType, final int properOffset) {
+      shift(containerType);
+      this.properOffset = properOffset;
+    }
+
+    /**
+     * Unset everything, except base
+     */
+    void retainBase() {
+      containerType = null;
+      properOffset = null;
+      containerOffset = null;
+    }
+
+    /**
+     * Unset all criteria
+     */
+    void clear() {
+      base = null;
+      containerType = null;
+      properOffset = null;
+      containerOffset = null;
+    }
+  }
 }

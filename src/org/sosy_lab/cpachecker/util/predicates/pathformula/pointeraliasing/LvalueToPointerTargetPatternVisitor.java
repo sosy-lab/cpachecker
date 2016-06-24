@@ -40,12 +40,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern.PointerTargetPatternBuilder;
 
 import javax.annotation.Nullable;
 
 
 class LvalueToPointerTargetPatternVisitor
-extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
+    extends DefaultCExpressionVisitor<PointerTargetPatternBuilder, UnrecognizedCCodeException> {
 
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final PointerTargetSetBuilder pts;
@@ -61,15 +62,17 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   }
 
   private class PointerTargetEvaluatingVisitor
-    extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeException> {
+      extends DefaultCExpressionVisitor<PointerTargetPatternBuilder, UnrecognizedCCodeException> {
 
     @Override
-    protected PointerTargetPattern visitDefault(final CExpression e) throws UnrecognizedCCodeException {
+    protected PointerTargetPatternBuilder visitDefault(final CExpression e)
+        throws UnrecognizedCCodeException {
       return null;
     }
 
     @Override
-    public PointerTargetPattern visit(final CBinaryExpression e) throws UnrecognizedCCodeException {
+    public PointerTargetPatternBuilder visit(final CBinaryExpression e)
+        throws UnrecognizedCCodeException {
       final CExpression operand1 = e.getOperand1();
       final CExpression operand2 = e.getOperand2();
 
@@ -91,7 +94,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
         return null;
 
       case MINUS: {
-        final PointerTargetPattern result = operand1.accept(this);
+            final PointerTargetPatternBuilder result = operand1.accept(this);
         if (result != null) {
           final Integer offset = tryEvaluateExpression(operand2);
           final Integer oldOffset = result.getProperOffset();
@@ -107,7 +110,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
       }
 
       case PLUS: {
-        PointerTargetPattern result = operand1.accept(this);
+            PointerTargetPatternBuilder result = operand1.accept(this);
         final Integer offset;
         if (result == null) {
           result = operand2.accept(this);
@@ -135,23 +138,26 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     }
 
     @Override
-    public PointerTargetPattern visit(final CCastExpression e) throws UnrecognizedCCodeException {
+    public PointerTargetPatternBuilder visit(final CCastExpression e)
+        throws UnrecognizedCCodeException {
       return e.getOperand().accept(this);
     }
 
     @Override
-    public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
+    public PointerTargetPatternBuilder visit(final CIdExpression e)
+        throws UnrecognizedCCodeException {
       final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
       final String name = e.getDeclaration().getQualifiedName();
       if (!pts.isBase(name, expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
       } else {
-        return PointerTargetPattern.forBase(name);
+        return PointerTargetPatternBuilder.forBase(name);
       }
     }
 
     @Override
-    public PointerTargetPattern visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+    public PointerTargetPatternBuilder visit(final CUnaryExpression e)
+        throws UnrecognizedCCodeException {
       final CExpression operand = e.getOperand();
       switch (e.getOperator()) {
       case AMPER:
@@ -167,22 +173,26 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
     }
 
     @Override
-    public PointerTargetPattern visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+    public PointerTargetPatternBuilder visit(final CPointerExpression e)
+        throws UnrecognizedCCodeException {
       return null;
     }
   }
 
   @Override
-  protected PointerTargetPattern visitDefault(final CExpression e) throws UnrecognizedCCodeException {
+  protected PointerTargetPatternBuilder visitDefault(final CExpression e)
+      throws UnrecognizedCCodeException {
     throw new UnrecognizedCCodeException("Illegal expression in lhs", cfaEdge, e);
   }
 
   @Override
-  public PointerTargetPattern visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(final CArraySubscriptExpression e)
+      throws UnrecognizedCCodeException {
     final CExpression arrayExpression = e.getArrayExpression();
-    PointerTargetPattern result = arrayExpression.accept(new PointerTargetEvaluatingVisitor());
+    PointerTargetPatternBuilder result =
+        arrayExpression.accept(new PointerTargetEvaluatingVisitor());
     if (result == null) {
-      result = PointerTargetPattern.any();
+      result = PointerTargetPatternBuilder.any();
     }
     CType containerType = CTypeUtils.simplifyType(arrayExpression.getExpressionType());
     if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
@@ -208,17 +218,18 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   }
 
   @Override
-  public PointerTargetPattern visit(final CCastExpression e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(final CCastExpression e)
+      throws UnrecognizedCCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public PointerTargetPattern visit(CFieldReference e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(CFieldReference e) throws UnrecognizedCCodeException {
 
     e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, cfaEdge);
 
     final CExpression ownerExpression = e.getFieldOwner();
-    final PointerTargetPattern result = ownerExpression.accept(this);
+    final PointerTargetPatternBuilder result = ownerExpression.accept(this);
     if (result != null) {
       final CType containerType = CTypeUtils.simplifyType(ownerExpression.getExpressionType());
       if (containerType instanceof CCompositeType) {
@@ -235,18 +246,20 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   }
 
   @Override
-  public PointerTargetPattern visit(final CIdExpression e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(final CIdExpression e)
+      throws UnrecognizedCCodeException {
     final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
     final String name = e.getDeclaration().getQualifiedName();
     if (!pts.isActualBase(name) && !CTypeUtils.containsArray(expressionType)) {
       return null;
     } else {
-      return PointerTargetPattern.forBase(name);
+      return PointerTargetPatternBuilder.forBase(name);
     }
   }
 
   @Override
-  public PointerTargetPattern visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(final CUnaryExpression e)
+      throws UnrecognizedCCodeException {
     switch (e.getOperator()) {
     case AMPER:
     case MINUS:
@@ -259,23 +272,25 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   }
 
   @Override
-  public PointerTargetPattern visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(final CPointerExpression e)
+      throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
     final CType type = CTypeUtils.simplifyType(operand.getExpressionType());
-    final PointerTargetPattern result = e.getOperand().accept(new PointerTargetEvaluatingVisitor());
+    final PointerTargetPatternBuilder result =
+        e.getOperand().accept(new PointerTargetEvaluatingVisitor());
     if (type instanceof CPointerType) {
       if (result != null) {
         result.clear();
         return result;
       } else {
-        return PointerTargetPattern.any();
+        return PointerTargetPatternBuilder.any();
       }
     } else if (type instanceof CArrayType) {
       if (result != null) {
         result.shift(type, 0);
         return result;
       } else {
-        return PointerTargetPattern.any();
+        return PointerTargetPatternBuilder.any();
       }
     } else {
       throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
