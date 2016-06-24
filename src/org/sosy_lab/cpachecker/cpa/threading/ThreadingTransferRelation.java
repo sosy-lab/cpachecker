@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -114,14 +116,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
 
-  public ThreadingTransferRelation(
-      Configuration pConfig, ConfigurableProgramAnalysis pCallstackCPA,
-      ConfigurableProgramAnalysis pLocationCPA, CFA pCfa, LogManager pLogger)
-          throws InvalidConfigurationException {
+  public ThreadingTransferRelation(Configuration pConfig, CFA pCfa, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
-    callstackCPA = pCallstackCPA;
-    locationCPA = pLocationCPA;
+    locationCPA = new LocationCPA(pCfa, pConfig);
+    callstackCPA = new CallstackCPA(pConfig, pLogger, pCfa);
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
@@ -353,21 +353,44 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     String threadId = getNewThreadId(threadingState, id.getName());
-    CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
-    AbstractState initialStack = callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
-    AbstractState initialLoc = locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 
     // update all successors with a new started thread
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
-      if (maxNumberOfThreads == -1 || ts.getThreadIds().size() < maxNumberOfThreads) {
-        ts = ts.addThreadAndCopy(threadId, newThreadNum, initialStack, initialLoc);
-        newResults.add(ts);
-      } else {
-        logger.logfOnce(Level.WARNING, "number of threads is limited, cannot create thread %s", threadId);
+      ThreadingState newThreadingState = addNewThread(ts, threadId, newThreadNum, functionName);
+      if (null != newThreadingState) {
+        newResults.add(newThreadingState);
       }
     }
     return newResults;
+  }
+
+  /**
+   * returns a new state with a new thread added to the given state.
+   * @param threadingState the previous state where to add the new thread
+   * @param threadId a unique identifier for the new thread
+   * @param newThreadNum a unique number for the new thread
+   * @param functionName the main-function of the new thread
+   */
+  ThreadingState addNewThread(
+      ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
+      throws InterruptedException {
+    CFANode functioncallNode =
+        Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
+    AbstractState initialStack =
+        callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
+    AbstractState initialLoc =
+        locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
+
+    if (maxNumberOfThreads == -1 || threadingState.getThreadIds().size() < maxNumberOfThreads) {
+      threadingState =
+          threadingState.addThreadAndCopy(threadId, newThreadNum, initialStack, initialLoc);
+      return threadingState;
+    } else {
+      logger.logfOnce(
+          Level.WARNING, "number of threads is limited, cannot create thread %s", threadId);
+      return null;
+    }
   }
 
   /** returns the threadId if possible, else the next indexed threadId. */
