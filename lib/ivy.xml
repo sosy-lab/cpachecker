@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="2.0"
-        xmlns:e="http://ant.apache.org/ivy/extra"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+            xmlns:e="http://ant.apache.org/ivy/extra"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
     <info organisation="org.sosy_lab" module="CPAchecker"/>
     <configurations>
         <!-- All dependencies that are only needed during build. -->
@@ -13,6 +13,9 @@
 
         <!-- Dependencies needed for building or running tests. -->
         <conf name="test" />
+
+        <!-- Dependencies needed for running source-code auto-formatter. -->
+        <conf name="format-source" />
 
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
@@ -28,7 +31,7 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.1000-30-gdf43a3c" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -80,12 +83,16 @@
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.5" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.5" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.9" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.9" conf="build->default; contrib->sources" />
+
+        <!-- Eclipse JDT Compiler
+             For additional compiler warnings. -->
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.5.2" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.google-java-format" name="google-java-format" rev="0.1-SNAPSHOT-104-g79b7f0f" conf="build->runtime"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.0" conf="format-source->default"/>
 
         <!-- FindBugs -->
         <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
@@ -95,9 +102,9 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.3-107-g213af36" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.51-122-g2d117d9" conf="runtime->runtime; contrib->sources" />
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.5"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.9"/>
     </dependencies>
 </ivy-module>

@@ -661,13 +661,8 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitTrue() {
-      return factory.one();
-    }
-
-    @Override
-    public BDD visitFalse() {
-      return factory.zero();
+    public BDD visitConstant(boolean value) {
+      return value ? factory.one() : factory.zero();
     }
 
     @Override
@@ -676,7 +671,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
+    public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
@@ -770,7 +765,8 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitQuantifier(Quantifier q, List<Formula> args, BooleanFormula pBody) {
+    public BDD visitQuantifier(Quantifier q, BooleanFormula quantifiedAST, List<Formula> args,
+                               BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

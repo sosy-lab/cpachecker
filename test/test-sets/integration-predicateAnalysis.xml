@@ -12,8 +12,12 @@
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+      <exclude>../programs/benchmarks/ssh/s3_clnt.blast.02_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.01_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.02_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.07_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.09_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.12_true-unreach-call.i.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -32,6 +36,8 @@
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/pipeline_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.03_true-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/toy_true-unreach-call_false-termination.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.13_false-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>

@@ -23,29 +23,25 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
-import java.util.Map;
-import java.util.logging.Handler;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
+import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
+
 /**
  * Helper class for running CPA tests.
  */
 public class CPATestRunner {
-
-  public static TestResults runAndLogToSTDOUT(
-      Map<String, String> pProperties,
-      String pSourceCodeFilePath) throws Exception {
-    return run(pProperties, pSourceCodeFilePath, true);
-  }
 
   public static TestResults run(
       Map<String, String> pProperties,
@@ -59,6 +55,8 @@ public class CPATestRunner {
       boolean writeLogToSTDOUT) throws Exception {
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    stringLogHandler.setLevel(Level.INFO);
+    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
 
     Handler h;
     if (writeLogToSTDOUT) {
@@ -66,8 +64,8 @@ public class CPATestRunner {
     } else {
       h = stringLogHandler;
     }
+    LogManager logger = BasicLogManager.createWithHandler(h);
 
-    LogManager logger = new BasicLogManager(pConfig, h);
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(pConfig, logger, shutdownManager);
 

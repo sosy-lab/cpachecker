@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
@@ -131,7 +130,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
 
-    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, cfa);
+    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, transferRelation, cfa);
 
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
@@ -250,7 +249,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public ValueAnalysisTransferRelation getTransferRelation() {
     return transferRelation;
   }
 

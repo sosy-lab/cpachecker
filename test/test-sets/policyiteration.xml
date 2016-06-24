@@ -120,6 +120,8 @@
     <rundefinition name="lpi-device-drivers-no-induction">
         <option name="-policy-intervals"/>
         <option name="-setprop">cpa.stator.policy.joinOnMerge=false</option>
+        <option name="-setprop">cfa.findErrorNodes=true</option>
+        <option name="-setprop">cpa.location.skipNoTargetEdges=true</option>
         <!--<option name="-setprop">cpa.loopstack.loopIterationsBeforeAbstraction=2</option>-->
         <!--<option name="-setprop">cpa.loopstack.loopIterationsBeforeAbstraction=2</option>-->
         <!--<option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option>-->

@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.logging.Level;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,8 +47,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * PrefixProvider that extracts all infeasible prefixes for a path, starting with an initial empty
@@ -62,7 +64,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   private final LogManager logger;
   private final StrongestPostOperator<S> strongestPost;
   private final VariableTrackingPrecision precision;
-  private ARGPath feasiblePrefix;
   private final CFA cfa;
   private final S initialState;
 
@@ -127,10 +128,25 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
       while (iterator.hasNext()) {
         final CFAEdge outgoingEdge = iterator.getOutgoingEdge();
         final ARGState currentState = iterator.getAbstractState();
-        iterator.advance();
 
-        Optional<S> successor = getSuccessor(next, outgoingEdge, callstack);
+        Optional<S> successor;
 
+        if (outgoingEdge != null) {
+          successor = getSuccessor(next, outgoingEdge, callstack);
+        } else {
+          PathIterator holeIt = iterator.getPosition().fullPathIterator();
+
+          S intermediateState = next;
+          do {
+            successor = getSuccessor(intermediateState, holeIt.getOutgoingEdge(), callstack);
+
+            holeIt.advance();
+            if (successor.isPresent()) {
+              intermediateState = successor.get();
+            }
+
+          } while (!holeIt.isPositionWithState() && successor.isPresent());
+        }
 
         feasiblePrefixBuilder.add(currentState, outgoingEdge);
 
@@ -138,8 +154,8 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         if (!successor.isPresent()) {
           logger.log(Level.FINE, "found infeasible prefix: ", outgoingEdge, " did not yield a successor");
 
-          ARGState lastState = path.asStatesList().get(feasiblePrefixBuilder.size());
-          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState);
+          // last state is the one which is infeasible
+          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(iterator.getNextAbstractState());
 
           // add infeasible prefix
           prefixes.add(buildInfeasiblePrefix(infeasiblePrefix));
@@ -147,22 +163,14 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
           feasiblePrefixBuilder.removeLast();
 
 
-          // if the loop is ending after this iteration we need to set the feasible prefix
-          if (!iterator.hasNext()) {
-            feasiblePrefix = feasiblePrefixBuilder.build(currentState);
-
-            // continue with feasible prefix
-          } else {
+          // continue with feasible prefix
+          if (iterator.hasNext()) {
             feasiblePrefixBuilder.add(currentState,
                                       BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
                                                               outgoingEdge.getSuccessor()));
           }
 
           successor = Optional.of(next);
-
-          // the loop is ending after this iteration, we need to set the feasible prefix
-        } else if (!iterator.hasNext()) {
-          feasiblePrefix = iterator.getPrefixInclusive();
         }
 
         // extract singleton successor state
@@ -170,7 +178,10 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
         // some variables might be blacklisted or tracked by BDDs
         // so perform abstraction computation here
-        next = strongestPost.performAbstraction(next, outgoingEdge.getSuccessor(), path, precision);
+        next =
+            strongestPost.performAbstraction(
+                next, extractLocation(iterator.getNextAbstractState()), path, precision);
+        iterator.advance();
       }
 
       return prefixes;
@@ -208,14 +219,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         useDefRelation,
         cfa.getMachineModel()).obtainInterpolants();
 
-    return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix,
-        FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
+    return InfeasiblePrefix.buildForValueDomain(
+        infeasiblePrefix, FluentIterable.from(interpolants).transform(Pair::getSecond).toList());
   }
-
-  public ARGPath extractFeasilbePath(final ARGPath path)
-      throws CPAException, InterruptedException {
-    extractInfeasiblePrefixes(path);
-    return feasiblePrefix;
-  }
-
 }

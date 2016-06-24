@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -369,6 +370,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if (left instanceof CFieldReference) {
       String scopedId = getScopedVariableName(left, functionName);
       return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
+    }
+
+    // x[index] = ..,
+    if(left instanceof CArraySubscriptExpression) {
+      // currently only overapproximate soundly and assume any value
+      return state.assignSignToVariable(getScopedVariableName(((CArraySubscriptExpression) left).getArrayExpression(), functionName), SIGN.ALL);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }

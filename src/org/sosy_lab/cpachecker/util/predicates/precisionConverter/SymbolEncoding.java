@@ -25,25 +25,19 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -56,11 +50,16 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.BitvectorType;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 public class SymbolEncoding {
@@ -154,7 +153,7 @@ public class SymbolEncoding {
       int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
       fType = BitvectorType.getBitvectorTypeWithSize(length);
     }
-    Type<FormulaType<?>> type = new Type<FormulaType<?>>(fType);
+    Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {
       type.setSigness(!((CSimpleType)cType).isUnsigned());
     }
@@ -189,11 +188,6 @@ public class SymbolEncoding {
           sd.add(retVar.get());
         }
       }
-      for (MultiEdge multiEdge : edges.filter(MultiEdge.class)) {
-        for (CDeclarationEdge edge : Iterables.filter(multiEdge.getEdges(), CDeclarationEdge.class)) {
-          sd.add(edge.getDeclaration());
-        }
-      }
     }
     return sd;
   }
@@ -202,17 +196,22 @@ public class SymbolEncoding {
    * that can be read again. */
   public void dump(Path symbolEncodingFile) throws IOException {
     if (symbolEncodingFile != null) {
-      Files.writeFile(symbolEncodingFile, new Appender() {
-        @Override
-        public void appendTo(Appendable app) throws IOException {
-          for (String symbol : encodedSymbols.keySet()) {
-            final Type<FormulaType<?>> type = encodedSymbols.get(symbol);
-            app.append(symbol + "\t" + type.getReturnType());
-            if (!type.getParameterTypes().isEmpty()) {
-              app.append("\t" + Joiner.on("\t").join(type.getParameterTypes()));
+      MoreFiles.writeFile(
+          symbolEncodingFile,
+          Charset.defaultCharset(),
+          new Appender() {
+            @Override
+            public void appendTo(Appendable app) throws IOException {
+              for (String symbol : encodedSymbols.keySet()) {
+                final Type<FormulaType<?>> type = encodedSymbols.get(symbol);
+                app.append(symbol + "\t" + type.getReturnType());
+                if (!type.getParameterTypes().isEmpty()) {
+                  app.append("\t" + Joiner.on("\t").join(type.getParameterTypes()));
+                }
+                app.append("\n");
+              }
             }
-            app.append("\n");
-          }}});
+          });
     }
   }
 

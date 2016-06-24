@@ -24,15 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 
-public interface SMGAbstractionCandidate extends Comparable<SMGAbstractionCandidate> {
+public interface SMGAbstractionCandidate {
 
+  public CLangSMG execute(CLangSMG pSMG) throws SMGInconsistentException;
   public int getScore();
 
-  public CLangSMG execute(CLangSMG pSMG);
-
-  public SMG execute(SMG pSMG);
-
-  public boolean isUnknown();
 }

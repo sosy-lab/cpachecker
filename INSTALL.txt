@@ -7,10 +7,10 @@ For information on how to run CPAchecker, see README.txt.
 Install CPAchecker -- Binary
 ----------------------------
 
-1. Install a Java Runtime Environment which is at least Java 7 compatible
-   (e.g., Sun/Oracle JRE, OpenJDK).
+1. Install a Java Runtime Environment which is at least Java 8 compatible
+   (e.g., Oracle JRE, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
-   (Ubuntu: sudo apt-get install openjdk-7-jre)
+   (Ubuntu: sudo apt-get install openjdk-8-jre)
    If you have multiple JVMs installed, consider making this the default JVM,
    otherwise you will need to specify the JVM when running CPAchecker.
    (Ubuntu: sudo update-alternatives --config java)
@@ -21,12 +21,12 @@ Install CPAchecker -- Binary
 Install CPAchecker -- Source
 ----------------------------
 
-1. Install a Java SDK which is at least Java 7 compatible
-   (e.g., Sun/Oracle JDK, OpenJDK).
+1. Install a Java SDK which is at least Java 8 compatible
+   (e.g., Oracle JDK, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
-   (Ubuntu: sudo apt-get install openjdk-7-jdk)
+   (Ubuntu: sudo apt-get install openjdk-8-jdk)
    If you have multiple JDKs installed, make sure that the commands "java"
-   and "javac" call the respective Java 7 binaries,
+   and "javac" call the respective Java 8 binaries,
    so put them in your PATH or change the system-wide default JDK.
    (Ubuntu: sudo update-alternatives --config java; sudo update-alternatives --config javac)
 

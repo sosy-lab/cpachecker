@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -59,7 +59,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 
 public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
@@ -102,14 +101,14 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
         .setOption("cpa.predicate.handleArrays", "true")
         .build();
 
-    solver = Solver.create(config, logger, ShutdownNotifier.createDummy());
+    solver = new Solver(factory, config, LogManager.createTestLogManager());
     mgv = solver.getFormulaManager();
 
     pfmgrFwd =
         new PathFormulaManagerImpl(
             mgv,
             myConfig,
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.<VariableClassification>absent(),
@@ -119,7 +118,7 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
         new PathFormulaManagerImpl(
             mgv,
             myConfig,
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.<VariableClassification>absent(),

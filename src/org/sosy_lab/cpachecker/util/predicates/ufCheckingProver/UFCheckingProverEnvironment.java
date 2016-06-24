@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
-import java.util.List;
+import com.google.common.base.Optional;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+
+import java.util.Collection;
+import java.util.List;
 
 public class UFCheckingProverEnvironment
     extends UFCheckingBasicProverEnvironment<Void>
@@ -53,5 +56,18 @@ public class UFCheckingProverEnvironment
       List<BooleanFormula> important)
       throws InterruptedException, SolverException {
     return delegate.allSat(callback, important);
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.isUnsatWithAssumptions(assumptions);
+  }
+
+  @Override
+  public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
+      Collection<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.unsatCoreOverAssumptions(assumptions);
   }
 }

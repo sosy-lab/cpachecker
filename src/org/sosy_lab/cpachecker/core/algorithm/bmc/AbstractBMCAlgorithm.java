@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownManager;
@@ -110,6 +111,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
 
+  @Option(secure=true, description="Propagates the interrupts of the invariant generator.")
+  private boolean propagateInvGenInterrupts = false;
+
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -150,8 +154,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
 
+    shutdownNotifier = pShutdownManager.getNotifier();
+    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
     if (induction) {
-      induction = checkIfInductionIsPossible(pCFA, pLogger);
+      induction = checkIfInductionIsPossible(pCFA, pLogger, Optional.of(targetLocationProvider));
     }
 
     if (induction) {
@@ -167,9 +174,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       stepCaseAlgorithm = null;
     }
 
-    ShutdownManager invariantGeneratorNotifier = pShutdownManager;
+    ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
     if (addInvariantsByAI || addInvariantsByInduction) {
-      invariantGeneratorNotifier = ShutdownManager.createWithParent(pShutdownManager.getNotifier());
+      if (propagateInvGenInterrupts) {
+        invariantGeneratorShutdownManager = pShutdownManager;
+      } else {
+        invariantGeneratorShutdownManager = ShutdownManager.createWithParent(pShutdownManager.getNotifier());
+      }
       propagateSafetyInterrupt = new ShutdownRequestListener() {
 
         @Override
@@ -180,22 +191,19 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           }
         }
       };
-      invariantGeneratorNotifier.getNotifier().register(propagateSafetyInterrupt);
+      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
     } else {
       propagateSafetyInterrupt = null;
     }
-
-    shutdownNotifier = pShutdownManager.getNotifier();
-    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
 
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          invariantGeneratorNotifier, pCFA, pReachedSetFactory, targetLocationProvider);
+          invariantGeneratorShutdownManager, pCFA, pReachedSetFactory, targetLocationProvider);
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorShutdownManager, Optional.of(invariantGeneratorShutdownManager), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -211,7 +219,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   }
 
-  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Optional<TargetLocationProvider> pTargetLocationProvider) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
@@ -222,6 +230,10 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (loops.getCount() == 0) {
       // induction is unnecessary, program has no loops
       return false;
+    }
+
+    if (pTargetLocationProvider.isPresent()) {
+      return !BMCHelper.getLoopHeads(cfa, pTargetLocationProvider.get()).isEmpty();
     }
 
     return true;
@@ -393,7 +405,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
 
   protected boolean boundedModelCheck(final ReachedSet pReachedSet, final ProverEnvironment pProver, CandidateInvariant pInductionProblem) throws CPATransferException, InterruptedException, SolverException {
-    BooleanFormula program = bfmgr.not(pInductionProblem.getAssertion(pReachedSet, fmgr, pmgr));
+    BooleanFormula program = bfmgr.not(pInductionProblem.getAssertion(pReachedSet, fmgr, pmgr, 0));
     logger.log(Level.INFO, "Starting satisfiability check...");
     stats.satCheck.start();
     pProver.push(program);
@@ -414,7 +426,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   }
 
   /**
-   * This class is called after a violation has been found
+   * This method is called after a violation has been found
    * (i.e., the bounded-model-checking formula was satisfied).
    * The formula is still on the solver stack.
    * Subclasses can use this method to further analyze the counterexample
@@ -499,7 +511,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         invariantGenerator,
         stats,
         reachedSetFactory,
-        shutdownNotifier) : null;
+        shutdownNotifier,
+        getLoopHeads()) : null;
   }
 
   /**
@@ -509,6 +522,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    */
   protected Collection<CFANode> getTargetLocations() {
     return targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+  }
 
+  /**
+   * Gets the loop heads.
+   *
+   * @return the loop heads.
+   */
+  protected Set<CFANode> getLoopHeads() {
+    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 }

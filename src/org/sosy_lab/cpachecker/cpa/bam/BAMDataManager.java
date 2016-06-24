@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -32,6 +31,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /** This class contains all additional data-structures needed to run BAM.
  * If possible, we should clear some data sometimes to avoid memory-leaks. */
@@ -90,9 +95,12 @@ public class BAMDataManager {
     initialStateToReachedSet.clear();
   }
 
-  ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(initialState, initialPredicatePrecision);
+  /** Create a new reached-set with the given state as root and register it in the cache. */
+  ReachedSet createAndRegisterNewReachedSet(
+      AbstractState initialState, Precision initialPrecision, Block context) {
+    final ReachedSet reached = reachedSetFactory.create();
+    reached.add(initialState, initialPrecision);
+    bamCache.put(initialState, initialPrecision, context, reached);
     return reached;
   }
 
@@ -120,5 +128,27 @@ public class BAMDataManager {
       state = expandedStateToReducedState.get(state);
     }
     return false;
+  }
+
+  ARGState getMostInnerState(ARGState state) {
+    while (expandedStateToReducedState.containsKey(state)) {
+      state = (ARGState) expandedStateToReducedState.get(state);
+    }
+    return state;
+  }
+
+  /**
+   * Get a list of states [s1,s2,s3...],
+   * such that expand(s1)=s2, expand(s2)=s3,...
+   * The state s1 is the most inner state.
+   */
+  List<AbstractState> getExpandedStatesList(AbstractState state) {
+    List<AbstractState> lst = new ArrayList<>();
+    AbstractState tmp = state;
+    while (expandedStateToReducedState.containsKey(tmp)) {
+      tmp = expandedStateToReducedState.get(tmp);
+      lst.add(tmp);
+    }
+    return Lists.reverse(lst);
   }
 }

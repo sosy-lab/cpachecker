@@ -32,34 +32,43 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public class SMG {
-  final private Set<SMGObject> objects = new HashSet<>();
-  final private Set<Integer> values = new HashSet<>();
-  final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  final private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
-  final private Map<SMGObject, Boolean> object_validity = new HashMap<>();
-  final private NeqRelation neq = new NeqRelation();
+  private Set<SMGObject> objects = new HashSet<>();
+  private Set<Integer> values = new HashSet<>();
+  private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
+  private Map<SMGObject, Boolean> object_validity = new HashMap<>();
+  private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
+  private NeqRelation neq = new NeqRelation();
 
-  final private MachineModel machine_model;
+  private final boolean trackPredicates = false;
+  private PredRelation symbolicRelations = new PredRelation();
+
+  private final MachineModel machine_model;
 
   /**
    * A special object representing NULL
    */
-  final private static SMGObject nullObject = SMGObject.getNullObject();
+  private final static SMGObject nullObject = SMGObject.getNullObject();
 
   /**
    * An address of the special object representing null
    */
-  final private static int nullAddress = 0;
+  private final static int nullAddress = 0;
 
   /**
    * Constructor.
@@ -92,7 +101,9 @@ public class SMG {
     machine_model = pHeap.machine_model;
     hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
+    symbolicRelations.putAll(pHeap.symbolicRelations);
     object_validity.putAll(pHeap.object_validity);
+    objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
     objects.addAll(pHeap.objects);
     pt_edges.putAll(pHeap.pt_edges);
     values.addAll(pHeap.values);
@@ -140,7 +151,7 @@ public class SMG {
    *
    */
   final public void addObject(final SMGObject pObj) {
-    addObject(pObj, true);
+    addObject(pObj, true, false);
   }
 
   /**
@@ -154,6 +165,9 @@ public class SMG {
   final public void removeValue(final Integer pValue) {
     values.remove(pValue);
     neq.removeValue(pValue);
+    if (trackPredicates) {
+      symbolicRelations.removeValue(pValue);
+    }
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -167,6 +181,7 @@ public class SMG {
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
     object_validity.remove(pObj);
+    objectAllocationIdentity.remove(pObj);
   }
 
   /**
@@ -202,9 +217,10 @@ public class SMG {
    * @param pValidity Validity of the newly added object.
    *
    */
-  final public void addObject(final SMGObject pObj, final boolean pValidity) {
+  final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
     objects.add(pObj);
     object_validity.put(pObj, pValidity);
+    objectAllocationIdentity.put(pObj, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -281,6 +297,24 @@ public class SMG {
   }
 
   /**
+   * Sets the ExternallyAllocatedFlag of the object pObject to pExternal.
+   * Throws {@link IllegalArgumentException} if pObject is
+   * not present in SMG.
+   *
+   * Keeps consistency: no
+   *
+   * @param pObject An object.
+   * @param pExternal Validity to set.
+   */
+  public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
+    if (! objects.contains(pObject)) {
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
+    }
+
+    objectAllocationIdentity.put(pObject, new ExternalObjectFlag(pExternal));
+  }
+
+  /**
    * Replaces whole HasValue edge set with new set.
    * @param pNewHV
    *
@@ -298,6 +332,35 @@ public class SMG {
   public void addNeqRelation(Integer pV1, Integer pV2) {
     neq.add_relation(pV1, pV2);
   }
+
+  /**
+   * Adds a predicate relation between two values to the SMG
+   * Keeps consistency: no
+   */
+  public void addPredicateRelation(SMGSymbolicValue pV1, SMGSymbolicValue pV2, BinaryOperator
+      pOp, CFAEdge pEdge) {
+    if (trackPredicates && pEdge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+      if (assumeEdge.getTruthAssumption()) {
+        symbolicRelations.addRelation(pV1, pV2, pOp);
+      } else {
+        symbolicRelations.addRelation(pV1, pV2, pOp.getOppositLogicalOperator());
+      }
+    }
+  }
+
+  public void addPredicateRelation(SMGSymbolicValue pSymbolicValue, SMGExplicitValue pExplicitValue,
+                                   BinaryOperator pOp, CFAEdge pEdge) {
+    if (trackPredicates && pEdge instanceof CAssumeEdge) {
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+      if (assumeEdge.getTruthAssumption()) {
+        symbolicRelations.addExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
+      } else {
+        symbolicRelations.addExplicitRelation(pSymbolicValue, pExplicitValue, pOp.getOppositLogicalOperator());
+      }
+    }
+  }
+
 
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
@@ -428,6 +491,18 @@ public class SMG {
   }
 
   /**
+   * Getter for determing if the object pObject is externally allocated
+   * Throws {@link IllegalAccessException} if pObject is not present is the SMG
+   */
+  final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
+    if ( ! objects.contains(pObject)) {
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
+    }
+
+    return objectAllocationIdentity.get(pObject).isExternal();
+  }
+
+  /**
    * Getter for obtaining SMG machine model. Constant.
    * @return SMG machine model
    */
@@ -508,6 +583,9 @@ public class SMG {
     }
 
     neq.mergeValues(pV1, pV2);
+    if (trackPredicates) {
+      symbolicRelations.mergeValues(pV1, pV2);
+    }
     removeValue(pV2);
     Set<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
     for (SMGEdgeHasValue hv : hv_edges) {
@@ -528,5 +606,21 @@ public class SMG {
 
   public Set<Integer> getNeqsForValue(Integer pV) {
     return neq.getNeqsForValue(pV);
+  }
+
+  private static class ExternalObjectFlag {
+    boolean external;
+
+    public ExternalObjectFlag(boolean pExternal) {
+      external = pExternal;
+    }
+
+    public boolean isExternal() {
+      return external;
+    }
+
+    public void setExternal(boolean pExternal) {
+      external = pExternal;
+    }
   }
 }

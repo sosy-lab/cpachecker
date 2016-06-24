@@ -40,4 +40,8 @@ public class InvalidQueryException extends CPATransferException {
   public InvalidQueryException(String message) {
       super(message);
   }
+
+  public InvalidQueryException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

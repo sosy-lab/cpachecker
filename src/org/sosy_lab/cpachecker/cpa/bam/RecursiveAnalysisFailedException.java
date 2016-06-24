@@ -55,7 +55,7 @@ class RecursiveAnalysisFailedException extends CPATransferException {
   }
 
   @Override
-  public CPAException getCause() {
+  public synchronized CPAException getCause() {
     return (CPAException)super.getCause();
   }
 }

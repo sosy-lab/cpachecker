@@ -23,19 +23,24 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
+
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 /**
  * Wrapping handler for ProverEnvironment.
  */
-public class ProverEnvironmentView implements ProverEnvironment{
+class ProverEnvironmentView implements ProverEnvironment{
   private final ProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
@@ -55,6 +60,19 @@ public class ProverEnvironmentView implements ProverEnvironment{
       List<BooleanFormula> important)
       throws InterruptedException, SolverException {
     return delegate.allSat(callback, important);
+  }
+
+  @Override
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.isUnsatWithAssumptions(assumptions);
+  }
+
+  @Override
+  public Optional<List<BooleanFormula>> unsatCoreOverAssumptions(
+      Collection<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
+    return delegate.unsatCoreOverAssumptions(assumptions);
   }
 
   @Nullable
@@ -86,6 +104,11 @@ public class ProverEnvironmentView implements ProverEnvironment{
   @Override
   public Model getModel() throws SolverException {
     return new ModelView(delegate.getModel(), wrappingHandler);
+  }
+
+  @Override
+  public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
+    return delegate.getModelAssignments();
   }
 
   @Override

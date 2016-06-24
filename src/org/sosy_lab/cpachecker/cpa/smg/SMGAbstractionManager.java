@@ -25,36 +25,62 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateFinder;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
 
 public class SMGAbstractionManager {
   private CLangSMG smg;
   private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
+  private final boolean onlyDll;
 
   public SMGAbstractionManager(CLangSMG pSMG) {
-    smg = new CLangSMG(pSMG);
+    smg = pSMG;
+    onlyDll = false;
   }
 
-  private boolean hasCandidates() {
-    SMGSingleLinkedListFinder sllCandidateFinder = new SMGSingleLinkedListFinder();
-    abstractionCandidates.addAll(sllCandidateFinder.traverse(smg));
+  public SMGAbstractionManager(CLangSMG pSMG, boolean pOnlyDll) {
+    smg = pSMG;
+    onlyDll = pOnlyDll;
+  }
 
-    return (! abstractionCandidates.isEmpty());
+  private boolean hasCandidates() throws SMGInconsistentException {
+    SMGDoublyLinkedListCandidateFinder dllCandidateFinder =
+        new SMGDoublyLinkedListCandidateFinder();
+
+    Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg);
+    abstractionCandidates.addAll(candidates);
+
+    if (!onlyDll) {
+      SMGSingleLinkedListFinder sllCandidateFinder =
+          new SMGSingleLinkedListFinder();
+      abstractionCandidates.addAll(sllCandidateFinder.traverse(smg));
+    }
+
+    return (!abstractionCandidates.isEmpty());
   }
 
   private SMGAbstractionCandidate getBestCandidate() {
-    return abstractionCandidates.get(0);
+
+    SMGAbstractionCandidate bestCandidate = abstractionCandidates.get(0);
+
+    for (SMGAbstractionCandidate candidate : abstractionCandidates) {
+      if (candidate.getScore() > bestCandidate.getScore()) {
+        bestCandidate = candidate;
+      }
+    }
+
+    return bestCandidate;
   }
 
-  public CLangSMG execute() {
+  public void execute() throws SMGInconsistentException {
     while (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
-      smg = best.execute(smg);
+      best.execute(smg);
       invalidateCandidates();
     }
-    return smg;
   }
 
   private void invalidateCandidates() {

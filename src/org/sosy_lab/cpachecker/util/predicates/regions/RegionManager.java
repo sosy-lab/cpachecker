@@ -56,11 +56,7 @@ public interface RegionManager extends RegionCreator {
    */
   public Region createPredicate();
 
-  /**
-   * Returns the set of all predicates that occur in the representation of this region.
-   * @return a set of regions where each region represents one predicate
-   */
-  public Set<Region> extractPredicates(Region f);
+  Set<Region> extractPredicates(Region pF);
 
   /**
    * Convert a formula into a region.

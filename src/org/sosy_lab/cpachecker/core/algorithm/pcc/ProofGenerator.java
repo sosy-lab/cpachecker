@@ -91,17 +91,26 @@ public class ProofGenerator {
   }
 
   public void generateProof(CPAcheckerResult pResult) {
-    UnmodifiableReachedSet reached = pResult.getReached();
-
     // check result
     if (pResult.getResult() != Result.TRUE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
 
+    if(pResult.getReached() == null) {
+      logger.log(Level.SEVERE, "Proof cannot be generated because reached set not available");
+    }
+
+    constructAndWriteProof(pResult.getReached());
+
+    pResult.addProofGeneratorStatistics(proofGeneratorStats);
+
+  }
+
+  private void constructAndWriteProof(UnmodifiableReachedSet pReached) {
     if(slicingEnabled){
       logger.log(Level.INFO, "Start slicing of proof");
-      reached = new ProofSlicer().sliceProof(reached);
+      pReached = new ProofSlicer().sliceProof(pReached);
     }
 
     // saves the proof
@@ -109,13 +118,17 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(reached);
+    checkingStrategy.writeProof(pReached);
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
 
-    pResult.addProofGeneratorStatistics(proofGeneratorStats);
+  }
 
+  protected Statistics generateProofUnchecked(final UnmodifiableReachedSet pReached) {
+    constructAndWriteProof(pReached);
+
+    return proofGeneratorStats;
   }
 
 }

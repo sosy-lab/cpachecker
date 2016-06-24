@@ -1,5 +1,5 @@
-<?xml version="2.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1200 s" memlimit="15 GB" cpuCores="2">
   <option name="-heap">10000M</option>
   <option name="-noout"/>
@@ -7,38 +7,38 @@
   <option name="-skipRecursion" />
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  <sourcefiles name="BitVectors">
+  <tasks name="BitVectors">
     <includesfile>../../../svcomp15/BitVectorsReach.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Floats">
+  </tasks>
+  <tasks name="Floats">
     <includesfile>../../../svcomp15/Floats.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ControlFlowInteger">
+  </tasks>
+  <tasks name="ControlFlowInteger">
     <includesfile>../../../svcomp15/ControlFlow.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ECA">
+  </tasks>
+  <tasks name="ECA">
     <includesfile>../../../svcomp15/ECA.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Loops">
+  </tasks>
+  <tasks name="Loops">
     <includesfile>../../../svcomp15/Loops.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ProductLines">
+  </tasks>
+  <tasks name="ProductLines">
     <includesfile>../../../svcomp15/ProductLines.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="DeviceDrivers">
+  </tasks>
+  <tasks name="DeviceDrivers">
     <includesfile>../../../svcomp15/DeviceDriversLinux64.set</includesfile>
     <option name="-setprop">cpa.value.symbolic.handlePointers=false</option>
     <option name="-64"/>
-  </sourcefiles>
-  <sourcefiles name="HeapManipulation">
+  </tasks>
+  <tasks name="HeapManipulation">
     <includesfile>../../../svcomp15/HeapReach.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Sequentialized">
+  </tasks>
+  <tasks name="Sequentialized">
     <includesfile>../../../svcomp15/Sequentialized.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Simple">
+  </tasks>
+  <tasks name="Simple">
     <includesfile>../../../svcomp15/Simple.set</includesfile>
-  </sourcefiles>
+  </tasks>
 
 
   <rundefinition name="valueAnalysis-noRefinement">
@@ -60,7 +60,7 @@
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
   </rundefinition>
   <rundefinition name="symEx-refine-noOptimizations">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
@@ -70,28 +70,28 @@
     <option name="-setprop">cpa.constraints.removeOutdated=false</option>
   </rundefinition>
   <rundefinition name="symEx-valueItpOnly">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=VALUES_ONLY</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
   </rundefinition>
   <rundefinition name="symEx-valueItpFirst">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=VALUES_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
   </rundefinition>
   <rundefinition name="symEx-constraintsItpFirst">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
   </rundefinition>
   <rundefinition name="symEx-delegation">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cegar.refiner=cpa.value.symbolic.refiner.delegation.SymbolicDelegatingRefiner</option>
@@ -99,7 +99,7 @@
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
   </rundefinition>
   <rundefinition name="symEx-delegation-prefixSelection">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cegar.refiner=cpa.value.symbolic.refiner.delegation.SymbolicDelegatingRefiner</option>
@@ -107,17 +107,17 @@
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_GOOD_SHORT</option>
   </rundefinition>
   <rundefinition name="symEx-bestPrefixSelection-cex">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_GOOD_SHORT</option>
   </rundefinition>
   <rundefinition name="symEx-predDelegation">
-    <option name="-valueAnalysis-symbolic-refiner-pred" />
+    <option name="-valueAnalysis-symbolic-Cegar-pred" />
   </rundefinition>
   <rundefinition name="symEx-ref-integer">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
@@ -126,14 +126,14 @@
     <option name="-setprop">cpa.predicate.encodeFloatAs=Rational</option>
   </rundefinition>
   <rundefinition name="symEx-ref-leqImplication">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=IMPLICATION</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
   </rundefinition>
   <rundefinition name="symEx-ref-leqImplication-locPrec">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=IMPLICATION</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>
@@ -141,7 +141,7 @@
     <option name="-setprop">cpa.constraints.refinement.precisionType=LOCATION</option>
   </rundefinition>
   <rundefinition name="symEx-ref-locPrec">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=false</option>

@@ -17,6 +17,8 @@
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_false-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.15_false-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.15_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.16_false-unreach-call.i.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -32,6 +34,7 @@
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/mem_slave_tlm.1_true-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>

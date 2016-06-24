@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
-import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.core.CPAcheckerResult.Result.FALSE;
+import static org.sosy_lab.cpachecker.core.CPAcheckerResult.Result.TRUE;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
@@ -45,12 +46,23 @@ public class TestResults {
     return checkerResult;
   }
 
+  public void assertIs(CPAcheckerResult.Result expected) {
+    if (checkerResult.getResult() != expected) {
+      throw new AssertionError(
+          String.format(
+              "Not true that verification result is %s, it is %s. Log output was:%n---%n%s%n---",
+              expected,
+              checkerResult.getResult(),
+              log.trim()));
+    }
+  }
+
   public void assertIsSafe() {
-    assertThat(checkerResult.getResult()).named("verification result").isEqualTo(CPAcheckerResult.Result.TRUE);
+    assertIs(TRUE);
   }
 
   public void assertIsUnsafe() {
-    assertThat(checkerResult.getResult()).named("verification result").isEqualTo(CPAcheckerResult.Result.FALSE);
+    assertIs(FALSE);
   }
 
   @Override

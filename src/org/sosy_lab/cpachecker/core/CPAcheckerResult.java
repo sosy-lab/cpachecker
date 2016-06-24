@@ -132,8 +132,7 @@ public class CPAcheckerResult {
       return;
     }
 
-    out.print("Verification result: ");
-    out.println(getResultString());
+    out.println("Verification result: " + getResultString());
 
     out.println(String.format("\tNumber of considered properties: %d", propertySummary.getConsideredProperties().size()));
     out.println(String.format("\tNumber of violated properties: %d", propertySummary.getViolatedProperties().size()));

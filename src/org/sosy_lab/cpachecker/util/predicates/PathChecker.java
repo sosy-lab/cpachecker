@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -41,12 +40,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -62,28 +62,28 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Ordering;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class can check feasibility of a simple path using an SMT solver.
  */
-@Options(prefix="cpa.predicate")
+@Options(prefix="counterexample.export", deprecatedPrefix="cpa.predicate")
 public class PathChecker {
 
-  @Option(secure=true,
+  @Option(secure=true, name="formula", deprecatedName="dumpCounterexampleFormula",
       description="where to dump the counterexample formula in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
+  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("Counterexample.%d.smt2");
 
-  @Option(secure=true,
+  @Option(secure=true, name="model", deprecatedName="dumpCounterexampleModel",
       description="where to dump the counterexample model in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
+  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
 
   private final LogManager logger;
   private final PathFormulaManager pmgr;
@@ -110,6 +110,41 @@ public class PathChecker {
     this.solver = pSolver;
     this.assignmentToPathAllocator = pAssignmentToPathAllocator;
     pConfig.inject(this);
+  }
+
+  public CounterexampleInfo handleFeasibleCounterexample(final ARGPath allStatesTrace,
+      CounterexampleTraceInfo counterexample, boolean branchingOccurred)
+          throws InterruptedException {
+    checkArgument(!counterexample.isSpurious());
+
+    ARGPath targetPath;
+    if (branchingOccurred) {
+      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
+      if (preds.isEmpty()) {
+        logger.log(Level.WARNING, "No information about ARG branches available!");
+        return createImpreciseCounterexample(allStatesTrace, counterexample);
+      }
+
+      // find correct path
+      try {
+        ARGState root = allStatesTrace.getFirstState();
+        ARGState target = allStatesTrace.getLastState();
+        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
+
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
+
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, null);
+        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+
+        return createImpreciseCounterexample(allStatesTrace, counterexample);
+      }
+
+    } else {
+      targetPath = allStatesTrace;
+    }
+
+    return createCounterexample(targetPath, counterexample, branchingOccurred);
   }
 
   /**
@@ -175,7 +210,7 @@ public class PathChecker {
    * @param pInfo More information about the counterexample
    * @return a {@link CounterexampleInfo} instance
    */
-  public CounterexampleInfo createImpreciseCounterexample(
+  private CounterexampleInfo createImpreciseCounterexample(
       final ARGPath imprecisePath, final CounterexampleTraceInfo pInfo) {
     CounterexampleInfo cex =
         CounterexampleInfo.feasibleImprecise(imprecisePath);
@@ -210,7 +245,7 @@ public class PathChecker {
     }
   }
 
-  public Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
+  private Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
       throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
@@ -253,17 +288,14 @@ public class PathChecker {
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
 
-    for (CFAEdge edge : from(pPath.getInnerEdges()).filter(notNull())) {
+    PathIterator pathIt = pPath.fullPathIterator();
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for (CFAEdge singleEdge : (MultiEdge) edge) {
-          pathFormula = pmgr.makeAnd(pathFormula, singleEdge);
-          ssaMaps.add(pathFormula.getSsa());
-        }
-      } else {
-        pathFormula = pmgr.makeAnd(pathFormula, edge);
-        ssaMaps.add(pathFormula.getSsa());
-      }
+    while (pathIt.hasNext()) {
+      CFAEdge edge = pathIt.getOutgoingEdge();
+      pathIt.advance();
+
+      pathFormula = pmgr.makeAnd(pathFormula, edge);
+      ssaMaps.add(pathFormula.getSsa());
     }
 
     return Pair.of(pathFormula, ssaMaps);
@@ -271,7 +303,7 @@ public class PathChecker {
 
   private List<ValueAssignment> getModel(ProverEnvironment thmProver) {
     try {
-      return ImmutableList.copyOf(thmProver.getModel());
+      return thmProver.getModelAssignments();
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);

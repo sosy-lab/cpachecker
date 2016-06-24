@@ -99,7 +99,11 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
     try {
       return supplier.get();
     } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+      if (e.getCause() instanceof InterruptedException) {
+        return new FormulaAndTreeSupplier(
+            invariantGenerator.get().get(), invariantGenerator.get().getAsExpressionTree());
+      }
+      Throwables.propagateIfPossible(e.getCause(), CPAException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
     } catch (CancellationException e) {
       shutdownNotifier.shutdownIfNecessary();

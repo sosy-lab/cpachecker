@@ -1,0 +1,20 @@
+<!--
+    Dataset used: hard device drivers with no recursion.
+    Method: formula slicing
+-->
+<table>
+    <column title="status"/>
+    <column title="walltime"/>
+    <column title="time">Total time for CPA algorithm</column>
+    <column title="memUsage" numberOfDigits="5" displayUnit="MB" scaleFactor="0.000001"/>
+
+    <column title="weakening">Time spent in inductive weakening</column>
+    <column title="reachability(target)">Time spent in checking reachability for target states</column>
+    <column title="reachability(abstraction)">Time spent in checking reachability for abstraction states</column>
+    <column title="propagation">Time spent in propagating formulas</column>
+
+    <result filename="../results/formula_slicing.2016-04-20_1518.results.just-slicing.DeviceDriversHard.xml.bz2"/>
+    <result filename="../results/formula_slicing.2016-04-19_1150.results.just-slicing-syntactic.DeviceDriversHard.xml.bz2"/>
+    <result filename="../results/formula_slicing.2016-03-29_1423.results.predicateAnalysis.DeviceDriversHard.xml.bz2"/>
+
+</table>

@@ -52,11 +52,11 @@ public class BlockPartitioningBuilder {
 
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
-  private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
-  private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
-  private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
-  private final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
-  private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
+  protected final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
+  protected final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
+  protected final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
+  protected final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
+  protected final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
 
   public BlockPartitioningBuilder() {}
 
@@ -111,6 +111,13 @@ public class BlockPartitioningBuilder {
     Set<CFANode> callNodes = collectCallNodes(nodes, mainFunction);
     Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);
     Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
+
+    if (callNodes.isEmpty()) {
+     /* What shall we do with function, which is not called from anywhere?
+      * There are problems with them at partitioning building stage
+      */
+      return;
+    }
 
     CFANode registerNode = null;
     for (CFANode node : callNodes) {

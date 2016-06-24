@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class SMGConcreteErrorPathAllocator {
 
@@ -322,7 +323,7 @@ public class SMGConcreteErrorPathAllocator {
 
     Map<Address, Object> result = new HashMap<>();
 
-    for (SMGEdgeHasValue hvEdge : symbolicValues) {
+    for (SMGEdgeHasValue hvEdge : ImmutableSet.copyOf(symbolicValues)) {
 
       int symbolicValue = hvEdge.getValue();
       BigInteger value = null;
@@ -332,7 +333,7 @@ public class SMGConcreteErrorPathAllocator {
       } else if (pSMGState.isPointer(symbolicValue)) {
         SMGAddressValue pointer;
         try {
-          pointer = pSMGState.getPointerFromValue(symbolicValue);
+          pointer = pSMGState.getPointerFromValue(symbolicValue).asAddressValueAndStateList().get(0).getObject();
         } catch (SMGInconsistentException e) {
           throw new AssertionError();
         }

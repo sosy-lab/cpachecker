@@ -221,6 +221,22 @@ public class AutomatonTransition {
         ImmutableSet.<SafetyProperty>of());
   }
 
+  public AutomatonTransition(
+      AutomatonBoolExpr pTriggers,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AStatement> pAssumptions,
+      ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions, String pTargetStateId) {
+
+    this(pTriggers, pAssertions, pAssumptions,
+        true,
+        ImmutableList.<AAstNode>of(),
+        pCandidateInvariants,
+        pActions, pTargetStateId, null,
+        ImmutableSet.<SafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of());
+  }
+
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions,
       @Nullable List<AStatement> pAssumption,
@@ -276,6 +292,8 @@ public class AutomatonTransition {
       this.assertion = lAssertion;
     }
   }
+
+
 
   public ImmutableList<AutomatonAction> getActions() {
     return actions;
