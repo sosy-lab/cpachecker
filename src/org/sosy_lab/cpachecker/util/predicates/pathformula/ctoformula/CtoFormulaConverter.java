@@ -470,12 +470,12 @@ public class CtoFormulaConverter {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(value);
       final boolean signed = machineModel.isSigned(sType);
 
-      final BooleanFormula lowerBound  = fmgr.makeLessOrEqual(
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType)), value, signed);
-      final BooleanFormula upperBound = fmgr.makeLessOrEqual(
-          value, fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType)), signed);
+      final Formula lowerBound =
+          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
+      final Formula upperBound =
+          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
 
-      BooleanFormula range = bfmgr.and(lowerBound, upperBound);
+      BooleanFormula range = fmgr.makeRangeConstraint(value, lowerBound, upperBound, signed);
 
       // simplify constant formulas like "1<=2" and return the value directly.
       // benefit: divide_by_constant works without UFs
@@ -517,12 +517,11 @@ public class CtoFormulaConverter {
       final CSimpleType sType = (CSimpleType)type;
       final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final BooleanFormula lowerBound  = fmgr.makeLessOrEqual(
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType)), variable, signed);
-      final BooleanFormula upperBound = fmgr.makeLessOrEqual(
-          variable, fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType)), signed);
-      constraints.addConstraint(upperBound);
-      constraints.addConstraint(lowerBound);
+      final Formula lowerBound =
+          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
+      final Formula upperBound =
+          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
+      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
     }
   }
 

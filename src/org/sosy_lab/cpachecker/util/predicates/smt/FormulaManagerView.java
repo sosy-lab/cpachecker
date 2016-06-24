@@ -802,6 +802,39 @@ public class FormulaManagerView {
     return t;
   }
 
+  /**
+   * Create a formula for the constraint that a term is a valid index for an array/list/etc.
+   * with a given start and a length:
+   * {@code start <= term && term < (start + length)}.
+   * The start value is included in the range, the end value is not.
+   * @param term The term that should be in the range.
+   * @param start The inclusive start value of the range.
+   * @param length The length of the range (end is exclusive).
+   * @param signed Whether the arithmetic should be signed or unsigned.
+   * @return A BooleanFormula representing a constraint about term.
+   */
+  public <T extends Formula> BooleanFormula makeElementIndexConstraint(
+      T term, T start, int length, boolean signed) {
+    FormulaType<T> type = getFormulaType(start);
+    T end = makePlus(start, makeNumber(type, length));
+    return booleanFormulaManager.and(
+        makeLessOrEqual(start, term, signed), makeLessThan(term, end, signed));
+  }
+
+  /**
+   * Create a formula for the constraint that a term is in a given inclusive range [start, end].
+   * @param term The term that should be in the range.
+   * @param start The inclusive start value of the range.
+   * @param end The exclusive end value of the range.
+   * @param signed Whether the arithmetic should be signed or unsigned.
+   * @return A BooleanFormula representing a constraint about term.
+   */
+  public <T extends Formula> BooleanFormula makeRangeConstraint(
+      T term, T start, T end, boolean signed) {
+    return booleanFormulaManager.and(
+        makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
+  }
+
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
   }

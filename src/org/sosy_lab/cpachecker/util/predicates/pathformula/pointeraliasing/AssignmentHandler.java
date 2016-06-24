@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -305,15 +304,11 @@ class AssignmentHandler {
               ? conv.getIndex(targetName, lhsType, ssa)
               : conv.getFreshIndex(targetName, lhsType, ssa);
 
-      final Formula lowerBound = lhsLocation.asAliased().getAddress();
-      final Formula upperBound =
-          fmgr.makePlus(
-              lowerBound, fmgr.makeNumber(conv.voidPointerFormulaType, pAssignments.size()));
-
       final Formula counter =
           fmgr.makeVariable(conv.voidPointerFormulaType, targetName + "@" + oldIndex + "@counter");
-      final List<BooleanFormula> rangeConstraint =
-          makeRangeConstraint(counter, lowerBound, upperBound);
+      final BooleanFormula rangeConstraint =
+          fmgr.makeElementIndexConstraint(
+              counter, lhsLocation.asAliased().getAddress(), pAssignments.size(), false);
 
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
@@ -335,28 +330,13 @@ class AssignmentHandler {
                 conv.ptsMgr.makePointerDereference(targetName, targetType, oldIndex, counter));
       }
 
-      return fmgr.getQuantifiedFormulaManager().forall(
-          Collections.singletonList(counter),
-          bfmgr.and(
-              bfmgr.implication(bfmgr.and(rangeConstraint), assignNewValue),
-              bfmgr.implication(bfmgr.not(bfmgr.and(rangeConstraint)), copyOldValue)));
+      return fmgr.getQuantifiedFormulaManager()
+          .forall(
+              Collections.singletonList(counter),
+              bfmgr.and(
+                  bfmgr.implication(rangeConstraint, assignNewValue),
+                  bfmgr.implication(bfmgr.not(rangeConstraint), copyOldValue)));
     }
-  }
-
-  /**
-   * Creates a list of {@code BooleanFormula}s that are range constraints for universal quantifiers.
-   *
-   * @param pVariable The index variable of the quantifier.
-   * @param pLowerBound The inclusive lower bound of the constraints.
-   * @param pUpperBound The exclusive upper bound of the constraints.
-   * @param <R> The type of the index variable.
-   * @return A list of constraint formulae.
-   */
-  private <R extends Formula> List<BooleanFormula> makeRangeConstraint(
-      final R pVariable, final R pLowerBound, final R pUpperBound) {
-    return ImmutableList.of(
-        fmgr.makeGreaterOrEqual(pVariable, pLowerBound, false),
-        fmgr.makeLessThan(pVariable, pUpperBound, false));
   }
 
   /**
@@ -803,12 +783,9 @@ class AssignmentHandler {
       for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
         conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = conv.makeFormulaForTarget(target);
-        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
         constraints.addConstraint(
             bfmgr.or(
-                bfmgr.and(
-                    fmgr.makeLessOrEqual(startAddress, targetAddress, false),
-                    fmgr.makeLessOrEqual(targetAddress, endAddress, false)),
+                fmgr.makeElementIndexConstraint(targetAddress, startAddress, size, false),
                 conv.makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, target)));
       }
     }

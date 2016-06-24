@@ -342,25 +342,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
     // Sign of the remainder is set by the sign of the
     // numerator, and it is bounded by the numerator.
-    BooleanFormula signAndNumBound = bfmgr.ifThenElse(
-        mgr.makeGreaterOrEqual(f1, zero, signed),
-        bfmgr.and(
-
-            // Remainder positive or zero.
-            mgr.makeGreaterOrEqual(ret, zero, signed),
-
-            // Remainder is bounded above by the numerator (both positive)
-            mgr.makeLessOrEqual(ret, f1, signed)
-        ),
-        bfmgr.and(
-
-            // Remainder negative or zero.
-            mgr.makeLessOrEqual(ret, zero, signed),
-
-            // Remainder is bounded below by the numerator (both negative)
-            mgr.makeGreaterOrEqual(ret, f1, signed)
-        )
-    );
+    BooleanFormula signAndNumBound =
+        bfmgr.ifThenElse(
+            mgr.makeGreaterOrEqual(f1, zero, signed),
+            mgr.makeRangeConstraint(ret, zero, f1, signed), // ret in [zero, f1] (both positive)
+            mgr.makeRangeConstraint(ret, f1, zero, signed) // ret in [f1, zero] (both negative)
+            );
 
     BooleanFormula denomBound = bfmgr.ifThenElse(
         mgr.makeGreaterOrEqual(f2, zero, signed),
