@@ -138,12 +138,7 @@ public class MultiCallstackState implements AbstractState, Partitionable {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((thread == null) ? 0 : thread.hashCode());
-    result = prime * result
-        + ((threadContextCallstacks == null) ? 0 : threadContextCallstacks.hashCode());
-    return result;
+    return Objects.hash(thread, threadContextCallstacks);
   }
 
   @Override
@@ -151,53 +146,11 @@ public class MultiCallstackState implements AbstractState, Partitionable {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof MultiCallstackState)) {
       return false;
     }
     MultiCallstackState other = (MultiCallstackState) obj;
-    if (thread == null) {
-      if (other.thread != null) {
-        return false;
-      }
-    } else if (!thread.equals(other.thread)) {
-      return false;
-    }
-    if (threadContextCallstacks == null) {
-      if (other.threadContextCallstacks != null) {
-        return false;
-      }
-    } else if (!threadContextCallstacks.equals(other.threadContextCallstacks)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(thread, other.thread)
+        && Objects.equals(threadContextCallstacks, other.threadContextCallstacks);
   }
-
-  /**
-   * checks if the values of the saved stacks are the same. Particularly if there
-   * exists a key with a null state on stack the state might be the same as an
-   * state without that key.
-   *
-   * @param other
-   * @return
-   */
-  private boolean isMapEqual(Map<String, CallstackState> other) {
-    for (String thread: threadContextCallstacks.keySet()) {
-      if(threadContextCallstacks.get(thread) != (other.get(thread))) {
-        return false;
-      }
-    }
-    for(String thread : other.keySet()) {
-      if(other.get(thread) != threadContextCallstacks.get(thread)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-
-
 }
