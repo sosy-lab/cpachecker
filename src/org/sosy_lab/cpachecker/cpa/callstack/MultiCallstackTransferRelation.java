@@ -113,11 +113,11 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
       case ThreadScheduleEdge:
         return handleScheduleEdge((ThreadScheduleEdge) pEdge, e);
-      case FunctionCallEdge: 
+      case FunctionCallEdge:
         return handleFunctionCallEdge((FunctionCallEdge) pEdge, e);
-      case FunctionReturnEdge: 
+      case FunctionReturnEdge:
         return handleFunctionRetrunEdge((FunctionReturnEdge) pEdge, e);
-      case ContextSwtichEdge: 
+      case ContextSwtichEdge:
         return handleContextSwitchEdge((ContextSwitchEdge) pEdge, e);
 
       default:
@@ -126,9 +126,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
       return Collections.singleton(pElement);
     }
-    
 
-    
+
+
 
   private Collection<? extends AbstractState> handleScheduleEdge(
       ThreadScheduleEdge pEdge, MultiCallstackState e) {
@@ -154,7 +154,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
       String thread = e.getThreadName();
       MultiCallstackState newTop = new MultiCallstackState(e, thread, calledFunctionName, callerNode);
       newTop.setContextLess(e.isContextLess());
-      
+
       return enterThread(newTop, thread);
     }
 
@@ -198,7 +198,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
       assert !stackBottom.hasContext(threadName);
       assert pEdge.getPredecessor().getNumLeavingEdges() == 1;
       stackBottom.setContextLess(e.isContextLess());
-      
+
       return returnFromThread(stackBottom, callerFunction);
     }
 
@@ -218,7 +218,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
     return Collections.singleton(topElement);
   }
 
-  
+
   private Collection<? extends AbstractState> handleContextSwitchEdge(
       ContextSwitchEdge contextSwitchEdge, MultiCallstackState e) {
 
@@ -231,7 +231,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
         .getFunctionName();
 
     assert thread.equals(e.getThreadName());
-    
+
     assert !contextSwitchEdge.isToScheduler()
         || THREAD_SIMULATION_FUNCTION_NAME.equals(calledFunction);
     assert contextSwitchEdge.isToScheduler()
@@ -244,22 +244,22 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
       return enterThread(e, thread);
     }
   }
-  
+
   private static Collection<MultiCallstackState> returnFromThread(MultiCallstackState e, String callerFunction) {
     assert !e.isContextLess();
     assert e.getThreadName() != null;
-    
+
     MultiCallstackState returnElement = e.setContext(null);
     returnElement.setContextLess(true);
-    
+
     return Collections
         .singleton(returnElement);
   }
-  
+
   private static Collection<MultiCallstackState> enterThread(MultiCallstackState e, String thread) {
     assert e.isContextLess();
     assert e.getThreadName() != null;
-    
+
     MultiCallstackState returnElement = e.setContext(thread);
     returnElement.setContextLess(false);
     return Collections.singleton(returnElement);
@@ -273,31 +273,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
       return null;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     protected boolean skipRecursiveFunctionCall(final CallstackState element,
         final FunctionCallEdge callEdge) {
       // Cannot skip if there is no edge for skipping
@@ -326,7 +301,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
       // iterate through the current stack and search for an equal name
       CallstackState e = pCurrentState;
       int counter = 0;
-      
+
       while (e != null) {
         if (e.getCurrentFunction().equals(pCalledFunction)) {
           counter++;
