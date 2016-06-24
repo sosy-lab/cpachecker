@@ -276,8 +276,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     List<BooleanFormula> result = new ArrayList<>();
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
       shutdownNotifier.shutdownIfNecessary();
+      final Formula targetAddress = makeFormulaForTarget(target);
       result.add(
-          makeRetentionConstraint(functionName, oldIndex, newIndex, returnFormulaType, target));
+          makeRetentionConstraint(
+              functionName, oldIndex, newIndex, returnFormulaType, targetAddress));
     }
 
     return bfmgr.and(result);
@@ -345,8 +347,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final int oldIndex,
       final int newIndex,
       final FormulaType<?> type,
-      final PointerTarget target) {
-    final Formula targetAddress = makeFormulaForTarget(target);
+      final Formula targetAddress) {
     return fmgr.assignment(
         ptsMgr.makePointerDereference(targetName, type, newIndex, targetAddress),
         ptsMgr.makePointerDereference(targetName, type, oldIndex, targetAddress));
