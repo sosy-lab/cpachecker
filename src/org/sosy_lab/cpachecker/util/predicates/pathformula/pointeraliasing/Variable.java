@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-class Variable {
+final class Variable {
   private final String name;
   private final CType type;
 
   private Variable(String pName, CType pType) {
-    super();
     name = pName;
     type = pType;
   }
@@ -40,16 +41,12 @@ class Variable {
   }
 
   CType getType() {
-    assert type != null;
     return type;
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    return result;
+    return name.hashCode();
   }
 
   @Override
@@ -57,21 +54,11 @@ class Variable {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof Variable)) {
       return false;
     }
     Variable other = (Variable) obj;
-    if (name == null) {
-      if (other.name != null) {
-        return false;
-      }
-    } else if (!name.equals(other.name)) {
-      return false;
-    }
-    return true;
+    return name.equals(other.name);
   }
 
   @Override
@@ -80,6 +67,6 @@ class Variable {
   }
 
   static Variable create(String pName, CType pT) {
-    return new Variable(pName, pT);
+    return new Variable(checkNotNull(pName), checkNotNull(pT));
   }
 }
