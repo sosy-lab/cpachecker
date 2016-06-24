@@ -388,9 +388,11 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    Variable variable = e.accept(baseVisitor);
     final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
-    if (variable != null) {
+
+    if (!pts.isActualBase(e.getDeclaration().getQualifiedName())
+        && !CTypeUtils.containsArray(resultType)) {
+      Variable variable = Variable.create(e.getDeclaration().getQualifiedName(), resultType);
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         final String variableName = variable.getName();
         if (pts.isDeferredAllocationPointer(variableName)) {
