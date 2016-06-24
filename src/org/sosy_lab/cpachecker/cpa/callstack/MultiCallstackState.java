@@ -1,28 +1,25 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-
-import com.google.common.collect.ImmutableMap;
 
 public class MultiCallstackState implements AbstractState, Partitionable {
 
   static final String INITIAL_THREAD_NAME = "thread0";
 
-  private final ImmutableMap<String, CallstackState> threadContextCallstacks;
+  private final PersistentMap<String, CallstackState> threadContextCallstacks;
 
-  /** It is not granted that thread is inside threadContextCallStack */
-  /*TODO This attribute is nullable. This might shrink the abstract state because null doesn't say from which thread it came */
-  @Nullable
-  private final String thread;
+  /** It is not granted that thread is inside threadContextCallStack.
+   * This attribute is nullable. This might shrink the abstract state. */
+  @Nullable private final String thread;
 
   // ASSERTION ONLY
   private boolean contextLess = false;
@@ -30,30 +27,30 @@ public class MultiCallstackState implements AbstractState, Partitionable {
   /**
    * changes context of state
    */
-  protected MultiCallstackState(String thread, Map<String, CallstackState> stacks) {
+  private MultiCallstackState(String thread, PersistentMap<String, CallstackState> stacks) {
     this.thread = thread;
-    this.threadContextCallstacks = ImmutableMap.copyOf(stacks);
+    this.threadContextCallstacks = stacks;
   }
 
   /**
    * for stacking
    */
-  protected MultiCallstackState(@Nullable MultiCallstackState previousState, String thread, String function, CFANode callerNode) {
+  protected MultiCallstackState(@Nullable MultiCallstackState previousState,
+      String thread, String function, CFANode callerNode) {
     assert previousState != null || thread.equals(INITIAL_THREAD_NAME); //TODO use dynamic name
     assert previousState != null || function.equals("main__0");  // creates a new context
     this.thread = thread;
 
     CallstackState nextState;
-    HashMap<String, CallstackState> copyOfStackHeads = new HashMap<>();
+    final PersistentMap<String, CallstackState> stackHeads;
     if(previousState == null) {
+      stackHeads = PathCopyingPersistentTreeMap.of();
       nextState = new CallstackState(null, function, callerNode);
     } else {
-      copyOfStackHeads.putAll(previousState.threadContextCallstacks);
+      stackHeads = previousState.threadContextCallstacks;
       nextState = new CallstackState(previousState.getCurrentStack(), function, callerNode);
     }
-    copyOfStackHeads.put(thread, nextState);
-
-    this.threadContextCallstacks = ImmutableMap.copyOf(copyOfStackHeads);
+    this.threadContextCallstacks = stackHeads.putAndCopy(thread, nextState);
   }
 
   public CallstackState getCurrentStack() {
@@ -72,15 +69,14 @@ public class MultiCallstackState implements AbstractState, Partitionable {
   }
 
   /** TODO Note! If a new context was created and a function returns after this, then new created context must be known by the state!! */
-  public MultiCallstackState getPreviousState() throws NullPointerException {
-    HashMap<String, CallstackState> copyOfStackHeads = new HashMap<>(this.threadContextCallstacks);
+  public MultiCallstackState getPreviousState() {
+    final PersistentMap<String, CallstackState> stackHeads;
     if(getCurrentStack().getPreviousState() == null) {
-      copyOfStackHeads.remove(thread);
+      stackHeads = threadContextCallstacks.removeAndCopy(thread);
     } else {
-      copyOfStackHeads.put(thread, getCurrentStack().getPreviousState());
+      stackHeads = threadContextCallstacks.putAndCopy(thread, getCurrentStack().getPreviousState());
     }
-
-    return new MultiCallstackState(thread, copyOfStackHeads);
+    return new MultiCallstackState(thread, stackHeads);
   }
 
   @Override
