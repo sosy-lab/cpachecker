@@ -92,18 +92,14 @@ public class MultiCallstackState implements AbstractState, Partitionable {
 
   @Override
   public String toString() {
-    String rep = "";
-    for (Entry<String, CallstackState> entry : threadContextCallstacks
-        .entrySet()) {
-
+    StringBuilder rep = new StringBuilder();
+    for (Entry<String, CallstackState> entry : threadContextCallstacks.entrySet()) {
       if (entry.getKey().equals(thread)) {
-        rep += "* ";
+        rep.append("* ");
       }
-      rep += entry.getKey() + ": ";
-      rep += entry.getValue().toString() + " \n";
+      rep.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
     }
-
-    return rep;
+    return rep.toString();
   }
 
 
