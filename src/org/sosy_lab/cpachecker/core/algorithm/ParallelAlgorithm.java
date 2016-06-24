@@ -157,8 +157,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>();
 
     for (Path p : configFiles) {
-      futures.add(exec.submit(createParallelAnalysis(p)));
-      stats.noOfAlgorithmsUsed++;
+      futures.add(exec.submit(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed)));
     }
     addCancellationCallback(futures);
 
@@ -244,7 +243,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
-      final Path pSingleConfigFileName) {
+      final Path pSingleConfigFileName,
+      final int analysisNumber) {
     return () -> {
       final Algorithm algorithm;
       final ReachedSet reached;
@@ -272,7 +272,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           return ParallelAnalysisResult.absent();
         }
 
-        singleLogger = logger.withComponentName("Parallel analysis " + stats.noOfAlgorithmsUsed);
+        singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
         ShutdownManager singleShutdownManager =
             ShutdownManager.createWithParent(shutdownManager.getNotifier());
