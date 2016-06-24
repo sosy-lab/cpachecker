@@ -1,7 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Joiner;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -15,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -22,9 +21,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -45,8 +41,8 @@ public class StateFormulaConversionManager {
   private final PathFormulaManager pfmgr;
   private final CFA cfa;
   private final LogManager logger;
-
   private final CBinaryExpressionBuilder expressionBuilder;
+  private final FormulaToCExpressionConverter formulaToCExpressionConverter;
 
   private static final CFAEdge DummyEdge = new BlankEdge("",
       FileLocation.DUMMY,
@@ -63,6 +59,7 @@ public class StateFormulaConversionManager {
     cfa = pCfa;
     logger = pLogger;
     expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);
   }
 
   /**
@@ -75,95 +72,9 @@ public class StateFormulaConversionManager {
     BooleanFormula invariant = bfmgr.and(
         abstractStateToConstraints(fmgr, pfmgr, abstractState, false));
     BooleanFormula uninstantiated = fmgr.uninstantiate(invariant);
-    return formulaToCExpression(uninstantiated);
+    return formulaToCExpressionConverter.formulaToCExpression(uninstantiated);
   }
 
-  private String formulaToCExpression(BooleanFormula invariant) throws InterruptedException {
-    invariant = fmgr.applyTactic(invariant, Tactic.NNF);
-    invariant = fmgr.simplify(invariant);
-    return recFormulaToCExpression(invariant);
-  }
-
-  private String recFormulaToCExpression(Formula invariant) {
-    return fmgr.visit(new DefaultFormulaVisitor<String>() {
-
-      @Override
-      protected String visitDefault(Formula f) {
-        throw new UnsupportedOperationException("Unexpected constraint");
-      }
-
-      @Override
-      public String visitFreeVariable(Formula f, String name) {
-
-        // TODO: do not hardcode the function separator.
-        if (name.contains("::")) {
-          return name.split("::")[1];
-        }
-        return name;
-      }
-
-      @Override
-      public String visitConstant(Formula f, Object value) {
-        return value.toString();
-      }
-
-      @Override
-      public String visitFunction(
-          Formula f,
-          List<Formula> args,
-          FunctionDeclaration<?> functionDeclaration) {
-        switch (functionDeclaration.getKind()) {
-          case NOT:
-            return String.format("!(%s)", recFormulaToCExpression(args.get(0)));
-          case UMINUS:
-            return String
-                .format("- (%s)", recFormulaToCExpression(args.get(0)));
-          default:
-            return joinWithSeparator(
-                operatorFromFunctionDeclaration(functionDeclaration), args);
-        }
-      }
-
-      private String operatorFromFunctionDeclaration(FunctionDeclaration<?> pDeclaration) {
-        switch (pDeclaration.getKind()) {
-          case AND:
-            return " && ";
-          case OR:
-            return " || ";
-          case SUB:
-            return " - ";
-          case ADD:
-            return " + ";
-          case DIV:
-            return " / ";
-          case MUL:
-            return " * ";
-          case MODULO:
-            return " % ";
-          case LT:
-            return " < ";
-          case LTE:
-            return " <= ";
-          case GT:
-            return " > ";
-          case GTE:
-            return " >= ";
-          case EQ:
-            return " == ";
-          default:
-            throw new UnsupportedOperationException("Unexpected operand");
-        }
-      }
-
-      private String joinWithSeparator(String separator, List<Formula> args) {
-        return "("
-            + Joiner.on(separator).join(
-                args.stream().map(c -> String.format("%s", recFormulaToCExpression(c))).iterator()
-              )
-            + ")";
-      }
-    }, invariant);
-  }
 
   /**
    * Returns _instantiated_ set of constraints.
