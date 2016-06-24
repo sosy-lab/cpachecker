@@ -759,20 +759,17 @@ class AssignmentHandler {
     if (!pattern.isExact()) {
       for (final PointerTarget target : pts.getMatchingTargets(lvalueType, pattern)) {
         conv.shutdownNotifier.shutdownIfNecessary();
-        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                                    fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+        final Formula targetAddress = makeFormulaForTarget(target);
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
         final BooleanFormula retention =
-            makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress);
+            makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, target);
        constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
     }
     for (final PointerTarget target : pts.getSpuriousTargets(lvalueType, pattern)) {
       conv.shutdownNotifier.shutdownIfNecessary();
-      final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                                  fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
       constraints.addConstraint(
-          makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress));
+          makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, target));
     }
   }
 
@@ -784,8 +781,7 @@ class AssignmentHandler {
     final PointerTargetPattern exact = PointerTargetPattern.any();
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
       conv.shutdownNotifier.shutdownIfNecessary();
-      final Formula candidateAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+      final Formula candidateAddress = makeFormulaForTarget(target);
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
       exact.setBase(target.getBase());
       exact.setRange(target.getOffset(), size);
@@ -796,12 +792,10 @@ class AssignmentHandler {
         final int newIndex = conv.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
-          final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, spurious.getBaseName()),
-                                                      fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()));
           consequent =
               bfmgr.and(
                   consequent,
-                  makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress));
+                  makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, spurious));
         }
       }
       constraints.addConstraint(bfmgr.or(negAntecedent, consequent));
@@ -819,17 +813,22 @@ class AssignmentHandler {
       final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
       for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
         conv.shutdownNotifier.shutdownIfNecessary();
-        final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                      fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+        final Formula targetAddress = makeFormulaForTarget(target);
         final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
         constraints.addConstraint(
             bfmgr.or(
                 bfmgr.and(
                     fmgr.makeLessOrEqual(startAddress, targetAddress, false),
                     fmgr.makeLessOrEqual(targetAddress, endAddress, false)),
-                makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, targetAddress)));
+                makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, target)));
       }
     }
+  }
+
+  private Formula makeFormulaForTarget(final PointerTarget target) {
+    return fmgr.makePlus(
+        fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
+        fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
   }
 
   private BooleanFormula makeRetentionConstraint(
@@ -837,10 +836,11 @@ class AssignmentHandler {
       final int oldIndex,
       final int newIndex,
       final FormulaType<?> type,
-      final Formula address) {
+      final PointerTarget target) {
+    final Formula targetAddress = makeFormulaForTarget(target);
     return fmgr.assignment(
-        conv.ptsMgr.makePointerDereference(targetName, type, newIndex, address),
-        conv.ptsMgr.makePointerDereference(targetName, type, oldIndex, address));
+        conv.ptsMgr.makePointerDereference(targetName, type, newIndex, targetAddress),
+        conv.ptsMgr.makePointerDereference(targetName, type, oldIndex, targetAddress));
   }
 
   /**
