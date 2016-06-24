@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -31,7 +30,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 
-import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -146,7 +144,7 @@ public interface PointerTargetSetBuilder {
     private String lastBase;
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
-    private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+    private Targets targets;
 
     // Used in addEssentialFields()
     private final Predicate<Pair<CCompositeType, String>> isNewFieldPredicate =
@@ -345,7 +343,7 @@ public interface PointerTargetSetBuilder {
         return true; // The field has already been added
       }
 
-      final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
+      final Targets oldTargets = targets;
       for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
         addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type, fieldName);
       }
@@ -527,8 +525,7 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public PersistentList<PointerTarget> getAllTargets(final CType type) {
-      return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                          PersistentLinkedList.<PointerTarget>of());
+      return targets.getAll(CTypeUtils.typeToString(type));
     }
 
     @Override
@@ -545,8 +542,7 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public PersistentList<PointerTarget> getAllTargets(final String uf) {
-      return firstNonNull(targets.get(uf),
-                          PersistentLinkedList.<PointerTarget>of());
+      return targets.getAll(uf);
     }
 
     @Override

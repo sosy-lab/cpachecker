@@ -23,19 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
 
 public final class PathFormula implements Serializable {
 
@@ -44,13 +48,15 @@ public final class PathFormula implements Serializable {
   private final SSAMap ssa;
   private final int length;
   private final PointerTargetSet pts;
+  private final PersistentSortedMap<Integer, Integer> targetLimitRaises;
 
   public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
-      int pLength) {
+      int pLength, PersistentSortedMap<Integer, Integer> targetLimitRaises) {
     this.formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
     this.length = pLength;
+    this.targetLimitRaises = targetLimitRaises;
   }
 
   public BooleanFormula getFormula() {
@@ -79,7 +85,21 @@ public final class PathFormula implements Serializable {
    * else as is.
    */
   public PathFormula updateFormula(BooleanFormula newConstraint) {
-    return new PathFormula(newConstraint, ssa, pts, length);
+    return new PathFormula(newConstraint, ssa, pts, length, targetLimitRaises);
+  }
+
+  public @Nonnull PersistentSortedMap<Integer, Integer> getTargetLimitRaises() {
+    return targetLimitRaises;
+  }
+
+  public int getTargetLimitRaises(final CFAEdge edge) {
+    return firstNonNull(targetLimitRaises.get(edge.getLineNumber()), 0);
+  }
+
+  public @Nonnull PathFormula raiseTargetLimit(final CFAEdge edge) {
+    final int n = edge.getLineNumber();
+    return new PathFormula(formula, ssa, pts, length,
+                           targetLimitRaises.putAndCopy(n, firstNonNull(targetLimitRaises.get(n), 0) + 1));
   }
 
   @Override
@@ -131,6 +151,7 @@ public final class PathFormula implements Serializable {
     private final SSAMap ssa;
     private final int length;
     private final PointerTargetSet pts;
+    private final PersistentSortedMap<Integer, Integer> targetLimitRaises;
 
     public SerializationProxy(PathFormula pPathFormula) {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
@@ -138,12 +159,13 @@ public final class PathFormula implements Serializable {
       ssa = pPathFormula.ssa;
       length = pPathFormula.length;
       pts = pPathFormula.pts;
+      targetLimitRaises = pPathFormula.targetLimitRaises;
     }
 
     private Object readResolve() {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       BooleanFormula formula = mgr.parse(formulaDump);
-      return new PathFormula(formula, ssa, pts, length);
+      return new PathFormula(formula, ssa, pts, length, targetLimitRaises);
     }
   }
 }

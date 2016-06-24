@@ -23,8 +23,6 @@ i *  CPAchecker is a tool for configurable software verification.
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -33,6 +31,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.solver.SolverException;
+
+import java.util.Collection;
 
 public class PredicatePCCStopOperator implements StopOperator {
 
@@ -84,7 +84,7 @@ public class PredicatePCCStopOperator implements StopOperator {
       if (e1.getAbstractionFormula() == e2.getAbstractionFormula()) {
         PathFormula pF = e1.getPathFormula();
         return paMgr.unsat(trueAbs, new PathFormula(pMgr.buildImplicationTestAsUnsat(pF, e2.getPathFormula()),
-            pF.getSsa(), pF.getPointerTargetSet(), pF.getLength()));
+            pF.getSsa(), pF.getPointerTargetSet(), pF.getLength(), pF.getTargetLimitRaises()));
       }
       return false;
     }

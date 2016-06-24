@@ -25,16 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.junit.Assert.assertEquals;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import com.google.common.base.Optional;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -66,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -75,9 +75,10 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Testing the custom SSA implementation.
@@ -356,7 +357,8 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         fmgr.getBooleanFormulaManager().makeBoolean(true),
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
-        0);
+        0,
+        PathCopyingPersistentTreeMap.<Integer, Integer>of());
     assertEquals(expected, empty);
   }
 
@@ -368,7 +370,8 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, CNumericTypes.DOUBLE, index).build();
 
-    return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
+    return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1,
+                           PathCopyingPersistentTreeMap.<Integer, Integer>of());
   }
 
   private BooleanFormula makeVariableEquality(String var, int index1, int index2) {
@@ -398,7 +401,8 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     PathFormula expected = new PathFormula(
         fmgr.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
-        pf.getSsa(), pf.getPointerTargetSet(), 1);
+        pf.getSsa(), pf.getPointerTargetSet(), 1,
+        PathCopyingPersistentTreeMap.<Integer, Integer>of());
 
     assertEquals(expected, result);
   }
@@ -412,7 +416,8 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     PathFormula expected = new PathFormula(
         fmgr.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
-        pf.getSsa(), pf.getPointerTargetSet(), 1);
+        pf.getSsa(), pf.getPointerTargetSet(), 1,
+        PathCopyingPersistentTreeMap.<Integer, Integer>of());
 
     assertEquals(expected, result);
   }
@@ -428,7 +433,8 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     BooleanFormula right = pf2.getFormula();
 
     PathFormula expected = new PathFormula(fmgr.makeOr(left, right),
-        pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
+        pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1,
+        PathCopyingPersistentTreeMap.<Integer, Integer>of());
 
     assertEquals(expected, result);
   }

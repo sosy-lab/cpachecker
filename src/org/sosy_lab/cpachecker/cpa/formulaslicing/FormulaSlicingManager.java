@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -498,7 +499,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             bfmgr.makeBoolean(true),
             pSlicingAbstractedState.getSSA(),
             pSlicingAbstractedState.getPointerTargetSet(),
-            0), pSlicingAbstractedState);
+            0,
+            PathCopyingPersistentTreeMap.<Integer, Integer>of()), pSlicingAbstractedState);
   }
 
   private boolean shouldPerformAbstraction(CFANode node, AbstractState pFullState) {

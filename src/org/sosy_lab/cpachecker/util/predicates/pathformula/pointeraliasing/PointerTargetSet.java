@@ -23,29 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
-import java.io.IOException;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
+import com.google.common.base.Joiner;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
+import java.io.Serializable;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -129,12 +118,11 @@ public final class PointerTargetSet implements Serializable {
   }
 
   public PersistentList<PointerTarget> getAllTargets(final CType type) {
-    return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                        PersistentLinkedList.<PointerTarget>of());
+    return targets.getAll(CTypeUtils.typeToString(type));
   }
 
   public PersistentList<PointerTarget> getAllTargets(final String ufName) {
-    return firstNonNull(targets.get(ufName), PersistentLinkedList.<PointerTarget>of());
+    return targets.getAll(ufName);
   }
 
   public static PointerTargetSet emptyPointerTargetSet() {
@@ -183,7 +171,7 @@ public final class PointerTargetSet implements Serializable {
                            final String lastBase,
                            final PersistentSortedMap<CompositeField, Boolean> fields,
                            final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
-                           final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
+                           final Targets targets) {
     this.bases = bases;
     this.lastBase = lastBase;
     this.fields = fields;
@@ -211,7 +199,7 @@ public final class PointerTargetSet implements Serializable {
     return deferredAllocations;
   }
 
-  public PersistentSortedMap<String, PersistentList<PointerTarget>> getTargets() {
+  public Targets getTargets() {
     return targets;
   }
 
@@ -224,7 +212,7 @@ public final class PointerTargetSet implements Serializable {
       null,
       PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
       PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
-      PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of()
+      Targets.emptyTargets()
       );
 
   private static final Joiner joiner = Joiner.on(" ");
@@ -254,52 +242,9 @@ public final class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
-  final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+  final Targets targets;
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
   private static final long serialVersionUID = 2102505458322248624L;
-
-  private Object writeReplace() {
-    return new SerializationProxy(this);
-  }
-
-  /**
-   * javadoc to remove unused parameter warning
-   * @param in the input stream
-   */
-  private void readObject(ObjectInputStream in) throws IOException {
-    throw new InvalidObjectException("Proxy required");
-  }
-
-  private static class SerializationProxy implements Serializable {
-
-    private static final long serialVersionUID = 8022025017590667769L;
-    private final PersistentSortedMap<String, CType> bases;
-    private final String lastBase;
-    private final PersistentSortedMap<CompositeField, Boolean> fields;
-    private final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
-    private final Map<String, List<PointerTarget>> targets;
-
-    public SerializationProxy(PointerTargetSet pts) {
-      bases = pts.bases;
-      lastBase = pts.lastBase;
-      fields = pts.fields;
-      deferredAllocations = pts.deferredAllocations;
-      Map<String, List<PointerTarget>> map = Maps.newHashMapWithExpectedSize(pts.targets.size());
-      for(Entry<String, PersistentList<PointerTarget>> entry : pts.targets.entrySet()) {
-        map.put(entry.getKey(), new ArrayList<>(entry.getValue()));
-      }
-      targets = map;
-    }
-
-    private Object readResolve() {
-      Map<String, PersistentList<PointerTarget>> map = Maps.newHashMapWithExpectedSize(targets.size());
-      for (Entry<String, List<PointerTarget>> entry : targets.entrySet()) {
-        map.put(entry.getKey(), PersistentLinkedList.copyOf(entry.getValue()));
-      }
-      return new PointerTargetSet(bases, lastBase, fields, deferredAllocations,
-          PathCopyingPersistentTreeMap.copyOf(map));
-    }
-  }
 }

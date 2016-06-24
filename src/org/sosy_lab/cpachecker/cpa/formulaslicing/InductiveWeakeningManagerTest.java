@@ -15,6 +15,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -61,7 +62,8 @@ public class InductiveWeakeningManagerTest {
         startingSsa.builder().setIndex(
             "x", CNumericTypes.INT, 1
         ).build(),
-        PointerTargetSet.emptyPointerTargetSet(), 0
+        PointerTargetSet.emptyPointerTargetSet(), 0,
+        PathCopyingPersistentTreeMap.<Integer, Integer>of()
     );
     Set<BooleanFormula> lemmas = ImmutableSet.of(
         ifmgr.equal(

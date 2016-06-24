@@ -1,11 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
-
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
@@ -17,6 +12,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
 
 /**
  * Class responsible for converting states to formulas.
@@ -129,7 +130,8 @@ public class StateFormulaConversionManager {
       extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
-        abstractState.getPointerTargetSet(), 1);
+        abstractState.getPointerTargetSet(), 1,
+        PathCopyingPersistentTreeMap.<Integer, Integer>of());
   }
 
   BooleanFormula getInvariantFor(CFANode node) throws CPAException {

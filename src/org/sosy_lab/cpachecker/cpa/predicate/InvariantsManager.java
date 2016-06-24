@@ -679,7 +679,8 @@ class InvariantsManager implements StatisticsProvider {
       // we already found this loop and just need to update the SSA indices
       if (loopFormulaCache.containsKey(pLocation)) {
         loopFormula =
-            new PathFormula(fmgr.instantiate(loopFormulaCache.get(pLocation), ssa), ssa, pts, 0);
+            new PathFormula(fmgr.instantiate(loopFormulaCache.get(pLocation), ssa), ssa, pts, 0,
+                            pBlockFormula.getTargetLimitRaises());
       } else {
         loopFormula =
             new LoopTransitionFinder(

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 
 import com.google.common.base.Equivalence;
@@ -33,8 +32,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
@@ -60,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Targets;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -230,9 +228,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
         });
     shutdownNotifier.shutdownIfNecessary();
 
-    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-        merge(pPts1.getTargets(), pPts2.getTargets(),
-            PointerTargetSetManagerHeapArray.<String, PointerTarget>mergeOnConflict());
+    Targets mergedTargets = Targets.merge(pPts1.getTargets(), pPts2.getTargets());
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -428,24 +424,6 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * Gives a handler for merge conflicts.
-   *
-   * @param <K> The type of the keys in the merge conflict handler.
-   * @param <T> The type of the list entries in the merge conflict handler.
-   * @return A handler for merge conflicts.
-   */
-  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new MergeConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(
-          K pKey, PersistentList<T> pList1,
-          PersistentList<T> pList2) {
-        return DeferredAllocationPool.mergeLists(pList1, pList2);
-      }
-    };
-  }
-
-  /**
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
    * @param pNewBases      A map of new bases.
@@ -634,20 +612,16 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return The new map of targets.
    */
   @CheckReturnValue
-  private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(
+  private static Targets addToTarget(
       final String pBase,
       final CType pTargetType,
       final @Nullable CType pContainerType,
       final int pProperOffset,
       final int pContainerOffset,
-      final PersistentSortedMap<String, PersistentList<PointerTarget>> pTargets) {
+      final Targets pTargets) {
 
     final String type = CTypeUtils.typeToString(pTargetType);
-    PersistentList<PointerTarget> targetsForType = firstNonNull(
-        pTargets.get(type), PersistentLinkedList.<PointerTarget>of());
-
-    return pTargets.putAndCopy(type, targetsForType.with(
-        new PointerTarget(pBase, pContainerType, pProperOffset, pContainerOffset)));
+    return pTargets.add(type, new PointerTarget(pBase, pContainerType, pProperOffset, pContainerOffset));
   }
 
   /**
@@ -670,14 +644,14 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    */
   @CheckReturnValue
   @Override
-  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
+  protected Targets addToTargets(
       final String pBase,
       String region,
       final CType pCurrentType,
       final @Nullable CType pContainerType,
       final int pProperOffset,
       final int pContainerOffset,
-      PersistentSortedMap<String, PersistentList<PointerTarget>> pTargets,
+      Targets pTargets,
       final PersistentSortedMap<CompositeField, Boolean> pFields) {
 
     final CType type = CTypeUtils.simplifyType(pCurrentType);
@@ -736,8 +710,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return A map of existing targets
    */
   @CheckReturnValue
-  private PersistentSortedMap<String, PersistentList<PointerTarget>> addAllTargets(
-      PersistentSortedMap<String, PersistentList<PointerTarget>> pTargets,
+  private Targets addAllTargets(
+      Targets pTargets,
       final PersistentSortedMap<String, CType> pBases,
       final PersistentSortedMap<CompositeField, Boolean> pFields) {
     for (final Map.Entry<String, CType> entry : pBases.entrySet()) {

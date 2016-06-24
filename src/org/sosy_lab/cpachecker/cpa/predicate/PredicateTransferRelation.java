@@ -93,6 +93,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
+  @Option(secure=true, description = "max number of times an edge allocating "
+      + "new memory locations in the most pupulated region can be analyzed (<= 0 -- unliminted, > 0 -- unsound!)")
+  private int maxTargetLimitRaisesPerLine = 0;
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
@@ -153,6 +157,16 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // calculate strongest post
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
+
+      if (maxTargetLimitRaisesPerLine > 0 &&
+          pathFormula.getPointerTargetSet().getTargets().getMaxTargetCount() >
+          element.getPathFormula().getPointerTargetSet().getTargets().getMaxTargetCount()) {
+          if (pathFormula.getTargetLimitRaises(edge) >= maxTargetLimitRaisesPerLine) {
+            return Collections.emptySet();
+          } else {
+            pathFormula = pathFormula.raiseTargetLimit(edge);
+          }
+      }
 
       // Check whether we should do a SAT check.s
       boolean satCheck = shouldDoSatCheck(edge, pathFormula);

@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
-import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -50,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Targets;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -82,7 +81,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   private String lastBase;
   private PersistentSortedMap<CompositeField, Boolean> fields;
   private PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
-  private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+  private Targets targets;
 
   // Used in addEssentialFields()
   private final Predicate<Pair<CCompositeType, String>> isNewFieldPredicate =
@@ -336,7 +335,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
       return true; // The field has already been added
     }
 
-    final PersistentSortedMap<String, PersistentList<PointerTarget>> old = targets;
+    final Targets old = targets;
     for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
       addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, type, pFieldName);
     }
@@ -610,7 +609,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    */
   @Override
   public PersistentList<PointerTarget> getAllTargets(final CType pType) {
-    return firstNonNull(targets.get(CTypeUtils.typeToString(pType)), PersistentLinkedList.<PointerTarget>of());
+    return targets.getAll(CTypeUtils.typeToString(pType));
   }
 
   /**
@@ -648,8 +647,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * @return A list of all targets of a pointer type.
    */
   @Override
-  public PersistentList<PointerTarget> getAllTargets(final String pType) {
-    return firstNonNull(targets.get(pType), PersistentLinkedList.<PointerTarget>of());
+  public PersistentList<PointerTarget> getAllTargets(final String ufName) {
+    return targets.getAll(ufName);
   }
 
   /**

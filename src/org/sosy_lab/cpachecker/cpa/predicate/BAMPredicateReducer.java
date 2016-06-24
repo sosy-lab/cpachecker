@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
-import java.util.Collection;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -48,9 +49,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
+import java.util.Collection;
+import java.util.logging.Level;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -396,7 +396,7 @@ public class BAMPredicateReducer implements Reducer {
 
     // function-call needs have new retvars-indices.
     PathFormula functionCallWithSSA = new PathFormula(functionCall.getFormula(), newEntrySsaWithRet,
-            functionCall.getPointerTargetSet(), functionCall.getLength());
+            functionCall.getPointerTargetSet(), functionCall.getLength(), functionCall.getTargetLimitRaises());
 
     // concat function-call with function-summary,
     // function-summary will be instantiated with indices for params and retvars.
@@ -406,7 +406,8 @@ public class BAMPredicateReducer implements Reducer {
     // after function-execution we have to re-use the previous indices (fromouter scope),
     // thus lets change the SSAmap.
     PathFormula executedFunctionWithSSA = new PathFormula(executedFunction.getFormula(), newSummSsa,
-            executedFunction.getPointerTargetSet(), executedFunction.getLength());
+            executedFunction.getPointerTargetSet(), executedFunction.getLength(),
+            executedFunction.getTargetLimitRaises());
 
     // everything is prepared, so build a new AbstractionState.
     // we do this as 'future abstraction', because we do not have enough information

@@ -23,14 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Optional;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -78,8 +72,14 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.IntegerFormulaManager;
 
-import com.google.common.base.Optional;
-import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class TranslatorTest {
 
@@ -308,7 +308,9 @@ public class TranslatorTest {
     BooleanFormula bf = bfmgr.makeBoolean(true);
 
     // create empty path formula
-    PathFormula pathFormula = new PathFormula(bf, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
+    PathFormula pathFormula =
+        new PathFormula(bf, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0,
+                        PathCopyingPersistentTreeMap.<Integer, Integer>of());
 
     // create PredicateAbstractState ptrueState
     AbstractionFormula aFormula = new AbstractionFormula(fmv, region, bf, bf, pathFormula, Collections.<Integer>emptySet());

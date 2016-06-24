@@ -705,7 +705,8 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> predicates)
           throws SolverException, InterruptedException {
 
-    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
+    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0,
+                                     blockFormula.getTargetLimitRaises());
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction = buildAbstraction(location, emptyAbstraction, pf, predicates);

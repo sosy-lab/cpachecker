@@ -27,15 +27,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -81,12 +84,12 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -273,7 +276,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
+        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength(),
+                             pf.getTargetLimitRaises());
       }
     }
     if (simplifyGeneratedPathFormulas) {
@@ -293,7 +297,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(bfmgr.makeBoolean(true),
                            SSAMap.emptySSAMap(),
                            PointerTargetSet.emptyPointerTargetSet(),
-                           0);
+                           0,
+                           PathCopyingPersistentTreeMap.<Integer, Integer>of());
   }
 
   @Override
@@ -301,7 +306,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(bfmgr.makeBoolean(true),
                            oldFormula.getSsa(),
                            oldFormula.getPointerTargetSet(),
-                           0);
+                           0,
+                           oldFormula.getTargetLimitRaises());
   }
 
   @Override
@@ -309,7 +315,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(oldFormula.getFormula(),
                            m,
                            oldFormula.getPointerTargetSet(),
-                           oldFormula.getLength());
+                           oldFormula.getLength(),
+                           oldFormula.getTargetLimitRaises());
   }
 
   @Override
@@ -338,7 +345,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    final PersistentSortedMap<Integer, Integer> newTargetLimitRaises =
+        PersistentSortedMaps.merge(pathFormula1.getTargetLimitRaises(), pathFormula2.getTargetLimitRaises(),
+                                   PersistentSortedMaps.<Integer, Integer>getMaximumMergeConflictHandler());
+
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength, newTargetLimitRaises);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
@@ -351,7 +362,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
-    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
+    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength(), pPathFormula.getTargetLimitRaises());
   }
 
   /**

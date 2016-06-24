@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 
 import com.google.common.base.Equivalence;
@@ -33,8 +32,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
@@ -190,8 +187,7 @@ public class PointerTargetSetManager {
             });
     shutdownNotifier.shutdownIfNecessary();
 
-    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      merge(pts1.targets, pts2.targets, PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+    Targets mergedTargets = Targets.merge(pts1.targets, pts2.targets);
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -356,15 +352,6 @@ public class PointerTargetSetManager {
     }
   }
 
-  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new MergeConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(K key, PersistentList<T> list1, PersistentList<T> list2) {
-        return DeferredAllocationPool.mergeLists(list1, list2);
-      }
-    };
-  }
-
   /**
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    */
@@ -494,23 +481,18 @@ public class PointerTargetSetManager {
 
 
   @CheckReturnValue
-  private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,
+  private static Targets addToTarget(final String base,
                          final CType targetType,
                          final String region,
                          final @Nullable CType containerType,
                          final int properOffset,
                          final int containerOffset,
-                         final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
+                         final Targets targets) {
     String ufName = CToFormulaConverterWithPointerAliasing.getUFName(CTypeUtils.simplifyType(targetType));
     if (useBnB) {
       ufName = BnBRegionsMaker.getNewUfName(ufName, region);
     }
-    PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(ufName),
-                                                                PersistentLinkedList.<PointerTarget>of());
-    return targets.putAndCopy(ufName, targetsForType.with(new PointerTarget(base,
-                                                                             containerType,
-                                                                             properOffset,
-                                                                             containerOffset)));
+    return targets.add(ufName, new PointerTarget(base, containerType, properOffset, containerOffset));
   }
 
   /**
@@ -528,14 +510,14 @@ public class PointerTargetSetManager {
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
-  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
+  protected Targets addToTargets(
       final String base,
       String region,
       final CType currentType,
       final @Nullable CType containerType,
       final int properOffset,
       final int containerOffset,
-      PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      Targets targets,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     final CType cType = CTypeUtils.simplifyType(currentType);
     /* Remove assertion: it fails on a correct code (gcc compiles it)
@@ -590,8 +572,8 @@ public class PointerTargetSetManager {
    * and add them to a map.
    */
   @CheckReturnValue
-  private PersistentSortedMap<String, PersistentList<PointerTarget>> addAllTargets(
-      PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+  private Targets addAllTargets(
+      Targets targets,
       final PersistentSortedMap<String, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     for (final Map.Entry<String, CType> entry : bases.entrySet()) {
