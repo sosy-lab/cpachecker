@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
@@ -92,7 +93,14 @@ public class CExpressionInvariantExporter {
         out.append(processedCode);
         continue;
       }
-      try (Writer w = MoreFiles.openOutputFile(Paths.get(prefix + program), Charset.defaultCharset())) {
+
+      String trimmedFilename = Paths.get(program).getFileName().toString();
+      String trimmedPrefix = Paths.get(prefix).getFileName().toString();
+      Path outputDir = Paths.get("output");
+      Path prefixedFilename = Paths.get(trimmedPrefix + trimmedFilename);
+      Path outPath = outputDir.resolve(prefixedFilename);
+
+      try (Writer w = MoreFiles.openOutputFile(outPath, Charset.defaultCharset())) {
         w.append(processedCode);
       }
     }
