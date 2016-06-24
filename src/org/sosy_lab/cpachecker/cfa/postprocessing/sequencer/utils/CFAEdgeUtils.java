@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableCollection.Builder;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * The CFAEdge utilities are able to make useful edge manipulations.
@@ -348,68 +346,6 @@ public class CFAEdgeUtils {
   }
   public static boolean isEdgeForbiddenEdge(CFAEdge edge) {
     return trashCan.contains(edge);
-  }
-
-  /**
-   * Return an {@link java.lang.Iterable} that contains the leaving edges of a given CFANode,
-   * excluding the summary edge. Similar to
-   * {@link CFAUtils#leavingEdges(CFANode)} but returns a fixed Iterable
-   * which means there are not side-effects if the edge are deleted during
-   * iteration. (especially needed for {@link #bypassCEdgeNodes})
-   */
-  public static Iterable<CFAEdge> getLeavingEdges(CFANode node) {
-    Builder<CFAEdge> builder = ImmutableSet.<CFAEdge>builder();
-    for(int i = 0; i < node.getNumLeavingEdges(); i++) {
-      builder.add(node.getLeavingEdge(i));
-    }
-    return builder.build();
-  }
-
-  /**
-   * Return an {@link java.lang.Iterable} that contains all leaving edges of a given
-   * CFANode, including the summary edge if the node as one. Similar to
-   * {@link CFAUtils#allLeavingEdges(CFANode)} but returns a fixed Iterable
-   * which means there are not side-effects if the edge are deleted during
-   * iteration. (especially needed for {@link #bypassCEdgeNodes})
-   */
-  public static Iterable<CFAEdge> getAllLeavingEdges(CFANode node) {
-    Builder<CFAEdge> builder = ImmutableSet.<CFAEdge>builder();
-    if(node.getLeavingSummaryEdge() != null) {
-      builder.add(node.getLeavingSummaryEdge());
-    }
-    builder.addAll(getLeavingEdges(node));
-    return builder.build();
-  }
-
-  /**
-   * Return an {@link java.lang.Iterable} that contains the entering edges of a given CFANode,
-   * excluding the summary edge. Similar to
-   * {@link CFAUtils#enteringEdges(CFANode)} but returns a fixed Iterable
-   * which means there are not side-effects if the edge are deleted during
-   * iteration. (especially needed for {@link #bypassCEdgeNodes})
-   */
-  public static Iterable<CFAEdge> getEnteringEdges(CFANode node) {
-    Builder<CFAEdge> builder = ImmutableSet.<CFAEdge>builder();
-    for(int i = 0; i < node.getNumEnteringEdges(); i++) {
-      builder.add(node.getEnteringEdge(i));
-    }
-    return builder.build();
-  }
-
-  /**
-   * Return an {@link java.lang.Iterable} that contains all entering edges of a given CFANode,
-   * including the summary edge if the node as one. Similar to
-   * {@link CFAUtils#allEnteringEdges(CFANode)} but returns a fixed Iterable
-   * which means there are not side-effects if the edge are deleted during
-   * iteration. (especially needed for {@link #bypassCEdgeNodes})
-   */
-  public static Iterable<CFAEdge> getAllEnteringEdges(CFANode node) {
-    Builder<CFAEdge> builder = ImmutableSet.<CFAEdge>builder();
-    if(node.getEnteringSummaryEdge() != null) {
-      builder.add(node.getEnteringSummaryEdge());
-    }
-    builder.addAll(getEnteringEdges(node));
-    return builder.build();
   }
 
   private static CFAEdge buildNewCEdges(CFAEdge edge, CFANode predecessor, CFANode successor) {
