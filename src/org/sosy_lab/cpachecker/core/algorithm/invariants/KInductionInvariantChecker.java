@@ -32,23 +32,16 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 @Options(prefix = "invariantChecker")
 public class KInductionInvariantChecker {
@@ -61,23 +54,8 @@ public class KInductionInvariantChecker {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path kInductionConfig = Paths.get("config/bmc-invgen.properties");
 
-  @Option(
-    secure = true,
-    description =
-        "Timelimit for invariant generation which may be"
-            + " used during refinement.\n"
-            + "(Use seconds or specify a unit; 0 for infinite)"
-  )
-  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-  private TimeSpan timeForInvariantCheck = TimeSpan.ofNanos(0);
-
-  private final Configuration config;
-  private final ShutdownNotifier shutdownNotifier;
-  private final LogManager logger;
-
   private final CFA cfa;
   private final KInductionInvariantGenerator invGen;
-  private final ResourceLimitChecker limits;
 
   private boolean isComputationFinished = false;
 
@@ -106,10 +84,6 @@ public class KInductionInvariantChecker {
       CandidateGenerator pCandidateGenerator)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
-
-    config = pConfig;
-    shutdownNotifier = pShutdownNotifier;
-    logger = pLogger;
     cfa = pCfa;
 
     Configuration invariantConfig;
@@ -121,23 +95,13 @@ public class KInductionInvariantChecker {
           "Could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    ReachedSetFactory reached = new ReachedSetFactory(config);
-
-    ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-
-    if (!timeForInvariantCheck.isEmpty()) {
-      WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantCheck);
-      limits =
-          new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
-    } else {
-      limits = null;
-    }
+    ReachedSetFactory reached = new ReachedSetFactory(pConfig);
 
     invGen =
         KInductionInvariantGenerator.create(
             invariantConfig,
-            logger,
-            invariantShutdown,
+            pLogger,
+            ShutdownManager.createWithParent(pShutdownNotifier),
             cfa,
             specification,
             reached,
@@ -161,16 +125,8 @@ public class KInductionInvariantChecker {
   public void checkCandidates() throws CPAException, InterruptedException {
     checkState(!isComputationFinished);
 
-    if (limits != null) {
-      limits.start();
-    }
-
     invGen.start(cfa.getMainFunction());
     invGen.getSupplier(); // let invariant generator do the work
-
-    if (limits != null) {
-      limits.cancel();
-    }
 
     isComputationFinished = true;
   }
