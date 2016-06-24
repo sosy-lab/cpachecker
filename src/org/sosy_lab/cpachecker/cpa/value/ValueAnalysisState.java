@@ -65,9 +65,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -582,12 +584,11 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    BooleanFormula formula = bfmgr.makeBoolean(true);
-
     if (machineModel == null) {
-      return formula;
+      return bfmgr.makeBoolean(true);
     }
 
+    List<BooleanFormula> result = new ArrayList<>();
     BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
     FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
 
@@ -611,7 +612,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
             } else {
               val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
             }
-            formula = bfmgr.and(formula, bitvectorFMGR.equal(var, val));
+            result.add(bitvectorFMGR.equal(var, val));
           } else if (simpleType.getType().isFloatingPointType()) {
             final FloatingPointType fpType;
             switch (simpleType.getType()) {
@@ -626,7 +627,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
             }
             FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
             FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
-            formula = bfmgr.and(formula, floatFMGR.equalWithFPSemantics(var, val));
+            result.add(floatFMGR.equalWithFPSemantics(var, val));
           } else {
             // ignore in formula-approximation
           }
@@ -638,7 +639,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       }
     }
 
-    return formula;
+    return bfmgr.and(result);
   }
 
   /**

@@ -23,7 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import apron.Abstract0;
+import apron.Dimchange;
+import apron.Dimension;
+import apron.DoubleScalar;
+import apron.Interval;
+import apron.Lincons0;
+import apron.Linexpr0;
+import apron.MpfrScalar;
+import apron.MpqScalar;
+import apron.Scalar;
+import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
+import apron.Texpr0Intern;
+import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+
+import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
+
+import gmp.Mpfr;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -42,31 +63,13 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
-
-import apron.Abstract0;
-import apron.Dimchange;
-import apron.Dimension;
-import apron.DoubleScalar;
-import apron.Interval;
-import apron.Lincons0;
-import apron.Linexpr0;
-import apron.MpfrScalar;
-import apron.MpqScalar;
-import apron.Scalar;
-import apron.Tcons0;
-import apron.Texpr0BinNode;
-import apron.Texpr0CstNode;
-import apron.Texpr0DimNode;
-import apron.Texpr0Intern;
-import apron.Texpr0Node;
-import apron.Texpr0UnNode;
-import gmp.Mpfr;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -572,13 +575,8 @@ logger.log(Level.FINEST, "apron state: isEqual");
     BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
     Tcons0[] constraints = apronState.toTcons(apronManager.getManager());
 
-    BooleanFormula result = bFmgr.makeBoolean(true);
-
-    for (Tcons0 cons : constraints) {
-      result = bFmgr.and(result, createFormula(bFmgr, bitFmgr, cons));
-    }
-
-    return result;
+    return bFmgr.and(
+        Lists.transform(Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons)));
   }
 
   private BooleanFormula createFormula(BooleanFormulaManager bFmgr,

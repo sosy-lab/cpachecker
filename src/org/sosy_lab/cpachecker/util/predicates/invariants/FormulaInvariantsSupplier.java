@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -187,11 +188,12 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       } else {
         final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
         invariant =
-            invariantSuppliers
-                .stream()
-                .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr))
-                .filter(f -> !bfmgr.isTrue(f))
-                .reduce(bfmgr.makeBoolean(true), bfmgr::and);
+            bfmgr.and(
+                invariantSuppliers
+                    .stream()
+                    .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr))
+                    .filter(f -> !bfmgr.isTrue(f))
+                    .collect(Collectors.toList()));
 
         cache.put(key, invariant);
       }

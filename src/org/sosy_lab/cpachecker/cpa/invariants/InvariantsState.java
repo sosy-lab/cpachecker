@@ -886,19 +886,15 @@ public class InvariantsState implements AbstractState,
   public org.sosy_lab.solver.api.BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
 
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
-    org.sosy_lab.solver.api.BooleanFormula result = bfmgr.makeBoolean(true);
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();
     ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, evaluationVisitor);
 
-    for (BooleanFormula<CompoundInterval> assumption : getApproximationFormulas()) {
-      org.sosy_lab.solver.api.BooleanFormula assumptionFormula =
-          assumption.accept(toBooleanFormulaVisitor, getEnvironment());
-      if (assumptionFormula != null) {
-        result = bfmgr.and(result, assumptionFormula);
-      }
-    }
-    return result;
+    return bfmgr.and(
+        getApproximationFormulas()
+            .transform(assumption -> assumption.accept(toBooleanFormulaVisitor, getEnvironment()))
+            .filter(Predicates.notNull())
+            .toList());
   }
 
   @Override
