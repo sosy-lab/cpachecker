@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 
@@ -148,7 +146,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
-    Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
+    Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
 
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");

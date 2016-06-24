@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -632,8 +631,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public PersistentList<PointerTarget> getAllTargets(final CType type) {
-      return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                          PersistentLinkedList.<PointerTarget>of());
+      return targets.getOrDefault(CTypeUtils.typeToString(type), PersistentLinkedList.of());
     }
 
     /**

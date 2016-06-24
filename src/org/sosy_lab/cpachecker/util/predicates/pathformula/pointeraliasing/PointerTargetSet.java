@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Maps;
@@ -119,9 +117,8 @@ public final class PointerTargetSet implements Serializable {
     return baseName.replaceFirst(BASE_PREFIX, "");
   }
 
-  public PersistentList<PointerTarget> getAllTargets(final CType type) {
-    return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                        PersistentLinkedList.<PointerTarget>of());
+  PersistentList<PointerTarget> getAllTargets(final CType type) {
+    return targets.getOrDefault(CTypeUtils.typeToString(type), PersistentLinkedList.of());
   }
 
   public static PointerTargetSet emptyPointerTargetSet() {

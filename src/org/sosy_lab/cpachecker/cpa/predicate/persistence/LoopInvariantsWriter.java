@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -90,7 +89,7 @@ public class LoopInvariantsWriter {
           return null;
         }
 
-        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+        Region region = regions.getOrDefault(loc, rmgr.makeFalse());
         region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
         regions.put(loc, region);
       }
@@ -110,7 +109,7 @@ public class LoopInvariantsWriter {
           from(cfa.getAllLoopHeads().get())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
 
-        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+        Region region = regions.getOrDefault(loc, rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
 
         writer.append("loop__");
@@ -140,7 +139,7 @@ public class LoopInvariantsWriter {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
-        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+        Region region = regions.getOrDefault(loc, rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
         Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);
 

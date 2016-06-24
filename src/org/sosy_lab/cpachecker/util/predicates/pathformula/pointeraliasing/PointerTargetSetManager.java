@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 
 import com.google.common.base.Equivalence;
@@ -636,8 +635,8 @@ class PointerTargetSetManager {
                          final int containerOffset,
                          final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
     final String type = CTypeUtils.typeToString(targetType);
-    PersistentList<PointerTarget> targetsForType = firstNonNull(targets.get(type),
-                                                                PersistentLinkedList.<PointerTarget>of());
+    PersistentList<PointerTarget> targetsForType =
+        targets.getOrDefault(type, PersistentLinkedList.of());
     return targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
                                                                              containerType,
                                                                              properOffset,

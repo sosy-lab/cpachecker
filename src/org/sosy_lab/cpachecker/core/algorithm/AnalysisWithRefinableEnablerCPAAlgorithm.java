@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
@@ -424,7 +423,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         pf = pfm.makeEmptyPathFormula(pf);
 
         PersistentMap<CFANode, Integer> abstractionLocations = predFakeState.getAbstractionLocationsOnPath();
-        Integer newLocInstance = firstNonNull(abstractionLocations.get(pAssumeEdge.getSuccessor()), 0) + 1;
+        Integer newLocInstance =
+            abstractionLocations.getOrDefault(pAssumeEdge.getSuccessor(), 0) + 1;
         abstractionLocations = abstractionLocations.putAndCopy(pAssumeEdge.getSuccessor(), newLocInstance);
 
         // create fake abstraction predicate state

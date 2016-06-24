@@ -24,7 +24,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -446,7 +445,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       // update abstraction locations map
       PersistentMap<CFANode, Integer> abstractionLocations = pElement.getAbstractionLocationsOnPath();
-      Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
+      Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
