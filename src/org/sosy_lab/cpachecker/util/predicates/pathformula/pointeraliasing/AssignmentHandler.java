@@ -713,26 +713,10 @@ class AssignmentHandler {
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for assigning to lvalues of simple types");
-      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
-      final int oldIndex = conv.getIndex(ufName, lvalueType, ssa);
-      final int newIndex = conv.getFreshIndex(ufName, lvalueType, ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
-      addRetentionConstraints(pattern,
-                              lvalueType,
-                              ufName,
-                              oldIndex,
-                              newIndex,
-                              targetType,
-                              startAddress);
+      addSimpleTypeRetentionConstraints(pattern, lvalueType, startAddress);
     } else if (pattern.isExact()) {
       pattern.setRange(size);
-      for (final CType type : typesToRetain) {
-        final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
-        final int oldIndex = conv.getIndex(ufName, type, ssa);
-        final int newIndex = conv.getFreshIndex(ufName, type, ssa);
-        final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
-        addRetentionConstraints(pattern, type, ufName, oldIndex, newIndex, targetType, null);
-      }
+      addExactRetentionConstraints(pattern, typesToRetain);
     } else if (pattern.isSemiExact()) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for semiexact pointer target patterns");
@@ -750,27 +734,42 @@ class AssignmentHandler {
     }
   }
 
-  private void addRetentionConstraints(final PointerTargetPattern pattern,
-                                       final CType lvalueType,
-                                       final String ufName,
-                                       final int oldIndex,
-                                       final int newIndex,
-                                       final FormulaType<?> returnType,
-                                       final Formula lvalue) throws InterruptedException {
+  private void addSimpleTypeRetentionConstraints(
+      final PointerTargetPattern pattern, CType type, final Formula startAddress)
+      throws InterruptedException {
+    final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
+    final int oldIndex = conv.getIndex(ufName, type, ssa);
+    final int newIndex = conv.getFreshIndex(ufName, type, ssa);
+    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
     if (!pattern.isExact()) {
-      for (final PointerTarget target : pts.getMatchingTargets(lvalueType, pattern)) {
+      for (final PointerTarget target : pts.getMatchingTargets(type, pattern)) {
         conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = makeFormulaForTarget(target);
-        final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
+        final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, startAddress);
         final BooleanFormula retention =
-            makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, target);
-       constraints.addConstraint(bfmgr.or(updateCondition, retention));
+            makeRetentionConstraint(ufName, oldIndex, newIndex, targetType, target);
+        constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
     }
-    for (final PointerTarget target : pts.getSpuriousTargets(lvalueType, pattern)) {
+    for (final PointerTarget target : pts.getSpuriousTargets(type, pattern)) {
       conv.shutdownNotifier.shutdownIfNecessary();
       constraints.addConstraint(
-          makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, target));
+          makeRetentionConstraint(ufName, oldIndex, newIndex, targetType, target));
+    }
+  }
+
+  private void addExactRetentionConstraints(
+      final PointerTargetPattern pattern, final Set<CType> types) throws InterruptedException {
+    for (final CType type : types) {
+      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
+      final int oldIndex = conv.getIndex(ufName, type, ssa);
+      final int newIndex = conv.getFreshIndex(ufName, type, ssa);
+      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
+      for (final PointerTarget target : pts.getSpuriousTargets(type, pattern)) {
+        conv.shutdownNotifier.shutdownIfNecessary();
+        constraints.addConstraint(
+            makeRetentionConstraint(ufName, oldIndex, newIndex, targetType, target));
+      }
     }
   }
 
