@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -81,7 +80,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   private final Constraints   constraints;
   protected final FormulaManagerView mgr;
   protected final SSAMapBuilder ssa;
-  private final PointerTargetSetBuilder pts;
 
   public ExpressionToFormulaVisitor(
       CtoFormulaConverter pCtoFormulaConverter,
@@ -89,14 +87,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      Constraints pConstraints,
-      PointerTargetSetBuilder pPts) {
+      Constraints pConstraints) {
 
     conv = pCtoFormulaConverter;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
-    pts = pPts;
     constraints = pConstraints;
     mgr = pFmgr;
   }
@@ -397,11 +393,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
     }
 
-    return conv.makeFormulaForVariable(
-        ssa.build(),
-        pts.build(),
+    return conv.makeVariable(
         idExp.getDeclaration().getQualifiedName(),
-        idExp.getExpressionType());
+        idExp.getExpressionType(),
+        ssa);
   }
 
   @Override

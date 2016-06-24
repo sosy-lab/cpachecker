@@ -79,7 +79,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
     // Create a CRightHandSideVisitor with support for arrays!
     return new ExpressionToFormulaVisitorWithArrays(
-        this, fmgr, machineModel, pEdge, pFunction, pSsa, pConstraints, pPts);
+        this, fmgr, machineModel, pEdge, pFunction, pSsa, pConstraints);
   }
 
   @Override

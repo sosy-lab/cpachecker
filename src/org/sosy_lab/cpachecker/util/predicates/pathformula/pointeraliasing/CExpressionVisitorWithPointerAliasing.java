@@ -152,8 +152,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             cfaEdge,
             function,
             ssa,
-            constraints,
-            pts) {
+            constraints) {
           @Override
           protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
             // recursive application of pointer-aliasing.

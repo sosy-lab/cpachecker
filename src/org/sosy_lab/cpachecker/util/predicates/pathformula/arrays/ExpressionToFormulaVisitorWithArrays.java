@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -60,9 +59,8 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      Constraints pConstraints,
-      PointerTargetSetBuilder pPts) {
-    super(pCtoFormulaConverter, pMgr, pEdge, pFunction, pSsa, pConstraints, pPts);
+      Constraints pConstraints) {
+    super(pCtoFormulaConverter, pMgr, pEdge, pFunction, pSsa, pConstraints);
 
     amgr = mgr.getArrayFormulaManager();
     ctfa = pCtoFormulaConverter;
