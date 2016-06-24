@@ -1160,22 +1160,24 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS);
 
     SSAMapBuilder ssa = pContextSSA.builder();
-    try {
-      if (e.isValue()) {
-        return e.asValue().getValue();
-      } else if (e.isAliasedLocation()) {
-        return makeSafeDereference(pType, e.asAliasedLocation().getAddress(), ssa);
-      } else {
-        return makeVariable(e.asUnaliasedLocation().getVariableName(), pType, ssa);
-      }
-    } finally {
-      if (!ssa.build().equals(pContextSSA)) {
-        throw new IllegalArgumentException(
-            "we cannot apply the SSAMap changes to the point where the"
-                + " information would be needed possible problems: uninitialized variables could be"
-                + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
-      }
+    Formula formula;
+
+    if (e.isValue()) {
+      formula = e.asValue().getValue();
+    } else if (e.isAliasedLocation()) {
+      formula = makeSafeDereference(pType, e.asAliasedLocation().getAddress(), ssa);
+    } else {
+      formula = makeVariable(e.asUnaliasedLocation().getVariableName(), pType, ssa);
     }
+
+    if (!ssa.build().equals(pContextSSA)) {
+      throw new IllegalArgumentException(
+          "we cannot apply the SSAMap changes to the point where the"
+              + " information would be needed possible problems: uninitialized variables could be"
+              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
+    }
+
+    return formula;
   }
 
   protected Expression makeFormulaForVariable(String pVarName, CType pType, PointerTargetSet pts) {
