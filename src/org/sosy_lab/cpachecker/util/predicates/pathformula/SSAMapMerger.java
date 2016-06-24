@@ -148,16 +148,15 @@ public class SSAMapMerger {
     Formula pInitialValue = fmgr.makeNumber(nondetFormulaType, 0);
     assert iSmaller < iBigger;
 
-    BooleanFormula lResult = bfmgr.makeBoolean(true);
+    List<BooleanFormula> lResult = new ArrayList<>();
     FormulaType<Formula> type = fmgr.getFormulaType(pInitialValue);
 
     for (int i = iSmaller + 1; i <= iBigger; ++i) {
       Formula currentVar = fmgr.makeVariable(type, NONDET_FLAG_VARIABLE, i);
-      BooleanFormula e = fmgr.assignment(currentVar, pInitialValue);
-      lResult = bfmgr.and(lResult, e);
+      lResult.add(fmgr.assignment(currentVar, pInitialValue));
     }
 
-    return lResult;
+    return bfmgr.and(lResult);
   }
 
   BooleanFormula addMergeAssumptions(
@@ -169,7 +168,8 @@ public class SSAMapMerger {
     final List<MapsDifference.Entry<String, Integer>> symbolDifferences = new ArrayList<>();
     final SSAMap resultSSA = SSAMap.merge(ssa1, ssa2, collectMapsDifferenceTo(symbolDifferences));
 
-    BooleanFormula mergeFormula1 = pFormula;
+    List<BooleanFormula> mergeFormula = new ArrayList<>();
+    mergeFormula.add(pFormula);
 
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
@@ -186,15 +186,13 @@ public class SSAMapMerger {
         assert index1 < index2;
         // i1:smaller, i2:bigger
         // => need correction term for i1
-        BooleanFormula mergeFormula;
         for (int i = index1; i < index2; i++) {
-          mergeFormula = makeSsaMerger(symbolName, symbolType, i, i + 1, pts1);
-          mergeFormula1 = bfmgr.and(mergeFormula1, mergeFormula);
+          mergeFormula.add(makeSsaMerger(symbolName, symbolType, i, i + 1, pts1));
         }
       }
     }
 
-    return mergeFormula1;
+    return bfmgr.and(mergeFormula);
   }
 
   /**
