@@ -87,12 +87,9 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return lhs.accept(v);
   }
 
-  void setRange(final int size) {
+  PointerTargetPattern withRange(final int size) {
     assert containerOffset != null && properOffset != null : "Starting address is inexact";
-    this.containerOffset += properOffset;
-    this.properOffset = containerOffset + size;
-    this.matchRange = true;
-    this.containerType = null;
+    return forRange(base, containerOffset + properOffset, size);
   }
 
   void setProperOffset(final int properOffset) {
@@ -212,7 +209,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   private @Nullable Integer properOffset = null;
   private @Nullable Integer containerOffset = null;
 
-  private boolean matchRange = false;
+  private final boolean matchRange;
 
   private static final long serialVersionUID = -2918663736813010025L;
 }

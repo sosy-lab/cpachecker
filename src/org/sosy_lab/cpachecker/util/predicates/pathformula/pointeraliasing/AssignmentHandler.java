@@ -715,8 +715,7 @@ class AssignmentHandler {
                                   "Start address is mandatory for assigning to lvalues of simple types");
       addSimpleTypeRetentionConstraints(pattern, lvalueType, startAddress);
     } else if (pattern.isExact()) {
-      pattern.setRange(size);
-      addExactRetentionConstraints(pattern, typesToRetain);
+      addExactRetentionConstraints(pattern.withRange(size), typesToRetain);
     } else if (pattern.isSemiExact()) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for semiexact pointer target patterns");
