@@ -273,6 +273,24 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
+  Formula makeFormulaForTarget(final PointerTarget target) {
+    return fmgr.makePlus(
+        fmgr.makeVariable(voidPointerFormulaType, target.getBaseName()),
+        fmgr.makeNumber(voidPointerFormulaType, target.getOffset()));
+  }
+
+  BooleanFormula makeRetentionConstraint(
+      final String targetName,
+      final int oldIndex,
+      final int newIndex,
+      final FormulaType<?> type,
+      final PointerTarget target) {
+    final Formula targetAddress = makeFormulaForTarget(target);
+    return fmgr.assignment(
+        ptsMgr.makePointerDereference(targetName, type, newIndex, targetAddress),
+        ptsMgr.makePointerDereference(targetName, type, oldIndex, targetAddress));
+  }
+
   /**
    * Checks, whether a field is relevant in the composite type.
    *
