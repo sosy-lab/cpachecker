@@ -62,6 +62,7 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -784,20 +785,17 @@ class AssignmentHandler {
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
       final PointerTargetPattern exact =
           PointerTargetPattern.forRange(target.getBase(), target.getOffset(), size);
-      BooleanFormula consequent = bfmgr.makeBoolean(true);
+      List<BooleanFormula> consequent = new ArrayList<>();
       for (final CType type : types) {
         final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
         final int oldIndex = conv.getIndex(ufName, type, ssa);
         final int newIndex = conv.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
-          consequent =
-              bfmgr.and(
-                  consequent,
-                  makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, spurious));
+          consequent.add(makeRetentionConstraint(ufName, oldIndex, newIndex, returnType, spurious));
         }
       }
-      constraints.addConstraint(bfmgr.or(negAntecedent, consequent));
+      constraints.addConstraint(bfmgr.or(negAntecedent, bfmgr.and(consequent)));
     }
   }
 
