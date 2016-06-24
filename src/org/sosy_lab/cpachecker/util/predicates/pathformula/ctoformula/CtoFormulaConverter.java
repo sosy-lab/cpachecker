@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.areEqualWithMatchingPointerArray;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
@@ -352,6 +353,33 @@ public class CtoFormulaConverter {
                 + " (Type1: %s, Type2: %s)", name, t, type);
       }
     }
+  }
+
+  /**
+   * Create the necessary equivalence terms for adjusting the SSA indices
+   * of a given symbol (of any type) from oldIndex to newIndex.
+   *
+   * @param variableName The name of the variable for which the index is adjusted.
+   * @param variableType The type of the variable.
+   * @param oldIndex The previous SSA index.
+   * @param newIndex The new SSA index.
+   * @param pts The previous PointerTargetSet.
+   * @throws InterruptedException If execution is interrupted.
+   */
+  public BooleanFormula makeSsaUpdateTerm(
+      final String variableName,
+      final CType variableType,
+      final int oldIndex,
+      final int newIndex,
+      final PointerTargetSet pts)
+      throws InterruptedException {
+    checkArgument(oldIndex > 0 && newIndex > oldIndex);
+
+    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType(variableType);
+    final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
+    final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
+
+    return fmgr.assignment(newVariable, oldVariable);
   }
 
   /**

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -79,8 +80,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeRes
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -95,6 +98,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
@@ -111,6 +116,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @SuppressWarnings("hiding")
   final ShutdownNotifier shutdownNotifier = super.shutdownNotifier;
 
+  private final @Nullable ArrayFormulaManagerView afmgr;
   final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManager ptsMgr;
 
@@ -130,6 +136,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     options = pOptions;
     typeHandler = pTypeHandler;
     ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler, shutdownNotifier);
+    afmgr = options.useArraysForHeap() ? fmgr.getArrayFormulaManager() : null;
 
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
@@ -158,7 +165,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param symbol The name of the symbol.
    * @return Whether the symbol is a pointer access or not.
    */
-  public static boolean isPointerAccessSymbol(final String symbol) {
+  private static boolean isPointerAccessSymbol(final String symbol) {
     return symbol.startsWith(POINTER_NAME_PREFIX);
   }
 
@@ -220,6 +227,61 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                   ssaSavedType,
                   type);
     }
+  }
+
+  @Override
+  public BooleanFormula makeSsaUpdateTerm(
+      final String symbolName,
+      final CType symbolType,
+      final int oldIndex,
+      final int newIndex,
+      final PointerTargetSet pts)
+      throws InterruptedException {
+    checkArgument(oldIndex > 0 && newIndex > oldIndex);
+
+    if (isPointerAccessSymbol(symbolName)) {
+      assert symbolName.equals(getPointerAccessName(symbolType));
+      if (options.useArraysForHeap()) {
+        return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
+      } else {
+        return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, pts);
+      }
+    }
+    return super.makeSsaUpdateTerm(symbolName, symbolType, oldIndex, newIndex, pts);
+  }
+
+  private BooleanFormula makeSsaArrayMerger(
+      final String pFunctionName,
+      final CType pReturnType,
+      final int pOldIndex,
+      final int pNewIndex) {
+
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(pReturnType);
+    final ArrayFormula<?, ?> newArray =
+        afmgr.makeArray(pFunctionName, pNewIndex, FormulaType.IntegerType, returnFormulaType);
+    final ArrayFormula<?, ?> oldArray =
+        afmgr.makeArray(pFunctionName, pOldIndex, FormulaType.IntegerType, returnFormulaType);
+    return fmgr.makeEqual(newArray, oldArray);
+  }
+
+  private BooleanFormula makeSsaUFMerger(
+      final String functionName,
+      final CType returnType,
+      final int oldIndex,
+      final int newIndex,
+      final PointerTargetSet pts)
+      throws InterruptedException {
+
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
+    BooleanFormula result = bfmgr.makeBoolean(true);
+    for (final PointerTarget target : pts.getAllTargets(returnType)) {
+      shutdownNotifier.shutdownIfNecessary();
+      final BooleanFormula retention =
+          makeRetentionConstraint(functionName, oldIndex, newIndex, returnFormulaType, target);
+      result = fmgr.makeAnd(result, retention);
+    }
+
+    return result;
   }
 
   /**

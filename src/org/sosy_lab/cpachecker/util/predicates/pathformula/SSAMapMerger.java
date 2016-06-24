@@ -31,15 +31,9 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -48,37 +42,25 @@ import org.sosy_lab.solver.api.FormulaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 public class SSAMapMerger {
 
   private final FormulaManagerView fmgr;
-  private final FunctionFormulaManagerView ffmgr;
   private final BooleanFormulaManager bfmgr;
   private final ShutdownNotifier shutdownNotifier;
   private final CtoFormulaConverter converter;
-  private final CtoFormulaTypeHandler typeHandler;
-  private final @Nullable ArrayFormulaManagerView afmgr;
   private final boolean useNondetFlags;
-  private final boolean handleHeapArray;
   private final FormulaType<?> nondetFormulaType;
 
   SSAMapMerger(
       boolean pUseNondetFlags,
-      boolean pHandleHeapArray,
       FormulaManagerView pFmgr,
       CtoFormulaConverter pConverter,
-      CtoFormulaTypeHandler pTypeHandler,
       ShutdownNotifier pShutdownNotifier,
       FormulaType<?> pNondetFormulaType) {
     useNondetFlags = pUseNondetFlags;
-    handleHeapArray = pHandleHeapArray;
     fmgr = pFmgr;
-    ffmgr = pFmgr.getFunctionFormulaManager();
     bfmgr = pFmgr.getBooleanFormulaManager();
-    afmgr = handleHeapArray ? pFmgr.getArrayFormulaManager() : null;
     converter = pConverter;
-    typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
     nondetFormulaType = pNondetFormulaType;
   }
@@ -157,77 +139,9 @@ public class SSAMapMerger {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-    } else if (CToFormulaConverterWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getPointerAccessName(symbolType));
-      if (handleHeapArray) {
-        return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
-      } else {
-        return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
-      }
     } else {
-      return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
+      return converter.makeSsaUpdateTerm(symbolName, symbolType, oldIndex, newIndex, oldPts);
     }
-  }
-
-  private BooleanFormula makeSsaVariableMerger(
-      final String variableName, final CType variableType, final int oldIndex, final int newIndex) {
-    assert oldIndex < newIndex;
-
-    // TODO Previously we called makeMerger,
-    // which creates the terms (var@oldIndex = var@oldIndex+1; ...; var@oldIndex = var@newIndex).
-    // Now we only create a single term (var@oldIndex = var@newIndex).
-    // This should not make a difference except maybe for the model,
-    // but this could be investigated to be sure.
-
-    final FormulaType<?> variableFormulaType = converter.getFormulaTypeFromCType(variableType);
-    final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
-    final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
-
-    return fmgr.assignment(newVariable, oldVariable);
-  }
-
-  private BooleanFormula makeSsaArrayMerger(
-      final String pFunctionName,
-      final CType pReturnType,
-      final int pOldIndex,
-      final int pNewIndex) {
-    assert pOldIndex < pNewIndex;
-    final FormulaType<?> returnFormulaType = converter.getFormulaTypeFromCType(pReturnType);
-    final ArrayFormula<?, ?> newArray =
-        afmgr.makeArray(pFunctionName, pNewIndex, FormulaType.IntegerType, returnFormulaType);
-    final ArrayFormula<?, ?> oldArray =
-        afmgr.makeArray(pFunctionName, pOldIndex, FormulaType.IntegerType, returnFormulaType);
-    return fmgr.makeEqual(newArray, oldArray);
-  }
-
-  private BooleanFormula makeSsaUFMerger(
-      final String functionName,
-      final CType returnType,
-      final int oldIndex,
-      final int newIndex,
-      final PointerTargetSet pts)
-      throws InterruptedException {
-    assert oldIndex < newIndex;
-
-    final FormulaType<?> returnFormulaType = converter.getFormulaTypeFromCType(returnType);
-    BooleanFormula result = bfmgr.makeBoolean(true);
-    for (final PointerTarget target : pts.getAllTargets(returnType)) {
-      shutdownNotifier.shutdownIfNecessary();
-      final Formula targetAddress =
-          fmgr.makePlus(
-              fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
-              fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
-
-      final BooleanFormula retention =
-          fmgr.assignment(
-              ffmgr.declareAndCallUninterpretedFunction(
-                  functionName, newIndex, returnFormulaType, targetAddress),
-              ffmgr.declareAndCallUninterpretedFunction(
-                  functionName, oldIndex, returnFormulaType, targetAddress));
-      result = fmgr.makeAnd(result, retention);
-    }
-
-    return result;
   }
 
   private BooleanFormula makeSsaNondetFlagMerger(int iSmaller, int iBigger) {

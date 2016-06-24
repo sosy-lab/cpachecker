@@ -110,7 +110,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
-  private final CtoFormulaTypeHandler typeHandler;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -119,8 +118,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     description = "add special information to formulas about non-deterministic functions"
   )
   private boolean useNondetFlags = false;
-
-  private final boolean useArraysInSSAMapMerge;
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
@@ -146,9 +143,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     shutdownNotifier = pShutdownNotifier;
 
     if (handleArrays) {
-      useArraysInSSAMapMerge = false;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
+      CtoFormulaTypeHandler typeHandler =
+          new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
@@ -164,7 +161,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
         }
       }
-      useArraysInSSAMapMerge = options.useArraysForHeap();
       if (options.useArraysForHeap()) {
         try {
           fmgr.getArrayFormulaManager();
@@ -175,15 +171,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
 
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
-      typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
 
     } else {
-      useArraysInSSAMapMerge = false;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
+      CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
@@ -282,10 +276,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(
             useNondetFlags,
-            useArraysInSSAMapMerge,
             fmgr,
             converter,
-            typeHandler,
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
@@ -462,10 +454,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(
             useNondetFlags,
-            useArraysInSSAMapMerge,
             fmgr,
             converter,
-            typeHandler,
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     BooleanFormula bF = pF2.getFormula();
