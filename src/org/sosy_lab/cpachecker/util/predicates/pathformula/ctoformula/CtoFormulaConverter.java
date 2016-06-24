@@ -416,7 +416,18 @@ public class CtoFormulaConverter {
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     Preconditions.checkArgument(!(pType instanceof CEnumType));
-    return makeVariable(pVarName, pType, pContextSSA.builder());
+
+    SSAMapBuilder ssa = pContextSSA.builder();
+    try {
+      return makeVariable(pVarName, pType, ssa);
+    } finally {
+      if (!ssa.build().equals(pContextSSA)) {
+        throw new IllegalArgumentException(
+            "we cannot apply the SSAMap changes to the point where the"
+                + " information would be needed possible problems: uninitialized variables could be"
+                + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
+      }
+    }
   }
 
   /**

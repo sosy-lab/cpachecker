@@ -1170,9 +1170,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     } finally {
       if (!ssa.build().equals(pContextSSA)) {
-        logger.log(
-            Level.INFO,
-            "SSA map would be changed at a point where we cannot change it, this might not be good.");
+        throw new IllegalArgumentException(
+            "we cannot apply the SSAMap changes to the point where the"
+                + " information would be needed possible problems: uninitialized variables could be"
+                + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
       }
     }
   }

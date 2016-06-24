@@ -218,7 +218,7 @@ class KInductionProver implements AutoCloseable {
         return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
       } else {
         // in the general case we have to retrieve the invariants from a reachedset
-        return new FormulaInvariantsSupplier(invariantGenerator.get());
+        return new FormulaInvariantsSupplier(invariantGenerator.get(), logger);
       }
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");

@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
@@ -48,9 +49,11 @@ import org.sosy_lab.solver.api.Formula;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -58,6 +61,7 @@ import javax.annotation.Nullable;
 public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
+  private final LogManager logger;
 
   private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
@@ -65,8 +69,9 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private final Map<UnmodifiableReachedSet, ReachedSetBasedFormulaSupplier>
       singleInvariantSuppliers = new HashMap<>();
 
-  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
+  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated, LogManager pLogger) {
     aggregatedReached = pAggregated;
+    logger = pLogger;
     updateInvariants(); // at initialization we want to update the invariants the first time
   }
 
@@ -94,7 +99,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
       lastUsedReachedSets = tmp;
       lastInvariantSupplier =
-          new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
+          new AggregatedInvariantSupplier(
+              ImmutableSet.copyOf(singleInvariantSuppliers.values()), logger);
     }
   }
 
@@ -144,11 +150,14 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private static class AggregatedInvariantSupplier implements InvariantSupplier {
 
     private final Collection<ReachedSetBasedFormulaSupplier> invariantSuppliers;
-    private final Map<InvariantsCacheKey, BooleanFormula> cache = new HashMap<>();
+    private final Map<InvariantsCacheKey, List<BooleanFormula>> cache = new HashMap<>();
+    private final LogManager logger;
 
     private AggregatedInvariantSupplier(
-        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers) {
+        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers,
+        LogManager pLogger) {
       invariantSuppliers = checkNotNull(pInvariantSuppliers);
+      logger = pLogger;
     }
 
     @Override
@@ -156,30 +165,45 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
         CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
       InvariantsCacheKey key = new InvariantsCacheKey(pNode, pFmgr, pPfmgr);
 
-      BooleanFormula invariant;
+      List<BooleanFormula> invariants;
       if (cache.containsKey(key)) {
-        invariant = cache.get(key);
+        invariants = cache.get(key);
       } else {
         final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
-        invariant =
-            bfmgr.and(
-                invariantSuppliers
-                    .stream()
-                    .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr))
-                    .filter(f -> !bfmgr.isTrue(f))
-                    .collect(Collectors.toList()));
+        invariants =
+            invariantSuppliers
+                .stream()
+                .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr))
+                .filter(f -> !bfmgr.isTrue(f))
+                .collect(Collectors.toList());
 
-        cache.put(key, invariant);
+        cache.put(key, invariants);
       }
+
+      final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
 
       // add pointer target information if possible/necessary
       if (pContext != null) {
-        invariant =
-            pFmgr.transformRecursively(
-                new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr), invariant);
+        invariants =
+            invariants
+                .stream()
+                .map(
+                    i -> {
+                      try {
+                        return pFmgr.transformRecursively(
+                            new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr), i);
+                      } catch (IllegalArgumentException e) {
+                        logger.logUserException(
+                            Level.INFO,
+                            e,
+                            "Ignoring invariant which could not be wrapped properly.");
+                        return bfmgr.makeBoolean(true);
+                      }
+                    })
+                .collect(Collectors.toList());
       }
 
-      return verifyNotNull(invariant);
+      return verifyNotNull(bfmgr.and(invariants));
     }
   }
 
