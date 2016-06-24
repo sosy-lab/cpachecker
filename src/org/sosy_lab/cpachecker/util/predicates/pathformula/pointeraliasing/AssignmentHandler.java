@@ -347,8 +347,8 @@ class AssignmentHandler {
    * Creates a list of {@code BooleanFormula}s that are range constraints for universal quantifiers.
    *
    * @param pVariable The index variable of the quantifier.
-   * @param pLowerBound The lower bound of the constraints.
-   * @param pUpperBound The upper bound of the constraints.
+   * @param pLowerBound The inclusive lower bound of the constraints.
+   * @param pUpperBound The exclusive upper bound of the constraints.
    * @param <R> The type of the index variable.
    * @return A list of constraint formulae.
    */
@@ -356,7 +356,7 @@ class AssignmentHandler {
       final R pVariable, final R pLowerBound, final R pUpperBound) {
     return ImmutableList.of(
         fmgr.makeGreaterOrEqual(pVariable, pLowerBound, false),
-        fmgr.makeLessOrEqual(pVariable, pUpperBound, false));
+        fmgr.makeLessThan(pVariable, pUpperBound, false));
   }
 
   /**
