@@ -46,10 +46,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Options(prefix="cinvariants")
 public class CExpressionInvariantExporter {
@@ -112,31 +115,33 @@ public class CExpressionInvariantExporter {
       ReachedSet pReachedSet
       )
       throws IOException {
-    String sourceCode = MoreFiles.toString(Paths.get(filename), Charset.defaultCharset());
-
-    List<String> lines = Splitter.on('\n').splitToList(sourceCode);
 
     Multimap<Integer, CExpressionReportingState> reporting =
         getReportingStatesForFile(pReachedSet, filename);
 
-    int lineNo = 0;
-    for (String line : lines) {
-      String invariant = getInvariantForLine(lineNo, reporting);
-      if (!invariant.isEmpty()) {
-        out.append("__VERIFIER_assume(")
-           .append(invariant)
-           .append(");\n");
+    try (Stream<String> lines = Files.lines(Paths.get(filename))) {
+      int lineNo = 0;
+      Iterator<String> it = lines.iterator();
+      while (it.hasNext()) {
+        String line = it.next();
+        String invariant = getInvariantForLine(lineNo, reporting);
+        if (!invariant.isEmpty()) {
+          out.append("__VERIFIER_assume(")
+              .append(invariant)
+              .append(");\n");
+        }
+        out.append(line)
+            .append('\n');
+        lineNo++;
       }
-      out.append(line)
-         .append('\n');
-      lineNo++;
     }
   }
 
   private String getInvariantForLine(
       int lineNo, Multimap<Integer, CExpressionReportingState> reporting) {
     Collection<CExpressionReportingState> report = reporting.get(lineNo);
-    return Joiner.on(" || ").join(report.stream().map(c -> c.reportInvariantAsCExpression()).iterator());
+    return Joiner.on("\n || ").join(
+        report.stream().map(c -> c.reportInvariantAsCExpression()).iterator());
   }
 
   private Multimap<Integer, CExpressionReportingState> getReportingStatesForFile(
