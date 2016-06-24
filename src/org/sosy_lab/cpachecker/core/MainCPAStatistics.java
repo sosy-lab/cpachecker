@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
+import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -107,11 +108,12 @@ class MainCPAStatistics implements Statistics {
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
-  private final Configuration config;
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
   private final CoverageReport coverageReport;
+  private final String analyzedFiles;
+  private final CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
@@ -126,11 +128,14 @@ class MainCPAStatistics implements Statistics {
   private @Nullable Statistics cfaCreatorStatistics;
   private @Nullable CFA cfa;
 
-  public MainCPAStatistics(Configuration pConfig, LogManager pLogger)
+  public MainCPAStatistics(
+      Configuration pConfig,
+      LogManager pLogger,
+      String pAnalyzedFiles)
       throws InvalidConfigurationException {
-    config = pConfig;
     logger = pLogger;
-    config.inject(this);
+    analyzedFiles = pAnalyzedFiles;
+    pConfig.inject(this);
 
     subStats = new ArrayList<>();
 
@@ -162,7 +167,8 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     }
 
-    coverageReport = new CoverageReport(config, pLogger);
+    coverageReport = new CoverageReport(pConfig, pLogger);
+    cExpressionInvariantExporter = new CExpressionInvariantExporter(pConfig);
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -265,6 +271,13 @@ class MainCPAStatistics implements Statistics {
       } catch (OutOfMemoryError e) {
         logger.logUserException(Level.WARNING, e,
             "Out of memory while generating statistics about final reached set");
+      }
+
+      try {
+        cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached, out);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Encountered IO error while"
+            + " generating the invariant as an output program.");
       }
     }
 
