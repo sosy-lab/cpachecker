@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 
@@ -327,11 +328,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           }
         };
 
+    ShutdownManager childShutdown = ShutdownManager.createWithParent(shutdownManager.getNotifier());
+    ResourceLimitChecker.fromConfiguration(config, logger, childShutdown).start();
     CPABuilder invGenBMCBuilder =
-        new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
+        new CPABuilder(config, logger, childShutdown.getNotifier(), pReachedSetFactory);
 
     cpa = invGenBMCBuilder.buildCPAs(cfa, specification, pAggregatedReachedSets);
-    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
+    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, childShutdown.getNotifier());
     algorithm =
         new BMCAlgorithmForInvariantGeneration(
             cpaAlgorithm,
