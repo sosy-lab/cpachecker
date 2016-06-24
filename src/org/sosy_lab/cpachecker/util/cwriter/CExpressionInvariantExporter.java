@@ -83,34 +83,37 @@ public class CExpressionInvariantExporter {
     }
 
     Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);
+    boolean writeToStream = prefix.equals("-");
 
     for (String program : programs) {
-      String processedCode = getProgramWithInvariants(program, pReachedSet);
-
-      if (prefix.equals("-")) {
-        out.append(processedCode);
-        continue;
+      Appendable output;
+      if (writeToStream) {
+        output = out;
+      } else {
+        String trimmedFilename = Paths.get(program).getFileName().toString();
+        String trimmedPrefix = Paths.get(prefix).getFileName().toString();
+        Path outputDir = Paths.get("output");
+        Path prefixedFilename = Paths.get(trimmedPrefix + trimmedFilename);
+        Path outPath = outputDir.resolve(prefixedFilename);
+        output = MoreFiles.openOutputFile(outPath, Charset.defaultCharset());
       }
 
-      String trimmedFilename = Paths.get(program).getFileName().toString();
-      String trimmedPrefix = Paths.get(prefix).getFileName().toString();
-      Path outputDir = Paths.get("output");
-      Path prefixedFilename = Paths.get(trimmedPrefix + trimmedFilename);
-      Path outPath = outputDir.resolve(prefixedFilename);
-
-      try (Writer w = MoreFiles.openOutputFile(outPath, Charset.defaultCharset())) {
-        w.append(processedCode);
+      writeProgramWithInvariants(output, program, pReachedSet);
+      if (!writeToStream) {
+        ((Writer) output).close();
       }
     }
   }
 
-  private String getProgramWithInvariants(String filename, ReachedSet pReachedSet)
+  private void writeProgramWithInvariants(
+      Appendable out,
+      String filename,
+      ReachedSet pReachedSet
+      )
       throws IOException {
     String sourceCode = MoreFiles.toString(Paths.get(filename), Charset.defaultCharset());
 
-    StringBuilder s = new StringBuilder();
     List<String> lines = Splitter.on('\n').splitToList(sourceCode);
 
     Multimap<Integer, CExpressionReportingState> reporting =
@@ -120,15 +123,14 @@ public class CExpressionInvariantExporter {
     for (String line : lines) {
       String invariant = getInvariantForLine(lineNo, reporting);
       if (!invariant.isEmpty()) {
-        s.append("__VERIFIER_assume(");
-        s.append(invariant);
-        s.append(" **/\n");
+        out.append("__VERIFIER_assume(")
+           .append(invariant)
+           .append(");\n");
       }
-      s.append(line);
-      s.append('\n');
+      out.append(line)
+         .append('\n');
       lineNo++;
     }
-    return s.toString();
   }
 
   private String getInvariantForLine(
@@ -152,7 +154,7 @@ public class CExpressionInvariantExporter {
             AbstractStates.asIterable(state)
                 .filter(CExpressionReportingState.class);
         if (location.getFileName().equals(filename) && !reporting.isEmpty()) {
-          out.putAll(location.getStartingLineNumber(), reporting);
+          out.putAll(location.getStartingLineInOrigin(), reporting);
         }
       }
     }
