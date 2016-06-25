@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -133,8 +134,6 @@ public class TerminationTransferRelation implements TransferRelation {
   private final static String NON_TERMINATION_LABEL = "__CPACHECKER_NON_TERMINATION";
 
   private final static String TMP_VARIABLE_NAME = "__CPAchecker_termination_temp";
-
-  private final static String PRIMED_VARIABLE_POSTFIX = "__TERMINATION_PRIMED";
 
   private final static CFunctionDeclaration NONDET_INT =
       new CFunctionDeclaration(
@@ -231,16 +230,7 @@ public class TerminationTransferRelation implements TransferRelation {
     Builder<CVariableDeclaration, CVariableDeclaration> builder = ImmutableMap.builder();
 
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
-      CVariableDeclaration primedVariable =
-          new CVariableDeclaration(
-              FileLocation.DUMMY,
-              false,
-              CStorageClass.AUTO,
-              relevantVariable.getType(),
-              relevantVariable.getName() + PRIMED_VARIABLE_POSTFIX,
-              relevantVariable.getOrigName() + PRIMED_VARIABLE_POSTFIX,
-              relevantVariable.getQualifiedName() + PRIMED_VARIABLE_POSTFIX,
-              null);
+      CVariableDeclaration primedVariable = TerminationUtils.createPrimedVariable(relevantVariable);
       builder.put(relevantVariable, primedVariable);
       intermediateStates.add(new CFANode(functionName));
     }
