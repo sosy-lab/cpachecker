@@ -28,10 +28,10 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.util.Set;
@@ -96,9 +95,8 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
    *
    * @param pRankingRelation
    *            the new ranking relation to add as condition
-   * @throws UnrecognizedCCodeException if <code>pRankingRelation</code> is not a valid condition
    */
-  public void addRankingRelation(CExpression pRankingRelation) throws UnrecognizedCCodeException {
+  public void addRankingRelation(RankingRelation pRankingRelation) {
     transferRelation.addRankingRelation(pRankingRelation);
   }
 

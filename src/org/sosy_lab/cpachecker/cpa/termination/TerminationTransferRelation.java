@@ -68,13 +68,13 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -164,9 +164,9 @@ public class TerminationTransferRelation implements TransferRelation {
   private Set<CFAEdge> loopLeavingEdges = Collections.emptySet();
 
   /**
-   * The current ranking relation as disjunction.
+   * The current ranking relation.
    */
-  private CExpression rankingRelations;
+  private Optional<RankingRelation> rankingRelation;
 
   /**
    * Mapping of relevant variables to the corresponding primed variable.
@@ -193,20 +193,24 @@ public class TerminationTransferRelation implements TransferRelation {
   }
 
   private void resetRankingRelation() {
-    rankingRelations = binaryExpressionBuilder.buildBinaryExpressionUnchecked(ONE, ZERO, EQUALS);
+    rankingRelation = Optional.empty();
+  }
+
+  private CExpression getRankingRelationAsCExpression() {
+    return rankingRelation
+        .map(RankingRelation::asCExpression)
+        .orElseGet(() -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(ZERO, ONE, EQUALS));
   }
 
   /**
    * Adds a new ranking relation that is valid for the loop currently processed.
    *
    * @param pRankingRelation
-   *            the new ranking relation to add as condition
-   * @throws UnrecognizedCCodeException if <code>pRankingRelation</code> is not a valid condition
+   *            the new {@link RankingRelation}
    */
-  void addRankingRelation(CExpression pRankingRelation) throws UnrecognizedCCodeException {
-    rankingRelations =
-        binaryExpressionBuilder.buildBinaryExpression(
-            rankingRelations, pRankingRelation, BinaryOperator.BINARY_OR);
+  void addRankingRelation(RankingRelation pRankingRelation) {
+    rankingRelation =
+        Optional.of(rankingRelation.map(r -> r.merge(pRankingRelation)).orElse(pRankingRelation));
   }
 
   /**
@@ -323,7 +327,7 @@ public class TerminationTransferRelation implements TransferRelation {
     logger.logf(
         FINEST,
         "Adding ranking relations %s after location %s in function %s.",
-        rankingRelations,
+        getRankingRelationAsCExpression(),
         loopHead,
         functionName);
 
@@ -368,7 +372,8 @@ public class TerminationTransferRelation implements TransferRelation {
         getAbstractSuccessorsForEdge0(potentialNonTerminationStates, pPrecision, blankEdge));
 
     // loopHead --> node1
-    CFAEdge positiveRankingRelation = createAssumeEdge(rankingRelations, loopHead, node1, true);
+    CFAEdge positiveRankingRelation =
+        createAssumeEdge(getRankingRelationAsCExpression(), loopHead, node1, true);
     statesAtNode1.addAll(
         getAbstractSuccessorsForEdge0(
             Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation));
@@ -444,7 +449,7 @@ public class TerminationTransferRelation implements TransferRelation {
   }
 
   protected CFAEdge createNegatedRankingRelationAssumeEdge(CFANode startNode, CFANode endNode) {
-    return createAssumeEdge(rankingRelations, startNode, endNode, false);
+    return createAssumeEdge(getRankingRelationAsCExpression(), startNode, endNode, false);
   }
 
   private Collection<? extends TerminationState> initializePrimedVariables(

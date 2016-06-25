@@ -266,7 +266,7 @@ public class TerminationAlgorithm implements Algorithm {
         } else if (lassoAnalysisResult.getTerminationArgument().isPresent()) {
 
           RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument().get();
-          terminationCpa.addRankingRelation(rankingRelation.asCExpression());
+          terminationCpa.addRankingRelation(rankingRelation);
 
           // Prepare reached set for next iteration.
           resetReachedSet(pReachedSet, initialLocation);

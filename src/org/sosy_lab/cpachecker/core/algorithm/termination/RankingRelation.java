@@ -35,7 +35,7 @@ public class RankingRelation {
 
   private final CExpression cExpression;
   private final BooleanFormula formula;
-  private FormulaManagerView formulaManagerView;
+  private final FormulaManagerView formulaManagerView;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public RankingRelation(
@@ -72,6 +72,8 @@ public class RankingRelation {
    * @return a new {@link RankingRelation}
    */
   public RankingRelation merge(RankingRelation other) {
+
+
     BooleanFormula newFormula = formulaManagerView.makeOr(formula, other.formula);
     CExpression newCExpression =
         binaryExpressionBuilder.buildBinaryExpressionUnchecked(cExpression, cExpression, BINARY_OR);
@@ -97,4 +99,5 @@ public class RankingRelation {
   public String toString() {
     return asCExpression().toASTString();
   }
+
 }
