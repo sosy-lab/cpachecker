@@ -26,19 +26,27 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.solver.api.Formula;
 
 public class RankingRelation {
 
-  private final CExpression rankingRelation;
+  private final CExpression cExpression;
+  private final Formula formula;
   private final String rankingFunction;
 
-  public RankingRelation(CExpression pRankingRelation, String pRankingFunction) {
-    rankingRelation = checkNotNull(pRankingRelation);
+  public RankingRelation(
+      CExpression pCExpression, Formula pFormula, String pRankingFunction) {
+    cExpression = checkNotNull(pCExpression);
+    formula = checkNotNull(pFormula);
     rankingFunction = checkNotNull(pRankingFunction);
   }
 
   public CExpression asCExpression() {
-    return rankingRelation;
+    return cExpression;
+  }
+
+  public Formula asFormula() {
+    return formula;
   }
 
   public String getRankingFunction() {
