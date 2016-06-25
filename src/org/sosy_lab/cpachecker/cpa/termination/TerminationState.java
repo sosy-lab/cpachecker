@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
@@ -47,28 +48,32 @@ import javax.annotation.concurrent.Immutable;
 public class TerminationState extends AbstractSingleWrapperState
     implements AbstractStateWithDummyLocation, Graphable {
 
-  private static final long serialVersionUID = 3L;
+  private static final long serialVersionUID = 4L;
 
   private final boolean loop;
 
   private final boolean dummyLocation;
 
+  private final Collection<CFAEdge> enteringEdges;
+
   @Nullable private final Set<Property> violatedProperties;
 
-  private final Collection<CFAEdge> enteringEdges;
+  @Nullable private final RankingRelation unsatisfiedRankingRelation;
 
   private TerminationState(
       AbstractState pWrappedState,
       boolean pLoop,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges,
-      @Nullable Set<Property> pviolatedProperties) {
+      @Nullable Set<Property> pviolatedProperties,
+      @Nullable RankingRelation pUnsatisfiedRankingRelation) {
     super(checkNotNull(pWrappedState));
     Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
     loop = pLoop;
     dummyLocation = pDummyLocation;
     enteringEdges = checkNotNull(pEnteringEdges);
     violatedProperties = pviolatedProperties;
+    unsatisfiedRankingRelation = pUnsatisfiedRankingRelation;
   }
 
   private TerminationState(
@@ -76,7 +81,7 @@ public class TerminationState extends AbstractSingleWrapperState
       boolean pLoop,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges) {
-    this(pWrappedState, pLoop, pDummyLocation, pEnteringEdges, null);
+    this(pWrappedState, pLoop, pDummyLocation, pEnteringEdges, null, null);
   }
 
   /**
@@ -135,22 +140,26 @@ public class TerminationState extends AbstractSingleWrapperState
     Preconditions.checkNotNull(pViolatedProperties);
     Preconditions.checkArgument(!pViolatedProperties.isEmpty());
     return new TerminationState(
+        getWrappedState(), loop, dummyLocation, enteringEdges, pViolatedProperties, null);
+  }
+
+  /**
+   * Creates a new {@link TerminationState} with the given unsatisfied {@link RankingRelation}
+   *
+   * @param pUnsatisfiedRankingRelation
+   *         the {@link RankingRelation} not satisfied at this state
+   * @return the created {@link TerminationState}
+   */
+  public TerminationState withUnsatisfiedRankingRelation(
+      RankingRelation pUnsatisfiedRankingRelation) {
+    Preconditions.checkNotNull(pUnsatisfiedRankingRelation);
+    return new TerminationState(
         getWrappedState(),
         loop,
         dummyLocation,
         enteringEdges,
-        pViolatedProperties);
-  }
-
-  /**
-   * Creates a new {@link TerminationState} with a dummy location and  the given entering edges.
-   *
-   * @param pEnteringEdges
-   *         the edges entering the location represented by the created state
-   * @return the created {@link TerminationState}
-   */
-  public TerminationState with(Collection<CFAEdge> pEnteringEdges) {
-    return new TerminationState(getWrappedState(), loop, true, pEnteringEdges);
+        violatedProperties,
+        pUnsatisfiedRankingRelation);
   }
 
   @Override

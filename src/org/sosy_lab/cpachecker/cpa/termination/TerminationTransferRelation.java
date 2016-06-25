@@ -359,6 +359,7 @@ public class TerminationTransferRelation implements TransferRelation {
         return targetStates
             .stream()
             .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
+            .map(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
             .collect(Collectors.toList());
       }
     }
