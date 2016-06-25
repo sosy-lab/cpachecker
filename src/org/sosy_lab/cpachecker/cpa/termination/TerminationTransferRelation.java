@@ -339,19 +339,22 @@ public class TerminationTransferRelation implements TransferRelation {
     // non-termination requires a loop
     if (loopHeadState.isPartOfLoop()) {
       // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
-      CFANode nodeAfterLabel = new CLabelNode(functionName, NON_TERMINATION_LABEL);
+      CFANode targetNode = new CLabelNode(functionName, NON_TERMINATION_LABEL);
       CFAEdge nonTerminationLabel =
           createBlankEdge(
-              potentialNonTerminationNode, nodeAfterLabel, "Label: " + NON_TERMINATION_LABEL);
+              potentialNonTerminationNode, targetNode, "Label: " + NON_TERMINATION_LABEL);
 
       Collection<TerminationState> targetStates =
           getAbstractSuccessorsForEdge0(
               potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
       if (!targetStates.isEmpty()) {
+        // Use a direct edge from the loopHead to the target state
+        // because the intermediate state is never viable to any other component.
+        CFAEdge edgeToTargetState = createNegatedRankingRelationAssumeEdge(loopHead, targetNode);
         return targetStates
             .stream()
-            .map(ts -> ts.withDummyLocation(Collections.singleton(negativeRankingRelation)))
+            .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
             .collect(Collectors.toList());
       }
     }
