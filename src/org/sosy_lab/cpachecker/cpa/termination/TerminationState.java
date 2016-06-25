@@ -32,12 +32,15 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
@@ -50,7 +53,31 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private final boolean dummyLocation;
 
+  @Nullable private final Set<Property> violatedProperties;
+
   private final Collection<CFAEdge> enteringEdges;
+
+  private TerminationState(
+      AbstractState pWrappedState,
+      boolean pLoop,
+      boolean pDummyLocation,
+      Collection<CFAEdge> pEnteringEdges,
+      @Nullable Set<Property> pviolatedProperties) {
+    super(checkNotNull(pWrappedState));
+    Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
+    loop = pLoop;
+    dummyLocation = pDummyLocation;
+    enteringEdges = checkNotNull(pEnteringEdges);
+    violatedProperties = pviolatedProperties;
+  }
+
+  private TerminationState(
+      AbstractState pWrappedState,
+      boolean pLoop,
+      boolean pDummyLocation,
+      Collection<CFAEdge> pEnteringEdges) {
+    this(pWrappedState, pLoop, pDummyLocation, pEnteringEdges, null);
+  }
 
   /**
    * Creates a new {@link TerminationState} that is part of the
@@ -62,18 +89,6 @@ public class TerminationState extends AbstractSingleWrapperState
    */
   public static TerminationState createStemState(AbstractState pWrappedState) {
     return new TerminationState(pWrappedState, false, false, Collections.emptyList());
-  }
-
-  private TerminationState(
-      AbstractState pWrappedState,
-      boolean pLoop,
-      boolean pDummyLocation,
-      Collection<CFAEdge> pEnteringEdges) {
-    super(checkNotNull(pWrappedState));
-    Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
-    loop = pLoop;
-    dummyLocation = pDummyLocation;
-    enteringEdges = checkNotNull(pEnteringEdges);
   }
 
   /**
@@ -109,6 +124,35 @@ public class TerminationState extends AbstractSingleWrapperState
     return new TerminationState(getWrappedState(), loop, true, pEnteringEdges);
   }
 
+  /**
+   * Creates a new {@link TerminationState} with the given violated properties.
+   *
+   * @param pViolatedProperties
+   *         the edges entering the location represented by the created state
+   * @return the created {@link TerminationState}
+   */
+  public TerminationState withViolatedProperties(Set<Property> pViolatedProperties) {
+    Preconditions.checkNotNull(pViolatedProperties);
+    Preconditions.checkArgument(!pViolatedProperties.isEmpty());
+    return new TerminationState(
+        getWrappedState(),
+        loop,
+        dummyLocation,
+        enteringEdges,
+        pViolatedProperties);
+  }
+
+  /**
+   * Creates a new {@link TerminationState} with a dummy location and  the given entering edges.
+   *
+   * @param pEnteringEdges
+   *         the edges entering the location represented by the created state
+   * @return the created {@link TerminationState}
+   */
+  public TerminationState with(Collection<CFAEdge> pEnteringEdges) {
+    return new TerminationState(getWrappedState(), loop, true, pEnteringEdges);
+  }
+
   @Override
   public boolean isDummyLocation() {
     return dummyLocation;
@@ -131,6 +175,20 @@ public class TerminationState extends AbstractSingleWrapperState
    */
   public boolean isPartOfStem() {
     return !loop;
+  }
+
+  @Override
+  public boolean isTarget() {
+    return violatedProperties != null || super.isTarget();
+  }
+
+  @Override
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
+    if (violatedProperties != null) {
+      return violatedProperties;
+    } else {
+      return super.getViolatedProperties();
+    }
   }
 
   @Override
