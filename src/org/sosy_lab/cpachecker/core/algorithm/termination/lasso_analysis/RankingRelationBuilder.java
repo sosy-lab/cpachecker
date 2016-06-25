@@ -143,7 +143,8 @@ class RankingRelationBuilder {
     BooleanFormula rankingRelationFormula =
         createRankingRelation(primedFormulaSummands, unprimedFormulaSummands);
 
-    return new RankingRelation(rankingRelation, rankingRelationFormula, function.toString());
+    return new RankingRelation(
+        rankingRelation, rankingRelationFormula, binaryExpressionBuilder, formulaManagerView);
   }
 
   private CBinaryExpression createRankingRelation(CExpression primedFunction,

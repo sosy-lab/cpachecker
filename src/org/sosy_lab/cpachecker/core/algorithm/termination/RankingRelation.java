@@ -24,38 +24,60 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 public class RankingRelation {
 
   private final CExpression cExpression;
-  private final Formula formula;
-  private final String rankingFunction;
+  private final BooleanFormula formula;
+  private FormulaManagerView formulaManagerView;
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public RankingRelation(
-      CExpression pCExpression, Formula pFormula, String pRankingFunction) {
+      CExpression pCExpression,
+      BooleanFormula pFormula,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      FormulaManagerView pFormulaManagerView) {
     cExpression = checkNotNull(pCExpression);
     formula = checkNotNull(pFormula);
-    rankingFunction = checkNotNull(pRankingFunction);
+    formulaManagerView = checkNotNull(pFormulaManagerView);
+    binaryExpressionBuilder = checkNotNull(pBinaryExpressionBuilder);
   }
 
   public CExpression asCExpression() {
     return cExpression;
   }
 
-  public Formula asFormula() {
+  public BooleanFormula asFormula() {
     return formula;
   }
 
   public String getRankingFunction() {
-    return rankingFunction;
+    return formula.toString();
   }
 
   @Override
   public int hashCode() {
     return asCExpression().hashCode();
+  }
+
+  /**
+   * Create a new {@link RankingRelation} that is the disjunction of this and <code>other</code>
+   * @param other the {@link RankingRelation} to merge with
+   * @return a new {@link RankingRelation}
+   */
+  public RankingRelation merge(RankingRelation other) {
+    BooleanFormula newFormula = formulaManagerView.makeOr(formula, other.formula);
+    CExpression newCExpression =
+        binaryExpressionBuilder.buildBinaryExpressionUnchecked(cExpression, cExpression, BINARY_OR);
+
+    return new RankingRelation(
+        newCExpression, newFormula, binaryExpressionBuilder, formulaManagerView);
   }
 
   @Override
