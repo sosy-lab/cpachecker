@@ -133,8 +133,7 @@ class LassoBuilder {
         }
       }
 
-      // the last state is the dummy target state
-      if (loopStarted && path.hasNext()) {
+      if (loopStarted) {
         loopEdges.add(path.getIncomingEdge());
       } else {
         stemEdges.add(path.getIncomingEdge());

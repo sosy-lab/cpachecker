@@ -26,10 +26,14 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
+import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
@@ -50,11 +54,20 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
+import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -79,6 +92,8 @@ import javax.annotation.Nullable;
  */
 public class TerminationAlgorithm implements Algorithm {
 
+  private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
+
   private final static Path SPEC_FILE = Paths.get("config/specification/termination_as_reach.spc");
 
   @Nullable private static Specification terminationSpecification;
@@ -87,6 +102,7 @@ public class TerminationAlgorithm implements Algorithm {
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
   private final Algorithm safetyAlgorithm;
+  private final ConfigurableProgramAnalysis safetyCPA;
 
   private final LassoAnalysis lassoAnalysis;
   private final TerminationCPA terminationCpa;
@@ -100,11 +116,12 @@ public class TerminationAlgorithm implements Algorithm {
       CFA pCfa,
       Specification pSpecification,
       Algorithm pSafetyAlgorithm,
-      ConfigurableProgramAnalysis pSafetyAnalysis)
+      ConfigurableProgramAnalysis pSafetyCPA)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
+    safetyCPA = checkNotNull(pSafetyCPA);
     cfa = checkNotNull(pCfa);
 
     Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
@@ -115,9 +132,14 @@ public class TerminationAlgorithm implements Algorithm {
         requiredSpecification,
         pSpecification);
 
-    terminationCpa = CPAs.retrieveCPA(pSafetyAnalysis, TerminationCPA.class);
+    terminationCpa = CPAs.retrieveCPA(pSafetyCPA, TerminationCPA.class);
     if (terminationCpa == null) {
       throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
+    }
+
+    ARGCPA agrCpa = CPAs.retrieveCPA(pSafetyCPA, ARGCPA.class);
+    if (agrCpa == null) {
+      throw new InvalidConfigurationException("TerminationAlgorithm requires ARGCPA");
     }
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
@@ -161,15 +183,15 @@ public class TerminationAlgorithm implements Algorithm {
       return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
     }
 
-    AbstractState entryState = pReachedSet.getFirstState();
-    Precision entryStatePrecision = pReachedSet.getPrecision(entryState);
+    CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
-      CPAcheckerResult.Result loopTermiantion = prooveLoopTermination(pReachedSet, loop);
+      CPAcheckerResult.Result loopTermiantion =
+          prooveLoopTermination(pReachedSet, loop, initialLocation);
 
       if (loopTermiantion == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
@@ -181,8 +203,7 @@ public class TerminationAlgorithm implements Algorithm {
       }
 
       // Prepare reached set for next loop.
-      pReachedSet.clear();
-      pReachedSet.add(entryState, entryStatePrecision);
+      resetReachedSet(pReachedSet, initialLocation);
     }
 
     // We did not find a non-terminating loop.
@@ -193,12 +214,10 @@ public class TerminationAlgorithm implements Algorithm {
     return status;
   }
 
-  private Result prooveLoopTermination(ReachedSet pReachedSet, Loop pLoop)
+  private Result prooveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
       throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
-    AbstractState entryState = pReachedSet.getFirstState();
-    Precision entryStatePrecision = pReachedSet.getPrecision(entryState);
 
     // Pass current loop and relevant variables to TerminationCPA.
     String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
@@ -212,27 +231,45 @@ public class TerminationAlgorithm implements Algorithm {
     Result result = null;
 
     while (result == null) {
+      shutdownNotifier.shutdownIfNecessary();
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
       terminationCpa.resetCfa();
-      Optional<AbstractState> targetState =
-          pReachedSet.asCollection().stream().filter(AbstractStates::isTargetState).findAny();
+      shutdownNotifier.shutdownIfNecessary();
 
-      if (status.isSound() && !targetState.isPresent() && !pReachedSet.hasWaitingState()) {
+      boolean targetReached = pReachedSet
+          .asCollection()
+          .stream()
+          .anyMatch(AbstractStates::isTargetState);
+      Optional<ARGState> targetStateWithCounterExample =
+          pReachedSet
+              .asCollection()
+              .stream()
+              .filter(AbstractStates::isTargetState)
+              .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(s -> s.getCounterexampleInformation().isPresent())
+              .findAny();
+
+      if (status.isSound() && !targetReached && !pReachedSet.hasWaitingState()) {
         result = Result.TRUE;
 
-      } else if (status.isPrecise() && targetState.isPresent()) {
+      } else if (status.isPrecise() && targetStateWithCounterExample.isPresent()) {
+        AbstractState newTargetState =
+            removeIntermediateStatesFromCounterexample(targetStateWithCounterExample.get());
+        replaceInReachedSet(pReachedSet, targetStateWithCounterExample.get(), newTargetState);
+
         LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
-            lassoAnalysis.checkTermination(targetState.get());
+            lassoAnalysis.checkTermination(newTargetState, relevantVariabels);
+
         if (lassoAnalysisResult.getNonTerminationArgument().isPresent()) {
           result = Result.FALSE;
 
         } else if (lassoAnalysisResult.getTerminationArgument().isPresent()) {
-          // TODO extract ranking function
+
+          RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument().get();
+          terminationCpa.addRankingRelation(rankingRelation.asCExpression());
 
           // Prepare reached set for next iteration.
-          pReachedSet.clear();
-          pReachedSet.add(entryState, entryStatePrecision);
-          result = Result.UNKNOWN;
+          resetReachedSet(pReachedSet, initialLocation);
 
         } else {
           result = Result.UNKNOWN;
@@ -244,6 +281,82 @@ public class TerminationAlgorithm implements Algorithm {
     }
 
     return result;
+  }
+
+  private void replaceInReachedSet(
+      ReachedSet pReachedSet, AbstractState oldState, AbstractState newState) {
+    pReachedSet.add(newState, pReachedSet.getPrecision(oldState));
+    pReachedSet.removeOnlyFromWaitlist(newState);
+    pReachedSet.remove(oldState);
+  }
+
+  private AbstractState removeIntermediateStatesFromCounterexample(AbstractState pTargetState) {
+    Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
+    Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
+    ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
+
+    Optional<CounterexampleInfo> counterexample = targetState.getCounterexampleInformation();
+    if (!counterexample.isPresent()) {
+      return pTargetState;
+    }
+
+    // Remove dummy target state from ARG and replace loop head with new target state
+    ARGState loopHead = Iterables.getOnlyElement(targetState.getParents());
+    TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
+    AbstractState newTerminationState =
+        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
+    ARGState newTargetState = new ARGState(newTerminationState, null);
+    targetState.removeFromARG();
+    loopHead.replaceInARGWith(newTargetState);
+
+    // Remove all intermediate states from the counterexample.
+    // The value assignments are not valid for a counterexample that witnesses non-termination.
+    ARGPath targetPath = counterexample.get().getTargetPath();
+    PathIterator targetPathIt = targetPath.fullPathIterator();
+    ARGPathBuilder builder = ARGPath.builder();
+    Optional<ARGState> lastStateInCfa = Optional.empty();
+
+    do {
+      // the last state has not outgoing edge
+      if (targetPathIt.hasNext())  {
+        CFAEdge outgoingEdge = targetPathIt.getOutgoingEdge();
+        CFANode location = outgoingEdge.getPredecessor();
+        CFANode nextLocation = outgoingEdge.getSuccessor();
+
+        if (cfa.getAllNodes().contains(location)
+            && cfa.getAllNodes().contains(nextLocation)) {
+
+          if (targetPathIt.isPositionWithState()
+              || lastStateInCfa.isPresent()) {
+            ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
+            @Nullable CFAEdge edgeToNextState =
+                state.getEdgeToChild(targetPathIt.getNextAbstractState());
+            builder.add(state, edgeToNextState);
+          }
+
+          lastStateInCfa = Optional.empty();
+
+        } else if (cfa.getAllNodes().contains(location)
+            && targetPathIt.isPositionWithState()) {
+          lastStateInCfa = Optional.of(targetPathIt.getAbstractState());
+        }
+      }
+    } while (targetPathIt.advanceIfPossible());
+
+    ARGPath newTargetPath = builder.build(newTargetState);
+    CounterexampleInfo newCounterexample = CounterexampleInfo.feasibleImprecise(newTargetPath);
+    newTargetState.addCounterexampleInformation(newCounterexample);
+
+    return newTargetState;
+  }
+
+  private void resetReachedSet(ReachedSet pReachedSet, CFANode initialLocation)
+      throws InterruptedException {
+    AbstractState initialState = safetyCPA.getInitialState(initialLocation, getDefaultPartition());
+    Precision initialPrecision =
+        safetyCPA.getInitialPrecision(initialLocation, getDefaultPartition());
+    pReachedSet.clear();
+    pReachedSet.add(initialState, initialPrecision);
   }
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {

@@ -30,13 +30,16 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -50,6 +53,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 
 import de.uni_freiburg.informatik.ultimate.lassoranker.AnalysisType;
@@ -77,6 +81,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final PathFormulaManager pathFormulaManager;
 
   private final LassoBuilder lassoBuilder;
+  private final RankingRelationBuilder rankingRelationBuilder;
 
   private final LassoRankerPreferences lassoRankerPreferences;
   private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
@@ -107,6 +112,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             AnalysisDirection.FORWARD);
 
     lassoBuilder = new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
+    rankingRelationBuilder = new RankingRelationBuilder(pCfa.getMachineModel(), pLogger);
 
     lassoRankerPreferences = new LassoRankerPreferences();
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
@@ -119,10 +125,11 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   }
 
   @Override
-  public LassoAnalysisResult checkTermination(AbstractState targetState)
+  public LassoAnalysisResult checkTermination(
+      AbstractState pTargetState, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
-    Preconditions.checkArgument(AbstractStates.isTargetState(targetState));
-    ARGState argState = AbstractStates.extractStateByType(targetState, ARGState.class);
+    Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
+    ARGState argState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
     Optional<CounterexampleInfo> counterexample = argState.getCounterexampleInformation();
     if (!counterexample.isPresent()) {
       logger.log(Level.WARNING, "Missing counterexample information.");
@@ -138,19 +145,20 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
 
     try {
-      return checkTermination(lassos);
+      return checkTermination(lassos, pRelevantVariables);
     } catch (IOException | SMTLIBException | TermException e) {
       logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
       return LassoAnalysisResult.unknown();
     }
   }
 
-  private LassoAnalysisResult checkTermination(Collection<Lasso> lassos)
+  private LassoAnalysisResult checkTermination(
+      Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException {
 
     for (Lasso lasso : lassos) {
       logger.logf(Level.FINE, "Analysing (non)-termination of lasso:\n%s.", lasso);
-      LassoAnalysisResult result = checkTermination(lasso);
+      LassoAnalysisResult result = checkTermination(lasso, pRelevantVariables);
       if (!result.isUnknowm()) {
         return result;
       }
@@ -159,8 +167,10 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     return LassoAnalysisResult.unknown();
   }
 
-  private LassoAnalysisResult checkTermination(Lasso lasso)
+  private LassoAnalysisResult checkTermination(
+      Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException {
+
     NonTerminationArgument nonTerminationArgument = null;
     try (NonTerminationArgumentSynthesizer nonTerminationArgumentSynthesizer =
         new NonTerminationArgumentSynthesizer(
@@ -176,7 +186,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       }
     }
 
-    TerminationArgument terminationArgument = null;
+    RankingRelation rankingRelation = null;
     try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
         new TerminationArgumentSynthesizer(
             lasso,
@@ -188,12 +198,21 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             toolchainStorage)) {
       LBool result = terminationArgumentSynthesizer.synthesize();
       if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
-        terminationArgument = terminationArgumentSynthesizer.getArgument();
+        TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
         logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
+
+        try {
+          rankingRelation =
+              rankingRelationBuilder.fromTerminationArgument(terminationArgument, pRelevantVariables);
+
+        } catch (UnrecognizedCCodeException e) {
+          logger.logException(
+              Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
+        }
       }
     }
 
     return new LassoAnalysisResult(
-        Optional.ofNullable(nonTerminationArgument), Optional.ofNullable(terminationArgument));
+        Optional.ofNullable(nonTerminationArgument), Optional.ofNullable(rankingRelation));
   }
 }

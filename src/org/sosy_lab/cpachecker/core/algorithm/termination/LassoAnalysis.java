@@ -31,15 +31,18 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.solver.api.SolverContext;
 
 import java.util.Optional;
+import java.util.Set;
 
 public interface LassoAnalysis {
 
-  LassoAnalysisResult checkTermination(AbstractState targetState)
+  LassoAnalysisResult checkTermination(
+      AbstractState targetState, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException;
 
   public interface Factory {
@@ -57,14 +60,14 @@ public interface LassoAnalysis {
 
     private Optional<?> nonTerminationArgument;
 
-    private Optional<?> terminationArgument;
+    private Optional<RankingRelation> terminationArgument;
 
     public static LassoAnalysisResult unknown() {
       return new LassoAnalysisResult(Optional.empty(), Optional.empty());
     }
 
     public LassoAnalysisResult(
-        Optional<?> pNonTerminationArgument, Optional<?> pTerminationArgument) {
+        Optional<?> pNonTerminationArgument, Optional<RankingRelation> pTerminationArgument) {
       checkArgument(!(pNonTerminationArgument.isPresent() && pTerminationArgument.isPresent()));
       nonTerminationArgument = checkNotNull(pNonTerminationArgument);
       terminationArgument = checkNotNull(pTerminationArgument);
@@ -74,7 +77,7 @@ public interface LassoAnalysis {
       return nonTerminationArgument;
     }
 
-    public Optional<?> getTerminationArgument() {
+    public Optional<RankingRelation> getTerminationArgument() {
       return terminationArgument;
     }
 
