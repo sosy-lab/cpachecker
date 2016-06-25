@@ -32,8 +32,12 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -46,7 +50,7 @@ import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class TerminationState extends AbstractSingleWrapperState
-    implements AbstractStateWithDummyLocation, Graphable {
+    implements AbstractStateWithDummyLocation, FormulaReportingState, Graphable {
 
   private static final long serialVersionUID = 4L;
 
@@ -184,6 +188,16 @@ public class TerminationState extends AbstractSingleWrapperState
    */
   public boolean isPartOfStem() {
     return !loop;
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(
+      FormulaManagerView pManager, PathFormulaManager pPfmgr) {
+    if (unsatisfiedRankingRelation == null) {
+      return pManager.getBooleanFormulaManager().makeBoolean(true);
+    } else {
+      return pManager.makeNegate(unsatisfiedRankingRelation.asFormulaFromOtherSolver(pManager));
+    }
   }
 
   @Override

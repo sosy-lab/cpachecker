@@ -57,6 +57,10 @@ public class RankingRelation {
     return formula;
   }
 
+  public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pFormulaManagerView) {
+    return pFormulaManagerView.translateFrom(formula, formulaManagerView);
+  }
+
   public String getRankingFunction() {
     return formula.toString();
   }
