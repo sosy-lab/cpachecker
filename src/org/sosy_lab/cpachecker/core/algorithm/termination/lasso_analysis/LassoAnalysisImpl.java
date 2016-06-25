@@ -113,7 +113,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     lassoBuilder = new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
     rankingRelationBuilder = new RankingRelationBuilder(
-        pCfa.getMachineModel(), pLogger, formulaManager, formulaManagerView);
+        pCfa.getMachineModel(), pLogger, formulaManagerView);
 
     lassoRankerPreferences = new LassoRankerPreferences();
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol

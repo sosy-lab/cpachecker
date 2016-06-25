@@ -51,9 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -65,13 +63,10 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAr
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LinearRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class RankingRelationBuilder {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
 
   private final FormulaManagerView formulaManagerView;
 
@@ -80,10 +75,8 @@ class RankingRelationBuilder {
   public RankingRelationBuilder(
       MachineModel pMachineModel,
       LogManager pLogger,
-      AbstractFormulaManager<Term, ?, ?, ?> pFormulaManager,
       FormulaManagerView pFormulaManagerView) {
     binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
-    formulaManager = checkNotNull(pFormulaManager);
     formulaManagerView = checkNotNull(pFormulaManagerView);
     integerFormulaManager = formulaManagerView.getIntegerFormulaManager();
   }
@@ -191,7 +184,6 @@ class RankingRelationBuilder {
   }
 
   private IntegerFormula createSummand(BigInteger pCoefficient, String pVariable) {
-    IntegerFormulaManager integerFormulaManager = formulaManager.getIntegerFormulaManager();
     IntegerFormula variable =  integerFormulaManager.makeVariable(pVariable);
     IntegerFormula coefficient =  integerFormulaManager.makeNumber(pCoefficient);
     return integerFormulaManager.multiply(coefficient, variable);
