@@ -983,13 +983,17 @@ public class ARGPath extends AbstractAppender {
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
 
-      if (Iterables.contains(extractLocations(getNextAbstractState()),
-          fullPath.get(overallOffset).getSuccessor())) {
+      CFAEdge nextEdge = fullPath.get(overallOffset);
+      Iterable<CFANode> nextLocation = extractLocations(getNextAbstractState());
+      boolean nextPositionHasState =
+          Iterables.contains(nextLocation, nextEdge.getSuccessor()) // forward analysis
+              || Iterables.contains(nextLocation, nextEdge.getPredecessor()); // backward analysis
+
+      if (nextPositionHasState) {
         pos++;
-        currentPositionHasState = true;
-      } else {
-        currentPositionHasState = false;
       }
+
+      currentPositionHasState = nextPositionHasState;
       overallOffset++;
     }
 
