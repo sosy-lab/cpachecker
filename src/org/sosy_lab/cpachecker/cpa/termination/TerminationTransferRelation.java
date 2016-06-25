@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.termination;
 
+import static java.util.Collections.singletonList;
 import static java.util.logging.Level.FINEST;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
@@ -249,7 +250,7 @@ public class TerminationTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     CFANode location = AbstractStates.extractLocation(pState);
     TerminationState terminationState = (TerminationState) pState;
-    Collection<? extends TerminationState> statesAtCurrentLocation;
+    Collection<TerminationState> statesAtCurrentLocation;
 
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
@@ -276,14 +277,24 @@ public class TerminationTransferRelation implements TransferRelation {
 
     // break if target state is reachable
     if (!targetStates.isEmpty()) {
-      return targetStates;
+      Collection<TerminationState> strengthenedTargetStates = Lists.newArrayList();
+
+      for (TerminationState targetState : targetStates) {
+        Collection<? extends AbstractState> strengthenedStates = transferRelation.strengthen(
+            targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
+        strengthenedStates
+            .stream().map(targetState::withWrappedState).forEach(strengthenedTargetStates::add);
+      }
+
+      statesAtCurrentLocation.removeAll(targetStates);
+      statesAtCurrentLocation.addAll(strengthenedTargetStates);
     }
 
     assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
     return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
   }
 
-  private Collection<? extends TerminationState> declarePrimedVariables(
+  private Collection<TerminationState> declarePrimedVariables(
       TerminationState pState, Precision pPrecision, CFANode pCfaNode)
       throws CPATransferException, InterruptedException {
     String function = pCfaNode.getFunctionName();
@@ -318,7 +329,7 @@ public class TerminationTransferRelation implements TransferRelation {
     return states;
   }
 
-  private Collection<? extends TerminationState> insertRankingRelation(
+  private Collection<TerminationState> insertRankingRelation(
       TerminationState loopHeadState, Precision pPrecision, CFANode loopHead)
       throws CPATransferException, InterruptedException {
     Collection<TerminationState> resultingSuccessors = Lists.newArrayList();

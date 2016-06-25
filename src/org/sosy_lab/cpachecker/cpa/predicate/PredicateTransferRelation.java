@@ -314,7 +314,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // TODO: replace with Iterables.getOnlyElement(AbstractStates.extractLocations(otherElements));
       // when the special case for PredicateCPA in CompositeTransferRelation#callStrengthen
       // is removed.
-      final CFANode currentLocation = getAnalysisSuccesor(edge);
+      final CFANode currentLocation;
+      if (edge == null) {
+        currentLocation = null;
+      } else {
+        currentLocation = getAnalysisSuccesor(edge);
+      }
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
