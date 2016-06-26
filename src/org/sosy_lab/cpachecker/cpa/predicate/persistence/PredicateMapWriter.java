@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -35,6 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -67,12 +69,14 @@ public class PredicateMapWriter {
   }
 
   public void writePredicateMap(
-      SetMultimap<LocationInstance, AbstractionPredicate> locationInstancePredicates,
+      SetMultimap<PredicatePrecision.LocationInstance, AbstractionPredicate>
+          locationInstancePredicates,
       SetMultimap<CFANode, AbstractionPredicate> localPredicates,
       SetMultimap<String, AbstractionPredicate> functionPredicates,
       Set<AbstractionPredicate> globalPredicates,
       Collection<AbstractionPredicate> allPredicates,
-      Appendable sb) throws IOException {
+      Appendable sb)
+      throws IOException {
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -112,10 +116,14 @@ public class PredicateMapWriter {
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
 
-    for (Entry<LocationInstance, Collection<AbstractionPredicate>> e : locationInstancePredicates.asMap().entrySet()) {
-      CFANode loc = e.getKey().getLocation();
-      String key = loc.getFunctionName()
-           + " " + loc.toString() + "@" + e.getKey().getInstance();
+    for (Entry<PredicatePrecision.LocationInstance, Collection<AbstractionPredicate>> e :
+        locationInstancePredicates.asMap().entrySet()) {
+      String key =
+          String.format(
+              "%s %s@%d",
+              e.getKey().getFunctionName(),
+              e.getKey().getLocation(),
+              e.getKey().getInstance());
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
   }

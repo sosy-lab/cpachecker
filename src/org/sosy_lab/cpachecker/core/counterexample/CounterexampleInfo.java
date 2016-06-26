@@ -23,9 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.collect.Lists;
+
+import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,18 +49,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
-
-import com.google.common.collect.Lists;
-
 public class CounterexampleInfo extends AbstractAppender {
+
+  private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+
+  private final int uniqueId;
 
   private final boolean spurious;
   private final boolean isPreciseCounterExample;
@@ -61,6 +68,7 @@ public class CounterexampleInfo extends AbstractAppender {
 
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
+    uniqueId = ID_GENERATOR.getFreshId();
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignments = pAssignments;
@@ -75,6 +83,10 @@ public class CounterexampleInfo extends AbstractAppender {
 
   public static CounterexampleInfo spurious() {
     return SPURIOUS;
+  }
+
+  public int getUniqueId() {
+    return uniqueId;
   }
 
   public boolean isPreciseCounterExample() {
@@ -94,7 +106,7 @@ public class CounterexampleInfo extends AbstractAppender {
    */
   public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
     checkArgument(!pAssignments.isEmpty());
-    checkArgument(pAssignments.fitsPath(pTargetPath.getInnerEdges()));
+    checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
     return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
   }
 
@@ -179,24 +191,12 @@ public class CounterexampleInfo extends AbstractAppender {
       out.append("SPURIOUS COUNTEREXAMPLE");
 
     } else if (isPreciseCounterExample) {
-      printPathWithValues(out, assignments);
+      for (CFAEdgeWithAssumptions edgeWithAssignments : from(assignments).filter(notNull())) {
+        printPreciseValues(out, edgeWithAssignments);
+      }
 
     } else {
       targetPath.appendTo(out);
-    }
-  }
-
-  private void printPathWithValues(Appendable out, CFAPathWithAssumptions pExactValuePath)
-      throws IOException {
-    for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
-      if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
-        for (CFAEdgeWithAssumptions singleEdge :
-            (CFAMultiEdgeWithAssumptions) edgeWithAssignments) {
-          printPreciseValues(out, singleEdge);
-        }
-      } else {
-        printPreciseValues(out, edgeWithAssignments);
-      }
     }
   }
 

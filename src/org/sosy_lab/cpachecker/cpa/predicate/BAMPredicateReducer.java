@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
-import java.util.Collection;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -37,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -48,9 +49,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
+import java.util.Collection;
+import java.util.logging.Level;
 
 
 public class BAMPredicateReducer implements Reducer {
@@ -231,8 +231,9 @@ public class BAMPredicateReducer implements Reducer {
       rootPredicatePrecision = ((ReducedPredicatePrecision)expandedPredicatePrecision).getRootPredicatePrecision();
     }
 
-    return new ReducedPredicatePrecision(rootPredicatePrecision,
-        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate> of(),
+    return new ReducedPredicatePrecision(
+        rootPredicatePrecision,
+        ImmutableSetMultimap.<LocationInstance, AbstractionPredicate>of(),
         localPredicates,
         functionPredicates,
         globalPredicates);
@@ -243,8 +244,9 @@ public class BAMPredicateReducer implements Reducer {
     /* the top-level-precision of the main-block */
     private final PredicatePrecision rootPredicatePrecision;
 
-    private ReducedPredicatePrecision(PredicatePrecision pRootPredicatePrecision,
-        ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocalInstPredicates,
+    private ReducedPredicatePrecision(
+        PredicatePrecision pRootPredicatePrecision,
+        ImmutableSetMultimap<LocationInstance, AbstractionPredicate> pLocalInstPredicates,
         ImmutableSetMultimap<CFANode, AbstractionPredicate> pLocalPredicates,
         ImmutableSetMultimap<String, AbstractionPredicate> pFunctionPredicates,
         ImmutableSet<AbstractionPredicate> pGlobalPredicates) {

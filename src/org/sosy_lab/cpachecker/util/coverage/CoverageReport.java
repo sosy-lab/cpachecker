@@ -30,6 +30,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -54,6 +57,12 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -124,14 +133,7 @@ public class CoverageReport {
     //Add information about existing locations
     for (CFANode node : pCfa.getAllNodes()) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        if (edge instanceof MultiEdge) {
-          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            handleExistedEdge(innerEdge, infosPerFile);
-          }
-        } else {
-          handleExistedEdge(edge, infosPerFile);
-        }
+        handleExistedEdge(node.getLeavingEdge(i), infosPerFile);
       }
     }
 
@@ -145,13 +147,15 @@ public class CoverageReport {
       if (argState != null ) {
         for (ARGState child : argState.getChildren()) {
           if (!child.isCovered()) {
-            CFAEdge edge = argState.getEdgeToChild(child);
-            if (edge instanceof MultiEdge) {
-              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+            List<CFAEdge> edges = argState.getEdgesToChild(child);
+            if (edges.size() > 1) {
+              for (CFAEdge innerEdge : edges) {
                 handleCoveredEdge(innerEdge, infosPerFile);
               }
-            } else {
-              handleCoveredEdge(edge, infosPerFile);
+
+              //BAM produces paths with no edge connection thus the list will be empty
+            } else if (!edges.isEmpty()) {
+              handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
             }
           }
         }
@@ -163,13 +167,7 @@ public class CoverageReport {
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
           if (reachedNodes.contains(edge.getSuccessor())) {
-            if (edge instanceof MultiEdge) {
-              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-                handleCoveredEdge(innerEdge, infosPerFile);
-              }
-            } else {
-              handleCoveredEdge(edge, infosPerFile);
-            }
+            handleCoveredEdge(edge, infosPerFile);
           }
         }
       }
@@ -209,11 +207,6 @@ public class CoverageReport {
   private void handleCoveredEdge(
       final CFAEdge pEdge,
       final Map<String, FileCoverageInformation> pCollectors) {
-
-    if (pEdge == null) {
-      //BAM is working
-      return;
-    }
 
     FileLocation loc = pEdge.getFileLocation();
     if (loc.getStartingLineNumber() == 0) {

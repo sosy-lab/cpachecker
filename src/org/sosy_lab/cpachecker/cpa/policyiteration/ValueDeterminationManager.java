@@ -9,12 +9,12 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashBasedTable;
@@ -227,7 +227,7 @@ public class ValueDeterminationManager {
         fmgr.renameFreeVariablesAndUFs(policyFormula.getFormula(), addPrefix);
 
     // Optimization.
-    if (!(namespacedPolicy.equals(bfmgr.makeBoolean(true))
+    if (!(bfmgr.isTrue(namespacedPolicy)
         || visited.contains(prefix))) {
       constraints.add(namespacedPolicy);
     }

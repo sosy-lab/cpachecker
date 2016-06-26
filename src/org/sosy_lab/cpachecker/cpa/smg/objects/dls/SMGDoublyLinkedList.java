@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-
-/**
- *
- */
 public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject {
 
   private final int minimumLength;
@@ -39,10 +36,11 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   private final int hfo;
   private final int nfo;
   private final int pfo;
+  private final int id = SMGValueFactory.getNewValue();
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
-    super(pSize, "dls", level);
+    super(pSize, "dls", level, SMGObjectKind.DLL);
 
     hfo = pHfo;
     nfo = pNfo;
@@ -51,7 +49,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   public SMGDoublyLinkedList(SMGDoublyLinkedList other) {
-    super(other.getSize(), other.getLabel(), other.getLevel());
+    super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.DLL);
 
     hfo = other.hfo;
     nfo = other.nfo;
@@ -64,7 +62,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
    */
   @Override
   public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return matchSpecificShape(pOther);
+    return pOther.getKind() == SMGObjectKind.DLL;
   }
 
   /* (non-Javadoc)
@@ -92,6 +90,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
     if (pfo != other.pfo) {
       return false;
     }
+
     return true;
   }
 
@@ -106,17 +105,18 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
-    super.isMoreGeneral(pOther);
 
-    if (pOther instanceof SMGDoublyLinkedList) {
-      return minimumLength < ((SMGDoublyLinkedList) pOther).getMinimumLength();
+    switch (pOther.getKind()) {
+      case REG:
+        return minimumLength < 2;
+      case OPTIONAL:
+        return minimumLength == 0;
+      case DLL:
+        return matchSpecificShape((SMGAbstractObject) pOther)
+            && minimumLength < ((SMGDoublyLinkedList) pOther).minimumLength;
+      default:
+        return false;
     }
-
-    if (pOther instanceof SMGRegion) {
-      return minimumLength > 0;
-    }
-
-    return false;
   }
 
   public int getHfo() {
@@ -136,52 +136,55 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
     int maxLevel = Math.max(getLevel(), pOther.getLevel());
 
-    if(pOther instanceof SMGDoublyLinkedList) {
+    switch (pOther.getKind()) {
+      case DLL:
 
-      SMGDoublyLinkedList otherLinkedList = (SMGDoublyLinkedList) pOther;
-      assert getSize() == otherLinkedList.getSize();
-      assert getHfo() == otherLinkedList.getHfo();
-      assert getNfo() == otherLinkedList.getNfo();
-      assert getPfo() == otherLinkedList.getPfo();
+        SMGDoublyLinkedList otherLinkedList = (SMGDoublyLinkedList) pOther;
+        assert matchSpecificShape(otherLinkedList);
 
-      int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
+        int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
 
-
-      if (pIncreaseLevel) {
-        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-            maxLevel + 1);
-      } else {
-
-        if (minimumLength == minlength && maxLevel == getLevel()) {
-          return this;
-        } else {
+        if (pIncreaseLevel) {
           return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel);
-        }
-      }
-
-    } else if(pOther instanceof SMGRegion) {
-      assert getSize() == pOther.getSize();
-
-      if(pIncreaseLevel) {
-        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 0, maxLevel + 1);
-      } else {
-        if (minimumLength == 0 && maxLevel == getLevel()) {
-          return this;
+              maxLevel + 1);
         } else {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), 0,
-              maxLevel);
-        }
-      }
 
-    } else {
-      throw new AssertionError();
+          if (minimumLength == minlength && maxLevel == getLevel()) {
+            return this;
+          } else {
+            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+                maxLevel);
+          }
+        }
+
+      case REG:
+      case OPTIONAL:
+        assert getSize() == pOther.getSize();
+
+        int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
+        minlength = Math.min(getMinimumLength(), otherLength);
+
+        if (pIncreaseLevel) {
+          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+              maxLevel + 1);
+        } else {
+          if (minlength == getMinimumLength() && maxLevel == getLevel()) {
+            return this;
+          } else {
+            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+                maxLevel);
+          }
+        }
+
+      default:
+        throw new IllegalArgumentException("join called on unjoinable Objects");
     }
   }
 
   @Override
   public String toString() {
-    return "DLL(size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo + ", len=" + minimumLength + ", level=" + getLevel() +")";
+    return "DLL(id=" + id + " size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo + ", pfo=" + pfo
+        + ", len=" + minimumLength + ", level=" + getLevel() + ")";
   }
 
   @Override

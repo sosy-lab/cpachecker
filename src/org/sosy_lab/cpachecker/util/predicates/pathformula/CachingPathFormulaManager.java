@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import com.google.common.collect.Multimap;
+
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,8 +35,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
-
-import com.google.common.collect.Multimap;
 
 import java.util.HashMap;
 import java.util.List;

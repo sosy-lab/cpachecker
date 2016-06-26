@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.bounds;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -40,10 +41,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 
 public class BoundsState implements AbstractState, Partitionable, AvoidanceReportingState {
 
@@ -259,24 +259,16 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
 
     @Override
     public int compareTo(ComparableLoop pOther) {
-
       // Compare by size
-      int sizeComp = loop.getLoopNodes().size() - pOther.loop.getLoopNodes().size();
+      int sizeComp = Integer.compare(loop.getLoopNodes().size(), pOther.loop.getLoopNodes().size());
       if (sizeComp != 0) {
         return sizeComp;
       }
 
       // If sizes are equal, compare lexicographically
-      Iterator<CFANode> selfIt = loop.getLoopNodes().iterator();
-      Iterator<CFANode> otherIt = pOther.loop.getLoopNodes().iterator();
-      while (selfIt.hasNext() && otherIt.hasNext()) {
-        int comp = selfIt.next().compareTo(otherIt.next());
-        if (comp != 0) {
-          return comp;
-        }
-      }
-      assert !selfIt.hasNext() && !otherIt.hasNext();
-      return 0;
+      return Ordering.<CFANode>natural()
+          .lexicographical()
+          .compare(loop.getLoopNodes(), pOther.loop.getLoopNodes());
     }
 
   }

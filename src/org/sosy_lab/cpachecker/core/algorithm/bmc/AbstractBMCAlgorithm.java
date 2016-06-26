@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -61,6 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
+import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -68,6 +71,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -79,11 +83,11 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
@@ -263,15 +267,19 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
            @SuppressWarnings("resource")
           KInductionProver kInductionProver = createInductionProver()) {
 
+        Set<CFANode> immediateLoopHeads = null;
+
         do {
           shutdownNotifier.shutdownIfNecessary();
 
           logger.log(Level.INFO, "Creating formula for program");
+          stats.bmcPreparation.start();
           status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+          stats.bmcPreparation.stop();
           if (from(reachedSet)
               .skip(1) // first state of reached is always an abstraction state, so skip it
-              .transform(toState(PredicateAbstractState.class))
-              .anyMatch(FILTER_ABSTRACTION_STATES)) {
+              .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
+              .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
 
             logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
             return status;
@@ -318,7 +326,12 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             // try to prove program safety via induction
             if (induction) {
               final int k = CPAs.retrieveCPA(cpa, BoundsCPA.class).getMaxLoopIterations();
-              sound = sound || kInductionProver.check(k, from(candidateGenerator).toSet());
+
+              if (immediateLoopHeads == null) {
+                immediateLoopHeads = getImmediateLoopHeads(reachedSet);
+              }
+              Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
+              sound = sound || kInductionProver.check(k, candidates, immediateLoopHeads);
               candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
             }
             if (invariantGenerator.isProgramSafe()
@@ -359,6 +372,39 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       throw e;
     } finally {
     }
+  }
+
+  /**
+   * Gets all loop heads in the reached set
+   * that were reached without unrolling any loops.
+   *
+   * @param pReachedSet the reached set.
+   * @return all loop heads in the reached set
+   * that were reached without unrolling any loops.
+   */
+  private Set<CFANode> getImmediateLoopHeads(ReachedSet pReachedSet) {
+    return AbstractStates.filterLocations(pReachedSet, getLoopHeads())
+        .filter(
+            new Predicate<AbstractState>() {
+
+              @Override
+              public boolean apply(AbstractState pLoopHeadState) {
+                BoundsState state =
+                    AbstractStates.extractStateByType(pLoopHeadState, BoundsState.class);
+                for (CFANode location : AbstractStates.extractLocations(pLoopHeadState)) {
+                  Set<Loop> loops = cfa.getLoopStructure().get().getLoopsForLoopHead(location);
+                  for (Loop loop : loops) {
+                    if (state.getIteration(loop) <= 1
+                        && state.getDeepestIterationLoops().equals(loops)) {
+                      return true;
+                    }
+                  }
+                }
+                return false;
+              }
+            })
+        .transformAndConcat(AbstractStates::extractLocations)
+        .toSet();
   }
 
   private void removeMissingStatesFromARG(ReachedSet pReachedSet) {

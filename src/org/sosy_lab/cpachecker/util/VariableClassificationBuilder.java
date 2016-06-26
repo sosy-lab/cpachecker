@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
@@ -37,15 +38,23 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -90,10 +99,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -115,6 +122,26 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -308,7 +335,7 @@ public class VariableClassificationBuilder {
     }
 
     if (dumpfile != null) { // option -noout
-      try (Writer w = Files.openOutputFile(dumpfile)) {
+      try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
         w.append("IntBool\n\n");
         w.append(intBoolVars.toString());
         w.append("\n\nIntEq\n\n");
@@ -334,7 +361,7 @@ public class VariableClassificationBuilder {
   }
 
   private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile, VariableClassification vc) {
-    try (Writer w = Files.openOutputFile(pDomainTypeStatisticsFile)) {
+    try (Writer w = MoreFiles.openOutputFile(pDomainTypeStatisticsFile, Charset.defaultCharset())) {
       try (PrintWriter p = new PrintWriter(w)) {
         Object[][] statMapping = {
               {"intBoolVars",           vc.getIntBoolVars().size()},
@@ -369,7 +396,7 @@ public class VariableClassificationBuilder {
   }
 
   private void dumpVariableTypeMapping(Path target, VariableClassification vc) {
-    try (Writer w = Files.openOutputFile(target)) {
+    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
         for (String var : allVars) {
           int type = 0;
           if (vc.getIntBoolVars().contains(var)) {
@@ -465,13 +492,8 @@ public class VariableClassificationBuilder {
 
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : leavingEdges(node)) {
-        Set<CFAEdge> edges = new HashSet<>(Collections.singleton(leavingEdge));
-
-        if (leavingEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-          edges.addAll(((MultiEdge)leavingEdge).getEdges());
-        }
-
-        for (AStatementEdge edge : Iterables.filter(edges, AStatementEdge.class)) {
+        if (leavingEdge instanceof AStatementEdge) {
+          AStatementEdge edge = (AStatementEdge) leavingEdge;
           if (!(edge.getStatement() instanceof CAssignment)) {
             continue;
           }
@@ -611,12 +633,6 @@ public class VariableClassificationBuilder {
       }
       break;
     }
-
-    case MultiEdge:
-      for (CFAEdge innerEdge : (MultiEdge) edge) {
-        handleEdge(innerEdge, cfa);
-      }
-      break;
 
     case BlankEdge:
     case CallToReturnEdge:
@@ -845,7 +861,7 @@ public class VariableClassificationBuilder {
 
         final VariableOrField lhsVariableOrField = lhs.accept(collectingLHSVisitor);
 
-        assignments.put(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
+        addVariableOrField(lhsVariableOrField, VariableOrField.newVariable(scopedRetVal));
 
       } else if (statement instanceof CFunctionCallStatement) {
         // f(); without assignment

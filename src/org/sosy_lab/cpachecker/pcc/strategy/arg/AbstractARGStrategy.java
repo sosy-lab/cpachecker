@@ -125,6 +125,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
       }
     }while (!isCheckComplete());
 
+    stats.increaseProofSize(pReachedSet.size()-1);
     return isCheckSuccessful();
   }
 

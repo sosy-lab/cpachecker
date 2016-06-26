@@ -25,16 +25,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,8 +40,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -57,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -79,7 +75,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -96,6 +92,18 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
@@ -217,7 +225,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.transformPath(allStatesTrace);
+    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
     final List<BooleanFormula> formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
@@ -254,11 +262,17 @@ public class PredicateStaticRefiner extends StaticRefiner
         predicateExtractionTime.stop();
       }
 
+      // Import for not forgetting predicates from initial precisions
+      PredicatePrecision basePrecision =
+          Precisions.extractPrecisionByType(
+              pReached.asReachedSet().getPrecision(root), PredicatePrecision.class);
+      PredicatePrecision newPrecision = basePrecision.mergeWith(heuristicPrecision);
+
       shutdownNotifier.shutdownIfNecessary();
       argUpdateTime.start();
       for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
         pReached.removeSubtree(
-            refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+            refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
       }
       argUpdateTime.stop();
 
@@ -295,9 +309,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       Deque<CFAEdge> edgesToHandle = Queues.newArrayDeque(CFAUtils.leavingEdges(u));
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
-        if (e instanceof MultiEdge) {
-          edgesToHandle.addAll(((MultiEdge) e).getEdges());
-        } else if (e instanceof CStatementEdge) {
+        if (e instanceof CStatementEdge) {
           CStatementEdge stmtEdge = (CStatementEdge) e;
           if (stmtEdge.getStatement() instanceof CAssignment) {
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
@@ -578,7 +590,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   }
 
   private void dumpAssumePredicate(Path target) {
-    try (Writer w = Files.openOutputFile(target)) {
+    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
       for (CFANode u : cfa.getAllNodes()) {
         for (CFAEdge e: CFAUtils.leavingEdges(u)) {
           if (e instanceof AssumeEdge) {

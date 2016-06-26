@@ -6,8 +6,6 @@ import com.google.common.base.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -15,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -29,14 +28,17 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 
 import java.util.Collection;
 import java.util.List;
@@ -44,7 +46,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 
-@Options(prefix="cpa.slicing")
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   implements
     ConfigurableProgramAnalysis,
@@ -52,39 +53,42 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     PrecisionAdjustment,
     StatisticsProvider, MergeOperator {
 
-  @Option(secure=true,
-      description="Cache formulas produced by path formula manager")
-  private boolean useCachingPathFormulaManager = true;
-
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final InductiveWeakeningManager inductiveWeakeningManager;
+  private final RCNFManager RCNFManager;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory,
       CFA cfa
   ) throws InvalidConfigurationException {
-    pConfiguration.inject(this);
-
     Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
+    PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
-    if (useCachingPathFormulaManager) {
-      pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
-    }
+    CachingPathFormulaManager pathFormulaManager = new CachingPathFormulaManager
+        (origPathFormulaManager);
 
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
         pShutdownNotifier);
+    RCNFManager = new RCNFManager(pConfiguration);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa,
-        inductiveWeakeningManager, solver, pShutdownNotifier);
+        pathFormulaManager,
+        formulaManager,
+        cfa,
+        inductiveWeakeningManager,
+        RCNFManager,
+        solver,
+        pLogger,
+        pReachedSetFactory,
+        pShutdownNotifier);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -156,12 +160,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Precision getInitialPrecision(CFANode node,
       StateSpacePartition partition) {
     // At the moment, precision is not used for formula slicing.
-    return new Precision() {
-      @SuppressWarnings("unchecked")
-      @Override
-      public Precision join(Precision pOther) {
-        return this;
-      }};
+    return SingletonPrecision.getInstance();
   }
 
   @Override
@@ -176,6 +175,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public void collectStatistics(Collection<Statistics> statsCollection) {
     manager.collectStatistics(statsCollection);
     inductiveWeakeningManager.collectStatistics(statsCollection);
+    RCNFManager.collectStatistics(statsCollection);
   }
 
   @Override

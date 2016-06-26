@@ -23,20 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -48,6 +44,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -66,23 +64,11 @@ public class PredicateAbstractionsWriter {
     this.fmgr = pFmMgr;
   }
 
-  private static final Predicate<AbstractState> IS_ABSTRACTION_STATE = new Predicate<AbstractState>() {
-    @Override
-    public boolean apply(AbstractState pArg0) {
-      PredicateAbstractState e = AbstractStates.extractStateByType(pArg0, PredicateAbstractState.class);
-      return e.isAbstractionState();
-    }
-  };
-
   private int getAbstractionId(ARGState state) {
-    PredicateAbstractState paState = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-    return paState.getAbstractionFormula().getId();
+    return PredicateAbstractState.getPredicateState(state).getAbstractionFormula().getId();
   }
 
   public void writeAbstractions(Path abstractionsFile, ReachedSet reached) {
-    if (reached.isEmpty()) {
-      return;
-    }
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -95,8 +81,9 @@ public class PredicateAbstractionsWriter {
 
     // Get list of all abstraction states in the set reached
     ARGState rootState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-    SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(rootState,
-        ARGUtils.CHILDREN_OF_STATE, IS_ABSTRACTION_STATE);
+    SetMultimap<ARGState, ARGState> successors =
+        ARGUtils.projectARG(
+            rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
 
     Set<ARGState> done = Sets.newHashSet();
     Deque<ARGState> worklist = Queues.newArrayDeque();
@@ -104,7 +91,7 @@ public class PredicateAbstractionsWriter {
     worklist.add(rootState);
 
     // Write abstraction formulas of the abstraction states to the file
-    try (Writer writer = Files.openOutputFile(abstractionsFile)) {
+    try (Writer writer = MoreFiles.openOutputFile(abstractionsFile, Charset.defaultCharset())) {
       while (!worklist.isEmpty()) {
         ARGState state = worklist.pop();
 
@@ -118,7 +105,7 @@ public class PredicateAbstractionsWriter {
         }
 
         // Abstraction formula
-        PredicateAbstractState predicateState = checkNotNull(extractStateByType(state, PredicateAbstractState.class));
+        PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);
         BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
 
         Pair<String, List<String>> p = splitFormula(fmgr, formula);

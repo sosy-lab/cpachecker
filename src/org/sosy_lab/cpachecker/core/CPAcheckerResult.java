@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -40,6 +41,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import java.io.PrintStream;
 
 import javax.annotation.Nullable;
 
@@ -63,6 +68,8 @@ public class CPAcheckerResult {
 
   private final @Nullable ReachedSet reached;
 
+  private final @Nullable CFA cfa;
+
   private final @Nullable Statistics stats;
 
   private @Nullable Statistics proofGeneratorStats = null;
@@ -71,12 +78,14 @@ public class CPAcheckerResult {
         PropertySummary pSummary,
         @Nullable AlgorithmResult pAlgResult,
         @Nullable ReachedSet reached,
+        @Nullable CFA cfa,
         @Nullable Statistics stats) {
 
     this.propertySummary = checkNotNull(pSummary);
     this.result = checkNotNull(pResult);
     this.algorithmResult = pAlgResult;
     this.reached = reached;
+    this.cfa = cfa;
     this.stats = stats;
   }
 
@@ -96,6 +105,13 @@ public class CPAcheckerResult {
    */
   public UnmodifiableReachedSet getReached() {
     return reached;
+  }
+
+  /**
+   * Return the CFA.
+   */
+  public CFA getCfa() {
+    return cfa;
   }
 
   public void addProofGeneratorStatistics(Statistics pProofGeneratorStatistics) {

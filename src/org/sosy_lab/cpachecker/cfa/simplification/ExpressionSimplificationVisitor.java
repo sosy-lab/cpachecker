@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.simplification;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -54,6 +50,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.logging.Level;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -190,6 +190,11 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       int size = machineModel.getSizeof(innerType);
       return new CIntegerLiteralExpression(expr.getFileLocation(),
               expr.getExpressionType(), BigInteger.valueOf(size));
+
+      case ALIGNOF:
+        int alignment = machineModel.getAlignof(innerType);
+        return new CIntegerLiteralExpression(
+            expr.getFileLocation(), expr.getExpressionType(), BigInteger.valueOf(alignment));
 
     default: // TODO support more operators
       return visitDefault(expr);

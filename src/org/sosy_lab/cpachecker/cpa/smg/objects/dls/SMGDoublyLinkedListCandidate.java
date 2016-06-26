@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 
-public class SMGDoublyLinkedListCandidate {
+public class SMGDoublyLinkedListCandidate implements SMGListCandidate {
 
   private final SMGObject startObject;
   private final int hfo;

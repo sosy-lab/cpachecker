@@ -120,7 +120,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     SMGJoin join;
 
     try {
-      join = new SMGJoin(heap, other.heap);
+      join = new SMGJoin(heap, other.heap, this.reconstructState(), other.reconstructState());
     } catch (SMGInconsistentException e) {
       throw new IllegalStateException("Can't join interpolants due to: " + e.getMessage());
     }

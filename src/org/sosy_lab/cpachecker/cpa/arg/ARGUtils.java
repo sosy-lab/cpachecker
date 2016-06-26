@@ -23,9 +23,11 @@
 */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Function;
@@ -55,12 +57,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -76,6 +79,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -122,7 +126,7 @@ public class ARGUtils {
   /**
    * Get all abstract states without parents.
    */
-  public static Set<ARGState> getRootStates(ReachedSet pReached) {
+  public static Set<ARGState> getRootStates(UnmodifiableReachedSet pReached) {
 
     Set<ARGState> result = Sets.newLinkedHashSet();
 
@@ -187,16 +191,15 @@ public class ARGUtils {
     states.add(currentARGState);
     seenElements.add(currentARGState);
 
-    Collection<PathPosition> tracePrefixesToAvoid = Collections2.transform(pOtherPathThan,
-        new Function<ARGPath, PathPosition>() {
-          @Override
-          public PathPosition apply(ARGPath pArg0) {
-            PathPosition result = pArg0.reversePathIterator().getPosition();
-            CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
-            Verify.verify(result.getLocation().equals(expectedPostfixLoc));
-            return result;
-          }
-    });
+    Collection<PathPosition> tracePrefixesToAvoid =
+        Collections2.transform(
+            pOtherPathThan,
+            pArg0 -> {
+              PathPosition result = pArg0.reversePathIterator().getPosition();
+              CFANode expectedPostfixLoc = AbstractStates.extractLocation(pEndState);
+              Verify.verify(result.getLocation().equals(expectedPostfixLoc));
+              return result;
+            });
 
     // Get all traces from pTryCoverOtherStatesThan that start at the same location
     tracePrefixesToAvoid = getTracePrefixesBeforePostfix(tracePrefixesToAvoid, currentLocation);
@@ -290,57 +293,25 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  public static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
-        @Override
-        public Collection<ARGState> apply(ARGState pInput) {
-          return pInput.getChildren();
-        }
-      };
+  private static final Predicate<CFANode> IS_RELEVANT_LOCATION =
+      pInput ->
+          pInput.isLoopStart()
+              || pInput instanceof FunctionEntryNode
+              || pInput instanceof FunctionExitNode;
 
-  public static final Function<ARGState, Collection<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
-        @Override
-        public Collection<ARGState> apply(ARGState pInput) {
-          return pInput.getParents();
-        }
-      };
+  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION =
+      nodes -> Iterables.any(nodes, IS_RELEVANT_LOCATION);
 
-  private static final Predicate<CFANode> IS_RELEVANT_LOCATION = new Predicate<CFANode>() {
-    @Override
-    public boolean apply(CFANode pInput) {
-      return pInput.isLoopStart()
-          || pInput instanceof FunctionEntryNode
-          || pInput instanceof FunctionExitNode;
-    }
-  };
-
-  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION = new Predicate<Iterable<CFANode>>() {
-    @Override
-    public boolean apply(Iterable<CFANode> nodes) {
-      return Iterables.any(nodes, IS_RELEVANT_LOCATION);
-    }
-  };
-
-  public static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
-      CONTAINS_RELEVANT_LOCATION,
-      AbstractStates.EXTRACT_LOCATIONS);
+  private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
+      Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
-  public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
-      AbstractStates.IS_TARGET_STATE,
-      AT_RELEVANT_LOCATION,
-      new Predicate<ARGState>() {
-          @Override
-          public boolean apply(ARGState pInput) {
-            return !pInput.wasExpanded();
-          }
-        },
-      new Predicate<ARGState>() {
-          @Override
-          public boolean apply(ARGState pInput) {
-            return pInput.shouldBeHighlighted();
-          }
-        }
-      );
+  static final Predicate<ARGState> RELEVANT_STATE =
+      Predicates.or(
+          AbstractStates.IS_TARGET_STATE,
+          AT_RELEVANT_LOCATION,
+          pInput -> !pInput.wasExpanded(),
+          ARGState::shouldBeHighlighted);
 
   /**
    * Project the ARG to a subset of "relevant" states.
@@ -378,11 +349,8 @@ public class ARGUtils {
 
     checkArgument(pArg.contains(pRoot));
 
-    List<ARGState> states = new ArrayList<>();
-    List<CFAEdge> edges = new ArrayList<>();
-
+    ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = pRoot;
-
     while (!currentElement.isTarget()) {
       Collection<ARGState> children = currentElement.getChildren();
 
@@ -468,18 +436,12 @@ public class ARGUtils {
         throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
-      states.add(currentElement);
-
       Preconditions.checkState(edge != null, "No 'null' edges are allowed along an ARGPath!");
-      edges.add(edge);
-
+      builder.add(currentElement, edge);
       currentElement = child;
     }
 
-    // add last state
-    states.add(currentElement);
-
-    return new ARGPath(states, edges);
+    return builder.build(currentElement);
   }
 
   /**
@@ -637,40 +599,41 @@ public class ARGUtils {
         }
 
         if (pPathStates.contains(child)) {
-          CFAEdge edge = s.getEdgeToChild(child);
-          if (edge instanceof MultiEdge) {
+          List<CFAEdge> allEdges = s.getEdgesToChild(child);
+          CFAEdge edge;
+
+          if (allEdges.size() == 1) {
+            edge = Iterables.getOnlyElement(allEdges);
+
+            // this is a dynamic multi edge
+          } else {
             // The successor state might have several incoming MultiEdges.
             // In this case the state names like ARG<successor>_0 would occur
             // several times.
             // So we add this counter to the state names to make them unique.
             multiEdgeCount++;
 
-            // Write out a long linear chain of pseudo-states
-            // because the AutomatonCPA also iterates through the MultiEdge.
-            List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
-
             // first, write edge entering the list
             int i = 0;
             sb.append("    MATCH \"");
-            escape(edges.get(i).getRawStatement(), sb);
+            escape(allEdges.get(i).getRawStatement(), sb);
             sb.append("\" -> ");
             sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
             sb.append(";\n");
 
             // inner part (without first and last edge)
-            for (; i < edges.size()-1; i++) {
+            for (; i < allEdges.size() - 1; i++) {
               sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
               sb.append("    MATCH \"");
-              escape(edges.get(i).getRawStatement(), sb);
+              escape(allEdges.get(i).getRawStatement(), sb);
               sb.append("\" -> ");
               sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
               sb.append(";\n");
             }
 
             // last edge connecting it with the real successor
-            edge = edges.get(i);
+            edge = allEdges.get(i);
             sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
-            // remainder is written by code below
           }
 
           handleMatchCase(sb, edge);
@@ -700,6 +663,8 @@ public class ARGUtils {
    * point.
    * If there is a target state, it is signaled as an error state in the automaton.
    *
+   * This method does not work if the path has recursive elements.
+   *
    * @param sb Where to write the automaton to
    * @param pRootState The root of the ARG
    * @param pPathStates The states along the path
@@ -716,10 +681,28 @@ public class ARGUtils {
 
     ARGState inLoopState = null;
     ARGState outLoopState = null;
+    ARGState inFunctionState = null;
+    ARGState outFunctionState = null;
     Map<ARGState, ARGState> inToOutLoopMap = new HashMap<>();
-    CFANode inLoopNode = null;
-    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
+    Map<ARGState, ARGState> inToOutFunctionsMap = new HashMap<>();
 
+    CFANode inLoopNode = null;
+    CFANode inFunctionNode = null;
+
+    ImmutableList<ARGState> sortedStates = Ordering.natural().immutableSortedCopy(pPathStates);
+
+    LinkedList<String> sortedFunctionOccurrence = new LinkedList<>();
+    for (ARGState s : sortedStates) {
+      CFANode node = extractLocation(s);
+      if (!sortedFunctionOccurrence.isEmpty()
+          && sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
+        continue;
+      } else {
+        sortedFunctionOccurrence.add(node.getFunctionName());
+      }
+    }
+
+    for (ARGState s : sortedStates) {
       CFANode loc = AbstractStates.extractLocation(s);
 
       boolean loopFound = false;
@@ -742,12 +725,41 @@ public class ARGUtils {
                  && !inLoopNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
         continue;
 
+        // function call in the path we want to uproll
+      } else if (!loopFound
+          && inLoopNode == null
+          && loc.getLeavingSummaryEdge() != null
+          && inFunctionState == null
+          // we have found the function where the error is, as we do not support
+          // direct and indirect recursion we know that we can skip all other function
+          // calls right now
+          && sortedFunctionOccurrence.getFirst().equals(sortedFunctionOccurrence.getLast())
+          && sortedFunctionOccurrence.size() > 1) {
+        inFunctionState = s;
+        inFunctionNode = extractLocation(inFunctionState);
+        outFunctionState = null;
+
+      } else if (inFunctionNode != null
+          // as long as we are in the other function we can just continue, this
+          // is handled later on
+          && !inFunctionNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
+        continue;
+
       } else if (!loopFound) {
         if (inLoopState != null && outLoopState == null) {
           outLoopState = s;
           inToOutLoopMap.put(inLoopState, outLoopState);
           inLoopNode = null;
           inLoopState = null;
+        }
+        if (inFunctionState != null && outFunctionState == null) {
+          outFunctionState = s;
+          inToOutFunctionsMap.put(inFunctionState, outFunctionState);
+          inFunctionNode = null;
+          inFunctionState = null;
+        }
+        if (!sortedFunctionOccurrence.getFirst().equals(extractLocation(s).getFunctionName())) {
+          sortedFunctionOccurrence.removeFirst();
         }
 
         sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
@@ -762,40 +774,41 @@ public class ARGUtils {
             }
 
             if (pPathStates.contains(child)) {
-              CFAEdge edge = s.getEdgeToChild(child);
-              if (edge instanceof MultiEdge) {
+              List<CFAEdge> allEdges = s.getEdgesToChild(child);
+              CFAEdge edge;
+
+              if (allEdges.size() == 1) {
+                edge = Iterables.getOnlyElement(allEdges);
+
+                // this is a dynamic multi edge
+              } else {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
                 // several times.
                 // So we add this counter to the state names to make them unique.
                 multiEdgeCount++;
 
-                // Write out a long linear chain of pseudo-states
-                // because the AutomatonCPA also iterates through the MultiEdge.
-                List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
-
                 // first, write edge entering the list
                 int i = 0;
                 sb.append("    MATCH \"");
-                escape(edges.get(i).getRawStatement(), sb);
+                escape(allEdges.get(i).getRawStatement(), sb);
                 sb.append("\" -> ");
                 sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
                 sb.append(";\n");
 
                 // inner part (without first and last edge)
-                for (; i < edges.size()-1; i++) {
+                for (; i < allEdges.size() - 1; i++) {
                   sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
                   sb.append("    MATCH \"");
-                  escape(edges.get(i).getRawStatement(), sb);
+                  escape(allEdges.get(i).getRawStatement(), sb);
                   sb.append("\" -> ");
                   sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
                   sb.append(";\n");
                 }
 
                 // last edge connecting it with the real successor
-                edge = edges.get(i);
+                edge = allEdges.get(i);
                 sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
-                // remainder is written by code below
               }
 
               handleMatchCase(sb, edge);
@@ -820,12 +833,41 @@ public class ARGUtils {
       handleLoop(sb, loopsToUproll, intoLoopState, outOfLoopState);
     }
 
+    for (Entry<ARGState, ARGState> entry : inToOutFunctionsMap.entrySet()) {
+      ARGState intoFunctionState = entry.getKey();
+      ARGState outOfFunctionState = entry.getValue();
+      handleFunctionCall(sb, intoFunctionState, outOfFunctionState);
+    }
+
     // last loop encountered has no outgoing edge
     if (inLoopState != null) {
       handleLoop(sb, loopsToUproll, inLoopState, null);
     }
 
     sb.append("END AUTOMATON\n");
+  }
+
+  private static void handleFunctionCall(Appendable sb, ARGState callState, ARGState returnState)
+      throws IOException {
+    FunctionSummaryEdge sumEdge = extractLocation(callState).getLeavingSummaryEdge();
+    CFANode sumEdgePredecessor = sumEdge.getPredecessor();
+
+    sb.append("STATE USEFIRST ARG")
+        .append(Integer.toString(callState.getStateId()))
+        .append(" :\n")
+        .append("    TRUE -> ");
+    handleGotoNode(sb, sumEdgePredecessor, true);
+
+    handleUseFirstNode(sb, sumEdgePredecessor, true);
+
+    sb.append("    ( CHECK(location, \"functionname==")
+        .append(sumEdgePredecessor.getFunctionName())
+        .append("\")) -> ");
+    handleGotoArg(sb, returnState); // edge from function back to path
+
+    sb.append("    TRUE -> ");
+    handleGotoNode(sb, sumEdgePredecessor, true);
+    sb.append("\n");
   }
 
   private static void handleLoop(Appendable sb, Set<Loop> loopsToUproll, ARGState intoLoopState,
@@ -854,23 +896,8 @@ public class ARGUtils {
       for(CFAEdge edge : leavingEdges(curNode)) {
         CFANode edgeSuccessor = edge.getSuccessor();
 
-        // make path out of multiedges
-        if (edge instanceof MultiEdge) {
-          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            CFANode innerSuccessor = innerEdge.getSuccessor();
-
-            handleMatchCase(sb, innerEdge);
-            handlePossibleOutOfLoopSuccessor(sb, intoLoopState, loopHead, innerSuccessor);
-
-            // only inner edges should be handled here
-            if (innerSuccessor != edgeSuccessor) {
-              handleUseFirstNode(sb, innerSuccessor, false);
-            }
-          }
-          nodesToHandle.offer(edgeSuccessor);
-
         // skip function calls
-        } else  if (edge instanceof FunctionCallEdge) {
+        if (edge instanceof FunctionCallEdge) {
           FunctionSummaryEdge sumEdge = ((FunctionCallEdge) edge).getSummaryEdge();
           CFANode sumEdgeSuccessor = sumEdge.getSuccessor();
 

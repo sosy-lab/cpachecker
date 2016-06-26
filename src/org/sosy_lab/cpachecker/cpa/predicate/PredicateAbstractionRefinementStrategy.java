@@ -23,10 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -47,8 +64,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -101,6 +117,19 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multiset.Entry;
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class provides the refinement strategy for the classical predicate
@@ -497,35 +526,35 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     PredicatePrecision newPrecision;
     switch (predicateSharing) {
-      case GLOBAL:
-        newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
-        break;
-      case SCOPE:
-        Set<AbstractionPredicate> globalPredicates = new HashSet<>();
-        ListMultimap<LocationInstance, AbstractionPredicate> localPredicates =
-            ArrayListMultimap.create();
+    case GLOBAL:
+      newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
+      break;
+    case SCOPE:
+      Set<AbstractionPredicate> globalPredicates = new HashSet<>();
+      ListMultimap<LocationInstance, AbstractionPredicate> localPredicates =
+          ArrayListMultimap.create();
 
         splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
 
-        newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
-        newPrecision =
-            newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates.entries()));
+      newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
+      newPrecision =
+          newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates.entries()));
 
-        break;
-      case FUNCTION:
-        newPrecision =
-            basePrecision.addFunctionPredicates(
-                mergePredicatesPerFunction(newPredicates.entries()));
-        break;
-      case LOCATION:
-        newPrecision =
-            basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
-        break;
-      case LOCATION_INSTANCE:
-        newPrecision = basePrecision.addLocationInstancePredicates(newPredicates.entries());
-        break;
-      default:
-        throw new AssertionError();
+      break;
+    case FUNCTION:
+      newPrecision =
+          basePrecision.addFunctionPredicates(
+              mergePredicatesPerFunction(newPredicates.entries()));
+      break;
+    case LOCATION:
+      newPrecision =
+          basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
+      break;
+    case LOCATION_INSTANCE:
+      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates.entries());
+      break;
+    default:
+      throw new AssertionError();
     }
 
 
@@ -536,7 +565,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = dumpPredicatesFile.getPath(precisionUpdate.getUpdateCount());
-      try (Writer w = Files.openOutputFile(precFile)) {
+      try (Writer w = MoreFiles.openOutputFile(precFile, Charset.defaultCharset())) {
         precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),
             ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
@@ -661,22 +690,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
-
-    PredicatePrecision newPrecision = PredicatePrecision.empty();
-
-    // find all distinct precisions to merge them
-    Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        // covered states are not in reached set
-        precisions.add(reached.getPrecision(state));
-      }
-    }
-
-    for (Precision prec : precisions) {
-      newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
-    }
-    return newPrecision;
+    return PredicatePrecision.unionOf(
+        from(refinementRoot.getSubgraph())
+            .filter(not(ARGState::isCovered))
+            .transform(reached::getPrecision));
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
@@ -718,8 +735,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return from(predicates)
         .transform(
             new Function<
-                            Map.Entry<LocationInstance, AbstractionPredicate>,
-                            Map.Entry<String, AbstractionPredicate>>() {
+                Map.Entry<LocationInstance, AbstractionPredicate>,
+                Map.Entry<String, AbstractionPredicate>>() {
               @Override
               public Map.Entry<String, AbstractionPredicate> apply(
                   Map.Entry<LocationInstance, AbstractionPredicate> pInput) {
@@ -742,5 +759,4 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
               }
             });
   }
-
 }

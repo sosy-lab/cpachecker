@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -49,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -82,11 +79,13 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
@@ -111,15 +110,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
   private NumeralFormula<CompoundInterval> allPossibleValues(Type pType) {
-    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pType);
+    TypeInfo typeInfo = BitVectorInfo.from(machineModel, pType);
     return InvariantsFormulaManager.INSTANCE.asConstant(
-        bitVectorInfo,
-        getCompoundIntervalManager(bitVectorInfo).allPossibleValues());
+        typeInfo, getCompoundIntervalManager(typeInfo).allPossibleValues());
   }
 
   @Override
@@ -187,12 +185,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     case StatementEdge:
       state = handleStatement(state, (CStatementEdge) pEdge, pPrecision);
       break;
-    case MultiEdge:
-      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-      while (state != null && edgeIterator.hasNext()) {
-        state = getSuccessor(edgeIterator.next(), pPrecision, state);
-      }
-      break;
     default:
       throw new UnrecognizedCFAEdgeException(pEdge);
     }
@@ -243,6 +235,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
+    if (decl.getType().isIncomplete()) {
+      // Variables of such types cannot store values, only their address can be taken.
+      // We can ignore them.
+      return pElement;
+    }
+
+    // Ignore unsupported types
+    if (!BitVectorInfo.isSupported(decl.getType())) {
+      return pElement;
+    }
 
     MemoryLocation varName = MemoryLocation.valueOf(decl.getName());
     if (!decl.isGlobal()) {
@@ -312,7 +314,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   private NumeralFormula<CompoundInterval> toConstant(
       NumeralFormula<CompoundInterval> pFormula,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getBitVectorInfo(), evaluate(pFormula, pEnvironment));
+    return InvariantsFormulaManager.INSTANCE.asConstant(
+        pFormula.getTypeInfo(), evaluate(pFormula, pEnvironment));
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
@@ -342,10 +345,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (functionNameExpression instanceof CIdExpression) {
           CIdExpression idExpression = (CIdExpression) functionNameExpression;
           if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-            BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
-            value = InvariantsFormulaManager.INSTANCE.asConstant(
-                bitVectorInfo,
-                getCompoundIntervalManager(bitVectorInfo).singleton(0).extendToMaxValue());
+            TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
+            value =
+                InvariantsFormulaManager.INSTANCE.asConstant(
+                    typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
           }
         }
       }
@@ -367,7 +370,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     if (pPrecision.getMaximumFormulaDepth() == 0) {
       CompoundInterval v = evaluate(pValue, pElement.getEnvironment());
       if (v.isSingleton()) {
-        value = InvariantsFormulaManager.INSTANCE.asConstant(value.getBitVectorInfo(), v);
+        value = InvariantsFormulaManager.INSTANCE.asConstant(value.getTypeInfo(), v);
       } else {
         value = allPossibleValues(pLeftHandSide.getExpressionType());
       }
@@ -511,20 +514,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     CFAEdge edge = pCfaEdge;
-    if (edge instanceof MultiEdge) {
-      for (CFAEdge subEdge : ((MultiEdge) edge)) {
-        InvariantsState current = state;
-        Collection<? extends AbstractState> next = strengthen(state, pOtherElements, subEdge, pPrecision);
-        if (next == null) {
-          state = current;
-        } else if (next.isEmpty()) {
-          return next;
-        } else {
-          state = (InvariantsState) Iterables.getOnlyElement(next);
-        }
-      }
-      return Collections.singleton(state);
-    }
     CLeftHandSide leftHandSide = getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference && ((CFieldReference) leftHandSide).isPointerDereference()) {
       FluentIterable<PointerState> pointerStates = FluentIterable.from(pOtherElements).filter(PointerState.class);

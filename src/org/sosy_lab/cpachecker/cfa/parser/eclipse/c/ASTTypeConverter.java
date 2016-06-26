@@ -96,7 +96,7 @@ class ASTTypeConverter {
     filePrefix = pFilePrefix;
     niceFileNameFunction = pNiceFileNameFunction;
     if (!typeConversions.containsKey(filePrefix)) {
-      typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
+      typeConversions.put(filePrefix, new IdentityHashMap<>());
     }
   }
 

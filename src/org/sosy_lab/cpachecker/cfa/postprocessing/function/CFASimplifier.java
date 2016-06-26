@@ -24,14 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.Iterables.addAll;
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.predecessorsOf;
+import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Predicates;
 
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -39,10 +35,16 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Predicates;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 public class CFASimplifier {
@@ -73,7 +75,7 @@ public class CFASimplifier {
     // Inner branches need to be eliminated first.
 
     // The list of all branching points in this function.
-    final Deque<CFANode> branchingPoints = findBranchingPoints(root);
+    final Deque<CFANode> branchingPoints = findBranchingPoints(root, cfa);
     assert branchingPoints.size() == new HashSet<>(branchingPoints).size()
         : "branchingPoints contains duplicate CFANode " + branchingPoints;
 
@@ -91,7 +93,40 @@ public class CFASimplifier {
    * @param root The entry point of the CFA.
    * @return A queue of CFANodes that are branching points, in post order.
    */
-  private static Deque<CFANode> findBranchingPoints(final CFANode root) {
+  private static Deque<CFANode> findBranchingPoints(final CFANode root, MutableCFA cfa) {
+
+    // at first we check if there is at least one branching with following blank
+    // edges, if not we can immediately return an empty list as it is not possible
+    // to reduce anything then, later on (when we have found at least one such case)
+    // it is enough to have an AssumeEdge or a BlankEdge following, as due to
+    // changing one part of the code other part might then also be changeable
+
+    boolean foundAtLeastOneBlankEdgeAssume = false;
+    for (CFANode node : cfa.getFunctionNodes(root.getFunctionName())) {
+      if (node.getNumLeavingEdges() == 2) {
+        CFAEdge edge1 = node.getLeavingEdge(0);
+        CFAEdge edge2 = node.getLeavingEdge(1);
+        if (edge1 instanceof AssumeEdge && edge2 instanceof AssumeEdge) {
+          CFANode succ1 = edge1.getSuccessor();
+          CFANode succ2 = edge2.getSuccessor();
+          foundAtLeastOneBlankEdgeAssume =
+              succ1.getNumLeavingEdges() == 1
+                  && succ1.getLeavingEdge(0) instanceof BlankEdge
+                  && succ2.getNumLeavingEdges() == 1
+                  && succ2.getLeavingEdge(0) instanceof BlankEdge;
+        }
+      }
+
+      // shortcut, no further search needed
+      if (foundAtLeastOneBlankEdgeAssume) {
+        break;
+      }
+    }
+
+    if (!foundAtLeastOneBlankEdgeAssume) {
+      return new ArrayDeque<>();
+    }
+
     // The order is important: branching points at the beginning need to come first,
     // (similar to reverse post order).
     // Thus we iterate through the CFA and visit each sucessor only
@@ -118,13 +153,32 @@ public class CFASimplifier {
           }
           assert CFAUtils.allLeavingEdges(current).allMatch(Predicates.instanceOf(AssumeEdge.class));
 
-          branchingPoints.addLast(current);
+          boolean firstNodeQualifies =
+              nodeQualifiesForPossibleRemoval(current.getLeavingEdge(0).getSuccessor());
+          boolean secondNodeQualifies =
+              nodeQualifiesForPossibleRemoval(current.getLeavingEdge(1).getSuccessor());
+          if (firstNodeQualifies && secondNodeQualifies) {
+            branchingPoints.addLast(current);
+          }
         }
 
         addAll(waitlist, successorsOf(current));
       }
     }
     return branchingPoints;
+  }
+
+  private static boolean nodeQualifiesForPossibleRemoval(CFANode node) {
+    int numLeavingEdges = node.getNumLeavingEdges();
+
+    if (numLeavingEdges == 1) {
+      return node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.BlankEdge;
+    } else if (numLeavingEdges == 2) {
+      return node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge
+          && node.getLeavingEdge(1).getEdgeType() == CFAEdgeType.AssumeEdge;
+    }
+
+    return false;
   }
 
   /**

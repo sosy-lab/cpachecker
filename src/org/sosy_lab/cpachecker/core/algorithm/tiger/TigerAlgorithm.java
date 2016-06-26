@@ -39,10 +39,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.WeavingLocation;
@@ -102,7 +100,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -131,15 +128,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -360,6 +356,7 @@ public class TigerAlgorithm
   private final Configuration config;
   private final LogManager logger;
   final private ShutdownManager mainShutdownManager;
+  private final MainCPAStatistics mainStats;
   private final CFA cfa;
 
   private ConfigurableProgramAnalysis cpa;
@@ -388,7 +385,6 @@ public class TigerAlgorithm
   private Prediction[] lGoalPrediction;
 
   private String programDenotation;
-  private MainCPAStatistics stats;
   private int testCaseId = 0;
 
   private Map<Goal, List<List<BooleanFormula>>> targetStateFormulas;
@@ -398,15 +394,16 @@ public class TigerAlgorithm
 
   private final ReachedSetFactory reachedSetFactory;
 
-  public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+  public TigerAlgorithm(
+      Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownManager pShutdownManager, CFA pCfa, Configuration pConfig, LogManager pLogger,
-      String pProgramDenotation, @Nullable final MainCPAStatistics pStatistics, ReachedSetFactory pReachedSetFactory)
+      String pProgramDenotation, ReachedSetFactory pReachedSetFactory, MainCPAStatistics pMainStats)
           throws InvalidConfigurationException {
 
     reachedSetFactory = pReachedSetFactory;
     programDenotation = pProgramDenotation;
-    stats = pStatistics;
     statCpuTime = new StatCpuTime();
+    mainStats = pMainStats;
 
     mainShutdownManager = pShutdownManager;
     logger = pLogger;
@@ -561,8 +558,8 @@ public class TigerAlgorithm
 
   private void dumpTestSuite() {
     if (testsuiteFile != null) {
-      try (Writer writer =
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
+
+      try (Writer writer = MoreFiles.openOutputFile(testsuiteFile, Charset.defaultCharset())) {
         writer.write(testsuite.toString());
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -851,9 +848,9 @@ public class TigerAlgorithm
             final Set<Pair<ARGState, ARGState>> allTargetPathEdges = Sets.newLinkedHashSet();
             allTargetPathEdges.addAll(pTestcase.getArgPath().getStatePairs());
 
-            try (Writer w = Files.openOutputFile(argFile)) {
+            try (Writer w = MoreFiles.openOutputFile(argFile, Charset.defaultCharset())) {
               ARGToDotWriter.write(w, (ARGState) reachedSet.getFirstState(),
-                  ARGUtils.CHILDREN_OF_STATE,
+                  ARGState::getChildren,
                   Predicates.alwaysTrue(),
                   Predicates.in(allTargetPathEdges));
             } catch (IOException e) {
@@ -910,7 +907,7 @@ public class TigerAlgorithm
     Refiner refiner = this.refiner;
 
     if (refiner instanceof PredicateCPARefiner) {
-      final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.transformPath(pPath);
+      final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(pPath);
       formulas = ((PredicateCPARefiner) refiner).createFormulasOnPath(pPath, abstractionStatesTrace);
     }
 
@@ -1263,7 +1260,7 @@ public class TigerAlgorithm
 
         CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier.getNotifier());
 
-        algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
+        algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, mainStats);
 
         if (algorithm instanceof CEGARAlgorithm) {
           CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
@@ -1484,7 +1481,7 @@ public class TigerAlgorithm
       return;
     }
 
-    try (Writer w = Files.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()))) {
+    try (Writer w = MoreFiles.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()), Charset.defaultCharset())) {
 
       pA.writeDotFile(w);
 
@@ -1646,8 +1643,7 @@ public class TigerAlgorithm
 
     // write test case generation times to file system
     if (testcaseGenerationTimesFile != null) {
-      try (Writer writer = new BufferedWriter(
-          new OutputStreamWriter(new FileOutputStream(testcaseGenerationTimesFile.getAbsolutePath()), "utf-8"))) {
+      try (Writer writer = MoreFiles.openOutputFile(testcaseGenerationTimesFile, Charset.defaultCharset())) {
 
         List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
         Collections.sort(testcases, new Comparator<TestCase>() {
@@ -1722,8 +1718,7 @@ public class TigerAlgorithm
         }
       }
 
-      try (Writer writer =
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(pathFormulaFile.getAbsolutePath()), "utf-8"))) {
+      try (Writer writer = MoreFiles.openOutputFile(pathFormulaFile, Charset.defaultCharset())) {
         writer.write(buffer.toString());
       } catch (IOException e) {
         throw new RuntimeException(e);

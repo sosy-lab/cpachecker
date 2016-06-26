@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import static org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.createStaticPrecision;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,11 +48,9 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 
 public class OctagonAnalysisFeasabilityChecker {
 
@@ -104,7 +104,8 @@ public class OctagonAnalysisFeasabilityChecker {
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
     UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet(), false);
 
-    return FluentIterable.from(useDefRelation.getUsesAsQualifiedName()).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
+    return FluentIterable.from(useDefRelation.getUsesAsQualifiedName())
+        .transform(MemoryLocation::valueOf);
   }
 
   /**

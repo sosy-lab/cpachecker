@@ -23,8 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -33,6 +48,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -74,6 +90,9 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   private final int stateId;
 
   @Nullable private Integer stateLevel;
+
+  // If this is a target state, we may store additional information here.
+  private transient CounterexampleInfo counterexample;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
@@ -170,6 +189,40 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
     // there is no edge
     return null;
+  }
+
+  /**
+   * Returns the edges from the current state to the child state, or an empty list
+   * if there is no path between both states.
+   */
+  public List<CFAEdge> getEdgesToChild(ARGState pChild) {
+    CFAEdge singleEdge = getEdgeToChild(pChild);
+
+    // no direct connection, this is only possible for ARG holes during dynamic
+    // multiedges, it is guaranteed that there is exactly one path and no other
+    // leaving edges from the parent to the child
+    if (singleEdge == null) {
+      List<CFAEdge> allEdges = new ArrayList<>();
+      CFANode currentLoc = AbstractStates.extractLocation(this);
+      final Iterable<CFANode> childLocs = AbstractStates.extractWeavedOnLocations(pChild);
+      final CFANode childLoc = Iterables.getOnlyElement(childLocs);
+
+      // TODO: as: check if this works for weaving!!!
+
+      while (!currentLoc.equals(childLoc)) {
+        // we didn't find a proper connection to the child so we return an empty list
+        if (currentLoc.getNumLeavingEdges() != 1) {
+          return Collections.emptyList();
+        }
+
+        final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+        allEdges.add(leavingEdge);
+        currentLoc = leavingEdge.getSuccessor();
+      }
+      return allEdges;
+    } else {
+      return Collections.singletonList(singleEdge);
+    }
   }
 
   public Set<ARGState> getSubgraph() {
@@ -288,6 +341,30 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     signalStateRelationshipChange();
   }
 
+  // counterexample
+
+  /**
+   * Store additional information about the counterexample that leads to this target state.
+   */
+  public void addCounterexampleInformation(CounterexampleInfo pCounterexample) {
+    checkState(counterexample == null);
+    checkArgument(isTarget());
+    checkArgument(!pCounterexample.isSpurious());
+    // With BAM, the targetState and the last state of the path
+    // may actually be not identical.
+    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
+    counterexample = pCounterexample;
+  }
+
+  /**
+   * Get additional information about the counterexample that is associated with this target state,
+   * if present.
+   */
+  public Optional<CounterexampleInfo> getCounterexampleInformation() {
+    checkState(isTarget());
+    return Optional.fromNullable(counterexample);
+  }
+
   // small and less important stuff
 
   public int getStateId() {
@@ -376,15 +453,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return from(elements).transform(TO_STATE_ID);
+    return from(elements).transform(ARGState::getStateId);
   }
-
-  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
-    @Override
-    public Integer apply(ARGState pInput) {
-      return pInput.stateId;
-    }
-  };
 
   // removal from ARG
 

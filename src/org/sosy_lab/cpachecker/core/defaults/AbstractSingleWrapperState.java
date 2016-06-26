@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -47,19 +46,9 @@ import com.google.common.collect.ImmutableList;
 public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
-  private static final Function<AbstractState, AbstractState> unwrapFunction
-      = new Function<AbstractState, AbstractState>() {
-
-    @Override
-    public AbstractState apply(AbstractState pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof AbstractSingleWrapperState);
-
-      return ((AbstractSingleWrapperState)pArg0).getWrappedState();
-    }
-  };
 
   public static Function<AbstractState, AbstractState> getUnwrapFunction() {
-    return unwrapFunction;
+    return pArg0 -> ((AbstractSingleWrapperState)pArg0).getWrappedState();
   }
 
   private final AbstractState wrappedState;

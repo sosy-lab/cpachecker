@@ -37,11 +37,11 @@ public interface CompoundInterval {
 
   boolean hasUpperBound();
 
-  BigInteger getLowerBound();
+  Number getLowerBound();
 
-  BigInteger getUpperBound();
+  Number getUpperBound();
 
-  BigInteger getValue();
+  Number getValue();
 
   boolean isDefinitelyFalse();
 

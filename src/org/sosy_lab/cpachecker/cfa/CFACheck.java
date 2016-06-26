@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -42,9 +41,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 
 public class CFACheck {
 
@@ -52,10 +53,8 @@ public class CFACheck {
    * Traverse the CFA and run a series of checks at each node
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
-   * @param pruned Whether the CFA was pruned and may be incomplete.
    */
-  public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes,
-      boolean pruned) {
+  public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes) {
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Deque<CFANode> waitingNodeList = new ArrayDeque<>();
@@ -70,7 +69,7 @@ public class CFACheck {
 
         // The actual checks
         isConsistent(node);
-        checkEdgeCount(node, pruned);
+        checkEdgeCount(node);
       }
     }
 
@@ -105,7 +104,7 @@ public class CFACheck {
    * Verify that the number of edges and their types match.
    * @param pNode Node to be checked
    */
-  private static void checkEdgeCount(CFANode pNode, boolean pruned) {
+  private static void checkEdgeCount(CFANode pNode) {
 
     // check entering edges
     int entering = pNode.getNumEnteringEdges();
@@ -117,18 +116,12 @@ public class CFACheck {
     if (!(pNode instanceof FunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
       case 0:
-        if (!pruned) {
-          // not possible to check this when CFA was pruned
-          assert pNode instanceof CFATerminationNode : "Dead end at node " + DEBUG_FORMAT.apply(pNode);
-        }
+        assert pNode instanceof CFATerminationNode : "Dead end at node " + DEBUG_FORMAT.apply(pNode);
         break;
 
       case 1:
         CFAEdge edge = pNode.getLeavingEdge(0);
-        if (!pruned) {
-          // not possible to check this when CFA was pruned
-          assert !(edge instanceof AssumeEdge) : "AssumeEdge does not appear in pair at node " + DEBUG_FORMAT.apply(pNode);
-        }
+        assert !(edge instanceof AssumeEdge) : "AssumeEdge does not appear in pair at node " + DEBUG_FORMAT.apply(pNode);
         assert !(edge instanceof CFunctionSummaryStatementEdge) : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
         break;
 

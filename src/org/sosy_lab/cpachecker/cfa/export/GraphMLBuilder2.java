@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
@@ -141,11 +143,7 @@ public class GraphMLBuilder2 {
     }
 
     void writeFunctionFile(final String pFunctionName, final Path pOutDir) throws IOException {
-      try (Writer out =
-              pOutDir
-                  .resolve("cfa__" + pFunctionName + ".graphml")
-                  .asCharSink(StandardCharsets.UTF_8)
-                  .openBufferedStream()) {
+      try (Writer out = MoreFiles.asCharSink(Paths.get("cfa__" +pFunctionName+ ".graphml"), StandardCharsets.UTF_8).openBufferedStream()) {
         out.write(writeXMLHeader());
 
         StringBuilder builder = new StringBuilder();

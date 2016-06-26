@@ -23,14 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import com.google.common.annotations.VisibleForTesting;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -44,7 +37,14 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class SMG {
   private Set<SMGObject> objects = new HashSet<>();
@@ -55,7 +55,7 @@ public class SMG {
   private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
   private NeqRelation neq = new NeqRelation();
 
-  private final boolean trackPredicates = false;
+  private boolean trackPredicates = false;
   private PredRelation symbolicRelations = new PredRelation();
 
   private final MachineModel machine_model;
@@ -163,6 +163,9 @@ public class SMG {
    * @param pValue Value to remove
    */
   final public void removeValue(final Integer pValue) {
+
+    assert pValue != 0;
+
     values.remove(pValue);
     neq.removeValue(pValue);
     if (trackPredicates) {
@@ -192,6 +195,9 @@ public class SMG {
    * @param pObj Object to remove
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
+
+    assert pObj.notNull();
+
     removeObject(pObj);
     Iterator<SMGEdgeHasValue> hv_iter = hv_edges.iterator();
     Iterator<SMGEdgePointsTo> pt_iter = pt_edges.values().iterator();
@@ -275,6 +281,8 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
+    assert pValue != 0;
+
     pt_edges.remove(pValue);
   }
 
@@ -573,9 +581,21 @@ public class SMG {
   }
 
   public void mergeValues(int pV1, int pV2) {
+
+    if (!values.contains(pV2)) {
+      /*Might merge predicates?*/
+      addValue(pV2);
+    }
+
+    /* Value might not have been added yet */
+    if (!values.contains(pV1)) {
+      addValue(pV1);
+    }
+
     if (pV1 == pV2) {
       return;
     }
+
     if (pV2 == nullAddress) {
       int tmp = pV1;
       pV1 = pV2;
@@ -609,7 +629,7 @@ public class SMG {
   }
 
   private static class ExternalObjectFlag {
-    boolean external;
+    private final boolean external;
 
     public ExternalObjectFlag(boolean pExternal) {
       external = pExternal;
@@ -617,10 +637,6 @@ public class SMG {
 
     public boolean isExternal() {
       return external;
-    }
-
-    public void setExternal(boolean pExternal) {
-      external = pExternal;
     }
   }
 }

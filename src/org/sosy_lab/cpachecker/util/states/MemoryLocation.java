@@ -25,17 +25,16 @@ package org.sosy_lab.cpachecker.util.states;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Objects;
+import com.google.common.base.Optional;
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Objects;
 
 /**
 * This class describes a location in the memory.
@@ -46,28 +45,6 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   private final String functionName;
   private final String identifier;
   private final Optional<Long> offset;
-
-  /**
-   * This function can be used to {@link com.google.common.collect.Iterables#transform transform}
-   * a collection of {@link String}s to a collection of {@link MemoryLocation}s, representing the
-   * respective memory location of the identifiers.
-   */
-  public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
-      new Function<String, MemoryLocation>() {
-          @Override
-          public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
-      };
-
-  /**
-   * This function can be used to {@link com.google.common.collect.Iterables#transform transform} a
-   * collection of {@link MemoryLocation}s
-   * to a collection of {@link String}s, representing the respective variable identifiers.
-   */
-  public static final Function<MemoryLocation, String> FROM_MEMORYLOCATION_TO_STRING =
-      new Function<MemoryLocation, String>() {
-          @Override
-          public String apply(MemoryLocation memoryLocation) { return memoryLocation.getAsSimpleString(); }
-      };
 
   private MemoryLocation(String pFunctionName, String pIdentifier, Optional<Long> pOffset) {
     checkNotNull(pFunctionName);
@@ -133,6 +110,10 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   public static MemoryLocation valueOf(String pIdentifier, long pOffest) {
     return new MemoryLocation(pIdentifier, Optional.of(pOffest));
+  }
+
+  public static MemoryLocation valueOf(String pIdentifier, Optional<Long> pOffest) {
+    return new MemoryLocation(pIdentifier, pOffest);
   }
 
   public static MemoryLocation valueOf(String pVariableName) {

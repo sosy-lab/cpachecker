@@ -23,19 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -113,13 +108,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
@@ -216,9 +218,9 @@ public class AssumptionToEdgeAllocator {
   }
 
   private String handleReturnStatementComment(AReturnStatementEdge pCfaEdge, ConcreteState pConcreteState) {
-
-    if (pCfaEdge.getExpression() instanceof CExpression) {
-      CExpression returnExp = (CExpression) pCfaEdge.getExpression();
+    Optional<? extends AExpression> returnExpression = pCfaEdge.getExpression();
+    if (returnExpression.isPresent() && returnExpression.get() instanceof CExpression) {
+      CExpression returnExp = (CExpression) returnExpression.get();
 
       if (returnExp instanceof CLiteralExpression) {
         /*boring expression*/
@@ -282,8 +284,6 @@ public class AssumptionToEdgeAllocator {
       List<AExpressionStatement> stmtAssumptions =
           handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState);
       result.addAll(stmtAssumptions);
-    } else if (pCFAEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-      throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
     if (pCFAEdge.getEdgeType() == CFAEdgeType.BlankEdge
@@ -569,21 +569,11 @@ public class AssumptionToEdgeAllocator {
               CPointerType.class));
     }
 
-    boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
+    boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
+        pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
 
-      @Override
-      public boolean apply(Class<? extends CType> pArg0) {
-        return pArg0.isAssignableFrom(leftType.getClass());
-      }
-    });
-
-    boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(new Predicate<Class<? extends CType>>() {
-
-      @Override
-      public boolean apply(Class<? extends CType> pArg0) {
-        return pArg0.isAssignableFrom(rightType.getClass());
-      }
-    });
+    boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
+        pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
 
     if (!includeConstantsForPointers && (!leftIsAccepted || !rightIsAccepted)) {
       return null;
@@ -1081,7 +1071,7 @@ public class AssumptionToEdgeAllocator {
       public Value visit(CCastExpression cast) throws UnrecognizedCCodeException {
 
         if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(cast)) {
-          Value op = cast.accept(this);
+          Value op = cast.getOperand().accept(this);
 
           if (op.isUnknown()) {
             return op;
@@ -1652,19 +1642,21 @@ public class AssumptionToEdgeAllocator {
       }
 
       private void handleStruct(CCompositeType pCompType) {
-
         Address fieldAddress = address;
+        if (!fieldAddress.isConcrete()) {
+          return;
+        }
 
-        for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType
-            .getMembers()) {
-
+        Iterator<CCompositeTypeMemberDeclaration> memberIt = pCompType.getMembers().iterator();
+        while (memberIt.hasNext()) {
+          final CCompositeTypeMemberDeclaration memberType = memberIt.next();
           handleMemberField(memberType, fieldAddress);
-          int offsetToNextField = machineModel.getSizeof(memberType.getType());
 
-          if (fieldAddress.isConcrete()) {
+          if (memberIt.hasNext()) {
+            int offsetToNextField = machineModel.getSizeof(memberType.getType());
             fieldAddress = fieldAddress.addOffset(BigInteger.valueOf(offsetToNextField));
           } else {
-            return;
+            fieldAddress = null;
           }
         }
       }
@@ -1757,14 +1749,19 @@ public class AssumptionToEdgeAllocator {
       private boolean handleArraySubscript(Address pArrayAddress,
           int pSubscript, CType pExpectedType,
           CArrayType pArrayType) {
+        if (!pArrayAddress.isConcrete()) {
+          return false;
+        }
 
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
-        int arraySize = machineModel.getSizeof(pArrayType);
 
-        // check if we are already out of array bound
+        // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method
-        if (!pArrayAddress.isConcrete() || arraySize <= subscriptOffset) {
+        if (!pArrayType.isIncomplete() && machineModel.getSizeof(pArrayType) <= subscriptOffset) {
+          return false;
+        }
+        if (pArrayType.getLength() == null) {
           return false;
         }
 

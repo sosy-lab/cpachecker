@@ -26,14 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,9 +38,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -90,6 +85,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -238,7 +244,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return;
         }
 
-        model = ImmutableList.copyOf(pProver.getModel());
+        model = pProver.getModelAssignments();
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
@@ -312,7 +318,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
-              try (Writer w = Files.openOutputFile(invariantsExport)) {
+              try (Writer w = MoreFiles.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
                 argPathExporter.writeProofWitness(
                     w,
                     rootState,
@@ -329,8 +335,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                           CFANode node = pCFAEdge.getSuccessor();
                           ExpressionTree<Object> result =
                               invariantGenerator.getAsExpressionTree().getInvariantFor(node);
-                          if (ExpressionTrees.getFalse().equals(result)
-                              && !pStates.isPresent()) {
+                          if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
                             return ExpressionTrees.getTrue();
                           }
                           return result;

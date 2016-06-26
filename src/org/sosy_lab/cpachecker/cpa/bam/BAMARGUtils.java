@@ -25,22 +25,23 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
-import java.util.Stack;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 
 class BAMARGUtils {
   private BAMARGUtils() {}
@@ -76,8 +77,8 @@ class BAMARGUtils {
       processed.add(currentElement);
 
       for (ARGState child : currentElement.getChildren()) {
-        CFAEdge edge = currentElement.getEdgeToChild(child);
-        if (edge == null) {
+        List<CFAEdge> edge = currentElement.getEdgesToChild(child);
+        if (edge.isEmpty()) {
           //this is a summary edge
           Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement);
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);

@@ -1,11 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.math.BigInteger;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -48,12 +47,15 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.stator.policy")
 public class TemplateManager {
@@ -365,6 +367,9 @@ public class TemplateManager {
   }
 
 
+  private final Map<ToFormulaCacheKey, Formula> toFormulaCache = new
+      HashMap<>();
+
   /**
    * Convert {@code template} to {@link Formula}, using
    * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
@@ -377,6 +382,12 @@ public class TemplateManager {
       FormulaManagerView fmgr,
       Template template,
       PathFormula contextFormula) {
+    ToFormulaCacheKey key =
+        new ToFormulaCacheKey(pfmgr, fmgr, template, contextFormula);
+    Formula out = toFormulaCache.get(key);
+    if (out != null) {
+      return out;
+    }
     boolean useRationals = shouldUseRationals(template);
     Formula sum = null;
     int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
@@ -415,13 +426,15 @@ public class TemplateManager {
 
     if (sum == null) {
       if (useRationals) {
-        return fmgr.getRationalFormulaManager().makeNumber(0);
+        out = fmgr.getRationalFormulaManager().makeNumber(0);
       } else {
-        return fmgr.getIntegerFormulaManager().makeNumber(0);
+        out = fmgr.getIntegerFormulaManager().makeNumber(0);
       }
     } else {
-      return sum;
+      out = sum;
     }
+    toFormulaCache.put(key, out);
+    return out;
   }
 
   public boolean shouldUseRationals(Template template) {
@@ -558,12 +571,6 @@ public class TemplateManager {
         break;
       case StatementEdge:
         out.addAll(extractTemplatesFromStatementEdge((CStatementEdge) edge));
-        break;
-      case MultiEdge:
-        MultiEdge multiEdge = (MultiEdge) edge;
-        for (CFAEdge child : multiEdge.getEdges()) {
-          out.addAll(extractTemplatesFromEdge(child));
-        }
         break;
       default:
         // nothing to do here
@@ -828,5 +835,56 @@ public class TemplateManager {
           length);
     }
     return length;
+  }
+
+  private static class ToFormulaCacheKey {
+    private final PathFormulaManager pathFormulaManager;
+    private final FormulaManagerView formulaManagerView;
+    private final Template template;
+    private final PathFormula contextFormula;
+
+
+    private ToFormulaCacheKey(
+        PathFormulaManager pPathFormulaManager,
+        FormulaManagerView pFormulaManagerView,
+        Template pTemplate,
+        PathFormula pContextFormula) {
+      pathFormulaManager = pPathFormulaManager;
+      formulaManagerView = pFormulaManagerView;
+      template = pTemplate;
+      contextFormula = pContextFormula;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
+      return pathFormulaManager == that.pathFormulaManager
+          && formulaManagerView == that.formulaManagerView &&
+          Objects.equals(template, that.template) &&
+          Objects.equals(contextFormula, that.contextFormula);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects
+          .hash(pathFormulaManager, formulaManagerView, template,
+              contextFormula);
+    }
+
+    @Override
+    public String toString() {
+      return "ToFormulaCacheKey{" +
+          "pathFormulaManager=" + pathFormulaManager +
+          ", formulaManagerView=" + formulaManagerView +
+          ", template=" + template +
+          ", contextFormula=" + contextFormula +
+          '}';
+    }
   }
 }

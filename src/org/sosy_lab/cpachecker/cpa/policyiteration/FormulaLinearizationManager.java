@@ -6,10 +6,9 @@ import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -17,12 +16,10 @@ import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,22 +28,16 @@ import java.util.Map;
 public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
   private final PolicyIterationStatistics statistics;
-
-  // Opt environment cached to perform evaluation queries on the model.
-  private Model model;
 
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
   private final UniqueIdGenerator choiceVarCounter = new UniqueIdGenerator();
 
   public FormulaLinearizationManager(
-      BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr,
+      FormulaManagerView pFmgr,
       PolicyIterationStatistics pStatistics) {
-    bfmgr = pBfmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
     fmgr = pFmgr;
-    ifmgr = pIfmgr;
     statistics = pStatistics;
   }
 
@@ -77,25 +68,41 @@ public class FormulaLinearizationManager {
   /**
    * Annotate disjunctions with choice variables.
    */
-  public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+  public BooleanFormula annotateDisjunctions(BooleanFormula input)
+      throws InterruptedException {
+    input = fmgr.applyTactic(input, Tactic.NNF);
+    return fmgr.transformRecursively(new FormulaTransformationVisitor(fmgr) {
+
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> processed) {
-        IntegerFormula choiceVar = getFreshVar();
-        List<BooleanFormula> newArgs = new ArrayList<>();
-        for (int i = 0; i < processed.size(); i++) {
-          newArgs.add(
-              bfmgr.and(
-                  processed.get(i), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
+      public Formula visitFunction(
+          Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
+        if (functionDeclaration.getKind() == FunctionDeclarationKind.OR) {
+          return annotateDisjunction(newArgs);
+        } else {
+          return super.visitFunction(f, newArgs, functionDeclaration);
         }
-        return bfmgr.or(newArgs);
       }
+
     }, input);
   }
 
-  private IntegerFormula getFreshVar() {
-    String freshVarName = CHOICE_VAR_NAME + choiceVarCounter.getFreshId();
-    return ifmgr.makeVariable(freshVarName);
+  private BooleanFormula annotateDisjunction(List<Formula> args) {
+    if (args.size() == 1) {
+      return (BooleanFormula) args.get(0);
+    } else {
+      BooleanFormula choiceVar = bfmgr.makeVariable(getFreshVarName());
+      return bfmgr.or(
+          bfmgr.and(choiceVar, (BooleanFormula) args.get(0)),
+          bfmgr.and(
+              bfmgr.not(choiceVar),
+              annotateDisjunction(args.subList(1, args.size()))
+          )
+      );
+    }
+  }
+
+  private String getFreshVarName() {
+    return CHOICE_VAR_NAME + choiceVarCounter.getFreshId();
   }
 
   /**
@@ -106,12 +113,17 @@ public class FormulaLinearizationManager {
       final BooleanFormula input,
       final Model model
   ) {
+
+    // TODO: more efficient to call #evaluate() on the subset of variables
+    // which we actually use.
+    // These models can be huge.
     Map<Formula, Formula> mapping = new HashMap<>();
     for (ValueAssignment entry : model) {
       String termName = entry.getName();
       if (termName.contains(CHOICE_VAR_NAME)) {
-        BigInteger value = (BigInteger) entry.getValue();
-        mapping.put(ifmgr.makeVariable(termName), ifmgr.makeNumber(value));
+          mapping.put(
+              bfmgr.makeVariable(termName),
+              bfmgr.makeBoolean((boolean) entry.getValue()));
       }
     }
 
@@ -127,43 +139,14 @@ public class FormulaLinearizationManager {
   public BooleanFormula convertToPolicy(BooleanFormula f,
       Model pModel) throws InterruptedException {
 
-    model = pModel;
-
     statistics.ackermannizationTimer.start();
     f = fmgr.applyTactic(f, Tactic.NNF);
 
     // Get rid of UFs.
-    BooleanFormula noUFs = processUFs(f);
-
-    // Get rid of ite-expressions.
-    BooleanFormula out = bfmgr.visit(new ReplaceITEVisitor(), noUFs);
+    BooleanFormula out = processUFs(f, pModel);
     statistics.ackermannizationTimer.stop();
 
     return out;
-  }
-
-  /**
-   * TODO: does not correctly replace if-then-else's
-   * which occur INSIDE the formula.
-   */
-  private class ReplaceITEVisitor
-      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
-
-    private ReplaceITEVisitor() {
-      super(fmgr);
-    }
-
-    @Override
-    public BooleanFormula visitIfThenElse(
-        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
-
-      Boolean cond = model.evaluate(pCondition);
-      if (cond != null && cond) {
-        return pThenFormula;
-      } else {
-        return pElseFormula;
-      }
-    }
   }
 
   /**
@@ -171,7 +154,7 @@ public class FormulaLinearizationManager {
    * Requires a fixpoint computation as UFs can take other UFs as arguments.
    * First removes UFs with no arguments, etc.
    */
-  private BooleanFormula processUFs(BooleanFormula f) {
+  private BooleanFormula processUFs(BooleanFormula f, Model model) {
     Multimap<String, Pair<Formula, List<Formula>>> UFs = findUFs(f);
 
     Map<Formula, Formula> substitution = new HashMap<>();

@@ -26,23 +26,13 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,16 +40,14 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
-import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.RegionInvariantsSupplier;
+import org.sosy_lab.cpachecker.cpa.predicate.InvariantsManager.LocationInvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -82,13 +70,25 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager implements AnalysisCache {
@@ -194,7 +194,7 @@ public class PredicateAbstractionManager implements AnalysisCache {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
-  private final RegionInvariantsSupplier locationBasedInvariantSupplier;
+  private final LocationInvariantSupplier locationBasedInvariantSupplier;
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -209,7 +209,7 @@ public class PredicateAbstractionManager implements AnalysisCache {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      RegionInvariantsSupplier pRegionInvariantsSupplier)
+      @Nullable LocationInvariantSupplier invariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
@@ -223,7 +223,7 @@ public class PredicateAbstractionManager implements AnalysisCache {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    locationBasedInvariantSupplier = pRegionInvariantsSupplier;
+    locationBasedInvariantSupplier = invariantsSupplier;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -352,11 +352,23 @@ public class PredicateAbstractionManager implements AnalysisCache {
     }
 
     // add invariants to abstraction formula if available
-    Region invariant = locationBasedInvariantSupplier.getInvariantFor(location);
-    if (invariant != null) {
-      abs = rmgr.makeAnd(abs, invariant);
+    Set<BooleanFormula> invariants;
+    if (locationBasedInvariantSupplier != null) {
+      invariants = locationBasedInvariantSupplier.getInvariantFor(location);
+    } else {
+      invariants = Collections.emptySet();
+    }
+
+    if (!invariants.isEmpty()) {
+      Collection<AbstractionPredicate> invPredicates = new ArrayList<>();
+      for (BooleanFormula inv : invariants) {
+        AbstractionPredicate absPred = amgr.makePredicate(inv);
+        invPredicates.add(absPred);
+        abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
+      }
+
       // Calculate the set of predicates we still need to use for abstraction.
-      Iterables.removeIf(remainingPredicates, in(amgr.extractPredicates(invariant)));
+      Iterables.removeIf(remainingPredicates, in(invPredicates));
     }
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
@@ -439,7 +451,7 @@ public class PredicateAbstractionManager implements AnalysisCache {
       fmgr.dumpFormulaToFile(f, dumpFile);
 
       dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
+      try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
         Joiner.on('\n').appendTo(w, pPredicates);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
@@ -500,7 +512,7 @@ public class PredicateAbstractionManager implements AnalysisCache {
           }
 
           if (an.getLocationId().isPresent()) {
-            if (location.getNodeNumber() != an.getLocationId().get()) {
+            if (location.getNodeNumber() != an.getLocationId().getAsInt()) {
               candidateIterator.remove();
               continue;
             }

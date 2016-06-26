@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -115,8 +116,23 @@ public class ElementTestingSymbolicEdgeInterpolator
     interpolationQueries = 0;
 
     ForgettingCompositeState originState = pInputInterpolant.reconstructState();
-    Optional<ForgettingCompositeState> maybeSuccessor =
-        strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
+    final Optional<ForgettingCompositeState> maybeSuccessor;
+    if (pCurrentEdge == null) {
+      PathIterator it = pLocationInPath.fullPathIterator();
+      Optional<ForgettingCompositeState> intermediate = Optional.of(originState);
+      do {
+        if (!intermediate.isPresent()) {
+          break;
+        }
+
+        intermediate = strongestPost.getStrongestPost(intermediate.get(), valuePrecision,
+            it.getOutgoingEdge());
+        it.advance();
+      } while (!it.isPositionWithState());
+      maybeSuccessor = intermediate;
+    } else {
+      maybeSuccessor = strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
+    }
 
     if (!maybeSuccessor.isPresent()) {
       return interpolantManager.getFalseInterpolant();

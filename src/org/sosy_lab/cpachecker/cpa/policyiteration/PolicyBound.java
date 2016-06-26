@@ -39,6 +39,8 @@ public class PolicyBound {
    */
   private final ImmutableSet<Template> dependencies;
 
+  private int hashCache = 0;
+
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
@@ -62,6 +64,11 @@ public class PolicyBound {
 
   public PolicyBound updateValue(Rational newValue) {
     return new PolicyBound(formula, newValue, predecessor, dependencies);
+  }
+
+  public PolicyBound withNoDependencies() {
+    return new PolicyBound(formula, bound, predecessor,
+        ImmutableSet.<Template>of());
   }
 
   /**
@@ -98,7 +105,10 @@ public class PolicyBound {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(predecessor, bound, formula);
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(predecessor, bound, formula);
+    }
+    return hashCache;
   }
 
   @Override
@@ -110,9 +120,15 @@ public class PolicyBound {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) return true;
-    if (other == null) return false;
-    if (other.getClass() != this.getClass()) return false;
+    if (this == other) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass() != this.getClass()) {
+      return false;
+    }
     PolicyBound o = (PolicyBound) other;
     return
         predecessor.equals(o.predecessor)

@@ -23,20 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -44,12 +40,14 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 public enum GraphBuilder {
 
@@ -85,23 +83,24 @@ public enum GraphBuilder {
         for (ARGState child : argEdges.getSecond()) {
 
           String childStateId = getId(child);
-          CFAEdge edgeToNextState = s.getEdgeToChild(child);
+          List<CFAEdge> allEdgeToNextState = s.getEdgesToChild(child);
           String prevStateId = sourceStateNodeId;
+          CFAEdge edgeToNextState;
 
-          if (edgeToNextState instanceof MultiEdge) {
+          if (allEdgeToNextState.size() == 1) {
+            edgeToNextState = Iterables.getOnlyElement(allEdgeToNextState);
+
+            // this is a dynamic multi edge
+          } else {
             // The successor state might have several incoming MultiEdges.
             // In this case the state names like ARG<successor>_0 would occur
             // several times.
             // So we add this counter to the state names to make them unique.
             multiEdgeCount++;
 
-            // Write out a long linear chain of pseudo-states (one state encodes multiple edges)
-            // because the AutomatonCPA also iterates through the MultiEdge.
-            List<CFAEdge> edges = ((MultiEdge)edgeToNextState).getEdges();
-
             // inner part (without last edge)
-            for (int i = 0; i < edges.size()-1; i++) {
-              CFAEdge innerEdge = edges.get(i);
+            for (int i = 0; i < allEdgeToNextState.size() - 1; i++) {
+              CFAEdge innerEdge = allEdgeToNextState.get(i);
               String pseudoStateId = getId(child, i, multiEdgeCount);
 
               assert (!(innerEdge instanceof AssumeEdge));
@@ -112,7 +111,7 @@ public enum GraphBuilder {
             }
 
             // last edge connecting it with the real successor
-            edgeToNextState = edges.get(edges.size()-1);
+            edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
           }
 
           Optional<Collection<ARGState>> state =
@@ -278,23 +277,11 @@ public enum GraphBuilder {
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
       Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-    if (pEdge instanceof MultiEdge) {
-      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-      while (edgeIterator.hasNext()) {
-        CFAEdge edge = edgeIterator.next();
-        appendEdge(
-            pDocument,
-            pEdgeAppender,
-            edge,
-            edgeIterator.hasNext() ? Optional.<Collection<ARGState>>absent() : pStates,
-            pValueMap);
-      }
-    } else {
-      String sourceId = pEdge.getPredecessor().toString();
-      String targetId = pEdge.getSuccessor().toString();
-      if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
-        pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
-      }
+
+    String sourceId = pEdge.getPredecessor().toString();
+    String targetId = pEdge.getSuccessor().toString();
+    if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
+      pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
     }
   }
 

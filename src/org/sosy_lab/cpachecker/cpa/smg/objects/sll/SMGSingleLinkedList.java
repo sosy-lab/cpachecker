@@ -23,39 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractObject {
-  private int length;
 
-  //TODO: Binding is likely to be more complicated later
-  private int bindingOffset;
+  private final int minimumLength;
+  private final int hfo;
+  private final int nfo;
+  private final int id = SMGValueFactory.getNewValue();
 
-  public SMGSingleLinkedList(SMGRegion pPrototype, int pOffset, int pLength) {
-    super(pPrototype.getSize(), "SLL");
-    bindingOffset = pOffset;
-    length = pLength;
+  public SMGSingleLinkedList(int pSize, int pHfo, int pNfo,
+      int pMinLength, int level) {
+    super(pSize, "dls", level, SMGObjectKind.SLL);
+
+    hfo = pHfo;
+    nfo = pNfo;
+    minimumLength = pMinLength;
   }
 
-  public SMGSingleLinkedList(SMGSingleLinkedList pOriginal) {
-    super(pOriginal);
-    bindingOffset = pOriginal.bindingOffset;
-    length = pOriginal.length;
+  public SMGSingleLinkedList(SMGSingleLinkedList other) {
+    super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.SLL);
+
+    hfo = other.hfo;
+    nfo = other.nfo;
+    minimumLength = other.minimumLength;
   }
 
-  public SMGSingleLinkedList(SMGSingleLinkedList pSmgSingleLinkedList, int pNewLevel) {
-    super(pSmgSingleLinkedList.getSize(), pSmgSingleLinkedList.getLabel(), pNewLevel);
-    length = pSmgSingleLinkedList.getLength();
-    bindingOffset = pSmgSingleLinkedList.getOffset();
-  }
-
-  //TODO: Abstract interface???
-  public int getLength() {
-    return length;
+  public int getMinimumLength() {
+    return minimumLength;
   }
 
   @Override
@@ -63,13 +63,18 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     return true;
   }
 
-  public int getOffset() {
-    return bindingOffset;
+  public int getNfo() {
+    return nfo;
+  }
+
+  public int getHfo() {
+    return hfo;
   }
 
   @Override
   public String toString() {
-    return "SLL(size=" + getSize() + ", bindingOffset=" + bindingOffset + ", len=" + length +")";
+    return "SLL(id=" + id + " size=" + getSize() + ", hfo=" + hfo + ", nfo=" + nfo
+        + ", len=" + minimumLength + ", level=" + getLevel() + ")";
   }
 
   @Override
@@ -79,7 +84,7 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
 
   @Override
   public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return pOther instanceof SMGSingleLinkedList;
+    return pOther.getKind() == SMGObjectKind.SLL;
   }
 
   @Override
@@ -87,37 +92,72 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     if (!matchGenericShape(pOther)) {
       return false;
     }
-    return bindingOffset == ((SMGSingleLinkedList)pOther).bindingOffset;
+
+    return nfo == ((SMGSingleLinkedList) pOther).nfo && hfo == ((SMGSingleLinkedList) pOther).hfo;
   }
 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
-    super.isMoreGeneral(pOther);
-    if (! pOther.isAbstract()) {
-      return true;
+
+    switch (pOther.getKind()) {
+      case REG:
+        return minimumLength < 2;
+      case OPTIONAL:
+        return minimumLength == 0;
+      case SLL:
+        return matchSpecificShape((SMGAbstractObject) pOther)
+            && minimumLength < ((SMGSingleLinkedList) pOther).minimumLength;
+      default:
+        return false;
     }
-    if (! matchSpecificShape((SMGAbstractObject)pOther)) {
-      throw new IllegalArgumentException("isMoreGeneral called on incompatible abstract objects");
-    }
-    return length < ((SMGSingleLinkedList)pOther).length;
   }
 
   @Override
-  public SMGObject join(SMGObject pOther, boolean increaseLevel) {
-    if (! pOther.isAbstract()) {
-      return new SMGSingleLinkedList(this);
-    }
+  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
 
-    if (matchSpecificShape((SMGAbstractObject)pOther)) {
-      SMGSingleLinkedList otherSll = (SMGSingleLinkedList)pOther;
-      if (getLength() < otherSll.getLength()) {
-        return new SMGSingleLinkedList(this);
-      } else {
-        return new SMGSingleLinkedList(otherSll);
-      }
-    }
+    int maxLevel = Math.max(getLevel(), pOther.getLevel());
 
-    throw new UnsupportedOperationException("join() called on incompatible abstract objects");
+    switch (pOther.getKind()) {
+      case SLL:
+        SMGSingleLinkedList otherLinkedList = (SMGSingleLinkedList) pOther;
+        assert matchSpecificShape(otherLinkedList);
+
+        int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
+
+        if (pIncreaseLevel) {
+          return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
+              maxLevel + 1);
+        } else {
+
+          if (minimumLength == minlength && maxLevel == getLevel()) {
+            return this;
+          } else {
+            return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
+                maxLevel);
+          }
+        }
+
+      case REG:
+      case OPTIONAL:
+        assert getSize() == pOther.getSize();
+
+        int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
+        minlength = Math.min(getMinimumLength(), otherLength);
+
+        if (pIncreaseLevel) {
+          return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength, maxLevel + 1);
+        } else {
+          if (minimumLength == minlength && maxLevel == getLevel()) {
+            return this;
+          } else {
+            return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
+                maxLevel);
+          }
+        }
+
+      default:
+        throw new IllegalArgumentException("join called on unjoinable Objects");
+    }
   }
 
   @Override
@@ -127,6 +167,6 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    return new SMGSingleLinkedList(this, pNewLevel);
+    return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minimumLength, pNewLevel);
   }
 }

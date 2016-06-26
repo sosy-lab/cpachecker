@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -88,8 +86,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
@@ -323,13 +322,6 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       // nothing to do.
       case BlankEdge:
       case CallToReturnEdge: {
-        break;
-      }
-
-      case MultiEdge: {
-        for (CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
-          handleEdge(newState, currentEdge);
-        }
         break;
       }
 

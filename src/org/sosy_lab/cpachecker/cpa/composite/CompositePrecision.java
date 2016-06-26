@@ -33,16 +33,17 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
-public class CompositePrecision implements WrapperPrecision {
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-  private final List<Precision> precisions;
+import java.util.List;
 
-  public CompositePrecision(List<Precision> precisions) {
+class CompositePrecision implements WrapperPrecision {
+
+  private final ImmutableList<Precision> precisions;
+
+  CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
-  }
-
-  public List<Precision> getPrecisions() {
-    return precisions;
   }
 
   @Override
@@ -159,7 +160,7 @@ public class CompositePrecision implements WrapperPrecision {
   }
 
   @Override
-  public Iterable<Precision> getWrappedPrecisions() {
+  public ImmutableList<Precision> getWrappedPrecisions() {
     return precisions;
   }
 

@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 
 /**
  * Instances of implementing classes represent invariants formulae.
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public interface NumeralFormula<ConstantType> extends BitVectorType {
+public interface NumeralFormula<ConstantType> extends Typed {
 
   /**
    * Accepts the given invariants formula visitor.

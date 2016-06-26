@@ -4,6 +4,6 @@ CONTROL AUTOMATON Deadlock
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(ThreadingCPA, "deadlock") -> ERROR("deadlock in $states");
+  CHECK(ThreadingCPA, "deadlock") -> ERROR("no-deadlock: deadlock detected in $location");
 
 END AUTOMATON

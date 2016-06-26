@@ -23,26 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
@@ -54,6 +61,9 @@ final class SMGJoinValues {
   private SMGNodeMapping mapping2;
   private boolean defined = false;
 
+  private final SMGState smgState1;
+  private final SMGState smgState2;
+
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
   private boolean recoverable;
 
@@ -61,8 +71,6 @@ final class SMGJoinValues {
     if (pV1.equals(pV2) ) {
       pJV.value = pV1;
       pJV.defined = true;
-      pJV.mapping1.map(pV1, pJV.getValue());
-      pJV.mapping2.map(pV2, pJV.getValue());
       return true;
     }
 
@@ -88,11 +96,28 @@ final class SMGJoinValues {
 
       Integer newValue;
 
-      // TODO Investigate for joinSubSMGForAbstraction
       if(pV1.equals(pV2)) {
         newValue = pV1;
       } else {
         newValue = SMGValueFactory.getNewValue();
+
+        if (pJV.smgState1 == null || pJV.smgState2 == null) {
+          pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.INCOMPARABLE);
+        } else {
+          SMGJoinStatus v1isLessOrEqualV2 = pJV.smgState1.valueIsLessOrEqual(
+              SMGKnownSymValue.valueOf(pV1), SMGKnownSymValue.valueOf(pV2), pJV.smgState2);
+          SMGJoinStatus v2isLessOrEqualV1 = pJV.smgState2.valueIsLessOrEqual(
+              SMGKnownSymValue.valueOf(pV2), SMGKnownSymValue.valueOf(pV1), pJV.smgState1);
+
+          if (v1isLessOrEqualV2 != SMGJoinStatus.INCOMPARABLE) {
+            pJV.status = SMGJoinStatus.updateStatus(pJV.status, v1isLessOrEqualV2);
+          } else if (v2isLessOrEqualV1 == SMGJoinStatus.RIGHT_ENTAIL) {
+            pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
+          } else {
+            pJV.status = SMGJoinStatus.updateStatus(pJV.status, v2isLessOrEqualV1);
+          }
+        }
+
       }
 
       if (pLevelV1 - pLevelV2 < lDiff) {
@@ -115,11 +140,11 @@ final class SMGJoinValues {
     return ((! pJV.inputSMG1.isPointer(pV1)) || (! pJV.inputSMG2.isPointer(pV2)));
   }
 
-  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmg, boolean increaseLevelAndRelabel) throws SMGInconsistentException {
+  private static boolean joinValuesPointers(SMGJoinValues pJV, Integer pV1, Integer pV2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmg, boolean increaseLevel) throws SMGInconsistentException {
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(pJV.status,
                                                         pJV.inputSMG1, pJV.inputSMG2, pJV.destSMG,
                                                         pJV.mapping1, pJV.mapping2,
-                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, increaseLevelAndRelabel);
+                                                        pV1, pV2,pLevel1, pLevel2, ldiff, identicalInputSmg, increaseLevel, pJV.smgState1, pJV.smgState2);
     if (jto.isDefined()) {
       pJV.status = jto.getStatus();
       pJV.inputSMG1 = jto.getInputSMG1();
@@ -135,28 +160,35 @@ final class SMGJoinValues {
     }
 
     if (jto.isRecoverable()) {
-      return false;
+      pJV.recoverable = true;
+      return true;
     }
 
     pJV.defined = false;
+    pJV.recoverable = false;
     pJV.abstractionCandidates = ImmutableList.of();
-    return true;
+    return false;
   }
 
   public SMGJoinValues(SMGJoinStatus pStatus,
-                        SMG pSMG1, SMG pSMG2, SMG pDestSMG,
+                        final SMG pSMG1, final SMG pSMG2, SMG pDestSMG,
                         SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg, int levelV1, int levelV2) throws SMGInconsistentException {
+                        Integer pValue1, Integer pValue2, int pLDiff, boolean pIncreaseLevel, boolean identicalInputSmg, int levelV1, int levelV2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
     mapping1 = pMapping1;
     mapping2 = pMapping2;
     status = pStatus;
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
     destSMG = pDestSMG;
+    smgState1 = pStateOfSmg1;
+    smgState2 = pStateOfSmg2;
 
-    if ( identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
+
+    if (identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
+      mapping1.map(pValue1, pValue1);
+      mapping2.map(pValue2, pValue1);
       return;
     }
 
@@ -178,34 +210,26 @@ final class SMGJoinValues {
       return;
     }
 
-    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pIncreaseLevelAndRelabelTargetSpc)) {
+    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pIncreaseLevel)) {
+
+      if(defined) {
+        abstractionCandidates = ImmutableList.of();
+        recoverable = false;
+        return;
+      }
 
       if(recoverable) {
 
         SMGObject target1 = inputSMG1.getObjectPointedBy(pValue1);
         SMGObject target2 = inputSMG2.getObjectPointedBy(pValue2);
 
-        if(target1 instanceof SMGDoublyLinkedList || target2 instanceof SMGDoublyLinkedList) {
+        if(target1.isAbstract() || target2.isAbstract()) {
 
-          if (target1 instanceof SMGDoublyLinkedList) {
-            Pair<Boolean, Boolean> result = insertDlsAndJoin(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1,
-                pValue2, (SMGDoublyLinkedList) target1, pLDiff, levelV1, levelV2,
-                pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg);
+          if (target1.getKind() == SMGObjectKind.DLL || target1.getKind() == SMGObjectKind.SLL) {
 
-            if(result.getSecond()) {
-              if(result.getFirst()) {
-                return;
-              }
-            } else {
-              recoverable = false;
-              return;
-            }
-          }
-
-          if (target2 instanceof SMGDoublyLinkedList) {
-            Pair<Boolean, Boolean> result = insertDlsAndJoin(status, inputSMG2, inputSMG1, destSMG, mapping2, mapping1, pValue2,
-                pValue1, (SMGDoublyLinkedList) target2, pLDiff, levelV2, levelV1,
-                pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg);
+            Pair<Boolean, Boolean> result = insertLeftListAndJoin(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1,
+                pValue2, target1, pLDiff, levelV1, levelV2,
+                pIncreaseLevel, identicalInputSmg);
 
             if(result.getSecond()) {
               if(result.getFirst()) {
@@ -216,7 +240,48 @@ final class SMGJoinValues {
               return;
             }
           }
-        }  else {
+
+          if (target2.getKind() == SMGObjectKind.DLL || target2.getKind() == SMGObjectKind.SLL) {
+
+            Pair<Boolean, Boolean> result = insertRightListAndJoin(status, inputSMG1, inputSMG2,
+                destSMG, mapping1, mapping2, pValue1,
+                pValue2, target2, pLDiff, levelV1, levelV2,
+                pIncreaseLevel, identicalInputSmg);
+
+            if(result.getSecond()) {
+              if(result.getFirst()) {
+                return;
+              }
+            } else {
+              recoverable = false;
+              return;
+            }
+          }
+        }
+
+        /*Try to create an optional object.*/
+        Pair<Boolean, Boolean> result = insertLeftObjectAsOptional(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1,
+            pValue2, target1, pLDiff, levelV1, levelV2,
+            pIncreaseLevel, identicalInputSmg);
+
+        if(result.getSecond()) {
+          if(result.getFirst()) {
+            return;
+          }
+        } else {
+          recoverable = false;
+          return;
+        }
+
+        result = insertRightObjectAsOptional(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1,
+            pValue2, target2, pLDiff, levelV1, levelV2,
+            pIncreaseLevel, identicalInputSmg);
+
+        if(result.getSecond()) {
+          if(result.getFirst()) {
+            return;
+          }
+        } else {
           recoverable = false;
           return;
         }
@@ -230,7 +295,321 @@ final class SMGJoinValues {
     recoverable = false;
   }
 
-  private Pair<Boolean, Boolean> insertDlsAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1 , SMG  pInputSMG2 , SMG pDestSMG, SMGNodeMapping pMapping1 , SMGNodeMapping pMapping2 , Integer pointer1, Integer pointer2, SMGDoublyLinkedList pTarget1, int ldiff, int level1, int level2, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
+  private Pair<Boolean, Boolean> insertRightObjectAsOptional(SMGJoinStatus pStatus, SMG pInputSMG1,
+      SMG pInputSMG2, SMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+      Integer pValue1, Integer pValue2, SMGObject pTarget, int pLDiff, int pLevelV1, int pLevelV2,
+      boolean pIncreaseLevel, boolean pIdenticalInputSmg) throws SMGInconsistentException {
+
+    switch (pTarget.getKind()) {
+      case REG:
+      case OPTIONAL:
+        break;
+      default:
+        return Pair.of(false, true);
+    }
+
+    /*Optional objects may be pointed to by one offset.*/
+    Set<SMGEdgePointsTo> pointedToTarget = SMGUtils.getPointerToThisObject(pTarget, pInputSMG2);
+
+    if(pointedToTarget.size() != 1) {
+      return Pair.of(false, true);
+    }
+
+    SMGEdgePointsTo pointedToTargetEdge = Iterables.getOnlyElement(pointedToTarget);
+
+    /*Fields of optional objects must have one pointer.*/
+    Set<SMGEdgeHasValue> fieldsOfTarget = pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
+
+    if (fieldsOfTarget.isEmpty()) {
+      return Pair.of(false, true);
+    }
+
+    Integer nextPointer;
+
+    /* Null can be treated like a value, or like a pointer.
+     * Only treat null like a pointer if we want to join with null.*/
+    if (pValue1 == 0) {
+      nextPointer = 0;
+    } else {
+      nextPointer = null;
+    }
+
+    for (SMGEdgeHasValue field : fieldsOfTarget) {
+      int fieldValue = field.getValue();
+
+      if (pInputSMG2.isPointer(fieldValue) && fieldValue != 0) {
+        if (nextPointer == null) {
+          nextPointer = fieldValue;
+        } else if (nextPointer != fieldValue) {
+          return Pair.of(false, true);
+        }
+      }
+    }
+
+    if(nextPointer == null) {
+      return Pair.of(false, true);
+    }
+
+    /*Check if pointer was already joint*/
+    if (pMapping2.containsKey(pTarget)) {
+      if (pMapping2.containsKey(pValue2)) {
+        this.value = pMapping2.get(pValue2);
+        this.defined = true;
+        this.inputSMG1 = pInputSMG1;
+        this.inputSMG2 = pInputSMG2;
+        this.destSMG = pDestSMG;
+        this.mapping1 = pMapping1;
+        this.mapping2 = pMapping2;
+        this.status = pStatus;
+        return Pair.of(true, true);
+      } else {
+        return Pair.of(false, true);
+      }
+    }
+
+    int level = pTarget.getLevel();
+
+    if (pIncreaseLevel || pLevelV1 > pLevelV2) {
+      level = level + 1;
+    }
+
+    /*Create optional object*/
+    SMGObject optionalObject = new SMGOptionalObject(pTarget.getSize(), level);
+    pMapping2.map(pTarget, optionalObject);
+    ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
+
+    /*Create pointer to optional object.*/
+    int resultPointer = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
+    pDestSMG.addValue(resultPointer);
+    pDestSMG.addPointsToEdge(newJointPtEdge);
+    pMapping2.map(pValue2, resultPointer);
+    pDestSMG.setValidity(optionalObject, pInputSMG2.isObjectValid(pTarget));
+
+    SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
+        ? SMGJoinStatus.RIGHT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+
+    SMGJoinStatus status = SMGJoinStatus.updateStatus(pStatus, newJoinStatus);
+
+    /*Join next pointer with value1. And insert optional object if succesfully joined.*/
+    SMGJoinValues jv = new SMGJoinValues(status, pInputSMG1, pInputSMG2, pDestSMG, pMapping1,
+        pMapping2, pValue1, nextPointer, pLDiff, pIncreaseLevel, pIdenticalInputSmg, pLevelV1,
+        pLevelV2, smgState1, smgState2);
+
+    int newAddressFromOptionalObject;
+
+    if (jv.isDefined()) {
+
+      newAddressFromOptionalObject = jv.getValue();
+
+      /*No double optional objects for the same address.*/
+      if (pDestSMG.getPointer(newAddressFromOptionalObject)
+          .getTargetSpecifier() == SMGTargetSpecifier.OPT) {
+        return Pair.of(false, false);
+      }
+
+      this.status = jv.getStatus();
+      this.inputSMG1 = jv.getInputSMG1();
+      this.inputSMG2 = jv.getInputSMG2();
+      this.destSMG = jv.getDestinationSMG();
+      this.mapping1 = jv.getMapping1();
+      this.mapping2 = jv.getMapping2();
+      this.value = resultPointer;
+      this.defined = jv.defined;
+
+    } else {
+      return Pair.of(false, true);
+    }
+
+    /*Copy values of optional object.*/
+
+    for (SMGEdgeHasValue field : fieldsOfTarget) {
+
+      SMGEdgeHasValue newHve;
+
+      if (field.getValue() == nextPointer) {
+        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
+            newAddressFromOptionalObject);
+      } else {
+
+        Integer val = field.getValue();
+        Integer newVal;
+
+        if (pMapping1.containsKey(val) || val == 0) {
+          newVal = val;
+        } else {
+          newVal = SMGValueFactory.getNewValue();
+          pMapping2.map(val, newVal);
+          pDestSMG.addValue(newVal);
+        }
+
+        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
+            newVal);
+      }
+      pDestSMG.addHasValueEdge(newHve);
+    }
+
+    return Pair.of(true, true);
+  }
+
+  private Pair<Boolean, Boolean> insertLeftObjectAsOptional(SMGJoinStatus pStatus, SMG pInputSMG1,
+      SMG pInputSMG2, SMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+      Integer pValue1, Integer pValue2, SMGObject pTarget, int pLDiff, int pLevelV1, int pLevelV2,
+      boolean pIncreaseLevel, boolean pIdenticalInputSmg) throws SMGInconsistentException {
+
+    switch (pTarget.getKind()) {
+      case REG:
+      case OPTIONAL:
+        break;
+      default:
+        return Pair.of(false, true);
+    }
+
+    /*Optional objects may be pointed to by one offset.*/
+    Set<SMGEdgePointsTo> pointedToTarget = SMGUtils.getPointerToThisObject(pTarget, pInputSMG1);
+
+    if(pointedToTarget.size() != 1) {
+      return Pair.of(false, true);
+    }
+
+    SMGEdgePointsTo pointedToTargetEdge = Iterables.getOnlyElement(pointedToTarget);
+
+    /*Fields of optional objects must have one pointer.*/
+    Set<SMGEdgeHasValue> fieldsOfTarget = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
+
+    if (fieldsOfTarget.isEmpty()) {
+      return Pair.of(false, true);
+    }
+
+    Integer nextPointer;
+
+    /* Null can be treated like a value, or like a pointer.
+     * Only treat null like a pointer if we want to join with null.*/
+    if (pValue2 == 0) {
+      nextPointer = 0;
+    } else {
+      nextPointer = null;
+    }
+
+    for (SMGEdgeHasValue field : fieldsOfTarget) {
+      int fieldValue = field.getValue();
+
+      if (pInputSMG1.isPointer(fieldValue) && fieldValue != 0) {
+        if (nextPointer == null) {
+          nextPointer = fieldValue;
+        } else if (nextPointer != fieldValue) {
+          return Pair.of(false, true);
+        }
+      }
+    }
+
+    if(nextPointer == null) {
+      return Pair.of(false, true);
+    }
+
+    /*Check if pointer was already joint*/
+    if (pMapping1.containsKey(pTarget)) {
+      if (pMapping1.containsKey(pValue1)) {
+        this.value = pMapping1.get(pValue1);
+        this.defined = true;
+        this.inputSMG1 = pInputSMG1;
+        this.inputSMG2 = pInputSMG2;
+        this.destSMG = pDestSMG;
+        this.mapping1 = pMapping1;
+        this.mapping2 = pMapping2;
+        this.status = pStatus;
+        return Pair.of(true, true);
+      } else {
+        return Pair.of(false, true);
+      }
+    }
+
+    int level = pTarget.getLevel();
+
+    if (pIncreaseLevel || pLevelV1 < pLevelV2) {
+      level = level + 1;
+    }
+
+    /*Create optional object*/
+    SMGObject optionalObject = new SMGOptionalObject(pTarget.getSize(), level);
+    pMapping1.map(pTarget, optionalObject);
+    ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
+    pDestSMG.setValidity(optionalObject, pInputSMG1.isObjectValid(pTarget));
+
+    /*Create pointer to optional object.*/
+    int resultPointer = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
+    pDestSMG.addValue(resultPointer);
+    pDestSMG.addPointsToEdge(newJointPtEdge);
+    pMapping1.map(pValue1, resultPointer);
+
+    SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
+        ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+
+    SMGJoinStatus status = SMGJoinStatus.updateStatus(pStatus, newJoinStatus);
+
+    /*Join next pointer with value2. And insert optional object if succesfully joined.*/
+    SMGJoinValues jv = new SMGJoinValues(status, pInputSMG1, pInputSMG2, pDestSMG, pMapping1,
+        pMapping2, nextPointer, pValue2, pLDiff, pIncreaseLevel, pIdenticalInputSmg, pLevelV1,
+        pLevelV2, smgState1, smgState2);
+
+    int newAddressFromOptionalObject;
+
+    if (jv.isDefined()) {
+
+      newAddressFromOptionalObject = jv.getValue();
+
+      /*No double optional objects for the same address.*/
+      if (pDestSMG.getPointer(newAddressFromOptionalObject)
+          .getTargetSpecifier() == SMGTargetSpecifier.OPT) {
+        return Pair.of(false, false);
+      }
+
+      this.status = jv.getStatus();
+      this.inputSMG1 = jv.getInputSMG1();
+      this.inputSMG2 = jv.getInputSMG2();
+      this.destSMG = jv.getDestinationSMG();
+      this.mapping1 = jv.getMapping1();
+      this.mapping2 = jv.getMapping2();
+      this.value = resultPointer;
+      this.defined = jv.defined;
+
+    } else {
+      return Pair.of(false, true);
+    }
+
+    /*Copy values of optional object.*/
+
+    for (SMGEdgeHasValue field : fieldsOfTarget) {
+
+      SMGEdgeHasValue newHve;
+
+      if (field.getValue() == nextPointer) {
+        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
+            newAddressFromOptionalObject);
+      } else {
+
+        Integer val = field.getValue();
+        Integer newVal;
+
+        if (pMapping1.containsKey(val) || val == 0) {
+          newVal = val;
+        } else {
+          newVal = SMGValueFactory.getNewValue();
+          pMapping1.map(val, newVal);
+          pDestSMG.addValue(newVal);
+        }
+
+        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
+            newVal);
+      }
+      pDestSMG.addHasValueEdge(newHve);
+    }
+
+    return Pair.of(true, true);
+  }
+
+  private Pair<Boolean, Boolean> insertLeftListAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1 , SMG  pInputSMG2 , SMG pDestSMG, SMGNodeMapping pMapping1 , SMGNodeMapping pMapping2 , Integer pointer1, Integer pointer2, SMGObject pTarget, int ldiff, int level1, int level2, boolean pIncreaseLevel, boolean identicalInputSmg) throws SMGInconsistentException {
 
     SMGEdgePointsTo ptEdge = pInputSMG1.getPointer(pointer1);
     SMGJoinStatus status = pStatus;
@@ -241,41 +620,83 @@ final class SMGJoinValues {
     SMGNodeMapping mapping2 = pMapping2;
 
     int nf;
+    int length;
+    int hfo;
+    int nfo;
+    int pfo;
 
-    switch(ptEdge.getTargetSpecifier()) {
+    switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
-        nf = pTarget1.getNfo();
+        if (pTarget.getKind() == SMGObjectKind.DLL) {
+          nf = ((SMGDoublyLinkedList) pTarget).getNfo();
+          hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
+          nfo = nf;
+          pfo = ((SMGDoublyLinkedList) pTarget).getPfo();
+          length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+        } else {
+
+          //TODO /*With 0 and SLL, its too imprecise to insert sll (at the moment)*/
+          if (pointer2 == 0) {
+            return Pair.of(false, true);
+          }
+
+          nf = ((SMGSingleLinkedList) pTarget).getNfo();
+          hfo = ((SMGSingleLinkedList) pTarget).getHfo();
+          nfo = nf;
+          pfo = -1;
+          length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
+        }
         break;
       case LAST:
-        nf = pTarget1.getPfo();
+        nf = ((SMGDoublyLinkedList) pTarget).getPfo();
+        hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
+        nfo = ((SMGDoublyLinkedList) pTarget).getPfo();
+        pfo = nf;
+        length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
         break;
-      default :
+      default:
         return Pair.of(false, true);
     }
 
-    SMGEdgeHasValue nextPointer = Iterables.getOnlyElement(
-        inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget1).filterAtOffset(nf)));
+    Integer nextPointer;
 
-    if(mapping1.containsKey(pTarget1)) {
-      SMGDoublyLinkedList jointDls = (SMGDoublyLinkedList) mapping1.get(pTarget1);
-      if(mapping2.containsValue(jointDls)) {
+
+    Set<SMGEdgeHasValue> hvesNp = inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
+
+    if(hvesNp.isEmpty()) {
+      // Edge lost due to join fields, should be zero
+      nextPointer = 0;
+    } else {
+      nextPointer = Iterables.getOnlyElement(hvesNp).getValue();
+    }
+
+    if(mapping1.containsKey(pTarget)) {
+      SMGObject jointList = mapping1.get(pTarget);
+      if(mapping2.containsValue(jointList)) {
         return Pair.of(false, true);
       }
 
       if(!mapping1.containsKey(pointer1)) {
 
         Integer resultPointer = SMGValueFactory.getNewValue();
-        SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointDls, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+        SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         destSMG.addValue(resultPointer);
         destSMG.addPointsToEdge(newJointPtEdge);
 
         mapping1.map(pointer1, resultPointer);
       } else {
         this.value = mapping1.get(pointer1);
+        this.defined = true;
+        this.inputSMG1 = inputSMG1;
+        this.inputSMG2 = inputSMG2;
+        this.destSMG = destSMG;
+        this.mapping1 = mapping1;
+        this.mapping2 = mapping2;
+        this.status = status;
         return Pair.of(true, true);
       }
 
-      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2);
+      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, nextPointer, pointer2, ldiff, pIncreaseLevel, identicalInputSmg, level1, level2, smgState1, smgState2);
 
       if(jv.isDefined()) {
 
@@ -292,37 +713,46 @@ final class SMGJoinValues {
     }
 
     //TODO v1 == v2 Identical in conditions??
-    if (mapping1.containsKey(nextPointer.getValue()) && mapping2.containsKey(pointer2) && !mapping1
-        .get(pointer2).equals(mapping1.get(nextPointer.getValue()))) {
+    if (mapping1.containsKey(nextPointer) && mapping2.containsKey(pointer2) && !mapping2
+        .get(pointer2).equals(mapping1.get(nextPointer))) {
       return Pair.of(false, true);
     }
 
     SMGJoinStatus newJoinStatus =
-        pTarget1.getMinimumLength() == 0 ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+        length == 0 ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
     status = SMGJoinStatus.updateStatus(status, newJoinStatus);
 
-    copyDlsSubSmgToDestSMG(pTarget1, mapping1, inputSMG1, destSMG, nf);
+    boolean increaseLevel = pIncreaseLevel;
 
-    SMGDoublyLinkedList dls = (SMGDoublyLinkedList) mapping1.get(pTarget1);
-    int offset = ptEdge.getOffset();
+    if(level1 < level2) {
+      increaseLevel = true;
+    }
 
-    Set<SMGEdgeHasValue> hveForAddress = pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(dls).filterAtOffset(offset));
+    copyDlsSubSmgToDestSMG(pTarget, mapping1, inputSMG1, destSMG, increaseLevel);
 
-    Integer resultPointer;
+    SMGObject list = mapping1.get(pTarget);
 
-    if(hveForAddress.isEmpty()) {
+    Integer resultPointer = null;
+
+    for (SMGEdgePointsTo edge : pDestSMG.getPTEdges().values()) {
+      if (edge.getObject() == list && edge.getOffset() == ptEdge.getOffset()
+          && ptEdge.getTargetSpecifier() == edge.getTargetSpecifier()) {
+        resultPointer = edge.getValue();
+      }
+    }
+
+    if(resultPointer == null) {
       resultPointer = SMGValueFactory.getNewValue();
-      SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, dls, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+      SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       destSMG.addValue(resultPointer);
       destSMG.addPointsToEdge(newJointPtEdge);
       mapping1.map(pointer1, resultPointer);
-
     }
 
-    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, ptEdge.getValue(), pointer2, ldiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, level1, level2);
+    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, nextPointer, pointer2, ldiff, pIncreaseLevel, identicalInputSmg, level1, level2, smgState1, smgState2);
 
-    Integer newAdressToDLS;
+    Integer newAdressFromDLS;
 
     if (jv.isDefined()) {
 
@@ -332,51 +762,329 @@ final class SMGJoinValues {
       this.destSMG = jv.getDestinationSMG();
       this.mapping1 = jv.getMapping1();
       this.mapping2 = jv.getMapping2();
-      newAdressToDLS = jv.getValue();
-      this.value = newAdressToDLS;
+      newAdressFromDLS = jv.getValue();
+      this.value = resultPointer;
+      this.defined = jv.defined;
 
     } else {
       return Pair.of(false, false);
     }
 
-    pDestSMG.addHasValueEdge(new SMGEdgeHasValue( new CPointerType(false, false, new CSimpleType(false, false, CBasicType.UNSPECIFIED, false, false, false, false, false, false, false)), nf, dls, newAdressToDLS));
+    CType nfType = getType(pTarget, nf, inputSMG1);
+
+    SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nf, list, newAdressFromDLS);
+
+    if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
+      pDestSMG.addHasValueEdge(newHve);
+    }
+
+    if (smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
+      CType nfType2 = getType(pTarget, nfo, inputSMG1);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfo, list, newAdressFromDLS);
+      pDestSMG.addHasValueEdge(newHve2);
+    }
+
+    if (pTarget.getKind() == SMGObjectKind.DLL
+        && smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
+      CType nfType2 = getType(pTarget, pfo, inputSMG1);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, pfo, list, newAdressFromDLS);
+      pDestSMG.addHasValueEdge(newHve2);
+    }
 
     return Pair.of(true, true);
   }
 
-  private void copyDlsSubSmgToDestSMG(SMGDoublyLinkedList pTarget1, SMGNodeMapping pMapping1, SMG pInputSMG1, SMG pDestSMG, int pNf) {
+  private CType getType(SMGObject pTarget, int pNf, SMG inputSMG1) {
+    Set<SMGEdgeHasValue> oldNfEdge =
+        inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
-    Set<SMGObject> toBeChecked = new HashSet<>();
-    Set<SMGObject> reached = new HashSet<>();
+    if (oldNfEdge.isEmpty()) {
+      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getSizeofPtr(), pNf, pTarget, 0).getType();
+    } else {
+      return Iterables.getOnlyElement(oldNfEdge).getType();
+    }
+  }
 
-    if (!pMapping1.containsKey(pTarget1)) {
-      SMGDoublyLinkedList copy = new SMGDoublyLinkedList(pTarget1.getSize(), pTarget1.getHfo(),
-          pTarget1.getNfo(), pTarget1.getPfo(), 0, pTarget1.getLevel());
-      pDestSMG.addObject(copy);
+  private Pair<Boolean, Boolean> insertRightListAndJoin(SMGJoinStatus pStatus, SMG pInputSMG1 , SMG  pInputSMG2 , SMG pDestSMG, SMGNodeMapping pMapping1 , SMGNodeMapping pMapping2 , Integer pointer1, Integer pointer2, SMGObject pTarget, int ldiff, int level1, int level2, boolean pIncreaseLevel, boolean identicalInputSmg) throws SMGInconsistentException {
+
+    SMGEdgePointsTo ptEdge = pInputSMG2.getPointer(pointer2);
+    SMGJoinStatus status = pStatus;
+    SMG inputSMG1 = pInputSMG1;
+    SMG  inputSMG2 = pInputSMG2;
+    SMG destSMG = pDestSMG;
+    SMGNodeMapping mapping1 = pMapping1;
+    SMGNodeMapping mapping2 = pMapping2;
+
+    int nf;
+    int length;
+    int hfo;
+    int nfo;
+    int pfo;
+
+    switch (ptEdge.getTargetSpecifier()) {
+      case FIRST:
+        if (pTarget.getKind() == SMGObjectKind.DLL) {
+          nf = ((SMGDoublyLinkedList) pTarget).getNfo();
+          hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
+          nfo = nf;
+          pfo = ((SMGDoublyLinkedList) pTarget).getPfo();
+          length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+        } else {
+          nf = ((SMGSingleLinkedList) pTarget).getNfo();
+          hfo = ((SMGSingleLinkedList) pTarget).getHfo();
+          nfo = nf;
+          pfo = -1;
+          length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
+
+          //TODO /*With 0 and SLL, its too imprecise to insert sll (at the moment)*/
+          if (pointer1 == 0) {
+            return Pair.of(false, true);
+          }
+        }
+        break;
+      case LAST:
+        nf = ((SMGDoublyLinkedList) pTarget).getPfo();
+        hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
+        nfo = ((SMGDoublyLinkedList) pTarget).getPfo();
+        pfo = nf;
+        length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+        break;
+      default:
+        return Pair.of(false, true);
     }
 
-    reached.add(pTarget1);
+    Set<SMGEdgeHasValue> npHves = inputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
 
-    Set<SMGEdgeHasValue> hves = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget1));
+    Integer nextPointer;
+
+    if(npHves.isEmpty()) {
+      // nullified block, but lacks edge
+      nextPointer = 0;
+    } else {
+      nextPointer = Iterables.getOnlyElement(npHves).getValue();
+    }
+
+    if(mapping2.containsKey(pTarget)) {
+      SMGObject jointList = mapping2.get(pTarget);
+      if(mapping1.containsValue(jointList)) {
+        return Pair.of(false, true);
+      }
+
+      if(!mapping2.containsKey(pointer2)) {
+
+        Integer resultPointer = SMGValueFactory.getNewValue();
+        SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+        destSMG.addValue(resultPointer);
+        destSMG.addPointsToEdge(newJointPtEdge);
+
+        mapping2.map(pointer2, resultPointer);
+      } else {
+        this.value = mapping2.get(pointer2);
+        this.defined = true;
+        this.inputSMG1 = inputSMG1;
+        this.inputSMG2 = inputSMG2;
+        this.destSMG = destSMG;
+        this.mapping1 = mapping1;
+        this.mapping2 = mapping2;
+        this.status = status;
+        return Pair.of(true, true);
+      }
+
+      SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pointer1, nextPointer, ldiff, pIncreaseLevel, identicalInputSmg, level1, level2, smgState1, smgState2);
+
+      if(jv.isDefined()) {
+
+        status = jv.getStatus();
+        inputSMG1 = jv.getInputSMG1();
+        inputSMG2 = jv.getInputSMG2();
+        destSMG = jv.getDestinationSMG();
+        mapping1 = jv.getMapping1();
+        mapping2 = jv.getMapping2();
+      } else {
+        return Pair.of(false, false);
+      }
+    }
+
+    //TODO v1 == v2 Identical in conditions??
+    if (mapping2.containsKey(nextPointer) && mapping1.containsKey(pointer1) && !mapping1
+        .get(pointer1).equals(mapping2.get(nextPointer))) {
+      return Pair.of(false, true);
+    }
+
+    SMGJoinStatus newJoinStatus =
+        length == 0 ? SMGJoinStatus.RIGHT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+
+    status = SMGJoinStatus.updateStatus(status, newJoinStatus);
+
+    boolean increaseLevel = pIncreaseLevel;
+
+    if(level1 > level2) {
+      increaseLevel = true;
+    }
+
+    copyDlsSubSmgToDestSMG(pTarget, mapping2, inputSMG2, destSMG, increaseLevel);
+
+    SMGObject list = mapping2.get(pTarget);
+
+    Integer resultPointer = null;
+
+    for (SMGEdgePointsTo edge : pDestSMG.getPTEdges().values()) {
+      if (edge.getObject() == list && edge.getOffset() == ptEdge.getOffset()
+          && ptEdge.getTargetSpecifier() == edge.getTargetSpecifier()) {
+        resultPointer = edge.getValue();
+      }
+    }
+
+    if(resultPointer == null) {
+      resultPointer = SMGValueFactory.getNewValue();
+      SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
+      destSMG.addValue(resultPointer);
+      destSMG.addPointsToEdge(newJointPtEdge);
+      mapping2.map(pointer2, resultPointer);
+    }
+
+    SMGJoinValues jv = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pointer1, nextPointer, ldiff, pIncreaseLevel, identicalInputSmg, level1, level2, smgState1, smgState2);
+
+    Integer newAdressFromDLS;
+
+    if (jv.isDefined()) {
+
+      this.status = jv.getStatus();
+      this.inputSMG1 = jv.getInputSMG1();
+      this.inputSMG2 = jv.getInputSMG2();
+      this.destSMG = jv.getDestinationSMG();
+      this.mapping1 = jv.getMapping1();
+      this.mapping2 = jv.getMapping2();
+      newAdressFromDLS = jv.getValue();
+      this.value = resultPointer;
+      this.defined = jv.defined;
+
+    } else {
+      return Pair.of(false, false);
+    }
+
+    CType nfType = getType(pTarget, nf, inputSMG2);
+    SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nf, list, newAdressFromDLS);
+
+    if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
+      pDestSMG.addHasValueEdge(newHve);
+    }
+
+    if (smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
+      CType nfType2 = getType(pTarget, nfo, inputSMG2);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfo, list, newAdressFromDLS);
+      pDestSMG.addHasValueEdge(newHve2);
+    }
+
+    if (pTarget.getKind() == SMGObjectKind.DLL
+        && smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
+      CType nfType2 = getType(pTarget, nfo, inputSMG2);
+      SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, pfo, list, newAdressFromDLS);
+      pDestSMG.addHasValueEdge(newHve2);
+    }
+
+    return Pair.of(true, true);
+  }
+
+  private void copyDlsSubSmgToDestSMG(SMGObject pList, SMGNodeMapping pMapping, SMG pInputSMG1, SMG pDestSMG, boolean pIncreaseLevel) {
+
+    Set<SMGObject> toBeChecked = new HashSet<>();
+
+    int listLevel = pList.getLevel();
+
+    if (pIncreaseLevel) {
+      listLevel = listLevel + 1;
+    }
+
+    SMGObject listCopy;
+    int nfo = -1;
+    int pfo = -1;
+
+    if (pMapping.containsKey(pList)) {
+      listCopy = pMapping.get(pList);
+    } else {
+
+      switch (pList.getKind()) {
+        case DLL:
+          nfo = ((SMGDoublyLinkedList) pList).getNfo();
+          pfo = ((SMGDoublyLinkedList) pList).getPfo();
+          int hfo = ((SMGDoublyLinkedList) pList).getHfo();
+          listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo,
+              0, listLevel);
+          break;
+        case SLL:
+          nfo = ((SMGSingleLinkedList) pList).getNfo();
+          hfo = ((SMGSingleLinkedList) pList).getHfo();
+          listCopy = new SMGSingleLinkedList(pList.getSize(), hfo, nfo, 0, listLevel);
+          break;
+        default:
+          throw new AssertionError();
+      }
+
+      pMapping.map(pList, listCopy);
+      ((CLangSMG) pDestSMG).addHeapObject(listCopy);
+    }
+
+    Set<SMGEdgeHasValue> hves = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pList));
 
     for (SMGEdgeHasValue hve : hves) {
 
-      if(hve.getOffset() != pNf && !pMapping1.containsKey(hve.getValue())) {
-        Integer newVal = SMGValueFactory.getNewValue();
-        SMGObject newObj = pMapping1.get(pTarget1);
-        pDestSMG.addValue(newVal);
-        pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
-        pMapping1.map(hve.getValue(), newVal);
+      if(hve.getOffset() != pfo && hve.getOffset() != nfo) {
 
-        if (pInputSMG1.isPointer(hve.getValue())) {
-          SMGObject reachedObject = pInputSMG1.getPointer(hve.getValue()).getObject();
-          if (!reached.contains(reachedObject)) {
-            SMGObject newReachedObj = reachedObject.copy();
-            pMapping1.map(reachedObject, newReachedObj);
-            pDestSMG.addObject(newReachedObj);
-            toBeChecked.add(reachedObject);
-            reached.add(reachedObject);
+        int subDlsValue = hve.getValue();
+        int newVal = subDlsValue;
+
+        if (pInputSMG1.isPointer(subDlsValue)) {
+          SMGEdgePointsTo reachedObjectSubSmgPTEdge = pInputSMG1.getPointer(subDlsValue);
+          SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
+          int level = reachedObjectSubSmg.getLevel();
+
+          if(newVal != 0) {
+
+            SMGObject copyOfReachedObject;
+
+            if (!pMapping.containsKey(reachedObjectSubSmg)) {
+
+              int newLevel;
+
+              if (pIncreaseLevel) {
+                newLevel = level + 1;
+              } else {
+                newLevel = level;
+              }
+
+              copyOfReachedObject = reachedObjectSubSmg.copy(newLevel);
+              pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
+              ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
+              pDestSMG.setValidity(copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
+              toBeChecked.add(reachedObjectSubSmg);
+            } else {
+              copyOfReachedObject = pMapping.get(reachedObjectSubSmg);
+            }
+
+            if(pMapping.containsKey(subDlsValue)) {
+              newVal = pMapping.get(subDlsValue);
+            } else {
+              newVal = SMGValueFactory.getNewValue();
+              pDestSMG.addValue(newVal);
+              pMapping.map(subDlsValue, newVal);
+
+              SMGTargetSpecifier newTg;
+
+              if (copyOfReachedObject instanceof SMGRegion) {
+                newTg = SMGTargetSpecifier.REGION;
+              } else {
+                newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
+              }
+
+              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
+              pDestSMG.addPointsToEdge(newPtEdge);
+            }
           }
+        }
+
+        if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy).filterAtOffset(hve.getOffset())).isEmpty()) {
+          pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), listCopy, newVal));
         }
       }
     }
@@ -389,37 +1097,76 @@ final class SMGJoinValues {
       toBeChecked.clear();
 
       for(SMGObject objToCheck : toCheck) {
-        copyObjectAndNodesIntoDestSMG(objToCheck, reached, toBeChecked, pInputSMG1, pDestSMG, pMapping1);
+        copyObjectAndNodesIntoDestSMG(objToCheck, toBeChecked, pMapping, pInputSMG1, pDestSMG, pIncreaseLevel);
       }
     }
-
   }
 
-  private void copyObjectAndNodesIntoDestSMG(SMGObject pObjToCheck, Set<SMGObject> pReached,
-      Set<SMGObject> pToBeChecked, SMG pInputSMG1, SMG pDestSMG, SMGNodeMapping pMapping1) {
+  private void copyObjectAndNodesIntoDestSMG(SMGObject pObjToCheck,
+      Set<SMGObject> pToBeChecked, SMGNodeMapping pMapping, SMG pInputSMG1, SMG pDestSMG, boolean pIncreaseLevel) {
 
-    SMGObject newObj = pMapping1.get(pObjToCheck);
+    SMGObject newObj = pMapping.get(pObjToCheck);
 
     Set<SMGEdgeHasValue> hves = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
 
     for (SMGEdgeHasValue hve : hves) {
 
-      if(!pMapping1.containsKey(hve.getValue())) {
-        Integer newVal = SMGValueFactory.getNewValue();
-        pDestSMG.addValue(newVal);
-        pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
-        pMapping1.map(hve.getValue(), newVal);
+      int subDlsValue = hve.getValue();
+      int newVal = subDlsValue;
 
-        if (pInputSMG1.isPointer(hve.getValue())) {
-          SMGObject reachedObject = pInputSMG1.getPointer(hve.getValue()).getObject();
-          if (!pReached.contains(reachedObject)) {
-            SMGObject newReachedObj = reachedObject.copy();
-            pMapping1.map(reachedObject, newReachedObj);
-            pDestSMG.addObject(newReachedObj);
-            pToBeChecked.add(reachedObject);
-            pReached.add(reachedObject);
+      if (pInputSMG1.isPointer(subDlsValue)) {
+        SMGEdgePointsTo reachedObjectSubSmgPTEdge = pInputSMG1.getPointer(subDlsValue);
+        SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
+        int level = reachedObjectSubSmg.getLevel();
+
+        if (newVal != 0) {
+
+          SMGObject copyOfReachedObject;
+
+          if (!pMapping.containsKey(reachedObjectSubSmg)) {
+
+            int newLevel;
+
+            if (pIncreaseLevel) {
+              newLevel = level + 1;
+            } else {
+              newLevel = level;
+            }
+
+            copyOfReachedObject = reachedObjectSubSmg.copy(newLevel);
+            pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
+            ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
+            pDestSMG.setValidity(copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
+            pToBeChecked.add(reachedObjectSubSmg);
+          } else {
+            copyOfReachedObject = pMapping.get(reachedObjectSubSmg);
+          }
+
+          if (pMapping.containsKey(subDlsValue)) {
+            newVal = pMapping.get(subDlsValue);
+          } else {
+            newVal = SMGValueFactory.getNewValue();
+            pDestSMG.addValue(newVal);
+            pMapping.map(subDlsValue, newVal);
+
+            SMGTargetSpecifier newTg;
+
+            if (copyOfReachedObject instanceof SMGRegion) {
+              newTg = SMGTargetSpecifier.REGION;
+            } else {
+              newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
+            }
+
+            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
+                reachedObjectSubSmgPTEdge.getOffset(),
+                newTg);
+            pDestSMG.addPointsToEdge(newPtEdge);
           }
         }
+      }
+
+      if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).isEmpty()) {
+        pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
       }
     }
   }

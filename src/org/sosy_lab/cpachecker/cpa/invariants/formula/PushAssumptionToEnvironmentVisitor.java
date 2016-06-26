@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.math.BigInteger;
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntegralInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.math.BigInteger;
+import java.util.Map;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -209,33 +210,44 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     CompoundInterval leftValue = evaluate(pLessThan.getOperand1());
     CompoundInterval rightValue = evaluate(pLessThan.getOperand2());
 
-    final CompoundInterval leftPushValue;
-    final CompoundInterval rightPushValue;
-    // If the equation is definitely true, push
-    // (negative infinity to ((right upper bound) - 1)) to the left and
-    // (((left lower bound) + 1) to infinity) to the right,
-    // if the equation is definitely false, push
-    // ((right lower bound) to infinity) to the left and
-    // (negative infinity to (left upper bound)) to the right.
-    if (pParameter.getValue()) {
-      BitVectorInfo bitVectorInfo = pLessThan.getOperand1().getBitVectorInfo();
-      CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
-      leftPushValue = rightValue.isSingleton()
-          ? cim.intersect(rightValue.invert(), rightValue.extendToMinValue())
-          : (rightValue.hasUpperBound()
-            ? cim.singleton(rightValue.getUpperBound().subtract(BigInteger.ONE)).extendToMinValue()
-            : rightValue.span().extendToMinValue());
-      rightPushValue = leftValue.isSingleton()
-          ? cim.intersect(leftValue.invert(), leftValue.extendToMaxValue())
-          : (leftValue.hasLowerBound()
-            ? cim.singleton(leftValue.getLowerBound().add(BigInteger.ONE)).extendToMaxValue()
-            : leftValue.span().extendToMaxValue());
-    } else {
-      leftPushValue = rightValue.span().extendToMaxValue();
-      rightPushValue = leftValue.span().extendToMinValue();
+    if (leftValue instanceof CompoundIntegralInterval
+        && rightValue instanceof CompoundIntegralInterval) {
+
+      final CompoundInterval leftPushValue;
+      final CompoundInterval rightPushValue;
+      // If the equation is definitely true, push
+      // (negative infinity to ((right upper bound) - 1)) to the left and
+      // (((left lower bound) + 1) to infinity) to the right,
+      // if the equation is definitely false, push
+      // ((right lower bound) to infinity) to the left and
+      // (negative infinity to (left upper bound)) to the right.
+      if (pParameter.getValue()) {
+        TypeInfo typeInfo = pLessThan.getOperand1().getTypeInfo();
+        CompoundIntervalManager cim =
+            compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
+        leftPushValue =
+            rightValue.isSingleton()
+                ? cim.intersect(rightValue.invert(), rightValue.extendToMinValue())
+                : (rightValue.hasUpperBound()
+                    ? cim.singleton(
+                            ((BigInteger) rightValue.getUpperBound()).subtract(BigInteger.ONE))
+                        .extendToMinValue()
+                    : rightValue.span().extendToMinValue());
+        rightPushValue =
+            leftValue.isSingleton()
+                ? cim.intersect(leftValue.invert(), leftValue.extendToMaxValue())
+                : (leftValue.hasLowerBound()
+                    ? cim.singleton(((BigInteger) leftValue.getLowerBound()).add(BigInteger.ONE))
+                        .extendToMaxValue()
+                    : leftValue.span().extendToMaxValue());
+      } else {
+        leftPushValue = rightValue.span().extendToMaxValue();
+        rightPushValue = leftValue.span().extendToMinValue();
+      }
+      return pLessThan.getOperand1().accept(this.pushValueToEnvironmentVisitor, leftPushValue)
+          && pLessThan.getOperand2().accept(this.pushValueToEnvironmentVisitor, rightPushValue);
     }
-    return pLessThan.getOperand1().accept(this.pushValueToEnvironmentVisitor, leftPushValue)
-        && pLessThan.getOperand2().accept(this.pushValueToEnvironmentVisitor, rightPushValue);
+    return true;
   }
 
   @Override

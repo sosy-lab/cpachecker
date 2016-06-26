@@ -50,21 +50,11 @@ public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer>{
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
-    return new WaitlistFactory() {
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new LoopstackSortedWaitlist(pSecondaryStrategy, 1);
-      }
-    };
+    return () -> new LoopstackSortedWaitlist(pSecondaryStrategy, 1);
   }
 
   public static WaitlistFactory reversedFactory(
       final WaitlistFactory pSecondaryStrategy) {
-    return new WaitlistFactory() {
-      @Override
-      public Waitlist createWaitlistInstance() {
-        return new LoopstackSortedWaitlist(pSecondaryStrategy, -1);
-      }
-    };
+    return () -> new LoopstackSortedWaitlist(pSecondaryStrategy, -1);
   }
 }

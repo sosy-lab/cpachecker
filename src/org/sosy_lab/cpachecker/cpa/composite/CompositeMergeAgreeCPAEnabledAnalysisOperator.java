@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collections;
-import java.util.Iterator;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -40,9 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-
+import java.util.Collections;
+import java.util.Iterator;
 
 public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOperator {
 
@@ -54,8 +53,10 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
   private Class<? extends AbstractState> enablerClass;
   private boolean isEnablerPredicate = false;
 
-  public CompositeMergeAgreeCPAEnabledAnalysisOperator(ImmutableList<MergeOperator> mergeOperators,
-      ImmutableList<StopOperator> stopOperators, PredicateAbstractionManager pAbmgr) {
+  CompositeMergeAgreeCPAEnabledAnalysisOperator(
+      ImmutableList<MergeOperator> mergeOperators,
+      ImmutableList<StopOperator> stopOperators,
+      PredicateAbstractionManager pAbmgr) {
     this.mergeOperators = mergeOperators;
     this.stopOperators = stopOperators;
     this.abmgr = pAbmgr;
@@ -114,7 +115,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
     Iterator<StopOperator> stopIter = stopOperators.iterator();
     Iterator<AbstractState> comp1Iter = compSuccessorState.getWrappedStates().iterator();
     Iterator<AbstractState> comp2Iter = compReachedState.getWrappedStates().iterator();
-    Iterator<Precision> precIter = compPrecision.getPrecisions().iterator();
+    Iterator<Precision> precIter = compPrecision.getWrappedPrecisions().iterator();
     boolean identicalStates = true;
 
     for (MergeOperator mergeOp : mergeOperators) {

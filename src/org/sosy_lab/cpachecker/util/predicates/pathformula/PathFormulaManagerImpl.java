@@ -29,7 +29,6 @@ import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -81,13 +80,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -146,8 +138,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
-  private final AnalysisDirection direction;
-
   @Deprecated
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
@@ -182,14 +172,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    direction = pDirection;
-
     if (handleArrays) {
       afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
       logger.log(Level.WARNING,
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
@@ -209,11 +197,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               + "theories!";
 
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection,
             qfmgr);
       } else {
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction);
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
       }
     } else if (handlePointerAliasing) {
       afmgr = null;
@@ -222,14 +210,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
-          aliasingTypeHandler, direction);
+          aliasingTypeHandler, pDirection);
 
     } else {
       afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
@@ -729,10 +717,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 
-      if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
+      if (entry.getKey() instanceof BooleanFormula) {
         Matcher matcher = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName);
         if (matcher.matches()) {
-          // Pattern matched, so it's a variable with __ART__ in it
+          // pattern matched, so it's a variable with __ART__ in it
 
           // No NumberFormatException because of RegExp match earlier!
           final int sourceStateId = Integer.parseInt(matcher.group(1));

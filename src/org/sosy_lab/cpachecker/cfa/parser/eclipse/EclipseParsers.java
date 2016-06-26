@@ -23,14 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import java.lang.ref.WeakReference;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URLClassLoader;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
-
 import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,6 +32,14 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URLClassLoader;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 
 /**
@@ -96,7 +96,7 @@ public class EclipseParsers {
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[]{ Configuration.class, LogManager.class, Dialect.class, MachineModel.class });
         parserConstructor.setAccessible(true);
-        loadedCParser = new WeakReference<Constructor<? extends CParser>>(parserConstructor);
+        loadedCParser = new WeakReference<>(parserConstructor);
       }
 
       return parserConstructor.newInstance(config, logger, dialect, machine);
@@ -117,7 +117,7 @@ public class EclipseParsers {
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(JAVA_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Configuration.class });
         parserConstructor.setAccessible(true);
-        loadedJavaParser = new WeakReference<Constructor<? extends Parser>>(parserConstructor);
+        loadedJavaParser = new WeakReference<>(parserConstructor);
       }
 
       try {

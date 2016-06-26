@@ -26,18 +26,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -100,7 +91,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -157,9 +147,19 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation
@@ -452,10 +452,10 @@ public class ValueAnalysisTransferRelation
         JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
 
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
-        Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+        OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.get());
+          assignedArray.setValue(newValue, maybeIndex.getAsInt());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -541,14 +541,14 @@ public class ValueAnalysisTransferRelation
         && !((JFieldDeclaration) declaration).isStatic();
   }
 
-  private Optional<Integer> getIndex(JArraySubscriptExpression pExpression) {
+  private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
     final ExpressionValueVisitor evv = getVisitor();
     final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
 
     if (indexValue.isUnknown()) {
-      return Optional.absent();
+      return OptionalInt.empty();
     } else {
-      return Optional.of((int) ((NumericValue) indexValue).longValue());
+      return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
     }
   }
 
@@ -1133,12 +1133,12 @@ public class ValueAnalysisTransferRelation
       // the array enclosing the array specified in the given array subscript expression
       ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+      OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
       int index;
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.get();
+        index = maybeIndex.getAsInt();
 
       } else {
         return null;
@@ -1172,10 +1172,10 @@ public class ValueAnalysisTransferRelation
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
       ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
-      Optional<Integer> maybeIndex = getIndex(enclosingSubscriptExpression);
+      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.get());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
@@ -1598,10 +1598,6 @@ public class ValueAnalysisTransferRelation
       } else if (ae instanceof PointerState) {
 
         CFAEdge edge = cfaEdge;
-        if (edge instanceof MultiEdge) {
-          MultiEdge multiEdge = (MultiEdge) edge;
-          edge = multiEdge.getEdges().get(multiEdge.getEdges().size() - 1);
-        }
 
         ARightHandSide rightHandSide = getRightHandSide(edge);
         ALeftHandSide leftHandSide = getLeftHandSide(edge);

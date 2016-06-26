@@ -76,6 +76,17 @@ public interface CompoundIntervalManager {
 
   /**
    * Gets a compound interval for the given value.
+   *
+   * @param pValue the value to convert to a compound interval.
+   *
+   * @return a compound interval for the given value.
+   * @throws IllegalArgumentException if the given value does not fit into the
+   * maximum interval range.
+   */
+  CompoundInterval singleton(Number pValue);
+
+  /**
+   * Gets a compound interval for the given value.
    * If the given value does not fit into the maximum interval range,
    * this function will apply a cast to fit the value into the range.
    *
@@ -113,6 +124,6 @@ public interface CompoundIntervalManager {
 
   CompoundInterval negate(CompoundInterval pToNegate);
 
-  CompoundInterval cast(BitVectorInfo pBitVectorInfo, CompoundInterval pToCast);
+  CompoundInterval cast(TypeInfo pTypeInfo, CompoundInterval pToCast);
 
 }

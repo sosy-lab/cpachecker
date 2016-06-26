@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+
+import java.util.logging.Level;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -141,10 +140,5 @@ public class CFACreationUtils {
   public static void removeEdgeFromNodes(CFAEdge e) {
     e.getPredecessor().removeLeavingEdge(e);
     e.getSuccessor().removeEnteringEdge(e);
-  }
-
-  public static void removeSummaryEdgeFromNodes(FunctionSummaryEdge e) {
-    e.getPredecessor().removeLeavingSummaryEdge(e);
-    e.getSuccessor().removeEnteringSummaryEdge(e);
   }
 }

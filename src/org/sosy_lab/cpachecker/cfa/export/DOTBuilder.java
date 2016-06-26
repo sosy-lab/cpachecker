@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,12 +39,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class for generating a DOT file from a CFA.
@@ -57,12 +57,7 @@ public final class DOTBuilder {
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
   private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
-      new Function<CFANode, String>() {
-        @Override
-        public String apply(CFANode node) {
-          return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
-        }
-      };
+      node -> "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
 
 
   public static void generateDOT(Appendable sb, CFA cfa) throws IOException {
@@ -144,8 +139,8 @@ public final class DOTBuilder {
       //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
       //future updates of dotty may make this obsolete.
       sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
-
       sb.append("\"");
+
       if (edge instanceof FunctionSummaryEdge) {
         sb.append(" style=\"dotted\" arrowhead=\"empty\"");
       }

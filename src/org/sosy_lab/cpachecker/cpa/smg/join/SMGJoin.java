@@ -23,18 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 final public class SMGJoin {
   static public void performChecks(boolean pOn) {
@@ -45,7 +46,7 @@ final public class SMGJoin {
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
 
-  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2) throws SMGInconsistentException {
+  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
     CLangSMG opSMG1 = new CLangSMG(pSMG1);
     CLangSMG opSMG2 = new CLangSMG(pSMG2);
     smg = new CLangSMG(opSMG1.getMachineModel());
@@ -111,7 +112,7 @@ final public class SMGJoin {
       SMGObject globalInSMG1 = entry.getValue();
       SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
-      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal, 0, false, false);
+      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal, 0, false, false, pStateOfSmg1, pStateOfSmg2);
       if (! jss.isDefined()) {
         return;
       }
@@ -120,24 +121,42 @@ final public class SMGJoin {
 
     smg1stackIterator = stack_in_smg1.iterator();
     smg2stackIterator = stack_in_smg2.iterator();
+    Deque<CLangStackFrame> stack_in_destSMG = smg.getStackFrames();
+    Iterator<CLangStackFrame> destSmgStackIterator = stack_in_destSMG.iterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
+    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
+      CLangStackFrame destStackFrame = destSmgStackIterator.next();
 
       for (String localVar : frameInSMG1.getVariables().keySet()) {
         SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject destinationLocal = mapping1.get(localInSMG1);
-        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, localInSMG1, localInSMG2, destinationLocal, 0, false, false);
+        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, localInSMG1, localInSMG2, destinationLocal, 0, false, false, pStateOfSmg1, pStateOfSmg2);
         if (! jss.isDefined()) {
           return;
         }
         status = jss.getStatus();
       }
+
+      /* Don't forget to join the return object */
+
+      if (frameInSMG1.getReturnObject() != null) {
+        SMGObject returnObjectInSmg1 = frameInSMG1.getReturnObject();
+        SMGObject returnObjectInSmg2 = frameInSMG2.getReturnObject();
+        SMGObject destinationLocal = destStackFrame.getReturnObject();
+        mapping1.map(returnObjectInSmg1, destinationLocal);
+        mapping2.map(returnObjectInSmg2, destinationLocal);
+        SMGJoinSubSMGs jss =
+            new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, returnObjectInSmg1,
+                returnObjectInSmg2, destinationLocal, 0, false, false, pStateOfSmg1, pStateOfSmg2);
+        if (!jss.isDefined()) {
+          return;
+        }
+        status = jss.getStatus();
+      }
     }
-
-
 
     defined = true;
   }

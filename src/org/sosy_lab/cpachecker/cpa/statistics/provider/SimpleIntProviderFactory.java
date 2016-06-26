@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics.provider;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -52,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -66,8 +67,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.IntMerger;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.SimpleIntProviderImplementation;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This factory class provides a lot of StatisticsProvider.
@@ -121,12 +120,7 @@ public class SimpleIntProviderFactory {
       CDeclaration decl = declEdge.getDeclaration();
       count += counter.count(decl);
       break;
-    case MultiEdge:
-      MultiEdge multEdge = (MultiEdge) pEdge;
-      for (CFAEdge edge : multEdge) {
-        count += countDeclarations(edge, counter);
-      }
-      break;
+
     default:
       // no declaration
       break;
@@ -257,12 +251,6 @@ public class SimpleIntProviderFactory {
       }
       break;
 
-    case MultiEdge:
-      MultiEdge multEdge = (MultiEdge) pEdge;
-      for (CFAEdge edge : multEdge) {
-        count += countExpressions(edge, counter);
-      }
-      break;
     default:
       // no expressions
       break;
@@ -398,12 +386,7 @@ public class SimpleIntProviderFactory {
           return 1;
         }});
       break;
-    case MultiEdge:
-      MultiEdge multEdge = (MultiEdge) pEdge;
-      for (CFAEdge edge : multEdge) {
-        count += countFunctionCalls(edge);
-      }
-      break;
+
     default:
       // no function calls
       break;
@@ -762,12 +745,7 @@ public class SimpleIntProviderFactory {
     case AssumeEdge:
       count += 1;
       break;
-    case MultiEdge:
-      MultiEdge multEdge = (MultiEdge) pEdge;
-      for (CFAEdge edge : multEdge) {
-        count += countAssumeStmts(edge);
-      }
-      break;
+
     default:
       // no assume
       break;

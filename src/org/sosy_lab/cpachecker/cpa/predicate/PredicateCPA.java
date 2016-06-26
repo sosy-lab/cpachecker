@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collection;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -73,6 +72,8 @@ import org.sosy_lab.solver.SolverException;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.logging.Level;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -182,16 +183,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
     prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
-    invariantsManager =
-        new InvariantsManager(
-            config,
-            logger,
-            pShutdownNotifier,
-            pCfa,
-            solver,
-            pfMgr,
-            abstractionManager,
-            prefixProvider);
+    invariantsManager = new InvariantsManager(config, logger, pShutdownNotifier, pCfa);
 
     predicateManager =
         new PredicateAbstractionManager(
@@ -201,7 +193,9 @@ ProofChecker, AutoCloseable, AnalysisCache {
             config,
             logger,
             pShutdownNotifier,
-            invariantsManager.asRegionInvariantsSupplier());
+            invariantsManager.shouldInvariantsBeUsedForAbstraction()
+                ? invariantsManager.asInvariantsSupplier()
+                : null);
 
     transfer =
         new PredicateTransferRelation(
@@ -338,6 +332,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
   @Override
   public void close() {
     solver.close();
+    invariantsManager.cancelAsyncInvariantGeneration();
   }
 
   @Override

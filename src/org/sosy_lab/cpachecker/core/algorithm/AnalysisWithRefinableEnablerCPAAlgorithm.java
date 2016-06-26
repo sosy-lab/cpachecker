@@ -493,7 +493,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     } else {
       newPrec = builtNewVariableTrackingPrecision(initialPrecision, precisions);
     }
-
+    shutdownNotifier.shutdownIfNecessary();
 
     try {
       // assure that refinement fails if same path is encountered twice and precision not refined on that path

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,33 +25,33 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-import javax.xml.parsers.ParserConfigurationException;
+import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
+import com.google.common.collect.TreeMultimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -94,6 +94,9 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.arg.graphExport.Edge;
+import org.sosy_lab.cpachecker.cpa.arg.graphExport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -115,28 +118,26 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.MapDifference.ValueDifference;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
-import com.google.common.collect.SortedMapDifference;
-import com.google.common.collect.TreeMultimap;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
 
 @Options(prefix="cpa.arg.witness")
 public class ARGPathExporter {
@@ -158,22 +159,25 @@ public class ARGPathExporter {
   };
 
   @Option(secure=true, description="Verification witness: Include function calls and function returns?")
-  boolean exportFunctionCallsAndReturns = true;
+  private boolean exportFunctionCallsAndReturns = true;
 
   @Option(secure=true, description="Verification witness: Include assumptions (C statements)?")
-  boolean exportAssumptions = true;
+  private boolean exportAssumptions = true;
 
   @Option(secure=true, description="Verification witness: Include the considered case of an assume?")
-  boolean exportAssumeCaseInfo = true;
+  private boolean exportAssumeCaseInfo = true;
 
   @Option(secure=true, description="Verification witness: Include the (starting) line numbers of the operations on the transitions?")
-  boolean exportLineNumbers = true;
+  private boolean exportLineNumbers = true;
 
   @Option(secure=true, description="Verification witness: Include the sourcecode of the operations?")
-  boolean exportSourcecode = true;
+  private boolean exportSourcecode = true;
 
   @Option(secure=true, description="Verification witness: Include the offset within the file?")
-  boolean exportOffset = true;
+  private boolean exportOffset = true;
+
+  @Option(secure=true, description="Verification witness: Include an thread-identifier within the file?")
+  private boolean exportThreadId = false;
 
   private final LogManager logger;
 
@@ -423,7 +427,7 @@ public class ARGPathExporter {
         final Optional<Collection<ARGState>> pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
-      final TransitionCondition result = new TransitionCondition();
+      TransitionCondition result = new TransitionCondition();
 
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
@@ -446,181 +450,17 @@ public class ARGPathExporter {
       if (exportFunctionCallsAndReturns) {
         if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
           FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
-          result.put(KeyDef.FUNCTIONENTRY, in.getFunctionName());
+          result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
 
         }
         if (pEdge.getSuccessor() instanceof FunctionExitNode) {
           FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
-          result.put(KeyDef.FUNCTIONEXIT, out.getFunctionName());
+          result = result.putAndCopy(KeyDef.FUNCTIONEXIT, out.getFunctionName());
         }
       }
 
-      String functionName = pEdge.getPredecessor().getFunctionName();
       if (pFromState.isPresent()) {
-
-        List<ExpressionTree<Object>> code = new ArrayList<>();
-        boolean isFunctionScope = this.isFunctionScope;
-
-        Collection<ARGState> states = pFromState.get();
-        for (ARGState state : states) {
-
-          DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, state);
-          CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
-
-          final CFAEdgeWithAssumptions currentEdgeWithAssignments;
-          if (pValueMap != null && (currentEdgeWithAssignments = pValueMap.get(state)) != null) {
-            if (cfaEdgeWithAssignments == null) {
-              cfaEdgeWithAssignments = currentEdgeWithAssignments;
-
-            } else {
-              Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
-              allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
-              allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
-              cfaEdgeWithAssignments =
-                  new CFAEdgeWithAssumptions(
-                      pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
-            }
-          }
-
-          if (cfaEdgeWithAssignments != null) {
-
-            Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
-            Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
-                new AssignsParameterOfOtherFunction(pEdge);
-            Collection<AExpressionStatement> functionValidAssignments =
-                FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
-
-            if (functionValidAssignments.size() < assignments.size()) {
-              cfaEdgeWithAssignments =
-                  new CFAEdgeWithAssumptions(
-                      pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
-              FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
-
-              if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
-                String keyFrom = pTo;
-                CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
-                ARGState keyState = Iterables.getOnlyElement(state.getChildren());
-                List<AExpressionStatement> valueAssignments =
-                    FluentIterable.from(assignments)
-                        .filter(Predicates.not(assignsParameterOfOtherFunction))
-                        .toList();
-                CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
-                    new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
-                delayedAssignments.put(
-                    new DelayedAssignmentsKey(keyFrom, keyEdge, keyState),
-                    valueCFAEdgeWithAssignments);
-              }
-            }
-
-            // Do not export our own temporary variables
-            assignments =
-                FluentIterable.from(cfaEdgeWithAssignments.getExpStmts())
-                    .filter(
-                        new Predicate<AExpressionStatement>() {
-
-                          @Override
-                          public boolean apply(AExpressionStatement statement) {
-                            if (statement.getExpression() instanceof CExpression) {
-                              CExpression expression = (CExpression) statement.getExpression();
-                              for (CIdExpression idExpression :
-                                  expression.accept(new CIdExpressionCollectingVisitor())) {
-                                if (idExpression
-                                    .getDeclaration()
-                                    .getQualifiedName()
-                                    .toUpperCase()
-                                    .contains("__CPACHECKER_TMP")) {
-                                  return false;
-                                }
-                              }
-                              return true;
-                            }
-                            return false;
-                          }
-                        })
-                    .toList();
-
-            // Determine the scope for static local variables
-            for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
-              if (functionValidAssignment instanceof CExpressionStatement) {
-                CExpression expression = (CExpression) functionValidAssignment.getExpression();
-                for (CIdExpression idExpression :
-                    expression.accept(new CIdExpressionCollectingVisitor())) {
-                  CSimpleDeclaration declaration = idExpression.getDeclaration();
-                  if (declaration.getName().contains("static")
-                      && !declaration.getOrigName().contains("static")
-                      && declaration.getQualifiedName().contains("::")) {
-                    isFunctionScope = true;
-                    functionName =
-                        declaration
-                            .getQualifiedName()
-                            .substring(0, declaration.getQualifiedName().indexOf("::"));
-                  }
-                }
-              }
-            }
-
-            if (!assignments.isEmpty()) {
-              code.add(factory.and(
-                  FluentIterable.from(assignments)
-                  .transform(
-                      new Function<AExpressionStatement, ExpressionTree<Object>>() {
-
-                        @Override
-                        public ExpressionTree<Object> apply(
-                            AExpressionStatement pExpressionStatement) {
-                          return LeafExpression.of(
-                              (Object) pExpressionStatement.getExpression());
-                        }
-                      })
-                  .toList()));
-            }
-          }
-        }
-
-        if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
-          ExpressionTree<Object> invariant = factory.or(code);
-          final Function<Object, String> converter =
-              new Function<Object, String>() {
-
-                @Override
-                public String apply(Object pLeafExpression) {
-                  if (pLeafExpression instanceof CExpression) {
-                    return ((CExpression) pLeafExpression)
-                        .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-                  }
-                  if (pLeafExpression == null) {
-                    return "(0)";
-                  }
-                  return pLeafExpression.toString();
-                }
-              };
-          final String assumptionCode;
-
-          // If there are only conjunctions, use multiple statements
-          // instead of the "&&" operator that is harder to parse.
-          if (ExpressionTrees.isAnd(invariant)) {
-            assumptionCode =
-                Joiner.on("; ")
-                    .join(
-                        ExpressionTrees.getChildren(invariant)
-                            .transform(
-                                new Function<ExpressionTree<Object>, ExpressionTree<String>>() {
-
-                                  @Override
-                                  public ExpressionTree<String> apply(
-                                      ExpressionTree<Object> pTree) {
-                                    return ExpressionTrees.convert(pTree, converter);
-                                  }
-                                }));
-          } else {
-            assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
-          }
-
-          result.put(KeyDef.ASSUMPTION, assumptionCode + ";");
-          if (isFunctionScope) {
-            result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
-          }
-        }
+        extractTransitionForStates(pFrom, pTo, pEdge, pFromState.get(), pValueMap, result);
       }
 
       if (exportAssumeCaseInfo) {
@@ -643,11 +483,11 @@ public class ARGPathExporter {
             }
 
           })) {
-            result.keyValues.clear();
-            return result;
+            // remove all info from transitionCondition
+            return new TransitionCondition();
           }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
-          result.put(KeyDef.CONTROLCASE, assumeCase.toString());
+          result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         }
       }
 
@@ -656,9 +496,9 @@ public class ARGPathExporter {
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
-            result.put(KeyDef.ORIGINFILE, l.getFileName());
+            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
           }
-          result.put(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+          result = result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
         }
       }
 
@@ -667,16 +507,208 @@ public class ARGPathExporter {
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
-            result.put(KeyDef.ORIGINFILE, l.getFileName());
+            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
           }
-          result.put(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+          result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
         }
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
-        result.put(KeyDef.SOURCECODE, pEdge.getRawStatement());
+        result = result.putAndCopy(KeyDef.SOURCECODE, pEdge.getRawStatement());
       }
 
+      return result;
+    }
+
+    private TransitionCondition extractTransitionForStates(final String pFrom, final String pTo,
+        final CFAEdge pEdge, final Collection<ARGState> pFromStates,
+        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap, TransitionCondition result) {
+
+      List<ExpressionTree<Object>> code = new ArrayList<>();
+      String functionName = pEdge.getPredecessor().getFunctionName();
+      boolean isFunctionScope = this.isFunctionScope;
+
+      for (ARGState state : pFromStates) {
+
+        DelayedAssignmentsKey key = new DelayedAssignmentsKey(pFrom, pEdge, state);
+        CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
+
+        final CFAEdgeWithAssumptions currentEdgeWithAssignments;
+        if (pValueMap != null && (currentEdgeWithAssignments = pValueMap.get(state)) != null) {
+          if (cfaEdgeWithAssignments == null) {
+            cfaEdgeWithAssignments = currentEdgeWithAssignments;
+
+          } else {
+            Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
+            allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
+            allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
+            cfaEdgeWithAssignments =
+                new CFAEdgeWithAssumptions(
+                    pEdge, allAssignments.build(), currentEdgeWithAssignments.getComment());
+          }
+        }
+
+        if (cfaEdgeWithAssignments != null) {
+
+          Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
+          Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
+              new AssignsParameterOfOtherFunction(pEdge);
+          Collection<AExpressionStatement> functionValidAssignments =
+              FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
+
+          if (functionValidAssignments.size() < assignments.size()) {
+            cfaEdgeWithAssignments =
+                new CFAEdgeWithAssumptions(
+                    pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
+            FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+
+            if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
+              String keyFrom = pTo;
+              CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
+              ARGState keyState = Iterables.getOnlyElement(state.getChildren());
+              List<AExpressionStatement> valueAssignments =
+                  FluentIterable.from(assignments)
+                      .filter(Predicates.not(assignsParameterOfOtherFunction))
+                      .toList();
+              CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
+                  new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
+              delayedAssignments.put(
+                  new DelayedAssignmentsKey(keyFrom, keyEdge, keyState),
+                  valueCFAEdgeWithAssignments);
+            }
+          }
+
+          // Do not export our own temporary variables
+          assignments =
+              FluentIterable.from(cfaEdgeWithAssignments.getExpStmts())
+                  .filter(
+                      new Predicate<AExpressionStatement>() {
+
+                        @Override
+                        public boolean apply(AExpressionStatement statement) {
+                          if (statement.getExpression() instanceof CExpression) {
+                            CExpression expression = (CExpression) statement.getExpression();
+                            for (CIdExpression idExpression :
+                                expression.accept(new CIdExpressionCollectingVisitor())) {
+                              if (idExpression
+                                  .getDeclaration()
+                                  .getQualifiedName()
+                                  .toUpperCase()
+                                  .contains("__CPACHECKER_TMP")) {
+                                return false;
+                              }
+                            }
+                            return true;
+                          }
+                          return false;
+                        }
+                      })
+                  .toList();
+
+          // Determine the scope for static local variables
+          for (AExpressionStatement functionValidAssignment : functionValidAssignments) {
+            if (functionValidAssignment instanceof CExpressionStatement) {
+              CExpression expression = (CExpression) functionValidAssignment.getExpression();
+              for (CIdExpression idExpression :
+                  expression.accept(new CIdExpressionCollectingVisitor())) {
+                CSimpleDeclaration declaration = idExpression.getDeclaration();
+                if (declaration.getName().contains("static")
+                    && !declaration.getOrigName().contains("static")
+                    && declaration.getQualifiedName().contains("::")) {
+                  isFunctionScope = true;
+                  functionName =
+                      declaration
+                          .getQualifiedName()
+                          .substring(0, declaration.getQualifiedName().indexOf("::"));
+                }
+              }
+            }
+          }
+
+          if (!assignments.isEmpty()) {
+            code.add(factory.and(
+                FluentIterable.from(assignments)
+                .transform(
+                    new Function<AExpressionStatement, ExpressionTree<Object>>() {
+
+                      @Override
+                      public ExpressionTree<Object> apply(
+                          AExpressionStatement pExpressionStatement) {
+                        return LeafExpression.of(
+                            (Object) pExpressionStatement.getExpression());
+                      }
+                    })
+                .toList()));
+          }
+        }
+
+        if (exportThreadId) {
+          result = exportThreadId(result, pEdge, state);
+        }
+
+      }
+
+      if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+        ExpressionTree<Object> invariant = factory.or(code);
+        final Function<Object, String> converter =
+            new Function<Object, String>() {
+
+              @Override
+              public String apply(Object pLeafExpression) {
+                if (pLeafExpression instanceof CExpression) {
+                  return ((CExpression) pLeafExpression)
+                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                }
+                if (pLeafExpression == null) {
+                  return "(0)";
+                }
+                return pLeafExpression.toString();
+              }
+            };
+        final String assumptionCode;
+
+        // If there are only conjunctions, use multiple statements
+        // instead of the "&&" operator that is harder to parse.
+        if (ExpressionTrees.isAnd(invariant)) {
+          assumptionCode =
+              Joiner.on("; ")
+                  .join(
+                      ExpressionTrees.getChildren(invariant)
+                          .transform(
+                              new Function<ExpressionTree<Object>, ExpressionTree<String>>() {
+
+                                @Override
+                                public ExpressionTree<String> apply(
+                                    ExpressionTree<Object> pTree) {
+                                  return ExpressionTrees.convert(pTree, converter);
+                                }
+                              }));
+        } else {
+          assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
+        }
+
+        result = result.putAndCopy(KeyDef.ASSUMPTION, assumptionCode + ";");
+        if (isFunctionScope) {
+          result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
+        }
+      }
+
+      return result;
+    }
+
+    /** export the id of the executed thread into the witness.
+     * We assume that the edge can be assigned to exactly one thread. */
+    private TransitionCondition exportThreadId(TransitionCondition result, final CFAEdge pEdge,
+        ARGState state) {
+      ThreadingState threadingState = AbstractStates.extractStateByType(state, ThreadingState.class);
+      if (threadingState != null) {
+        for (String threadId : threadingState.getThreadIds()) {
+          if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
+            result = result.putAndCopy(KeyDef.THREADID, threadId);
+            break;
+          }
+        }
+      }
       return result;
     }
 
@@ -697,9 +729,8 @@ public class ARGPathExporter {
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
         final Predicate<? super ARGState> pPathStates) {
-      return FluentIterable
-          .from(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates))
-          .transform(Pair.<ARGState>getProjectionToFirst());
+      return FluentIterable.from(collectPathEdges(pInitialState, pSuccessorFunction, pPathStates))
+          .transform(Pair::getFirst);
     }
 
     /**
@@ -790,8 +821,6 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction = ARGUtils.CHILDREN_OF_STATE;
-
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
         valueMap = pCounterExample.get().getExactVariableValues();
@@ -813,7 +842,7 @@ public class ARGPathExporter {
                           @Override
                           public String apply(Path pArg0) {
                             try {
-                              return pArg0.asCharSource(Charsets.UTF_8).read().trim();
+                              return MoreFiles.toString(pArg0, Charsets.UTF_8).trim();
                             } catch (IOException e) {
                               logger.logUserException(
                                   Level.WARNING, e, "Could not export specification to witness.");
@@ -829,11 +858,11 @@ public class ARGPathExporter {
       String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
-      for (ARGState s : collectPathNodes(pRootState, successorFunction, pIsRelevantState)) {
+      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
         String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
-          sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
+          sourceNodeFlags.add(NodeFlag.ISENTRY);
         }
         sourceNodeFlags.addAll(extractNodeFlags(s));
         nodeFlags.putAll(sourceStateNodeId, sourceNodeFlags);
@@ -843,23 +872,29 @@ public class ARGPathExporter {
       nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
 
       // Build the actual graph
-      pGraphBuilder.buildGraph(pRootState, pIsRelevantState, pIsRelevantEdge, valueMap, doc, collectPathEdges(pRootState, successorFunction, pIsRelevantState), this);
+      pGraphBuilder.buildGraph(
+          pRootState,
+          pIsRelevantState,
+          pIsRelevantEdge,
+          valueMap,
+          doc,
+          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
+          this);
 
       // Remove edges that lead to the sink but have a sibling edge that has the same label
-      Collection<Edge> toRemove = FluentIterable.from(leavingEdges.values()).filter(new Predicate<Edge>() {
-
-        @Override
-        public boolean apply(final Edge pEdge) {
-          return pEdge.target.equals(SINK_NODE_ID)
-              && FluentIterable.from(leavingEdges.get(pEdge.source)).filter(Predicates.not(Predicates.equalTo(pEdge))).anyMatch(new Predicate<Edge>() {
-
-                @Override
-                public boolean apply(Edge pArg0) {
-                  return pArg0.label.equals(pEdge.label);
-                }});
+      Collection<Edge> toRemove = Sets.newHashSet();
+      for (Edge edge : leavingEdges.values()) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges.get(edge.source)) {
+            if (!edge.equals(otherEdge)
+                && edge.label.equals(otherEdge.label)
+                && !toRemove.contains(otherEdge)) {
+              toRemove.add(edge);
+              break;
+            }
+          }
         }
-
-      }).toList();
+      }
       for (Edge edge : toRemove) {
         boolean removed = removeEdge(edge);
         assert removed;
@@ -940,7 +975,7 @@ public class ARGPathExporter {
               return false;
             }
             for (Edge edge : enteringEdges.get(pNode)) {
-              if (!edge.label.keyValues.isEmpty()) {
+              if (!edge.label.getMapping().isEmpty()) {
                 return false;
               }
             }
@@ -957,7 +992,7 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (pEdge.label.keyValues.isEmpty()) {
+            if (pEdge.label.getMapping().isEmpty()) {
               return true;
             }
 
@@ -974,28 +1009,27 @@ public class ARGPathExporter {
             // An edge is redundant if it is the only leaving edge of a
             // node and it is empty or all its non-assumption contents
             // are summarized by a preceding edge
-            boolean hasTransistionRestrictions = pEdge.label.hasTransitionRestrictions();
-            boolean summarizedByPrecedingEdge = FluentIterable.from(enteringEdges.get(pEdge.source))
-                .anyMatch(
+            boolean summarizedByPrecedingEdge = Iterables.any(enteringEdges.get(pEdge.source),
                     new Predicate<Edge>() {
-
                       @Override
                       public boolean apply(Edge pPrecedingEdge) {
                         return pPrecedingEdge.label.summarizes(pEdge.label);
                       }
                     });
-            if ((!hasTransistionRestrictions
+
+            if ((!pEdge.label.hasTransitionRestrictions()
                         || summarizedByPrecedingEdge
-                        || pEdge.label.keyValues.size() == 1
-                            && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
-                    && (leavingEdges.get(pEdge.source).size() == 1)
-                || FluentIterable.from(leavingEdges.get(pEdge.source))
-                    .allMatch(
-                        new Predicate<Edge>() {
+                        || pEdge.label.getMapping().size() == 1
+                            && pEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT))
+                    && (leavingEdges.get(pEdge.source).size() == 1)) {
+              return true;
+            }
+
+            if (Iterables.all(leavingEdges.get(pEdge.source), new Predicate<Edge>() {
 
                           @Override
                           public boolean apply(Edge pLeavingEdge) {
-                            return pLeavingEdge.label.keyValues.isEmpty();
+                            return pLeavingEdge.label.getMapping().isEmpty();
                           }
                         })) {
               return true;
@@ -1004,6 +1038,10 @@ public class ARGPathExporter {
           }
         };
 
+    /** Merge two consecutive nodes into one new node,
+     * if the edge between the nodes is redundant.
+     * The merge also merges the information of the nodes,
+     * e.g. disjuncts their invariants. */
     private void mergeNodes(final Edge pEdge) {
       Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
 
@@ -1020,6 +1058,48 @@ public class ARGPathExporter {
       nodeFlags.putAll(source, nodeFlags.removeAll(target));
 
       // Merge the trees
+      mergeExpressionTrees(source, target);
+
+      // Merge the violated properties
+      violatedProperties.putAll(source, violatedProperties.removeAll(target));
+
+      // Move the leaving edges
+      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(target));
+      // Remove the edges from their successors
+      for (Edge leavingEdge : leavingEdgesToMove) {
+        boolean removed = removeEdge(leavingEdge);
+        assert removed;
+      }
+      // Create the replacement edges,
+      // Add them as leaving edges to the source node,
+      // Add them as entering edges to their target nodes
+      for (Edge leavingEdge : leavingEdgesToMove) {
+        TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        putEdge(new Edge(source, leavingEdge.target, label));
+      }
+
+      // Move the entering edges
+      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(target));
+      // Remove the edges from their predecessors
+      for (Edge enteringEdge : enteringEdgesToMove) {
+        boolean removed = removeEdge(enteringEdge);
+        assert removed : "could not remove edge: " + enteringEdge;
+      }
+      // Create the replacement edges,
+      // Add them as entering edges to the source node,
+      // Add add them as leaving edges to their source nodes
+      for (Edge enteringEdge : enteringEdgesToMove) {
+        if (!pEdge.equals(enteringEdge)) {
+          TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
+          putEdge(new Edge(enteringEdge.source, source, label));
+        }
+      }
+
+    }
+
+    /** Merge two expressionTrees for source and target.
+     * We also perform some kind of simplification. */
+    private void mergeExpressionTrees(final String source, final String target) {
       ExpressionTree<Object> sourceTree = getStateInvariant(source);
       ExpressionTree<Object> targetTree = getStateInvariant(target);
       String sourceScope = stateScopes.get(source);
@@ -1066,77 +1146,21 @@ public class ARGPathExporter {
           stateScopes.put(source, newScope);
         }
       }
-
-      // Merge the violated properties
-      violatedProperties.putAll(source, violatedProperties.removeAll(target));
-
-      // Move the leaving edges
-      FluentIterable<Edge> leavingEdges =
-          FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
-      // Remove the edges from their successors
-      for (Edge leavingEdge : leavingEdges) {
-        boolean removed = removeEdge(leavingEdge);
-        assert removed;
-      }
-      // Create the replacement edges
-      leavingEdges =
-          leavingEdges.transform(
-              new Function<Edge, Edge>() {
-
-                @Override
-                public Edge apply(Edge pOldEdge) {
-                  TransitionCondition label = new TransitionCondition();
-                  label.keyValues.putAll(pEdge.label.keyValues);
-                  label.keyValues.putAll(pOldEdge.label.keyValues);
-                  return new Edge(source, pOldEdge.target, label);
-                }
-              });
-      // Add them as leaving edges to the source node
-      // and them as entering edges to their target nodes
-      for (Edge leavingEdge : leavingEdges) {
-        putEdge(leavingEdge);
-      }
-
-      // Move the entering edges
-      FluentIterable<Edge> enteringEdges =
-          FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
-      // Remove the edges from their predecessors
-      for (Edge enteringEdge : enteringEdges) {
-        boolean removed = removeEdge(enteringEdge);
-        assert removed;
-      }
-      // Create the replacement edges
-      enteringEdges =
-          enteringEdges
-              .filter(Predicates.not(Predicates.equalTo(pEdge)))
-              .transform(
-                  new Function<Edge, Edge>() {
-
-                    @Override
-                    public Edge apply(Edge pOldEdge) {
-                      TransitionCondition label = new TransitionCondition();
-                      label.keyValues.putAll(pEdge.label.keyValues);
-                      label.keyValues.putAll(pOldEdge.label.keyValues);
-                      return new Edge(pOldEdge.source, source, label);
-                    }
-                  });
-      // Add them as entering edges to the source node
-      // and add them as leaving edges to their source nodes
-      for (Edge enteringEdge : enteringEdges) {
-        putEdge(enteringEdge);
-      }
-
     }
 
     private void putEdge(Edge pEdge) {
+      assert leavingEdges.size() == enteringEdges.size();
       leavingEdges.put(pEdge.source, pEdge);
       enteringEdges.put(pEdge.target, pEdge);
+      assert leavingEdges.size() == enteringEdges.size();
     }
 
     private boolean removeEdge(Edge pEdge) {
+      assert leavingEdges.size() == enteringEdges.size();
       if (leavingEdges.remove(pEdge.source, pEdge)) {
         boolean alsoRemoved = enteringEdges.remove(pEdge.target, pEdge);
-        assert alsoRemoved;
+        assert alsoRemoved : "edge was not removed: " + pEdge;
+        assert leavingEdges.size() == enteringEdges.size();
         return true;
       }
       return false;
@@ -1144,7 +1168,7 @@ public class ARGPathExporter {
 
     private Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
       Element edge = pDoc.createEdgeElement(pEdge.source, pEdge.target);
-      for (Map.Entry<KeyDef, String> entry : pEdge.label.keyValues.entrySet()) {
+      for (Map.Entry<KeyDef, String> entry : pEdge.label.getMapping().entrySet()) {
         KeyDef keyDef = entry.getKey();
         String value = entry.getValue();
         if (keyDef.keyFor.equals(ElementType.EDGE)) {
@@ -1316,9 +1340,7 @@ public class ARGPathExporter {
       }
       return false;
     }
-
   }
-
   private static class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement> {
 
     private final CFAEdge edge;
@@ -1423,142 +1445,6 @@ public class ARGPathExporter {
       });
     }
 
-  }
-
-  private static class TransitionCondition implements Comparable<TransitionCondition> {
-
-    public final SortedMap<KeyDef, String> keyValues = Maps.newTreeMap();
-
-    public void put(final KeyDef pKey, final String pValue) {
-      keyValues.put(pKey, pValue);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      if (!(pOther instanceof TransitionCondition)) {
-        return false;
-      }
-
-      TransitionCondition oT = (TransitionCondition) pOther;
-
-      return this.keyValues.equals(oT.keyValues);
-    }
-
-    public boolean hasTransitionRestrictions() {
-      return !keyValues.isEmpty();
-    }
-
-    @Override
-    public int hashCode() {
-      return keyValues.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return keyValues.toString();
-    }
-
-    public boolean summarizes(TransitionCondition pLabel) {
-      if (equals(pLabel)) {
-        return true;
-      }
-      boolean ignoreAssumptionScope =
-          !keyValues.keySet().contains(KeyDef.ASSUMPTION)
-              || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
-      boolean ignoreInvariantScope =
-          !keyValues.keySet().contains(KeyDef.INVARIANT)
-          || !pLabel.keyValues.keySet().contains(KeyDef.INVARIANT);
-      for (KeyDef keyDef : KeyDef.values()) {
-        if (!keyDef.equals(KeyDef.ASSUMPTION)
-            && !keyDef.equals(KeyDef.INVARIANT)
-            && !(ignoreAssumptionScope && keyDef.equals(KeyDef.ASSUMPTIONSCOPE))
-            && !(ignoreInvariantScope && keyDef.equals(KeyDef.INVARIANTSCOPE))
-            && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public int compareTo(TransitionCondition pO) {
-      if (this == pO) {
-        return 0;
-      }
-      SortedMapDifference<KeyDef, String> differences = Maps.difference(keyValues, pO.keyValues);
-      if (differences.areEqual()) {
-        return 0;
-      }
-      if (differences.entriesOnlyOnLeft().isEmpty()) {
-        return -1;
-      } else if (differences.entriesOnlyOnRight().isEmpty()) {
-        return 1;
-      }
-      ValueDifference<String> difference =
-          differences.entriesDiffering().values().iterator().next();
-      return difference.leftValue().compareTo(difference.rightValue());
-    }
-  }
-
-  private static class Edge implements Comparable<Edge> {
-
-    private final String source;
-
-    private final String target;
-
-    private final TransitionCondition label;
-
-    public Edge(String pSource, String pTarget, TransitionCondition pLabel) {
-      Preconditions.checkNotNull(pSource);
-      Preconditions.checkNotNull(pTarget);
-      Preconditions.checkNotNull(pLabel);
-      this.source = pSource;
-      this.target = pTarget;
-      this.label = pLabel;
-    }
-
-    @Override
-    public String toString() {
-      return String.format("{%s -- %s --> %s}", source, label, target);
-    }
-
-    @Override
-    public int compareTo(Edge pO) {
-      if (pO == this) {
-        return 0;
-      }
-      int comp = source.compareTo(pO.source);
-      if (comp != 0) {
-        return comp;
-      }
-      comp = target.compareTo(pO.target);
-      if (comp != 0) {
-        return comp;
-      }
-      return label.compareTo(pO.label);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(source, target, label);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      if (pOther instanceof Edge) {
-        Edge other = (Edge) pOther;
-        return source.equals(other.source)
-            && target.equals(other.target)
-            && label.equals(other.label);
-      }
-      return false;
-    }
   }
 
 }

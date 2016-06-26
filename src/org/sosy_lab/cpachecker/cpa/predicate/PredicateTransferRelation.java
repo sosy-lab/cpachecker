@@ -27,13 +27,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,6 +59,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally
@@ -84,8 +84,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           + "Infeasible paths are already excluded by transfer relation and not later by precision adjustment. This property is required in proof checking.")
   private boolean satCheckAtAbstraction = false;
 
-  @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
-  private boolean targetStateSatCheck = true;
+  @Option(secure=true, description = "check satisfiability when a target state has been found")
+  private boolean targetStateSatCheck = false;
 
   @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
@@ -313,6 +313,11 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(element);
       }
 
+      // TODO: replace with Iterables.getOnlyElement(AbstractStates.extractLocations(otherElements));
+      // when the special case for PredicateCPA in CompositeTransferRelation#callStrengthen
+      // is removed.
+      final CFANode currentLocation = getAnalysisSuccesor(edge);
+
       boolean targetStateFound = false;
       boolean intermediateTargetStateFound = false;
 
@@ -325,7 +330,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(loc, element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(currentLocation, element, (AbstractStateWithAssumptions) lElement);
         }
 
         if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
@@ -344,8 +349,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
       if (targetStateFound && targetStateSatCheck) {
-        element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
-
+        element = strengthenSatCheck(element, currentLocation);
         if (element == null) {
           // successor not reachable
           return Collections.emptySet();

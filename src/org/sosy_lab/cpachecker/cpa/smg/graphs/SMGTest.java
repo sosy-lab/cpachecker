@@ -31,7 +31,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGTest {
-  private LogManager logger = TestLogManager.getInstance();
+  private LogManager logger = LogManager.createTestLogManager();
 
   private SMG smg;
   CType mockType = AnonymousTypes.createTypeWithLength(4);

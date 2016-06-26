@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -67,15 +65,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Used to store the types of the cfa that are
@@ -107,17 +104,6 @@ public class CProgramScope implements Scope {
                             FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
                             return from(entryNode.getFunctionParameters())
                                 .filter(CSimpleDeclaration.class);
-                          }
-
-                          if (pEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
-                            MultiEdge edge = (MultiEdge) pEdge;
-                            Collection<CSimpleDeclaration> result = new ArrayList<>();
-
-                            for (CFAEdge innerEdge : edge.getEdges()) {
-                              Iterables.addAll(result, apply(innerEdge));
-                            }
-
-                            return result;
                           }
 
                           return Collections.emptySet();
@@ -542,16 +528,10 @@ public class CProgramScope implements Scope {
     }
 
     // Construct multimap that may contain duplicates
-    Multimap<String, CComplexType> typesMap = from(typeCollector.getCollectedTypes())
-        .filter(CComplexType.class)
-        .index(new Function<CComplexType, String>() {
-
-      @Override
-      public String apply(CComplexType pArg0) {
-        return pArg0.getQualifiedName();
-      }
-
-    });
+    Multimap<String, CComplexType> typesMap =
+        from(typeCollector.getCollectedTypes())
+            .filter(CComplexType.class)
+            .index(CComplexType::getQualifiedName);
 
     // Get unique types
     Map<String, CComplexType> uniqueTypes = Maps.newHashMap();
@@ -569,28 +549,16 @@ public class CProgramScope implements Scope {
     FluentIterable<CTypeDefDeclaration> plainTypeDefs = pTypeDcls.filter(CTypeDefDeclaration.class);
 
     // Construct multimap that may contain duplicates
-    Multimap<String, CTypeDefDeclaration> typeDefDeclarationsMap = plainTypeDefs.index(new Function<CTypeDefDeclaration, String>() {
-
-      @Override
-      public String apply(CTypeDefDeclaration pArg0) {
-        return pArg0.getQualifiedName();
-      }
-
-    });
+    Multimap<String, CTypeDefDeclaration> typeDefDeclarationsMap =
+        plainTypeDefs.index(CTypeDefDeclaration::getQualifiedName);
 
     // Get unique type defs
     Map<String, CType> uniqueTypeDefs = Maps.newHashMap();
 
     for (Map.Entry<String, Collection<CTypeDefDeclaration>> typeDefEntry : typeDefDeclarationsMap.asMap().entrySet()) {
       String qualifiedName = typeDefEntry.getKey();
-      FluentIterable<CType> types = from(typeDefEntry.getValue()).transform(new Function<CTypeDefDeclaration, CType>() {
-
-        @Override
-        public CType apply(CTypeDefDeclaration pArg0) {
-          return pArg0.getType();
-        }
-
-      });
+      FluentIterable<CType> types =
+          from(typeDefEntry.getValue()).transform(CTypeDefDeclaration::getType);
       putIfUnique(uniqueTypeDefs, qualifiedName, types, pLogger);
     }
 
@@ -599,21 +567,11 @@ public class CProgramScope implements Scope {
 
   private static Map<String, CSimpleDeclaration> extractUniqueSimpleDeclarations(
       Map<String, CSimpleDeclaration> pQualifiedDeclarations) {
-    return Maps.transformEntries(Maps.filterEntries(from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(), new Predicate<Map.Entry<String, Collection<CSimpleDeclaration>>>() {
-
-      @Override
-      public boolean apply(Entry<String, Collection<CSimpleDeclaration>> pArg0) {
-        return pArg0.getValue().size() == 1;
-      }
-
-    }), new Maps.EntryTransformer<String, Collection<CSimpleDeclaration>, CSimpleDeclaration>() {
-
-      @Override
-      public CSimpleDeclaration transformEntry(String pArg0, @Nonnull Collection<CSimpleDeclaration> pArg1) {
-        return pArg1.iterator().next();
-      }
-
-    });
+    return Maps.transformEntries(
+        Maps.filterEntries(
+            from(pQualifiedDeclarations.values()).index(GET_NAME).asMap(),
+            entry -> entry.getValue().size() == 1),
+        (key, values) -> Iterables.getOnlyElement(values));
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {

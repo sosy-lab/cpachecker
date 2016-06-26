@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -52,12 +50,13 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class SMGStateTest {
-  static private final  LogManager logger = TestLogManager.getInstance();
+  static private final  LogManager logger = LogManager.createTestLogManager();
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 
@@ -286,25 +285,17 @@ public class SMGStateTest {
 
     SMGAddressValueAndStateList add = smg1State.getPointerFromValue(6);
 
-    add.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
     add.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGState newState = add.getValueAndStateList().get(0).getSmgState();
+    add.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+
+    SMGState newState = add.getValueAndStateList().get(1).getSmgState();
 
     SMGAddressValueAndStateList add2 = newState.getPointerFromValue(7);
 
-    add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
     add2.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    SMGState newState2 = add2.getValueAndStateList().get(0).getSmgState();
-
-    SMGAddressValueAndStateList add3 = newState2.getPointerFromValue(27);
-
-    add3.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
-
-    add3.getValueAndStateList().get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add2.getValueAndStateList().get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
   }
 

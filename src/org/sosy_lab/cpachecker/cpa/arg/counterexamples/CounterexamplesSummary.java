@@ -49,8 +49,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
-import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -81,7 +81,7 @@ import javax.annotation.Nullable;
  * Summary of all (so far) feasible counterexamples
  * that can be found in the current set 'reached'.
  */
-public class CounterexamplesSummary implements IterationStatistics {
+public class CounterexamplesSummary implements Statistics {
 
   private final static class ViolationInfo {
     final CounterexampleInfo info;
@@ -353,11 +353,6 @@ public class CounterexamplesSummary implements IterationStatistics {
   @Override
   public String getName() {
     return "Counterexamples";
-  }
-
-  @Override
-  public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
-
   }
 
   public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {

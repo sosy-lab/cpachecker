@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -57,8 +56,7 @@ import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
@@ -72,13 +70,16 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
@@ -123,7 +124,7 @@ class EclipseCParser implements CParser {
    */
   private static String fixPath(String pPath) {
     Path path = Paths.get(pPath);
-    if (!path.isEmpty() && !path.isAbsolute() && path.getParent().isEmpty()) {
+    if (!path.toString().isEmpty() && !path.isAbsolute() && path.getParent() == null) {
       return Paths.get(".").resolve(path).toString();
     }
     return pPath;
@@ -134,7 +135,7 @@ class EclipseCParser implements CParser {
   }
 
   private FileContent wrapFile(String pFileName) throws IOException {
-    String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
+    String code = MoreFiles.toString(Paths.get(pFileName), Charset.defaultCharset());
     return wrapCode(pFileName, code);
   }
 
@@ -175,25 +176,21 @@ class EclipseCParser implements CParser {
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, IOException, InvalidConfigurationException {
 
-    return parseSomething(pFilenames, sourceOriginMapping, new FileParseWrapper() {
-      @Override
-      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
-        return wrapFile(pFileName);
-      }
-    });
+    return parseSomething(
+        pFilenames, sourceOriginMapping, (pFileName, pContent) -> wrapFile(pFileName));
   }
 
   @Override
   public ParseResult parseString(List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
 
-    return parseSomething(pCodeFragments, sourceOriginMapping, new FileParseWrapper() {
-      @Override
-      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
-        Preconditions.checkArgument(pContent instanceof FileContentToParse);
-        return wrapCode(pFileName, ((FileContentToParse)pContent).getFileContent());
-      }
-    });
+    return parseSomething(
+        pCodeFragments,
+        sourceOriginMapping,
+        (pFileName, pContent) -> {
+          Preconditions.checkArgument(pContent instanceof FileContentToParse);
+          return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
+        });
 
   }
 
@@ -340,10 +337,7 @@ class EclipseCParser implements CParser {
 
       return result;
 
-    } catch (CFAGenerationRuntimeException e) {
-      // thrown by StubCodeReaderFactory
-      throw new CParserException(e);
-    } catch (CoreException e) {
+    } catch (CFAGenerationRuntimeException | CoreException e) {
       throw new CParserException(e);
     } finally {
       parseTimer.stop();
@@ -414,22 +408,14 @@ class EclipseCParser implements CParser {
    * one file (we expect the user to know its name in this case).
    */
   private Function<String, String> createNiceFileNameFunction(List<IASTTranslationUnit> asts) {
-    Iterator<String> fileNames = Lists.transform(asts, new Function<IASTTranslationUnit, String>() {
-      @Override
-      public String apply(IASTTranslationUnit pInput) {
-        return pInput.getFilePath();
-      }}).iterator();
+    Iterator<String> fileNames = Lists.transform(asts, IASTTranslationUnit::getFilePath).iterator();
 
     if (asts.size() == 1) {
       final String mainFileName = fileNames.next();
-      return new Function<String, String>() {
-        @Override
-        public String apply(String pInput) {
-          return mainFileName.equals(pInput)
+      return pInput ->
+          (mainFileName.equals(pInput)
               ? "" // no file name necessary for main file if there is only one
-              : pInput;
-          }
-        };
+              : pInput);
 
     } else {
       String commonStringPrefix = fileNames.next();
@@ -445,22 +431,19 @@ class EclipseCParser implements CParser {
         commonPathPrefix = commonStringPrefix.substring(0, pos+1);
       }
 
-      return new Function<String, String>() {
-          @Override
-          public String apply(String pInput) {
-            if (pInput.isEmpty()) {
-              return pInput;
-            }
-            if (pInput.charAt(0) == '"' && pInput.charAt(pInput.length()-1) == '"') {
-              pInput = pInput.substring(1, pInput.length()-1);
-            }
-            if (pInput.startsWith(commonPathPrefix)) {
-              return pInput.substring(commonPathPrefix.length()).intern();
-            } else {
-              return pInput.intern();
-            }
-          }
-        };
+      return pInput -> {
+        if (pInput.isEmpty()) {
+          return pInput;
+        }
+        if (pInput.charAt(0) == '"' && pInput.charAt(pInput.length() - 1) == '"') {
+          pInput = pInput.substring(1, pInput.length() - 1);
+        }
+        if (pInput.startsWith(commonPathPrefix)) {
+          return pInput.substring(commonPathPrefix.length()).intern();
+        } else {
+          return pInput.intern();
+        }
+      };
     }
   }
 

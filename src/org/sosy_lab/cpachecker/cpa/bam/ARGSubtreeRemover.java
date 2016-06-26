@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.logging.Level;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -50,11 +48,13 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 
 public class ARGSubtreeRemover {
 
@@ -110,6 +110,11 @@ public class ARGSubtreeRemover {
       assert data.initialStateToReachedSet.get(removeCachedSubtreeArguments.getKey()).contains(removeCachedSubtreeArguments.getValue());
     }
 
+    // first remove the cut-state directly
+    removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallStates)),
+        getReachedState(element), pNewPrecisions, pNewPrecisionTypes);
+
+    // then remove some important states along the path, sufficient for re-exploration
     final ARGState lastRelevantNode = getReachedState(Iterables.getLast(relevantCallStates));
     final ARGState target = getReachedState(element);
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
@@ -128,11 +133,10 @@ public class ARGSubtreeRemover {
         newPrecisions = Collections.emptyList(); // no update of precision needed
         newPrecisionTypes = Collections.emptyList();
       }
-      removeCachedSubtree(removeCachedSubtreeArguments.getKey(), removeCachedSubtreeArguments.getValue(), newPrecisions, newPrecisionTypes);
-    }
 
-    removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallStates)),
-            getReachedState(element), pNewPrecisions, pNewPrecisionTypes);
+      removeCachedSubtreeIfPossible(removeCachedSubtreeArguments.getKey(),
+          removeCachedSubtreeArguments.getValue(), newPrecisions, newPrecisionTypes);
+    }
 
     // the main-reachedset contains only the root, exit-states and targets.
     // we assume, that the current refinement was caused by a target-state.
@@ -152,61 +156,61 @@ public class ARGSubtreeRemover {
     }
   }
 
+  private void removeCachedSubtreeIfPossible(ARGState rootState, ARGState removeElement,
+      List<Precision> pNewPrecisions,
+      List<Predicate<? super Precision>> pPrecisionTypes) {
+    if (removeElement.isDestroyed()) {
+      logger.log(Level.FINER, "state was destroyed before");
+      //apparently, removeElement was removed due to prior deletions
+    } else {
+      removeCachedSubtree(rootState, removeElement, pNewPrecisions, pPrecisionTypes);
+    }
+  }
+
+  /**
+   * This method removes a state from the corresponding reached-set.
+   * This is basically the same as {@link ARGReachedSet#removeSubtree(ARGState)},
+   * but we also update the BAM-cache.
+   */
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
                                    List<Predicate<? super Precision>> pPrecisionTypes) {
     assert pNewPrecisions.size() == pPrecisionTypes.size();
     removeCachedSubtreeTimer.start();
+    logger.log(Level.FINER, "Remove cached subtree for", removeElement, " issued with precision", pNewPrecisions);
 
-    try {
+    CFANode rootNode = extractLocation(rootState);
+    Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
+    ReachedSet reachedSet = data.initialStateToReachedSet.get(rootState);
+    assert reachedSet.contains(removeElement) : "removing state from wrong reachedSet: " + removeElement;
+    assert !removeElement.getParents().isEmpty();
 
-      logger.log(Level.FINER, "Remove cached subtree for", removeElement, " issued with precision", pNewPrecisions);
+    AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
+    Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
+    bamCache.removeReturnEntry(reducedRootState, reducedRootPrecision, rootSubtree);
+    bamCache.removeBlockEntry(reducedRootState, reducedRootPrecision, rootSubtree);
 
-      if (removeElement.isDestroyed()) {
-        logger.log(Level.FINER, "state was destroyed before");
-        //apparently, removeElement was removed due to prior deletions
-        return;
-      }
+    ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
+    if (pNewPrecisions.isEmpty()) {
+      // no new precision needed, simply remove the subtree
+      removeSubtree(argReachedSet, removeElement);
 
-      CFANode rootNode = extractLocation(rootState);
-      Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
-      ReachedSet reachedSet = data.initialStateToReachedSet.get(rootState);
-      assert reachedSet.contains(removeElement) : "removing state from wrong reachedSet: " + removeElement;
-      assert !removeElement.getParents().isEmpty();
-
-      Precision newPrecision = null;
-      Predicate<? super Precision> newPrecisionType = null;
-      if (!pNewPrecisions.isEmpty()) {
-        final Pair<Precision, Predicate<? super Precision>> p = getUpdatedPrecision(
-            reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
-        newPrecision = p.getFirst();
-        newPrecisionType = p.getSecond();
-      }
-
-      AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
-      Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-      bamCache.removeReturnEntry(reducedRootState, reducedRootPrecision, rootSubtree);
-      bamCache.removeBlockEntry(reducedRootState, reducedRootPrecision, rootSubtree);
-
-      logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
-
-      boolean updateCacheNeeded = removeElement.getParents().contains(reachedSet.getFirstState());
-
-      ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
-      if (newPrecision == null) {
-        removeSubtree(argReachedSet, removeElement);
+    } else {
+      final Pair<Precision, Predicate<? super Precision>> newPrecision = getUpdatedPrecision(
+          reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
+      if (removeElement.getParents().contains(reachedSet.getFirstState())) {
+        // after removing the state, only the root-state (and maybe other branches
+        // starting at root) would remain, with a new precision for root.
+        // instead of modifying the existing reached-set,
+        // we create a new reached-set with a new root with the new precision.
+        logger.log(Level.FINER, "creating reached-set with new precision");
+        data.createAndRegisterNewReachedSet(reducedRootState, reducedRootPrecision, rootSubtree);
       } else {
-        argReachedSet.removeSubtree(removeElement, newPrecision, newPrecisionType);
+        argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
       }
-
-      if (updateCacheNeeded && newPrecision != null) {
-        logger.log(Level.FINER, "updating cache");
-        bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newPrecision);
-      }
-
-    } finally {
-      removeCachedSubtreeTimer.stop();
     }
+
+    removeCachedSubtreeTimer.stop();
   }
 
   /**
@@ -252,18 +256,16 @@ public class ARGSubtreeRemover {
         // We ignore this here, because we just need the 'number' of block-exits.
       }
 
+      if (bamCutState == bamState) {
+        // do not enter or leave a block, when we found the cutState.
+        break;
+      }
+
       if (data.initialStateToReachedSet.containsKey(state)) {
         assert partitioning.isCallNode(extractLocation(state)) : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.addLast(bamState);
-      }
-
-      if (bamCutState == bamState) {
-        // TODO:
-        // current solution: when we found the cutState, we only enter new blocks, but never leave one.
-        // maybe better solution: do not enter or leave a block, when we found the cutState.
-        break;
       }
     }
 
@@ -331,7 +333,7 @@ public class ARGSubtreeRemover {
     }
 
     // now only the initial elements should be on the stacks
-    assert needsNewPrecisionEntries.getLast() == false;
+    assert Iterables.getOnlyElement(needsNewPrecisionEntries) == false;
     assert rootStates.getLast() == pPath.getFirstState();
   }
 
@@ -352,8 +354,7 @@ public class ARGSubtreeRemover {
     AbstractState reducedRootState = wrappedReducer.getVariableReducedState(getReachedState(rootState), context, node);
     Precision reducedNewPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, context);
     if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, context)) {
-      ReachedSet reachedSet = data.createInitialReachedSet(reducedRootState, reducedNewPrecision);
-      bamCache.put(reducedRootState, reducedNewPrecision, context, reachedSet);
+      data.createAndRegisterNewReachedSet(reducedRootState, reducedNewPrecision, context);
     }
 
     // check if the used precision is equal to the new precision

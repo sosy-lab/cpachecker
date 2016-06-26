@@ -23,19 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,6 +48,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -75,13 +73,19 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisRefiner
@@ -246,24 +250,13 @@ public class ValueAnalysisRefiner
    * the subgraph below the refinement root.
    */
   private PredicatePrecision mergePredicatePrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
-
-    PredicatePrecision mergedPrecision = PredicatePrecision.empty();
-
-    // find all distinct precisions to merge them
-    Set<PredicatePrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractPredicatePrecision(pReached, descendant));
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+    UnmodifiableReachedSet reached = pReached.asReachedSet();
+    return PredicatePrecision.unionOf(
+        from(pRefinementRoot.getSubgraph())
+            .filter(not(ARGState::isCovered))
+            .transform(reached::getPrecision));
     }
-
-    for (PredicatePrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.mergeWith(precision);
-    }
-
-    return mergedPrecision;
-  }
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
       ARGState state) {
@@ -337,7 +330,7 @@ public class ValueAnalysisRefiner
   }
 
   private ARGState relocateRefinementRoot(final ARGState pRefinementRoot,
-      final boolean  predicatePrecisionIsAvailable) {
+      final boolean  predicatePrecisionIsAvailable) throws InterruptedException{
 
     // no relocation needed if only running value analysis,
     // because there, this does slightly degrade performance
@@ -360,6 +353,7 @@ public class ValueAnalysisRefiner
 
     Set<ARGState> descendants = pRefinementRoot.getSubgraph();
     Set<ARGState> coveredStates = new HashSet<>();
+    shutdownNotifier.shutdownIfNecessary();
     for (ARGState descendant : descendants) {
       coveredStates.addAll(descendant.getCoveredByThis());
     }
@@ -378,6 +372,7 @@ public class ValueAnalysisRefiner
 
     // build the coverage tree, bottom-up, starting from the covered states
     while (!todo.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
@@ -395,6 +390,7 @@ public class ValueAnalysisRefiner
     // the new refinement root is either the first node
     // having two or more children, or the original
     // refinement root, what ever comes first
+    shutdownNotifier.shutdownIfNecessary();
     ARGState newRefinementRoot = coverageTreeRoot;
     while (successorRelation.get(newRefinementRoot).size() == 1 && newRefinementRoot != pRefinementRoot) {
       newRefinementRoot = Iterables.getOnlyElement(successorRelation.get(newRefinementRoot));
@@ -412,7 +408,7 @@ public class ValueAnalysisRefiner
    */
   @Override
   protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
-    List<Pair<ValueAnalysisState, CFAEdge>> concretePath = checker.evaluate(errorPath);
+    List<Pair<ValueAnalysisState, List<CFAEdge>>> concretePath = checker.evaluate(errorPath);
     if (concretePath.size() < errorPath.getInnerEdges().size()) {
       // If concretePath is shorter than errorPath, this means that errorPath is actually
       // infeasible and should have been ruled out during refinement.

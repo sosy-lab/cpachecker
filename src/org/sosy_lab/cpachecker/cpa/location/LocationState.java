@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static com.google.common.base.Predicates.*;
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.or;
+import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,7 +50,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.collect.ImmutableSet;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Set;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public abstract class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -92,6 +99,10 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
     private static final long serialVersionUID = 6825257572921009531L;
 
+    @SuppressFBWarnings(
+      value = "SE_BAD_FIELD",
+      justification = "backwards analysis not serializable"
+    )
     private final CFA cfa;
     private boolean followFunctionCalls;
 

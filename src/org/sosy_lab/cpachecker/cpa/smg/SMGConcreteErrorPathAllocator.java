@@ -23,15 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -50,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
@@ -59,19 +53,26 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SMGConcreteErrorPathAllocator {
 
@@ -91,90 +92,116 @@ public class SMGConcreteErrorPathAllocator {
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
 
-    List<Pair<SMGState, CFAEdge>> path = new ArrayList<>(pPath.size());
+    List<Pair<SMGState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
 
-    PathIterator it = pPath.pathIterator();
+    PathIterator it = pPath.fullPathIterator();
 
     while (it.hasNext()) {
-      it.advance();
+      List<CFAEdge> innerEdges = new ArrayList<>();
+
+      do {
+        it.advance();
+        innerEdges.add(it.getIncomingEdge());
+      } while (!it.isPositionWithState());
+
       SMGState state = AbstractStates.extractStateByType(it.getAbstractState(), SMGState.class);
-      CFAEdge edge = it.getIncomingEdge();
 
       if (state == null) {
         return null;
       }
 
-      path.add(Pair.of(state, edge));
+      path.add(Pair.of(state, innerEdges));
     }
 
     return createConcreteStatePath(path);
   }
 
-  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
+  public CFAPathWithAssumptions allocateAssignmentsToPath(
+      List<Pair<SMGState, List<CFAEdge>>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
     return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
-  private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
+  private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
 
-    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
+    List<ConcreteStatePathNode> result = new ArrayList<>();
 
     // Until SMGObjects are comparable for persistant maps, this object is mutable
     // and depends on side effects
     SMGObjectAddressMap variableAddresses = new SMGObjectAddressMap();
 
-    for (Pair<SMGState, CFAEdge> edgeStatePair : pPath) {
+    for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
 
       SMGState pSMGState = edgeStatePair.getFirst();
-      CFAEdge edge = edgeStatePair.getSecond();
+      List<CFAEdge> edges = edgeStatePair.getSecond();
 
-      ConcreteStatePathNode node;
+      if (edges.size() > 1) {
+        Iterator<CFAEdge> it = Lists.reverse(edges).iterator();
+        List<SingleConcreteState> intermediateStates = new ArrayList<>();
+        Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
+        while (it.hasNext()) {
+          CFAEdge innerEdge = it.next();
+          ConcreteState state =
+              createConcreteState(variableAddresses, pSMGState, alreadyAssigned, innerEdge);
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+          // intermediate edge
+          if (it.hasNext()) {
+            intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
 
-        node = createMultiEdge(pSMGState, (MultiEdge) edge, variableAddresses);
+            // last edge of (dynamic) multi edge
+          } else {
+            result.addAll(Lists.reverse(intermediateStates));
+            result.add(new SingleConcreteState(innerEdge, state));
+          }
+        }
+
+        // a normal edge, no special handling required
       } else {
-        ConcreteState concreteState = createConcreteState(pSMGState, variableAddresses);
-        node = ConcreteStatePath.valueOfPathNode(concreteState, edge);
+        result.add(
+            new SingleConcreteState(
+                Iterables.getOnlyElement(edges),
+                new ConcreteState(
+                    ImmutableMap.<LeftHandSide, Object>of(),
+                    allocateAddresses(pSMGState, variableAddresses),
+                    variableAddresses.getAddressMap(),
+                    memoryName)));
       }
-
-      result.add(node);
     }
 
 
     return new ConcreteStatePath(result);
   }
 
-  private ConcreteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
-      SMGObjectAddressMap pVariableAddresses) {
+  private ConcreteState createConcreteState(
+      SMGObjectAddressMap variableAddresses,
+      SMGState pSMGState,
+      Set<CLeftHandSide> alreadyAssigned,
+      CFAEdge innerEdge) {
+    ConcreteState state;
 
-    int size = multiEdge.getEdges().size();
-
-    ConcreteState[] singleConcreteStates = new ConcreteState[size];
-
-    ListIterator<CFAEdge> iterator = multiEdge.getEdges().listIterator(size);
-
-    Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
-
-    int index = size - 1;
-    while (iterator.hasPrevious()) {
-      CFAEdge cfaEdge = iterator.previous();
-
-      ConcreteState state;
-
-      // We know only values for LeftHandSides that have not yet been assigned.
-      if (allValuesForLeftHandSideKnown(cfaEdge, alreadyAssigned)) {
-        state = createConcreteState(pSMGState, pVariableAddresses);
-      } else {
-        state = ConcreteState.empty();
-      }
-      singleConcreteStates[index] = state;
-
-      addLeftHandSide(cfaEdge, alreadyAssigned);
-      index--;
+    // We know only values for LeftHandSides that have not yet been assigned.
+    if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
+      state =
+          new ConcreteState(
+              ImmutableMap.<LeftHandSide, Object>of(),
+              allocateAddresses(pSMGState, variableAddresses),
+              variableAddresses.getAddressMap(),
+              memoryName);
+    } else {
+      state = ConcreteState.empty();
     }
 
-    return ConcreteStatePath.valueOfPathNode(Arrays.asList(singleConcreteStates), multiEdge);
+    // add handled edges to alreadyAssigned list if necessary
+    if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
+
+      if (stmt instanceof CAssignment) {
+        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+        alreadyAssigned.add(lhs);
+      }
+    }
+
+    return state;
   }
 
   private boolean allValuesForLeftHandSideKnown(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
@@ -186,18 +213,6 @@ public class SMGConcreteErrorPathAllocator {
     }
 
     return false;
-  }
-
-  private void addLeftHandSide(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
-
-    if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      CStatement stmt = ((CStatementEdge)pCfaEdge).getStatement();
-
-      if(stmt instanceof CAssignment) {
-        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
-        pAlreadyAssigned.add(lhs);
-      }
-    }
   }
 
   private boolean isStatementValueKnown(CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
@@ -290,17 +305,6 @@ public class SMGConcreteErrorPathAllocator {
     return false;
   }
 
-  //TODO move to util?
-  private ConcreteState createConcreteState(SMGState pSMGState,
-      SMGObjectAddressMap pAdresses) {
-
-
-    Map<LeftHandSide, Object> variables = ImmutableMap.of();
-    Map<String, Memory> allocatedMemory = allocateAddresses(pSMGState, pAdresses);
-    // We assign every variable to the heap, thats why the variable map is empty.
-    return new ConcreteState(variables, allocatedMemory, pAdresses.getAddressMap(), memoryName);
-  }
-
   private Map<String, Memory> allocateAddresses(SMGState pSMGState,
       SMGObjectAddressMap pAdresses) {
 
@@ -328,19 +332,13 @@ public class SMGConcreteErrorPathAllocator {
       int symbolicValue = hvEdge.getValue();
       BigInteger value = null;
 
-      if(symbolicValue == 0) {
+      if (symbolicValue == 0) {
         value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGAddressValue pointer;
-        try {
-          pointer = pSMGState.getPointerFromValue(symbolicValue).asAddressValueAndStateList().get(0).getObject();
-        } catch (SMGInconsistentException e) {
-          throw new AssertionError();
-        }
-
+        SMGEdgePointsTo pointer = pSMGState.getPointsToEdge(symbolicValue);
 
         //TODO ugly, use common representation
-        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset().getAsInt(), pSMGState).getAddressValue();
+        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
         value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {

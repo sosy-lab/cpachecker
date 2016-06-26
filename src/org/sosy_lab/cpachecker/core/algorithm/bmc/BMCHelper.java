@@ -131,7 +131,13 @@ public final class BMCHelper {
     BooleanFormula f = pBFMGR.makeBoolean(false);
 
     for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
-      f = pBFMGR.or(f, e.getPathFormula().getFormula());
+      // Conjuncting block formula of last abstraction and current path formula
+      // works regardless of state is an abstraction state or not.
+      BooleanFormula pathFormula =
+          pBFMGR.and(
+              e.getAbstractionFormula().getBlockFormula().getFormula(),
+              e.getPathFormula().getFormula());
+      f = pBFMGR.or(f, pathFormula);
     }
 
     return f;

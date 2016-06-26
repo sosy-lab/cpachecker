@@ -26,14 +26,13 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,9 +40,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -72,14 +71,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class is responsible for replacing calls via function pointers like (*fp)()
@@ -177,43 +176,39 @@ public class CFunctionPointerResolver {
       case ALL:
         // do nothing
         break;
-      case EQ_PARAM_COUNT:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            boolean result = checkParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
-            if (!result) {
-              logger.log(Level.FINEST, "Function call", pInput.getFirst().toASTString(),
-                  "does not match function", pInput.getSecond(), "because of number of parameters.");
-            }
-            return result;
-          }
-        });
-        break;
-      case EQ_PARAM_SIZES:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            return checkReturnAndParamSizes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
-          }
-        });
-        break;
-      case EQ_PARAM_TYPES:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            return checkReturnAndParamTypes(pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
-          }
-        });
-        break;
-      case RETURN_VALUE:
-        predicates.add(new Predicate<Pair<CFunctionCall, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCall, CFunctionType> pInput) {
-            return checkReturnValue(pInput.getFirst(), pInput.getSecond());
-          }
-        });
-        break;
+        case EQ_PARAM_COUNT:
+          predicates.add(
+              pInput -> {
+                boolean result =
+                    checkParamSizes(
+                        pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
+                if (!result) {
+                  logger.log(
+                      Level.FINEST,
+                      "Function call",
+                      pInput.getFirst().toASTString(),
+                      "does not match function",
+                      pInput.getSecond(),
+                      "because of number of parameters.");
+                }
+                return result;
+              });
+          break;
+        case EQ_PARAM_SIZES:
+          predicates.add(
+              pInput ->
+                  checkReturnAndParamSizes(
+                      pInput.getFirst().getFunctionCallExpression(), pInput.getSecond()));
+          break;
+        case EQ_PARAM_TYPES:
+          predicates.add(
+              pInput ->
+                  checkReturnAndParamTypes(
+                      pInput.getFirst().getFunctionCallExpression(), pInput.getSecond()));
+          break;
+        case RETURN_VALUE:
+          predicates.add(pInput -> checkReturnValue(pInput.getFirst(), pInput.getSecond()));
+          break;
       case USED_IN_CODE:
         // Not necessary, only matching functions are in the
         // candidateFunctions set
@@ -301,14 +296,14 @@ public class CFunctionPointerResolver {
       return;
     }
 
-    logger.log(Level.FINEST, "Inserting edges for the function pointer",
-        nameExp.toASTString(), "with type", nameExp.getExpressionType().toASTString("*"),
-        "to the functions", from(funcs).transform(new Function<CFANode, String>() {
-            @Override
-            public String apply(CFANode pInput) {
-              return pInput.getFunctionName();
-            }
-          }));
+    logger.log(
+        Level.FINEST,
+        "Inserting edges for the function pointer",
+        nameExp.toASTString(),
+        "with type",
+        nameExp.getExpressionType().toASTString("*"),
+        "to the functions",
+        from(funcs).transform(CFunctionEntryNode::getFunctionName));
 
     FileLocation fileLocation = statement.getFileLocation();
     CFANode start = statement.getPredecessor();
@@ -443,49 +438,38 @@ public class CFunctionPointerResolver {
 
   private List<CFunctionEntryNode> getFunctionSet(final CFunctionCall call) {
     return from(candidateFunctions)
-            .filter(CFunctionEntryNode.class)
-            .filter(Predicates.compose(matchingFunctionCall,
-                      new Function<CFunctionEntryNode, Pair<CFunctionCall, CFunctionType>>() {
-                        @Override
-                        public Pair<CFunctionCall, CFunctionType> apply(CFunctionEntryNode f) {
-                          return Pair.of(call, f.getFunctionDefinition().getType());
-                        }
-                      }))
-            .toList();
+        .filter(CFunctionEntryNode.class)
+        .filter(
+            Predicates.compose(
+                matchingFunctionCall, f -> Pair.of(call, f.getFunctionDefinition().getType())))
+        .toList();
   }
 
   private boolean checkReturnAndParamSizes(
       CFunctionCallExpression functionCallExpression, CFunctionType functionType) {
     final MachineModel machine = cfa.getMachineModel();
 
-    try {
-      CType declRet = functionType.getReturnType();
-      CType actRet = functionCallExpression.getExpressionType();
-      if (machine.getSizeof(declRet) != machine.getSizeof(actRet)) {
-        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
-            "does not match function", functionType, "with return type", declRet,
-            "because of return types with different sizes.");
+    CType declRet = functionType.getReturnType();
+    CType actRet = functionCallExpression.getExpressionType();
+    if (machine.getSizeof(declRet) != machine.getSizeof(actRet)) {
+      logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
+          "does not match function", functionType, "with return type", declRet,
+          "because of return types with different sizes.");
+      return false;
+    }
+
+    List<CType> declParams = functionType.getParameters();
+    List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
+    for (int i=0; i<declParams.size(); i++) {
+      CType dt = declParams.get(i);
+      CType et = exprParams.get(i).getExpressionType();
+      if (machine.getSizeof(dt) != machine.getSizeof(et)) {
+        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
+            "does not match function", functionType,
+            "because actual parameter", i, "has type", et, "instead of", dt,
+            "(differing sizes).");
         return false;
       }
-
-      List<CType> declParams = functionType.getParameters();
-      List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
-      for (int i=0; i<declParams.size(); i++) {
-        CType dt = declParams.get(i);
-        CType et = exprParams.get(i).getExpressionType();
-        if (machine.getSizeof(dt) != machine.getSizeof(et)) {
-          logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
-              "does not match function", functionType,
-              "because actual parameter", i, "has type", et, "instead of", dt,
-              "(differing sizes).");
-          return false;
-        }
-      }
-    } catch (IllegalArgumentException e) {
-      // We can't get size of CProblemTypes, and they actually occur for valid C code.
-      // This is ugly, but we have no chance but catch this exception and return true here.
-      logger.logUserException(Level.INFO, e, functionType.toASTString("") + " " + functionCallExpression);
-      return true;
     }
 
     return true;

@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Set;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -32,8 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWi
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
+import java.util.Set;
 
 /**
  * This class contains smg utilities, for example filters.

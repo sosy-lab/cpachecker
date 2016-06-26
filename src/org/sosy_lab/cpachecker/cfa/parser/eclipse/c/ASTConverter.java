@@ -23,18 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.*;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
@@ -141,6 +138,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -174,12 +172,16 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cfa")
 class ASTConverter {
@@ -860,7 +862,7 @@ class ASTConverter {
     } else {
       assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
 
-      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<Pair<String, CType>>());
+      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         fullFieldReference = owner;
         boolean isPointerDereference = e.isPointerDereference();
@@ -1371,8 +1373,27 @@ class ASTConverter {
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
-    return new CTypeIdExpression(getLocation(e), typeConverter.convert(e.getExpressionType()),
-        operatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
+    TypeIdOperator typeIdOperator = operatorConverter.convertTypeIdOperator(e);
+    CType expressionType;
+    CType typeId = convert(e.getTypeId());
+
+    if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
+      // sizeof and _Alignof always return int, CDT sometimes provides wrong type
+      expressionType = CNumericTypes.INT;
+      if (typeId.isIncomplete()) {
+        // Cannot compute alignment
+        throw new CFAGenerationRuntimeException(
+            "Invalid application of "
+                + typeIdOperator.getOperator()
+                + " to incomplete type "
+                + typeId,
+            e,
+            niceFileNameFunction);
+      }
+    } else {
+      expressionType = typeConverter.convert(e.getExpressionType());
+    }
+    return new CTypeIdExpression(getLocation(e), expressionType, typeIdOperator, typeId);
   }
 
   private CExpression convert(IASTTypeIdInitializerExpression e) {

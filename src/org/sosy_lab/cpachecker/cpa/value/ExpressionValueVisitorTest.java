@@ -37,7 +37,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -91,7 +91,7 @@ public class ExpressionValueVisitorTest {
 
   @Before
   public void init() {
-    logger = new LogManagerWithoutDuplicates(TestLogManager.getInstance());
+    logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
     evv =
         new ExpressionValueVisitor(

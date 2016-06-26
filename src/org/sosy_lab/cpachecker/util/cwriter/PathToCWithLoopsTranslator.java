@@ -23,22 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import static com.google.common.base.Predicates.*;
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
-import static org.sosy_lab.common.Appenders.*;
+import static org.sosy_lab.common.Appenders.concat;
+import static org.sosy_lab.common.Appenders.forIterable;
 import static org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor.getLoopsOfNode;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.regex.Pattern;
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,10 +57,16 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.regex.Pattern;
 
 /**
  * This class translates a given ARGpath into c-code. The created code consists
@@ -168,12 +169,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
     // only use a unique name where we are not inside a relevant loop
     if (loopsInPathToRecreate.isEmpty()
-        || !FluentIterable.from(loopsInPathToRecreate.keySet())
-                      .anyMatch(new Predicate<Loop>() {
-                            @Override
-                            public boolean apply(Loop loop) {
-                              return loop.getLoopNodes().contains(predecessor);
-                            }})) {
+        || !loopsInPathToRecreate
+            .keySet()
+            .stream()
+            .anyMatch(loop -> loop.getLoopNodes().contains(predecessor))) {
       functionName = getFreshFunctionName(functionStartNode);
     }
 
@@ -279,13 +278,10 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   private String processSimpleEdge0(CFAEdge pCFAEdge, BasicBlock currentBlock, final ARGState state) {
 
     CFANode succ = pCFAEdge.getSuccessor();
-    Predicate<Loop> predicate = new Predicate<Loop>() {
-      @Override
-      public boolean apply(Loop loop) {
-        return loopsInPathToRecreate.containsKey(loop);
-      }
-    };
-    List<Loop> loopsAfter = from(getLoopsOfNode(loopStructure, succ)).filter(predicate).toList();
+    List<Loop> loopsAfter =
+        from(getLoopsOfNode(loopStructure, succ))
+            .filter(loopsInPathToRecreate::containsKey)
+            .toList();
 
     // we do not go into a loop that has to be uprolled, so just continue normally
     if (loopsAfter.isEmpty() || !loopsInPathToRecreate.get(loopsAfter.get(loopsAfter.size()-1)).contains(state)) {
@@ -712,7 +708,6 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     case StatementEdge:
     case ReturnStatementEdge:
     case DeclarationEdge:
-    case MultiEdge:
       return super.processSimpleEdge(edge, currentBlock) + "\n";
 
     case AssumeEdge: {

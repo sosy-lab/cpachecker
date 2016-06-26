@@ -23,17 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.Nonnull;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowCode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,9 +38,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import javax.annotation.Nonnull;
 
 public class LocationTransferRelation implements TransferRelation {
 
@@ -64,13 +63,6 @@ public class LocationTransferRelation implements TransferRelation {
     if (CFAUtils.allLeavingEdges(node).contains(pCfaEdge)) {
       return Collections.singleton(factory.getState(pCfaEdge.getSuccessor()));
 
-    } else if (node.getNumLeavingEdges() == 1
-        && node.getLeavingEdge(0) instanceof MultiEdge) {
-      // maybe we are "entering" a MultiEdge via it's first component edge
-      MultiEdge multiEdge = (MultiEdge)node.getLeavingEdge(0);
-      if (multiEdge.getEdges().get(0).equals(pCfaEdge)) {
-        return Collections.singleton(factory.getState(pCfaEdge.getSuccessor()));
-      }
     }
 
     return Collections.emptySet();

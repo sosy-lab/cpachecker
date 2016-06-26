@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
-import static com.google.common.base.Preconditions.*;
-import static com.google.common.collect.Iterables.getLast;
-
-import java.util.ArrayList;
-import java.util.List;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CFANode implements Comparable<CFANode> {
 
@@ -227,9 +227,7 @@ public class CFANode implements Comparable<CFANode> {
 
     if (getNumLeavingEdges() > 0) {
       CFAEdge edge = getLeavingEdge(0);
-      if (edge instanceof MultiEdge) {
-        edge = ((MultiEdge)edge).getEdges().get(0);
-      }
+
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
         return "before " + edge.getFileLocation();
       }
@@ -237,9 +235,7 @@ public class CFANode implements Comparable<CFANode> {
 
     if (getNumEnteringEdges() > 0) {
       CFAEdge edge = getEnteringEdge(0);
-      if (edge instanceof MultiEdge) {
-        edge = getLast(((MultiEdge)edge).getEdges());
-      }
+
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
         return "after " + edge.getFileLocation();
       }

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
@@ -109,20 +109,20 @@ public enum InvariantsFormulaManager {
    *
    * @return a invariants formula representing a constant with the given value.
    */
-  public <T extends BitVectorType> NumeralFormula<T> asConstant(T pValue) {
+  public <T extends Typed> NumeralFormula<T> asConstant(T pValue) {
     return Constant.of(pValue);
   }
 
   /**
    * Gets a invariants formula representing a constant with the given value.
    *
-   * @param pBitVectorInfo the bit vector information for the constant.
+   * @param pTypeInfo the type information for the constant.
    * @param pValue the value of the constant.
    *
    * @return a invariants formula representing a constant with the given value.
    */
-  public <T> NumeralFormula<T> asConstant(BitVectorInfo pBitVectorInfo, T pValue) {
-    return Constant.of(pBitVectorInfo, pValue);
+  public <T> NumeralFormula<T> asConstant(TypeInfo pTypeInfo, T pValue) {
+    return Constant.of(pTypeInfo, pValue);
   }
 
   /**
@@ -356,13 +356,13 @@ public enum InvariantsFormulaManager {
   /**
    * Gets an invariants formula representing the variable with the given memory location.
    *
-   * @param pBitVectorInfo the bit vector information for the variable.
+   * @param pTypeInfo the bit vector information for the variable.
    * @param pMemoryLocation the memory location of the variable.
    *
    * @return an invariants formula representing the variable with the given memory location.
    */
-  public <T> Variable<T> asVariable(BitVectorInfo pBitVectorInfo, MemoryLocation pMemoryLocation) {
-    return Variable.of(pBitVectorInfo, pMemoryLocation);
+  public <T> Variable<T> asVariable(TypeInfo pTypeInfo, MemoryLocation pMemoryLocation) {
+    return Variable.of(pTypeInfo, pMemoryLocation);
   }
 
   /**
@@ -393,17 +393,17 @@ public enum InvariantsFormulaManager {
    * Gets an invariants formula representing the cast of the given
    * operand to the given bit vector.
    *
-   * @param pBitVectorInfo the bit vector to cast the formula to.
+   * @param pTypeInfo the bit vector to cast the formula to.
    * @param pToCast the invariants formula to cast.
    *
    * @return an invariants formula representing the cast of the given
    * operand to the given bit vector.
    */
-  public <T> NumeralFormula<T> cast(BitVectorInfo pBitVectorInfo, NumeralFormula<T> pToCast) {
-    if (pBitVectorInfo.equals(pToCast.getBitVectorInfo())) {
+  public <T> NumeralFormula<T> cast(TypeInfo pTypeInfo, NumeralFormula<T> pToCast) {
+    if (pTypeInfo.equals(pToCast.getTypeInfo())) {
       return pToCast;
     }
-    return Cast.of(pBitVectorInfo, pToCast);
+    return Cast.of(pTypeInfo, pToCast);
   }
 
 }

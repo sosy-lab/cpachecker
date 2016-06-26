@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import com.google.common.base.Preconditions;
+
 import java.math.BigInteger;
 import java.util.Objects;
-
-import com.google.common.base.Preconditions;
 
 
 public class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
@@ -138,6 +138,20 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
   @Override
   public CompoundInterval singleton(BigInteger pValue) {
     return CompoundBitVectorInterval.singleton(info, pValue);
+  }
+
+  @Override
+  public CompoundInterval singleton(Number pValue) {
+    if (pValue instanceof BigInteger) {
+      return singleton((BigInteger) pValue);
+    }
+    if (pValue instanceof Long
+        || pValue instanceof Integer
+        || pValue instanceof Short
+        || pValue instanceof Byte) {
+      return singleton((long) pValue);
+    }
+    throw new IllegalArgumentException("Unsupported number: " + pValue);
   }
 
   @Override
@@ -268,9 +282,17 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
   }
 
   @Override
-  public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
-    checkOperand(pToCast);
-    return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
+  public CompoundInterval cast(TypeInfo pInfo, CompoundInterval pToCast) {
+    if (!(pInfo instanceof BitVectorInfo)) {
+      throw new IllegalArgumentException(
+          "Unsupported target type: Not a compound bit vector interval.");
+    }
+    if (pToCast instanceof CompoundBitVectorInterval) {
+      return ((CompoundBitVectorInterval) pToCast)
+          .cast((BitVectorInfo) pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
+    }
+    // TODO be more precise
+    return allPossibleValues();
   }
 
   private static void checkOperand(CompoundInterval pOperand) {

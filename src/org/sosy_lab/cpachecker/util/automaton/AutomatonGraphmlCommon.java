@@ -23,7 +23,37 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
+import com.google.common.io.ByteSource;
+import com.google.common.io.CharStreams;
+
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -39,38 +69,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteSource;
-import com.google.common.io.CharStreams;
 
 public class AutomatonGraphmlCommon {
 
@@ -101,13 +99,14 @@ public class AutomatonGraphmlCommon {
     INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
     INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
     NAMED("named", ElementType.NODE, "namedValue", "string"),
-    NODETYPE("nodetype", ElementType.NODE, "nodeType", "string"),
-    ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean"),
-    ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean"),
-    ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean"),
-    ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean"),
-    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean"),
+    NODETYPE("nodetype", ElementType.NODE, "nodeType", "string", NodeType.ONPATH),
+    ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean", false),
+    ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean", false),
+    ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean", false),
+    ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
+    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
+    THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
@@ -134,11 +133,23 @@ public class AutomatonGraphmlCommon {
     public final String attrName;
     public final String attrType;
 
+    /** The defaultValue is non-null, iff existent. */
+    @Nullable public final String defaultValue;
+
     private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
       this.id = id;
       this.keyFor = pKeyFor;
       this.attrName = attrName;
       this.attrType = attrType;
+      this.defaultValue = null;
+    }
+
+    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType, Object defaultValue) {
+      this.id = id;
+      this.keyFor = pKeyFor;
+      this.attrName = attrName;
+      this.attrType = attrType;
+      this.defaultValue = defaultValue.toString();
     }
 
     @Override
@@ -292,17 +303,10 @@ public class AutomatonGraphmlCommon {
       root.setAttribute("xmlns", "http://graphml.graphdrawing.org/xmlns");
 
       EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
-      root.appendChild(
-          createKeyDefElement(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text));
-      keyDefs.remove(KeyDef.NODETYPE);
       root.appendChild(createKeyDefElement(KeyDef.ORIGINFILE, pDefaultSourceFileName));
       keyDefs.remove(KeyDef.ORIGINFILE);
-      for (NodeFlag f : NodeFlag.values()) {
-        keyDefs.remove(f.key);
-        root.appendChild(createKeyDefElement(f.key, "false"));
-      }
       for (KeyDef keyDef : keyDefs) {
-        root.appendChild(createKeyDefElement(keyDef, null));
+        root.appendChild(createKeyDefElement(keyDef, keyDef.defaultValue));
       }
 
       graph = doc.createElement("graph");
@@ -413,7 +417,7 @@ public class AutomatonGraphmlCommon {
       Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
       for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
         Path programPath = Paths.get(programDenotation);
-        sources.add(programPath.asByteSource());
+        sources.add(MoreFiles.asByteSource(programPath));
       }
       HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
       return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
@@ -453,17 +457,6 @@ public class AutomatonGraphmlCommon {
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
-    if (edge instanceof MultiEdge) {
-      return FluentIterable.from((MultiEdge) edge)
-          .allMatch(
-              new Predicate<CFAEdge>() {
-
-                @Override
-                public boolean apply(CFAEdge pEdge) {
-                  return handleAsEpsilonEdge(pEdge);
-                }
-              });
-    }
     if (edge instanceof BlankEdge) {
       return !(edge.getSuccessor() instanceof FunctionExitNode);
     } else if (edge instanceof CFunctionReturnEdge) {

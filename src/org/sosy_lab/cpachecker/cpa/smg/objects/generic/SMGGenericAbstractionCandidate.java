@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 
-public interface SMGGenericAbstractionCandidate extends Comparable<SMGGenericAbstractionCandidate> {
+public interface SMGGenericAbstractionCandidate {
 
   public int getScore();
 

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -41,9 +45,13 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ARGToDotWriter {
 
@@ -168,13 +176,15 @@ public class ARGToDotWriter {
     builder.append(" [");
 
     if (state.getChildren().contains(succesorState)) {
-      final CFAEdge edge = state.getEdgeToChild(succesorState);
+      List<CFAEdge> edges = state.getEdgesToChild(succesorState);
 
-      if (edge == null) {
-        // there is no direct edge between the nodes, use a dummy-edge
+      // there is no direct edge between the nodes, use a dummy-edge
+      if (edges.isEmpty()) {
         builder.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
-      } else {
+
         // edge exists, use info from edge
+      } else {
+        CFAEdge edge = Iterables.getOnlyElement(edges);
         boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
         if (edge.getPredecessor() instanceof ShadowCFANode) {
           builder.append("style=\"bold\" color=\"green\" ");
@@ -183,12 +193,26 @@ public class ARGToDotWriter {
         }
 
         builder.append("label=\"");
-        builder.append("Line ");
-        builder.append(edge.getLineNumber());
-        builder.append(": ");
-        builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+        if (edges.size() > 1) {
+
+          builder
+              .append("Lines ")
+              .append(edges.get(0).getLineNumber())
+              .append(" - ")
+              .append(edges.get(edges.size() - 1).getLineNumber());
+        } else {
+          builder.append("Line ").append(edges.get(0).getLineNumber());
+        }
+        builder.append(": \\l");
+
+        for (CFAEdge edge : edges) {
+          builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+          builder.append("\\l");
+        }
+
         builder.append("\"");
       }
+
       builder.append(" id=\"");
       builder.append(state.getStateId());
       builder.append(" -> ");

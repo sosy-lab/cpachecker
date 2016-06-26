@@ -23,23 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 final class SMGJoinSubSMGs {
@@ -63,9 +65,10 @@ final class SMGJoinSubSMGs {
       SMG pSMG1, SMG pSMG2, SMG pDestSMG,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
       SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean pIncreaseLevelAndRelabelTargetSpc, boolean identicalInputSmg) throws SMGInconsistentException {
+      int pLDiff, boolean pIncreaseLevel, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
+
     subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
@@ -94,42 +97,72 @@ final class SMGJoinSubSMGs {
     Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
-    int lDiff = pLDiff;
-    boolean object1IsDLS = pObj1 instanceof SMGDoublyLinkedList;
-    boolean object2IsDLS = pObj2 instanceof SMGDoublyLinkedList;
+    /*Ignore optional objects for level increase, they have no sub smgs attached.*/
+    boolean object1IsAbstract = pObj1.isAbstract() && pObj1.getKind() != SMGObjectKind.OPTIONAL;
+    boolean object2IsAbstract = pObj2.isAbstract() && pObj1.getKind() != SMGObjectKind.OPTIONAL;
 
     int nfo1 = -1;
     int pfo1 = -1;
     int nfo2 = -1;
     int pfo2 = -1;
 
-    if(object1IsDLS) {
-      SMGDoublyLinkedList dls = (SMGDoublyLinkedList) pObj1;
-      nfo1 = dls.getNfo();
-      pfo1 = dls.getPfo();
+    if (object1IsAbstract) {
+      switch (pObj1.getKind()) {
+        case SLL:
+          nfo1 = ((SMGSingleLinkedList) pObj1).getNfo();
+          break;
+        case DLL:
+          nfo1 = ((SMGDoublyLinkedList) pObj1).getNfo();
+          pfo1 = ((SMGDoublyLinkedList) pObj1).getPfo();
+          break;
+        case OPTIONAL:
+          break;
+        default:
+          throw new AssertionError();
+      }
     }
 
-    if(object2IsDLS) {
-      SMGDoublyLinkedList dls = (SMGDoublyLinkedList) pObj2;
-      nfo2 = dls.getNfo();
-      pfo2 = dls.getPfo();
+    if (object2IsAbstract) {
+      switch (pObj2.getKind()) {
+        case SLL:
+          nfo2 = ((SMGSingleLinkedList) pObj2).getNfo();
+          break;
+        case DLL:
+          nfo2 = ((SMGDoublyLinkedList) pObj2).getNfo();
+          pfo2 = ((SMGDoublyLinkedList) pObj2).getPfo();
+          break;
+        case OPTIONAL:
+          break;
+        default:
+          throw new AssertionError();
+      }
     }
 
     for (SMGEdgeHasValue hvIn1 : edgesOnObject1) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
-      filterOnSMG2.filterByType(hvIn1.getType());
+
+      int value1Level;
+      int value2Level;
+
+      value1Level = pObj1.getLevel();
+      value2Level = pObj2.getLevel();
+
+      int lDiff = pLDiff;
+
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
-      if (object1IsDLS && hvIn1.getOffset() != nfo1 && hvIn1.getOffset() != pfo1) {
+      if (object1IsAbstract && hvIn1.getOffset() != nfo1 && hvIn1.getOffset() != pfo1) {
         lDiff = lDiff + 1;
+        value1Level = value1Level + 1;
       }
 
-      if (object2IsDLS && hvIn1.getOffset() != nfo2 && hvIn1.getOffset() != pfo2) {
+      if (object2IsAbstract && hvIn1.getOffset() != nfo2 && hvIn1.getOffset() != pfo2) {
         lDiff = lDiff - 1;
+        value2Level = value2Level + 1;
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), pLDiff, pIncreaseLevelAndRelabelTargetSpc, identicalInputSmg, pObj1.getLevel(), pObj2.getLevel());
+          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), lDiff, pIncreaseLevel, identicalInputSmg, value1Level, value2Level, pSmgState1, pSmgState2);
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
@@ -195,8 +228,7 @@ final class SMGJoinSubSMGs {
     }
 
     for(List<SMGGenericAbstractionCandidate> abstractionCandidates : valueAbstractionCandidates.values()) {
-      Collections.sort(abstractionCandidates);
-      abstractionCandidates.get(0).execute(destSMG);
+      abstractionCandidates.iterator().next().execute(destSMG);
     }
 
     defined = true;

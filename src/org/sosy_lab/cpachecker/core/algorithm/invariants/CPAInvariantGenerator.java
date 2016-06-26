@@ -23,23 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
@@ -51,8 +47,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -73,6 +69,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
@@ -90,12 +87,20 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -106,13 +111,19 @@ import com.google.common.collect.Sets;
 @Options(prefix="invariantGeneration")
 public class CPAInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
 
-  private static class CPAInvariantGeneratorStatistics implements Statistics {
+  public static class CPAInvariantGeneratorStatistics implements Statistics {
 
-    final Timer invariantGeneration = new Timer();
+    private final Timer invariantGeneration = new Timer();
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("Time for invariant generation:   " + invariantGeneration);
+      if (invariantGeneration.getNumberOfIntervals() > 0) {
+        out.println("Time for invariant generation:   " + invariantGeneration.getSumTime());
+      }
+    }
+
+    public TimeSpan getConsumedTime() {
+      return invariantGeneration.getSumTime();
     }
 
     @Override
@@ -139,7 +150,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configFile;
 
-  private final CPAInvariantGeneratorStatistics stats = new CPAInvariantGeneratorStatistics();
+  private final CPAInvariantGeneratorStatistics stats;
   private final LogManager logger;
   private final CPAAlgorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -258,7 +269,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
                           pCFA,
                           pToAdjust.reachedSetFactory,
                           cpa,
-                          pToAdjust.algorithm);
+                          pToAdjust.algorithm,
+                          pToAdjust.stats);
                 }
               } catch (InvalidConfigurationException e) {
                 pLogger.logUserException(
@@ -322,6 +334,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final int pIteration,
       final CFA pCFA, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
     config.inject(this);
+    stats = new CPAInvariantGeneratorStatistics();
     logger = pLogger;
     shutdownManager = pShutdownManager;
     shutdownOnSafeNotifier = pShutdownOnSafeManager;
@@ -353,7 +366,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final CFA pCFA,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
-      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException {
+      CPAAlgorithm pAlgorithm,
+      CPAInvariantGeneratorStatistics pStats) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownManager = pShutdownManager;
@@ -364,6 +378,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cfa = pCFA;
     cpa = pCPA;
     algorithm = pAlgorithm;
+
+    stats = pStats;
   }
 
   @Override
@@ -435,7 +451,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     pStatsCollection.add(stats);
   }
 
-  private static class LazyLocationMapping {
+  static class LazyLocationMapping {
 
     private final UnmodifiableReachedSet reachedSet;
 
@@ -468,14 +484,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    * {@link InvariantSupplier} that extracts invariants from a {@link ReachedSet}
    * with {@link FormulaReportingState}s.
    */
-  private static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
+  static class ReachedSetBasedInvariantSupplier implements InvariantSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
     private final LogManager logger;
 
-    private ReachedSetBasedInvariantSupplier(
-        LazyLocationMapping pLazyLocationMapping,
-        LogManager pLogger) {
+    ReachedSetBasedInvariantSupplier(LazyLocationMapping pLazyLocationMapping, LogManager pLogger) {
       logger = Objects.requireNonNull(pLogger);
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
@@ -499,12 +513,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
   }
 
-  private static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
+  static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
     private final CFA cfa;
 
-    private ReachedSetBasedExpressionTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCFA) {
+    ReachedSetBasedExpressionTreeSupplier(LazyLocationMapping pLazyLocationMapping, CFA pCFA) {
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
       cfa = Objects.requireNonNull(pCFA);
     }
@@ -623,7 +637,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      if (!from(taskReached).anyMatch(IS_TARGET_STATE)) {
+      if (!from(taskReached).anyMatch(Predicates.<AbstractState>or(IS_TARGET_STATE, HAS_ASSUMPTIONS))) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;
@@ -640,4 +654,14 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
           new ReachedSetBasedExpressionTreeSupplier(lazyLocationMapping, cfa));
     }
   }
+
+
+  private final Predicate<AbstractState> HAS_ASSUMPTIONS =
+      state -> {
+        AssumptionStorageState assumption =
+            AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+        return assumption != null
+            && !assumption.isStopFormulaTrue()
+            && !assumption.isAssumptionTrue();
+      };
 }

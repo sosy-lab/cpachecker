@@ -17,6 +17,3 @@ Benchmarking Scripts:
   Also creates tables with just those results differing between two or more runs.
   As params you can either give names of result files
   or run the script without params (result files will be searched in test/results/).
-
-Further Files:
-- report-template.html: template for the report generator script

@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Map;
-import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Instances of this class are visitors for compound state invariants formulae
@@ -48,12 +48,12 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
-  private CompoundIntervalManager getCompoundIntervalManager(BitVectorType pBitvectorType) {
-    return getCompoundIntervalManager(pBitvectorType.getBitVectorInfo());
+  private CompoundIntervalManager getCompoundIntervalManager(Typed pTyped) {
+    return getCompoundIntervalManager(pTyped.getTypeInfo());
   }
 
   @Override
@@ -263,7 +263,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   public CompoundInterval visit(Cast<CompoundInterval> pCast,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval casted = pCast.getCasted().accept(this, pEnvironment);
-    return getCompoundIntervalManager(pCast).cast(pCast.getBitVectorInfo(), casted);
+    return getCompoundIntervalManager(pCast).cast(pCast.getTypeInfo(), casted);
   }
 
   @Override

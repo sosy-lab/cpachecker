@@ -23,6 +23,6 @@
  */
 /**
  * Converting [subset of] CFA back to the C code (with no loops).
- * Generates ErrorPath.c.
+ * Generates Counterexample.c.
  */
 package org.sosy_lab.cpachecker.util.cwriter;

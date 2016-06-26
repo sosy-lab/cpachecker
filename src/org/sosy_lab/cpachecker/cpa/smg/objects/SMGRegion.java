@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
+
+import java.util.Map;
 
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   public SMGRegion(int pSize, String pLabel) {
-    super(pSize, pLabel);
+    super(pSize, pLabel, SMGObjectKind.REG);
   }
 
   public SMGRegion(SMGRegion pOther) {
@@ -39,7 +39,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   }
 
   public SMGRegion(int pSize, String pLabel, int pLevel) {
-    super(pSize, pLabel, pLevel);
+    super(pSize, pLabel, pLevel, SMGObjectKind.REG);
   }
 
   @Override
@@ -86,12 +86,20 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
       // know how to join with me
       return pOther.join(this, increaseLevel);
     } else if (getSize() == pOther.getSize()) {
-      if(increaseLevel) {
-        return new SMGRegion(this.getSize(), this.getLabel(), getLevel() + 1);
-      } else {
+
+      int level = Math.max(this.getLevel(), pOther.getLevel());
+
+      if (increaseLevel) {
+        level = level + 1;
+      }
+
+      if (level == getLevel()) {
         return this;
+      } else {
+        return new SMGRegion(getSize(), getLabel(), level);
       }
     }
+
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
   }
 
@@ -107,6 +115,12 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    return new SMGRegion(getSize(), getLabel(), pNewLevel);
+    return new SMGRegion(getSize(), "ID" + SMGValueFactory.getNewValue() + " Copy", pNewLevel);
+  }
+
+  @Override
+  public boolean isMoreGeneral(SMGObject pOther) {
+    /*There exists no object that is less general than a region.*/
+    return false;
   }
 }

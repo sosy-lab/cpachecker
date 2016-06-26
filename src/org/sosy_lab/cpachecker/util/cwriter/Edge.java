@@ -23,26 +23,32 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import java.util.Stack;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
+import java.util.Stack;
+
 class Edge implements Comparable<Edge> {
 
+  private final ARGState parentState;
   private final ARGState childState;
   private final CFAEdge edge;
   private final Stack<FunctionBody> stack;
 
-  public Edge(ARGState pChildElement,
-      CFAEdge pEdge, Stack<FunctionBody> pStack) {
+  public Edge(
+      ARGState pChildElement, ARGState pParentElement, CFAEdge pEdge, Stack<FunctionBody> pStack) {
     childState = pChildElement;
+    parentState = pParentElement;
     edge = pEdge;
     stack = pStack;
   }
 
   public ARGState getChildState() {
     return childState;
+  }
+
+  public ARGState getParentState() {
+    return parentState;
   }
 
   public CFAEdge getEdge() {
@@ -56,15 +62,7 @@ class Edge implements Comparable<Edge> {
   @Override
   /** comparison based on the child element*/
   public int compareTo(Edge pO) {
-    int otherElementId = pO.getChildState().getStateId();
-    int thisElementId = this.getChildState().getStateId();
-
-    if (thisElementId > otherElementId) {
-      return 1;
-    } else if (thisElementId < otherElementId) {
-      return -1;
-    }
-    return 0;
+    return Integer.compare(this.getChildState().getStateId(), pO.getChildState().getStateId());
   }
 
   @Override

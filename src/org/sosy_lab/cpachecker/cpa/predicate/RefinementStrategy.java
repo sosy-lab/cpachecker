@@ -119,7 +119,11 @@ public abstract class RefinementStrategy {
     // Hook
     finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample, propertiesAtTarget);
 
-    assert !pReached.asReachedSet().contains(lastElement);
+    // TODO find a way to uncomment this assert. In combination with
+    // PredicateCPAGlobalRefiner and the PredicateAbstractionGlobalRefinementStrategy
+    // this assert doesn't hold, as the updated elements are removed from the
+    // reached set one step later
+    // assert !pReached.asReachedSet().contains(lastElement);
   }
 
   // returns a pair consisting of the root of the infeasible part of the ARG and a list of all

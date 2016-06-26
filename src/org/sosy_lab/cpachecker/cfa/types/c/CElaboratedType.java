@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Objects;
 
@@ -143,6 +145,15 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
+  public boolean isIncomplete() {
+    if (realType == null) {
+      return kind != ComplexTypeKind.ENUM; // enums are always complete
+    } else {
+      return realType.isIncomplete();
+    }
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }
@@ -208,6 +219,9 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     if (realType == null) {
+      if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+        return this;
+      }
       return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
     } else {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);

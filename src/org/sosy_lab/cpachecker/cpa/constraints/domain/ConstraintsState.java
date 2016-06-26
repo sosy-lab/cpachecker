@@ -25,16 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
@@ -56,7 +47,16 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
@@ -318,23 +318,23 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   }
 
   private void computeDefiniteAssignment() throws SolverException, InterruptedException {
-    Model validAssignment = prover.getModel();
+    try (Model validAssignment = prover.getModel()) {
+      for (ValueAssignment val : validAssignment) {
+        Formula term = val.getKey();
 
-    for (ValueAssignment val : validAssignment) {
-      Formula term = val.getKey();
+        if (isSymbolicTerm(term)) {
 
-      if (isSymbolicTerm(term)) {
+          SymbolicIdentifier identifier = toSymbolicIdentifier(val.getName());
+          Value concreteValue = convertToValue(val);
 
-        SymbolicIdentifier identifier = toSymbolicIdentifier(val.getName());
-        Value concreteValue = convertToValue(val);
+          if (!definiteAssignment.containsKey(identifier)
+              && isOnlySatisfyingAssignment(val)) {
 
-        if (!definiteAssignment.containsKey(identifier)
-            && isOnlySatisfyingAssignment(val)) {
+            assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue)
+                : "Definite assignment can't be changed from " + definiteAssignment.get(identifier) + " to " + concreteValue;
 
-          assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue)
-              : "Definite assignment can't be changed from " + definiteAssignment.get(identifier) + " to " + concreteValue;
-
-          definiteAssignment.put(identifier, concreteValue);
+            definiteAssignment.put(identifier, concreteValue);
+          }
         }
       }
     }

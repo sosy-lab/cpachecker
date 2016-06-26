@@ -214,7 +214,7 @@ public final class AbstractionManager implements AnalysisCache {
     if (predVars.isEmpty()) {
       firstPartition = createNewPredicatePartition();
       predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
-      partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<String>());
+      partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<>());
     } else {
       HashSet<String> predVarsCoveredByPartition = new HashSet<>(predVars);
 
