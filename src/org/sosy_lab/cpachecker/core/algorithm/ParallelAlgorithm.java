@@ -158,11 +158,11 @@ public class ParallelAlgorithm implements Algorithm {
           new CoreComponentsFactory(
               singleConfig, singleLogger, singleShutdownManager.getNotifier());
       ConfigurableProgramAnalysis cpa =
-          coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC);
+          coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC, null);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, stats);
+      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents.getReachedSetFactory());
 
     } catch (IOException | InvalidConfigurationException e) {

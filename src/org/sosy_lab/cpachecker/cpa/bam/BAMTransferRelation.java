@@ -126,8 +126,7 @@ public class BAMTransferRelation implements TransferRelation {
                              ProofChecker wrappedChecker,
       BAMDataManager pData, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     logger = pLogger;
-    algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier,
-        pAlgorithmIterationListener);
+    algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
     callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();

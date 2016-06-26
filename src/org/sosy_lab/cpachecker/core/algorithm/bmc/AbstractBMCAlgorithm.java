@@ -172,7 +172,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
               pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
       stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
       stepCaseAlgorithm =
-          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
+          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier(), null);
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;

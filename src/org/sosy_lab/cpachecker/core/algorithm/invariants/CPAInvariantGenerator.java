@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -355,7 +356,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
             .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
-    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
+    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier(),
+        AlgorithmIterationListener.getDummy());
   }
 
   private CPAInvariantGenerator(final Configuration config,

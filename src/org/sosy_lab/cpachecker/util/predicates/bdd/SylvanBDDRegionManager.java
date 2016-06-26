@@ -68,6 +68,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -204,6 +205,11 @@ class SylvanBDDRegionManager implements RegionManager {
   @Override
   public SylvanBDDRegion createPredicate() {
     return wrap(JSylvan.makeVar(nextvar++));
+  }
+
+  @Override
+  public Set<Region> extractPredicates(Region pF) {
+    throw new RuntimeException("Implement me!");
   }
 
   /**

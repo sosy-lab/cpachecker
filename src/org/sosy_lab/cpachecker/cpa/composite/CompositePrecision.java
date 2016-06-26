@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
 import java.util.List;
 
-class CompositePrecision implements WrapperPrecision {
+public class CompositePrecision implements WrapperPrecision {
 
   private final ImmutableList<Precision> precisions;
 

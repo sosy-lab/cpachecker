@@ -184,12 +184,22 @@ public class ARGToDotWriter {
 
         // edge exists, use info from edge
       } else {
-        CFAEdge edge = Iterables.getOnlyElement(edges);
         boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
-        if (edge.getPredecessor() instanceof ShadowCFANode) {
-          builder.append("style=\"bold\" color=\"green\" ");
-        } else if (colored) {
-          builder.append("color=\"red\" ");
+        if (colored) {
+
+          boolean hasWeavedTrans = false;
+          for (CFAEdge edge : edges) {
+            if (edge.getPredecessor() instanceof ShadowCFANode) {
+              hasWeavedTrans = true;
+              break;
+            }
+          }
+
+          if (hasWeavedTrans) {
+            builder.append("color=\"green\" ");
+          } else {
+            builder.append("color=\"red\" ");
+          }
         }
 
         builder.append("label=\"");

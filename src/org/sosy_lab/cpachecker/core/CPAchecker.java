@@ -278,6 +278,7 @@ public class CPAchecker {
 
       Algorithm algorithm = null;
       AlgorithmResult algResult = null;
+      CFA cfa = null;
 
       try {
         stats = new MainCPAStatistics(config, logger);
@@ -297,7 +298,7 @@ public class CPAchecker {
            * variable classification
            */
           final List<Automaton> automata = factory.createAutomata(stats, language, machineModel);
-          CFA cfa = parse(programDenotation, stats, automata);
+          cfa = parse(programDenotation, stats, automata);
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
 
@@ -306,7 +307,7 @@ public class CPAchecker {
               ? SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC
               : SpecAutomatonCompositionType.TARGET_SPEC;
 
-          ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats, speComposition, automata);
+          ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, speComposition, automata);
           GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
           algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
@@ -326,7 +327,7 @@ public class CPAchecker {
         // now everything necessary has been instantiated
 
         if (disableAnalysis) {
-          return new CPAcheckerResult(Result.NOT_YET_STARTED, PropertySummary.UNKNOWN, null, null, stats);
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, PropertySummary.UNKNOWN, null, null, cfa, stats);
         }
 
         // run analysis
@@ -373,7 +374,7 @@ public class CPAchecker {
         shutdownNotifier.unregister(interruptThreadOnShutdown);
       }
 
-      return new CPAcheckerResult(result.getFirst(), result.getSecond(), algResult, reached, stats);
+      return new CPAcheckerResult(result.getFirst(), result.getSecond(), algResult, reached, cfa, stats);
     }
   }
 

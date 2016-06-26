@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import static com.google.common.base.Predicates.instanceOf;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 
@@ -117,19 +114,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -1071,7 +1055,7 @@ v.addInitializer(initializer);
     if (exportCfa
         && exportCfaGraphMLFile != null
         && (exportType == ExportType.GRAPHML || exportType == ExportType.BOTH)) {
-      try (Writer w = Files.openOutputFile(exportCfaGraphMLFile)) {
+      try (Writer w = MoreFiles.openOutputFile(exportCfaGraphMLFile, Charset.defaultCharset())) {
         GraphMLBuilder.generateGraphML(w, cfa);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to GraphML file");

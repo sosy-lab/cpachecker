@@ -2,6 +2,9 @@ package org.sosy_lab.cpachecker.core.algorithm.speci;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -12,8 +15,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -30,6 +32,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.io.FileWriteMode;
 
 @Options(prefix = "speci")
 public class SpecInferenceAlgorithm implements Algorithm {
@@ -103,15 +106,16 @@ public class SpecInferenceAlgorithm implements Algorithm {
   private void extractSpecificationAutomaton(ReachedSet reachedSet) throws CPAException {
     ARGState argRootState = (ARGState)reachedSet.getFirstState();
 
-    try (PrintWriter writer = new PrintWriter(exportSpcFile.getAbsolutePath())) {
-
-      dumpAutomaton(writer,
-          assembleAutomaton(argRootState),
-          getNextRelevant(argRootState).getStateId());
-
-    } catch (FileNotFoundException e) {
-      throw new CPAException("Writing the automaton file failed!", e);
-    }
+    throw new RuntimeException("Implement me. Not fixed during merge with trunk.");
+//    try (PrintWriter writer = new PrintWriter(exportSpcFile.getAbsolutePath())) {
+//
+//      dumpAutomaton(writer,
+//          assembleAutomaton(argRootState),
+//          getNextRelevant(argRootState).getStateId());
+//
+//    } catch (FileNotFoundException e) {
+//      throw new CPAException("Writing the automaton file failed!", e);
+//    }
   }
 
   private static List<String> assembleAutomaton(ARGState root) {

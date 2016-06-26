@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
+import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
@@ -54,7 +55,7 @@ public class SolverHelper {
         .build();
 
     BasicLogManager logger = null;
-    logger = new BasicLogManager(config, new StreamHandler(System.out, new SimpleFormatter()));
+    logger = new BasicLogManager(Logger.getAnonymousLogger());
 
     ShutdownNotifier notifier = ShutdownNotifier.createDummy();
     solver = Solver.create(config, logger, notifier);

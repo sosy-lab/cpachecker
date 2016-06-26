@@ -28,6 +28,10 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory.PropertyGranularity;
+
 
 public class Automata {
 
@@ -53,12 +57,13 @@ public class Automata {
     List<AutomatonInternalState> states = Lists.newArrayList(initState, targetState);
 
     try {
-      LOOP_HEAD_TARGET_AUTOMATON = new Automaton(
+      AutomatonSafetyPropertyFactory fact = new AutomatonSafetyPropertyFactory(PropertyGranularity.AUTOMATON, "");
+      LOOP_HEAD_TARGET_AUTOMATON = new Automaton(fact,
           "LoopHeadTarget",
           Collections.<String, AutomatonVariable>emptyMap(),
           states,
           initStateName);
-    } catch (InvalidAutomatonException e) {
+    } catch (InvalidAutomatonException | InvalidConfigurationException e) {
       throw new AssertionError("Automaton built in code should be valid.");
     }
   }

@@ -77,7 +77,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
-  private final PredicateStaticRefiner staticRefiner;
 
   private InvariantSupplier invariants;
   private final PredicateProvider predicateProvider;
@@ -90,8 +89,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       InvariantSupplier pInvariantSupplier,
-      PredicateProvider pPredicateProvider,
-      PredicateStaticRefiner pStaticRefiner)
+      PredicateProvider pPredicateProvider)
     throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -104,7 +102,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
-    staticRefiner = pStaticRefiner;
   }
 
   @Override
@@ -122,11 +119,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       CFANode location = AbstractStates.extractLocation(fullState);
 
       if (adjustPrecFromStateAssumes) {
-        Optional<PredicatePrecision> refinement = staticRefiner.derivePrecFromStateWithAssumptions(fullState);
+        throw new RuntimeException("Re-implement me! It is implemented in 'muauto'!");
+/*        Optional<PredicatePrecision> refinement = staticRefiner.derivePrecFromStateWithAssumptions(fullState);
         if (refinement.isPresent()) {
           PredicatePrecision refinementDelta = refinement.get();
           precision = (PredicatePrecision) precision.join(refinementDelta);
-        }
+        }*/
       }
 
       if (shouldComputeAbstraction(fullState, location, element)) {

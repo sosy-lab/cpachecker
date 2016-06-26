@@ -152,7 +152,7 @@ parser code {:
 
     AutomatonParser automatonParser;
 
-    AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config, p.getName());
+    AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config, p.getFileName().toString());
 
     switch (pLanguage) {
     case C:

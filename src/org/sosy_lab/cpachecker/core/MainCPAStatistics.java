@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -538,7 +539,7 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
   }
 
   @Override
-  public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) {
+  public void afterAlgorithmIteration(Algorithm pAlg, UnmodifiableReachedSet pReached) {
     if (iterationStats == null) {
       iterationStats = Lists.newArrayList();
       for (Statistics s: subStats) {

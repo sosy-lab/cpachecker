@@ -26,9 +26,10 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import java.io.PrintStream;
 
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public interface IterationStatistics extends Statistics {
 
-  void printIterationStatistics(PrintStream out, ReachedSet reached);
+  void printIterationStatistics(PrintStream out, UnmodifiableReachedSet reached);
 
 }

@@ -525,16 +525,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   private List<BooleanFormula> performRefinementSelection(final ARGPath pAllStatesTrace,
-      final List<ARGState> pAbstractionStatesTrace)
+                                                          final List<ARGState> pAbstractionStatesTrace)
       throws InterruptedException, CPAException {
 
-    final List<InfeasiblePrefix> infeasiblePrefixes;
     prefixExtractionTime.start();
-    try {
-      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(pAllStatesTrace);
-    } finally {
-      prefixExtractionTime.stop();
-    }
+    List<InfeasiblePrefix> infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(pAllStatesTrace);
+    prefixExtractionTime.stop();
 
     totalPrefixes.setNextValue(infeasiblePrefixes.size());
 
@@ -543,15 +539,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
 
     else {
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-
-      final InfeasiblePrefix selectedPrefix;
       prefixSelectionTime.start();
-      try {
-        selectedPrefix = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
-      } finally {
-        prefixSelectionTime.stop();
-      }
+      InfeasiblePrefix selectedPrefix =
+          prefixSelector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
+      prefixSelectionTime.stop();
 
       List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
       while (formulas.size() < pAbstractionStatesTrace.size()) {

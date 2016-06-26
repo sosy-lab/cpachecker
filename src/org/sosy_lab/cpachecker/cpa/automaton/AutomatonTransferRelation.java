@@ -163,8 +163,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(top);
     }
 
-    Collection<? extends AbstractState> result =
-        getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge);
+    Collection<AutomatonState> result =
+        getAbstractSuccessors0((AutomatonState) pElement, pPrecision, pCfaEdge);
     automatonSuccessors.setNextValue(result.size());
     return result;
   }

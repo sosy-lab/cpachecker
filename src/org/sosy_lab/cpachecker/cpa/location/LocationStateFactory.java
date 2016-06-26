@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
 
-import java.util.List;
-import java.util.SortedSet;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSortedSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,17 +36,15 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationStateNoTarget;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.ForwardsLocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Ordering;
+import java.util.Collection;
+import java.util.List;
+import java.util.SortedSet;
 
 @Options(prefix="cpa.location")
 public class LocationStateFactory {
@@ -91,28 +88,13 @@ public class LocationStateFactory {
   }
 
   private SortedSet<CFANode> extractAllNodes(CFA pCfa) {
-    SortedSet<CFANode> allNodes = from(pCfa.getAllNodes())
-        // First, we collect all CFANodes in between the inner edges of all MultiEdges.
-        // This is necessary for cpa.composite.splitMultiEdges
-        .transformAndConcat(new Function<CFANode, Iterable<CFAEdge>>() {
-              @Override
-              public Iterable<CFAEdge> apply(CFANode pInput) {
-                return CFAUtils.leavingEdges(pInput);
-              }
-            })
-        .filter(MultiEdge.class)
-        .transformAndConcat(new Function<MultiEdge, Iterable<CFAEdge>>() {
-              @Override
-              public Iterable<CFAEdge> apply(MultiEdge pInput) {
-                return pInput.getEdges();
-              }
-            })
-        .transform(CFAUtils.TO_SUCCESSOR)
-        // Second, we collect all normal CFANodes
-        .append(pCfa.getAllNodes())
-        // Third, sort and remove duplicates
-        .toSortedSet(Ordering.natural());
-
+    ImmutableSortedSet<CFANode> allNodes;
+    Collection<CFANode> tmpNodes = pCfa.getAllNodes();
+    if (tmpNodes instanceof ImmutableSortedSet) {
+      allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
+    } else {
+      allNodes = ImmutableSortedSet.copyOf(tmpNodes);
+    }
     return allNodes;
   }
 

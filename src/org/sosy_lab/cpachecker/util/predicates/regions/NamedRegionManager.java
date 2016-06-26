@@ -86,6 +86,11 @@ public class NamedRegionManager implements RegionManager {
     return createPredicate(ANONYMOUS_PREDICATE + anonymousPredicateCounter++);
   }
 
+  @Override
+  public Set<Region> extractPredicates(Region pF) {
+    return delegate.extractPredicates(pF);
+  }
+
   /**
    * Returns a String representation of a region.
    */

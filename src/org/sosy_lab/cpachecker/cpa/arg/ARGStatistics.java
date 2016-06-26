@@ -350,7 +350,7 @@ public class ARGStatistics implements IterationStatistics {
   }
 
   @Override
-  public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
+  public void printIterationStatistics(PrintStream pOut, UnmodifiableReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
       exportARG(pReached, cexSummary.getAllCounterexamples(pReached));
     }

@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
@@ -119,7 +121,7 @@ public class PathChecker {
 
     ARGPath targetPath;
     if (branchingOccurred) {
-      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
+      Multimap<Integer, Integer> preds = counterexample.getBranchingDirections();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ARG branches available!");
         return createImpreciseCounterexample(allStatesTrace, counterexample);

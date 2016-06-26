@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvarian
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -310,7 +311,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     CPABuilder invGenBMCBuilder =
         new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
+    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier(), AlgorithmIterationListener.getDummy());
     algorithm =
         new BMCAlgorithmForInvariantGeneration(
             cpaAlgorithm,
@@ -562,7 +563,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     CPABuilder builder = new CPABuilder(config, pLogger, notifier, pReachedSetFactory);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(pCFA, Arrays.asList(options.invariantsAutomatonFile));
-    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);
+    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier, AlgorithmIterationListener.getDummy());
     CFANode rootNode = pCFA.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     reachedSet.add(

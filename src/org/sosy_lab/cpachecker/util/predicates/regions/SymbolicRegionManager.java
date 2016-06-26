@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -178,6 +179,11 @@ public class SymbolicRegionManager implements RegionManager {
   @Override
   public Region createPredicate() {
     throw new UnsupportedOperationException("Call createPredicate(BooleanFormula) instead.");
+  }
+
+  @Override
+  public Set<Region> extractPredicates(Region pF) {
+    throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override

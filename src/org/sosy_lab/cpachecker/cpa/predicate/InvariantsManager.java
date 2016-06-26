@@ -313,8 +313,8 @@ class InvariantsManager implements StatisticsProvider {
   private final List<BooleanFormula> refinementCache = new ArrayList<>();
   private LocationInvariantSupplier invariantSupplierSingleton = null;
 
-  private final InvariantsSupplier asyncCPAInvariantSupplierSingleton;
-  private final InvariantsSupplier cpaCheckerInvariantSupplierSingleton;
+  private final AbstractInvariantsSupplier asyncCPAInvariantSupplierSingleton;
+  private final AbstractInvariantsSupplier cpaCheckerInvariantSupplierSingleton;
 
   public InvariantsManager(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
@@ -336,7 +336,7 @@ class InvariantsManager implements StatisticsProvider {
     }
 
     if (generationStrategy.contains(InvariantGenerationStrategy.CPACHECKER)) {
-      InvariantsSupplier tmpSupplier;
+      AbstractInvariantsSupplier tmpSupplier;
       try {
         tmpSupplier = new CPAcheckerInvariantsSupplier();
       } catch (IOException e) {
@@ -403,7 +403,7 @@ class InvariantsManager implements StatisticsProvider {
    * @return an asynchronous invariant supplier, if the usage of one is
    * configured, an {@link IllegalStateException} is thrown otherwise
    */
-  public InvariantsSupplier asAsyncInvariantsSupplier() {
+  public InvariantSupplier asAsyncInvariantsSupplier() {
     Preconditions.checkState(
         asyncCPAInvariantSupplierSingleton != null,
         "To use asynchronous invariants this has to be configured in the generation strategy.");
@@ -1179,12 +1179,12 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  abstract class InvariantsSupplier implements InvariantSupplier {
+  abstract class AbstractInvariantsSupplier implements InvariantSupplier {
 
     private InvariantGenerator invGen;
     private InvariantSupplier invSup;
 
-    private InvariantsSupplier(InvariantGenerator pInvGen) {
+    private AbstractInvariantsSupplier(InvariantGenerator pInvGen) {
       invGen = pInvGen;
     }
 
@@ -1230,7 +1230,7 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  private class AsyncCPAInvariantsSupplier extends InvariantsSupplier {
+  private class AsyncCPAInvariantsSupplier extends AbstractInvariantsSupplier {
     /**
      * private constructor so that this object can only be created from within
      * InvariantsGenerator
@@ -1246,7 +1246,7 @@ class InvariantsManager implements StatisticsProvider {
     }
   }
 
-  private class CPAcheckerInvariantsSupplier extends InvariantsSupplier {
+  private class CPAcheckerInvariantsSupplier extends AbstractInvariantsSupplier {
     /**
      * private constructor so that this object can only be created from within
      * InvariantsGenerator

@@ -27,8 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
@@ -42,6 +41,8 @@ import org.sosy_lab.solver.api.FormulaType;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -90,11 +91,11 @@ public class DimacsLoader {
   private BooleanFormula loadExternalFormula(Path pModelFile, SSAMapBuilder ssa,
       Function<String, String> pFeatureVariableMapping) {
 
-    if (!pModelFile.getName().endsWith(".dimacs")) {
+    if (!pModelFile.getFileName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
 
-    try (BufferedReader br =  pModelFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
+    try (BufferedReader br = MoreFiles.asCharSource(pModelFile, StandardCharsets.UTF_8).openBufferedStream()) {
       Map<Integer, String> predicates = Maps.newHashMap();
 
       //var ids in dimacs files start with 1, so we want the first var at position 1

@@ -150,6 +150,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         ConfigurableProgramAnalysis cpa,
         LogManager logger,
         Configuration config,
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException {
+
+      this(cpa, logger, config, pShutdownNotifier, AlgorithmIterationListener.getDummy());
+    }
+
+    public CPAAlgorithmFactory(
+        ConfigurableProgramAnalysis cpa,
+        LogManager logger,
+        Configuration config,
         ShutdownNotifier pShutdownNotifier,
         AlgorithmIterationListener pAlgorithmIterationListener) throws InvalidConfigurationException {
 
@@ -172,6 +182,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     public CPAAlgorithm newInstance() {
       return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
     }
+  }
+
+  public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
+                                    Configuration config, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
+    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier,
+        AlgorithmIterationListener.getDummy()).newInstance();
   }
 
   public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,

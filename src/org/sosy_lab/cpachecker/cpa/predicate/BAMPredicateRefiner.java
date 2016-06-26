@@ -279,7 +279,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
         final PredicateAbstractionManager pPredAbsMgr)
         throws InvalidConfigurationException {
 
-      super(config, logger, pPredAbsMgr, pSolver);
+      super(config, logger, pPredAbsMgr, pSolver, predicateCpa.getCfa().getLoopStructure());
       this.predicateCpa = predicateCpa;
     }
 

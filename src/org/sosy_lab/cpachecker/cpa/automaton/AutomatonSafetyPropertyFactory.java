@@ -61,6 +61,13 @@ public class AutomatonSafetyPropertyFactory {
 
   private final String propertyBasename;
 
+  public AutomatonSafetyPropertyFactory(PropertyGranularity pGranularity, String pPropertyBaseName)
+      throws InvalidConfigurationException {
+
+    this(Configuration.defaultConfiguration(), pPropertyBaseName);
+    this.granularity = pGranularity;
+  }
+
   public AutomatonSafetyPropertyFactory(Configuration pConfig, String pPropertyBaseName) throws InvalidConfigurationException {
     pConfig.inject(this);
 

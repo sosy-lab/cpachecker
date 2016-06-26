@@ -69,9 +69,6 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     // do precision adjustment
     Optional<PrecisionAdjustmentResult> result = prec(element, oldPrecision, pElements, projection, fullState);
 
-    // print statistics for this algorithm iteration (if necessary)
-    statistics.printIterationStatistics(pElements);
-
     return result;
   }
 

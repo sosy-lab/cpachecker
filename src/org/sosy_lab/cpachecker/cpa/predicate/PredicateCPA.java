@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -221,16 +222,18 @@ ProofChecker, AutoCloseable, AnalysisCache {
 
     PredicateProvider predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
 
-    prec =
-        new PredicatePrecisionAdjustment(
+    InvariantSupplier invSupply = useInvariantsForAbstraction
+        ? invariantsManager.asAsyncInvariantsSupplier()
+        : (InvariantSupplier) TrivialInvariantSupplier.INSTANCE;
+
+    prec = new PredicatePrecisionAdjustment(
             logger,
+            config,
             formulaManager,
             pfMgr,
             blk,
             predicateManager,
-            useInvariantsForAbstraction
-                ? invariantsManager.asAsyncInvariantsSupplier()
-                : InvariantSupplier.TrivialInvariantSupplier.INSTANCE,
+            invSupply,
             predicateProvider);
 
     if (stopType.equals("SEP")) {

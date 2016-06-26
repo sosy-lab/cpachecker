@@ -45,6 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -126,8 +127,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   @Override
-  protected void startRefinementOfPath() {
-    // do nothing here we only need a global start refinement
+  protected void startRefinementOfPath(
+      ARGReachedSet pReached, List<ARGState> pAbstractionStatesTrace, ARGState pLastElement) {
+    // Nothing to do here!
   }
 
   @Override
@@ -226,7 +228,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
 
     for (Precision prec : precisions) {
       rootPrecision =
-          rootPrecision.join(
+          (VariableTrackingPrecision) rootPrecision.join(
               Precisions.extractPrecisionByType(prec, VariableTrackingPrecision.class));
     }
 
@@ -327,26 +329,27 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
    */
   @Override
   protected void finishRefinementOfPath(
-      ARGState infeasiblePartOfART,
-      List<ARGState> changedElements,
+      ARGState pUnreachableState,
+      List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
-      boolean pRepeatedCounterexample)
-      throws CPAException, InterruptedException {
+      boolean pRepeatedCounterexample,
+      Set<Property> pPropertiesAtTarget) throws CPAException, InterruptedException {
+
     // only thing to do here is adding the false predicate for unreacheable states
-    newPredicates.put(extractLocation(infeasiblePartOfART), predAbsMgr.makeFalsePredicate());
-    changedElements.add(infeasiblePartOfART);
+    newPredicates.put(extractLocation(pUnreachableState), predAbsMgr.makeFalsePredicate());
+    pAffectedStates.add(pUnreachableState);
 
     if (restartAfterRefinement) {
       refinementRoot = (ARGState) reached.asReachedSet().getFirstState();
 
     } else if (refinementRoot == null) {
-        refinementRoot = changedElements.get(0);
+        refinementRoot = pAffectedStates.get(0);
 
         // search parent of both refinement roots and use this as the new
         // refinement root
     } else {
       PathIterator firstPath = ARGUtils.getOnePathTo(refinementRoot).pathIterator();
-      PathIterator secondPath = ARGUtils.getOnePathTo(changedElements.get(0)).pathIterator();
+      PathIterator secondPath = ARGUtils.getOnePathTo(pAffectedStates.get(0)).pathIterator();
 
       // TODO should they be equal or identical?
       while (firstPath.getAbstractState().equals(secondPath.getAbstractState())) {

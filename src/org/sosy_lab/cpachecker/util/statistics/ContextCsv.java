@@ -26,11 +26,12 @@ package org.sosy_lab.cpachecker.util.statistics;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.Aggregateable;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.Context;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.NoStatisticsException;
@@ -50,7 +51,7 @@ public class ContextCsv {
 
   public ContextCsv(final Path pTargetFile) throws InvalidConfigurationException {
     try {
-      Writer w = Files.openOutputFile(pTargetFile);
+      Writer w = MoreFiles.openOutputFile(pTargetFile, Charset.defaultCharset());
       this.csv = new PrintWriter(w);
     } catch (IOException e) {
       throw new InvalidConfigurationException("Target file invalid!", e);

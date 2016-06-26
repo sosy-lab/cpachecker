@@ -25,10 +25,21 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 
 public interface AlgorithmIterationListener {
 
-  public void afterAlgorithmIteration(Algorithm alg, ReachedSet reached) throws InterruptedException;
+  void afterAlgorithmIteration(Algorithm alg, UnmodifiableReachedSet reached) throws InterruptedException;
+
+  static AlgorithmIterationListener getDummy() {
+    return new AlgorithmIterationListener() {
+      @Override
+      public void afterAlgorithmIteration(
+          Algorithm alg, UnmodifiableReachedSet reached) throws InterruptedException {
+        return;
+      }
+    };
+  }
 
 }

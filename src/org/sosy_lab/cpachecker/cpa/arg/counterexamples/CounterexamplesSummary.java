@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -171,7 +172,7 @@ public class CounterexamplesSummary implements Statistics {
     feasibleCexFor.addAll(violatedProperties.keySet());
   }
 
-  public Map<ARGState, CounterexampleInfo> getAllCounterexamples(final ReachedSet pReached) {
+  public Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
     // 'counterexamples' may contain too many counterexamples
     // (for target states that were in the mean time removed from the ReachedSet),
     // as well as too few counterexamples

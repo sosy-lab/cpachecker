@@ -48,7 +48,6 @@ public abstract class PredicateRefiner implements Refiner {
         predicateCpa.getConfiguration(),
         predicateCpa.getLogger(),
         predicateCpa.getPredicateManager(),
-        predicateCpa.getStaticRefinerForMining(),
         predicateCpa.getSolver(),
         predicateCpa.getCfa().getLoopStructure());
 

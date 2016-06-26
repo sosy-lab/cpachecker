@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -215,6 +216,14 @@ public class CoreComponentsFactory {
 
   public Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa,
+      final String programDenotation, final CFA cfa)
+      throws InvalidConfigurationException, CPAException {
+
+    return createAlgorithm(cpa, programDenotation, cfa, null, false);
+  }
+
+  public Algorithm createAlgorithm(
+      final ConfigurableProgramAnalysis cpa,
       final String programDenotation, final CFA cfa, MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
 
@@ -254,7 +263,7 @@ public class CoreComponentsFactory {
 
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, new AlgorithmIterationListener() {
         @Override
-        public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) throws InterruptedException {
+        public void afterAlgorithmIteration(Algorithm pAlg, UnmodifiableReachedSet pReached) throws InterruptedException {
           if (stats != null) {
             stats.afterAlgorithmIteration(pAlg, pReached);
           }
@@ -353,7 +362,6 @@ public class CoreComponentsFactory {
 
   public ConfigurableProgramAnalysis createCPA(
       final CFA cfa,
-      @Nullable final MainCPAStatistics stats,
       SpecAutomatonCompositionType composeWithSpecificationCPAs,
       final @Nullable List<Automaton> pAutomata)
       throws InvalidConfigurationException, CPAException {

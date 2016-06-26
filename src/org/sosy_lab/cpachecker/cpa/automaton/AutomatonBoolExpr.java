@@ -143,6 +143,13 @@ public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchLoopStart
+             ? Equality.EQUAL
+             : Equality.UNKNOWN; // Also other matches might match a program exit
+    }
+
+    @Override
     public String toString() {
       return "LOOP-START";
     }
@@ -178,6 +185,15 @@ public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable
 
     static AutomatonBoolExpr of(Set<CFANode> pAcceptedNodes) {
       return new MatchSuccessor(ImmutableSet.copyOf(pAcceptedNodes));
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchSuccessor
+             ? (this.acceptedNodes.equals(((MatchSuccessor)pOther).acceptedNodes)
+                ? Equality.EQUAL
+                : Equality.UNEQUAL)
+             : Equality.UNKNOWN; // Also other matchers might match a program exit
     }
   }
 
@@ -223,6 +239,14 @@ public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable
       return new EpsilonMatch(pExpr);
     }
 
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof EpsilonMatch
+             ? (this.expr.equals(((EpsilonMatch)pOther).expr)
+                ? Equality.EQUAL
+                : Equality.UNEQUAL)
+             : Equality.UNKNOWN; // Also other matchers might match a program exit
+    }
   }
 
   /**

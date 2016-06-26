@@ -32,7 +32,7 @@ import com.google.common.truth.Truth;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct.ProductState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -42,6 +42,7 @@ import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
@@ -91,9 +92,10 @@ public class ReducedAutomatonProductTest {
 
     Automaton a = new Automaton(pf, automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
 
-    try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
+/*    try(BufferedWriter w = Files.newWriter(MoreFiles.createTempFile(automataName + "_", ".dot"),
+        Charset.defaultCharset())) {
       a.writeDotFile(w);
-    }
+    }*/
 
     return a;
   }
@@ -116,9 +118,11 @@ public class ReducedAutomatonProductTest {
 
     Automaton a = new Automaton(pf, automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
 
+/*
     try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
       a.writeDotFile(w);
     }
+*/
 
     return a;
   }
@@ -148,9 +152,9 @@ public class ReducedAutomatonProductTest {
 
     Automaton a = new Automaton(pf, automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
 
-    try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
+/*    try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
       a.writeDotFile(w);
-    }
+    }*/
 
     return a;
   }
