@@ -1,15 +1,15 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -69,31 +69,25 @@ public class PolicyIterationTest {
 
   @Test
   public void pointer_past_abstraction_true_assert() throws Exception {
-    check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
-            "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.lpi.maxExpressionSize", "2"
-        )
-    );
+    checkWithSlicing(
+        "pointers/pointer_past_abstraction_true_assert.c",
+        ImmutableMap.of("cpa.lpi.maxExpressionSize", "2"));
   }
 
   @Test
   public void pointer_past_abstraction_false_assert() throws Exception {
-    check("pointers/pointer_past_abstraction_false_assert.c",
-        ImmutableMap.of(
-            "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.lpi.runCongruence", "false"
-        )
-    );
+    checkWithSlicing(
+        "pointers/pointer_past_abstraction_false_assert.c",
+        ImmutableMap.of("cpa.lpi.runCongruence", "false"));
   }
 
   @Test
   public void pointers_loop_true_assert() throws Exception {
-    check("pointers/pointers_loop_true_assert.c",
+    checkWithSlicing(
+        "pointers/pointers_loop_true_assert.c",
         ImmutableMap.of(
-            "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.lpi.maxExpressionSize", "2",
-            "cpa.lpi.linearizePolicy", "false"
-        ));
+            "cpa.lpi.linearizePolicy", "false"));
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
@@ -169,10 +163,19 @@ public class PolicyIterationTest {
   }
 
   private void check(String filename) throws Exception {
-    check(filename, new HashMap<>());
+    check(filename, ImmutableMap.of());
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
+    check(filename, getProperties("policyIteration.properties", extra));
+  }
+
+  private void checkWithSlicing(String filename, Map<String, String> extra)
+      throws InvalidConfigurationException, Exception {
+    check(filename, getProperties("policyIteration-with-slicing.properties", extra));
+  }
+
+  private void check(String filename, Configuration config) throws Exception {
     String fullPath;
     if (filename.contains("test/programs/benchmarks")) {
       fullPath = filename;
@@ -180,7 +183,7 @@ public class PolicyIterationTest {
       fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
     }
 
-    TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
+    TestResults results = CPATestRunner.run(config, fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
@@ -188,57 +191,11 @@ public class PolicyIterationTest {
     }
   }
 
-  private Map<String, String> getProperties(Map<String, String> extra) {
-    Map<String, String> props = new HashMap<>((ImmutableMap.<String, String>builder()
-        .put("cpa", "cpa.arg.ARGCPA")
-        .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
-        .put("CompositeCPA.cpas",
-            Joiner.on(", ").join(ImmutableList.<String>builder()
-                .add("cpa.location.LocationCPA")
-                .add("cpa.callstack.CallstackCPA")
-                .add("cpa.functionpointer.FunctionPointerCPA")
-                .add("cpa.loopstack.LoopstackCPA")
-                .add("cpa.policyiteration.PolicyCPA")
-                .add("cpa.targetreachability.TargetReachabilityCPA")
-                .add("cpa.assumptions.storage.AssumptionStorageCPA")
-                .build()
-            ))
-        )
-        .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
-        .put("solver.z3.requireProofs", "false")
-
-        .put("solver.solver", "z3")
-        .put("specification", "config/specification/default.spc")
-        .put("cpa.predicate.ignoreIrrelevantVariables", "true")
-        .put("cpa.predicate.maxArrayLength", "1000")
-        .put("cpa.predicate.defaultArrayLength", "3")
-        .put("parser.usePreprocessor", "true")
-        .put("cfa.findLiveVariables", "true")
-
-        .put("cpa.lpi.linearizePolicy", "true")
-
-        // Traversal options.
-        .put("analysis.traversal.order", "dfs")
-        .put("analysis.traversal.useCallstack", "true")
-        .put("analysis.traversal.useReversePostorder", "true")
-        .put("analysis.traversal.useLoopstack", "true")
-    .build());
-    props.putAll(extra);
-    return props;
+  private Configuration getProperties(String configFile, Map<String, String> extra)
+      throws InvalidConfigurationException {
+    return TestDataTools.configurationForTest()
+        .loadFromResource(PolicyIterationTest.class, configFile)
+        .setOptions(extra)
+        .build();
   }
-
-  private static final String CPAS_W_SLICING =
-      Joiner.on(", ")
-          .join(
-              ImmutableList.<String>builder()
-                  .add("cpa.location.LocationCPA")
-                  .add("cpa.callstack.CallstackCPA")
-                  .add("cpa.functionpointer.FunctionPointerCPA")
-                  .add("cpa.loopstack.LoopstackCPA")
-                  .add("cpa.formulaslicing.FormulaSlicingCPA")
-                  .add("cpa.policyiteration.PolicyCPA")
-                  .add("cpa.targetreachability.TargetReachabilityCPA")
-                  .add("cpa.assumptions.storage.AssumptionStorageCPA")
-                  .build());
-
 }
