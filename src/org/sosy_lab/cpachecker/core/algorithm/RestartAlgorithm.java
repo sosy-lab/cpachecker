@@ -353,8 +353,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         } catch (InterruptedException e) {
           isLastReachedSetUsable = false;
           lastAnalysisInterrupted = true;
-          shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
-          logger.logUserException(Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
+          if (configFilesIterator.hasNext()) {
+            logger.logUserException(
+                Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
+            shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
+          } else {
+            throw e;
+          }
         }
       } finally {
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
