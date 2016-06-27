@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html ng-app='report'>
 <head>
-    <meta charset="UTF-8">
-    <title>CPAchecker Report for
-      <!-- REPORT_NAME -->
-    </title>
+<meta charset="UTF-8">
+<title>CPAchecker Report for
+  <!-- REPORT_NAME -->
+</title>
 
 <style type="text/css">
 <!--
@@ -319,25 +319,42 @@ div pre{
     float: left;
 }
 	    -->
-	</style>
-	
-	<link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.css" integrity="sha384-Idd9oLcdDqxPfUuMARR/TPo7z2VE5qgbFk6j2RHdfzB88HFW5Ecm8qSe0KjhtZ2S" crossorigin="anonymous">
-    
-    <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
-    <!--[if lt IE 9]>
-    <script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/1.12.0/jquery.min.js"></script>
-    <![endif]-->
-    <!--[if gte IE 9]><!-->
-    <script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/2.2.0/jquery.min.js" integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk" crossorigin="anonymous"></script>
-    <!--<![endif]-->
-    
-    <script type="text/javascript" src="https://www.sosy-lab.org/lib/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
-    <script type="text/javascript" src="https://www.sosy-lab.org/lib/angularjs/1.5.5/angular.min.js" integrity="sha384-JhiEhwQjPEF1WJVY0yQaYOdN73Ml70AQwr+sq+zhSomAf4Fh0ImVDR8G9Ry0QokZ" crossorigin="anonymous"></script>
-    <script type="text/javascript" src="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.js" integrity="sha384-uvP0LdNXVGNnAFf48ha9Ze5oJX136a8YERZm6nDnr/jAocGDVsfIj/N6I3h1wSj8" crossorigin="anonymous"></script>
+</style>
 
-    <!-- Code for using toasts, taken and adjusted from https://github.com/scottoffen/jquery.toaster -->
-    <script type="text/javascript">
+<link rel="stylesheet" type="text/css"
+      href="https://www.sosy-lab.org/lib/bootstrap/3.3.6/css/bootstrap.min.css"
+      integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+      crossorigin="anonymous">
+<link rel="stylesheet" type="text/css"
+      href="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.css"
+      integrity="sha384-Idd9oLcdDqxPfUuMARR/TPo7z2VE5qgbFk6j2RHdfzB88HFW5Ecm8qSe0KjhtZ2S"
+      crossorigin="anonymous">
+
+<!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
+<!--[if lt IE 9]>
+<script type="text/javascript"
+        src="https://www.sosy-lab.org/lib/jquery/1.12.0/jquery.min.js"></script>
+<![endif]-->
+<!--[if gte IE 9]><!-->
+<script type="text/javascript" src="https://www.sosy-lab.org/lib/jquery/2.2.0/jquery.min.js"
+        integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk"
+        crossorigin="anonymous"></script>
+<!--<![endif]-->
+
+<script type="text/javascript"
+        src="https://www.sosy-lab.org/lib/bootstrap/3.3.6/js/bootstrap.min.js"
+        integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+        crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://www.sosy-lab.org/lib/angularjs/1.5.5/angular.min.js"
+        integrity="sha384-JhiEhwQjPEF1WJVY0yQaYOdN73Ml70AQwr+sq+zhSomAf4Fh0ImVDR8G9Ry0QokZ"
+        crossorigin="anonymous"></script>
+<script type="text/javascript"
+        src="https://www.sosy-lab.org/lib/google-code-prettify/2015-12-08-c67d802/prettify.js"
+        integrity="sha384-uvP0LdNXVGNnAFf48ha9Ze5oJX136a8YERZm6nDnr/jAocGDVsfIj/N6I3h1wSj8"
+        crossorigin="anonymous"></script>
+
+<!-- Code for using toasts, taken and adjusted from https://github.com/scottoffen/jquery.toaster -->
+<script type="text/javascript">
         (function ($,undefined)
         {
             var toasting =
@@ -433,9 +450,10 @@ div pre{
                 }
             };
         })(jQuery);
-    </script>
 
-	<script type="text/javascript">
+</script>
+
+<script type="text/javascript">
 /**
 * Created by Magdalena Murr on 06.07.15.
 */
@@ -1056,17 +1074,18 @@ function init(){
     }
   }
 };
-	</script>
-	
+
+</script>
+
 </head>
 
 <body ng-controller="ReportController" onload="prettyPrint(); init()">
 <header class="header">
 
-    <a href="https://cpachecker.sosy-lab.org/"><img class="logo" ng-src="{{logo}}"/></a>
-    <h1>Report for
-      <!-- REPORT_NAME -->
-    </h1>
+  <a href="https://cpachecker.sosy-lab.org/"><img class="logo" ng-src="{{logo}}" /></a>
+  <h1>Report for
+    <!-- REPORT_NAME -->
+  </h1>
 
     <span class="generated">
       <!-- GENERATED -->
@@ -1074,131 +1093,153 @@ function init(){
 </header>
 
 <div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">
-    <section id="errorpath_section" ng-controller="ErrorpathController">
-        <div id="middleLine" ng-mousedown="setMouseDown()"></div>
-        <header ng-controller="SearchController">
-            <div class="btn-group">
-                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Prev</button>
-                <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
-                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Next</button>
-            </div>
-            <a tabindex="0" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="{{help_errorpath}}" class="btn btn-default btn-lg help_button">
-                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </a>
-            <div class="input-group input-group-sm">
-                <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
-                    <span class="input-group-btn">
-                        <button ng-click="searchFor()" class="btn btn-default" type="button">
-                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                        </button>
-                    </span>
-            </div>
-            <div id="searchOptions">
-                <label for="optionExactMatch">
-                    <input id="optionExactMatch" type="checkbox" name="searchOption">
-                    Find only exact matches</label>
-            </div>
-            <div id="matches">
-                <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
-                <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
-            </div>
-        </header>
-        <div class="fileContent" ng-controller="ValueAssignmentsController">
-            <table id="err_table">
-                <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
-                    <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
-                    <td ng-click="clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
-                </tr>
-            </table>
-        </div>
-    </section>
-    <section id="externalFiles_section">
-        <nav>
-        <ul class="nav nav-pills">
-            <li ng-class="{active: tabIsSet(1)}">
-                <a href ng-click="setTab(1)">CFA</a>
-            </li>
-            <li ng-class="{active: tabIsSet(2)}">
-                <a href ng-click="setTab(2)">ARG</a>
-            </li>
-            <li ng-class="{active: tabIsSet(3)}">
-                <a href ng-click="setTab(3)">Source</a>
-            </li>
-            <li ng-class="{active: tabIsSet(4)}">
-                <a href ng-click="setTab(4)">Log</a>
-            </li>
-            <li ng-class="{active: tabIsSet(5)}">
-                <a href ng-click="setTab(5)">Statistics</a>
-            </li>
-            <li ng-class="{active: tabIsSet(6)}">
-                <a href ng-click="setTab(6)">Configurations</a>
-            </li>
-                <a tabindex="0" role="button" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="{{help_externalFiles}}" class="btn btn-default btn-lg help_button">
-                <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-                </a>
-        </ul>
-        </nav>
-        <div class="fileContent" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}" ng-controller="CFAController">
-            <div class="edit-line">
-                <div class="dropdown" id="dropdownMenu1">
-                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                        Displayed CFA
-                        <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu pre-scrollable">
-                        <li ng-repeat="func in functions" ng-class="{'active, disabled': cfaFunctionIsSet($index)}"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
-                    </ul>
-                </div>
-                <label>{{functions[selectedCFAFunction]}}</label>
-                <div ng-controller="ZoomController">
-                    <p>Zoom Factor (%)</p>
-                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA" ng-change="setZoom('cfa-scalingField')"/>
-                </div>
-            </div>
-            <div class="cfaContent content">
-                    <p>Run scripts/report-generator.py to display CFAs.</p><!--CFAFUNCTIONGRAPHS-->
-                </div>
-            </div>
-            <div class="fileContent" ng-if="tabIsSet(2)" ng-class="{active: tabIsSet(2)}" ng-controller="ARGController">
-                <div class="edit-line">
-                    <div ng-controller="ZoomController">
-                        <p>Zoom Factor (%)</p>
-                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG" ng-change="setZoom('arg-scalingField')"/>
-                    </div>
-                </div>
-                <div class="argContent content">
-                    <p>Run scripts/report-generator.py to display ARG.</p><!--ARGGRAPHS-->
-                </div>
-            </div>
-        <!-- We have to use ng-show here instead of ng-if so that #jumpToSource(line) can access the id of the correct source code line -->
-            <div class="fileContent" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}" ng-controller="SourceController">
-                <div class="edit-line">
-                    <div class="dropdown" id="dropdownMenu2">
-                        <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                            Displayed Sourcefile
-                            <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu pre-scrollable">
-                            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a></li>
-                        </ul>
-                    </div>
-                    <label>{{sourceFiles[selectedSourceFile]}}</label>
-                </div>
-                <!--SOURCE_CONTENT-->
-            </div>
-            <div class="fileContent" ng-show="tabIsSet(4)" ng-class="{active: tabIsSet(4)}">
-                <!--LOG-->
-            </div>
-            <div class="fileContent"  ng-show="tabIsSet(5)" ng-class="{active: tabIsSet(5)}">
-                <!--STATISTICS-->
-            </div>
-            <div class="fileContent" ng-show="tabIsSet(6)" ng-class="{active: tabIsSet(6)}">
-                <!--CONFIGURATION-->
-            </div>
-        </section>
+  <section id="errorpath_section" ng-controller="ErrorpathController">
+    <div id="middleLine" ng-mousedown="setMouseDown()"></div>
+    <header ng-controller="SearchController">
+      <div class="btn-group">
+        <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Prev</button>
+        <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
+        <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Next</button>
+      </div>
+      <a tabindex="0" role="button" data-toggle="popover" data-placement="right"
+         data-trigger="focus" data-content="{{help_errorpath}}"
+         class="btn btn-default btn-lg help_button">
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+      </a>
+      <div class="input-group input-group-sm">
+        <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input"
+               placeholder="Search for...">
+          <span class="input-group-btn">
+              <button ng-click="searchFor()" class="btn btn-default" type="button">
+                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+              </button>
+          </span>
+      </div>
+      <div id="searchOptions">
+        <label for="optionExactMatch">
+          <input id="optionExactMatch" type="checkbox" name="searchOption">
+          Find only exact matches
+        </label>
+      </div>
+      <div id="matches">
+        <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
+        <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
+      </div>
+    </header>
+    <div class="fileContent" ng-controller="ValueAssignmentsController">
+      <table id="err_table">
+        <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
+          <td ng-click="showValues($event)" data-toggle="popover" data-placement="right"
+              data-trigger="click" data-content="{{line.valString}}">
+            <pre>-V-</pre>
+          </td>
+          <td ng-click="clickedErrpathElement($event)">
+            <pre class="prettyprint">{{line.desc}}</pre>
+          </td>
+        </tr>
+      </table>
     </div>
+  </section>
+  <section id="externalFiles_section">
+    <nav>
+      <ul class="nav nav-pills">
+        <li ng-class="{active: tabIsSet(1)}">
+          <a href ng-click="setTab(1)">CFA</a>
+        </li>
+        <li ng-class="{active: tabIsSet(2)}">
+          <a href ng-click="setTab(2)">ARG</a>
+        </li>
+        <li ng-class="{active: tabIsSet(3)}">
+          <a href ng-click="setTab(3)">Source</a>
+        </li>
+        <li ng-class="{active: tabIsSet(4)}">
+          <a href ng-click="setTab(4)">Log</a>
+        </li>
+        <li ng-class="{active: tabIsSet(5)}">
+          <a href ng-click="setTab(5)">Statistics</a>
+        </li>
+        <li ng-class="{active: tabIsSet(6)}">
+          <a href ng-click="setTab(6)">Configurations</a>
+        </li>
+        <a tabindex="0" role="button" data-toggle="popover" data-placement="right"
+           data-trigger="focus" data-content="{{help_externalFiles}}"
+           class="btn btn-default btn-lg help_button">
+          <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+        </a>
+      </ul>
+    </nav>
+    <div class="fileContent" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
+         ng-controller="CFAController">
+      <div class="edit-line">
+        <div class="dropdown" id="dropdownMenu1">
+          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="true">
+            Displayed CFA
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu pre-scrollable">
+            <li ng-repeat="func in functions"
+                ng-class="{'active, disabled': cfaFunctionIsSet($index)}"><a
+                ng-click="setCFAFunction($index)">{{func}}</a></li>
+          </ul>
+        </div>
+        <label>{{functions[selectedCFAFunction]}}</label>
+        <div ng-controller="ZoomController">
+          <p>Zoom Factor (%)</p>
+          <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA"
+                 ng-change="setZoom('cfa-scalingField')" />
+        </div>
+      </div>
+      <div class="cfaContent content">
+        <p>Run scripts/report-generator.py to display CFAs.</p><!--CFAFUNCTIONGRAPHS-->
+      </div>
+    </div>
+    <div class="fileContent" ng-if="tabIsSet(2)" ng-class="{active: tabIsSet(2)}"
+         ng-controller="ARGController">
+      <div class="edit-line">
+        <div ng-controller="ZoomController">
+          <p>Zoom Factor (%)</p>
+          <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG"
+                 ng-change="setZoom('arg-scalingField')" />
+        </div>
+      </div>
+      <div class="argContent content">
+        <p>Run scripts/report-generator.py to display ARG.</p><!--ARGGRAPHS-->
+      </div>
+    </div>
+    <!-- We have to use ng-show here instead of ng-if so that #jumpToSource(line)
+         can access the id of the correct source code line -->
+    <div class="fileContent" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
+         ng-controller="SourceController">
+      <div class="edit-line">
+        <div class="dropdown" id="dropdownMenu2">
+          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="true">
+            Displayed Sourcefile
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu pre-scrollable">
+            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a>
+            </li>
+          </ul>
+        </div>
+        <label>{{sourceFiles[selectedSourceFile]}}</label>
+      </div>
+      <!--SOURCE_CONTENT-->
+    </div>
+    <div class="fileContent" ng-show="tabIsSet(4)" ng-class="{active: tabIsSet(4)}">
+      <!--LOG-->
+    </div>
+    <div class="fileContent" ng-show="tabIsSet(5)" ng-class="{active: tabIsSet(5)}">
+      <!--STATISTICS-->
+    </div>
+    <div class="fileContent" ng-show="tabIsSet(6)" ng-class="{active: tabIsSet(6)}">
+      <!--CONFIGURATION-->
+    </div>
+  </section>
+</div>
 
-    <div class="toaster" id="toaster"></div>
+<div class="toaster" id="toaster"></div>
 
 </body>
 </html>
