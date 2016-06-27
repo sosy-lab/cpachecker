@@ -188,7 +188,7 @@ public class CoreComponentsFactory {
 
     config.inject(this);
 
-    if (analysisNeedsShutdownManager() || new TigerConfiguration(config).useTigerAlgorithm) {
+    if (analysisNeedsShutdownManager()) {
       shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = shutdownManager.getNotifier();
     } else {
@@ -202,7 +202,13 @@ public class CoreComponentsFactory {
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
   }
 
-  private boolean analysisNeedsShutdownManager() {
+  private boolean analysisNeedsShutdownManager() throws InvalidConfigurationException {
+
+    // Tiger needs a shutdown manager
+    if (new TigerConfiguration(config).useTigerAlgorithm) {
+      return true;
+    }
+
     // BMCAlgorithm needs to get a ShutdownManager that also affects the CPA it is used with.
     // We must not create such a new ShutdownManager if it is not needed,
     // because otherwise the GC will throw it away and shutdowns will NOT WORK!
