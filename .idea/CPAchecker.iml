@@ -210,6 +210,61 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="lasso-ranker.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/lasso-ranker.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/lasso-ranker-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-model-checker-utils.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-model-checker-utils.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-model-checker-utils-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-model.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-model.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-model-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-core-rcp.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-core-rcp.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-core-rcp-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-util.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-util.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-util-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="module-library">
       <library name="objenesis.jar">
