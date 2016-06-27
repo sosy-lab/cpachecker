@@ -308,9 +308,18 @@ public class CPAchecker {
               : SpecAutomatonCompositionType.TARGET_SPEC;
 
           ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, speComposition, automata);
+
+          if (cpa instanceof StatisticsProvider) {
+            ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+          }
+
           GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
           algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
+
+          if (algorithm instanceof StatisticsProvider) {
+            ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
+          }
 
           if (algorithm instanceof ImpactAlgorithm) {
             ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
