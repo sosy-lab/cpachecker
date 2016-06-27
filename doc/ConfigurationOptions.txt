@@ -521,6 +521,13 @@ cfa.variableClassification.printStatsOnStartup = false
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 
+# Output an input file, with invariants embedded as assume constraints.
+cinvariants.export = false
+
+# Prefix to add to an output file, which would contain assumed invariants. If
+# the prefix is equal to '-', the output would be printed to stdout.
+cinvariants.prefix = "inv"
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -2289,10 +2296,6 @@ impact.useForcedCovering = true
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
 invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
-
-# Timelimit for invariant generation which may be used during refinement.
-# (Use seconds or specify a unit; 0 for infinite)
-invariantChecker.timeForInvariantCheck = 0ns
 
 # configuration file for invariant generation
 invariantGeneration.config = no default value
