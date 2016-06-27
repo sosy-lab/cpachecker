@@ -278,6 +278,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
 
     final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
+
+    if (options.useQuantifiersOnArrays()) {
+      Formula counter = fmgr.makeVariable(voidPointerFormulaType, functionName + "@counter");
+      return fmgr.getQuantifiedFormulaManager()
+          .forall(
+              counter,
+              makeRetentionConstraint(
+                  functionName, oldIndex, newIndex, returnFormulaType, counter));
+    }
+
     List<BooleanFormula> result = new ArrayList<>();
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
       shutdownNotifier.shutdownIfNecessary();
