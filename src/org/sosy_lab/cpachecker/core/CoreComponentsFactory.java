@@ -72,10 +72,10 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 
+import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -188,7 +188,7 @@ public class CoreComponentsFactory {
 
     config.inject(this);
 
-    if (analysisNeedsShutdownManager()) {
+    if (analysisNeedsShutdownManager() || new TigerConfiguration(config).useTigerAlgorithm) {
       shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = shutdownManager.getNotifier();
     } else {
