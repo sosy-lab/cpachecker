@@ -114,7 +114,8 @@ public class ARGPath extends AbstractAppender {
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
       ARGState child = states.get(i+1);
-      edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
+      @Nullable CFAEdge edge = parent.getEdgeToChild(child); // may return null
+      edgesBuilder.add(edge);
     }
 
     edges = Collections.unmodifiableList(edgesBuilder);
@@ -159,13 +160,8 @@ public class ARGPath extends AbstractAppender {
       return fullPath;
     }
 
-    Builder<CFAEdge> pathBuilder = ImmutableList.<CFAEdge>builder();
-
-    final PathIterator it = pathIterator();
-
-    Preconditions.checkState(it.hasNext());
-    CFAEdge curOutgoingEdge = it.getOutgoingEdge();
-    CFANode predLoc = AbstractStates.extractLocation(it.getAbstractState());
+    Builder<CFAEdge> result = ImmutableList.<CFAEdge>builder();
+    PathIterator it = pathIterator();
 
     // This method has to consider that we can also have
     //    'weaved' CFA transitions, i.e., the CFANode of the abstract state
@@ -173,26 +169,36 @@ public class ARGPath extends AbstractAppender {
     //
 
     while (it.hasNext()) {
+      ARGState prev = it.getAbstractState();
+      CFAEdge curOutgoingEdge = it.getOutgoingEdge();
       it.advance();
-      CFANode succLoc = AbstractStates.extractLocation(it.getAbstractState());
+      ARGState succ = it.getAbstractState();
+
+      // assert prev.getEdgeToChild(succ) == curOutgoingEdge : "invalid ARGPath";
 
       // compute path between cur and next node
       if (curOutgoingEdge == null) {
-        throw new RuntimeException("Not implemented for this branch of CPAchecker!");
+        // we assume a linear chain of edges from 'prev' to 'succ'
+        CFANode curNode = extractLocation(prev);
+        CFANode nextNode = extractLocation(succ);
+        while (curNode != nextNode) {
+          if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
+            return ImmutableList.of();
+          }
 
-      // we have a normal connection without hole in the edges
+          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
+          result.add(intermediateEdge);
+          curNode = intermediateEdge.getSuccessor();
+        }
+
+        // we have a normal connection without hole in the edges
       } else {
-        pathBuilder.add(curOutgoingEdge);
+        result.add(curOutgoingEdge);
       }
-
-      if (it.hasNext()) {
-        curOutgoingEdge = it.getOutgoingEdge();
-      }
-      predLoc = succLoc;
     }
 
-    fullPath = pathBuilder.build();
-    return fullPath;
+    this.fullPath = result.build();
+    return this.fullPath;
   }
 
   public ImmutableSet<ARGState> getStateSet() {
