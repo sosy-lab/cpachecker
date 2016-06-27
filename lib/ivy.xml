@@ -102,7 +102,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.60-5-g7dd38a0" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.60-13-gc3ccde8" conf="runtime->runtime; contrib->sources" />
         
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
