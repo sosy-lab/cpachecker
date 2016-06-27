@@ -255,7 +255,7 @@ public class ReportGenerator {
       throws IOException {
 
     if (isReadable(sourcePath)) {
-      int iterator = 1;
+      int lineNumber = 1;
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
@@ -271,13 +271,13 @@ public class ReportGenerator {
           line = "<td><pre class=\"prettyprint\">" + line + "  </pre></td>";
           report.write(
               "<tr id=\"source-"
-                  + iterator
+                  + lineNumber
                   + "\"><td><pre>"
-                  + iterator
+                  + lineNumber
                   + "</pre></td>"
                   + line
                   + "</tr>\n");
-          iterator++;
+          lineNumber++;
         }
 
         report.write("</table></div>\n");
