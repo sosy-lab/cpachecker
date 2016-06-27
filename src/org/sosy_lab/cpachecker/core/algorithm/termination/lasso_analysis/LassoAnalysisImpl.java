@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,6 +68,8 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAn
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.AffineTemplate;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.LexicographicTemplate;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.RankingTemplate;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -88,6 +91,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final TerminationAnalysisSettings terminationAnalysisSettings;
 
   private final LassoRankerToolchainStorage toolchainStorage;
+
+  private final Collection<RankingTemplate> rankingTemplates;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -123,6 +128,20 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     terminationAnalysisSettings.numnon_strict_invariants = 3;
     terminationAnalysisSettings.numstrict_invariants = 3;
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
+
+    rankingTemplates = createTemplates();
+  }
+
+  private static Collection<RankingTemplate> createTemplates() {
+    ImmutableList.Builder<RankingTemplate> rankingTemplates = ImmutableList.builder();
+
+    rankingTemplates.add(new AffineTemplate());
+
+    rankingTemplates.add(new LexicographicTemplate(2));
+    rankingTemplates.add(new LexicographicTemplate(3));
+    rankingTemplates.add(new LexicographicTemplate(4));
+
+    return rankingTemplates.build();
   }
 
   @Override
@@ -174,12 +193,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     NonTerminationArgument nonTerminationArgument = null;
     try (NonTerminationArgumentSynthesizer nonTerminationArgumentSynthesizer =
-        new NonTerminationArgumentSynthesizer(
-            lasso,
-            lassoRankerPreferences,
-            nonTerminationAnalysisSettings,
-            toolchainStorage,
-            toolchainStorage)) {
+        createNonTerminationArgumentSynthesizer(lasso)) {
+
       LBool result = nonTerminationArgumentSynthesizer.synthesize();
       if (result.equals(LBool.SAT) && nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
         nonTerminationArgument = nonTerminationArgumentSynthesizer.getArgument();
@@ -188,32 +203,53 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
 
     RankingRelation rankingRelation = null;
-    try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
-        new TerminationArgumentSynthesizer(
-            lasso,
-            new AffineTemplate(),
-            lassoRankerPreferences,
-            terminationAnalysisSettings,
-            Collections.emptySet(),
-            toolchainStorage,
-            toolchainStorage)) {
-      LBool result = terminationArgumentSynthesizer.synthesize();
-      if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
-        TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
-        logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
+    for (RankingTemplate rankingTemplate : rankingTemplates) {
 
-        try {
-          rankingRelation =
-              rankingRelationBuilder.fromTerminationArgument(terminationArgument, pRelevantVariables);
+      try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
+          createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
 
-        } catch (UnrecognizedCCodeException e) {
-          logger.logException(
-              Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
+        LBool result = terminationArgumentSynthesizer.synthesize();
+        if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
+          TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
+          logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
+
+          try {
+            rankingRelation =
+                rankingRelationBuilder
+                    .fromTerminationArgument(terminationArgument, pRelevantVariables);
+            break;
+
+          } catch (UnrecognizedCCodeException e) {
+            logger.logException(
+                Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
+          }
         }
       }
     }
 
     return new LassoAnalysisResult(
         Optional.ofNullable(nonTerminationArgument), Optional.ofNullable(rankingRelation));
+  }
+
+  private TerminationArgumentSynthesizer createTerminationArgumentSynthesizer(
+      Lasso lasso, RankingTemplate template) throws IOException {
+    return new TerminationArgumentSynthesizer(
+        lasso,
+        template,
+        lassoRankerPreferences,
+        terminationAnalysisSettings,
+        Collections.emptySet(),
+        toolchainStorage,
+        toolchainStorage);
+  }
+
+  private NonTerminationArgumentSynthesizer createNonTerminationArgumentSynthesizer(Lasso lasso)
+      throws IOException {
+    return new NonTerminationArgumentSynthesizer(
+        lasso,
+        lassoRankerPreferences,
+        nonTerminationAnalysisSettings,
+        toolchainStorage,
+        toolchainStorage);
   }
 }

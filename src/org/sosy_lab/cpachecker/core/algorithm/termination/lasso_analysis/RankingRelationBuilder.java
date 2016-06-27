@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
@@ -60,6 +61,7 @@ import java.util.Set;
 
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LexicographicRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LinearRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
@@ -85,8 +87,18 @@ class RankingRelationBuilder {
       TerminationArgument pTerminationArgument, Set<CVariableDeclaration> pRelevantVariables)
           throws UnrecognizedCCodeException {
     RankingFunction rankingFunction = pTerminationArgument.getRankingFunction();
+    return fromRankingFunction(pRelevantVariables, rankingFunction);
+  }
+
+  private RankingRelation fromRankingFunction(Set<CVariableDeclaration> pRelevantVariables,
+      RankingFunction rankingFunction) throws UnrecognizedCCodeException {
+
     if (rankingFunction instanceof LinearRankingFunction) {
       return fromLinearRankingFunction((LinearRankingFunction) rankingFunction, pRelevantVariables);
+
+    } else if (rankingFunction instanceof LexicographicRankingFunction) {
+        return fromLexicographicRankingFunction(
+            (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
 
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
@@ -138,6 +150,26 @@ class RankingRelationBuilder {
 
     return new RankingRelation(
         rankingRelation, rankingRelationFormula, binaryExpressionBuilder, formulaManagerView);
+  }
+
+  private RankingRelation fromLexicographicRankingFunction(
+      LexicographicRankingFunction rankingFunction, Set<CVariableDeclaration> pRelevantVariables)
+          throws UnrecognizedCCodeException {
+
+    CExpression cExpression = CIntegerLiteralExpression.ZERO;
+    List<BooleanFormula> formulas = Lists.newArrayList();
+
+    for (RankingFunction component : rankingFunction.getComponents()) {
+      RankingRelation rankingRelation = fromRankingFunction(pRelevantVariables, component);
+      CExpression cExpressionComponent = rankingRelation.asCExpression();
+      cExpression =
+          binaryExpressionBuilder.buildBinaryExpression(
+              cExpression, cExpressionComponent, BINARY_OR);
+      formulas.add(rankingRelation.asFormula());
+    }
+
+    BooleanFormula formula = formulaManagerView.getBooleanFormulaManager().or(formulas);
+    return new RankingRelation(cExpression, formula, binaryExpressionBuilder, formulaManagerView);
   }
 
   private CBinaryExpression createRankingRelation(CExpression primedFunction,
