@@ -26,28 +26,32 @@ package org.sosy_lab.cpachecker.util;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
 
 import com.google.common.base.Preconditions;
 
+import javax.annotation.Nullable;
+
 public class InterruptProvider {
 
-  private final ShutdownManager irreversibleParent;
+  @Nullable
+  private final ShutdownNotifier irreversibleNotifier;
 
   private AtomicReference<ShutdownManager> temporaryManager;
 
-  public InterruptProvider(ShutdownManager pIrreversibleParent) {
-    this.irreversibleParent = Preconditions.checkNotNull(pIrreversibleParent);
+  public InterruptProvider(ShutdownNotifier pIrreversibleNotifier) {
+    this.irreversibleNotifier = Preconditions.checkNotNull(pIrreversibleNotifier);
     this.temporaryManager = new AtomicReference<>();
 
     reset();
   }
 
   public void reset() {
-    temporaryManager.set(ShutdownManager.createWithParent(irreversibleParent.getNotifier()));
+    temporaryManager.set(ShutdownManager.createWithParent(irreversibleNotifier));
   }
 
   public void canInterrupt() throws InterruptedException {
-    irreversibleParent.getNotifier().shutdownIfNecessary();
+    irreversibleNotifier.shutdownIfNecessary();
     temporaryManager.get().getNotifier().shutdownIfNecessary();
   }
 

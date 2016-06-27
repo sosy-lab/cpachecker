@@ -34,7 +34,7 @@ public class InterruptProviderTest {
   @Test
   public void test() {
     ShutdownManager master = ShutdownManager.create();
-    InterruptProvider ip = new InterruptProvider(master);
+    InterruptProvider ip = new InterruptProvider(master.getNotifier());
 
     Truth.assertThat(ip.hasTemporaryInterruptRequest()).isFalse();
 
@@ -51,7 +51,7 @@ public class InterruptProviderTest {
   public void testInterrupt() throws InterruptedException {
     ShutdownManager master = ShutdownManager.create();
 
-    InterruptProvider ip = new InterruptProvider(master);
+    InterruptProvider ip = new InterruptProvider(master.getNotifier());
     Truth.assertThat(ip.hasTemporaryInterruptRequest()).isFalse();
 
     master.requestShutdown("Test");

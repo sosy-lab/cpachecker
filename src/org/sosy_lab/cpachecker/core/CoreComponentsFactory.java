@@ -196,7 +196,7 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
-    interruptProvider = new InterruptProvider(shutdownManager);
+    interruptProvider = new InterruptProvider(shutdownNotifier);
 
     reachedSetFactory = new ReachedSetFactory(config);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
