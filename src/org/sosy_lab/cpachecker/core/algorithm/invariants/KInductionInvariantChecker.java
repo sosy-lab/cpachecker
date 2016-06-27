@@ -88,6 +88,9 @@ public class KInductionInvariantChecker {
 
     Configuration invariantConfig;
     try {
+      // clear interrupted flag before we try to load the configuration, this might lead to
+      // exceptions otherwise
+      Thread.interrupted();
       invariantConfig = Configuration.builder().loadFromFile(kInductionConfig).build();
 
     } catch (IOException e) {
