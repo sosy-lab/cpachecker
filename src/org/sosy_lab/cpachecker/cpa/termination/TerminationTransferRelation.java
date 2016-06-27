@@ -179,6 +179,8 @@ public class TerminationTransferRelation implements TransferRelation {
   private List<CFANode> relevantVariablesInitializationIntermediateLocations =
       Collections.emptyList();
 
+  private CFANode targetNode;
+
   private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
 
   private final TransferRelation transferRelation;
@@ -239,6 +241,9 @@ public class TerminationTransferRelation implements TransferRelation {
       builder.put(relevantVariable, primedVariable);
       intermediateStates.add(new CFANode(functionName));
     }
+
+    // Create a unique target node for each loop
+    targetNode = new CLabelNode(functionName, NON_TERMINATION_LABEL);
 
     relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
     relevantVariables = builder.build();
@@ -352,7 +357,6 @@ public class TerminationTransferRelation implements TransferRelation {
     // non-termination requires a loop
     if (loopHeadState.isPartOfLoop()) {
       // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
-      CFANode targetNode = new CLabelNode(functionName, NON_TERMINATION_LABEL);
       CFAEdge nonTerminationLabel =
           createBlankEdge(
               potentialNonTerminationNode, targetNode, "Label: " + NON_TERMINATION_LABEL);
