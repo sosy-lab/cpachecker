@@ -111,7 +111,8 @@ public class DeclarationCollectingVisitor extends AExpressionVisitor<Set<ASimple
   public Set<ASimpleDeclaration> visit(JArrayInitializer exp) {
     Set<ASimpleDeclaration> result = Collections.emptySet();
     for (JExpression innerExp : exp.getInitializerExpressions()) {
-      result = Sets.union(result, innerExp.accept(this));
+      // Do not remove explicit type inference, otherwise build fails with IntelliJ
+      result = Sets.union(result, innerExp.<Set<ASimpleDeclaration>, RuntimeException>accept(this));
     }
     return result;
   }

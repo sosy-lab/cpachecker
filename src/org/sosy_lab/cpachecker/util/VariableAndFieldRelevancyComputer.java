@@ -548,13 +548,22 @@ public final class VariableAndFieldRelevancyComputer {
     @Override
     public Pair<VariableOrField, VarFieldDependencies> visit(final CFieldReference e) {
       final VariableOrField result = VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName());
-      return Pair.of(result, e.getFieldOwner().accept(CollectingRHSVisitor.create(result)));
+      // Do not remove explicit type inference, otherwise build fails with IntelliJ
+      return Pair.of(
+          result,
+          e.getFieldOwner()
+              .<VarFieldDependencies, RuntimeException>accept(CollectingRHSVisitor.create(result)));
+
     }
 
     @Override
     public Pair<VariableOrField, VarFieldDependencies> visit(final CPointerExpression e) {
-      return Pair.of(VariableOrField.unknown(),
-                     e.getOperand().accept(CollectingRHSVisitor.create(VariableOrField.unknown())));
+      // Do not remove explicit type inference, otherwise build fails with IntelliJ
+      return Pair.of(
+          VariableOrField.unknown(),
+          e.getOperand()
+              .<VarFieldDependencies, RuntimeException>accept(
+                  CollectingRHSVisitor.create(VariableOrField.unknown())));
     }
 
     @Override

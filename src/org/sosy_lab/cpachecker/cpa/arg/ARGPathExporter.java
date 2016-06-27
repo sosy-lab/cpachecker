@@ -622,7 +622,8 @@ public class ARGPathExporter {
                       statement.getExpression() instanceof CExpression
                           && !Iterables.any(
                               ((CExpression) statement.getExpression())
-                                  .accept(new CIdExpressionCollectingVisitor()),
+                                  .<Set<CIdExpression>, RuntimeException>accept(
+                                      new CIdExpressionCollectingVisitor()),
                               isTmpVariable));
 
           if (!assignments.isEmpty()) {
