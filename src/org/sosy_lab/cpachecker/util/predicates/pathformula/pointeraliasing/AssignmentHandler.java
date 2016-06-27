@@ -275,6 +275,8 @@ class AssignmentHandler {
 
     final CType lhsType = CTypeUtils.simplifyType(
         pAssignments.get(0).getLeftHandSide().getExpressionType());
+    final CType rhsType =
+        CTypeUtils.simplifyType(pAssignments.get(0).getRightHandSide().getExpressionType());
 
     final CExpressionVisitorWithPointerAliasing rhsVisitor =
         new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
@@ -315,7 +317,10 @@ class AssignmentHandler {
 
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
-      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhsValue.asValue().getValue());
+      final Formula rhs =
+          conv.makeCast(rhsType, lhsType, rhsValue.asValue().getValue(), constraints, edge);
+
+      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhs);
 
       final BooleanFormula copyOldValue;
       if (options.useArraysForHeap()) {
