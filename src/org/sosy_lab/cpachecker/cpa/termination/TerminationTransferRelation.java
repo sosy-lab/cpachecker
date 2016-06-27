@@ -268,30 +268,28 @@ public class TerminationTransferRelation implements TransferRelation {
     }
 
     resetCfa();
+    assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
 
+    Collection<TerminationState> resultingSuccessors =
+        Lists.newArrayListWithCapacity(statesAtCurrentLocation.size());
     Collection<TerminationState> targetStates =
         statesAtCurrentLocation
             .stream()
             .filter(AbstractStates::isTargetState)
             .collect(Collectors.toList());
 
-    // break if target state is reachable
-    if (!targetStates.isEmpty()) {
-      Collection<TerminationState> strengthenedTargetStates = Lists.newArrayList();
-
-      for (TerminationState targetState : targetStates) {
-        Collection<? extends AbstractState> strengthenedStates = transferRelation.strengthen(
-            targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
-        strengthenedStates
-            .stream().map(targetState::withWrappedState).forEach(strengthenedTargetStates::add);
-      }
-
-      statesAtCurrentLocation.removeAll(targetStates);
-      statesAtCurrentLocation.addAll(strengthenedTargetStates);
+    // pass negative ranking relation to other AbstarctStates
+    for (TerminationState targetState : targetStates) {
+      Collection<? extends AbstractState> strengthenedStates = transferRelation.strengthen(
+          targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
+      strengthenedStates
+          .stream().map(targetState::withWrappedState).forEach(resultingSuccessors::add);
     }
 
-    assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
-    return getAbstractSuccessors0(statesAtCurrentLocation, pPrecision);
+    statesAtCurrentLocation.removeAll(targetStates);
+
+    resultingSuccessors.addAll(getAbstractSuccessors0(statesAtCurrentLocation, pPrecision));
+    return resultingSuccessors;
   }
 
   private Collection<TerminationState> declarePrimedVariables(
