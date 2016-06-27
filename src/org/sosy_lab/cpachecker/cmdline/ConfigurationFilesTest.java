@@ -28,9 +28,7 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
-import com.google.common.io.Resources;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
@@ -62,6 +60,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -165,7 +164,7 @@ public class ConfigurationFilesTest {
 
   @Test
   @SuppressWarnings("CheckReturnValue")
-  public void parse() {
+  public void parse() throws URISyntaxException {
     try {
       parse(configFile).build();
     } catch (InvalidConfigurationException | IOException e) {
@@ -174,14 +173,17 @@ public class ConfigurationFilesTest {
     }
   }
 
-  private static ConfigurationBuilder parse(Object configFile)
-      throws IOException, InvalidConfigurationException {
-    if (configFile instanceof Path) {
-      return Configuration.builder().loadFromFile((Path) configFile);
+  private static ConfigurationBuilder parse(Object pConfigFile)
+      throws IOException, InvalidConfigurationException, URISyntaxException {
+    Path configFile;
+    if (pConfigFile instanceof Path) {
+      configFile = (Path) pConfigFile;
+    } else if (pConfigFile instanceof URL) {
+      configFile = Paths.get(((URL) pConfigFile).toURI());
     } else {
-      CharSource source = Resources.asCharSource((URL) configFile, StandardCharsets.US_ASCII);
-      return Configuration.builder().loadFromSource(source, "", configFile.toString());
+      throw new AssertionError("Unexpected config file " + pConfigFile);
     }
+    return Configuration.builder().loadFromFile(configFile);
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -277,7 +279,7 @@ public class ConfigurationFilesTest {
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .build();
-    } catch (InvalidConfigurationException | IOException e) {
+    } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assume().fail(e.getMessage());
       throw new AssertionError();
     }
