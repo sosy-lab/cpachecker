@@ -252,6 +252,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
     boolean provideReachedForNextAlgorithm = false;
+    boolean isLastReachedSetUsable = false;
     final List<ConfigurableProgramAnalysis> cpasToClose = new ArrayList<>();
 
     while (configFilesIterator.hasNext()) {
@@ -278,7 +279,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
                   mainFunction,
                   singleShutdownManager,
                   provideReachedForNextAlgorithm,
-                  reached.getDelegate());
+                  // we can only use the reached set if the last analysis terminated without exception
+                  isLastReachedSetUsable ? reached.getDelegate() : null);
           currentAlgorithm = currentAlg.getFirst();
           currentCpa = currentAlg.getSecond();
           currentReached = currentAlg.getThird();
@@ -329,8 +331,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             return status;
           }
           lastAnalysisTerminated = true;
+          isLastReachedSetUsable = true;
 
         } catch (CPAException e) {
+          isLastReachedSetUsable = false;
           lastAnalysisFailed = true;
           if (e.getMessage().contains("Counterexample could not be analyzed")) {
             status = status.withPrecise(false);
@@ -347,6 +351,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             throw e;
           }
         } catch (InterruptedException e) {
+          isLastReachedSetUsable = false;
           lastAnalysisInterrupted = true;
           shutdownNotifier.shutdownIfNecessary(); // check if we should also stop
           logger.logUserException(Level.WARNING, e, "Analysis " + stats.noOfAlgorithmsUsed + " stopped");
