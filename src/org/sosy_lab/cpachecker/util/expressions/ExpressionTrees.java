@@ -443,7 +443,7 @@ public final class ExpressionTrees {
   public static <LeafType> FluentIterable<ExpressionTree<LeafType>> getChildren(
       ExpressionTree<LeafType> pExpressionTree) {
     return FluentIterable.from(
-        pExpressionTree.accept(
+        pExpressionTree.<Iterable<ExpressionTree<LeafType>>, RuntimeException>accept(
             new DefaultExpressionTreeVisitor<
                 LeafType, Iterable<ExpressionTree<LeafType>>, RuntimeException>() {
 

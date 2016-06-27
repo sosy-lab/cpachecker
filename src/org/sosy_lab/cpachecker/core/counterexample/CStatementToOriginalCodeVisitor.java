@@ -92,7 +92,9 @@ enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, Runtim
             lASTString,
             transform(
                 pFunctionCallExpression.getParameterExpressions(),
-                pInput -> pInput.accept(CExpressionToOrinalCodeVisitor.INSTANCE)));
+                pInput ->
+                    pInput.<String, RuntimeException>accept(
+                        CExpressionToOrinalCodeVisitor.INSTANCE)));
     lASTString.append(")");
 
     return lASTString.toString();
