@@ -203,7 +203,7 @@ public class ReportGenerator {
 
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Procesing of HTML template failed.");
+          WARNING, e, "Could not create report: Processing of HTML template failed.");
     }
   }
 
