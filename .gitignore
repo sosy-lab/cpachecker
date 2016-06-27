@@ -231,3 +231,4 @@
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.java
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaScanner.java
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaSymbols.java
+src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/FQLSym.java
