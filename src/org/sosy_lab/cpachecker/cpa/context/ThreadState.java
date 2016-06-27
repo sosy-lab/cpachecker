@@ -38,14 +38,14 @@ public class ThreadState implements AbstractState {
 
   private final ImmutableMap<String, Thread> threads;
   private final Thread currentThread;
-  
+
   public ThreadState(Collection<Thread> threads, Thread currentThread) {
     assert threads.contains(currentThread);
     ImmutableMap.Builder<String, Thread> builder = ImmutableMap.builder();
     for(Thread thread : threads) {
       builder.put(thread.getThreadName(), thread);
     }
-    
+
     this.threads = builder.build();
     this.currentThread = currentThread;
   }
@@ -53,7 +53,7 @@ public class ThreadState implements AbstractState {
   public ImmutableCollection<Thread> getThreads() {
     return threads.values();
   }
-  
+
   @Deprecated
   public ImmutableMap<String, Thread> getThreadsMap() {
     return threads;
@@ -62,7 +62,7 @@ public class ThreadState implements AbstractState {
   public Thread getThread(String threadName) {
     return threads.get(threadName);
   }
-  
+
   public Thread getCurrentThread() {
     return currentThread;
   }
@@ -80,7 +80,7 @@ public class ThreadState implements AbstractState {
         builder.add(new Thread(thread.getThreadName(), false, false, 0, maxProgramCounter));
       }
     }
-    
+
     return new ThreadState(builder.build(), mainThread);
   }
 
@@ -95,26 +95,33 @@ public class ThreadState implements AbstractState {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     ThreadState other = (ThreadState) obj;
     if (currentThread == null) {
-      if (other.currentThread != null)
+      if (other.currentThread != null) {
         return false;
-    } else if (!currentThread.equals(other.currentThread))
+      }
+    } else if (!currentThread.equals(other.currentThread)) {
       return false;
+    }
     if (threads == null) {
-      if (other.threads != null)
+      if (other.threads != null) {
         return false;
-    } else if (!threads.equals(other.threads))
+      }
+    } else if (!threads.equals(other.threads)) {
       return false;
+    }
     return true;
   }
-  
+
   @Override
   public String toString() {
     String rep = "ThreadState=[";
@@ -129,11 +136,11 @@ public class ThreadState implements AbstractState {
       }
       i++;
     }
-    
+
     rep += "]";
-      
+
     return rep;
   }
 
-  
+
 }

@@ -46,15 +46,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class ContextSwitchCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ReachedSetAdjustingCPA {
-  
+
   private AThreadContainer initialThreads;
-  
+
   protected ContextSwitchCPA(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException {
     super("sep", "sep", new ContextSwitchTransferRelation(config, pLogger, cfa));
     assert cfa.getThreads().isPresent();
     this.initialThreads = cfa.getThreads().get();
   }
-  
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ContextSwitchCPA.class);
   }

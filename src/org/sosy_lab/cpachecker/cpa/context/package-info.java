@@ -22,8 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * This cpa ensures a correct context switching within a 
- * sequenced cfa and stops context switching after a given 
+ * This cpa ensures a correct context switching within a
+ * sequenced cfa and stops context switching after a given
  * (modifiable) bound is reached.
  */
 package org.sosy_lab.cpachecker.cpa.context;

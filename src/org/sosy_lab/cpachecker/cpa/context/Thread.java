@@ -30,7 +30,7 @@ public class Thread {
   private final boolean isFinished;
   private final int lastProgramCounter;
   private final int maxProgramCounter;
-  
+
   public Thread(String threadName, boolean isActive, boolean isFinished, int lastProgramCounter, int maxProgramCounter) {
     super();
     this.threadName = threadName;
@@ -55,12 +55,12 @@ public class Thread {
   public int getLastProgramCounter() {
     return lastProgramCounter;
   }
-  
+
   public int getMaxProgramCounter() {
     return maxProgramCounter;
   }
-  
-  
+
+
 
   @Override
   public String toString() {
@@ -84,28 +84,37 @@ public class Thread {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     Thread other = (Thread) obj;
-    if (isActive != other.isActive)
+    if (isActive != other.isActive) {
       return false;
-    if (isFinished != other.isFinished)
+    }
+    if (isFinished != other.isFinished) {
       return false;
-    if (lastProgramCounter != other.lastProgramCounter)
+    }
+    if (lastProgramCounter != other.lastProgramCounter) {
       return false;
-    if (maxProgramCounter != other.maxProgramCounter)
+    }
+    if (maxProgramCounter != other.maxProgramCounter) {
       return false;
+    }
     if (threadName == null) {
-      if (other.threadName != null)
+      if (other.threadName != null) {
         return false;
-    } else if (!threadName.equals(other.threadName))
+      }
+    } else if (!threadName.equals(other.threadName)) {
       return false;
+    }
     return true;
   }
-  
-  
+
+
 }
