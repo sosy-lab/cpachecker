@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.context;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThread;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThreadContainer;
@@ -45,18 +48,12 @@ public class ThreadState implements AbstractState {
     for(Thread thread : threads) {
       builder.put(thread.getThreadName(), thread);
     }
-
     this.threads = builder.build();
     this.currentThread = currentThread;
   }
 
   public ImmutableCollection<Thread> getThreads() {
     return threads.values();
-  }
-
-  @Deprecated
-  public ImmutableMap<String, Thread> getThreadsMap() {
-    return threads;
   }
 
   public Thread getThread(String threadName) {
@@ -86,11 +83,7 @@ public class ThreadState implements AbstractState {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((currentThread == null) ? 0 : currentThread.hashCode());
-    result = prime * result + ((threads == null) ? 0 : threads.hashCode());
-    return result;
+    return Objects.hash(currentThread, threads);
   }
 
   @Override
@@ -98,49 +91,24 @@ public class ThreadState implements AbstractState {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof ThreadState)) {
       return false;
     }
     ThreadState other = (ThreadState) obj;
-    if (currentThread == null) {
-      if (other.currentThread != null) {
-        return false;
-      }
-    } else if (!currentThread.equals(other.currentThread)) {
-      return false;
-    }
-    if (threads == null) {
-      if (other.threads != null) {
-        return false;
-      }
-    } else if (!threads.equals(other.threads)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(currentThread, other.currentThread)
+        && Objects.equals(threads, other.threads);
   }
 
   @Override
   public String toString() {
-    String rep = "ThreadState=[";
-    int i = 0;
+    List<String> threadNames = new ArrayList<>();
     for(Thread thread : threads.values()) {
       if(currentThread.equals(thread)) {
-        rep += "*";
+        threadNames.add("*" + thread.toString());
+      } else {
+        threadNames.add(thread.toString());
       }
-      rep += thread.toString();
-      if(i<threads.size() - 1) {
-        rep += ", ";
-      }
-      i++;
     }
-
-    rep += "]";
-
-    return rep;
+    return "ThreadState=" + threadNames;
   }
-
-
 }

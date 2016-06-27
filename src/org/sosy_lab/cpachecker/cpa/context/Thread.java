@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.context;
 
+import java.util.Objects;
+
 public class Thread {
 
   private final String threadName;
@@ -32,7 +34,6 @@ public class Thread {
   private final int maxProgramCounter;
 
   public Thread(String threadName, boolean isActive, boolean isFinished, int lastProgramCounter, int maxProgramCounter) {
-    super();
     this.threadName = threadName;
     this.isActive = isActive;
     this.isFinished = isFinished;
@@ -60,8 +61,6 @@ public class Thread {
     return maxProgramCounter;
   }
 
-
-
   @Override
   public String toString() {
     return threadName + " [threadName=" + threadName + ", isActive=" + isActive
@@ -71,15 +70,7 @@ public class Thread {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + (isActive ? 1231 : 1237);
-    result = prime * result + (isFinished ? 1231 : 1237);
-    result = prime * result + lastProgramCounter;
-    result = prime * result + maxProgramCounter;
-    result = prime * result
-        + ((threadName == null) ? 0 : threadName.hashCode());
-    return result;
+    return Objects.hash(isActive, isFinished, lastProgramCounter, maxProgramCounter, threadName);
   }
 
   @Override
@@ -87,34 +78,14 @@ public class Thread {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof Thread)) {
       return false;
     }
     Thread other = (Thread) obj;
-    if (isActive != other.isActive) {
-      return false;
-    }
-    if (isFinished != other.isFinished) {
-      return false;
-    }
-    if (lastProgramCounter != other.lastProgramCounter) {
-      return false;
-    }
-    if (maxProgramCounter != other.maxProgramCounter) {
-      return false;
-    }
-    if (threadName == null) {
-      if (other.threadName != null) {
-        return false;
-      }
-    } else if (!threadName.equals(other.threadName)) {
-      return false;
-    }
-    return true;
+    return isActive == other.isActive
+        && isFinished == other.isFinished
+        && lastProgramCounter == other.lastProgramCounter
+        && maxProgramCounter == other.maxProgramCounter
+        && Objects.equals(threadName, other.threadName);
   }
-
-
 }
