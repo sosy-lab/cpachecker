@@ -191,7 +191,9 @@ public class ReportGenerator {
         } else if (line.contains("FCALLEDGES")) {
           insertFCallEdges(report, dotBuilder);
         } else if (line.contains("REPORT_NAME")) {
-            insertReportName(counterExample, report);
+          insertReportName(counterExample, report);
+        } else if (line.contains("METATAGS")) {
+          insertMetaTags(report);
         } else if (line.contains("GENERATED")) {
           insertDateAndVersion(report);
         } else {
@@ -203,6 +205,11 @@ public class ReportGenerator {
       logger.logUserException(
           WARNING, e, "Could not create report: Procesing of HTML template failed.");
     }
+  }
+
+  private void insertMetaTags(Writer report) throws IOException {
+    report.write("<meta name='generator'"
+        + " content='CPAchecker " + CPAchecker.getCPAcheckerVersion() + "'>");
   }
 
   private void insertDateAndVersion(Writer report) throws IOException {
