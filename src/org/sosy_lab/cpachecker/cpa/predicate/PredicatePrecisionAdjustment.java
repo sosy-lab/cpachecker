@@ -112,7 +112,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
 
     } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
+      throw new CPAException("Solver Failure: " + e.getMessage(), e);
     } finally {
       totalPrecTime.stop();
     }
