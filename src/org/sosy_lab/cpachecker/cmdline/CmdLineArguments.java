@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.MoreFiles;
@@ -178,7 +177,7 @@ class CmdLineArguments {
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String s = argsIt.next();
-          List<String> bits = Lists.newArrayList(SETPROP_OPTION_SPLITTER.split(s));
+          List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(s);
           if (bits.size() != 2) {
             throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair, but \"" + s + "\" is not.");
           }

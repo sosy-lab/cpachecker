@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.stream.Collectors.toList;
@@ -884,7 +883,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       }
 
       candidates =
-          newArrayList(concat(from(infeasiblePrefixes).transform(TO_LOCATION_CANDIDATE_INVARIANT)));
+          newArrayList(
+              from(infeasiblePrefixes).transformAndConcat(TO_LOCATION_CANDIDATE_INVARIANT));
       trieNum++;
 
       return true;
