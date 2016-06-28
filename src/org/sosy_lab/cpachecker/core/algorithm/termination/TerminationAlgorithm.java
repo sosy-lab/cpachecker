@@ -252,8 +252,7 @@ public class TerminationAlgorithm implements Algorithm {
 
       } else if (status.isPrecise() && targetStateWithCounterExample.isPresent()) {
         AbstractState newTargetState =
-            removeIntermediateStatesFromCounterexample(targetStateWithCounterExample.get());
-        replaceInReachedSet(pReachedSet, targetStateWithCounterExample.get(), newTargetState);
+            removeIntermediateStates(pReachedSet, targetStateWithCounterExample.get());
 
         LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
             lassoAnalysis.checkTermination(newTargetState, relevantVariabels);
@@ -281,14 +280,7 @@ public class TerminationAlgorithm implements Algorithm {
     return result;
   }
 
-  private void replaceInReachedSet(
-      ReachedSet pReachedSet, AbstractState oldState, AbstractState newState) {
-    pReachedSet.add(newState, pReachedSet.getPrecision(oldState));
-    pReachedSet.removeOnlyFromWaitlist(newState);
-    pReachedSet.remove(oldState);
-  }
-
-  private AbstractState removeIntermediateStatesFromCounterexample(AbstractState pTargetState) {
+  private AbstractState removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
     Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
@@ -306,6 +298,12 @@ public class TerminationAlgorithm implements Algorithm {
     ARGState newTargetState = new ARGState(newTerminationState, null);
     targetState.removeFromARG();
     loopHead.replaceInARGWith(newTargetState);
+
+    // Remove dummy target state from reached set and replace loop head with new target state
+    pReachedSet.add(newTargetState, pReachedSet.getPrecision(loopHead));
+    pReachedSet.removeOnlyFromWaitlist(newTargetState);
+    pReachedSet.remove(pTargetState);
+    pReachedSet.remove(loopHead);
 
     // Remove all intermediate states from the counterexample.
     // The value assignments are not valid for a counterexample that witnesses non-termination.
