@@ -403,8 +403,9 @@ public class PolicyIterationManager {
     logger.log(Level.INFO, "Emulating large step at node ", node);
 
     Map<Template, PolicyBound> updated = new HashMap<>();
+    Map<Template, PolicyBound> intersection = new HashMap<>();
     PolicyAbstractedState merged = unionAbstractedStates(
-          abstraction, latestSibling, precision, updated, extraInvariant);
+          abstraction, latestSibling, precision, updated, intersection, extraInvariant);
 
     PolicyAbstractedState out;
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -414,28 +415,27 @@ public class PolicyIterationManager {
       logger.log(Level.FINE, "Running val. det.");
 
       ValueDeterminationConstraints constraints;
-      Optional<PolicyAbstractedState> element;
+      Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
-        constraints = vdfmgr.valueDeterminationFormulaCheap(
-            merged, updated);
-        element = performValueDetermination(
-            merged, updated, constraints, true);
-      } else {
-        element = Optional.empty();
+        constraints = vdfmgr.valueDeterminationFormulaCheap(merged, updated);
+        element = performValueDetermination(merged, updated, intersection, constraints);
+        if (!element.isPresent()) {
+          logger.log(Level.INFO, "Switching to more expensive value "
+              + "determination strategy.");
+        }
       }
 
       if (!element.isPresent()) {
 
         // Hopeful value determination failed, run the more expensive version.
         constraints = vdfmgr.valueDeterminationFormula(merged, updated);
-        out = performValueDetermination(
-            merged,
-            updated,
-            constraints,
-            false).get();
-      } else {
-        out = element.get();
+        element = performValueDetermination(merged, updated, intersection, constraints);
+        if (!element.isPresent()) {
+          throw new CPATransferException("Value determination problem is "
+              + "unfeasible.");
+        }
       }
+      out = element.get();
     }
 
     return out;
@@ -464,9 +464,8 @@ public class PolicyIterationManager {
       return newState;
     }
 
-    PathFormula newPath = newState.getPathFormula();
-    PathFormula oldPath = oldState.getPathFormula();
-    PathFormula mergedPath = pfmgr.makeOr(newPath, oldPath);
+    PathFormula mergedPath = pfmgr.makeOr(newState.getPathFormula(),
+                                          oldState.getPathFormula());
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
         mergedPath,
@@ -485,6 +484,7 @@ public class PolicyIterationManager {
       final PolicyAbstractedState oldState,
       final PolicyPrecision precision,
       Map<Template, PolicyBound> updated,
+      Map<Template, PolicyBound> intersection,
       BooleanFormula extraInvariant) {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
@@ -522,7 +522,7 @@ public class PolicyIterationManager {
           continue;
         }
         mergedBound = newValue.get();
-        updated.put(template, newValue.get());
+        updated.put(template, mergedBound);
 
         logger.log(Level.FINE, "Updating template", template, "at",
             newState.getNode(),
@@ -531,6 +531,7 @@ public class PolicyIterationManager {
         statistics.templateUpdateCounter.add(updateEvent);
       } else {
         mergedBound = oldValue.get();
+        intersection.put(template, mergedBound);
       }
       newAbstraction.put(template, mergedBound);
     }
@@ -566,11 +567,12 @@ public class PolicyIterationManager {
   private Optional<PolicyAbstractedState> performValueDetermination(
       PolicyAbstractedState stateWithUpdates,
       Map<Template, PolicyBound> updated,
-      ValueDeterminationConstraints valDetConstraints,
-      boolean runningCheapValueDetermination
+      Map<Template, PolicyBound> intersection,
+      ValueDeterminationConstraints valDetConstraints
   ) throws InterruptedException, CPATransferException {
     logger.log(Level.INFO, "Value determination at node",
         stateWithUpdates.getNode());
+    int locId = stateWithUpdates.getLocationID();
 
     Map<Template, PolicyBound> newAbstraction =
         new HashMap<>(stateWithUpdates.getAbstraction());
@@ -579,7 +581,17 @@ public class PolicyIterationManager {
     statistics.valueDeterminationTimer.start();
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
-      valDetConstraints.constraints.forEach(optEnvironment::addConstraint);
+      valDetConstraints.constraints.forEach(c -> optEnvironment.addConstraint(c));
+
+      intersection.forEach((t, bound) -> {
+        Formula objective = valDetConstraints.outVars.get(t, locId);
+        optEnvironment.addConstraint(
+            fmgr.makeLessOrEqual(
+                objective,
+                fmgr.makeNumber(objective, bound.getBound()), true
+            )
+        );
+      });
 
       for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
         shutdownNotifier.shutdownIfNecessary();
@@ -592,11 +604,9 @@ public class PolicyIterationManager {
         PolicyBound existingBound = policyValue.getValue();
 
         int handle = optEnvironment.maximize(objective);
-        BooleanFormula consistencyConstraint =
-            fmgr.makeGreaterOrEqual(
+        BooleanFormula consistencyConstraint = fmgr.makeGreaterOrEqual(
                 objective,
-                fmgr.makeNumber(objective, existingBound.getBound()),
-                true);
+                fmgr.makeNumber(objective, existingBound.getBound()), true);
 
         optEnvironment.addConstraint(consistencyConstraint);
 
@@ -607,24 +617,17 @@ public class PolicyIterationManager {
         } finally {
           statistics.optTimer.stop();
         }
-        if (result != OptStatus.OPT) {
+        if (result == OptStatus.UNSAT) {
           shutdownNotifier.shutdownIfNecessary();
-
-          if (result == OptStatus.UNSAT) {
-            if (!runningCheapValueDetermination) {
-              throw new CPATransferException("Inconsistent value determination "
-                  + "problem");
-            }
-
-            logger.log(Level.INFO, "The val. det. problem is unsat,",
-                " switching to a more expensive strategy.");
-            return Optional.empty();
-          } else if (result == OptStatus.UNDEF) {
-            logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
-            logger.log(Level.INFO, optEnvironment.toString());
-          }
+          return Optional.empty();
+        } else if (result == OptStatus.UNDEF) {
+          shutdownNotifier.shutdownIfNecessary();
+          logger.log(Level.WARNING,
+              "Solver returned undefined status on the problem: ");
+          logger.log(Level.INFO, optEnvironment.toString());
           throw new CPATransferException("Unexpected solver state");
         }
+        assert result == OptStatus.OPT;
 
         Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
 
@@ -880,7 +883,6 @@ public class PolicyIterationManager {
 
         optEnvironment.addConstraint(annotatedFormula);
 
-        // TODO: evaluate whether we need the code in "usePreviousBound".
         int handle = optEnvironment.maximize(objective);
 
         OptStatus status;
