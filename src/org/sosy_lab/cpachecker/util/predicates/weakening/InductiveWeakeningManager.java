@@ -30,7 +30,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
@@ -148,11 +147,11 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
 
-    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(
-        Lists.newArrayList(fromStateLemmas), startingSSA);
+    List<BooleanFormula> fromStateLemmasInstantiated =
+        fmgr.instantiate(fromStateLemmas, startingSSA);
 
-    List<BooleanFormula> toStateLemmasInstantiated = fmgr.instantiate(
-        Lists.newArrayList(toStateLemmas), transition.getSsa());
+    List<BooleanFormula> toStateLemmasInstantiated =
+        fmgr.instantiate(toStateLemmas, transition.getSsa());
     BooleanFormula toStateLemmasAnnotated = annotateConjunctions(
         toStateLemmasInstantiated, selectionInfo
     );
@@ -197,8 +196,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
 
-    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(
-        Lists.newArrayList(lemmas), startingSSA);
+    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(lemmas, startingSSA);
     BooleanFormula fromStateLemmasAnnotated = annotateConjunctions(
         fromStateLemmasInstantiated, selectionInfo
     );

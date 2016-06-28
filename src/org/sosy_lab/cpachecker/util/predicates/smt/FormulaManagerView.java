@@ -83,6 +83,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -911,7 +912,7 @@ public class FormulaManagerView {
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
    *  @see #instantiate(Formula, SSAMap)
    */
-  public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
+  public <F extends Formula> List<F> instantiate(Collection<F> pFormulas, final SSAMap pSsa) {
     return pFormulas.stream().map(f -> instantiate(f, pSsa)).collect(Collectors.toList());
   }
 
