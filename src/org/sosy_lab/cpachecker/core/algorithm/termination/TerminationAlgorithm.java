@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -75,6 +77,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.nio.file.Path;
@@ -90,13 +93,15 @@ import javax.annotation.Nullable;
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
-public class TerminationAlgorithm implements Algorithm {
+public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
   private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
 
   private final static Path SPEC_FILE = Paths.get("config/specification/termination_as_reach.spc");
 
   @Nullable private static Specification terminationSpecification;
+
+  private final TerminationStatistics statistics;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -149,9 +154,16 @@ public class TerminationAlgorithm implements Algorithm {
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
     globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclaration);
 
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+    if (!loopStructure.isPresent()) {
+      throw new InvalidConfigurationException(
+          "Loop structure is not present, but required for termination analysis.");
+    }
+    statistics = new TerminationStatistics(loopStructure.get().getAllLoops().size());
+
     // ugly class loader hack
     LassoAnalysisLoader lassoAnalysisLoader =
-        new LassoAnalysisLoader(pConfig, pLogger, pShutdownNotifier, pCfa);
+        new LassoAnalysisLoader(pConfig, pLogger, pShutdownNotifier, pCfa, statistics);
     lassoAnalysis = lassoAnalysisLoader.load();
   }
 
@@ -169,16 +181,28 @@ public class TerminationAlgorithm implements Algorithm {
   }
 
   @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
+
+  @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
+    statistics.algorithmStarted();
+    try {
+      return run0(pReachedSet);
+
+    } finally {
+      statistics.algorithmFinished();
+    }
+  }
+
+  private AlgorithmStatus run0(ReachedSet pReachedSet)
+      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
     logger.log(Level.INFO, "Starting termination algorithm.");
 
-    if (!cfa.getLoopStructure().isPresent()) {
-      logger.log(WARNING, "Loop structure is not present, but required for termination analysis.");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
-
-    } else if (cfa.getLanguage() != Language.C) {
+    if (cfa.getLanguage() != Language.C) {
       logger.log(WARNING, "Termination analysis supports only C.");
       return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
     }
@@ -190,6 +214,8 @@ public class TerminationAlgorithm implements Algorithm {
     Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
+      statistics.analysisOfLoopStarted();
+
       resetReachedSet(pReachedSet, initialLocation);
       CPAcheckerResult.Result loopTermiantion =
           prooveLoopTermination(pReachedSet, loop, initialLocation);
@@ -202,6 +228,8 @@ public class TerminationAlgorithm implements Algorithm {
         logger.logf(FINE, "Could not prove (non-)termination of %s.", loop);
         status = status.withSound(false);
       }
+
+      statistics.analysisOfLoopFinished();
     }
 
     // We did not find a non-terminating loop.
@@ -230,8 +258,10 @@ public class TerminationAlgorithm implements Algorithm {
 
     while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
+      statistics.safetyAnalysisStarted();
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
       terminationCpa.resetCfa();
+      statistics.safetyAnalysisFinished();
       shutdownNotifier.shutdownIfNecessary();
 
       boolean targetReached = pReachedSet

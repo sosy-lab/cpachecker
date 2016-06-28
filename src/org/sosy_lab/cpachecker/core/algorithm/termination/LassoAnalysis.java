@@ -52,7 +52,8 @@ public interface LassoAnalysis {
         Configuration pConfig,
         ShutdownNotifier pShutdownNotifier,
         SolverContext pSolverContext,
-        CFA pCfa)
+        CFA pCfa,
+        TerminationStatistics pStatistics)
         throws InvalidConfigurationException;
   }
 

@@ -76,13 +76,19 @@ public class LassoAnalysisLoader {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  private final TerminationStatistics statistics;
 
   public LassoAnalysisLoader(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa) {
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      TerminationStatistics pStatistics) {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     cfa = checkNotNull(pCfa);
+    statistics = checkNotNull(pStatistics);
   }
 
   @SuppressFBWarnings("DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED")
@@ -182,6 +188,6 @@ public class LassoAnalysisLoader {
       throw new RuntimeException(e);
     }
 
-    return factory.create(logger, config, shutdownNotifier, solverContext, cfa);
+    return factory.create(logger, config, shutdownNotifier, solverContext, cfa, statistics);
   }
 }
