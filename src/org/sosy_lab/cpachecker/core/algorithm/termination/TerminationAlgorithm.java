@@ -264,10 +264,8 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
       statistics.safetyAnalysisFinished();
       shutdownNotifier.shutdownIfNecessary();
 
-      boolean targetReached = pReachedSet
-          .asCollection()
-          .stream()
-          .anyMatch(AbstractStates::isTargetState);
+      boolean targetReached =
+          pReachedSet.asCollection().stream().anyMatch(AbstractStates::isTargetState);
       Optional<ARGState> targetStateWithCounterExample =
           pReachedSet
               .asCollection()
@@ -310,7 +308,8 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     return result;
   }
 
-  private AbstractState removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
+  private AbstractState removeIntermediateStates(
+      ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
     Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
@@ -344,26 +343,23 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
     do {
       // the last state has not outgoing edge
-      if (targetPathIt.hasNext())  {
+      if (targetPathIt.hasNext()) {
         CFAEdge outgoingEdge = targetPathIt.getOutgoingEdge();
         CFANode location = outgoingEdge.getPredecessor();
         CFANode nextLocation = outgoingEdge.getSuccessor();
 
-        if (cfa.getAllNodes().contains(location)
-            && cfa.getAllNodes().contains(nextLocation)) {
+        if (cfa.getAllNodes().contains(location) && cfa.getAllNodes().contains(nextLocation)) {
 
-          if (targetPathIt.isPositionWithState()
-              || lastStateInCfa.isPresent()) {
+          if (targetPathIt.isPositionWithState() || lastStateInCfa.isPresent()) {
             ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
-            @Nullable CFAEdge edgeToNextState =
-                state.getEdgeToChild(targetPathIt.getNextAbstractState());
+            @Nullable
+            CFAEdge edgeToNextState = state.getEdgeToChild(targetPathIt.getNextAbstractState());
             builder.add(state, edgeToNextState);
           }
 
           lastStateInCfa = Optional.empty();
 
-        } else if (cfa.getAllNodes().contains(location)
-            && targetPathIt.isPositionWithState()) {
+        } else if (cfa.getAllNodes().contains(location) && targetPathIt.isPositionWithState()) {
           lastStateInCfa = Optional.of(targetPathIt.getAbstractState());
         }
       }

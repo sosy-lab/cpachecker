@@ -123,8 +123,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             AnalysisDirection.FORWARD);
 
     lassoBuilder = new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
-    rankingRelationBuilder = new RankingRelationBuilder(
-        pCfa.getMachineModel(), pLogger, formulaManagerView);
+    rankingRelationBuilder =
+        new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
 
     lassoRankerPreferences = new LassoRankerPreferences();
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
@@ -162,8 +162,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
   }
 
-  private LassoAnalysisResult checkTermination0(AbstractState pTargetState,
-      Set<CVariableDeclaration> pRelevantVariables)
+  private LassoAnalysisResult checkTermination0(
+      AbstractState pTargetState, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
     ARGState argState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
@@ -240,8 +240,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
           try {
             rankingRelation =
-                rankingRelationBuilder
-                    .fromTerminationArgument(terminationArgument, pRelevantVariables);
+                rankingRelationBuilder.fromTerminationArgument(
+                    terminationArgument, pRelevantVariables);
             break;
 
           } catch (UnrecognizedCCodeException e) {

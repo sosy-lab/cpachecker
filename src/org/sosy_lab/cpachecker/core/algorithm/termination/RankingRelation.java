@@ -77,7 +77,6 @@ public class RankingRelation {
    */
   public RankingRelation merge(RankingRelation other) {
 
-
     BooleanFormula newFormula = formulaManagerView.makeOr(formula, other.formula);
     CExpression newCExpression =
         binaryExpressionBuilder.buildBinaryExpressionUnchecked(cExpression, cExpression, BINARY_OR);
@@ -88,20 +87,19 @@ public class RankingRelation {
 
   @Override
   public boolean equals(Object pObj) {
-   if (this == pObj) {
-     return true;
-   }
-   if (!(pObj instanceof RankingRelation)) {
-     return false;
-   }
+    if (this == pObj) {
+      return true;
+    }
+    if (!(pObj instanceof RankingRelation)) {
+      return false;
+    }
 
-   RankingRelation that = (RankingRelation) pObj;
-   return this.asCExpression().equals(that.asCExpression());
+    RankingRelation that = (RankingRelation) pObj;
+    return this.asCExpression().equals(that.asCExpression());
   }
 
   @Override
   public String toString() {
     return asCExpression().toASTString();
   }
-
 }

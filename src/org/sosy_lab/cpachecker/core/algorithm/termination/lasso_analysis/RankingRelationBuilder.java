@@ -75,9 +75,7 @@ class RankingRelationBuilder {
   private final IntegerFormulaManagerView integerFormulaManager;
 
   public RankingRelationBuilder(
-      MachineModel pMachineModel,
-      LogManager pLogger,
-      FormulaManagerView pFormulaManagerView) {
+      MachineModel pMachineModel, LogManager pLogger, FormulaManagerView pFormulaManagerView) {
     binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     formulaManagerView = checkNotNull(pFormulaManagerView);
     integerFormulaManager = formulaManagerView.getIntegerFormulaManager();
@@ -85,20 +83,21 @@ class RankingRelationBuilder {
 
   public RankingRelation fromTerminationArgument(
       TerminationArgument pTerminationArgument, Set<CVariableDeclaration> pRelevantVariables)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
     RankingFunction rankingFunction = pTerminationArgument.getRankingFunction();
     return fromRankingFunction(pRelevantVariables, rankingFunction);
   }
 
-  private RankingRelation fromRankingFunction(Set<CVariableDeclaration> pRelevantVariables,
-      RankingFunction rankingFunction) throws UnrecognizedCCodeException {
+  private RankingRelation fromRankingFunction(
+      Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
+      throws UnrecognizedCCodeException {
 
     if (rankingFunction instanceof LinearRankingFunction) {
       return fromLinearRankingFunction((LinearRankingFunction) rankingFunction, pRelevantVariables);
 
     } else if (rankingFunction instanceof LexicographicRankingFunction) {
-        return fromLexicographicRankingFunction(
-            (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
+      return fromLexicographicRankingFunction(
+          (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
 
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
@@ -107,7 +106,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromLinearRankingFunction(
       LinearRankingFunction rankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
     AffineFunction function = rankingFunction.getComponent();
 
     // x -> x'
@@ -154,7 +153,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromLexicographicRankingFunction(
       LexicographicRankingFunction rankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
 
     CExpression cExpression = CIntegerLiteralExpression.ZERO;
     List<BooleanFormula> formulas = Lists.newArrayList();
@@ -172,8 +171,8 @@ class RankingRelationBuilder {
     return new RankingRelation(cExpression, formula, binaryExpressionBuilder, formulaManagerView);
   }
 
-  private CBinaryExpression createRankingRelation(CExpression primedFunction,
-      CExpression unprimedFunction) throws UnrecognizedCCodeException {
+  private CBinaryExpression createRankingRelation(
+      CExpression primedFunction, CExpression unprimedFunction) throws UnrecognizedCCodeException {
     CExpression unprimedGreatorThanZero =
         binaryExpressionBuilder.buildBinaryExpression(unprimedFunction, ZERO, GREATER_THAN);
     CExpression primedLessThanUnprimed =
@@ -187,7 +186,7 @@ class RankingRelationBuilder {
 
   private CExpression addSummand(
       CExpression sum, CLiteralExpression coefficient, CVariableDeclaration variable)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
     CIdExpression unprimedVariable = new CIdExpression(DUMMY, variable);
     CBinaryExpression unprimedSummand =
         binaryExpressionBuilder.buildBinaryExpression(coefficient, unprimedVariable, MULTIPLY);
@@ -216,8 +215,8 @@ class RankingRelationBuilder {
   }
 
   private IntegerFormula createSummand(BigInteger pCoefficient, String pVariable) {
-    IntegerFormula variable =  integerFormulaManager.makeVariable(pVariable);
-    IntegerFormula coefficient =  integerFormulaManager.makeNumber(pCoefficient);
+    IntegerFormula variable = integerFormulaManager.makeVariable(pVariable);
+    IntegerFormula coefficient = integerFormulaManager.makeNumber(pCoefficient);
     return integerFormulaManager.multiply(coefficient, variable);
   }
 }

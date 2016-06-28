@@ -44,5 +44,4 @@ public class TerminationUtils {
         variable.getQualifiedName() + PRIMED_VARIABLE_POSTFIX,
         null);
   }
-
 }

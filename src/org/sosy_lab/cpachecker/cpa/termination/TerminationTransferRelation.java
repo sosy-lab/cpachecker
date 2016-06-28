@@ -285,10 +285,13 @@ public class TerminationTransferRelation implements TransferRelation {
 
     // pass negative ranking relation to other AbstarctStates
     for (TerminationState targetState : targetStates) {
-      Collection<? extends AbstractState> strengthenedStates = transferRelation.strengthen(
-          targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
+      Collection<? extends AbstractState> strengthenedStates =
+          transferRelation.strengthen(
+              targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
       strengthenedStates
-          .stream().map(targetState::withWrappedState).forEach(resultingSuccessors::add);
+          .stream()
+          .map(targetState::withWrappedState)
+          .forEach(resultingSuccessors::add);
     }
 
     statesAtCurrentLocation.removeAll(targetStates);
