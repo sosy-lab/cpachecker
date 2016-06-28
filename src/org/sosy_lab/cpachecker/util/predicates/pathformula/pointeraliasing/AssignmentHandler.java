@@ -340,7 +340,7 @@ class AssignmentHandler {
 
       return fmgr.getQuantifiedFormulaManager()
           .forall(
-              Collections.singletonList(counter),
+              counter,
               bfmgr.and(
                   bfmgr.implication(rangeConstraint, assignNewValue),
                   bfmgr.implication(bfmgr.not(rangeConstraint), copyOldValue)));

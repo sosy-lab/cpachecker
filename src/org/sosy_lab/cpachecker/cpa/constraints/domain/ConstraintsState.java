@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Lists;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -433,7 +431,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
     createMissingConstraintFormulas();
 
-    return formulaManager.getBooleanFormulaManager().and(Lists.newArrayList(constraintFormulas.values()));
+    return formulaManager.getBooleanFormulaManager().and(constraintFormulas.values());
   }
 
   private void createMissingConstraintFormulas() throws UnrecognizedCCodeException, InterruptedException {
