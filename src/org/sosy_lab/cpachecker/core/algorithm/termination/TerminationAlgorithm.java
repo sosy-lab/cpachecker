@@ -244,6 +244,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
       throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
+    Set<RankingRelation> rankingRelations = Sets.newHashSet();
 
     // Pass current loop and relevant variables to TerminationCPA.
     String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
@@ -291,7 +292,13 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
         } else if (lassoAnalysisResult.getTerminationArgument().isPresent()) {
 
           RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument().get();
-          terminationCpa.addRankingRelation(rankingRelation);
+
+          // Do not add a ranking relation twice
+          if (rankingRelations.add(rankingRelation)) {
+            terminationCpa.addRankingRelation(rankingRelation);
+          } else {
+            logger.logf(WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
+          }
 
           // Prepare reached set for next iteration.
           resetReachedSet(pReachedSet, initialLocation);
