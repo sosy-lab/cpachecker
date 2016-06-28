@@ -419,13 +419,13 @@ class AssignmentHandler {
 
     if (!useOldSSAIndices) {
       if (lvalue.isAliased()) {
-        addRetentionForAssignment(lvalueType,
-                                  lvalue.asAliased().getAddress(),
-                                  pattern, updatedTypes);
         if (updatedTypes == null) {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
           updatedTypes = Collections.singleton(lvalueType);
         }
+        addRetentionForAssignment(lvalueType,
+                                  lvalue.asAliased().getAddress(),
+                                  pattern, updatedTypes);
         updateSSA(updatedTypes, ssa);
       } else { // Unaliased lvalue
         if (updatedVariables == null) {
@@ -684,6 +684,8 @@ class AssignmentHandler {
       final PointerTargetPattern pattern,
       final Set<CType> typesToRetain)
       throws InterruptedException {
+    checkNotNull(typesToRetain);
+
     if (options.useArraysForHeap()) {
       // not necessary for heap-array encoding
       return;
