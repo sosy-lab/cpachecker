@@ -190,6 +190,7 @@ public class TerminationAlgorithm implements Algorithm {
     Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
+      resetReachedSet(pReachedSet, initialLocation);
       CPAcheckerResult.Result loopTermiantion =
           prooveLoopTermination(pReachedSet, loop, initialLocation);
 
@@ -201,9 +202,6 @@ public class TerminationAlgorithm implements Algorithm {
         logger.logf(FINE, "Could not prove (non-)termination of %s.", loop);
         status = status.withSound(false);
       }
-
-      // Prepare reached set for next loop.
-      resetReachedSet(pReachedSet, initialLocation);
     }
 
     // We did not find a non-terminating loop.
