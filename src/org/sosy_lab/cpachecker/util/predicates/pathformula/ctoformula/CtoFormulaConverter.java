@@ -31,7 +31,6 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -517,11 +516,14 @@ public class CtoFormulaConverter {
         return value;
       }
 
-      final Formula overflowUF = ffmgr.declareAndCallUF(
-          // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
-          String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
-          numberType,
-          Lists.<Formula>newArrayList(value));
+      // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
+      final String ufName =
+          String.format(
+              "_%s%s(%d)_",
+              "overflow",
+              (signed ? "Signed" : "Unsigned"),
+              machineModel.getSizeofInBits(sType));
+      final Formula overflowUF = ffmgr.declareAndCallUF(ufName, numberType, value);
       addRangeConstraint(overflowUF, type, constraints);
 
       // TODO improvement:
