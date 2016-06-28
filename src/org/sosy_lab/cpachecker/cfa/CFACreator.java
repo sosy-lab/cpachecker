@@ -234,6 +234,10 @@ private boolean classifyNodes = false;
       description="Build loop-structure information for a CFA.")
   private boolean detectLoops = true;
 
+  @Option(secure=true, name="cfa.printProgramSize",
+      description="Sum up sizes of all analyzed files and display their sum in the statistics.")
+  private boolean requireProgramSize = false;
+
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
@@ -254,6 +258,7 @@ private boolean classifyNodes = false;
     private final Timer pruningTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
+    private long fileSizes = -1;
 
     @Override
     public String getName() {
@@ -277,6 +282,9 @@ private boolean classifyNodes = false;
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
+      }
+      if(fileSizes != -1) {
+        out.println("  Program size in bytes:      " + fileSizes);
       }
     }
   }
@@ -368,6 +376,12 @@ private boolean classifyNodes = false;
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
 
+    if (requireProgramSize) {
+      stats.fileSizes = 0;
+      for (String sourceFileName : sourceFiles) {
+        stats.fileSizes += Paths.get(sourceFileName).toFile().length();
+      }
+    }
     stats.totalTime.start();
     try {
       // FIRST, parse file(s) and create CFAs for each function
