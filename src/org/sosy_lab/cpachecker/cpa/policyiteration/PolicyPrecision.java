@@ -119,6 +119,9 @@ public class PolicyPrecision implements Precision {
   private static final String ASSERT_FUNC_NAME = "assert";
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
+  /**
+   * Cache of generated templates.
+   */
   private final ListMultimap<CFANode, Template> cache =
       ArrayListMultimap.create();
   private final ImmutableSet<ASimpleDeclaration> allVariables;
@@ -162,7 +165,7 @@ public class PolicyPrecision implements Precision {
   /**
    * Get templates associated with the given node.
    */
-  public Collection<Template> templatesForNode(final CFANode node) {
+  public Collection<Template> getTemplatesForNode(final CFANode node) {
     if (cache.containsKey(node)) {
       return cache.get(node);
     }

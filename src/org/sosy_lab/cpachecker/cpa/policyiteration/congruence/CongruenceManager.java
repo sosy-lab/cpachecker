@@ -104,7 +104,7 @@ public class CongruenceManager {
       //noinspection ResultOfMethodCallIgnored
       env.push(startConstraints);
 
-      for (Template template : pPrecision.templatesForNode(node)) {
+      for (Template template : pPrecision.getTemplatesForNode(node)) {
         if (!shouldUseTemplate(template)) {
           continue;
         }

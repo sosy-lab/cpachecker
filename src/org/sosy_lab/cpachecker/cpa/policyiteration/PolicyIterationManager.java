@@ -500,7 +500,7 @@ public class PolicyIterationManager {
     Map<Template, PolicyBound> newAbstraction = new HashMap<>();
 
     // Pick the biggest bound, and keep the biggest trace to match.
-    for (Template template : precision.templatesForNode(newState.getNode())) {
+    for (Template template : precision.getTemplatesForNode(newState.getNode())) {
       Optional<PolicyBound> oldValue = oldState.getBound(template);
       Optional<PolicyBound> newValue = newState.getBound(template);
 
@@ -817,7 +817,7 @@ public class PolicyIterationManager {
       optEnvironment.addConstraint(startConstraints);
       optEnvironment.push();
 
-      for (Template template : precision.templatesForNode(node)) {
+      for (Template template : precision.getTemplatesForNode(node)) {
         optEnvironment.pop();
         optEnvironment.push();
 
@@ -1163,7 +1163,7 @@ public class PolicyIterationManager {
     if (!dependsOnInitial) {
       dependencies = new ArrayList<>();
     } else if (!valDetSyntacticCheck) {
-      dependencies = precision.templatesForNode(backpointer.getNode());
+      dependencies = precision.getTemplatesForNode(backpointer.getNode());
     } else {
       dependencies = new ArrayList<>();
 
