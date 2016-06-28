@@ -107,7 +107,7 @@ public interface PointerTargetSetBuilder {
 
   Iterable<PointerTarget> getMatchingTargets(CType type, Predicate<PointerTarget> pattern);
 
-  Iterable<PointerTarget> getSpuriousTargets(CType type, Predicate<PointerTarget> pattern);
+  Iterable<PointerTarget> getNonMatchingTargets(CType type, Predicate<PointerTarget> pattern);
 
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
@@ -655,7 +655,7 @@ public interface PointerTargetSetBuilder {
      * @return A list of spurious pointer targets.
      */
     @Override
-    public Iterable<PointerTarget> getSpuriousTargets(
+    public Iterable<PointerTarget> getNonMatchingTargets(
         final CType type, final Predicate<PointerTarget> pattern) {
       return from(getAllTargets(type)).filter(not(pattern));
     }
@@ -783,7 +783,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public Iterable<PointerTarget> getSpuriousTargets(
+    public Iterable<PointerTarget> getNonMatchingTargets(
         CType pType, Predicate<PointerTarget> pPattern) {
       throw new UnsupportedOperationException();
     }

@@ -762,7 +762,7 @@ class AssignmentHandler {
       final Predicate<PointerTarget> pattern, final Set<CType> types) throws InterruptedException {
     makeRetentionConstraints(
         types,
-        type -> pts.getSpuriousTargets(type, pattern),
+        type -> pts.getNonMatchingTargets(type, pattern),
         (targetAddress, constraint) -> constraints.addConstraint(constraint));
   }
 
@@ -781,7 +781,7 @@ class AssignmentHandler {
       List<BooleanFormula> consequent = new ArrayList<>();
       makeRetentionConstraints(
           types,
-          type -> pts.getSpuriousTargets(type, exact),
+          type -> pts.getNonMatchingTargets(type, exact),
           (targetAddress, constraint) -> consequent.add(constraint));
       constraints.addConstraint(bfmgr.or(negAntecedent, bfmgr.and(consequent)));
     }
