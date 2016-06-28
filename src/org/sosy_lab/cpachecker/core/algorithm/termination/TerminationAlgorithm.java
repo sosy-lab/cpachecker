@@ -41,7 +41,10 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -93,6 +96,7 @@ import javax.annotation.Nullable;
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
+@Options(prefix="termination")
 public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
   private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
@@ -100,6 +104,11 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   private final static Path SPEC_FILE = Paths.get("config/specification/termination_as_reach.spc");
 
   @Nullable private static Specification terminationSpecification;
+
+  @Option(secure=true,
+      description="maximal number of repeated ranking functions per loop before stopping analysis")
+  @IntegerOption(min = 1)
+  private int maxRepeatedRankingFunctions = 10;
 
   private final TerminationStatistics statistics;
 
@@ -123,6 +132,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
@@ -245,15 +255,11 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = Sets.newHashSet();
+    int repeatedRaningFunctions = 0;
 
     // Pass current loop and relevant variables to TerminationCPA.
-    String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
-    Set<CVariableDeclaration> relevantVariabels =
-        ImmutableSet.<CVariableDeclaration>builder()
-            .addAll(globalDeclaration)
-            .addAll(localDeclarations.get(function))
-            .build();
-    terminationCpa.setProcessedLoop(pLoop, relevantVariabels);
+    Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
+    terminationCpa.setProcessedLoop(pLoop, relevantVariables);
 
     Result result = null;
 
@@ -284,7 +290,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
             removeIntermediateStates(pReachedSet, targetStateWithCounterExample.get());
 
         LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
-            lassoAnalysis.checkTermination(newTargetState, relevantVariabels);
+            lassoAnalysis.checkTermination(newTargetState, relevantVariables);
 
         if (lassoAnalysisResult.getNonTerminationArgument().isPresent()) {
           result = Result.FALSE;
@@ -297,7 +303,11 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
           if (rankingRelations.add(rankingRelation)) {
             terminationCpa.addRankingRelation(rankingRelation);
           } else {
+            repeatedRaningFunctions++;
             logger.logf(WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
+            if (repeatedRaningFunctions >= maxRepeatedRankingFunctions) {
+              result = Result.UNKNOWN;
+            }
           }
 
           // Prepare reached set for next iteration.
@@ -313,6 +323,16 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return result;
+  }
+
+  private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
+    String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
+    Set<CVariableDeclaration> relevantVariabels =
+        ImmutableSet.<CVariableDeclaration>builder()
+            .addAll(globalDeclaration)
+            .addAll(localDeclarations.get(function))
+            .build();
+    return relevantVariabels;
   }
 
   private AbstractState removeIntermediateStates(

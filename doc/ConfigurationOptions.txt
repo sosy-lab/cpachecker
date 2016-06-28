@@ -2189,7 +2189,7 @@ cpa.value.refinement.performEdgeBasedInterpolation = true
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refinement.prefixPreference = Lists.newArrayList(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN)
+cpa.value.refinement.prefixPreference = [PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN]
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
@@ -2728,3 +2728,7 @@ termination.check = false
 # When checking for the termination property, use this configuration file
 # instead of the current one.
 termination.config = no default value
+
+# maximal number of repeated ranking functions per loop before stopping
+# analysis
+termination.maxRepeatedRankingFunctions = 10
