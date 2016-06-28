@@ -677,10 +677,13 @@ class AssignmentHandler {
 
   private void addRetentionForAssignment(
       CType lvalueType,
-      final @Nullable Formula startAddress,
+      final Formula startAddress,
       final PointerTargetPattern pattern,
       final Set<CType> typesToRetain)
       throws InterruptedException {
+    checkNotNull(lvalueType);
+    checkNotNull(startAddress);
+    checkNotNull(pattern);
     checkNotNull(typesToRetain);
 
     if (options.useArraysForHeap()) {
@@ -691,14 +694,10 @@ class AssignmentHandler {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = conv.getSizeof(lvalueType);
     if (isSimpleType(lvalueType)) {
-      Preconditions.checkArgument(startAddress != null,
-                                  "Start address is mandatory for assigning to lvalues of simple types");
       addSimpleTypeRetentionConstraints(pattern, ImmutableSet.of(lvalueType), startAddress);
     } else if (pattern.isExact()) {
       addExactRetentionConstraints(pattern.withRange(size), typesToRetain);
     } else if (pattern.isSemiExact()) {
-      Preconditions.checkArgument(startAddress != null,
-                                  "Start address is mandatory for semiexact pointer target patterns");
       // For semiexact retention constraints we need the first element type of the composite
       if (lvalueType instanceof CArrayType) {
         lvalueType = CTypeUtils.simplifyType(((CArrayType) lvalueType).getType());
@@ -707,8 +706,6 @@ class AssignmentHandler {
       }
       addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain);
     } else { // Inexact pointer target pattern
-      Preconditions.checkArgument(startAddress != null,
-                                  "Start address is mandatory for inexact pointer target patterns");
       addInexactRetentionConstraints(startAddress, size, typesToRetain);
     }
   }
