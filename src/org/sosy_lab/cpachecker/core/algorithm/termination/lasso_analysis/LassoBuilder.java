@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -80,6 +81,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 class LassoBuilder {
 
   private final static Splitter NAME_INDEX_SPLITTER = Splitter.on("@");
+
+  private final static Set<String> META_VARIABLES = ImmutableSet.of("__VERIFIER_nondet_int");
 
   private final LogManager logger;
 
@@ -236,7 +239,10 @@ class LassoBuilder {
       Formula uninstantiatedVariable = formulaManagerView.uninstantiate(variable);
       Set<String> variableNames = formulaManagerView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
-      outVars.put(new TermRankVar(variableName, term), term);
+
+      if (!META_VARIABLES.contains(variableName)) {
+        outVars.put(new TermRankVar(variableName, term), term);
+      }
     }
 
     return outVars.build();
@@ -376,10 +382,12 @@ class LassoBuilder {
     @Override
     public TraversalProcess visitFreeVariable(Formula pF, String pName) {
       List<String> tokens = NAME_INDEX_SPLITTER.splitToList(pName);
-      String name = tokens.get(0);
-      String index = tokens.get(1);
-      if (Integer.toString(ssa.getIndex(name)).equals(index)) {
-        variables.add(pF);
+      if (tokens.size() == 2) {
+        String name = tokens.get(0);
+        String index = tokens.get(1);
+        if (Integer.toString(ssa.getIndex(name)).equals(index)) {
+          variables.add(pF);
+        }
       }
       return TraversalProcess.CONTINUE;
     }
