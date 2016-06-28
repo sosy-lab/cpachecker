@@ -423,10 +423,7 @@ class AssignmentHandler {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
           updatedTypes = Collections.singleton(lvalueType);
         }
-        addRetentionForAssignment(lvalueType,
-                                  lvalue.asAliased().getAddress(),
-                                  pattern, updatedTypes);
-        updateSSA(updatedTypes, ssa);
+        finishAssignments(lvalueType, lvalue.asAliased(), pattern, updatedTypes);
       } else { // Unaliased lvalue
         if (updatedVariables == null) {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
