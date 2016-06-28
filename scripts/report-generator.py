@@ -32,18 +32,15 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import glob
 import os
-import time
 import argparse
 import subprocess
-import json
+import signal
 
-for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
     sys.path.insert(0, egg)
 
-import tempita
-
 def call_dot(infile, outpath):
-    (basefilename, ext) = os.path.splitext(os.path.basename(infile))
+    (basefilename, _) = os.path.splitext(os.path.basename(infile))
     outfile = os.path.join(outpath, basefilename + '.svg')
     #print ('   generating ' + infile)
 
@@ -53,6 +50,7 @@ def call_dot(infile, outpath):
                               '-Efontname=Courier New', '-Tsvg', '-o',
                               outfile, infile])
         code = p.wait()
+
     except KeyboardInterrupt: # ctrl + c
         print ('   skipping ' + infile)
         p.terminate()
@@ -62,6 +60,7 @@ def call_dot(infile, outpath):
         except OSError:
             pass # if outfile is not written, removing is impossible
         return False
+
     except OSError as e:
         if e.errno == 2:
             sys.exit('Error: Could not call "dot" from GraphViz to create graph, please install it\n({}).'.format(e))
@@ -75,137 +74,128 @@ def call_dot(infile, outpath):
     return True
 
 
-def readfile(filepath, optional=False):
-    if not os.path.isfile(filepath):
-        if optional:
-            return None
-        raise Exception('File not found: ' + filepath)
-    #print ('Reading: ' + filepath)
-    with open(filepath, 'r') as fp:
-        return fp.read()
+def generate_report(cpa_output_dir, functions, arg_path, report_path):
+    with open(report_path, 'r') as report:
+        template = report.readlines()
 
+    with open(report_path, 'w') as report:
+        for line in template:
+            if 'CFAFUNCTIONGRAPHS' in line:
+                write_cfa(cpa_output_dir, functions, report)
+            elif 'ARGGRAPHS' in line:
+                write_arg(arg_path, report)
+            else:
+                report.write(line)
 
-def generateReport(outfilepath, template, templatevalues):
-    with open(outfilepath, 'w') as outf:
-        outf.write(template.substitute(templatevalues))
-
-    print ('Report generated in {0}'.format(outfilepath))
+        print ('Report generated in {0}'.format(report_path))
 
     try:
         with open(os.devnull, 'w') as devnull:
-            subprocess.Popen(['xdg-open', outfilepath],
-                             stdout=devnull, stderr=devnull)
+            subprocess.Popen(['xdg-open', report_path], stdout=devnull, stderr=devnull)
+
     except OSError:
         pass
 
+def write_cfa(cpa_output_dir, functions, report):
+    i = 0
+    for function in functions:
+        start = False
+        cfa_path = os.path.join(cpa_output_dir, 'cfa__' + function + '.svg')
+        if os.path.exists(cfa_path):
+            with open(cfa_path) as cfa_file:
+                for line in cfa_file:
+                    if start:
+                        line = line.replace('class="node"','class="node" ng-dblclick="clickedCFAElement($event)"')
+                        line = line.replace('class="edge"','class="edge" ng-dblclick="clickedCFAElement($event)"')
+                        report.write(line)
+                    if '<svg' in line:
+                        report.write(line[:5] + " ng-show = \"cfaFunctionIsSet(" + str(i) + ")\" " + line[5:])
+                        start = True
+        i = i+1
 
-def main():
+def write_arg(arg_file_path, report):
+    start = False
+    arg_path = arg_file_path[:-4] + '.svg'
+    if os.path.exists(arg_path):
+        with open(arg_path) as argfile:
+            for line in argfile:
+                if '<svg' in line:
+                    start = True
+                if start:
+                    line = line.replace('class="node"','class="node" ng-dblclick="clickedARGElement($event)"')
+                    line = line.replace('class="edge"','class="edge" ng-dblclick="clickedARGElement($event)"')
+                    report.write(line)
 
-    parser = argparse.ArgumentParser(
-        description="Generate a HTML report with graphs from the CPAchecker output."
-    )
-    parser.add_argument("-r", "--reportpath",
-        dest="reportdir",
-        help="Directory for report (default: CPAchecker output path)"
-    )
-    parser.add_argument("-c", "--config",
-        dest="configfile",
-        default="output/UsedConfiguration.properties",
-        help="""File with all the used CPAchecker configuration files
-             (default: output/UsedConfiguration.properties)"""
-    )
-
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Generate a HTML report with graphs from the CPAchecker output.")
+    parser.add_argument("-c",
+                        "--config",
+                        dest="configfile",
+                        default="output/UsedConfiguration.properties",
+                        help="""File with all the used CPAchecker configuration files
+                            (default: output/UsedConfiguration.properties)""")
     options = parser.parse_args()
+    return options
 
-    print ('Generating report')
-
+def read_CPAchecker_config(options):
     # read config file
     config = {}
+
     try:
         with open(options.configfile) as configfile:
             for line in configfile:
-                (key, val) = line.split("=", 1)
+                key, val = line.split("=", 1)
                 config[key.strip()] = val.strip()
     except IOError as e:
+
         if e.errno:
             sys.exit('Could not find output of CPAchecker in {}. Please specify correctpath with option --config\n({}).'.format(options.configfile, e))
         else:
             sys.exit('Could not read output of CPAchecker in {}\n({}).'.format(options.configfile, e))
-
     if not config.get('analysis.programNames'):
         sys.exit('CPAchecker output does not specify path to analyzed program. Cannot generate report.')
 
-    # extract paths to all necessary files from config
-    cpaoutdir      = config.get('output.path', 'output/')
-    sourcefiles    = [sourcefile.strip() for sourcefile in config.get('analysis.programNames').split(',')]
-    assert sourcefiles, "sourcefile not available"
-    logfile        = os.path.join(cpaoutdir, config.get('log.file', 'CPALog.txt'))
-    statsfile      = os.path.join(cpaoutdir, config.get('statistics.file', 'Statistics.txt'))
-    argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
-    errorpathgraph = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.graph', 'ErrorPath.%d.dot'))
-    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
-    combinednodes  = os.path.join(cpaoutdir, 'combinednodes.json')
-    cfainfo        = os.path.join(cpaoutdir, 'cfainfo.json')
-    fcalledges     = os.path.join(cpaoutdir, 'fcalledges.json')
+    return config
 
-    scriptdir   = os.path.dirname(__file__)
-    reportdir   = options.reportdir or cpaoutdir
-    tplfilepath = os.path.join(scriptdir, 'report-template.html')
+def main():
+    options = parse_arguments()
+    config = read_CPAchecker_config(options)
 
-    if not os.path.isdir(reportdir):
-        os.makedirs(reportdir)
+    # extract paths to all necessary files and directories from config
+    cpa_output_dir = config.get('output.path', 'output/')
+    arg_path = os.path.join(cpa_output_dir, config.get('cpa.arg.file', 'ARG.dot'))
+    counter_example_path_template = os.path.join(cpa_output_dir, config.get('counterexample.export.report', 'Counterexample.%d.html'))
+    report_path = os.path.join(cpa_output_dir, config.get('report.file', 'Report.html'))
+
+    counter_example_paths = glob.glob(counter_example_path_template.replace('%d', '*'))
+
+    report_count = len(counter_example_paths)
+    if os.path.exists(report_path):
+        report_count = report_count + 1
+
+    if report_count == 0:
+        print("No reports found in " + cpa_output_dir)
+        return
+
+    print ('Generating', report_count, 'reports')
 
     #if there is an ARG.dot create an SVG in the report dir
-    if os.path.isfile(argfilepath):
+    if os.path.isfile(arg_path):
         print ('Generating SVG for ARG (press Ctrl+C if this takes too long)')
-        call_dot(argfilepath, reportdir)
-        #if not call_dot(argfilepath, reportdir) and os.path.isfile(errorpathgraph):
-        #    if call_dot(errorpathgraph, reportdir):
-        #        os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
-        #                  os.path.join(reportdir, 'ARG.svg'))
+        call_dot(arg_path, cpa_output_dir)
 
-    print ('Generating SVGs for CFA')
-    functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
-    for func in functions:
-        call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
+    print ('Generating SVGs for CFA:')
+    functions = [x[5:-4] for x in os.listdir(cpa_output_dir) if x.startswith('cfa__') and x.endswith('.dot')]
+    sorted_functions = sorted(functions)
+    for function in sorted_functions:
+        print("\t" + function)
+        call_dot(os.path.join(cpa_output_dir, 'cfa__' + function + '.dot'), cpa_output_dir)
 
-    template = tempita.HTMLTemplate.from_filename(tplfilepath, encoding='UTF-8')
+    for counter_example_path in counter_example_paths:
+        generate_report(cpa_output_dir, sorted_functions, arg_path, counter_example_path)
 
-    # prepare values that may be used in template
-    templatevalues = {}
-    templatevalues['time_generated']    = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
-    templatevalues['sourcefilenames']   = sourcefiles
-    templatevalues['sourcefilecontents']= [readfile(sourcefile, optional=True) for sourcefile in sourcefiles]
-    templatevalues['logfile']           = readfile(logfile, optional=True)
-    templatevalues['statistics']        = readfile(statsfile, optional=True)
-    templatevalues['conffile']          = readfile(options.configfile, optional=True)
-    # JSON data for script
-    templatevalues['errorpath']         = '[]'
-    templatevalues['functionlist']      = json.dumps(functions)
-    templatevalues['combinednodes']     = readfile(combinednodes)
-    templatevalues['cfainfo']           = readfile(cfainfo)
-    templatevalues['fcalledges']        = readfile(fcalledges)
-
-    errorpathcount = len(glob.glob(errorpath.replace('%d', '*')))
-    print("Found %d error paths" % errorpathcount)
-
-    if errorpathcount > 0:
-        for i in range(errorpathcount):
-            outfilepath = os.path.join(reportdir, 'ErrorPath.%d.html' % i)
-            templatevalues['title'] = '%s (error path %d)' % (os.path.basename(sourcefiles[0]), i) # use the first sourcefile as name
-
-            try:
-                templatevalues['errorpath'] = readfile(errorpath % i)
-            except Exception as e:
-                print('Could not read error path number %d: %s' % (i, e))
-            else:
-                generateReport(outfilepath, template, templatevalues)
-
-    else:
-        outfilepath = os.path.join(reportdir, 'report.html')
-        templatevalues['title'] = os.path.basename(sourcefiles[0]) # use the first sourcefile as name
-        generateReport(outfilepath, template, templatevalues)
-
+    if os.path.exists(report_path):
+        generate_report(cpa_output_dir, sorted_functions, arg_path, report_path)
 
 if __name__ == '__main__':
     main()
