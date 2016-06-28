@@ -27,8 +27,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -137,7 +137,7 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
       public void assumeTruth(ReachedSet pReachedSet) {
         if (isDefinitelyBooleanFalse) {
           Iterable<AbstractState> targetStates =
-              Lists.newArrayList(AbstractStates.filterLocation(pReachedSet, pLocation));
+              ImmutableList.copyOf(AbstractStates.filterLocation(pReachedSet, pLocation));
           pReachedSet.removeAll(targetStates);
           for (ARGState s : from(targetStates).filter(ARGState.class)) {
             s.removeFromARG();

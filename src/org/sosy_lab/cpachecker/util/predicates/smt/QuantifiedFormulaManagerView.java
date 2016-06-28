@@ -34,6 +34,7 @@ import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -73,13 +74,13 @@ public class QuantifiedFormulaManagerView
   @Override
   public BooleanFormula forall(
       BooleanFormula pBody, Formula... quantifiedArgs) {
-    return forall(Lists.newArrayList(quantifiedArgs), pBody);
+    return forall(Arrays.asList(quantifiedArgs), pBody);
   }
 
   @Override
   public BooleanFormula exists(
       BooleanFormula pBody, Formula... quantifiedArgs) {
-    return exists(Lists.newArrayList(quantifiedArgs), pBody);
+    return exists(Arrays.asList(quantifiedArgs), pBody);
   }
 
   @Override

@@ -32,8 +32,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.sosy_lab.common.Appender;
@@ -1496,10 +1496,8 @@ public class FormulaManagerView {
 
     if (!irrelevantVariables.isEmpty()) {
       QuantifiedFormulaManagerView qfmgr = getQuantifiedFormulaManager();
-      BooleanFormula quantifiedFormula = qfmgr.exists(
-          Lists.newArrayList(irrelevantVariables.values()),
-          pF
-      );
+      BooleanFormula quantifiedFormula =
+          qfmgr.exists(ImmutableList.copyOf(irrelevantVariables.values()), pF);
 
       eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
     }
@@ -1517,9 +1515,8 @@ public class FormulaManagerView {
     if (irrelevantVariables.isEmpty()) {
       return pF;
     }
-    return getQuantifiedFormulaManager().exists(
-        Lists.newArrayList(irrelevantVariables.values()), pF
-    );
+    return getQuantifiedFormulaManager()
+        .exists(ImmutableList.copyOf(irrelevantVariables.values()), pF);
   }
 
   /**

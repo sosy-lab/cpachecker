@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.ForOverride;
 
@@ -243,7 +243,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinementForPaths(pReached, targets, Lists.newArrayList(targetPathToUse));
+    return performRefinementForPaths(pReached, targets, ImmutableList.of(targetPathToUse));
   }
 
   private CounterexampleInfo performRefinementForPaths(

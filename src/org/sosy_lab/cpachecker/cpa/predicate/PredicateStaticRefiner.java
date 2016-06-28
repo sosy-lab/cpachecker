@@ -451,7 +451,7 @@ public class PredicateStaticRefiner extends StaticRefiner
             getAssumeEdgesAlongPath(pReached, targetState, directlyAffectingStatements));
       }
       if (addAssumesByBoundedBackscan) {
-        assumeEdges.addAll(getTargetLocationAssumes(Lists.newArrayList(targetLocation)).values());
+        assumeEdges.addAll(getTargetLocationAssumes(ImmutableList.of(targetLocation)).values());
       }
     }
 

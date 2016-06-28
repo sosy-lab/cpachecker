@@ -30,7 +30,7 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeAssume;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeDeclaration;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -518,16 +517,17 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
      */
     // int x[] = { 1, 3, 5, 7 } ;
 
-    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _x = makeDeclaration(
-        "x",
-        new CArrayType(false, false, CNumericTypes.INT, null),
-        new CInitializerList(FileLocation.DUMMY,
-            Lists.<CInitializer>newArrayList(
-                createIntInitExpr(1),
-                createIntInitExpr(3),
-                createIntInitExpr(5),
-                createIntInitExpr(7)
-                )));
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _x =
+        makeDeclaration(
+            "x",
+            new CArrayType(false, false, CNumericTypes.INT, null),
+            new CInitializerList(
+                FileLocation.DUMMY,
+                ImmutableList.of(
+                    createIntInitExpr(1),
+                    createIntInitExpr(3),
+                    createIntInitExpr(5),
+                    createIntInitExpr(7))));
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     BooleanFormula result = ctfFwd.makeDeclaration(

@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTLiteralConverter.Suffix;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-
-import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
 
 public class ASTConverterTest {
 
@@ -165,7 +165,7 @@ public class ASTConverterTest {
   private void check(String expected, String input) {
     // constant integers are always extended to the smllest matching type.
     // thus the result is always identical for L and LL
-    for (String postfix : Lists.newArrayList("","l","ll","L","LL","lL","Ll")) {
+    for (String postfix : ImmutableList.of("", "l", "ll", "L", "LL", "lL", "Ll")) {
       assertEquals(expected, parseIntegerExpression32(input + postfix));
       assertEquals(expected, parseIntegerExpression64(input + postfix));
     }

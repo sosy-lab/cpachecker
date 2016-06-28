@@ -39,7 +39,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -907,7 +906,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   interpolants =
                       imgr.buildCounterexampleTrace(
                               pInput.getPathFormulae(),
-                              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+                              ImmutableList.copyOf(abstractionStatesTrace),
                               elementsOnPath,
                               true)
                           .getInterpolants();

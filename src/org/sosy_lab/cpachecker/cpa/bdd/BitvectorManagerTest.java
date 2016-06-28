@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.math.BigInteger;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
-import com.google.common.collect.Lists;
+import java.math.BigInteger;
 
 public class BitvectorManagerTest {
 
@@ -123,7 +123,7 @@ public class BitvectorManagerTest {
     assertEqual(two, bvmgr.makeSub(two, zero));
     assertEqual(n15, bvmgr.makeSub(n15, zero));
 
-    for (Region[] n : Lists.newArrayList(zero, one, two, n15)) {
+    for (Region[] n : ImmutableList.of(zero, one, two, n15)) {
       assertEqual(zero, bvmgr.makeSub(bvmgr.makeAdd(zero, n), n));
       assertEqual(one, bvmgr.makeSub(bvmgr.makeAdd(one, n), n));
       assertEqual(n15, bvmgr.makeSub(bvmgr.makeAdd(n15, n), n));

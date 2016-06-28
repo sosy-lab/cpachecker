@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -77,7 +78,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private boolean pathSlicing = true;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private List<PrefixPreference> prefixPreference = Lists.newArrayList(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
+  private List<PrefixPreference> prefixPreference = ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis

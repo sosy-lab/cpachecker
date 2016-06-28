@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +34,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -47,7 +45,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-import com.google.common.collect.Lists;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(Parameterized.class)
 public class ExpressionValueVisitorTest {
@@ -190,7 +190,7 @@ public class ExpressionValueVisitorTest {
       checkCast(i, i, U_LONG_LONG_INT);
     }
 
-    for (CType t : Lists.newArrayList(S_INT, S_LONG_INT)) {
+    for (CType t : ImmutableList.of(S_INT, S_LONG_INT)) {
       checkCast(4L, 4L, t);
       checkCast(-4L, -4L, t);
       checkCast(4294967296L, 0L, t);
@@ -202,7 +202,7 @@ public class ExpressionValueVisitorTest {
       checkCast(2147483649L, -2147483647L, t);
     }
 
-    for (CType t : Lists.newArrayList(U_INT, U_LONG_INT)) {
+    for (CType t : ImmutableList.of(U_INT, U_LONG_INT)) {
       checkCast(4L, 4L, t);
       checkCast(-4L, 4294967292L, t);
       checkCast(4294967296L, 0L, t);
