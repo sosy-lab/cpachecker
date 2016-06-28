@@ -185,7 +185,7 @@ public class TerminationAlgorithm implements Algorithm {
 
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
 
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
 
     Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
     for (Loop loop : allLoops) {
@@ -196,7 +196,7 @@ public class TerminationAlgorithm implements Algorithm {
 
       if (loopTermiantion == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
-        return status.withSound(false);
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
 
       } else if (loopTermiantion != Result.TRUE) {
         logger.logf(FINE, "Could not prove (non-)termination of %s.", loop);
