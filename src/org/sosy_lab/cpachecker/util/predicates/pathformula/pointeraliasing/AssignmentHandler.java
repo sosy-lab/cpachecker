@@ -675,6 +675,15 @@ class AssignmentHandler {
     return result;
   }
 
+  /**
+   * Add terms to the {@link #constraints} object that specify that unwritten heap cells
+   * keep their value when the SSA index is updated.
+   *
+   * @param lvalueType The LHS type of the current assignment.
+   * @param startAddress The start address of the written heap region.
+   * @param pattern The pattern matching the (potentially) written heap cells.
+   * @param typesToRetain The set of types which were affected by the assignment.
+   */
   private void addRetentionForAssignment(
       CType lvalueType,
       final Formula startAddress,
@@ -693,10 +702,31 @@ class AssignmentHandler {
 
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = conv.getSizeof(lvalueType);
+
+    addRetentionConstraintsWithoutQuantifiers(
+        lvalueType, pattern, startAddress, size, typesToRetain);
+  }
+
+  /**
+   * Add retention constraints as specified by
+   * {@link #addRetentionForAssignment(CType, Formula, PointerTargetPattern, Set)}
+   * in a bounded way by manually iterating over all possibly written heap cells
+   * and adding a constraint for each of them.
+   */
+  private void addRetentionConstraintsWithoutQuantifiers(
+      CType lvalueType,
+      final PointerTargetPattern pattern,
+      final Formula startAddress,
+      final int size,
+      final Set<CType> typesToRetain)
+      throws InterruptedException {
+
     if (isSimpleType(lvalueType)) {
       addSimpleTypeRetentionConstraints(pattern, ImmutableSet.of(lvalueType), startAddress);
+
     } else if (pattern.isExact()) {
       addExactRetentionConstraints(pattern.withRange(size), typesToRetain);
+
     } else if (pattern.isSemiExact()) {
       // For semiexact retention constraints we need the first element type of the composite
       if (lvalueType instanceof CArrayType) {
@@ -705,6 +735,7 @@ class AssignmentHandler {
         lvalueType = CTypeUtils.simplifyType(((CCompositeType) lvalueType).getMembers().get(0).getType());
       }
       addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain);
+
     } else { // Inexact pointer target pattern
       addInexactRetentionConstraints(startAddress, size, typesToRetain);
     }
@@ -738,6 +769,13 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Add retention constraints without quantifiers for writing a simple (non-composite) type.
+   *
+   * All heap cells where the pattern does not match retained,
+   * and if the pattern is not exact there are also conditional constraints
+   * for cells that might be matched by the pattern.
+   */
   private void addSimpleTypeRetentionConstraints(
       final PointerTargetPattern pattern, final Set<CType> types, final Formula startAddress)
       throws InterruptedException {
@@ -754,6 +792,11 @@ class AssignmentHandler {
     addExactRetentionConstraints(pattern, types);
   }
 
+  /**
+   * Add retention constraints without quantifiers for the case where the written memory region
+   * is known exactly.
+   * All heap cells where the pattern does not match retained.
+   */
   private void addExactRetentionConstraints(
       final Predicate<PointerTarget> pattern, final Set<CType> types) throws InterruptedException {
     makeRetentionConstraints(
@@ -762,11 +805,19 @@ class AssignmentHandler {
         (targetAddress, constraint) -> constraints.addConstraint(constraint));
   }
 
-  private void addSemiexactRetentionConstraints(final PointerTargetPattern pattern,
-                                                final CType firstElementType,
-                                                final Formula startAddress,
-                                                final int size,
-                                                final Set<CType> types) throws InterruptedException {
+  /**
+   * Add retention constraints without quantifiers for the case where some information is known
+   * about the written memory region.
+   * For each of the potentially written target candidates we add retention constraints
+   * under the condition that it was this target that was actually written.
+   */
+  private void addSemiexactRetentionConstraints(
+      final PointerTargetPattern pattern,
+      final CType firstElementType,
+      final Formula startAddress,
+      final int size,
+      final Set<CType> types)
+      throws InterruptedException {
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
       final Formula candidateAddress = conv.makeFormulaForTarget(target);
       final BooleanFormula negAntecedent =
@@ -783,6 +834,11 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Add retention constraints without quantifiers for the case where nothing is known
+   * about the written memory region.
+   * For every heap cell we add a conditional constraint to retain it.
+   */
   private void addInexactRetentionConstraints(
       final Formula startAddress, final int size, final Set<CType> types)
       throws InterruptedException {
