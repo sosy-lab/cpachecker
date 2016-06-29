@@ -82,7 +82,7 @@ class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
 
   @Override
   public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
-    return delegate.getModelAssignments();
+    return ProverEnvironmentView.fixModelAssignments(delegate.getModelAssignments());
   }
 
   @Override

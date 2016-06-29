@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.SolverException;
@@ -108,7 +110,18 @@ class ProverEnvironmentView implements ProverEnvironment{
 
   @Override
   public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
-    return delegate.getModelAssignments();
+    return fixModelAssignments(delegate.getModelAssignments());
+  }
+
+  /**
+   * Z3 adds irrelevant terms to the model if quantifiers and UFs are used, remove them.
+   */
+  static ImmutableList<ValueAssignment> fixModelAssignments(ImmutableList<ValueAssignment> m) {
+    if (m.stream().noneMatch(valueAssignment -> valueAssignment.getName().contains("!"))) {
+      return m; // fast path for common case
+    }
+
+    return from(m).filter(ModelView.FILTER_MODEL_TERM).toList();
   }
 
   @Override

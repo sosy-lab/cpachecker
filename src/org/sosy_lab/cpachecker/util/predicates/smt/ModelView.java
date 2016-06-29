@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
+
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -33,6 +36,7 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 
 import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -40,6 +44,12 @@ import javax.annotation.Nullable;
  * Wrapping for models.
  */
 class ModelView implements Model {
+
+  private static final Pattern Z3_IRRELEVANT_MODEL_TERM_PATTERN = Pattern.compile(".*![0-9]+");
+  static final Predicate<ValueAssignment> FILTER_MODEL_TERM =
+      valueAssignment ->
+          !Z3_IRRELEVANT_MODEL_TERM_PATTERN.matcher(valueAssignment.getName()).matches();
+
   private final Model delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
@@ -87,7 +97,7 @@ class ModelView implements Model {
 
   @Override
   public Iterator<ValueAssignment> iterator() {
-    return delegate.iterator();
+    return Iterators.filter(delegate.iterator(), FILTER_MODEL_TERM);
   }
 
   @Override
