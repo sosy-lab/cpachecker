@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Predicate;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -118,6 +120,11 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   boolean isSemiExact() {
     return containerOffset != null && properOffset != null;
+  }
+
+  PointerTarget asPointerTarget() {
+    checkArgument(isExact());
+    return new PointerTarget(base, containerType, properOffset, containerOffset);
   }
 
   private final @Nullable String base;

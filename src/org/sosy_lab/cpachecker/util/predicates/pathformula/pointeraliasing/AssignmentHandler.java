@@ -703,8 +703,58 @@ class AssignmentHandler {
     lvalueType = CTypeUtils.simplifyType(lvalueType);
     final int size = conv.getSizeof(lvalueType);
 
-    addRetentionConstraintsWithoutQuantifiers(
-        lvalueType, pattern, startAddress, size, typesToRetain);
+    if (options.useQuantifiersOnArrays()) {
+      addRetentionConstraintsWithQuantifiers(
+          lvalueType, pattern, startAddress, size, typesToRetain);
+    } else {
+      addRetentionConstraintsWithoutQuantifiers(
+          lvalueType, pattern, startAddress, size, typesToRetain);
+    }
+  }
+
+  /**
+   * Add retention constraints as specified by
+   * {@link #addRetentionForAssignment(CType, Formula, PointerTargetPattern, Set)}
+   * with the help of quantifiers.
+   * Such a constraint is simply {@code forall i : !matches(i) => retention(i)}
+   * where {@code matches(i)} specifies whether address {@code i} was written.
+   */
+  private void addRetentionConstraintsWithQuantifiers(
+      final CType lvalueType,
+      final PointerTargetPattern pattern,
+      final Formula startAddress,
+      final int size,
+      final Set<CType> types) {
+
+    for (final CType type : types) {
+      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
+      final int oldIndex = conv.getIndex(ufName, type, ssa);
+      final int newIndex = conv.getFreshIndex(ufName, type, ssa);
+      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
+
+      // forall counter : !condition => retentionConstraint
+      // is equivalent to:
+      // forall counter : condition || retentionConstraint
+
+      final Formula counter = fmgr.makeVariable(conv.voidPointerFormulaType, ufName + "@counter");
+      final BooleanFormula updateCondition;
+      if (isSimpleType(lvalueType)) {
+        updateCondition = fmgr.makeEqual(counter, startAddress);
+      } else if (pattern.isExact()) {
+        // TODO Is this branch necessary? startAddress and targetAddress should be equivalent.
+        final Formula targetAddress = conv.makeFormulaForTarget(pattern.asPointerTarget());
+        updateCondition = fmgr.makeElementIndexConstraint(counter, targetAddress, size, false);
+      } else {
+        updateCondition = fmgr.makeElementIndexConstraint(counter, startAddress, size, false);
+      }
+
+      final BooleanFormula body =
+          bfmgr.or(
+              updateCondition,
+              conv.makeRetentionConstraint(ufName, oldIndex, newIndex, targetType, counter));
+
+      constraints.addConstraint(fmgr.getQuantifiedFormulaManager().forall(counter, body));
+    }
   }
 
   /**
