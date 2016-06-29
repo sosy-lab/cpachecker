@@ -44,7 +44,7 @@ public class StateFormulaConversionManager {
   private final CBinaryExpressionBuilder expressionBuilder;
   private final FormulaToCExpressionConverter formulaToCExpressionConverter;
 
-  private static final CFAEdge DummyEdge = new BlankEdge("",
+  private static final CFAEdge dummyEdge = new BlankEdge("",
       FileLocation.DUMMY,
       new CFANode("dummy-1"), new CFANode("dummy-2"), "Dummy Edge");
 
@@ -181,7 +181,6 @@ public class StateFormulaConversionManager {
     if (out != null) {
       return out;
     }
-    boolean useRationals = !template.isIntegral();
     Formula sum = null;
     int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
 
@@ -192,7 +191,7 @@ public class StateFormulaConversionManager {
       final Formula item;
       try {
         Formula f = pfmgr.expressionToFormula(
-            contextFormula, declaration, DummyEdge);
+            contextFormula, declaration, dummyEdge);
         item = normalizeLength(f, maxBitvectorSize, fmgr);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
@@ -216,18 +215,9 @@ public class StateFormulaConversionManager {
         sum = fmgr.makePlus(sum, multipliedItem);
       }
     }
-
-    if (sum == null) {
-      if (useRationals) {
-        out = fmgr.getRationalFormulaManager().makeNumber(0);
-      } else {
-        out = fmgr.getIntegerFormulaManager().makeNumber(0);
-      }
-    } else {
-      out = sum;
-    }
-    toFormulaCache.put(key, out);
-    return out;
+    assert sum != null;
+    toFormulaCache.put(key, sum);
+    return sum;
   }
 
   public boolean isOverflowing(Template template, Rational v) {
@@ -278,7 +268,7 @@ public class StateFormulaConversionManager {
       Formula item;
       try {
         item = pfmgr.expressionToFormula(
-            contextFormula, entry.getKey(), DummyEdge);
+            contextFormula, entry.getKey(), dummyEdge);
       } catch (UnrecognizedCCodeException e) {
         throw new UnsupportedOperationException();
       }
