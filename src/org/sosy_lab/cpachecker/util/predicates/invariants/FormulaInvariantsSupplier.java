@@ -107,11 +107,13 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private static class AddPointerInformationVisitor extends FormulaTransformationVisitor {
 
     private final PathFormula context;
+    private final FormulaManagerView fmgr;
     private final PathFormulaManager pfgmr;
 
     protected AddPointerInformationVisitor(
         FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
       super(pFmgr);
+      fmgr = pFmgr;
       pfgmr = pPfmgr;
       context = pContext;
     }
@@ -119,8 +121,9 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     @Override
     public Formula visitFreeVariable(Formula atom, String varName) {
       if (context.getPointerTargetSet().isActualBase(varName)) {
-        return pfgmr.makeFormulaForVariable(
-            context, varName, context.getPointerTargetSet().getBases().get(varName));
+        return fmgr.uninstantiate(
+            pfgmr.makeFormulaForVariable(
+                context, varName, context.getPointerTargetSet().getBases().get(varName)));
       }
 
       return atom;
