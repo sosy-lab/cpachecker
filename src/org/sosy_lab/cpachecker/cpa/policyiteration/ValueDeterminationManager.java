@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Function;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
@@ -17,7 +16,6 @@ import org.sosy_lab.solver.api.Formula;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
@@ -67,7 +65,7 @@ public class ValueDeterminationManager {
    */
   public ValueDeterminationConstraints valueDeterminationFormulaCheap(
       PolicyAbstractedState stateWithUpdates,
-      final Map<Template, PolicyBound> updated
+      Set<Template> updated
   ) {
     return valueDeterminationFormula(stateWithUpdates, updated, false);
   }
@@ -77,7 +75,7 @@ public class ValueDeterminationManager {
    */
   public ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState stateWithUpdates,
-      final Map<Template, PolicyBound> updated
+      Set<Template> updated
   ) {
     return valueDeterminationFormula(stateWithUpdates, updated, true);
   }
@@ -98,10 +96,10 @@ public class ValueDeterminationManager {
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState stateWithUpdates,
-      final Map<Template, PolicyBound> updated,
+      Set<Template> updated,
       boolean useUniquePrefix
   ) {
-    Set<BooleanFormula> constraints = new HashSet<>();
+    Set<BooleanFormula> outConstraints = new HashSet<>();
     Table<Template, Integer, Formula> outVars = HashBasedTable.create();
 
     long uniquePrefix = 0;
@@ -110,152 +108,145 @@ public class ValueDeterminationManager {
 
     LinkedHashSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(stateWithUpdates);
-    Set<String> visited = new HashSet<>();
 
     while (!queue.isEmpty()) {
       Iterator<PolicyAbstractedState> it = queue.iterator();
       PolicyAbstractedState state = it.next();
       it.remove();
 
-      if (visitedLocationIDs.contains(state.getLocationID())) {
-        continue;
-      }
+      visitedLocationIDs.add(state.getLocationID());
 
       for (Entry<Template, PolicyBound> incoming : state) {
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
         PolicyAbstractedState backpointer = bound.getPredecessor();
 
-        // Update the queue, check visited.
-        if ((state != stateWithUpdates || updated.containsKey(template))
-            && bound.getDependencies().contains(template)) {
+        boolean valueIsFixed = bound.getDependencies().isEmpty()
+            ||  (state == stateWithUpdates
+              && !updated.contains(template)
+              && !bound.isComputedByValueDetermination()
+        );
 
-          if (!visitedLocationIDs.contains(backpointer.getLocationID())) {
-            queue.add(backpointer);
-          }
+        // Update the queue, check visited.
+        if (!valueIsFixed &&
+            bound.getDependencies().contains(template)
+            && !visitedLocationIDs.contains(backpointer.getLocationID())) {
+
+          queue.add(backpointer);
         }
 
         // Give the element to the constraint generator.
-        String prefix;
-        if (useUniquePrefix) {
-          prefix = String.format(VISIT_PREFIX, ++uniquePrefix);
-        } else {
+        String prefix = useUniquePrefix ?
+                        String.format(VISIT_PREFIX, ++uniquePrefix) :
 
-          // Merge variables sharing the same policy.
-          prefix = String.format(VISIT_PREFIX, bound.serializePolicy(state));
-        }
+                        // Merge variables sharing the same policy.
+                        String.format(VISIT_PREFIX, bound.serializePolicy(state));
 
         generateConstraintsFromPolicyBound(
-            bound, state, template, backpointer, prefix, stateWithUpdates,
-            constraints, outVars, visited, updated
+            bound,
+            state.getLocationID(),
+            template,
+            backpointer.getLocationID(),
+            prefix,
+            valueIsFixed,
+            outConstraints,
+            outVars
         );
       }
-
-      visitedLocationIDs.add(state.getLocationID());
     }
 
     return new ValueDeterminationConstraints(
         ImmutableTable.copyOf(outVars),
-        ImmutableSet.copyOf(constraints));
+        ImmutableSet.copyOf(outConstraints));
   }
 
   /**
    * Process and add constraints from a single policy.
    *
    * @param bound {@link PolicyBound} to generate constraints from
-   * @param template Associated template
+   * @param locationID location ID associated with the to-state.
+   * @param template Template associated to {@code bound}
+   * @param policyBackpointerLocationID Location ID associated to backpointer.
    * @param prefix Unique namespace for the policy
-   * @param toState Abstracted state from which the bound originates
-   * @param incomingState Backpointer for the policy
+   * @param valueFixed Flag to indicate that the policy value is fixed
+   *                       and does not depend on anything.
+   * @param outConstraints Output set to write constraints to.
+   * @param outVars Output table to record generated variables.
    */
   private void generateConstraintsFromPolicyBound(
       PolicyBound bound,
-      PolicyAbstractedState toState,
+      int locationID,
       Template template,
-      PolicyAbstractedState incomingState,
-      final String prefix,
-      PolicyAbstractedState stateWithUpdates,
-      Set<BooleanFormula> constraints,
-      Table<Template, Integer, Formula> outVars,
-      Set<String> visited,
-      final Map<Template, PolicyBound> updated
+      int policyBackpointerLocationID,
+      String prefix,
+      boolean valueFixed,
+      Set<BooleanFormula> outConstraints,
+      Table<Template, Integer, Formula> outVars
   ) {
-    final Function<String, String> addPrefix = pInput -> prefix + pInput;
     PathFormula policyFormula = bound.getFormula();
 
     PathFormula startPathFormula = stateFormulaConversionManager.getPathFormula(
         bound.getPredecessor(), fmgr, true);
 
-    final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
-        stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);
-    final Formula abstractDomainFormula =
+    Formula policyOutTemplate = addPrefix(
+        stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),
+        prefix);
+    Formula outVar =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-            absDomainVarName(toState, template));
-    outVars.put(template, toState.getLocationID(), abstractDomainFormula);
+            absDomainVarName(locationID, template));
+    outVars.put(template, locationID, outVar);
 
-    // Shortcut: don't follow the nodes not in the policy, as the value
-    // determination does not update them.
-    if (toState == stateWithUpdates && !updated.containsKey(template)) {
-      visited.add(prefix);
+    if (valueFixed) {
+      logger.log(Level.FINE, "Fixed value for template", template);
+      BooleanFormula constraint = fmgr.makeLessOrEqual(outVar,
+              fmgr.makeNumber(policyOutTemplate, bound.getBound()), true);
+      outConstraints.add(constraint);
       return;
     }
 
-    // Shortcut: if the bound is not dependent on the initial value,
-    // just add the numeric constraint and don't process the input policies.
-    if (bound.getDependencies().isEmpty()) {
-      logger.log(Level.FINE, "Template does not depend on initial condition,"
-          + "skipping");
-      BooleanFormula constraint = fmgr.makeEqual(abstractDomainFormula,
-              fmgr.makeNumber(policyOutTemplate, bound.getBound()));
-      constraints.add(constraint);
-      return;
-    }
+    BooleanFormula outConstraint = fmgr.makeLessOrEqual(outVar,
+        policyOutTemplate, true);
+    outConstraints.add(outConstraint);
 
-    BooleanFormula outConstraint = fmgr.makeEqual(
-        policyOutTemplate, abstractDomainFormula);
-    constraints.add(outConstraint);
+    BooleanFormula namespacedPolicy = addPrefix(policyFormula.getFormula(), prefix);
 
-    BooleanFormula namespacedPolicy =
-        fmgr.renameFreeVariablesAndUFs(policyFormula.getFormula(), addPrefix);
-
-    // Optimization.
-    if (!(bfmgr.isTrue(namespacedPolicy)
-        || visited.contains(prefix))) {
-      constraints.add(namespacedPolicy);
+    if (!bfmgr.isTrue(namespacedPolicy)) {
+      outConstraints.add(namespacedPolicy);
     }
 
     // Process incoming constraints on the policy start.
     for (Template incomingTemplate : bound.getDependencies()) {
       String prevAbstractDomainElement = absDomainVarName(
-          incomingState,
-          incomingTemplate);
+          policyBackpointerLocationID, incomingTemplate);
 
-      Formula incomingTemplateFormula = fmgr.renameFreeVariablesAndUFs(
+      Formula incomingTemplateFormula = addPrefix(
           stateFormulaConversionManager.toFormula(
               pfmgr, fmgr,
               incomingTemplate,
               startPathFormula
-          ), addPrefix);
+          ),
+          prefix);
 
       Formula upperBound = fmgr.makeVariable(
             fmgr.getFormulaType(incomingTemplateFormula),
             prevAbstractDomainElement);
       BooleanFormula constraint = fmgr.makeLessOrEqual(
           incomingTemplateFormula, upperBound, true);
-      constraints.add(constraint);
+      outConstraints.add(constraint);
     }
+  }
 
-
-    visited.add(prefix);
+  private <T extends Formula> T addPrefix(T formula, String prefix) {
+    return fmgr.renameFreeVariablesAndUFs(formula, v -> prefix + v);
   }
 
   /**
    * @return Variable name representing the bound in the abstract domain
    * for the given template for the given state.
    */
-  private String absDomainVarName(PolicyAbstractedState state, Template template) {
+  private String absDomainVarName(int locId, Template template) {
     return String.format(
-        BOUND_VAR_NAME, state.getLocationID(), template.toFormulaString());
+        BOUND_VAR_NAME, locId, template.toFormulaString());
   }
 
 }

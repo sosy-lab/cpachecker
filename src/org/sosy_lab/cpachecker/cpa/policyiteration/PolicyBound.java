@@ -39,19 +39,31 @@ public class PolicyBound {
    */
   private final ImmutableSet<Template> dependencies;
 
+  /**
+   * Whether the bound was computed as a result of value determination
+   * computation.
+   */
+  private final boolean computedByValueDetermination;
+
   private int hashCache = 0;
 
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
 
-  private PolicyBound(PathFormula pFormula, Rational pBound,
+  private PolicyBound(
+      PathFormula pFormula, Rational pBound,
       PolicyAbstractedState pPredecessor,
-      Collection<Template> pDependencies) {
+      Collection<Template> pDependencies, boolean pComputedByValueDetermination) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
     dependencies = ImmutableSet.copyOf(pDependencies);
+    computedByValueDetermination = pComputedByValueDetermination;
+  }
+
+  public boolean isComputedByValueDetermination() {
+    return computedByValueDetermination;
   }
 
   public static PolicyBound of(PathFormula pFormula, Rational bound,
@@ -59,16 +71,15 @@ public class PolicyBound {
       Collection<Template> pDependencies
   ) {
     return new PolicyBound(pFormula, bound, pUpdatedFrom,
-        pDependencies);
+        pDependencies, false);
   }
 
-  public PolicyBound updateValue(Rational newValue) {
-    return new PolicyBound(formula, newValue, predecessor, dependencies);
+  public PolicyBound updateValueFromValueDetermination(Rational newValue) {
+    return new PolicyBound(formula, newValue, predecessor, dependencies, true);
   }
 
   public PolicyBound withNoDependencies() {
-    return new PolicyBound(formula, bound, predecessor,
-        ImmutableSet.of());
+    return new PolicyBound(formula, bound, predecessor, ImmutableSet.of(), false);
   }
 
   /**

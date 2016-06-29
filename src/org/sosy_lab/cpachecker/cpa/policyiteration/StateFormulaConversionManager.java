@@ -88,10 +88,13 @@ public class StateFormulaConversionManager {
       boolean attachExtraInvariant) {
 
     // Returns the abstract state together with the conjoined extra invariant.
-    PathFormula inputPath = getPathFormula(abstractState, fmgrv,
-        attachExtraInvariant);
-
     List<BooleanFormula> constraints = new ArrayList<>();
+
+    PathFormula inputPath = getPathFormula(abstractState, fmgrv, attachExtraInvariant);
+    if (!bfmgr.isTrue(inputPath.getFormula())) {
+      constraints.add(inputPath.getFormula());
+    }
+
     if (attachExtraInvariant) {
 
       // Extra invariant.
@@ -100,8 +103,7 @@ public class StateFormulaConversionManager {
     }
 
     constraints.add(abstractState.getCongruence().toFormula(
-        fmgrv, pfmgr, inputPath
-    ));
+        fmgrv, pfmgr, inputPath));
     for (Entry<Template, PolicyBound> entry : abstractState) {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
@@ -115,7 +117,7 @@ public class StateFormulaConversionManager {
     return constraints;
   }
 
-  BooleanFormula getStartConstraintsWithExtraInvariant(
+  public BooleanFormula getStartConstraintsWithExtraInvariant(
       PolicyIntermediateState state) {
     return bfmgr.and(abstractStateToConstraints(
         fmgr, pfmgr, state.getGeneratingState(), true));

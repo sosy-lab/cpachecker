@@ -403,10 +403,8 @@ public class PolicyIterationManager {
     logger.log(Level.INFO, "Emulating large step at node ", node);
 
     Map<Template, PolicyBound> updated = new HashMap<>();
-    Map<Template, PolicyBound> intersection = new HashMap<>();
     PolicyAbstractedState merged = unionAbstractedStates(
-          abstraction, latestSibling, precision, updated, intersection, extraInvariant);
-
+          abstraction, latestSibling, precision, updated, extraInvariant);
     PolicyAbstractedState out;
     if (!shouldPerformValueDetermination(node, updated)) {
       out = merged;
@@ -417,8 +415,8 @@ public class PolicyIterationManager {
       ValueDeterminationConstraints constraints;
       Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
-        constraints = vdfmgr.valueDeterminationFormulaCheap(merged, updated);
-        element = performValueDetermination(merged, updated, intersection, constraints);
+        constraints = vdfmgr.valueDeterminationFormulaCheap(merged, updated.keySet());
+        element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           logger.log(Level.INFO, "Switching to more expensive value "
               + "determination strategy.");
@@ -428,8 +426,8 @@ public class PolicyIterationManager {
       if (!element.isPresent()) {
 
         // Hopeful value determination failed, run the more expensive version.
-        constraints = vdfmgr.valueDeterminationFormula(merged, updated);
-        element = performValueDetermination(merged, updated, intersection, constraints);
+        constraints = vdfmgr.valueDeterminationFormula(merged, updated.keySet());
+        element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException("Value determination problem is "
               + "unfeasible.");
@@ -484,7 +482,6 @@ public class PolicyIterationManager {
       final PolicyAbstractedState oldState,
       final PolicyPrecision precision,
       Map<Template, PolicyBound> updated,
-      Map<Template, PolicyBound> intersection,
       BooleanFormula extraInvariant) {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
@@ -531,7 +528,6 @@ public class PolicyIterationManager {
         statistics.templateUpdateCounter.add(updateEvent);
       } else {
         mergedBound = oldValue.get();
-        intersection.put(template, mergedBound);
       }
       newAbstraction.put(template, mergedBound);
     }
@@ -567,15 +563,13 @@ public class PolicyIterationManager {
   private Optional<PolicyAbstractedState> performValueDetermination(
       PolicyAbstractedState stateWithUpdates,
       Map<Template, PolicyBound> updated,
-      Map<Template, PolicyBound> intersection,
       ValueDeterminationConstraints valDetConstraints
   ) throws InterruptedException, CPATransferException {
     logger.log(Level.INFO, "Value determination at node",
         stateWithUpdates.getNode());
-    int locId = stateWithUpdates.getLocationID();
-
     Map<Template, PolicyBound> newAbstraction =
         new HashMap<>(stateWithUpdates.getAbstraction());
+    int locId = stateWithUpdates.getLocationID();
 
     // Maximize for each template subject to the overall constraints.
     statistics.valueDeterminationTimer.start();
@@ -583,32 +577,19 @@ public class PolicyIterationManager {
 
       valDetConstraints.constraints.forEach(c -> optEnvironment.addConstraint(c));
 
-      intersection.forEach((t, bound) -> {
-        Formula objective = valDetConstraints.outVars.get(t, locId);
-        optEnvironment.addConstraint(
-            fmgr.makeLessOrEqual(
-                objective,
-                fmgr.makeNumber(objective, bound.getBound()), true
-            )
-        );
-      });
-
-      for (Entry<Template, PolicyBound> policyValue : updated.entrySet()) {
+      for (Entry<Template, PolicyBound> entry : updated.entrySet()) {
         shutdownNotifier.shutdownIfNecessary();
         optEnvironment.push();
 
-        Template template = policyValue.getKey();
-        Formula objective = valDetConstraints.outVars.get(template,
-            stateWithUpdates.getLocationID());
-        assert objective != null;
-        PolicyBound existingBound = policyValue.getValue();
-
-        int handle = optEnvironment.maximize(objective);
+        Template template = entry.getKey();
+        PolicyBound mergedBound = entry.getValue();
+        Formula objective = valDetConstraints.outVars.get(template, locId);
         BooleanFormula consistencyConstraint = fmgr.makeGreaterOrEqual(
                 objective,
-                fmgr.makeNumber(objective, existingBound.getBound()), true);
+                fmgr.makeNumber(objective, mergedBound.getBound()), true);
 
         optEnvironment.addConstraint(consistencyConstraint);
+        int handle = optEnvironment.maximize(objective);
 
         OptStatus result;
         try {
@@ -634,7 +615,8 @@ public class PolicyIterationManager {
         if (value.isPresent() &&
             !stateFormulaConversionManager.isOverflowing(template, value.get())) {
           Rational v = value.get();
-          newAbstraction.put(template, existingBound.updateValue(v));
+          logger.log(Level.INFO, "Updating", template, "to value", v);
+          newAbstraction.put(template, mergedBound.updateValueFromValueDetermination(v));
         } else {
           newAbstraction.remove(template);
         }

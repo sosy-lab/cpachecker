@@ -247,7 +247,9 @@ public class PolicyPrecision implements Precision {
       Set<Template> generated =
           filterToSameType(
               filterRedundantExpressions(linearExpressions)
-          ).stream().map(Template::of).collect(Collectors.toSet());
+          ).stream()
+              .filter(t -> !t.isEmpty())
+              .map(Template::of).collect(Collectors.toSet());
       returned.addAll(generated);
     }
 
@@ -320,7 +322,7 @@ public class PolicyPrecision implements Precision {
               CAssumeEdge assumeEdge = (CAssumeEdge) enteringEdge;
               CExpression expression = assumeEdge.getExpression();
 
-              template = recExpressionToTemplate(expression);
+              template = expressionToSingleTemplate(expression);
             }
           }
 
@@ -332,7 +334,7 @@ public class PolicyPrecision implements Precision {
             continue;
           }
           CExpression expression = callEdge.getArguments().get(0);
-          template = recExpressionToTemplate(expression);
+          template = expressionToSingleTemplate(expression);
         }
 
         if (template.isPresent()) {
@@ -434,7 +436,9 @@ public class PolicyPrecision implements Precision {
 
         Template tLhs = Template.of(LinearExpression.ofVariable(id));
         Optional<Template> x =
-            recExpressionToTemplate(assignment.getRightHandSide());
+            expressionToSingleTemplate(assignment.getRightHandSide()).flatMap(
+                t -> t.getLinearExpression().isEmpty() ? Optional.empty() : Optional.of(t)
+            );
         if (x.isPresent()) {
           Template tX = x.get();
           out.add(Template.of(tLhs.linearExpression.sub(tX.linearExpression)));
@@ -447,13 +451,20 @@ public class PolicyPrecision implements Precision {
 
   private Set<Template> expressionToTemplate(CExpression expression) {
     HashSet<Template> out = new HashSet<>(2);
-    Optional<Template> t = recExpressionToTemplate(expression);
+    Optional<Template> t = expressionToSingleTemplate(expression);
     if (!t.isPresent()) {
       return out;
     }
     out.add(t.get());
     out.add(Template.of(t.get().linearExpression.negate()));
     return out;
+  }
+
+  private Optional<Template> expressionToSingleTemplate(CExpression expression) {
+    return recExpressionToTemplate(expression).flatMap(
+        t -> t.getLinearExpression().isEmpty() ?
+             Optional.empty() : Optional.of(t)
+    );
   }
 
   private Optional<Template> recExpressionToTemplate(CExpression expression) {
