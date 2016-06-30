@@ -377,8 +377,8 @@ public class TerminationTransferRelation implements TransferRelation {
         getAbstractSuccessorsForEdge0(
             Collections.singleton(loopHeadState), pPrecision, negativeRankingRelation);
 
-    // non-termination requires a loop
-    if (loopHeadState.isPartOfLoop()) {
+    // non-termination requires a loop that started at the loopHeads location
+    if (loopHeadState.isPartOfLoop() && loopHeadState.getHondaLocation().equals(loopHead)) {
       // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
       CFAEdge nonTerminationLabel =
           createBlankEdge(
