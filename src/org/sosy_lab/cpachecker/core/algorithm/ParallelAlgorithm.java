@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -154,10 +155,13 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
     ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(configFiles.size()));
-    List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>();
+    List<Pair<ListenableFuture<ParallelAnalysisResult>, String>> futures = new ArrayList<>();
 
     for (Path p : configFiles) {
-      futures.add(exec.submit(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed)));
+      futures.add(
+          Pair.of(
+              exec.submit(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed)),
+              CONFIG_FILE_CONDITION_SPLITTER.split(p.toString()).iterator().next()));
     }
     addCancellationCallback(futures);
 
@@ -181,14 +185,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
+  private void handleFutureResults(
+      List<Pair<ListenableFuture<ParallelAnalysisResult>, String>> futures)
       throws InterruptedException, Error, CPAException {
     List<CPAException> exceptions = new ArrayList<>();
-    for (ListenableFuture<ParallelAnalysisResult> f : futures) {
+    for (Pair<ListenableFuture<ParallelAnalysisResult>, String> f : futures) {
       try {
-        ParallelAnalysisResult result = f.get();
+        ParallelAnalysisResult result = f.getFirst().get();
         if (result.hasValidReachedSet() && finalResult == null) {
           finalResult = result;
+          stats.successfulAnalysisName = f.getSecond();
         }
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
@@ -224,14 +230,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void addCancellationCallback(List<ListenableFuture<ParallelAnalysisResult>> futures) {
+  private void addCancellationCallback(
+      List<Pair<ListenableFuture<ParallelAnalysisResult>, String>> futures) {
     final FutureCallback<ParallelAnalysisResult> callback =
         new FutureCallback<ParallelAnalysisResult>() {
           @Override
           public void onSuccess(ParallelAnalysisResult pResult) {
             if (pResult.hasValidReachedSet()) {
               // cancel other computations
-              futures.forEach(f -> f.cancel(true));
+              futures.forEach(f -> f.getFirst().cancel(true));
               shutdownManager.requestShutdown("cancelling all remaining analyses");
             }
           }
@@ -239,7 +246,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           @Override
           public void onFailure(Throwable pT) {}
         };
-    futures.forEach(f -> Futures.addCallback(f, callback));
+    futures.forEach(f -> Futures.addCallback(f.getFirst(), callback));
   }
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
@@ -545,6 +552,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     private final Map<Collection<Statistics>, Triple<ReachedSet, String, ThreadCpuTimeLimit>>
         allAnalysesStats = new HashMap<>();
     private int noOfAlgorithmsUsed = 0;
+    private String successfulAnalysisName = null;
 
     public synchronized Collection<Statistics> getNewSubStatistics(
         ReachedSet pReached, String name, @Nullable ThreadCpuTimeLimit rLimit) {
@@ -561,6 +569,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
+      if (successfulAnalysisName != null) {
+        out.println("Successful analysis: " + successfulAnalysisName);
+      }
       printSubStatistics(out, result);
     }
 
