@@ -247,7 +247,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (status.isSound()) {
-      status.update(checkRecursion(initialLocation));
+      status = status.update(checkRecursion(initialLocation));
     }
 
     // We did not find a non-terminating loop.
