@@ -27,6 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
 import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.EQ;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.GT;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.GTE;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.LT;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.LTE;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
@@ -43,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -67,6 +73,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -84,6 +91,9 @@ class LassoBuilder {
 
   private final static Set<String> META_VARIABLES = ImmutableSet.of("__VERIFIER_nondet_int");
 
+  private final static Set<FunctionDeclarationKind> IF_THEN_ELSE_FUNCTIONS =
+      ImmutableSet.of(EQ, GT, GTE, LT, LTE);
+
   private final LogManager logger;
 
   private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
@@ -91,9 +101,11 @@ class LassoBuilder {
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
 
+  private final IfThenElseElimination ifThenElseElimination;
   private final EqualElimination equalElimination;
   private final NotEqualElimination notEqualElimination;
   private final DnfTransformation dnfTransformation;
+
 
   LassoBuilder(
       LogManager pLogger,
@@ -106,6 +118,8 @@ class LassoBuilder {
     solver = checkNotNull(pSolver);
     formulaManagerView = pSolver.getFormulaManager();
     pathFormulaManager = checkNotNull(pPathFormulaManager);
+
+    ifThenElseElimination = new IfThenElseElimination(formulaManagerView);
     equalElimination = new EqualElimination(formulaManagerView);
     notEqualElimination = new NotEqualElimination(formulaManagerView);
     dnfTransformation = new DnfTransformation(formulaManagerView);
@@ -201,7 +215,8 @@ class LassoBuilder {
 
   private Collection<BooleanFormula> toDnf(PathFormula path) throws InterruptedException {
     BooleanFormula simplified = formulaManagerView.simplify(path.getFormula());
-    BooleanFormula nnf = formulaManagerView.applyTactic(simplified, Tactic.NNF);
+    BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, simplified);
+    BooleanFormula nnf = formulaManagerView.applyTactic(withoutIfThenElse, Tactic.NNF);
     BooleanFormula notEqualEliminated = transformRecursively(notEqualElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
     BooleanFormula dnf = transformRecursively(dnfTransformation, equalEliminated);
@@ -248,16 +263,128 @@ class LassoBuilder {
     return outVars.build();
   }
 
+  private static class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
+
+    private final FormulaManagerView fmgr;
+
+    private final IfThenElseTransformation IfThenElseTransformation;
+
+    private IfThenElseElimination(FormulaManagerView pFmgr) {
+      super(pFmgr);
+      fmgr = pFmgr;
+      IfThenElseTransformation = new IfThenElseTransformation(pFmgr);
+    }
+
+    @Override
+    public BooleanFormula visitAtom(
+        BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+      if (pDecl.getKind().equals(FunctionDeclarationKind.EQ)) {
+        return fmgr.visit(IfThenElseTransformation, pAtom);
+      } else {
+        return pAtom;
+      }
+    }
+
+    private static class IfThenElseTransformation extends DefaultFormulaVisitor<BooleanFormula> {
+
+      private final FormulaManagerView fmgr;
+
+      private IfThenElseTransformation(FormulaManagerView pFmgr) {
+        fmgr = pFmgr;
+      }
+
+      @Override
+      protected BooleanFormula visitDefault(Formula pF) {
+        return (BooleanFormula) pF;
+      }
+
+      @Override
+      public BooleanFormula visitFunction(
+          Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+
+        FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
+        if (IF_THEN_ELSE_FUNCTIONS.contains(kind)) {
+
+          Optional<Triple<BooleanFormula, Formula, Formula>> ifThenElse =
+              fmgr.splitIfThenElse(pArgs.get(1));
+
+          // right hand side is if-then-else
+          if (ifThenElse.isPresent()) {
+            return transformIfThenElse(getFunction(kind, false), pArgs.get(0), ifThenElse);
+
+          } else { // check left hand side
+            ifThenElse = fmgr.splitIfThenElse(pArgs.get(0));
+
+            // left hand side is if-then-else
+            if (ifThenElse.isPresent()) {
+              return transformIfThenElse(getFunction(kind, false), pArgs.get(1), ifThenElse);
+            }
+          }
+        }
+
+        return (BooleanFormula) pF;
+      }
+
+      private BooleanFormula transformIfThenElse(
+          BiFunction<Formula, Formula, BooleanFormula> function,
+          Formula otherArg,
+          Optional<Triple<BooleanFormula, Formula, Formula>> ifThenElse) {
+
+        BooleanFormula condition = ifThenElse.get().getFirst();
+        Formula thenFomula = ifThenElse.get().getSecond();
+        Formula elseFomula = ifThenElse.get().getThird();
+        return fmgr.makeOr(
+            fmgr.makeAnd(function.apply(otherArg, thenFomula), condition),
+            fmgr.makeAnd(function.apply(otherArg, elseFomula), fmgr.makeNot(condition)));
+      }
+
+      private BiFunction<Formula, Formula, BooleanFormula> getFunction(
+          FunctionDeclarationKind functionKind, boolean swapArguments) {
+        BiFunction<Formula, Formula, BooleanFormula> baseFunction;
+        switch (functionKind) {
+          case EQ:
+            baseFunction = fmgr::makeEqual;
+            break;
+          case GT:
+            baseFunction = (f1, f2) -> fmgr.makeLessOrEqual(f1, f2, true);
+            break;
+          case GTE:
+            baseFunction = (f1, f2) -> fmgr.makeLessOrEqual(f1, f2, true);
+            break;
+          case LT:
+            baseFunction = (f1, f2) -> fmgr.makeLessOrEqual(f1, f2, true);
+            break;
+          case LTE:
+            baseFunction = (f1, f2) -> fmgr.makeGreaterThan(f1, f2, true);
+            break;
+
+          default:
+            throw new AssertionError();
+        }
+
+        BiFunction<Formula, Formula, BooleanFormula> function;
+        if (swapArguments) {
+          function = (f1, f2) -> baseFunction.apply(f2, f1);
+        } else {
+          function = baseFunction;
+        }
+        return function;
+      }
+    }
+  }
+
   private static class NotEqualElimination extends BooleanFormulaTransformationVisitor {
 
     private final FormulaManagerView fmgr;
 
     private final StrictInequalityTransformation strictInequalityTransformation;
+    private final InvertInequalityTransformation invertInequalityTransformation;
 
     private NotEqualElimination(FormulaManagerView pFmgr) {
       super(pFmgr);
       fmgr = pFmgr;
       strictInequalityTransformation = new StrictInequalityTransformation(pFmgr);
+      invertInequalityTransformation = new InvertInequalityTransformation(pFmgr);
     }
 
     @Override
@@ -269,8 +396,11 @@ class LassoBuilder {
         return fmgr.makeOr(
             fmgr.visit(strictInequalityTransformation, split.get(0)),
             fmgr.visit(strictInequalityTransformation, split.get(1)));
+
+        // handle <,<=, >, >=
+      } else {
+        return fmgr.visit(invertInequalityTransformation, pOperand);
       }
-      return super.visitNot(pOperand);
     }
 
     private static class StrictInequalityTransformation
@@ -300,6 +430,50 @@ class LassoBuilder {
             || pFunctionDeclaration.getName().equals("<=")) {
           assert pNewArgs.size() == 2;
           return fmgr.makeLessThan(pNewArgs.get(0), pNewArgs.get(1), true);
+
+        } else {
+          return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);
+        }
+      }
+    }
+
+    private static class InvertInequalityTransformation
+        extends DefaultFormulaVisitor<BooleanFormula> {
+
+      private final FormulaManagerView fmgr;
+
+      private InvertInequalityTransformation(FormulaManagerView pFmgr) {
+        fmgr = pFmgr;
+      }
+
+      @Override
+      protected BooleanFormula visitDefault(Formula pF) {
+        return (BooleanFormula) pF;
+      }
+
+      @Override
+      public BooleanFormula visitFunction(
+          Formula pF, List<Formula> pNewArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+
+        if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.GTE)
+            || pFunctionDeclaration.getName().equals(">=")) {
+          assert pNewArgs.size() == 2;
+          return fmgr.makeLessThan(pNewArgs.get(0), pNewArgs.get(1), true);
+
+        } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.LTE)
+            || pFunctionDeclaration.getName().equals("<=")) {
+          assert pNewArgs.size() == 2;
+          return fmgr.makeGreaterThan(pNewArgs.get(0), pNewArgs.get(1), true);
+
+        } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.GT)
+            || pFunctionDeclaration.getName().equals(">")) {
+          assert pNewArgs.size() == 2;
+          return fmgr.makeLessOrEqual(pNewArgs.get(0), pNewArgs.get(1), true);
+
+        } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.LT)
+            || pFunctionDeclaration.getName().equals("<")) {
+          assert pNewArgs.size() == 2;
+          return fmgr.makeGreaterOrEqual(pNewArgs.get(0), pNewArgs.get(1), true);
 
         } else {
           return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);
