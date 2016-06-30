@@ -877,28 +877,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return bfmgr.makeBoolean(true);
     }
 
-    if (!options.useArraysForHeap() && declarationType instanceof CArrayType) {
-      CType elementType = ((CArrayType)declarationType).getType();
-      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType().isFloatingPointType()) {
-
-        CExpression length = ((CArrayType)declarationType).getLength();
-        if (length instanceof CIntegerLiteralExpression) {
-          if (((CIntegerLiteralExpression) length).getValue().longValue() > 100) {
-            throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
-          }
-        }
-      }
-
-      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType() == CBasicType.INT) {
-
-        CExpression length = ((CArrayType)declarationType).getLength();
-        if (length instanceof CIntegerLiteralExpression) {
-          if (((CIntegerLiteralExpression) length).getValue().longValue() >= 10000) {
-            throw new UnsupportedCCodeException("large integer array", declarationEdge);
-          }
-        }
-      }
-    }
+    checkForLargeArray(declarationEdge, declarationType);
 
     if (errorConditions.isEnabled()) {
       final Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
@@ -984,6 +963,39 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     return result;
+  }
+
+  /**
+   * Check whether a large array is declared and abort analysis in this case.
+   * This is a heuristic for SV-COMP to avoid
+   * wasting a lot of time for programs we probably cannot handle anyway
+   * or returning a wrong answer.
+   */
+  private void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
+      throws UnsupportedCCodeException {
+    if (options.useArraysForHeap() || options.useQuantifiersOnArrays()) {
+      return; // unbounded heap encodings should be able to handle large arrays
+    }
+
+    if (!(declarationType instanceof CArrayType)) {
+      return;
+    }
+    CArrayType arrayType = (CArrayType) declarationType;
+    CType elementType = arrayType.getType();
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+      if (CTypeUtils.getArrayLength(arrayType).orElse(0) > 100) {
+        throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+      }
+    }
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+      if (CTypeUtils.getArrayLength(arrayType).orElse(0) >= 10000) {
+        throw new UnsupportedCCodeException("large integer array", declarationEdge);
+      }
+    }
   }
 
   /**
