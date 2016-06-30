@@ -467,7 +467,7 @@ public class TerminationTransferRelation implements TransferRelation {
     CFANode node5 = creatCfaNode(functionName);
     initializePrimedVariables(node4, node5, statesAtNode4, pPrecision)
         .stream()
-        .map(TerminationState::enterLoop) // pc' = loopHead
+        .map((s) -> s.enterLoop(loopHead)) // pc' = loopHead
         .forEach(statesAtNode5::add);
 
     // node3 - [__CPAchecker_termination_temp == 0] -> node 5

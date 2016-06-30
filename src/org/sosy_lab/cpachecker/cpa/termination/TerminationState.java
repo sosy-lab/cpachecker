@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.termination;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -54,7 +56,11 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private static final long serialVersionUID = 4L;
 
-  private final boolean loop;
+  /**
+   * The location where the loop of the lasso was entered
+   * or <code>null</code> iff this state is part of the stem
+   */
+  private final @Nullable CFANode hondaLocation;
 
   private final boolean dummyLocation;
 
@@ -66,14 +72,14 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private TerminationState(
       AbstractState pWrappedState,
-      boolean pLoop,
+      @Nullable CFANode pHondaLocation,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges,
       @Nullable Set<Property> pviolatedProperties,
       @Nullable RankingRelation pUnsatisfiedRankingRelation) {
     super(checkNotNull(pWrappedState));
     Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
-    loop = pLoop;
+    hondaLocation = pHondaLocation;
     dummyLocation = pDummyLocation;
     enteringEdges = checkNotNull(pEnteringEdges);
     violatedProperties = pviolatedProperties;
@@ -82,10 +88,10 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private TerminationState(
       AbstractState pWrappedState,
-      boolean pLoop,
+      @Nullable CFANode pHondaLocation,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges) {
-    this(pWrappedState, pLoop, pDummyLocation, pEnteringEdges, null, null);
+    this(pWrappedState, pHondaLocation, pDummyLocation, pEnteringEdges, null, null);
   }
 
   /**
@@ -97,7 +103,7 @@ public class TerminationState extends AbstractSingleWrapperState
    * @return the created {@link TerminationState}
    */
   public static TerminationState createStemState(AbstractState pWrappedState) {
-    return new TerminationState(pWrappedState, false, false, Collections.emptyList());
+    return new TerminationState(pWrappedState, null, false, Collections.emptyList());
   }
 
   /**
@@ -109,17 +115,17 @@ public class TerminationState extends AbstractSingleWrapperState
    * @return the created {@link TerminationState}
    */
   public TerminationState withWrappedState(AbstractState pWrappedState) {
-    return new TerminationState(pWrappedState, loop, dummyLocation, enteringEdges);
+    return new TerminationState(pWrappedState, hondaLocation, dummyLocation, enteringEdges);
   }
 
   /**
    * Creates a new {@link TerminationState} that is the first state of the lasso's loop.
-   *
+   * @param pHondaLocation the first location of the loop
    * @return the created {@link TerminationState}
    */
-  public TerminationState enterLoop() {
-    Preconditions.checkArgument(!loop, "% is already part of the lasso's loop", this);
-    return new TerminationState(getWrappedState(), true, dummyLocation, enteringEdges);
+  public TerminationState enterLoop(CFANode pHondaLocation) {
+    checkArgument(isPartOfStem(), "% is entered the lasso's loop at %s", this, hondaLocation);
+    return new TerminationState(getWrappedState(), pHondaLocation, dummyLocation, enteringEdges);
   }
 
   /**
@@ -130,7 +136,7 @@ public class TerminationState extends AbstractSingleWrapperState
    * @return the created {@link TerminationState}
    */
   public TerminationState withDummyLocation(Collection<CFAEdge> pEnteringEdges) {
-    return new TerminationState(getWrappedState(), loop, true, pEnteringEdges);
+    return new TerminationState(getWrappedState(), hondaLocation, true, pEnteringEdges);
   }
 
   /**
@@ -144,7 +150,7 @@ public class TerminationState extends AbstractSingleWrapperState
     Preconditions.checkNotNull(pViolatedProperties);
     Preconditions.checkArgument(!pViolatedProperties.isEmpty());
     return new TerminationState(
-        getWrappedState(), loop, dummyLocation, enteringEdges, pViolatedProperties, null);
+        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pViolatedProperties, null);
   }
 
   /**
@@ -159,7 +165,7 @@ public class TerminationState extends AbstractSingleWrapperState
     Preconditions.checkNotNull(pUnsatisfiedRankingRelation);
     return new TerminationState(
         getWrappedState(),
-        loop,
+        hondaLocation,
         dummyLocation,
         enteringEdges,
         violatedProperties,
@@ -180,14 +186,19 @@ public class TerminationState extends AbstractSingleWrapperState
    * @return <code>true</code> iff this {@link TerminationState} is part of the lasso's loop.
    */
   public boolean isPartOfLoop() {
-    return loop;
+    return hondaLocation != null;
   }
 
   /**
    * @return <code>true</code> iff this {@link TerminationState} is part of the lasso's stem.
    */
   public boolean isPartOfStem() {
-    return !loop;
+    return hondaLocation == null;
+  }
+
+
+  public CFANode getHondaLocation() {
+    return hondaLocation;
   }
 
   @Override
@@ -217,10 +228,10 @@ public class TerminationState extends AbstractSingleWrapperState
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
-    if (loop) {
-      sb.append("loop");
-    } else {
+    if (isPartOfStem()) {
       sb.append("stem");
+    } else {
+      sb.append("loop");
     }
 
     if (getWrappedState() instanceof Graphable) {
@@ -243,10 +254,10 @@ public class TerminationState extends AbstractSingleWrapperState
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(TerminationState.class.getSimpleName());
-    if (loop) {
-      sb.append("(loop)");
+    if (isPartOfStem()) {
+      sb.append(("stem"));
     } else {
-      sb.append("(stem)");
+      sb.append(("loop"));
     }
 
     sb.append(" ");
