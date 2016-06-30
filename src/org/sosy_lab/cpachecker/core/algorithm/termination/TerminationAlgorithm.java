@@ -304,12 +304,12 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
         LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
             lassoAnalysis.checkTermination(counterexample, relevantVariables);
 
-        if (lassoAnalysisResult.getNonTerminationArgument().isPresent()) {
+        if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetStateWithCounterExample.get());
           result = Result.FALSE;
 
-        } else if (lassoAnalysisResult.getTerminationArgument().isPresent()) {
-          RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument().get();
+        } else if (lassoAnalysisResult.hasTerminationArgument()) {
+          RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument();
 
           // Do not add a ranking relation twice
           if (rankingRelations.add(rankingRelation)) {

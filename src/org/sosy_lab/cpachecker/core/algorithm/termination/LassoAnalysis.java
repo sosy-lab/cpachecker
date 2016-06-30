@@ -76,12 +76,24 @@ public interface LassoAnalysis {
       terminationArgument = checkNotNull(pTerminationArgument);
     }
 
-    public Optional<?> getNonTerminationArgument() {
-      return nonTerminationArgument;
+    public Object getNonTerminationArgument() {
+      return nonTerminationArgument.get();
     }
 
-    public Optional<RankingRelation> getTerminationArgument() {
-      return terminationArgument;
+    public RankingRelation getTerminationArgument() {
+      return terminationArgument.get();
+    }
+
+    public boolean isUnknowm() {
+      return !hasNonTerminationArgument() && !hasTerminationArgument();
+    }
+
+    public boolean hasNonTerminationArgument() {
+      return nonTerminationArgument.isPresent();
+    }
+
+    public boolean hasTerminationArgument() {
+      return terminationArgument.isPresent();
     }
 
     @CheckReturnValue
@@ -99,21 +111,9 @@ public interface LassoAnalysis {
         assert hasTerminationArgument() && pOther.hasTerminationArgument();
 
         RankingRelation newRankingRelation =
-            getTerminationArgument().get().merge(pOther.getTerminationArgument().get());
+            getTerminationArgument().merge(pOther.getTerminationArgument());
         return new LassoAnalysisResult(Optional.empty(), Optional.of(newRankingRelation));
       }
-    }
-
-    public boolean isUnknowm() {
-      return !nonTerminationArgument.isPresent() && !terminationArgument.isPresent();
-    }
-
-    public boolean hasNonTerminationArgument() {
-      return nonTerminationArgument.isPresent();
-    }
-
-    public boolean hasTerminationArgument() {
-      return terminationArgument.isPresent();
     }
   }
 }
