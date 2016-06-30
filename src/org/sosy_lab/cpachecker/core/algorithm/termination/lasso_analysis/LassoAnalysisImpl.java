@@ -187,16 +187,19 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException, InterruptedException {
 
+    LassoAnalysisResult result = LassoAnalysisResult.unknown();
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
       logger.logf(Level.FINE, "Analysing (non)-termination of lasso:\n%s.", lasso);
-      LassoAnalysisResult result = checkTermination(lasso, pRelevantVariables);
-      if (!result.isUnknowm()) {
+      LassoAnalysisResult resultFromLasso = checkTermination(lasso, pRelevantVariables);
+      result = result.update(resultFromLasso);
+
+      if (result.hasNonTerminationArgument()) {
         return result;
       }
     }
 
-    return LassoAnalysisResult.unknown();
+    return result;
   }
 
   private LassoAnalysisResult checkTermination(

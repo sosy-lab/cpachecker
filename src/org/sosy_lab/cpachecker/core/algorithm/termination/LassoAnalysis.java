@@ -39,6 +39,8 @@ import org.sosy_lab.solver.api.SolverContext;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.annotation.CheckReturnValue;
+
 public interface LassoAnalysis {
 
   LassoAnalysisResult checkTermination(
@@ -82,8 +84,36 @@ public interface LassoAnalysis {
       return terminationArgument;
     }
 
+    @CheckReturnValue
+    public LassoAnalysisResult update(LassoAnalysisResult pOther) {
+      if (isUnknowm()) {
+        return pOther;
+      } else if (pOther.isUnknowm()) {
+        return this;
+      } else if (hasNonTerminationArgument()) {
+        return this;
+      } else if (pOther.hasNonTerminationArgument()) {
+        return pOther;
+
+      } else { // merge
+        assert hasTerminationArgument() && pOther.hasTerminationArgument();
+
+        RankingRelation newRankingRelation =
+            getTerminationArgument().get().merge(pOther.getTerminationArgument().get());
+        return new LassoAnalysisResult(Optional.empty(), Optional.of(newRankingRelation));
+      }
+    }
+
     public boolean isUnknowm() {
       return !nonTerminationArgument.isPresent() && !terminationArgument.isPresent();
+    }
+
+    public boolean hasNonTerminationArgument() {
+      return nonTerminationArgument.isPresent();
+    }
+
+    public boolean hasTerminationArgument() {
+      return terminationArgument.isPresent();
     }
   }
 }
