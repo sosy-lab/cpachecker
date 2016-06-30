@@ -955,7 +955,14 @@ div pre{
             if (id.contains("cfa")) {
                 document.getElementById("cfaGraph-" + $rootScope.selectedCFAFunction).transform.baseVal.getItem(0).setScale($scope.zoomFactorCFA / 100, $scope.zoomFactorCFA / 100);
             } else if (id.contains("arg")){
-                document.getElementById("argGraph-" + $rootScope.functions.length).transform.baseVal.getItem(0).setScale($scope.zoomFactorARG / 100, $scope.zoomFactorARG / 100);
+                // TODO: There should be a way to find the graph in one step
+                for (var i = ($rootScope.functions.length + 1); i >= 0; --i) {
+                  var graph = document.getElementById("argGraph-" + i);
+                  if (graph != null) {
+                    graph.transform.baseVal.getItem(0).setScale($scope.zoomFactorARG / 100, $scope.zoomFactorARG / 100);
+                    break;
+                  }
+                }
             }
         };
 
