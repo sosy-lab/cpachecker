@@ -177,31 +177,13 @@ public class CFunctionPointerResolver {
         // do nothing
         break;
         case EQ_PARAM_COUNT:
-          predicates.add(
-              (functionCall, functionType) -> {
-                boolean result =
-                    checkParamSizes(functionCall.getFunctionCallExpression(), functionType);
-                if (!result) {
-                  logger.log(
-                      Level.FINEST,
-                      "Function call",
-                      functionCall.toASTString(),
-                      "does not match function",
-                      functionType,
-                      "because of number of parameters.");
-                }
-                return result;
-              });
+          predicates.add(this::checkParamCount);
           break;
         case EQ_PARAM_SIZES:
-          predicates.add(
-              (functionCall, functionType) ->
-                  checkReturnAndParamSizes(functionCall.getFunctionCallExpression(), functionType));
+          predicates.add(this::checkReturnAndParamSizes);
           break;
         case EQ_PARAM_TYPES:
-          predicates.add(
-              (functionCall, functionType) ->
-                  checkReturnAndParamTypes(functionCall.getFunctionCallExpression(), functionType));
+          predicates.add(this::checkReturnAndParamTypes);
           break;
         case RETURN_VALUE:
           predicates.add(this::checkReturnValue);
@@ -438,8 +420,8 @@ public class CFunctionPointerResolver {
         .toList();
   }
 
-  private boolean checkReturnAndParamSizes(
-      CFunctionCallExpression functionCallExpression, CFunctionType functionType) {
+  private boolean checkReturnAndParamSizes(CFunctionCall functionCall, CFunctionType functionType) {
+    final CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
     final MachineModel machine = cfa.getMachineModel();
 
     CType declRet = functionType.getReturnType();
@@ -468,8 +450,8 @@ public class CFunctionPointerResolver {
     return true;
   }
 
-  private boolean checkReturnAndParamTypes(
-      CFunctionCallExpression functionCallExpression, CFunctionType functionType) {
+  private boolean checkReturnAndParamTypes(CFunctionCall functionCall, CFunctionType functionType) {
+    final CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
 
     CType declRet = functionType.getReturnType();
     CType actRet = functionCallExpression.getExpressionType();
@@ -523,8 +505,9 @@ public class CFunctionPointerResolver {
     return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
   }
 
-  private boolean checkParamSizes(CFunctionCallExpression functionCallExpression,
-      CFunctionType functionType) {
+  private boolean checkParamCount(CFunctionCall functionCall, CFunctionType functionType) {
+    final CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+
     //get the parameter expression
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();
 
@@ -532,6 +515,27 @@ public class CFunctionPointerResolver {
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
 
-    return (functionType.takesVarArgs() && declaredParameters <= actualParameters) || (declaredParameters == actualParameters);
+    if (actualParameters < declaredParameters) {
+      logger.log(
+          Level.FINEST,
+          "Function call",
+          functionCallExpression.toASTString(),
+          "does not match function",
+          functionType,
+          "because there are not enough actual parameters.");
+      return false;
+    }
+
+    if (!functionType.takesVarArgs() && actualParameters > declaredParameters) {
+      logger.log(
+          Level.FINEST,
+          "Function call",
+          functionCallExpression.toASTString(),
+          "does not match function",
+          functionType,
+          "because there are too many actual parameters.");
+      return false;
+    }
+    return true;
   }
 }
