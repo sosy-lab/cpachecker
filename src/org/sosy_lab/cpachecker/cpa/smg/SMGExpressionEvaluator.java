@@ -991,13 +991,15 @@ public class SMGExpressionEvaluator {
               evaluateNonAddressValue(newState, cfaEdge, exp.getSubscriptExpression());
           for (SMGValueAndState symbolicValueAndState: subscriptSymbolicValueAndStates.getValueAndStateList()) {
             SMGSymbolicValue value = symbolicValueAndState.getObject();
-            int size = arrayAddress.getObject().getSize();
-            int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
-            int index = (size / typeSize) + 1;
-            int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType
-                (), newState, exp) * machineModel.getSizeofCharInBits();
-            newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
-                subscriptSize, cfaEdge);
+            if (!value.isUnknown() && !newState.isObjectExternallyAllocated(arrayAddress.getObject())) {
+              int size = arrayAddress.getObject().getSize();
+              int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
+              int index = (size / typeSize) + 1;
+              int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType
+                  (), newState, exp) * machineModel.getSizeofCharInBits();
+              newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
+                  subscriptSize, cfaEdge);
+            }
           }
           // assume address is invalid
           //throw new SMGInconsistentException("Can't properly evaluate array subscript");
