@@ -351,7 +351,7 @@ public class TerminationTransferRelation implements TransferRelation {
   private Collection<TerminationState> insertRankingRelation(
       TerminationState loopHeadState, Precision pPrecision, CFANode loopHead)
       throws CPATransferException, InterruptedException {
-    Collection<TerminationState> resultingSuccessors = Lists.newArrayList();
+    Collection<TerminationState> resultingSuccessors = Lists.newArrayListWithCapacity(4);
     String functionName = loopHead.getFunctionName();
 
     logger.logf(
@@ -381,16 +381,15 @@ public class TerminationTransferRelation implements TransferRelation {
           getAbstractSuccessorsForEdge0(
               potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
-      if (!targetStates.isEmpty()) {
-        // Use a direct edge from the loopHead to the target state
-        // because the intermediate state is never viable to any other component.
-        CFAEdge edgeToTargetState = createNegatedRankingRelationAssumeEdge(loopHead, targetNode);
-        return targetStates
+      // Use a direct edge from the loopHead to the target state
+      // because the intermediate state is never visable to any other component.
+      CFAEdge edgeToTargetState = createNegatedRankingRelationAssumeEdge(loopHead, targetNode);
+      resultingSuccessors.addAll(
+          targetStates
             .stream()
             .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
             .map(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
-            .collect(Collectors.toList());
-      }
+            .collect(Collectors.toList()));
     }
 
     CFANode node1 = creatCfaNode(functionName);
