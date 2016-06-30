@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
-import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.EQ;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.GT;
@@ -38,7 +37,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
@@ -68,7 +66,6 @@ import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -181,10 +178,9 @@ class LassoBuilder {
         if (!solver.isUnsat(path)) {
 
           LinearTransition stemTransition =
-              createLinearTransition(stem, stemPathFormula.getSsa(), Optional.empty());
-          Optional<Map<RankVar, Term>> stemOutVars = Optional.of(stemTransition.getOutVars());
+              createLinearTransition(stem, SSAMap.emptySSAMap(), stemPathFormula.getSsa());
           LinearTransition loopTransition =
-              createLinearTransition(loop, loopPathFormula.getSsa(), stemOutVars);
+              createLinearTransition(loop, stemPathFormula.getSsa(), loopPathFormula.getSsa());
 
           Lasso lasso = new Lasso(stemTransition, loopTransition);
           lassos.add(lasso);
@@ -196,21 +192,11 @@ class LassoBuilder {
   }
 
   private LinearTransition createLinearTransition(
-      BooleanFormula path, SSAMap ssa, Optional<Map<RankVar, Term>> potentialInVars)
+      BooleanFormula path, SSAMap inSsa, SSAMap outSSa)
       throws TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
-    Map<RankVar, Term> outVars = extractOutVars(path, ssa);
-
-    // an  output variable of the stem is an input variable of the loop
-    // if it exists an output variable of the loop with the same identifier
-    Set<String> outVarNames =
-        outVars.keySet().stream().map(RankVar::getGloballyUniqueId).collect(toSet());
-    Map<RankVar, Term> inVars =
-        potentialInVars
-            .map(vars -> Maps.filterKeys(vars, v -> outVarNames.contains(v.getGloballyUniqueId())))
-            .orElse(Collections.emptyMap());
-
-    return new LinearTransition(polyhedra, inVars, outVars);
+    InOutVariables rankVars = extractRankVars(path, inSsa, outSSa);
+    return new LinearTransition(polyhedra, rankVars.getInVars(), rankVars.getOutVars());
   }
 
   private Collection<BooleanFormula> toDnf(PathFormula path) throws InterruptedException {
@@ -244,23 +230,27 @@ class LassoBuilder {
     return formulaManagerView.getBooleanFormulaManager().transformRecursively(visitor, formula);
   }
 
-  private Map<RankVar, Term> extractOutVars(BooleanFormula path, SSAMap ssa) {
-    VeriablesCollector outVeriablesCollector = new VeriablesCollector(ssa);
-    formulaManagerView.visitRecursively(outVeriablesCollector, path);
+  private InOutVariables extractRankVars(BooleanFormula path, SSAMap inSsa, SSAMap outSsa) {
+    InOutVariablesCollector veriablesCollector = new InOutVariablesCollector(inSsa, outSsa);
+    formulaManagerView.visitRecursively(veriablesCollector, path);
+    Map<RankVar, Term> inRankVars = createRankVars(veriablesCollector.getInVariables());
+    Map<RankVar, Term> outRankVars = createRankVars(veriablesCollector.getOutVariables());
+    return new InOutVariables(inRankVars, outRankVars);
+  }
 
-    ImmutableMap.Builder<RankVar, Term> outVars = ImmutableMap.builder();
-    for (Formula variable : outVeriablesCollector.getVariables()) {
+  private Map<RankVar, Term> createRankVars(Set<Formula> variables) {
+    ImmutableMap.Builder<RankVar, Term> rankVars = ImmutableMap.builder();
+    for (Formula variable : variables) {
       Term term = formulaManager.extractInfo(variable);
       Formula uninstantiatedVariable = formulaManagerView.uninstantiate(variable);
       Set<String> variableNames = formulaManagerView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
 
       if (!META_VARIABLES.contains(variableName)) {
-        outVars.put(new TermRankVar(variableName, term), term);
+        rankVars.put(new TermRankVar(variableName, term), term);
       }
     }
-
-    return outVars.build();
+    return rankVars.build();
   }
 
   private static class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
@@ -539,13 +529,16 @@ class LassoBuilder {
     }
   }
 
-  private static class VeriablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
+  private static class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
-    private final Set<Formula> variables = Sets.newLinkedHashSet();
-    private final SSAMap ssa;
+    private final Set<Formula> inVariables = Sets.newLinkedHashSet();
+    private final Set<Formula> outVariables = Sets.newLinkedHashSet();
+    private final SSAMap outVariablesSsa;
+    private final SSAMap inVariablesSsa;
 
-    public VeriablesCollector(SSAMap pSsa) {
-      ssa = pSsa;
+    public InOutVariablesCollector(SSAMap pInVariablesSsa, SSAMap pOutVariablesSsa) {
+      outVariablesSsa = pOutVariablesSsa;
+      inVariablesSsa = pInVariablesSsa;
     }
 
     @Override
@@ -559,15 +552,41 @@ class LassoBuilder {
       if (tokens.size() == 2) {
         String name = tokens.get(0);
         String index = tokens.get(1);
-        if (Integer.toString(ssa.getIndex(name)).equals(index)) {
-          variables.add(pF);
+        if (Integer.toString(outVariablesSsa.getIndex(name)).equals(index)) {
+          outVariables.add(pF);
+        }
+        if (Integer.toString(inVariablesSsa.getIndex(name)).equals(index)) {
+          inVariables.add(pF);
         }
       }
       return TraversalProcess.CONTINUE;
     }
 
-    public Set<Formula> getVariables() {
-      return variables;
+    public Set<Formula> getInVariables() {
+      return inVariables;
+    }
+
+    public Set<Formula> getOutVariables() {
+      return outVariables;
+    }
+  }
+
+  private static class InOutVariables {
+
+    private final Map<RankVar, Term> inVars;
+    private final Map<RankVar, Term> outVars;
+
+    public InOutVariables(Map<RankVar, Term> pInVars, Map<RankVar, Term> pOutVars) {
+      inVars = checkNotNull(pInVars);
+      outVars = checkNotNull(pOutVars);
+    }
+
+    public Map<RankVar, Term> getInVars() {
+      return inVars;
+    }
+
+    public Map<RankVar, Term> getOutVars() {
+      return outVars;
     }
   }
 }
