@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
@@ -115,6 +116,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  private final ReachedSetFactory reachedSetFactory;
   private final Algorithm safetyAlgorithm;
   private final ConfigurableProgramAnalysis safetyCPA;
 
@@ -123,11 +125,13 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   private final Set<CVariableDeclaration> globalDeclaration;
   private final SetMultimap<String, CVariableDeclaration> localDeclarations;
 
+
   public TerminationAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
+      ReachedSetFactory pReachedSetFactory,
       Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
@@ -138,6 +142,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
     cfa = checkNotNull(pCfa);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
 
     Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
     Preconditions.checkArgument(
@@ -218,7 +223,6 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
-
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
 
     Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
@@ -240,6 +244,10 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       statistics.analysisOfLoopFinished();
+    }
+
+    if (status.isSound()) {
+      status.update(checkRecursion(initialLocation));
     }
 
     // We did not find a non-terminating loop.
@@ -397,6 +405,22 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     newTargetState.addCounterexampleInformation(newCounterexample);
 
     return newTargetState;
+  }
+
+  private AlgorithmStatus checkRecursion(CFANode initialLocation) throws
+      CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+    statistics.analysisOfRecursionStarted();
+
+    // the safety analysis will fail if the program is recursive
+    try {
+      terminationCpa.reset();
+      ReachedSet reachedSet = reachedSetFactory.create();
+      resetReachedSet(reachedSet, initialLocation);
+      return safetyAlgorithm.run(reachedSet);
+    } finally {
+      statistics.analysisOfRecursionFinished();
+    }
   }
 
   private void resetReachedSet(ReachedSet pReachedSet, CFANode initialLocation)

@@ -249,6 +249,19 @@ public class TerminationTransferRelation implements TransferRelation {
     relevantVariables = builder.build();
   }
 
+  /**
+   * The {@link TerminationTransferRelation} is reseted.
+   * No loop will be checked for non-termination.
+   */
+  void reset() {
+    loop = Optional.empty();
+    loopLeavingLocations = Collections.emptySet();
+    loopLeavingEdges = Collections.emptySet();
+    relevantVariables = Collections.emptyMap();
+    relevantVariablesInitializationIntermediateLocations = Collections.emptyList();
+    targetNode = null;
+  }
+
   @Override
   public Collection<? extends TerminationState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)

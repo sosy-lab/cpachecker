@@ -338,6 +338,7 @@ public class CoreComponentsFactory {
             logger,
             shutdownNotifier,
             cfa,
+            reachedSetFactory,
             specification,
             algorithm,
             cpa);

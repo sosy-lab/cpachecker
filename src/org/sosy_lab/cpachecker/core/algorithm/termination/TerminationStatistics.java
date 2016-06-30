@@ -47,6 +47,8 @@ public class TerminationStatistics implements Statistics {
 
   private final Timer loopTime = new Timer();
 
+  private final Timer recursionTime = new Timer();
+
   private final Timer safetyAnalysisTime = new Timer();
 
   private final Timer lassoTime = new Timer();
@@ -92,6 +94,7 @@ public class TerminationStatistics implements Statistics {
 
   void analysisOfLoopFinished() {
     loopTime.stop();
+    recursionTime.stopIfRunning();
     safetyAnalysisTime.stopIfRunning();
     lassoTime.stopIfRunning();
     lassoConstructionTime.stopIfRunning();
@@ -99,6 +102,14 @@ public class TerminationStatistics implements Statistics {
     lassoTerminationTime.stopIfRunning();
     maxLassosPerLoop.accumulateAndGet(lassosCurrentLoop.getAndSet(0), Math::max);
     maxSafetyAnalysisRuns.accumulateAndGet(safetyAnalysisRunsCurrentLoop.getAndSet(0), Math::max);
+  }
+
+  void analysisOfRecursionStarted() {
+    recursionTime.start();
+  }
+
+  void analysisOfRecursionFinished() {
+    recursionTime.stop();
   }
 
   void safetyAnalysisStarted() {
@@ -155,6 +166,7 @@ public class TerminationStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
     pOut.println("Total time :                                        " + totalTime);
+    pOut.println("Time for recursion analysis:                        " + recursionTime);
     pOut.println();
 
     int loops = loopTime.getNumberOfIntervals();

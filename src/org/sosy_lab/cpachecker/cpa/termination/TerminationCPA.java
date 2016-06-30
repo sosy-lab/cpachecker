@@ -86,6 +86,13 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
     transferRelation.setProcessedLoop(loop, pRelevantVariables);
   }
 
+  /**
+   * The {@link TerminationCPA} is reseted. No loop will be checked for non-termination.
+   */
+  public void reset() {
+    transferRelation.reset();
+  }
+
   public Configuration getConfig() {
     return config;
   }
