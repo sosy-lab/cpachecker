@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -78,6 +76,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 
 /**
@@ -118,7 +117,7 @@ public class CFunctionPointerResolver {
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private final Predicate<Pair<CFunctionCall, CFunctionType>> matchingFunctionCall;
+  private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
   private final MutableCFA cfa;
   private final LogManager logger;
@@ -161,7 +160,8 @@ public class CFunctionPointerResolver {
 
   }
 
-  private Predicate<Pair<CFunctionCall, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
+  private BiPredicate<CFunctionCall, CFunctionType> getFunctionSetPredicate(
+      Collection<FunctionSet> pFunctionSets) {
     // note that this set is sorted according to the declaration order of the enum
     EnumSet<FunctionSet> functionSets = EnumSet.copyOf(pFunctionSets);
 
@@ -170,7 +170,7 @@ public class CFunctionPointerResolver {
       functionSets.add(FunctionSet.EQ_PARAM_COUNT); // TYPES and SIZES need COUNT checked first
     }
 
-    List<Predicate<Pair<CFunctionCall, CFunctionType>>> predicates = new ArrayList<>();
+    List<BiPredicate<CFunctionCall, CFunctionType>> predicates = new ArrayList<>();
     for (FunctionSet functionSet : functionSets) {
       switch (functionSet) {
       case ALL:
@@ -178,17 +178,16 @@ public class CFunctionPointerResolver {
         break;
         case EQ_PARAM_COUNT:
           predicates.add(
-              pInput -> {
+              (functionCall, functionType) -> {
                 boolean result =
-                    checkParamSizes(
-                        pInput.getFirst().getFunctionCallExpression(), pInput.getSecond());
+                    checkParamSizes(functionCall.getFunctionCallExpression(), functionType);
                 if (!result) {
                   logger.log(
                       Level.FINEST,
                       "Function call",
-                      pInput.getFirst().toASTString(),
+                      functionCall.toASTString(),
                       "does not match function",
-                      pInput.getSecond(),
+                      functionType,
                       "because of number of parameters.");
                 }
                 return result;
@@ -196,18 +195,16 @@ public class CFunctionPointerResolver {
           break;
         case EQ_PARAM_SIZES:
           predicates.add(
-              pInput ->
-                  checkReturnAndParamSizes(
-                      pInput.getFirst().getFunctionCallExpression(), pInput.getSecond()));
+              (functionCall, functionType) ->
+                  checkReturnAndParamSizes(functionCall.getFunctionCallExpression(), functionType));
           break;
         case EQ_PARAM_TYPES:
           predicates.add(
-              pInput ->
-                  checkReturnAndParamTypes(
-                      pInput.getFirst().getFunctionCallExpression(), pInput.getSecond()));
+              (functionCall, functionType) ->
+                  checkReturnAndParamTypes(functionCall.getFunctionCallExpression(), functionType));
           break;
         case RETURN_VALUE:
-          predicates.add(pInput -> checkReturnValue(pInput.getFirst(), pInput.getSecond()));
+          predicates.add(this::checkReturnValue);
           break;
       case USED_IN_CODE:
         // Not necessary, only matching functions are in the
@@ -217,7 +214,7 @@ public class CFunctionPointerResolver {
         throw new AssertionError();
       }
     }
-    return Predicates.and(predicates);
+    return predicates.stream().reduce((a, b) -> true, BiPredicate::and);
   }
 
   /**
@@ -437,9 +434,7 @@ public class CFunctionPointerResolver {
   private List<CFunctionEntryNode> getFunctionSet(final CFunctionCall call) {
     return from(candidateFunctions)
         .filter(CFunctionEntryNode.class)
-        .filter(
-            Predicates.compose(
-                matchingFunctionCall, f -> Pair.of(call, f.getFunctionDefinition().getType())))
+        .filter(f -> matchingFunctionCall.test(call, f.getFunctionDefinition().getType()))
         .toList();
   }
 
