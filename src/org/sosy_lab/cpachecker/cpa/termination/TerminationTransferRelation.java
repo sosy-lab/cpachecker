@@ -269,6 +269,7 @@ public class TerminationTransferRelation implements TransferRelation {
     CFANode location = AbstractStates.extractLocation(pState);
     TerminationState terminationState = (TerminationState) pState;
     Collection<TerminationState> statesAtCurrentLocation;
+    Collection<TerminationState> targetStatesAtCurrentLocation;
 
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
@@ -277,27 +278,36 @@ public class TerminationTransferRelation implements TransferRelation {
         && CFAUtils.leavingEdges(location)
             .anyMatch(edge -> loop.get().getIncomingEdges().contains(edge))) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
+      targetStatesAtCurrentLocation = Collections.emptyList();
 
     } else if (loop.map(Loop::getLoopHeads).map(lh -> lh.contains(location)).orElse(false)) {
       statesAtCurrentLocation = insertRankingRelation(terminationState, pPrecision, location);
+      targetStatesAtCurrentLocation =
+          statesAtCurrentLocation
+              .stream()
+              .filter(AbstractStates::isTargetState)
+              .collect(Collectors.toList());
+      statesAtCurrentLocation.removeAll(targetStatesAtCurrentLocation);
 
     } else {
       statesAtCurrentLocation = Collections.singleton(terminationState);
+      targetStatesAtCurrentLocation = Collections.emptyList();
     }
 
     resetCfa();
-    assert !statesAtCurrentLocation.isEmpty() : pState + " has no successors.";
+    assert !(statesAtCurrentLocation.isEmpty() && targetStatesAtCurrentLocation.isEmpty())
+        : pState + " has no successors.";
 
     Collection<TerminationState> resultingSuccessors =
         Lists.newArrayListWithCapacity(statesAtCurrentLocation.size());
-    Collection<TerminationState> targetStates =
-        statesAtCurrentLocation
-            .stream()
-            .filter(AbstractStates::isTargetState)
-            .collect(Collectors.toList());
+
+
+    // Add the non target states first because they should be added to the wait list
+    // before the CPA algorithm stops due to a target state.
+    resultingSuccessors.addAll(getAbstractSuccessors0(statesAtCurrentLocation, pPrecision));
 
     // pass negative ranking relation to other AbstarctStates
-    for (TerminationState targetState : targetStates) {
+    for (TerminationState targetState : targetStatesAtCurrentLocation) {
       Collection<? extends AbstractState> strengthenedStates =
           transferRelation.strengthen(
               targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
@@ -307,9 +317,6 @@ public class TerminationTransferRelation implements TransferRelation {
           .forEach(resultingSuccessors::add);
     }
 
-    statesAtCurrentLocation.removeAll(targetStates);
-
-    resultingSuccessors.addAll(getAbstractSuccessors0(statesAtCurrentLocation, pPrecision));
     return resultingSuccessors;
   }
 
@@ -382,7 +389,7 @@ public class TerminationTransferRelation implements TransferRelation {
               potentialNonTerminationStates, pPrecision, nonTerminationLabel);
 
       // Use a direct edge from the loopHead to the target state
-      // because the intermediate state is never visable to any other component.
+      // because the intermediate state is never visible to any other component.
       CFAEdge edgeToTargetState = createNegatedRankingRelationAssumeEdge(loopHead, targetNode);
       resultingSuccessors.addAll(
           targetStates

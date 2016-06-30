@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.solver.api.SolverContext;
 
@@ -42,7 +42,7 @@ import java.util.Set;
 public interface LassoAnalysis {
 
   LassoAnalysisResult checkTermination(
-      AbstractState targetState, Set<CVariableDeclaration> pRelevantVariables)
+      CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException;
 
   public interface Factory {

@@ -264,14 +264,14 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = Sets.newHashSet();
     int repeatedRaningFunctions = 0;
+    Set<AbstractState> previousTargetStates = Sets.newHashSet();
 
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationCpa.setProcessedLoop(pLoop, relevantVariables);
 
-    Result result = null;
-
-    while (result == null) {
+    Result result = Result.TRUE;
+    while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.safetyAnalysisStarted();
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
@@ -287,24 +287,28 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
               .stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(s -> !previousTargetStates.contains(s))
               .filter(s -> s.getCounterexampleInformation().isPresent())
               .findAny();
 
-      if (status.isSound() && !targetReached && !pReachedSet.hasWaitingState()) {
-        result = Result.TRUE;
+      // potential non-termination
+      if (status.isPrecise() && targetStateWithCounterExample.isPresent()) {
 
-      } else if (status.isPrecise() && targetStateWithCounterExample.isPresent()) {
-        AbstractState newTargetState =
-            removeIntermediateStates(pReachedSet, targetStateWithCounterExample.get());
-
+        CounterexampleInfo originalCounterexample =
+            targetStateWithCounterExample.get().getCounterexampleInformation().get();
+        ARGState loopHeadState =
+            Iterables.getOnlyElement(targetStateWithCounterExample.get().getParents());
+        ARGState nonTerminationLoopHead = createNonTerminationState(loopHeadState);
+        CounterexampleInfo counterexample =
+            removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
         LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
-            lassoAnalysis.checkTermination(newTargetState, relevantVariables);
+            lassoAnalysis.checkTermination(counterexample, relevantVariables);
 
         if (lassoAnalysisResult.getNonTerminationArgument().isPresent()) {
+          removeIntermediateStates(pReachedSet, targetStateWithCounterExample.get());
           result = Result.FALSE;
 
         } else if (lassoAnalysisResult.getTerminationArgument().isPresent()) {
-
           RankingRelation rankingRelation = lassoAnalysisResult.getTerminationArgument().get();
 
           // Do not add a ranking relation twice
@@ -314,19 +318,27 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
             repeatedRaningFunctions++;
             logger.logf(WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
             if (repeatedRaningFunctions >= maxRepeatedRankingFunctions) {
-              result = Result.UNKNOWN;
+              return Result.UNKNOWN;
             }
           }
 
           // Prepare reached set for next iteration.
           resetReachedSet(pReachedSet, initialLocation);
+          // a ranking relation was synthesized and the reached set was reseted
+          result = Result.TRUE;
 
-        } else {
+        } else { // no termination argument and no non-termination argument could be synthesized
+          logger.logf(WARNING, "Could not synthesize a termination or non-termination argument.");
+          // remove loop head from wait list, it would result in the same target state otherwise
+          pReachedSet.removeOnlyFromWaitlist(loopHeadState);
+          // we could not prove non-termination for this target state
+          pReachedSet.remove(targetStateWithCounterExample.get());
+          targetStateWithCounterExample.get().removeFromARG();
           result = Result.UNKNOWN;
         }
 
-      } else {
-        result = Result.UNKNOWN;
+      } else if (!status.isSound() || targetReached || pReachedSet.hasWaitingState()) {
+        result = Result.UNKNOWN; // unsound, but still precise
       }
     }
 
@@ -343,23 +355,16 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     return relevantVariabels;
   }
 
-  private AbstractState removeIntermediateStates(
-      ReachedSet pReachedSet, AbstractState pTargetState) {
+  private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
     Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
-
-    Optional<CounterexampleInfo> counterexample = targetState.getCounterexampleInformation();
-    if (!counterexample.isPresent()) {
-      return pTargetState;
-    }
+    Preconditions.checkArgument(targetState.getCounterexampleInformation().isPresent());
+    CounterexampleInfo counterexample = targetState.getCounterexampleInformation().get();
 
     // Remove dummy target state from ARG and replace loop head with new target state
     ARGState loopHead = Iterables.getOnlyElement(targetState.getParents());
-    TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
-    AbstractState newTerminationState =
-        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
-    ARGState newTargetState = new ARGState(newTerminationState, null);
+    ARGState newTargetState = createNonTerminationState(loopHead);
     targetState.removeFromARG();
     loopHead.replaceInARGWith(newTargetState);
 
@@ -369,9 +374,30 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     pReachedSet.remove(pTargetState);
     pReachedSet.remove(loopHead);
 
-    // Remove all intermediate states from the counterexample.
+    CounterexampleInfo newCounterexample =
+        removeDummyLocationsFromCounterExample(counterexample, newTargetState);
+    newTargetState.addCounterexampleInformation(newCounterexample);
+  }
+
+  private ARGState createNonTerminationState(AbstractState loopHead) {
+    TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
+    AbstractState newTerminationState =
+        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
+    ARGState newTargetState = new ARGState(newTerminationState, null);
+    return newTargetState;
+  }
+
+  /**
+   * Removes all intermediate states from the counterexample.
+   * @param counterexample the {@link CounterexampleInfo} to remove the states from
+   * @param newTargetState the new target state which is the last state of the counterexample
+   * @return the created {@link CounterexampleInfo}
+   */
+  private CounterexampleInfo removeDummyLocationsFromCounterExample(
+      CounterexampleInfo counterexample, ARGState newTargetState) {
+
     // The value assignments are not valid for a counterexample that witnesses non-termination.
-    ARGPath targetPath = counterexample.get().getTargetPath();
+    ARGPath targetPath = counterexample.getTargetPath();
     PathIterator targetPathIt = targetPath.fullPathIterator();
     ARGPathBuilder builder = ARGPath.builder();
     Optional<ARGState> lastStateInCfa = Optional.empty();
@@ -402,9 +428,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
     ARGPath newTargetPath = builder.build(newTargetState);
     CounterexampleInfo newCounterexample = CounterexampleInfo.feasibleImprecise(newTargetPath);
-    newTargetState.addCounterexampleInformation(newCounterexample);
-
-    return newTargetState;
+    return newCounterexample;
   }
 
   private AlgorithmStatus checkRecursion(CFANode initialLocation) throws

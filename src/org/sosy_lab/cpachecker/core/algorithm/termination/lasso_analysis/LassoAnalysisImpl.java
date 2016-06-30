@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -40,11 +39,8 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -80,6 +76,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 public class LassoAnalysisImpl implements LassoAnalysis {
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final TerminationStatistics statistics;
 
   private final Solver solver;
@@ -108,6 +105,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       TerminationStatistics pStatistics)
       throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
     Configuration solverConfig = Configuration.defaultConfiguration();
     solver = Solver.create(solverConfig, pLogger, pShutdownNotifier);
@@ -152,31 +150,23 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   @Override
   public LassoAnalysisResult checkTermination(
-      AbstractState pTargetState, Set<CVariableDeclaration> pRelevantVariables)
+      CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
     statistics.analysisOfLassosStarted();
     try {
-      return checkTermination0(pTargetState, pRelevantVariables);
+      return checkTermination0(pCounterexample, pRelevantVariables);
     } finally {
       statistics.analysisOfLassosFinished();
     }
   }
 
   private LassoAnalysisResult checkTermination0(
-      AbstractState pTargetState, Set<CVariableDeclaration> pRelevantVariables)
+      CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
-    Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
-    ARGState argState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
-    Optional<CounterexampleInfo> counterexample = argState.getCounterexampleInformation();
-    if (!counterexample.isPresent()) {
-      logger.log(Level.WARNING, "Missing counterexample information.");
-      return LassoAnalysisResult.unknown();
-    }
-
     Collection<Lasso> lassos;
     statistics.lassoConstructionStarted();
     try {
-      lassos = lassoBuilder.buildLasso(counterexample.get());
+      lassos = lassoBuilder.buildLasso(pCounterexample);
       statistics.lassosConstructed(lassos.size());
     } catch (TermException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
@@ -195,9 +185,10 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private LassoAnalysisResult checkTermination(
       Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
-      throws IOException, SMTLIBException, TermException {
+      throws IOException, SMTLIBException, TermException, InterruptedException {
 
     for (Lasso lasso : lassos) {
+      shutdownNotifier.shutdownIfNecessary();
       logger.logf(Level.FINE, "Analysing (non)-termination of lasso:\n%s.", lasso);
       LassoAnalysisResult result = checkTermination(lasso, pRelevantVariables);
       if (!result.isUnknowm()) {
