@@ -32,7 +32,6 @@ import static org.sosy_lab.solver.api.FunctionDeclarationKind.GTE;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.LT;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.LTE;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -83,8 +83,6 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class LassoBuilder {
-
-  private final static Splitter NAME_INDEX_SPLITTER = Splitter.on("@");
 
   private final static Set<String> META_VARIABLES = ImmutableSet.of("__VERIFIER_nondet_int");
 
@@ -156,17 +154,27 @@ class LassoBuilder {
 
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
     PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormula(stemPathFormula);
+    SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
     for (CFAEdge edge : loopEdges) {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);
+
+      // update SSA index of input variables
+      SSAMap currentSsa = loopPathFormula.getSsa();
+      currentSsa
+          .allVariables()
+          .stream()
+          .filter(v -> !loopInVars.allVariables().contains(v))
+          .forEach(v -> loopInVars.setIndex(v, currentSsa.getType(v), currentSsa.getIndex(v)));
     }
 
     logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
 
-    return createLassos(stemPathFormula, loopPathFormula);
+    return createLassos(stemPathFormula, loopPathFormula, loopInVars.build());
   }
 
-  private Collection<Lasso> createLassos(PathFormula stemPathFormula, PathFormula loopPathFormula)
+  private Collection<Lasso> createLassos(
+      PathFormula stemPathFormula, PathFormula loopPathFormula, SSAMap pLoopInVars)
       throws InterruptedException, TermException, SolverException {
     Collection<BooleanFormula> stemDnf = toDnf(stemPathFormula);
     Collection<BooleanFormula> loopDnf = toDnf(loopPathFormula);
@@ -180,7 +188,7 @@ class LassoBuilder {
           LinearTransition stemTransition =
               createLinearTransition(stem, SSAMap.emptySSAMap(), stemPathFormula.getSsa());
           LinearTransition loopTransition =
-              createLinearTransition(loop, stemPathFormula.getSsa(), loopPathFormula.getSsa());
+              createLinearTransition(loop, pLoopInVars, loopPathFormula.getSsa());
 
           Lasso lasso = new Lasso(stemTransition, loopTransition);
           lassos.add(lasso);
@@ -231,7 +239,8 @@ class LassoBuilder {
   }
 
   private InOutVariables extractRankVars(BooleanFormula path, SSAMap inSsa, SSAMap outSsa) {
-    InOutVariablesCollector veriablesCollector = new InOutVariablesCollector(inSsa, outSsa);
+    InOutVariablesCollector veriablesCollector =
+        new InOutVariablesCollector(formulaManagerView, inSsa, outSsa);
     formulaManagerView.visitRecursively(veriablesCollector, path);
     Map<RankVar, Term> inRankVars = createRankVars(veriablesCollector.getInVariables());
     Map<RankVar, Term> outRankVars = createRankVars(veriablesCollector.getOutVariables());
@@ -531,12 +540,16 @@ class LassoBuilder {
 
   private static class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
+    private final FormulaManagerView formulaManagerView;
+
     private final Set<Formula> inVariables = Sets.newLinkedHashSet();
     private final Set<Formula> outVariables = Sets.newLinkedHashSet();
     private final SSAMap outVariablesSsa;
     private final SSAMap inVariablesSsa;
 
-    public InOutVariablesCollector(SSAMap pInVariablesSsa, SSAMap pOutVariablesSsa) {
+    public InOutVariablesCollector(
+        FormulaManagerView pFormulaManagerView, SSAMap pInVariablesSsa, SSAMap pOutVariablesSsa) {
+      formulaManagerView = pFormulaManagerView;
       outVariablesSsa = pOutVariablesSsa;
       inVariablesSsa = pInVariablesSsa;
     }
@@ -548,17 +561,13 @@ class LassoBuilder {
 
     @Override
     public TraversalProcess visitFreeVariable(Formula pF, String pName) {
-      List<String> tokens = NAME_INDEX_SPLITTER.splitToList(pName);
-      if (tokens.size() == 2) {
-        String name = tokens.get(0);
-        String index = tokens.get(1);
-        if (Integer.toString(outVariablesSsa.getIndex(name)).equals(index)) {
-          outVariables.add(pF);
-        }
-        if (Integer.toString(inVariablesSsa.getIndex(name)).equals(index)) {
-          inVariables.add(pF);
-        }
+      if (!formulaManagerView.isIntermediate(pName, outVariablesSsa)) {
+        outVariables.add(pF);
       }
+      if (!formulaManagerView.isIntermediate(pName, inVariablesSsa)) {
+        inVariables.add(pF);
+      }
+
       return TraversalProcess.CONTINUE;
     }
 
