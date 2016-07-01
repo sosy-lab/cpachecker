@@ -49,10 +49,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -88,6 +90,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -167,7 +170,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
-    globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclaration);
+    globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclarations);
 
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
     if (!loopStructure.isPresent()) {
@@ -458,26 +461,43 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclaration = Sets.newLinkedHashSet();
+    private final Set<CVariableDeclaration> globalDeclarations = Sets.newLinkedHashSet();
 
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();
 
     @Override
+    public TraversalProcess visitNode(CFANode pNode) {
+
+      if (pNode instanceof CFunctionEntryNode) {
+        String functionName = pNode.getFunctionName();
+        List<CParameterDeclaration> parameters =
+            ((CFunctionEntryNode) pNode).getFunctionParameters();
+        parameters
+            .stream()
+            .map(CParameterDeclaration::asVariableDeclaration)
+            .forEach(localDeclarations.get(functionName)::add);
+      }
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
+
       if (pEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
 
           if (variableDeclaration.isGlobal()) {
-            globalDeclaration.add(variableDeclaration);
+            globalDeclarations.add(variableDeclaration);
+
           } else {
-            localDeclarations.put(pEdge.getPredecessor().getFunctionName(), variableDeclaration);
+            String functionName = pEdge.getPredecessor().getFunctionName();
+            localDeclarations.put(functionName, variableDeclaration);
           }
         }
       }
-
       return TraversalProcess.CONTINUE;
     }
   }
