@@ -207,7 +207,9 @@ class AssignmentHandler {
    */
   BooleanFormula handleInitializationAssignments(
       final CLeftHandSide variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCCodeException, InterruptedException {
-    if (options.useQuantifiersOnArrays() && (declarationType instanceof CArrayType)) {
+    if (options.useQuantifiersOnArrays()
+        && (declarationType instanceof CArrayType)
+        && !assignments.isEmpty()) {
       return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
     } else {
       return handleInitializationAssignmentsWithoutQuantifier(variable, assignments);
@@ -270,8 +272,6 @@ class AssignmentHandler {
 
     assert pAssignments.size() > 0 : "Cannot handle initialization assignments without an "
         + "assignment right hand side.";
-    assert fmgr.getIntegerFormulaManager() != null : "Need a formula manager for "
-        + "integers to handle initialization assignments with quantifiers";
 
     final CType lhsType = CTypeUtils.simplifyType(
         pAssignments.get(0).getLeftHandSide().getExpressionType());
