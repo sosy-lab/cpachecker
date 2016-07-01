@@ -131,6 +131,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       }
 
       if (!checkResult.get()) { return false; }
+      stats.setIteration(ioHelper.getNumPartitions());
 
       checker.addPartitionElements(partitionNodes);
       checker.addElementsCheckedInOtherPartitions(inOtherPartition);

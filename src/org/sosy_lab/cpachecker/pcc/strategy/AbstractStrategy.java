@@ -267,6 +267,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       countIterations++;
     }
 
+    public void setIteration(int numIterations) {
+      countIterations = numIterations;
+    }
+
     @Override
     public void printStatistics(PrintStream out, Result pResult,
         ReachedSet pReached) {
