@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <!--
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
 -->
-<benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="8000" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB" cpuCores="4">
 
   <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
 
