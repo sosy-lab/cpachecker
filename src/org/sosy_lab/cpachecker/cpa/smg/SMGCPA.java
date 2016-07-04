@@ -83,8 +83,15 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
   private int externalAllocationSize = Integer.MAX_VALUE;
 
+  @Option(secure = true, name = "trackPredicates", description = "Enable track predicates on SMG state")
+  private boolean trackPredicates = false;
+
   public int getExternalAllocationSize() {
     return externalAllocationSize;
+  }
+
+  public boolean getTrackPredicates() {
+    return trackPredicates;
   }
 
   private final AbstractDomain abstractDomain;
@@ -168,7 +175,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public SMGState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined,
-        runtimeCheck, externalAllocationSize, enableHeapAbstraction);
+        runtimeCheck, externalAllocationSize, trackPredicates, enableHeapAbstraction);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);

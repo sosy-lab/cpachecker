@@ -46,21 +46,22 @@ import com.google.common.collect.ImmutableMap;
 
 public class SMGInterpolant implements Interpolant<SMGState> {
 
-  private static final SMGInterpolant FALSE = new SMGInterpolant(null, null, null, 0);
+  private static final SMGInterpolant FALSE = new SMGInterpolant(null, null, null, false, 0);
 
   private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues;
   private final CLangSMG heap;
   private final LogManager logger;
   private final int externalAllocationSize;
+  private final boolean trackPredicate;
 
 
   public SMGInterpolant(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      CLangSMG pHeap,
-      LogManager pLogger, int pExternalAllocationSize) {
+      CLangSMG pHeap, LogManager pLogger, boolean pTrackPredicate, int pExternalAllocationSize) {
 
     explicitValues = pExplicitValues;
     heap = pHeap;
     logger = pLogger;
+    trackPredicate = pTrackPredicate;
     externalAllocationSize = pExternalAllocationSize;
   }
 
@@ -72,7 +73,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     } else {
       // TODO Copy necessary?
       return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger,
-          externalAllocationSize, false);
+          externalAllocationSize, trackPredicate, false);
     }
   }
 
@@ -133,11 +134,12 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     joinedExplicitValues.putAll(other.explicitValues);
 
 
-    return new SMGInterpolant(joinedExplicitValues, join.getJointSMG(), logger, externalAllocationSize);
+    return new SMGInterpolant(joinedExplicitValues, join.getJointSMG(), logger, trackPredicate,
+        externalAllocationSize);
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
-      FunctionEntryNode pMainFunctionNode, int pExternalAllocationSize) {
+      FunctionEntryNode pMainFunctionNode, boolean pTrackPredicate, int pExternalAllocationSize) {
     Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = ImmutableMap.of();
     CLangSMG heap = new CLangSMG(model);
     AFunctionDeclaration mainFunction = pMainFunctionNode.getFunctionDefinition();
@@ -146,7 +148,8 @@ public class SMGInterpolant implements Interpolant<SMGState> {
       heap.addStackFrame((CFunctionDeclaration) mainFunction);
     }
 
-    return new SMGInterpolant(explicitValues, heap, logger, pExternalAllocationSize);
+    return new SMGInterpolant(explicitValues, heap, logger, pTrackPredicate,
+        pExternalAllocationSize);
   }
 
   public static SMGInterpolant getFalseInterpolant() {

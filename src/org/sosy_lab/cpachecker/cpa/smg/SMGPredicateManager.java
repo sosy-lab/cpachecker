@@ -52,8 +52,8 @@ import java.util.logging.Level;
 public class SMGPredicateManager {
   private static final String SYM_NAME = "Sym_";
 
-  @Option(secure=true, name="trackPredicates", description = "Allow SMG to track predicates for assume edges")
-  private boolean trackPredicates = false;
+  @Option(secure=true, name="verifyPredicates", description = "Allow SMG to check predicates")
+  private boolean verifyPredicates = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -168,7 +168,7 @@ public class SMGPredicateManager {
   private BooleanFormula getPredicateFormula(PredRelation pRelation, boolean conjunction) {
     BooleanFormula result = bfmgr.makeBoolean(conjunction);
 
-    if (!trackPredicates) {
+    if (!verifyPredicates) {
       return result;
     }
 
@@ -186,10 +186,10 @@ public class SMGPredicateManager {
   }
 
   public boolean isUnsat(BooleanFormula pFormula) throws SolverException, InterruptedException {
-    if (trackPredicates && pFormula != null) {
+    if (verifyPredicates && pFormula != null) {
       boolean result = solver.isUnsat(pFormula);
       if (result) {
-        logger.log(Level.WARNING, "Unsat: " + pFormula);
+        logger.log(Level.FINER, "Unsat: " + pFormula);
       }
       return result;
     } else {
@@ -199,7 +199,7 @@ public class SMGPredicateManager {
 
   public boolean isErrorPathFeasible(SMGState pState) {
     PredRelation errorPredicate = pState.getErrorPredicateRelation();
-    if (!errorPredicate.isEmpty()) {
+    if (verifyPredicates && !errorPredicate.isEmpty()) {
       BooleanFormula errorPredicateFormula = getErrorPredicateFormula(errorPredicate, pState.getPathPredicateRelation());
       try {
         if (!isUnsat(errorPredicateFormula)) {

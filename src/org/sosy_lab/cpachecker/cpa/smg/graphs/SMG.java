@@ -57,7 +57,6 @@ public class SMG {
 
   private PredRelation pathPredicate = new PredRelation();
   private PredRelation errorPredicate = new PredRelation();
-  private boolean trackPredicates = true;
 
 
   private final MachineModel machine_model;
@@ -171,10 +170,8 @@ public class SMG {
 
     values.remove(pValue);
     neq.removeValue(pValue);
-    if (trackPredicates) {
-      pathPredicate.removeValue(pValue);
-      errorPredicate.removeValue(pValue);
-    }
+    pathPredicate.removeValue(pValue);
+    errorPredicate.removeValue(pValue);
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -352,20 +349,18 @@ public class SMG {
   public void addPredicateRelation(SMGSymbolicValue pV1, Integer pCType1,
                                    SMGSymbolicValue pV2, Integer pCType2,
                                    BinaryOperator pOp, CFAEdge pEdge) {
-    if (trackPredicates && pEdge instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      if (assumeEdge.getTruthAssumption()) {
-        pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp);
-      } else {
-        pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp.getOppositLogicalOperator());
-      }
+    CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+    if (assumeEdge.getTruthAssumption()) {
+      pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp);
+    } else {
+      pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp.getOppositLogicalOperator());
     }
   }
 
   public void addPredicateRelation(SMGSymbolicValue pSymbolicValue, Integer pCType1,
                                    SMGExplicitValue pExplicitValue, Integer pCType2,
                                    BinaryOperator pOp, CFAEdge pEdge) {
-    if (trackPredicates && pEdge instanceof CAssumeEdge) {
+    if (pEdge instanceof CAssumeEdge) {
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
       if (assumeEdge.getTruthAssumption()) {
         pathPredicate.addExplicitRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pOp);
@@ -626,9 +621,7 @@ public class SMG {
     }
 
     neq.mergeValues(pV1, pV2);
-    if (trackPredicates) {
-      pathPredicate.mergeValues(pV1, pV2);
-    }
+    pathPredicate.mergeValues(pV1, pV2);
     removeValue(pV2);
     Set<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
     for (SMGEdgeHasValue hv : hv_edges) {

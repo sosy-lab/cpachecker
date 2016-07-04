@@ -157,7 +157,7 @@ public class SMGStateTest {
     Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
     SMGState smg1State = new SMGState(logger, true,
         true, SMGRuntimeCheck.NONE, smg1,
-        new AtomicInteger(1), 0, empty, 4, false);
+        new AtomicInteger(1), 0, empty, 4, false, false);
 
     SMGObject head = smg1State.addGlobalVariable(8, "head");
     smg1State.addPointsToEdge(head, 0, 5);
@@ -273,7 +273,7 @@ public class SMGStateTest {
     Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
     SMGState smg1State = new SMGState(logger, true,
         true, SMGRuntimeCheck.NONE, heap,
-        new AtomicInteger(1), 0, empty, 4, false);
+        new AtomicInteger(1), 0, empty, 4, false, false);
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(8, "head");
@@ -303,8 +303,8 @@ public class SMGStateTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws SMGInconsistentException {
-    consistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false);
-    inconsistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false);
+    consistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
+    inconsistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
     SMGAddressValue pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
     consistent_state.addGlobalObject((SMGRegion)pt.getObject());
@@ -367,7 +367,7 @@ public class SMGStateTest {
 
   @Test
   public void PredecessorsTest() {
-    SMGState original = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false);
+    SMGState original = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
     SMGState second = new SMGState(original);
     Assert.assertNotEquals(original.getId(), second.getId());
 
@@ -382,7 +382,8 @@ public class SMGStateTest {
   @Test
   public void WriteReinterpretationTest() throws SMGInconsistentException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64,true, true, SMGRuntimeCheck.NONE, 0, false);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64,true, true, SMGRuntimeCheck.NONE,
+        0, false, false);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b value into it
@@ -442,7 +443,7 @@ public class SMGStateTest {
   @Test
   public void WriteReinterpretationNullifiedTest() throws SMGInconsistentException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.FORCED, 0, false);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.FORCED, 0, false, false);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b zero value into it
@@ -478,7 +479,8 @@ public class SMGStateTest {
   @Test
   public void getPointerFromValueTest() throws SMGInconsistentException {
  // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE,
+        0, false, false);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
@@ -491,7 +493,8 @@ public class SMGStateTest {
 
   @Test(expected=SMGInconsistentException.class)
   public void getPointerFromValueNonPointerTest() throws SMGInconsistentException {
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE,
+        0, false, false);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");

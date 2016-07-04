@@ -106,6 +106,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final SMGRuntimeCheck runtimeCheckLevel;
   private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
   private final int externalAllocationSize;
+  private final boolean trackPredicates;
 
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
@@ -150,7 +151,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pSMGRuntimeCheck consistency check threshold
    */
   public SMGState(LogManager pLogger, MachineModel pMachineModel, boolean pTargetMemoryErrors,
-      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, int pExternalAllocationSize, boolean pMorePreciseIsLessOrEqual) {
+      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, int pExternalAllocationSize,
+      boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     id_counter = new AtomicInteger(0);
@@ -169,13 +171,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = false;
     invalidWrite = false;
     externalAllocationSize = pExternalAllocationSize;
+    trackPredicates = pTrackPredicates;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
   }
 
   public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
       boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, CLangSMG pHeap,
       AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues,
-      int pExternalAllocationSize, boolean pMorePreciseIsLessOrEqual) {
+      int pExternalAllocationSize, boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
     // merge
     heap = pHeap;
     logger = pLogger;
@@ -189,6 +192,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = false;
     invalidWrite = false;
     explicitValues.putAll(pMergedExplicitValues);
+    trackPredicates = pTrackPredicates;
     externalAllocationSize = pExternalAllocationSize;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
   }
@@ -207,6 +211,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
     externalAllocationSize = pOriginalState.externalAllocationSize;
+    trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
   }
 
@@ -232,6 +237,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
     externalAllocationSize = pOriginalState.externalAllocationSize;
+    trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
   }
 
@@ -270,12 +276,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pInvalidFree;
     invalidRead = pInvalidRead;
     invalidWrite = pInvalidWrite;
+    trackPredicates = pOriginalState.trackPredicates;
     externalAllocationSize = pOriginalState.externalAllocationSize;
   }
 
   public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      CLangSMG pHeap,
-      LogManager pLogger, int pExternalAllocationSize, boolean pMorePreciseIsLessOrEqual) {
+      CLangSMG pHeap, LogManager pLogger, int pExternalAllocationSize,
+      boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
 
     heap = pHeap;
     logger = pLogger;
@@ -292,6 +299,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     id = 0;
 
     externalAllocationSize = pExternalAllocationSize;
+    trackPredicates = pTrackPredicates;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
   }
 
@@ -1463,7 +1471,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       }
 
       return new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
-          id_counter, predecessorId, mergedExplicitValues, reachedState.externalAllocationSize, morePreciseIsLessOrEqual);
+          id_counter, predecessorId, mergedExplicitValues, reachedState.externalAllocationSize,
+          reachedState.trackPredicates, morePreciseIsLessOrEqual);
     } else {
       return reachedState;
     }
@@ -1912,7 +1921,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
                                    SMGSymbolicValue pV2, int pCType2,
                                    BinaryOperator pOp, CFAEdge pEdge) {
-  if (pEdge instanceof CAssumeEdge) {
+  if (trackPredicates && pEdge instanceof CAssumeEdge) {
     BinaryOperator temp;
     if (((CAssumeEdge) pEdge).getTruthAssumption()) {
       temp = pOp;
@@ -1926,9 +1935,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           "SymValue1 " + pV1.getAsInt() + " " + temp + " SymValue2 " + pV2.getAsInt() +
               "; AddPredicate: " + pEdge.toString());
     }
+    heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
   }
-
-  heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
 }
 
   public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
@@ -1948,7 +1956,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
             "; AddPredicate: " + pEdge.toString());
       }
     }
-    heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
+    if (trackPredicates) {
+      heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
+    }
   }
 
   public PredRelation getPathPredicateRelation() {
@@ -2058,7 +2068,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public SMGInterpolant createInterpolant() {
     // TODO Copy necessary?
-    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger, externalAllocationSize);
+    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger,
+        trackPredicates, externalAllocationSize);
   }
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {

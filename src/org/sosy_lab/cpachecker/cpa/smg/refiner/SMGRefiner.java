@@ -98,8 +98,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final GenericPrefixProvider<SMGState> prefixProvider =
         new SMGPrefixProvider(logger, cfa, config, emptyState, predicateManager);
 
-    final SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa
-        .getMachineModel(), logger, cfa, smgCpa.getExternalAllocationSize());
+    final SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(),
+        logger, cfa, smgCpa.getTrackPredicates(),  smgCpa.getExternalAllocationSize());
 
     return new SMGRefiner(argCpa,
         checker,

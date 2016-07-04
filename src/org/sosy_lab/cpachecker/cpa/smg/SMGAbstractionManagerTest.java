@@ -75,7 +75,8 @@ public class SMGAbstractionManagerTest {
 
   @Test
   public void testExecute() throws SMGInconsistentException {
-    SMGState dummyState = new SMGState(TestLogManager.getInstance(), MachineModel.LINUX32, false, false, null, 4, false);
+    SMGState dummyState = new SMGState(TestLogManager.getInstance(), MachineModel.LINUX32, false,
+        false, null, 4, false, false);
     SMGAbstractionManager manager = new SMGAbstractionManager(TestLogManager.getInstance(), smg, dummyState);
     manager.execute();
 
