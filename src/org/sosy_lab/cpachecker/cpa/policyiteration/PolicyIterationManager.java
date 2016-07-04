@@ -410,8 +410,6 @@ public class PolicyIterationManager {
       out = merged;
 
     } else {
-      logger.log(Level.FINE, "Running val. det.");
-
       ValueDeterminationConstraints constraints;
       Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
@@ -566,7 +564,7 @@ public class PolicyIterationManager {
       ValueDeterminationConstraints valDetConstraints
   ) throws InterruptedException, CPATransferException {
     logger.log(Level.INFO, "Value determination at node",
-        stateWithUpdates.getNode());
+        stateWithUpdates.getNode(), ", #constraints = ", valDetConstraints.constraints.size());
     Map<Template, PolicyBound> newAbstraction =
         new HashMap<>(stateWithUpdates.getAbstraction());
     int locId = stateWithUpdates.getLocationID();
