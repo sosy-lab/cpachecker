@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
@@ -174,7 +174,7 @@ class RankingRelationBuilder {
   private CBinaryExpression createRankingRelation(
       CExpression primedFunction, CExpression unprimedFunction) throws UnrecognizedCCodeException {
     CExpression unprimedGreatorThanZero =
-        binaryExpressionBuilder.buildBinaryExpression(unprimedFunction, ZERO, GREATER_THAN);
+        binaryExpressionBuilder.buildBinaryExpression(unprimedFunction, ZERO, GREATER_EQUAL);
     CExpression primedLessThanUnprimed =
         binaryExpressionBuilder.buildBinaryExpression(unprimedFunction, primedFunction, LESS_THAN);
 
@@ -205,7 +205,7 @@ class RankingRelationBuilder {
 
     IntegerFormula zero = integerFormulaManager.makeNumber(0);
     BooleanFormula unprimedGreatorThanZeroFormula =
-        formulaManagerView.makeGreaterThan(unprimedFormula, zero, true);
+        formulaManagerView.makeGreaterOrEqual(unprimedFormula, zero, true);
     BooleanFormula primedLessThanUnprimedFormula =
         formulaManagerView.makeLessThan(unprimedFormula, primedFormula, true);
 
