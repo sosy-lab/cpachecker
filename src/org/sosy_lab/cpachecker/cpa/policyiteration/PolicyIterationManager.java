@@ -400,8 +400,6 @@ public class PolicyIterationManager {
       ) throws CPATransferException, InterruptedException {
 
     CFANode node = abstraction.getNode();
-    logger.log(Level.INFO, "Emulating large step at node ", node);
-
     Map<Template, PolicyBound> updated = new HashMap<>();
     PolicyAbstractedState merged = unionAbstractedStates(
           abstraction, latestSibling, precision, updated, extraInvariant);
