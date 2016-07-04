@@ -3,9 +3,13 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -28,6 +32,7 @@ public class ValueDeterminationManager {
   private final LogManager logger;
   private final PathFormulaManager pfmgr;
   private final StateFormulaConversionManager stateFormulaConversionManager;
+  private final LoopStructure loopStructure;
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
@@ -37,13 +42,15 @@ public class ValueDeterminationManager {
       FormulaManagerView fmgr,
       LogManager logger,
       PathFormulaManager pPfmgr,
-      StateFormulaConversionManager pStateFormulaConversionManager) {
+      StateFormulaConversionManager pStateFormulaConversionManager,
+      LoopStructure pLoopStructure) {
 
     this.fmgr = fmgr;
     stateFormulaConversionManager = pStateFormulaConversionManager;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     pfmgr = pPfmgr;
+    loopStructure = pLoopStructure;
   }
 
   static class ValueDeterminationConstraints {
@@ -83,7 +90,7 @@ public class ValueDeterminationManager {
   /**
    * Convert a value determination problem into a single formula.
    *
-   * @param stateWithUpdates Newly created state
+   * @param mergedState Newly created state
    * @param updated Set of updates templates for the {@code stateWithUpdates}
    * @param useUniquePrefix Flag on whether to use a unique prefix for each policy
    *
@@ -95,7 +102,7 @@ public class ValueDeterminationManager {
    * value.
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
-      PolicyAbstractedState stateWithUpdates,
+      PolicyAbstractedState mergedState,
       Set<Template> updated,
       boolean useUniquePrefix
   ) {
@@ -107,7 +114,7 @@ public class ValueDeterminationManager {
     Set<Integer> visitedLocationIDs = new HashSet<>();
 
     LinkedHashSet<PolicyAbstractedState> queue = new LinkedHashSet<>();
-    queue.add(stateWithUpdates);
+    queue.add(mergedState);
 
     while (!queue.isEmpty()) {
       Iterator<PolicyAbstractedState> it = queue.iterator();
@@ -116,16 +123,23 @@ public class ValueDeterminationManager {
 
       visitedLocationIDs.add(state.getLocationID());
 
+      Set<CFAEdge> innerLoopEdges = getInnerLoopEdgesOf(state.getNode());
+
       for (Entry<Template, PolicyBound> incoming : state) {
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
         PolicyAbstractedState backpointer = bound.getPredecessor();
 
         boolean valueIsFixed = bound.getDependencies().isEmpty()
-            ||  (state == stateWithUpdates
-              && !updated.contains(template)
-              && !bound.isComputedByValueDetermination()
-        );
+            ||  (state == mergedState
+                    && !updated.contains(template)
+                    && !bound.isComputedByValueDetermination())
+
+            // Backpointer is neither inner nor outer loop.
+            || Sets.intersection(
+                  innerLoopEdges, getInnerLoopEdgesOf(backpointer.getNode())
+               ).isEmpty()
+            ;
 
         // Update the queue, check visited.
         if (!valueIsFixed &&
@@ -160,6 +174,15 @@ public class ValueDeterminationManager {
         ImmutableSet.copyOf(outConstraints));
   }
 
+  private Set<CFAEdge> getInnerLoopEdgesOf(CFANode node) {
+    return loopStructure
+        .getLoopsForLoopHead(node)
+        .stream()
+        .map(
+            l -> (Set<CFAEdge>)l.getInnerLoopEdges()
+        ).reduce(new HashSet<>(), (a, b) -> Sets.union(a, b));
+  }
+
   /**
    * Process and add constraints from a single policy.
    *
@@ -169,7 +192,8 @@ public class ValueDeterminationManager {
    * @param policyBackpointerLocationID Location ID associated to backpointer.
    * @param prefix Unique namespace for the policy
    * @param valueFixed Flag to indicate that the policy value is fixed
-   *                       and does not depend on anything.
+   *                   and will not change during this run of value
+   *                   determination.
    * @param outConstraints Output set to write constraints to.
    * @param outVars Output table to record generated variables.
    */

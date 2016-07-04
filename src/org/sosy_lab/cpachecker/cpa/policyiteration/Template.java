@@ -18,12 +18,11 @@ import java.util.Map.Entry;
  * Wrapper for a template.
  */
 public class Template {
-  // todo: switch to MemoryLocation.
+  // todo: switch to MemoryLocation, add [type] to MemoryLocation.
   final LinearExpression<CIdExpression> linearExpression;
-  final Kind kind;
 
   /**
-   * Kind of a template.
+
    */
   public enum Kind {
     // Intervals.
@@ -39,9 +38,8 @@ public class Template {
     COMPLEX
   }
 
-  private Template(LinearExpression<CIdExpression> pLinearExpression, Kind pKind) {
+  private Template(LinearExpression<CIdExpression> pLinearExpression) {
     linearExpression = pLinearExpression;
-    kind = pKind;
   }
 
   public Kind getKind() {
@@ -76,7 +74,7 @@ public class Template {
   }
 
   public static Template of(LinearExpression<CIdExpression> expr) {
-    return new Template(expr, getKind(expr));
+    return new Template(expr);
   }
 
   private static Kind getKind(LinearExpression<CIdExpression> expr) {
@@ -171,6 +169,6 @@ public class Template {
 
   @Override
   public String toString() {
-    return linearExpression.toString();
+    return toFormulaString();
   }
 }

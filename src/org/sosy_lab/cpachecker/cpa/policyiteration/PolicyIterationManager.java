@@ -284,7 +284,7 @@ public class PolicyIterationManager {
     if ((hasTargetState && checkTargetStates || shouldPerformAbstraction)
         && isUnreachable(iState, extraInvariant)) {
 
-      logger.log(Level.INFO, "Returning BOTTOM state");
+      logger.log(Level.INFO, "Returning bottom state");
       return Optional.empty();
     }
 
@@ -615,9 +615,11 @@ public class PolicyIterationManager {
         if (value.isPresent() &&
             !stateFormulaConversionManager.isOverflowing(template, value.get())) {
           Rational v = value.get();
-          logger.log(Level.INFO, "Updating", template, "to value", v);
+          logger.log(Level.FINE, "Updating", template, "to value", v);
           newAbstraction.put(template, mergedBound.updateValueFromValueDetermination(v));
         } else {
+
+          // Unbounded.
           newAbstraction.remove(template);
         }
         optEnvironment.pop();
