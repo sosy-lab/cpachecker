@@ -26,15 +26,24 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.annotation.CheckReturnValue;
+
 public class RankingRelation {
 
-  private final CExpression cExpression;
-  private final BooleanFormula formula;
+  private final Map<CExpression, BooleanFormula> rankingRelations;
   private final FormulaManagerView formulaManagerView;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -43,31 +52,35 @@ public class RankingRelation {
       BooleanFormula pFormula,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       FormulaManagerView pFormulaManagerView) {
-    cExpression = checkNotNull(pCExpression);
-    formula = checkNotNull(pFormula);
+    rankingRelations = ImmutableMap.of(pCExpression, pFormula);
+    formulaManagerView = checkNotNull(pFormulaManagerView);
+    binaryExpressionBuilder = checkNotNull(pBinaryExpressionBuilder);
+  }
+
+  private RankingRelation(
+      ImmutableMap<CExpression, BooleanFormula> pRankingRelations,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      FormulaManagerView pFormulaManagerView) {
+    rankingRelations = checkNotNull(pRankingRelations);
     formulaManagerView = checkNotNull(pFormulaManagerView);
     binaryExpressionBuilder = checkNotNull(pBinaryExpressionBuilder);
   }
 
   public CExpression asCExpression() {
-    return cExpression;
+    Preconditions.checkState(!rankingRelations.isEmpty());
+    return rankingRelations
+        .keySet()
+        .stream()
+        .reduce((a,b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
+        .get();
   }
 
   public BooleanFormula asFormula() {
-    return formula;
+    return formulaManagerView.getBooleanFormulaManager().or(rankingRelations.values());
   }
 
   public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pFormulaManagerView) {
-    return pFormulaManagerView.translateFrom(formula, formulaManagerView);
-  }
-
-  public String getRankingFunction() {
-    return formula.toString();
-  }
-
-  @Override
-  public int hashCode() {
-    return asCExpression().hashCode();
+    return pFormulaManagerView.translateFrom(asFormula(), formulaManagerView);
   }
 
   /**
@@ -75,14 +88,17 @@ public class RankingRelation {
    * @param other the {@link RankingRelation} to merge with
    * @return a new {@link RankingRelation}
    */
+  @CheckReturnValue
   public RankingRelation merge(RankingRelation other) {
+    HashMap<CExpression, BooleanFormula> newRankingRelations = Maps.newHashMap();
+    newRankingRelations.putAll(rankingRelations);
 
-    BooleanFormula newFormula = formulaManagerView.makeOr(formula, other.formula);
-    CExpression newCExpression =
-        binaryExpressionBuilder.buildBinaryExpressionUnchecked(cExpression, cExpression, BINARY_OR);
+    for (Entry<CExpression, BooleanFormula> entry : other.rankingRelations.entrySet()) {
+      newRankingRelations.putIfAbsent(entry.getKey(), entry.getValue());
+    }
 
     return new RankingRelation(
-        newCExpression, newFormula, binaryExpressionBuilder, formulaManagerView);
+        ImmutableMap.copyOf(newRankingRelations), binaryExpressionBuilder, formulaManagerView);
   }
 
   @Override
@@ -95,8 +111,14 @@ public class RankingRelation {
     }
 
     RankingRelation that = (RankingRelation) pObj;
-    return this.asCExpression().equals(that.asCExpression());
+    return this.rankingRelations.keySet().equals(that.rankingRelations.keySet());
   }
+
+  @Override
+  public int hashCode() {
+    return this.rankingRelations.keySet().hashCode();
+  }
+
 
   @Override
   public String toString() {
