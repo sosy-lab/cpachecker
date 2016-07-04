@@ -56,6 +56,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 @Options(prefix="cinvariants")
 public class CExpressionInvariantExporter {
 
@@ -66,7 +68,7 @@ public class CExpressionInvariantExporter {
   @Option(secure=true, description="Prefix to add to an output file, which would contain "
           + "assumed invariants. Ignored if |writeToStats| is set to |true|")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate prefix = PathTemplate.ofFormatString("inv-%s");
+  private @Nullable PathTemplate prefix = PathTemplate.ofFormatString("inv-%s");
 
   public CExpressionInvariantExporter(Configuration pConfiguration)
       throws InvalidConfigurationException {
@@ -82,7 +84,7 @@ public class CExpressionInvariantExporter {
       String analyzedPrograms,
       ReachedSet pReachedSet) throws IOException {
 
-    if (!export) {
+    if (!export || prefix == null) {
       return;
     }
 
