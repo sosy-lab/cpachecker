@@ -104,7 +104,7 @@ public class CExpressionInvariantExporter {
 
         // Grab only the last component of the program filename.
         String trimmedFilename = checkNotNull(
-            Paths.get(program)).getFileName().toString();
+            Paths.get(program).getFileName()).toString();
         output = MoreFiles.openOutputFile(prefix.getPath(trimmedFilename), Charset.defaultCharset());
       }
 
