@@ -1871,11 +1871,14 @@ cpa.smg.runtimeCheck = NONE
 cpa.smg.stop = "SEP"
   allowed values: [SEP, NEVER]
 
-# Allow SMG to track predicates for assume edges
+# Enable track predicates on SMG state
 cpa.smg.trackPredicates = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Allow SMG to check predicates
+cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {
