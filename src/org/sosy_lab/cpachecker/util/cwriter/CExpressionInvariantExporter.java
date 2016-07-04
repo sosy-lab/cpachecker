@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -30,10 +32,13 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,7 +52,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
@@ -61,10 +65,14 @@ public class CExpressionInvariantExporter {
       + "input file, with invariants embedded as assume constraints.")
   private boolean export = false;
 
+  @Option(secure=true, description="Write the program with invariants to the "
+      + "output statistics stream.")
+  private boolean writeToStats = false;
+
   @Option(secure=true, description="Prefix to add to an output file, which would contain "
-          + "assumed invariants. If the prefix is equal to '-', the output "
-          + "would be printed to stdout.")
-  private String prefix="inv";
+          + "assumed invariants. Ignored if |writeToStats| is set to |true|")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate prefix = PathTemplate.ofFormatString("inv-%s");
 
   public CExpressionInvariantExporter(Configuration pConfiguration)
       throws InvalidConfigurationException {
@@ -87,23 +95,21 @@ public class CExpressionInvariantExporter {
 
     Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);
-    boolean writeToStream = prefix.equals("-");
 
     for (String program : programs) {
       Appendable output;
-      if (writeToStream) {
+      if (writeToStats) {
         output = out;
       } else {
-        String trimmedFilename = Paths.get(program).getFileName().toString();
-        String trimmedPrefix = Paths.get(prefix).getFileName().toString();
-        Path outputDir = Paths.get("output");
-        Path prefixedFilename = Paths.get(trimmedPrefix + trimmedFilename);
-        Path outPath = outputDir.resolve(prefixedFilename);
-        output = MoreFiles.openOutputFile(outPath, Charset.defaultCharset());
+
+        // Grab only the last component of the program filename.
+        String trimmedFilename = checkNotNull(
+            Paths.get(program)).getFileName().toString();
+        output = MoreFiles.openOutputFile(prefix.getPath(trimmedFilename), Charset.defaultCharset());
       }
 
       writeProgramWithInvariants(output, program, pReachedSet);
-      if (!writeToStream) {
+      if (!writeToStats) {
         ((Writer) output).close();
       }
     }
