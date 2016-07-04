@@ -43,7 +43,7 @@ public class Template {
   }
 
   public Kind getKind() {
-    return kind;
+    return getKind(linearExpression);
   }
 
   public LinearExpression<CIdExpression> getLinearExpression() {
