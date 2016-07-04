@@ -601,7 +601,7 @@ public class PolicyIterationManager {
           shutdownNotifier.shutdownIfNecessary();
           logger.log(Level.WARNING,
               "Solver returned undefined status on the problem: ");
-          logger.log(Level.INFO, optEnvironment.toString());
+          logger.log(Level.INFO, optEnvironment);
           throw new CPATransferException("Unexpected solver state");
         }
         assert result == OptStatus.OPT;
