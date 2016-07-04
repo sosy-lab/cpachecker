@@ -38,6 +38,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -90,6 +91,7 @@ class LassoBuilder {
       ImmutableSet.of(EQ, GT, GTE, LT, LTE);
 
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
   private final Solver solver;
@@ -102,13 +104,15 @@ class LassoBuilder {
   private final DnfTransformation dnfTransformation;
 
 
+
   LassoBuilder(
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       AbstractFormulaManager<Term, ?, ?, ?> pFormulaManager,
       Solver pSolver,
       PathFormulaManager pPathFormulaManager) {
-
     logger = checkNotNull(pLogger);
+    shutdownNotifier = checkNotNull(pShutdownNotifier);
     formulaManager = checkNotNull(pFormulaManager);
     solver = checkNotNull(pSolver);
     formulaManagerView = pSolver.getFormulaManager();
@@ -169,6 +173,7 @@ class LassoBuilder {
 
     logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
+    shutdownNotifier.shutdownIfNecessary();
 
     return createLassos(stemPathFormula, loopPathFormula, loopInVars.build());
   }
@@ -182,6 +187,8 @@ class LassoBuilder {
     Collection<Lasso> lassos = Lists.newArrayListWithCapacity(stemDnf.size() * loopDnf.size());
     for (BooleanFormula stem : stemDnf) {
       for (BooleanFormula loop : loopDnf) {
+        shutdownNotifier.shutdownIfNecessary();
+
         BooleanFormula path = formulaManagerView.makeAnd(stem, loop);
         if (!solver.isUnsat(path)) {
 

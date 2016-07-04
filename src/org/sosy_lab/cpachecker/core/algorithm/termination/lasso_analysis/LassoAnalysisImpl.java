@@ -120,7 +120,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             pCfa,
             AnalysisDirection.FORWARD);
 
-    lassoBuilder = new LassoBuilder(pLogger, formulaManager, solver, pathFormulaManager);
+    lassoBuilder =
+        new LassoBuilder(pLogger, shutdownNotifier, formulaManager, solver, pathFormulaManager);
     rankingRelationBuilder =
         new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
 
