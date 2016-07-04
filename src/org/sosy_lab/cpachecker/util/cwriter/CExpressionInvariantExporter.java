@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -51,6 +49,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
@@ -91,12 +90,14 @@ public class CExpressionInvariantExporter {
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);
 
     for (String program : programs) {
-        // Grab only the last component of the program filename.
-        String trimmedFilename = checkNotNull(
-            Paths.get(program).getFileName()).toString();
-      try (Writer output =
-          MoreFiles.openOutputFile(prefix.getPath(trimmedFilename), Charset.defaultCharset())) {
-        writeProgramWithInvariants(output, program, pReachedSet);
+      // Grab only the last component of the program filename.
+      Path trimmedFilename = Paths.get(program).getFileName();
+      if (trimmedFilename != null) {
+        try (Writer output =
+            MoreFiles.openOutputFile(
+                prefix.getPath(trimmedFilename.toString()), Charset.defaultCharset())) {
+          writeProgramWithInvariants(output, program, pReachedSet);
+        }
       }
     }
   }
