@@ -274,7 +274,7 @@ class MainCPAStatistics implements Statistics {
       }
 
       try {
-        cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached, out);
+        cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Encountered IO error while"
             + " generating the invariant as an output program.");

@@ -524,9 +524,9 @@ cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 # Output an input file, with invariants embedded as assume constraints.
 cinvariants.export = false
 
-# Prefix to add to an output file, which would contain assumed invariants. If
-# the prefix is equal to '-', the output would be printed to stdout.
-cinvariants.prefix = "inv"
+# Prefix to add to an output file, which would contain assumed invariants.
+# Ignored if |writeToStats| is set to |true|
+cinvariants.prefix = "inv-%s"
 
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"

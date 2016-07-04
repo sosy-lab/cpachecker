@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -64,10 +63,6 @@ public class CExpressionInvariantExporter {
   @Option(secure=true, description="Output an "
       + "input file, with invariants embedded as assume constraints.")
   private boolean export = false;
-
-  @Option(secure=true, description="Write the program with invariants to the "
-      + "output statistics stream.")
-  private boolean writeToStats = false;
 
   @Option(secure=true, description="Prefix to add to an output file, which would contain "
           + "assumed invariants. Ignored if |writeToStats| is set to |true|")
@@ -86,8 +81,7 @@ public class CExpressionInvariantExporter {
    */
   public void exportInvariant(
       String analyzedPrograms,
-      ReachedSet pReachedSet,
-      PrintStream out) throws IOException {
+      ReachedSet pReachedSet) throws IOException {
 
     if (!export) {
       return;
@@ -97,20 +91,12 @@ public class CExpressionInvariantExporter {
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);
 
     for (String program : programs) {
-      Appendable output;
-      if (writeToStats) {
-        output = out;
-      } else {
-
         // Grab only the last component of the program filename.
         String trimmedFilename = checkNotNull(
             Paths.get(program).getFileName()).toString();
-        output = MoreFiles.openOutputFile(prefix.getPath(trimmedFilename), Charset.defaultCharset());
-      }
-
-      writeProgramWithInvariants(output, program, pReachedSet);
-      if (!writeToStats) {
-        ((Writer) output).close();
+      try (Writer output =
+          MoreFiles.openOutputFile(prefix.getPath(trimmedFilename), Charset.defaultCharset())) {
+        writeProgramWithInvariants(output, program, pReachedSet);
       }
     }
   }
