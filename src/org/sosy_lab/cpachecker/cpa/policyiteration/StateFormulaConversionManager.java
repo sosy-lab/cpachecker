@@ -120,7 +120,7 @@ public class StateFormulaConversionManager {
   public BooleanFormula getStartConstraintsWithExtraInvariant(
       PolicyIntermediateState state) {
     return bfmgr.and(abstractStateToConstraints(
-        fmgr, pfmgr, state.getGeneratingState(), true));
+        fmgr, pfmgr, state.getBackpointerState(), true));
   }
 
   /**

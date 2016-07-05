@@ -166,6 +166,32 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   /**
+   * Create a TOP state with empty abstraction.
+   */
+  public static PolicyAbstractedState top(
+      CFANode node,
+      int pLocationID,
+      StateFormulaConversionManager pManager,
+      SSAMap pSSAMap,
+      PointerTargetSet pPointerTargetSet,
+      BooleanFormula pPredicate,
+      PolicyIntermediateState pPredecessor,
+      Optional<PolicyAbstractedState> pSibling,
+      CongruenceManager pCongruenceManager) {
+    return new PolicyAbstractedState(
+        node,
+        ImmutableMap.of(),
+        CongruenceState.empty(pCongruenceManager),
+        pLocationID,
+        pManager,
+        pSSAMap,
+        pPointerTargetSet,
+        pPredicate,
+        Optional.of(pPredecessor),
+        pSibling);
+  }
+
+  /**
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
@@ -219,7 +245,7 @@ public final class PolicyAbstractedState extends PolicyState
     return abstraction.entrySet().iterator();
   }
 
-  public Optional<PolicyIntermediateState> getGenerationState() {
+  public Optional<PolicyIntermediateState> getGeneratingState() {
     return predecessor;
   }
 

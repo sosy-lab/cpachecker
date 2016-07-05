@@ -171,7 +171,7 @@ public class PolicyIterationTest {
   }
 
   private void checkWithSlicing(String filename, Map<String, String> extra)
-      throws InvalidConfigurationException, Exception {
+      throws Exception {
     check(filename, getProperties("policyIteration-with-slicing.properties", extra));
   }
 

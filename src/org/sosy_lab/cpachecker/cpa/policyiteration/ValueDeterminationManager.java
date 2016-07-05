@@ -6,6 +6,10 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -24,7 +28,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+@Options(prefix="cpa.lpi")
 public class ValueDeterminationManager {
+
+  @Option(secure=true,
+      description="Attach extra invariant from other CPAs during the value "
+          + "determination computation")
+  private boolean attachExtraInvariantDuringValueDetermination = true;
 
   /** Dependencies */
   private final FormulaManagerView fmgr;
@@ -39,11 +49,13 @@ public class ValueDeterminationManager {
   private static final String VISIT_PREFIX = "[%d]_";
 
   public ValueDeterminationManager(
+      Configuration pConfiguration,
       FormulaManagerView fmgr,
       LogManager logger,
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      LoopStructure pLoopStructure) {
+      LoopStructure pLoopStructure) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
 
     this.fmgr = fmgr;
     stateFormulaConversionManager = pStateFormulaConversionManager;
@@ -210,7 +222,7 @@ public class ValueDeterminationManager {
     PathFormula policyFormula = bound.getFormula();
 
     PathFormula startPathFormula = stateFormulaConversionManager.getPathFormula(
-        bound.getPredecessor(), fmgr, true);
+        bound.getPredecessor(), fmgr, attachExtraInvariantDuringValueDetermination);
 
     Formula policyOutTemplate = addPrefix(
         stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),

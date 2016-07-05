@@ -53,7 +53,7 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * @return Starting {@link PolicyAbstractedState} for the starting location.
    */
-  public PolicyAbstractedState getGeneratingState() {
+  public PolicyAbstractedState getBackpointerState() {
     return startingAbstraction;
   }
 

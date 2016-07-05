@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration.congruence;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.sosy_lab.cpachecker.core.interfaces.CExpressionReportingState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -15,7 +16,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class CongruenceState implements
-                             Iterable<Entry<Template, Congruence>> {
+                             Iterable<Entry<Template, Congruence>>,
+                             CExpressionReportingState {
 
   private final ImmutableMap<Template, Congruence> data;
   private final CongruenceManager congruenceManager;
@@ -84,5 +86,10 @@ public class CongruenceState implements
   public BooleanFormula toFormula(
       FormulaManagerView manager, PathFormulaManager pfmgr, PathFormula ref) {
     return congruenceManager.toFormula(pfmgr, manager, this, ref);
+  }
+
+  @Override
+  public String reportInvariantAsCExpression() {
+    return null;
   }
 }

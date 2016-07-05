@@ -99,9 +99,7 @@ public class CongruenceManager {
 
     statistics.congruenceTimer.start();
     try (ProverEnvironment env = solver.newProverEnvironment()) {
-      //noinspection ResultOfMethodCallIgnored
       env.push(p.getFormula());
-      //noinspection ResultOfMethodCallIgnored
       env.push(startConstraints);
 
       for (Template template : pPrecision.getTemplatesForNode(node)) {
@@ -113,7 +111,6 @@ public class CongruenceManager {
 
         // Test odd <=> isEven is UNSAT.
         try {
-          //noinspection ResultOfMethodCallIgnored
           env.push(fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 0), 2));
           if (env.isUnsat()) {
             abstraction.put(template, Congruence.ODD);
@@ -125,7 +122,6 @@ public class CongruenceManager {
 
         // Test even <=> isOdd is UNSAT.
         try {
-          //noinspection ResultOfMethodCallIgnored
           env.push(
               fmgr.makeModularCongruence(formula, makeBv(bvfmgr, formula, 1), 2));
           if (env.isUnsat()) {
