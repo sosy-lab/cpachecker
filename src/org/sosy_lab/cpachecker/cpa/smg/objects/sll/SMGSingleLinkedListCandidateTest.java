@@ -71,7 +71,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE);
 
-    CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false));
+    CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
@@ -103,7 +103,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 8, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE);
-    CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false));
+    CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
 

@@ -151,9 +151,9 @@ public class SMGInterpolant {
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
-      FunctionEntryNode pMainFunctionNode, int pExternalAllocationSize) {
+      FunctionEntryNode pMainFunctionNode, boolean pTrackPredicates, int pExternalAllocationSize) {
     SMGState initState = new SMGState(logger, model, false, false,
-        null, pExternalAllocationSize, false);
+        null, pExternalAllocationSize, pTrackPredicates, false);
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode) pMainFunctionNode;
     try {

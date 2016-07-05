@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 
 import java.util.logging.Level;
@@ -82,8 +83,15 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
   private int externalAllocationSize = Integer.MAX_VALUE;
 
+  @Option(secure = true, name = "trackPredicates", description = "Enable track predicates on SMG state")
+  private boolean trackPredicates = false;
+
   public int getExternalAllocationSize() {
     return externalAllocationSize;
+  }
+
+  public boolean getTrackPredicates() {
+    return trackPredicates;
   }
 
   private final AbstractDomain abstractDomain;
@@ -91,6 +99,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private SMGPrecisionAdjustment precisionAdjustment;
+  private SMGPredicateManager smgPredicateManager;
 
   private final MachineModel machineModel;
 
@@ -113,6 +122,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
     precisionAdjustment = new SMGPrecisionAdjustment();
+    smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
@@ -125,7 +135,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     precision = initializePrecision();
 
-    transferRelation = new SMGTransferRelation(config, logger, machineModel);
+    transferRelation = new SMGTransferRelation(config, logger, machineModel, smgPredicateManager);
   }
 
   public void injectRefinablePrecision() {
@@ -164,7 +174,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public SMGState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined,
-        runtimeCheck, externalAllocationSize, enableHeapAbstraction);
+        runtimeCheck, externalAllocationSize, trackPredicates, enableHeapAbstraction);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
@@ -223,6 +233,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
+  }
+
+  public SMGPredicateManager getPredicateManager() {
+    return smgPredicateManager;
   }
 
   public boolean isHeapAbstractionEnabled() {

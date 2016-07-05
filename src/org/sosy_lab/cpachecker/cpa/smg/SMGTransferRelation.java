@@ -41,6 +41,7 @@ import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAnd
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
@@ -112,6 +114,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -184,14 +189,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of(
       "free");
 
-  @Option(secure = true, name="externalAllocationFunction", description = "Function which indicate on external allocated memory")
-  private String externalAllocationFunction = "ext_allocation";
+  @Option(secure = true, name="externalAllocationFunction", description = "Functions which indicate on external allocated memory")
+  private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of(
+      "ext_allocation");
 
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
   private final AtomicInteger id_counter;
 
   private final SMGRightHandSideEvaluator expressionEvaluator;
+
+  private final SMGPredicateManager smgPredicateManager;
 
   /**
    * Indicates whether the executed statement could result
@@ -640,7 +648,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     public boolean isExternalAllocationFunction(String functionName) {
-      return externalAllocationFunction.equals(functionName);
+      return externalAllocationFunction.contains(functionName);
     }
 
     public SMGAddressValueAndStateList evaluateMemcpy(CFunctionCallExpression pFunctionCall,
@@ -688,7 +696,37 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           List<SMGExplicitValueAndState> sizeValueAndStates = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
 
           for (SMGExplicitValueAndState sizeValueAndState : sizeValueAndStates) {
-            result.add(evaluateMemcpy(sizeValueAndState.getSmgState(), targetStr1AndState.getObject(), sourceStr2AndState.getObject(), sizeValueAndState.getObject()));
+            SMGState sizeState = sizeValueAndState.getSmgState();
+            SMGAddressValue targetObject = targetStr1AndState.getObject();
+            SMGAddressValue sourceObject = sourceStr2AndState.getObject();
+            SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
+            if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
+              SMGValueAndStateList sizeSymbolicValueAndStates =
+                  evaluateExpressionValue(sizeState, pCfaEdge, sizeExpr);
+              int symbolicValueSize = expressionEvaluator.getSizeof(pCfaEdge, sizeExpr
+                  .getExpressionType(), sizeState) * machineModel.getSizeofCharInBits();
+              for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
+                  .getValueAndStateList()) {
+                SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
+
+                int sourceRangeOffset = sourceObject.getOffset().getAsInt();
+                int sourceSize = sourceObject.getObject().getSize();
+                int availableSource = sourceSize - sourceRangeOffset;
+
+                int targetRangeOffset = targetObject.getOffset().getAsInt();
+                int targetSize = targetObject.getObject().getSize();
+                int availableTarget = targetSize - targetRangeOffset;
+
+                if (explicitSizeValue.isUnknown()) {
+                  sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                      .valueOf(availableSource), symbolicValueSize, pCfaEdge);
+                  sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                      .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                }
+              }
+            }
+            result.add(evaluateMemcpy(sizeState, targetObject, sourceObject,
+                explicitSizeValue));
           }
         }
       }
@@ -737,19 +775,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager)
+          throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
+    smgPredicateManager = pSMGPredicateManager;
   }
 
-  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config,
-      LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
-    SMGTransferRelation result =
-        new SMGTransferRelation(config, pLogger, pMachineModel);
+  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager) throws InvalidConfigurationException {
+    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel, pSMGPredicateManager);
     result.exportSMG = SMGExportLevel.NEVER;
     return result;
   }
@@ -866,6 +904,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
+    if (smgPredicateManager.isErrorPathFeasible(smgState)) {
+      smgState = smgState.setInvalidRead();
+    }
+    smgState.resetErrorRelation();
+
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
     Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
@@ -889,6 +932,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
     SMGState newState = new SMGState(smgState);
+    if (smgPredicateManager.isErrorPathFeasible(newState)) {
+      newState = newState.setInvalidRead();
+    }
+    newState.resetErrorRelation();
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
 
@@ -1071,6 +1118,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGState smgState = new SMGState(pSmgState);
 
+    if (smgPredicateManager.isErrorPathFeasible(smgState)) {
+      smgState = smgState.setInvalidRead();
+    }
+    smgState.resetErrorRelation();
+
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
 
@@ -1151,7 +1203,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
         newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
-        result.add(newState);
+        PredRelation pathPredicateRelation = newState.getPathPredicateRelation();
+        BooleanFormula predicateFormula = smgPredicateManager.getPredicateFormula(pathPredicateRelation);
+        try {
+          if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
+            result.add(newState);
+          }
+        } catch (SolverException pE) {
+          result.add(newState);
+          logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + predicateFormula);
+        } catch (InterruptedException pE) {
+          result.add(newState);
+          logger.log(Level.WARNING, "Solver Interrupted Exception: " + pE + " on predicate " + predicateFormula);
+        }
       } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
           || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
         result.add(smgState);
@@ -1992,7 +2056,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             //TODO more precise
           }
         }
-        assignableState.addPredicateRelation(rSymValue, rValue, op, edge);
+        int size = getSizeof(edge, getRealExpressionType(exp), assignableState) * machineModel.getSizeofCharInBits();
+        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
 
       @Override
@@ -2301,6 +2366,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             possibleMallocFail = true;
             SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return configAllocEdge;
+          }
+          if (builtins.isExternalAllocationFunction(functionName)) {
+            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
+            return extAllocEdge;
           }
           switch (functionName) {
           case "__builtin_alloca":

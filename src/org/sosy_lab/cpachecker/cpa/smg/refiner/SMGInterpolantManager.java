@@ -38,11 +38,11 @@ public class SMGInterpolantManager {
   private final SMGInterpolant initalInterpolant;
 
   public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa,
-      int pExternalAllocationSize) {
+      boolean pTrackPredicates, int pExternalAllocationSize) {
     logger = pLogger;
     model = pModel;
     initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(),
-        pExternalAllocationSize);
+        pTrackPredicates, pExternalAllocationSize);
   }
 
   public SMGInterpolant createInitialInterpolant() {

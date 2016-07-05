@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -136,9 +137,10 @@ public class SMGRefiner implements Refiner {
     LogManager logger = smgCpa.getLogger();
     Configuration config = smgCpa.getConfiguration();
     CFA cfa = smgCpa.getCFA();
+    SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
 
     SMGStrongestPostOperator strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa);
+        new SMGStrongestPostOperator(logger, config, cfa, predicateManager);
 
     SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
 
@@ -146,7 +148,7 @@ public class SMGRefiner implements Refiner {
         new SMGFeasibilityChecker(strongestPostOp, logger, cfa, initialState, automatonCpas);
 
     SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa
-        .getMachineModel(), logger, cfa, smgCpa.getExternalAllocationSize());
+        .getMachineModel(), logger, cfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
 
     SMGState initaialState = smgCpa.getInitialState(cfa.getMainFunction());
     SMGEdgeInterpolator edgeInterpolator = new SMGEdgeInterpolator(checker, strongestPostOp, smgInterpolantManager, initaialState, smgCpa.getShutdownNotifier(), smgCpa.getPrecision(), logger);
