@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -134,6 +133,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -632,7 +632,7 @@ public class ARGPathExporter {
                     Collections2.transform(
                         assignments,
                         pExpressionStatement ->
-                            LeafExpression.of((Object) pExpressionStatement.getExpression()))));
+                            LeafExpression.of(pExpressionStatement.getExpression()))));
           }
         }
 
