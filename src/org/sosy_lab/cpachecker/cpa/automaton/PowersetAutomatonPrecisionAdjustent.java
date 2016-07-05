@@ -56,7 +56,7 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
     PowersetAutomatonState state = (PowersetAutomatonState) pState;
 
     PrecisionAdjustmentResult.Action action = Action.CONTINUE;
-    Collection<AutomatonState> adjustedComponents = Lists.newArrayList();
+    Collection<AutomatonState> components = Lists.newArrayList();
 
     boolean adjusted = false;
 
@@ -64,27 +64,35 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
       Optional<PrecisionAdjustmentResult> ePrime = componentPrec.prec(e, pPrecision, pStates, pStateProjection, pFullState);
 
       if (ePrime.isPresent()) {
-        adjusted = true;
+        if ((ePrime.get().abstractState() != e) || (ePrime.get().precision() != pPrecision)) {
+          adjusted = true;
 
-        adjustedComponents.add((AutomatonState) ePrime.get().abstractState());
+          components.add((AutomatonState) ePrime.get().abstractState());
 
-        switch(ePrime.get().action()) {
-        case BREAK: action = Action.BREAK; break;
-        case CONTINUE: break;
-        default: throw new CPAException("Unsupported precision adjustment ACTION!");
+          switch (ePrime.get().action()) {
+            case BREAK:
+              action = Action.BREAK;
+              break;
+            case CONTINUE:
+              break;
+            default:
+              throw new CPAException("Unsupported precision adjustment ACTION!");
+          }
+        } else {
+          components.add(e);
         }
 
       } else {
-        adjustedComponents.add(e);
+        return Optional.absent(); // BOTTOM
       }
     }
 
     if (adjusted) {
-      PowersetAutomatonState statePrime = new PowersetAutomatonState(adjustedComponents);
-      return Optional.of(PrecisionAdjustmentResult.create(statePrime, pPrecision, action));
+      return Optional.of(PrecisionAdjustmentResult.create(new PowersetAutomatonState(components), pPrecision, action));
+    } else {
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, action));
     }
 
-    return Optional.absent();
   }
 
 }

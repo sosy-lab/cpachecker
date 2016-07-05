@@ -85,7 +85,7 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
       Set<AutomatonState> successorElements) {
 
     PowersetAutomatonState candidateSuccessor = new PowersetAutomatonState(successorElements);
-    if (domain.isLessOrEqual(candidateSuccessor, pPred)) {
+    if (candidateSuccessor.equals(pPred)) {
       return pPred;
     }
 
