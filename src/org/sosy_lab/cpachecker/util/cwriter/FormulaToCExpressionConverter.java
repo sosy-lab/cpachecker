@@ -36,9 +36,14 @@ import java.util.List;
 
 /**
  * Class for converting a formula to a C expression.
+ *
+ * <p>Uses recursion, hence would not work on very large formulas.
  */
 public class FormulaToCExpressionConverter {
   private final FormulaManagerView fmgr;
+
+  // TODO: do not hardcode the function separator.
+  private static final String FUNCTION_NAME_SEPARATOR = "::";
 
   public FormulaToCExpressionConverter(FormulaManagerView pFmgr) {
     fmgr = pFmgr;
@@ -64,9 +69,8 @@ public class FormulaToCExpressionConverter {
       @Override
       public String visitFreeVariable(Formula f, String name) {
 
-        // TODO: do not hardcode the function separator.
-        if (name.contains("::")) {
-          return name.split("::")[1];
+        if (name.contains(FUNCTION_NAME_SEPARATOR)) {
+          return name.split(FUNCTION_NAME_SEPARATOR)[1];
         }
         return name;
       }
@@ -83,10 +87,10 @@ public class FormulaToCExpressionConverter {
           FunctionDeclaration<?> functionDeclaration) {
         switch (functionDeclaration.getKind()) {
           case NOT:
-            return String.format("!(%s)", recFormulaToCExpression(args.get(0)));
           case UMINUS:
-            return String
-                .format("- (%s)", recFormulaToCExpression(args.get(0)));
+            return String.format("%s(%s)",
+                operatorFromFunctionDeclaration(functionDeclaration),
+                recFormulaToCExpression(args.get(0)));
           default:
             return joinWithSeparator(
                 operatorFromFunctionDeclaration(functionDeclaration), args);
@@ -95,10 +99,14 @@ public class FormulaToCExpressionConverter {
 
       private String operatorFromFunctionDeclaration(FunctionDeclaration<?> pDeclaration) {
         switch (pDeclaration.getKind()) {
+          case NOT:
+            return "!";
+          case UMINUS:
+            return "- ";
           case AND:
             return "\n&& ";
           case OR:
-            return " || ";
+            return "\n|| ";
           case SUB:
             return " - ";
           case ADD:
@@ -127,8 +135,9 @@ public class FormulaToCExpressionConverter {
       private String joinWithSeparator(String separator, List<Formula> args) {
         return "("
             + Joiner.on(separator).join(
-            args.stream().map(c -> String.format("%s", recFormulaToCExpression(c))).iterator()
-        )
+              args.stream().map(c ->
+                  String.format("%s", recFormulaToCExpression(c))).iterator()
+            )
             + ")";
       }
     }, invariant);
