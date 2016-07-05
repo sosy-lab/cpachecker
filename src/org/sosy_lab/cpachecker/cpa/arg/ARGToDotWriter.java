@@ -42,8 +42,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -184,22 +186,21 @@ public class ARGToDotWriter {
 
         // edge exists, use info from edge
       } else {
+
+        boolean hasWeavedTrans = false;
+        for (CFAEdge edge : edges) {
+          if (edge.getPredecessor() instanceof ShadowCFANode) {
+            hasWeavedTrans = true;
+            break;
+          }
+        }
+
         boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
-        if (colored) {
 
-          boolean hasWeavedTrans = false;
-          for (CFAEdge edge : edges) {
-            if (edge.getPredecessor() instanceof ShadowCFANode) {
-              hasWeavedTrans = true;
-              break;
-            }
-          }
-
-          if (hasWeavedTrans) {
-            builder.append("color=\"green\" ");
-          } else {
-            builder.append("color=\"red\" ");
-          }
+        if (hasWeavedTrans) {
+          builder.append("color=\"green\" ");
+        } else if (colored) {
+          builder.append("color=\"red\" ");
         }
 
         builder.append("label=\"");
@@ -272,7 +273,9 @@ public class ARGToDotWriter {
 
 //    Collection<PredicateAbstractState> abstraction = AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class);
 //    for (PredicateAbstractState e: abstraction) {
-//      final String formual = GlobalInfo.getInstance().getPredicateFormulaManagerView().simplify(e.getPathFormula().getFormula()).toString();
+//      final String formual = GlobalInfo
+//          .getInstance().getPredicateFormulaManagerView().simplify(e.getAbstractionFormula().asFormula())
+//          .toString();
 //      labelBuilder.append(formual + "\n");
 //    }
 
