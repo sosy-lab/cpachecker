@@ -180,7 +180,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     public CPAAlgorithm newInstance() {
-      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
+      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering,
+          reportFalseAsUnknown, algorithmIterationListener);
     }
   }
 
@@ -205,6 +206,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final CPAStatistics               stats = new CPAStatistics();
 
+  private final AlgorithmIterationListener algorithmIterationListener;
+
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -219,7 +222,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
-      boolean pIsImprecise) {
+      boolean pIsImprecise,
+      AlgorithmIterationListener pAlgorithmIterationListener) {
 
     transferRelation = cpa.getTransferRelation();
     mergeOperator = cpa.getMergeOperator();
@@ -229,6 +233,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     this.shutdownNotifier = pShutdownNotifier;
     this.forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
+    algorithmIterationListener = pAlgorithmIterationListener;
   }
 
   @Override
@@ -278,6 +283,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         // that otherwise would be forgotten (which would be unsound)
         reachedSet.reAddToWaitlist(state);
         throw e;
+      } finally {
+        algorithmIterationListener.afterAlgorithmIteration(this, reachedSet);
       }
 
     }
