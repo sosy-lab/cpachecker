@@ -139,6 +139,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
       lastElement.addCounterexampleInformation(counterexample);
+      argCpa.addFeasibleCounterexample(lastElement, counterexample);
 
       logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
 

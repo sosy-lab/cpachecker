@@ -1104,15 +1104,18 @@ public class TigerAlgorithm
             ARGState lastState = (ARGState) reachedSet.getLastState();
             Preconditions.checkState(lastState.isTarget());
 
-            CounterexampleInfo cexi = pARTCPA.getCounterexamples().get(lastState);
+            if (lastState.getCounterexampleInformation().isPresent()) {
+              CounterexampleInfo cexi = lastState.getCounterexampleInformation().get();
+            }
 
-            if (cexi == null) {
+            if (!lastState.getCounterexampleInformation().isPresent()) {
               // No feasible counterexample!
               logger.logf(Level.WARNING,
                   "Analysis returned a target state (%d) without a feasible counterexample for: "
                       + lastState.getViolatedProperties(),
                   lastState.getStateId());
             } else {
+              CounterexampleInfo cexi = lastState.getCounterexampleInformation().get();
               dumpArgForCex(cexi);
 
               Set<Goal> fullyCoveredGoals = null;
