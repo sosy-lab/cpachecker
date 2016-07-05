@@ -46,6 +46,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractWeavedOnLocations;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -1061,24 +1062,18 @@ public class ARGPath extends AbstractAppender {
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
 
-      // if we are currently on a position with state and we have a real
-      // (non-null) edge then we can directly set the parameters without
-      // further checking
-      if (path.edges.get(pos) != null && currentPositionHasState) {
-        pos++;
-        overallOffset++;
-        currentPositionHasState = true;
+      final CFAEdge leavingEdge = fullPath.get(overallOffset);
+      final Iterable<CFANode> nextStateLocations = extractWeavedOnLocations(getNextAbstractState());
 
-      } else {
-        CFANode nextLoc = AbstractStates.extractLocationMaybeWeaved(getNextAbstractState());
-        if (Iterables.contains(extractLocations(getNextAbstractState()), nextLoc)) {
-          pos++;
-          currentPositionHasState = true;
-        } else {
-          currentPositionHasState = false;
-        }
-        overallOffset++;
+      boolean nextPositionHasState =
+          Iterables.contains(nextStateLocations, leavingEdge.getSuccessor()); // forward analysis
+
+      if (nextPositionHasState) {
+        pos++;
       }
+
+      currentPositionHasState = nextPositionHasState;
+      overallOffset++;
     }
 
     @Override
