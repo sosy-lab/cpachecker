@@ -94,6 +94,7 @@ public class PredRelation {
   public void addExplicitRelation(SMGSymbolicValue pSymbolicValue, Integer pCType1,
                                   SMGExplicitValue pExplicitValue, Integer pCType2,
                                   BinaryOperator pOp) {
+    assert(pCType1 == pCType2);
     addExplicitRelation(pSymbolicValue.getAsInt(), pExplicitValue, pOp);
     addValueSize(pSymbolicValue.getAsInt(), pCType1);
   }
@@ -121,11 +122,8 @@ public class PredRelation {
   public void mergeValues(Integer pV1, Integer pV2) {
     for (Integer relatedValue: smgValuesDependency.removeAll(pV2)) {
       smgValuesDependency.remove(relatedValue, pV2);
-      for (SymbolicRelation prev: smgValuesRelation.removeAll(Pair.of(pV2, relatedValue))) {
+      smgValuesRelation.removeAll(Pair.of(pV2, relatedValue));
         //TODO: modify predicates on merge values
-//        addRelation(pV1, relatedValue, prev.getOperator());
-//        addValueSize(pV1, getSymbolicSize(pV2));
-      }
       smgValuesRelation.removeAll(Pair.of(relatedValue, pV2));
     }
     for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(pV2)) {

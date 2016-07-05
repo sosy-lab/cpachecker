@@ -1965,7 +1965,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
                                 CFAEdge pEdge) {
     logger.log(Level.FINER, "Add Error Predicate: SymValue  " + pSymbolicValue + " ; ExplValue " +
         pExplicitValue + "; on edge: " + pEdge.toString());
-    heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pEdge);
+    heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2);
   }
 
   public PredRelation getErrorPredicateRelation() {

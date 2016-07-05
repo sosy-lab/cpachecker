@@ -367,7 +367,7 @@ public class SMG {
   }
 
   public void addErrorRelation(SMGSymbolicValue pSMGSymbolicValue, Integer pCType1,
-                               SMGExplicitValue pExplicitValue, Integer pCType2, CFAEdge pEdge) {
+                               SMGExplicitValue pExplicitValue, Integer pCType2) {
     errorPredicate.addExplicitRelation(pSMGSymbolicValue, pCType1, pExplicitValue, pCType2, BinaryOperator.GREATER_THAN);
   }
 

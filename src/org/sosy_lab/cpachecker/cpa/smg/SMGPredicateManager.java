@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BitvectorFormula;
@@ -60,7 +59,6 @@ public class SMGPredicateManager {
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final IntegerFormulaManagerView nfmgr;
   private final BitvectorFormulaManagerView efmgr;
 
 
@@ -73,7 +71,6 @@ public class SMGPredicateManager {
     solver = Solver.create(pConfig, pLogger,shutdownNotifier);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    nfmgr = fmgr.getIntegerFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
   }
 
