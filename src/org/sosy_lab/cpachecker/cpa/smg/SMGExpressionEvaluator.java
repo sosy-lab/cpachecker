@@ -987,9 +987,23 @@ public class SMGExpressionEvaluator {
         newState = subscriptValueAndState.getSmgState();
 
         if (subscriptValue.isUnknown()) {
+          SMGValueAndStateList subscriptSymbolicValueAndStates =
+              evaluateNonAddressValue(newState, cfaEdge, exp.getSubscriptExpression());
+          for (SMGValueAndState symbolicValueAndState: subscriptSymbolicValueAndStates.getValueAndStateList()) {
+            SMGSymbolicValue value = symbolicValueAndState.getObject();
+            if (!value.isUnknown() && !newState.isObjectExternallyAllocated(arrayAddress.getObject())) {
+              int size = arrayAddress.getObject().getSize();
+              int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
+              int index = (size / typeSize) + 1;
+              int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType
+                  (), newState, exp) * machineModel.getSizeofCharInBits();
+              newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
+                  subscriptSize, cfaEdge);
+            }
+          }
           // assume address is invalid
           //throw new SMGInconsistentException("Can't properly evaluate array subscript");
-          newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
+//          newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
           result.add(SMGAddressAndState.of(newState));
           continue;
         }
@@ -1320,7 +1334,11 @@ public class SMGExpressionEvaluator {
                 binaryOperator, leftSideVal, rightSideVal);
 
             //TODO: separate modifiable and unmodifiable visitor
-            newState.addPredicateRelation(leftSideVal, rightSideVal, binaryOperator, cfaEdge);
+            int leftSideTypeSize = getSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
+            int rightSideTypeSize = getSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
+            newState.addPredicateRelation(leftSideVal, leftSideTypeSize * machineModel.getSizeofCharInBits(),
+                                          rightSideVal, rightSideTypeSize  * machineModel.getSizeofCharInBits(),
+                                          binaryOperator, cfaEdge);
             result.add(SMGValueAndState.of(newState, resultValue));
           }
         }

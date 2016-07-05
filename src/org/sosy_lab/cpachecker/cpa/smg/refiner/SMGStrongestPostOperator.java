@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -48,9 +49,11 @@ public class SMGStrongestPostOperator {
 
   private final SMGTransferRelation transfer;
 
-  public SMGStrongestPostOperator(LogManager pLogger, Configuration pBuild, CFA pCfa)
+  public SMGStrongestPostOperator(LogManager pLogger, Configuration pBuild, CFA pCfa,
+                                  SMGPredicateManager pSMGPredicateManager)
       throws InvalidConfigurationException {
-    transfer = SMGTransferRelation.createTransferRelationForRefinement(pBuild, pLogger, pCfa.getMachineModel());
+    transfer = SMGTransferRelation.createTransferRelationForRefinement(pBuild, pLogger, pCfa
+        .getMachineModel(), pSMGPredicateManager);
   }
 
   public Collection<SMGState> getStrongestPost(SMGState pOrigin, Precision pPrecision,

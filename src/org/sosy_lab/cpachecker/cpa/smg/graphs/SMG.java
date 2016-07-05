@@ -56,8 +56,9 @@ public class SMG {
   private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
   private NeqRelation neq = new NeqRelation();
 
-  private boolean trackPredicates = false;
-  private PredRelation symbolicRelations = new PredRelation();
+  private PredRelation pathPredicate = new PredRelation();
+  private PredRelation errorPredicate = new PredRelation();
+
 
   private final MachineModel machine_model;
 
@@ -106,7 +107,8 @@ public class SMG {
     hv_edges = pHeap.hv_edges.copy();
     pt_edges = pHeap.pt_edges.copy();
     neq.putAll(pHeap.neq);
-    symbolicRelations.putAll(pHeap.symbolicRelations);
+    pathPredicate.putAll(pHeap.pathPredicate);
+    errorPredicate.putAll(pHeap.errorPredicate);
     object_validity.putAll(pHeap.object_validity);
     objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
     objects.addAll(pHeap.objects);
@@ -172,9 +174,8 @@ public class SMG {
 
     values.remove(pValue);
     neq.removeValue(pValue);
-    if (trackPredicates) {
-      symbolicRelations.removeValue(pValue);
-    }
+    pathPredicate.removeValue(pValue);
+    errorPredicate.removeValue(pValue);
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -337,28 +338,45 @@ public class SMG {
    * Adds a predicate relation between two values to the SMG
    * Keeps consistency: no
    */
-  public void addPredicateRelation(SMGSymbolicValue pV1, SMGSymbolicValue pV2, BinaryOperator
-      pOp, CFAEdge pEdge) {
-    if (trackPredicates && pEdge instanceof CAssumeEdge) {
+  public void addPredicateRelation(SMGSymbolicValue pV1, Integer pCType1,
+                                   SMGSymbolicValue pV2, Integer pCType2,
+                                   BinaryOperator pOp, CFAEdge pEdge) {
+    CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+    if (assumeEdge.getTruthAssumption()) {
+      pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp);
+    } else {
+      pathPredicate.addRelation(pV1, pCType1, pV2, pCType2, pOp.getOppositLogicalOperator());
+    }
+  }
+
+  public void addPredicateRelation(SMGSymbolicValue pSymbolicValue, Integer pCType1,
+                                   SMGExplicitValue pExplicitValue, Integer pCType2,
+                                   BinaryOperator pOp, CFAEdge pEdge) {
+    if (pEdge instanceof CAssumeEdge) {
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
       if (assumeEdge.getTruthAssumption()) {
-        symbolicRelations.addRelation(pV1, pV2, pOp);
+        pathPredicate.addExplicitRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pOp);
       } else {
-        symbolicRelations.addRelation(pV1, pV2, pOp.getOppositLogicalOperator());
+        pathPredicate.addExplicitRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2, pOp.getOppositLogicalOperator());
       }
     }
   }
 
-  public void addPredicateRelation(SMGSymbolicValue pSymbolicValue, SMGExplicitValue pExplicitValue,
-                                   BinaryOperator pOp, CFAEdge pEdge) {
-    if (trackPredicates && pEdge instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      if (assumeEdge.getTruthAssumption()) {
-        symbolicRelations.addExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
-      } else {
-        symbolicRelations.addExplicitRelation(pSymbolicValue, pExplicitValue, pOp.getOppositLogicalOperator());
-      }
-    }
+  public PredRelation getPathPredicateRelation() {
+    return pathPredicate;
+  }
+
+  public void addErrorRelation(SMGSymbolicValue pSMGSymbolicValue, Integer pCType1,
+                               SMGExplicitValue pExplicitValue, Integer pCType2, CFAEdge pEdge) {
+    errorPredicate.addExplicitRelation(pSMGSymbolicValue, pCType1, pExplicitValue, pCType2, BinaryOperator.GREATER_THAN);
+  }
+
+  public PredRelation getErrorPredicateRelation() {
+    return errorPredicate;
+  }
+
+  public void resetErrorRelation() {
+    errorPredicate = new PredRelation();
   }
 
 
@@ -608,9 +626,7 @@ public class SMG {
     }
 
     neq.mergeValues(pV1, pV2);
-    if (trackPredicates) {
-      symbolicRelations.mergeValues(pV1, pV2);
-    }
+    pathPredicate.mergeValues(pV1, pV2);
 
     removeValue(pV2);
 
@@ -650,6 +666,7 @@ public class SMG {
     hv_edges.clear();
     pt_edges.clear();
     neq.clear();
-    symbolicRelations.clear();
+    pathPredicate.clear();
+    errorPredicate.clear();
   }
 }

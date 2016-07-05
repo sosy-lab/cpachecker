@@ -42,7 +42,7 @@ public class SMGJoinValuesTest {
   private SMG smgDest;
 
   SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
-      null, 4, false);
+      null, 4, false, false);
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;

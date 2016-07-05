@@ -526,7 +526,7 @@ cinvariants.export = false
 
 # Prefix to add to an output file, which would contain assumed invariants.
 # Ignored if |writeToStats| is set to |true|
-cinvariants.prefix = "inv-%s"
+cinvariants.prefix = no default value
 
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
@@ -1914,8 +1914,9 @@ cpa.smg.exportSMG.file = "smg/smg-%s.dot"
 cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
-# Function which indicate on external allocated memory
-cpa.smg.externalAllocationFunction = "ext_allocation"
+# Functions which indicate on external allocated memory
+cpa.smg.externalAllocationFunction = {
+      "ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg.externalAllocationSize = Integer.MAX_VALUE
@@ -1966,8 +1967,14 @@ cpa.smg.runtimeCheck = NONE
 cpa.smg.stop = "SEP"
   allowed values: [SEP, NEVER]
 
+# Enable track predicates on SMG state
+cpa.smg.trackPredicates = false
+
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Allow SMG to check predicates
+cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {
