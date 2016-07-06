@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
@@ -80,7 +79,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationStatistics statistics;
 
-  private final Solver solver;
   private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
@@ -109,9 +107,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
     Configuration solverConfig = Configuration.defaultConfiguration();
-    solver = Solver.create(solverConfig, pLogger, pShutdownNotifier);
     formulaManager = (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
-    formulaManagerView = solver.getFormulaManager();
+    formulaManagerView = new FormulaManagerView(formulaManager, solverConfig, pLogger);
     pathFormulaManager =
         new PathFormulaManagerImpl(
             formulaManagerView,
@@ -122,7 +119,13 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             AnalysisDirection.FORWARD);
 
     lassoBuilder =
-        new LassoBuilder(pLogger, shutdownNotifier, formulaManager, solver, pathFormulaManager);
+        new LassoBuilder(
+            pLogger,
+            shutdownNotifier,
+            formulaManager,
+            formulaManagerView,
+            pSolverContext::newProverEnvironment,
+            pathFormulaManager);
     rankingRelationBuilder =
         new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
 
