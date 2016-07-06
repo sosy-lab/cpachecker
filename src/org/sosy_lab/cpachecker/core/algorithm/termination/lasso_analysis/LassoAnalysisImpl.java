@@ -72,6 +72,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.Ran
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 
 public class LassoAnalysisImpl implements LassoAnalysis {
 
@@ -181,6 +182,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     } catch (IOException | SMTLIBException | TermException e) {
       logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
       return LassoAnalysisResult.unknown();
+    } catch (ToolchainCanceledException e) {
+      throw new InterruptedException(e.getMessage());
     }
   }
 
@@ -205,7 +208,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private LassoAnalysisResult checkTermination(
       Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
-      throws IOException, SMTLIBException, TermException {
+      throws IOException, SMTLIBException, TermException, InterruptedException {
 
     statistics.nonTerminationAnalysisOfLassoStarted();
     NonTerminationArgument nonTerminationArgument = null;
@@ -224,6 +227,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     RankingRelation rankingRelation = null;
     statistics.terminationAnalysisOfLassoStarted();
     for (RankingTemplate rankingTemplate : rankingTemplates) {
+      shutdownNotifier.shutdownIfNecessary();
 
       try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
           createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
