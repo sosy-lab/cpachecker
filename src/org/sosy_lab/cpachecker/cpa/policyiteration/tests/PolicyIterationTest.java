@@ -77,8 +77,7 @@ public class PolicyIterationTest {
   @Test
   public void pointer_past_abstraction_false_assert() throws Exception {
     checkWithSlicing(
-        "pointers/pointer_past_abstraction_false_assert.c",
-        ImmutableMap.of("cpa.lpi.runCongruence", "false"));
+        "pointers/pointer_past_abstraction_false_assert.c", ImmutableMap.of());
   }
 
   @Test

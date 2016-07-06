@@ -5,7 +5,6 @@ import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -33,10 +32,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
-import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
-import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
-import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -49,6 +45,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.templates.Template;
+import org.sosy_lab.cpachecker.util.templates.Template.Kind;
+import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
+import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -85,7 +85,7 @@ public class PolicyIterationManager {
   /**
    * Where an abstraction should be performed.
    */
-  private enum AbstractionLocations {
+  public enum AbstractionLocations {
 
     /**
      * At every node.
@@ -113,9 +113,6 @@ public class PolicyIterationManager {
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
-
-  @Option(secure=true, description="Run simple congruence analysis")
-  private boolean runCongruence = true;
 
   @Option(secure=true, description="Syntactically pre-compute dependencies for "
       + "value determination")
@@ -160,11 +157,11 @@ public class PolicyIterationManager {
   private final ValueDeterminationManager vdfmgr;
   private final PolicyIterationStatistics statistics;
   private final FormulaLinearizationManager linearizationManager;
-  private final CongruenceManager congruenceManager;
   private final PolyhedraWideningManager pwm;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final RCNFManager rcnfManager;
-  private final PolicyPrecision initialPrecision;
+  private final TemplatePrecision initialPrecision;
+  private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
 
   public PolicyIterationManager(
       Configuration pConfig,
@@ -177,10 +174,11 @@ public class PolicyIterationManager {
       ValueDeterminationManager pValueDeterminationFormulaManager,
       PolicyIterationStatistics pStatistics,
       FormulaLinearizationManager pLinearizationManager,
-      CongruenceManager pCongruenceManager,
       PolyhedraWideningManager pPwm,
-      StateFormulaConversionManager pStateFormulaConversionManager)
+      StateFormulaConversionManager pStateFormulaConversionManager,
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
       throws InvalidConfigurationException {
+    templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
     pwm = pPwm;
     stateFormulaConversionManager = pStateFormulaConversionManager;
@@ -194,7 +192,6 @@ public class PolicyIterationManager {
     vdfmgr = pValueDeterminationFormulaManager;
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
-    congruenceManager = pCongruenceManager;
 
     /** Compute the cache for loops */
     Builder<CFANode, Loop> loopStructureBuilder =
@@ -207,8 +204,8 @@ public class PolicyIterationManager {
     }
     loopStructure = loopStructureBuilder.build();
     rcnfManager = new RCNFManager(pConfig);
-    initialPrecision = new PolicyPrecision(logger, pConfig, cfa, statistics,
-        pStateFormulaConversionManager);
+    initialPrecision = new TemplatePrecision(
+        logger, pConfig, cfa, templateToFormulaConversionManager);
   }
 
   /**
@@ -235,7 +232,7 @@ public class PolicyIterationManager {
   public PolicyState getInitialState(CFANode pNode) {
     return PolicyAbstractedState.empty(
         pNode,
-        bfmgr.makeBoolean(true), stateFormulaConversionManager, congruenceManager);
+        bfmgr.makeBoolean(true), stateFormulaConversionManager);
   }
 
   public Precision getInitialPrecision() {
@@ -266,7 +263,7 @@ public class PolicyIterationManager {
 
   public Optional<PrecisionAdjustmentResult> precisionAdjustment(
       final PolicyState inputState,
-      final PolicyPrecision inputPrecision,
+      final TemplatePrecision inputPrecision,
       final UnmodifiableReachedSet states,
       final AbstractState pArgState) throws CPAException, InterruptedException {
     return precisionAdjustment0(inputState, inputPrecision, states, pArgState)
@@ -283,7 +280,7 @@ public class PolicyIterationManager {
    */
   public Optional<PolicyState> precisionAdjustment0(
       final PolicyState inputState,
-      final PolicyPrecision inputPrecision,
+      final TemplatePrecision inputPrecision,
       final UnmodifiableReachedSet states,
       final AbstractState pArgState) throws CPAException, InterruptedException {
 
@@ -319,7 +316,7 @@ public class PolicyIterationManager {
             node, locationID, stateFormulaConversionManager,
             iState.getPathFormula().getSsa(),
             iState.getPathFormula().getPointerTargetSet(),
-            extraInvariant, iState, sibling, congruenceManager
+            extraInvariant, iState, sibling
         ));
       }
 
@@ -348,7 +345,7 @@ public class PolicyIterationManager {
   }
 
   public Optional<AbstractState> strengthen(
-      PolicyState pState, PolicyPrecision pPrecision,
+      PolicyState pState, TemplatePrecision pPrecision,
       List<AbstractState> pOtherStates)
       throws CPAException, InterruptedException {
     if (!pState.isAbstract()) {
@@ -419,7 +416,7 @@ public class PolicyIterationManager {
   private PolicyAbstractedState emulateLargeStep(
       PolicyAbstractedState abstraction,
       PolicyAbstractedState latestSibling,
-      PolicyPrecision precision,
+      TemplatePrecision precision,
       BooleanFormula extraInvariant
       ) throws CPATransferException, InterruptedException {
 
@@ -500,7 +497,7 @@ public class PolicyIterationManager {
   private PolicyAbstractedState unionAbstractedStates(
       final PolicyAbstractedState newState,
       final PolicyAbstractedState oldState,
-      final PolicyPrecision precision,
+      final TemplatePrecision precision,
       Map<Template, PolicyBound> updated,
       BooleanFormula extraInvariant) {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
@@ -557,7 +554,6 @@ public class PolicyIterationManager {
         PolicyAbstractedState.of(
             newAbstraction,
             oldState.getNode(),
-            congruenceManager.join(newState.getCongruence(), oldState.getCongruence()),
             newState.getLocationID(),
             stateFormulaConversionManager,
             oldState.getSSA(), // Very important to use the old SSA so that PathFormulaManager
@@ -633,7 +629,7 @@ public class PolicyIterationManager {
         Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
 
         if (value.isPresent() &&
-            !stateFormulaConversionManager.isOverflowing(template, value.get())) {
+            !templateToFormulaConversionManager.isOverflowing(template, value.get())) {
           Rational v = value.get();
           logger.log(Level.FINE, "Updating", template, "to value", v);
           newAbstraction.put(template, mergedBound.updateValueFromValueDetermination(v));
@@ -696,11 +692,9 @@ public class PolicyIterationManager {
     PathFormula pf = state.getPathFormula();
 
     BooleanFormula constraint = bfmgr.and(
-        ImmutableList.of(
-            startConstraints,
-            pf.getFormula(),
-            fmgr.instantiate(extraInvariant, pf.getSsa())
-        )
+        startConstraints,
+        pf.getFormula(),
+        fmgr.instantiate(extraInvariant, pf.getSsa())
     );
 
     try {
@@ -719,7 +713,7 @@ public class PolicyIterationManager {
    */
   private Optional<PolicyBound> getPolicyBound(
       Template template,
-      PolicyPrecision precision,
+      TemplatePrecision precision,
       OptimizationProverEnvironment optEnvironment,
       Optional<Rational> bound,
       BooleanFormula annotatedFormula,
@@ -734,7 +728,7 @@ public class PolicyIterationManager {
           (template.getKind() == Kind.NEG_LOWER_BOUND ||
               template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
       if (bound.isPresent() &&
-          !stateFormulaConversionManager.isOverflowing(template, bound.get())
+          !templateToFormulaConversionManager.isOverflowing(template, bound.get())
           || unsignedAndLower) {
         Rational boundValue;
         if (bound.isPresent() && unsignedAndLower) {
@@ -801,7 +795,7 @@ public class PolicyIterationManager {
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState state,
       int locationID,
-      PolicyPrecision precision,
+      TemplatePrecision precision,
       BooleanFormula extraInvariant,
       Optional<PolicyAbstractedState> pSibling)
       throws CPAException, InterruptedException {
@@ -830,7 +824,7 @@ public class PolicyIterationManager {
 
         // Optimize for the template subject to the
         // constraints introduced by {@code p}.
-        Formula objective = stateFormulaConversionManager.toFormula(
+        Formula objective = templateToFormulaConversionManager.toFormula(
             pfmgr, fmgr, template, p);
         Set<String> objectiveVars = extractFunctionNames(objective);
 
@@ -929,20 +923,9 @@ public class PolicyIterationManager {
 
     statistics.updateCounter.add(locationID);
 
-    // TODO: ideally, congruence should be a separate CPA.
-    CongruenceState congruence;
-    if (runCongruence) {
-      congruence = congruenceManager.performAbstraction(
-          state.getNode(), p, startConstraints, precision
-      );
-    } else {
-      congruence = CongruenceState.empty(congruenceManager);
-    }
-
     return PolicyAbstractedState.of(
         abstraction,
         state.getNode(),
-        congruence,
         locationID,
         stateFormulaConversionManager,
         state.getPathFormula().getSsa(),
@@ -1020,7 +1003,7 @@ public class PolicyIterationManager {
       }
 
       Set<String> variables = extractFunctionNames(
-          stateFormulaConversionManager.toFormula(pfmgr, fmgr, singleton, pFormula)
+          templateToFormulaConversionManager.toFormula(pfmgr, fmgr, singleton, pFormula)
       );
 
       // Subset of lemmas relevant to the set |variables|.
@@ -1134,7 +1117,7 @@ public class PolicyIterationManager {
   private PolicyBound modelToPolicyBound(
       Formula templateObjective,
       PolicyIntermediateState inputState,
-      PolicyPrecision precision,
+      TemplatePrecision precision,
       PathFormula inputPathFormula,
       BooleanFormula annotatedFormula,
       Model model,
@@ -1180,7 +1163,7 @@ public class PolicyIterationManager {
       for (Entry<Template, PolicyBound> entry : backpointer) {
         Template t = entry.getKey();
         Set<String> fVars = extractFunctionNames(
-            stateFormulaConversionManager.toFormula(
+            templateToFormulaConversionManager.toFormula(
                 pfmgr, fmgr, t, contextFormula));
         if (!Sets.intersection(fVars, policyVars).isEmpty()) {
           dependencies.add(t);
@@ -1319,10 +1302,6 @@ public class PolicyIterationManager {
       PolicyAbstractedState aState1,
       PolicyAbstractedState aState2
   ) {
-    if (!congruenceManager.isLessOrEqual(aState1.getCongruence(), aState2.getCongruence())) {
-      return false;
-    }
-
     for (Entry<Template, PolicyBound> e : aState2) {
       Template t = e.getKey();
       PolicyBound bound2 = e.getValue();

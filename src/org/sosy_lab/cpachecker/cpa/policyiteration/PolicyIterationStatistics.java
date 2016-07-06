@@ -9,6 +9,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.templates.Template;
 
 import java.io.PrintStream;
 import java.math.BigInteger;
@@ -29,7 +30,6 @@ public class PolicyIterationStatistics implements Statistics {
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
   final Timer simplifyTimer = new Timer();
-  public final Timer congruenceTimer = new Timer();
 
   final Timer ackermannizationTimer = new Timer();
   final Timer linearizationTimer = new Timer();
@@ -61,7 +61,6 @@ public class PolicyIterationStatistics implements Statistics {
 
     printTimer(out, checkIndependenceTimer, "checking independence");
     printTimer(out, simplifyTimer, "simplifying formulas");
-    printTimer(out, congruenceTimer, "computing congruence");
     printTimer(out, polyhedraWideningTimer, "computing polyhedra widening");
     printTimer(out, ackermannizationTimer, "performing ackermannization on policies");
 

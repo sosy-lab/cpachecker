@@ -5,12 +5,11 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.CExpressionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
-import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.Iterator;
@@ -23,8 +22,6 @@ public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
                  FormulaReportingState,
                  CExpressionReportingState {
-
-  private final CongruenceState congruence;
 
   private final StateFormulaConversionManager manager;
 
@@ -67,7 +64,6 @@ public final class PolicyAbstractedState extends PolicyState
   private PolicyAbstractedState(
       CFANode node,
       Map<Template, PolicyBound> pAbstraction,
-      CongruenceState pCongruence,
       int pLocationID,
       StateFormulaConversionManager pManager,
       SSAMap pSsaMap,
@@ -81,7 +77,6 @@ public final class PolicyAbstractedState extends PolicyState
     extraInvariant = pPredicate;
     predecessor = pPredecessor;
     abstraction = ImmutableMap.copyOf(pAbstraction);
-    congruence = pCongruence;
     locationID = pLocationID;
     manager = pManager;
     sibling = pSibling;
@@ -95,14 +90,9 @@ public final class PolicyAbstractedState extends PolicyState
     return locationID;
   }
 
-  public CongruenceState getCongruence() {
-    return congruence;
-  }
-
   public static PolicyAbstractedState of(
       Map<Template, PolicyBound> data,
       CFANode node,
-      CongruenceState pCongruence,
       int pLocationID,
       StateFormulaConversionManager pManager,
       SSAMap pSSAMap,
@@ -113,7 +103,6 @@ public final class PolicyAbstractedState extends PolicyState
     return new PolicyAbstractedState(
         node,
         data,
-        pCongruence,
         pLocationID,
         pManager,
         pSSAMap,
@@ -131,7 +120,6 @@ public final class PolicyAbstractedState extends PolicyState
     return new PolicyAbstractedState(
         getNode(),
         newAbstraction,
-        congruence,
         locationID,
         manager,
         ssaMap,
@@ -176,12 +164,10 @@ public final class PolicyAbstractedState extends PolicyState
       PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
       PolicyIntermediateState pPredecessor,
-      Optional<PolicyAbstractedState> pSibling,
-      CongruenceManager pCongruenceManager) {
+      Optional<PolicyAbstractedState> pSibling) {
     return new PolicyAbstractedState(
         node,
         ImmutableMap.of(),
-        CongruenceState.empty(pCongruenceManager),
         pLocationID,
         pManager,
         pSSAMap,
@@ -196,12 +182,10 @@ public final class PolicyAbstractedState extends PolicyState
    */
   public static PolicyAbstractedState empty(CFANode node,
                                             BooleanFormula pPredicate,
-                                            StateFormulaConversionManager pManager,
-                                            CongruenceManager pCongruenceManager) {
+                                            StateFormulaConversionManager pManager) {
     return new PolicyAbstractedState(
         node, // node
         ImmutableMap.of(), // abstraction
-        CongruenceState.empty(pCongruenceManager),
         -1,
         pManager,
         SSAMap.emptySSAMap(),
@@ -265,8 +249,7 @@ public final class PolicyAbstractedState extends PolicyState
       return false;
     }
     PolicyAbstractedState entries = (PolicyAbstractedState) pO;
-    return Objects.equals(congruence, entries.congruence) &&
-        Objects.equals(abstraction, entries.abstraction) &&
+    return Objects.equals(abstraction, entries.abstraction) &&
         Objects.equals(ssaMap, entries.ssaMap) &&
         Objects.equals(pointerTargetSet, entries.pointerTargetSet) &&
         Objects.equals(extraInvariant, entries.extraInvariant) &&
@@ -279,7 +262,7 @@ public final class PolicyAbstractedState extends PolicyState
       hashCache = Objects
           .hash(
               getNode(),
-              congruence, abstraction, ssaMap, pointerTargetSet,
+              abstraction, ssaMap, pointerTargetSet,
               extraInvariant);
     }
     return hashCache;

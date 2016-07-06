@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.templates.Template;
+import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 
@@ -43,6 +45,7 @@ public class ValueDeterminationManager {
   private final PathFormulaManager pfmgr;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final LoopStructure loopStructure;
+  private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
@@ -54,7 +57,9 @@ public class ValueDeterminationManager {
       LogManager logger,
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      LoopStructure pLoopStructure) throws InvalidConfigurationException {
+      LoopStructure pLoopStructure,
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager) throws InvalidConfigurationException {
+    templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfiguration.inject(this);
 
     this.fmgr = fmgr;
@@ -225,7 +230,7 @@ public class ValueDeterminationManager {
         bound.getPredecessor(), fmgr, attachExtraInvariantDuringValueDetermination);
 
     Formula policyOutTemplate = addPrefix(
-        stateFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),
+        templateToFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),
         prefix);
     Formula outVar =
         fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
@@ -256,7 +261,7 @@ public class ValueDeterminationManager {
           policyBackpointerLocationID, incomingTemplate);
 
       Formula incomingTemplateFormula = addPrefix(
-          stateFormulaConversionManager.toFormula(
+          templateToFormulaConversionManager.toFormula(
               pfmgr, fmgr,
               incomingTemplate,
               startPathFormula

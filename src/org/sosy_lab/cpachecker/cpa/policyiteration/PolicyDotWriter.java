@@ -1,12 +1,13 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.templates.Template;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.rationals.LinearExpression;
-import org.sosy_lab.common.rationals.Rational;
 
 /**
  * Converts a set of invariants to the pretty text representation.
@@ -26,7 +27,7 @@ public class PolicyDotWriter {
     Map<LinearExpression<?>, Rational> equal = new HashMap<>();
 
     for (Map.Entry<Template, PolicyBound> e : data.entrySet()) {
-      toSort.put(e.getKey().linearExpression, e.getValue());
+      toSort.put(e.getKey().getLinearExpression(), e.getValue());
     }
     while (toSort.size() > 0) {
       LinearExpression<?> template, negTemplate;
