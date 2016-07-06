@@ -78,7 +78,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Option(secure=true, name="cpa.arg.inCPAEnabledAnalysis",
   description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
-    + "behave differntly during merge.")
+    + "behave differently during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
   @Option(secure=true, name="cpa.arg.deleteInCPAEnabledAnalysis",
@@ -97,7 +97,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
-      ImmutableList.<CounterexampleFilter.Factory>of(
+      ImmutableList.of(
           (config, logger, cpa) -> new PathEqualityCounterexampleFilter(config, logger, cpa));
   private final CounterexampleFilter cexFilter;
 
