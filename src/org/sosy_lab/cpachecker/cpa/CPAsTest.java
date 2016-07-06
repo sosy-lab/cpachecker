@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -105,6 +106,7 @@ public class CPAsTest {
     cpas.remove(PropertyCheckerCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
+    cpas.remove(ABECPA.class); // Shouldn't be used by itself.
 
     return cpas;
   }
