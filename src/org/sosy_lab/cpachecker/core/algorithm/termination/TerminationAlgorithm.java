@@ -109,10 +109,12 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
   @Nullable private static Specification terminationSpecification;
 
-  @Option(secure=true,
-      description="maximal number of repeated ranking functions per loop before stopping analysis")
+  @Option(
+    secure = true,
+    description = "maximal number of repeated ranking functions per loop before stopping analysis"
+  )
   @IntegerOption(min = 1)
-  private int maxRepeatedRankingFunctions = 10;
+  private int maxRepeatedRankingFunctionsPerLoop = 100;
 
   private final TerminationStatistics statistics;
 
@@ -266,7 +268,8 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = Sets.newHashSet();
-    int repeatedRaningFunctions = 0;
+    int totalRepeatedRankingFunctions = 0;
+    int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
 
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
@@ -319,21 +322,35 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
             resetReachedSet(pReachedSet, initialLocation);
             // a ranking relation was synthesized and the reached set was reseted
             result = Result.TRUE;
+            repeatedRankingFunctionsSinceSuccessfulIteration = 0;
 
           } else {
-            repeatedRaningFunctions++;
+            totalRepeatedRankingFunctions++;
+            repeatedRankingFunctionsSinceSuccessfulIteration++;
             logger.logf(WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
-            if (repeatedRaningFunctions >= maxRepeatedRankingFunctions) {
-              return Result.UNKNOWN;
-            }
+            removeCounterExample(pReachedSet, targetStateWithCounterExample.get());
 
-            removeCounterExample(pReachedSet, targetStateWithCounterExample.get(), loopHeadState);
-            result = Result.UNKNOWN;
+            // Do not use the first reached target state again and again
+            // if we cannot synthesis new termination arguments from it.
+            if (repeatedRankingFunctionsSinceSuccessfulIteration
+                > maxRepeatedRankingFunctionsPerLoop / 5) {
+              result = Result.UNKNOWN;
+
+            } else if (totalRepeatedRankingFunctions >= maxRepeatedRankingFunctionsPerLoop) {
+              // stop analysis for this loop because there is no progress
+              return Result.UNKNOWN;
+
+            } else {
+              // Prepare reached set for next iteration.
+              resetReachedSet(pReachedSet, initialLocation);
+              // a ranking relation was synthesized and the reached set was reseted
+              result = Result.TRUE;
+            }
           }
 
         } else { // no termination argument and no non-termination argument could be synthesized
           logger.logf(WARNING, "Could not synthesize a termination or non-termination argument.");
-          removeCounterExample(pReachedSet, targetStateWithCounterExample.get(), loopHeadState);
+          removeCounterExample(pReachedSet, targetStateWithCounterExample.get());
           result = Result.UNKNOWN;
         }
 
@@ -346,12 +363,10 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * Removes <code>targetStateWithCounterExample</code> from reached set and ARG and
-   * <code>loopHeadState</code> from waitlist
+   * Removes <code>targetStateWithCounterExample</code> from reached set and ARG.
    */
   private void removeCounterExample(ReachedSet pReachedSet,
-      ARGState targetStateWithCounterExample, ARGState loopHeadState) {
-    pReachedSet.removeOnlyFromWaitlist(loopHeadState);
+      ARGState targetStateWithCounterExample) {
     pReachedSet.remove(targetStateWithCounterExample);
     targetStateWithCounterExample.removeFromARG();
   }
