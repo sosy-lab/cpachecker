@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -183,7 +184,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   // After start(), this will hold a Future for the final result of the invariant generation.
   // We use a Future instead of just the atomic reference below
   // to be able to ask for termination and see thrown exceptions.
-  private Future<InvariantSupplier> invariantGenerationFuture = null;
+  private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
 
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
@@ -366,7 +367,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   public void start(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
-    Callable<InvariantSupplier> task = new InvariantGenerationTask(initialLocation);
+    Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> task =
+        new InvariantGenerationTask(initialLocation);
 
     if (async) {
       // start invariant generation asynchronously
@@ -406,7 +408,29 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     } else {
       try {
-        return invariantGenerationFuture.get();
+        return invariantGenerationFuture.get().getFirst();
+      } catch (ExecutionException e) {
+        Throwables.propagateIfPossible(
+            e.getCause(), CPAException.class, InterruptedException.class);
+        throw new UnexpectedCheckedException("invariant generation", e.getCause());
+      } catch (CancellationException e) {
+        shutdownManager.getNotifier().shutdownIfNecessary();
+        throw e;
+      }
+    }
+  }
+
+  public ExpressionTreeSupplier getExpressionTreeSupplier()
+      throws InterruptedException, CPAException {
+    checkState(invariantGenerationFuture != null);
+
+    if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
+      // grab intermediate result that is available so far
+      return algorithm.getCurrentInvariantsAsExpressionTree();
+
+    } else {
+      try {
+        return invariantGenerationFuture.get().getSecond();
       } catch (ExecutionException e) {
         Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
@@ -428,7 +452,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     pStatsCollection.add(stats);
   }
 
-  private class InvariantGenerationTask implements Callable<InvariantSupplier> {
+  private class InvariantGenerationTask
+      implements Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> {
 
     private final CFANode initialLocation;
 
@@ -437,7 +462,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     }
 
     @Override
-    public InvariantSupplier call() throws InterruptedException, CPAException {
+    public Pair<InvariantSupplier, ExpressionTreeSupplier> call()
+        throws InterruptedException, CPAException {
       stats.invariantGeneration.start();
       shutdownManager.getNotifier().shutdownIfNecessary();
 
@@ -447,7 +473,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         Precision initialPrecision = cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition());
         reachedSet.add(initialState, initialPrecision);
         algorithm.run(reachedSet);
-        return algorithm.getCurrentInvariants();
+        return Pair.of(
+            algorithm.getCurrentInvariants(), algorithm.getCurrentInvariantsAsExpressionTree());
 
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);

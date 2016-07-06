@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -333,7 +334,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             if (rootState != null && invariantsExport != null) {
               ExpressionTreeSupplier tmp;
               try {
-                tmp = new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+                if (invariantGenerator instanceof KInductionInvariantGenerator) {
+                  tmp =
+                      ((KInductionInvariantGenerator) invariantGenerator)
+                          .getExpressionTreeSupplier();
+                } else {
+                  tmp = new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+                }
               } catch (CPAException | InterruptedException e1) {
                 tmp = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
               }
