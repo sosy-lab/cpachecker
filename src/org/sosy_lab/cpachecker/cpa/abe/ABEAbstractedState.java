@@ -39,6 +39,7 @@ import java.util.Optional;
 public interface ABEAbstractedState<A extends ABEAbstractedState<A>>
     extends ABEState<A>, FormulaReportingState {
 
+  @Override
   default boolean isAbstract() {
     return true;
   }

@@ -94,6 +94,7 @@ public class ABEIntermediateState<A extends ABEAbstractedState<A>> implements AB
     return pathFormula;
   }
 
+  @Override
   public CFANode getNode() {
     return node;
   }
