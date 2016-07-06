@@ -1913,10 +1913,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
+  public boolean isTrackPredicatesEnabled() {
+    return trackPredicates;
+  }
+
   public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
                                    SMGSymbolicValue pV2, int pCType2,
                                    BinaryOperator pOp, CFAEdge pEdge) {
-  if (trackPredicates && pEdge instanceof CAssumeEdge) {
+  if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
     BinaryOperator temp;
     if (((CAssumeEdge) pEdge).getTruthAssumption()) {
       temp = pOp;
@@ -1937,7 +1941,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
                                    SMGExplicitValue pV2, int pCType2,
                                    BinaryOperator pOp, CFAEdge pEdge) {
-    if (pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
       BinaryOperator temp;
       if (((CAssumeEdge) pEdge).getTruthAssumption()) {
         temp = pOp;
@@ -1950,8 +1954,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         logger.log(Level.FINER, "SymValue " + pV1.getAsInt() + " " + temp + "; ExplValue " + pV2 +
             "; AddPredicate: " + pEdge.toString());
       }
-    }
-    if (trackPredicates) {
       heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
     }
   }
@@ -1963,9 +1965,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void addErrorPredicate(SMGSymbolicValue pSymbolicValue, Integer pCType1,
                                 SMGExplicitValue pExplicitValue, Integer pCType2,
                                 CFAEdge pEdge) {
-    logger.log(Level.FINER, "Add Error Predicate: SymValue  " + pSymbolicValue + " ; ExplValue " +
-        pExplicitValue + "; on edge: " + pEdge.toString());
-    heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2);
+    if (isTrackPredicatesEnabled()) {
+      logger.log(Level.FINER, "Add Error Predicate: SymValue  " +
+          pSymbolicValue + " ; ExplValue" + " " +
+          pExplicitValue + "; on edge: " + pEdge.toString());
+      heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2);
+    }
   }
 
   public PredRelation getErrorPredicateRelation() {
