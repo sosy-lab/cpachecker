@@ -84,8 +84,7 @@ public class BDDState implements AbstractStateWithPresenceCondition,
 
   @Override
   public String toString() {
-    return //manager.dumpRegion(currentState) + "\n" +
-        manager.regionToDot(currentState);
+    return String.format(getRegion().toString());
   }
 
   public String toCompactString() {
