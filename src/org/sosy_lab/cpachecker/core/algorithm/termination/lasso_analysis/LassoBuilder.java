@@ -83,6 +83,9 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConve
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
+/**
+ * Creates {@link Lasso}s from {@link CounterexampleInfo}.
+ */
 class LassoBuilder {
 
   private final static Set<String> META_VARIABLES = ImmutableSet.of("__VERIFIER_nondet_int");
@@ -102,8 +105,6 @@ class LassoBuilder {
   private final EqualElimination equalElimination;
   private final NotEqualElimination notEqualElimination;
   private final DnfTransformation dnfTransformation;
-
-
 
   LassoBuilder(
       LogManager pLogger,
@@ -284,7 +285,7 @@ class LassoBuilder {
     @Override
     public BooleanFormula visitAtom(
         BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-      if (pDecl.getKind().equals(FunctionDeclarationKind.EQ)) {
+      if (IF_THEN_ELSE_FUNCTIONS.contains(pDecl.getKind())) {
         return fmgr.visit(IfThenElseTransformation, pAtom);
       } else {
         return pAtom;
