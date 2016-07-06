@@ -159,7 +159,7 @@ public class MarkingAutomatonBuilder {
 
     // Initialize the data structures
     Map<AutomatonTransition, Integer> edgeToMarkerMap = Maps.newHashMap();
-    Set<AutomatonTransition> visited = Sets.newHashSet();
+    Set<AutomatonTransition> visited = Sets.newIdentityHashSet(); // An equal (but not identical)transition might be used several times
     Deque<BackLinkedState> worklist = Lists.newLinkedList();
     Map<Integer, MarkerCode> markerCode = Maps.newHashMap();
     Multimap<AutomatonTransition, BackLinkedState> targetStates = HashMultimap.create();
