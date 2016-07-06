@@ -144,7 +144,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = wrappedStates.get(i);
       Precision oldPrecision = wrappedPrecisions.get(i);
-      Optional<AbstractState> out =
+      Optional<? extends AbstractState> out =
           precisionAdjustment.strengthen(
               oldElement,
               oldPrecision,
