@@ -254,9 +254,9 @@ public class TerminationState extends AbstractSingleWrapperState
     StringBuilder sb = new StringBuilder();
     sb.append(TerminationState.class.getSimpleName());
     if (isPartOfStem()) {
-      sb.append(("stem"));
+      sb.append("(stem)");
     } else {
-      sb.append(("loop"));
+      sb.append("(loop)");
     }
 
     sb.append(" ");
