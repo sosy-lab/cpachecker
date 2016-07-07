@@ -528,6 +528,9 @@ cinvariants.export = false
 # Ignored if |writeToStats| is set to |true|
 cinvariants.prefix = no default value
 
+# Attempt to simplify the invariant before exporting [may be very expensive].
+cinvariants.simplify = false
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
