@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.St
 public class ToGuardedAutomatonTranslator {
 
   private static String stutterEdgeLabelPattern = "Set: 1 Guard: \\[\\]";
+  private static String notMainLabelPattern = "!Set: line [0-9]*:\tN[0-9]* -\\{main\\(\\)\\}-> N[0-9]* Guard: \\[\\]";
 
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> toAutomaton(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseOmegaLabel) {
     NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton1 = translate(pPattern);
@@ -935,6 +936,35 @@ public class ToGuardedAutomatonTranslator {
     }
 
     return null;
+  }
+
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeNotMainSelfLoop(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
+
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
+
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
+
+    for (NondeterministicFiniteAutomaton.State lState : pAutomaton.getStates()) {
+      if (!lState.equals(pAutomaton.getInitialState())) {
+        lStateMap.put(lState, lNewAutomaton.createState());
+      }
+    }
+
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getEdges()) {
+      if (!(edge.getSource().equals(edge.getTarget()) && pAutomaton.getInitialState().equals(edge.getSource()) && Pattern.matches(notMainLabelPattern, edge.getLabel().toString()))) {
+        lNewAutomaton.createEdge(edge.getSource(), edge.getTarget(), edge.getLabel());
+      }
+    }
+
+    // set final states
+    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+      lNewAutomaton.addToFinalStates(lStateMap.get(lFinalState));
+    }
+
+    return lNewAutomaton;
   }
 
 }
