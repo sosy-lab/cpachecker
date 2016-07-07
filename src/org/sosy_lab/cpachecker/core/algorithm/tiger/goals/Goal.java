@@ -455,6 +455,29 @@ public class Goal implements SafetyProperty {
       return label.toString();
     }
 
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+
+      GuardedEdgeMatcher that = (GuardedEdgeMatcher) pO;
+
+      if (!label.equals(that.label)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return label.hashCode();
+    }
+
     /**
      * Does this matcher behave semantically equal to
      * other matchers?
