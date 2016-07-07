@@ -79,6 +79,40 @@ import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 @Options(prefix="termination.lassoAnalysis")
 public class LassoAnalysisImpl implements LassoAnalysis {
 
+  // The configuration library does not support small letters in enum constants.
+  public enum LassoAnalysisType {
+
+    /**
+     * @see AnalysisType#Disabled
+     */
+    DISABLED(AnalysisType.Disabled),
+
+    /**
+     * @see AnalysisType#Linear
+     */
+    LINEAR(AnalysisType.Linear),
+
+    /**
+     * @see AnalysisType#Linear_with_guesses
+     */
+    LINEAR_WITH_GUESSES(AnalysisType.Linear_with_guesses),
+
+    /**
+     * @see AnalysisType#Nonlinear
+     */
+    NONLINEAR(AnalysisType.Nonlinear);
+
+    private final AnalysisType analysisType;
+
+    private LassoAnalysisType(AnalysisType pAnalysisType) {
+      analysisType = pAnalysisType;
+    }
+
+    private AnalysisType toAnalysisType() {
+       return analysisType;
+    }
+  }
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationStatistics statistics;
@@ -118,7 +152,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       secure = true,
       description = "Analysis type used for synthesis of termination arguments."
     )
-  private AnalysisType analysisType = AnalysisType.Linear_with_guesses;
+  private LassoAnalysisType analysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -161,7 +195,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
     terminationAnalysisSettings = new TerminationAnalysisSettings();
-    terminationAnalysisSettings.analysis = analysisType;
+    terminationAnalysisSettings.analysis = analysisType.toAnalysisType();
     terminationAnalysisSettings.numnon_strict_invariants = nonStrictInvariants;
     terminationAnalysisSettings.numstrict_invariants = strictInvariants;
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);

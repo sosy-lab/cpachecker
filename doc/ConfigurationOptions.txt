@@ -1177,10 +1177,6 @@ cpa.lpi.abstractionLocations = LOOPHEAD
 # computation
 cpa.lpi.attachExtraInvariantDuringValueDetermination = true
 
-# Attach extra invariant from other CPAs during the value determination
-# computation
-cpa.lpi.attachExtraInvariantDuringValueDetermination = true
-
 # Check whether the policy depends on the initial value
 cpa.lpi.checkPolicyInitialCondition = true
 
@@ -2759,8 +2755,8 @@ termination.check = false
 termination.config = no default value
 
 # Analysis type used for synthesis of termination arguments.
-termination.lassoAnalysis.analysisType = Linear_with_guesses
-  enum:     [Disabled, Linear, Linear_with_guesses, Nonlinear]
+termination.lassoAnalysis.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
 
 # Number of non-strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
