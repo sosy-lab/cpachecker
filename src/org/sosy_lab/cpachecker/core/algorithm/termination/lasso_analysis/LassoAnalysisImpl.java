@@ -172,7 +172,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     Collection<Lasso> lassos;
     statistics.lassoConstructionStarted();
     try {
-      lassos = lassoBuilder.buildLasso(pCounterexample);
+      lassos = lassoBuilder.buildLasso(pCounterexample, pRelevantVariables);
       statistics.lassosConstructed(lassos.size());
     } catch (TermException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso.");

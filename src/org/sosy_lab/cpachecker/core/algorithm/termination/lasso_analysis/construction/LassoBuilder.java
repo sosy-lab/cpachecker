@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.constr
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
+import static java.util.logging.Level.FINE;
+import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.EQ;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.GT;
@@ -39,6 +41,8 @@ import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.TermRankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -123,7 +127,8 @@ public class LassoBuilder {
     dnfTransformation = new DnfTransformation(formulaManagerView);
   }
 
-  public Collection<Lasso> buildLasso(CounterexampleInfo pCounterexampleInfo)
+  public Collection<Lasso> buildLasso(
+      CounterexampleInfo pCounterexampleInfo, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException, TermException, SolverException {
     PathIterator path = pCounterexampleInfo.getTargetPath().fullPathIterator();
 
@@ -174,11 +179,16 @@ public class LassoBuilder {
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
     shutdownNotifier.shutdownIfNecessary();
 
-    return createLassos(stemPathFormula, loopPathFormula, loopInVars.build());
+    Set<String> relevantVariables =
+        pRelevantVariables.stream().map(AVariableDeclaration::getQualifiedName).collect(toSet());
+    return createLassos(stemPathFormula, loopPathFormula, loopInVars.build(), relevantVariables);
   }
 
   private Collection<Lasso> createLassos(
-      PathFormula stemPathFormula, PathFormula loopPathFormula, SSAMap pLoopInVars)
+      PathFormula stemPathFormula,
+      PathFormula loopPathFormula,
+      SSAMap pLoopInVars,
+      Set<String> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
     Collection<BooleanFormula> stemDnf = toDnf(stemPathFormula);
     Collection<BooleanFormula> loopDnf = toDnf(loopPathFormula);
@@ -192,9 +202,11 @@ public class LassoBuilder {
         if (!isUnsat(path)) {
 
           LinearTransition stemTransition =
-              createLinearTransition(stem, SSAMap.emptySSAMap(), stemPathFormula.getSsa());
+              createLinearTransition(
+                  stem, SSAMap.emptySSAMap(), stemPathFormula.getSsa(), pRelevantVariables);
           LinearTransition loopTransition =
-              createLinearTransition(loop, pLoopInVars, loopPathFormula.getSsa());
+              createLinearTransition(
+                  loop, pLoopInVars, loopPathFormula.getSsa(), pRelevantVariables);
 
           Lasso lasso = new Lasso(stemTransition, loopTransition);
           lassos.add(lasso);
@@ -212,10 +224,14 @@ public class LassoBuilder {
     }
   }
 
-  private LinearTransition createLinearTransition(BooleanFormula path, SSAMap inSsa, SSAMap outSSa)
+  private LinearTransition createLinearTransition(
+      BooleanFormula path,
+      SSAMap inSsa,
+      SSAMap outSSa,
+      Set<String> pRelevantVariables)
       throws TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
-    InOutVariables rankVars = extractRankVars(path, inSsa, outSSa);
+    InOutVariables rankVars = extractRankVars(path, inSsa, outSSa, pRelevantVariables);
     return new LinearTransition(polyhedra, rankVars.getInVars(), rankVars.getOutVars());
   }
 
@@ -252,16 +268,23 @@ public class LassoBuilder {
     return formulaManagerView.getBooleanFormulaManager().transformRecursively(visitor, formula);
   }
 
-  private InOutVariables extractRankVars(BooleanFormula path, SSAMap inSsa, SSAMap outSsa) {
+  private InOutVariables extractRankVars(
+      BooleanFormula path,
+      SSAMap inSsa,
+      SSAMap outSsa,
+      Set<String> pRelevantVariables) {
     InOutVariablesCollector veriablesCollector =
         new InOutVariablesCollector(formulaManagerView, inSsa, outSsa);
     formulaManagerView.visitRecursively(veriablesCollector, path);
-    Map<RankVar, Term> inRankVars = createRankVars(veriablesCollector.getInVariables());
-    Map<RankVar, Term> outRankVars = createRankVars(veriablesCollector.getOutVariables());
+    Map<RankVar, Term> inRankVars =
+        createRankVars(veriablesCollector.getInVariables(), pRelevantVariables);
+    Map<RankVar, Term> outRankVars =
+        createRankVars(veriablesCollector.getOutVariables(), pRelevantVariables);
     return new InOutVariables(inRankVars, outRankVars);
   }
 
-  private Map<RankVar, Term> createRankVars(Set<Formula> variables) {
+  private Map<RankVar, Term> createRankVars(
+      Set<Formula> variables, Set<String> pRelevantVariables) {
     ImmutableMap.Builder<RankVar, Term> rankVars = ImmutableMap.builder();
     for (Formula variable : variables) {
       Term term = formulaManager.extractInfo(variable);
@@ -269,9 +292,12 @@ public class LassoBuilder {
       Set<String> variableNames = formulaManagerView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
 
-      if (!META_VARIABLES.contains(variableName)
-          && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
+      if (pRelevantVariables.contains(variableName)) {
         rankVars.put(new TermRankVar(variableName, term), term);
+
+      } else if (!META_VARIABLES.contains(variableName)
+          && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
+        logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }
     return rankVars.build();
