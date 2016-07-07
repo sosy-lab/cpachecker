@@ -29,7 +29,10 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -74,6 +77,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 
+@Options(prefix="termination.lassoAnalysis")
 public class LassoAnalysisImpl implements LassoAnalysis {
 
   private final LogManager logger;
@@ -95,6 +99,28 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private final Collection<RankingTemplate> rankingTemplates;
 
+  @Option(
+      secure = true,
+      description = "Number of non-strict supporting invariants for each Motzkin transformation "
+          + "during synthesis of termination arguments."
+    )
+  @IntegerOption(min = 0)
+  private int nonStrictInvariants = 3;
+
+  @Option(
+      secure = true,
+      description = "Number of strict supporting invariants for each Motzkin transformation "
+          + "during synthesis of termination arguments."
+    )
+  @IntegerOption(min = 0)
+  private int strictInvariants = 2;
+
+  @Option(
+      secure = true,
+      description = "Analysis type used for synthesis of termination arguments."
+    )
+  private AnalysisType analysisType = AnalysisType.Linear_with_guesses;
+
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
       LogManager pLogger,
@@ -104,6 +130,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       CFA pCfa,
       TerminationStatistics pStatistics)
       throws InvalidConfigurationException {
+
+    pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
@@ -134,9 +162,9 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     lassoRankerPreferences.externalSolver = false; // use SMTInterpol
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
     terminationAnalysisSettings = new TerminationAnalysisSettings();
-    terminationAnalysisSettings.analysis = AnalysisType.Linear_with_guesses;
-    terminationAnalysisSettings.numnon_strict_invariants = 3;
-    terminationAnalysisSettings.numstrict_invariants = 3;
+    terminationAnalysisSettings.analysis = analysisType;
+    terminationAnalysisSettings.numnon_strict_invariants = nonStrictInvariants;
+    terminationAnalysisSettings.numstrict_invariants = strictInvariants;
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
 
     rankingTemplates = createTemplates();
