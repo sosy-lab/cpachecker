@@ -23,28 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import apron.Abstract0;
-import apron.Dimchange;
-import apron.Dimension;
-import apron.DoubleScalar;
-import apron.Interval;
-import apron.Lincons0;
-import apron.Linexpr0;
-import apron.MpfrScalar;
-import apron.MpqScalar;
-import apron.Scalar;
-import apron.Tcons0;
-import apron.Texpr0BinNode;
-import apron.Texpr0CstNode;
-import apron.Texpr0DimNode;
-import apron.Texpr0Intern;
-import apron.Texpr0Node;
-import apron.Texpr0UnNode;
-
 import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
-
-import gmp.Mpfr;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BitvectorFormula;
@@ -70,6 +49,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
+
+import apron.Abstract0;
+import apron.Dimchange;
+import apron.Dimension;
+import apron.DoubleScalar;
+import apron.Interval;
+import apron.Lincons0;
+import apron.Linexpr0;
+import apron.MpfrScalar;
+import apron.MpqScalar;
+import apron.Scalar;
+import apron.Tcons0;
+import apron.Texpr0BinNode;
+import apron.Texpr0CstNode;
+import apron.Texpr0DimNode;
+import apron.Texpr0Intern;
+import apron.Texpr0Node;
+import apron.Texpr0UnNode;
+import gmp.Mpfr;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which

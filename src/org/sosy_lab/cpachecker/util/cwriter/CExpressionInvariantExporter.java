@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
@@ -115,7 +114,7 @@ public class CExpressionInvariantExporter {
    */
   public void exportInvariant(
       String analyzedPrograms,
-      ReachedSet pReachedSet) throws IOException, InterruptedException {
+      ReachedSet pReachedSet) throws IOException {
 
     if (!export || prefix == null) {
       return;
@@ -216,9 +215,6 @@ public class CExpressionInvariantExporter {
   private BooleanFormula simplifyInvariant(BooleanFormula pInvariant) {
     try {
       return inductiveWeakeningManager.removeRedundancies(pInvariant);
-    } catch (SolverException pE) {
-      throw new UnsupportedOperationException("Solver exception while "
-          + "simplifying", pE);
     } catch (InterruptedException pE) {
       throw new UnsupportedOperationException("Interrupted while "
           + "simplifying", pE);

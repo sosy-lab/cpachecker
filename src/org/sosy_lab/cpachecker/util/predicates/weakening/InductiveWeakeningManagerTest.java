@@ -28,9 +28,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.hamcrest.core.Is;
-import org.hamcrest.core.IsNot;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,8 +85,6 @@ public class InductiveWeakeningManagerTest {
     ifmgr = fmgr.getIntegerFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
 
-    // TODO: SMTINTERPOL currently does not support solving with assumptions.
-    Assume.assumeThat(solver, new IsNot<>(Is.is(Solvers.SMTINTERPOL)));
   }
 
   @Test public void testSlicingVerySimple() throws Exception {
@@ -125,10 +120,9 @@ public class InductiveWeakeningManagerTest {
   }
 
   @Test public void testRemovingRedundancies() throws Exception {
-    IntegerFormula x, y, z;
+    IntegerFormula x, y;
     x = ifmgr.makeVariable("x");
     y = ifmgr.makeVariable("y");
-    z = ifmgr.makeVariable("z");
     IntegerFormula zero = ifmgr.makeNumber(0);
 
     BooleanFormula input = bfmgr.and(

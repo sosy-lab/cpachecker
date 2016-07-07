@@ -283,8 +283,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   }
 
   public BooleanFormula removeRedundancies(BooleanFormula input)
-      throws SolverException, InterruptedException {
-
+      throws InterruptedException {
     // Assume the formula to be a conjunction over disjunctions.
     BooleanFormula nnf = fmgr.applyTactic(input, Tactic.NNF);
 

@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -39,10 +38,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -59,8 +56,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -110,9 +105,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final Algorithm innerAlgorithm;
   private final FormulaManagerView formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
-  private final AssumptionStorageCPA cpa;
   private final BooleanFormulaManager bfmgr;
-  private final PathFormulaManager pfmgr;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
@@ -120,16 +113,17 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // statistics
   private int automatonStates = 0;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa,
-      CFA pCFA,
-      ShutdownNotifier pShutdownNotifier,
-      Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public AssumptionCollectorAlgorithm(Algorithm algo,
+                                      ConfigurableProgramAnalysis pCpa,
+                                      Configuration config,
+                                      LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
     this.innerAlgorithm = algo;
-    this.cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
-    if (this.cpa == null) {
+    AssumptionStorageCPA cpa =
+        ((WrapperCPA) pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
+    if (cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
     if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
@@ -139,10 +133,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
-    pfmgr = new PathFormulaManagerImpl(
-        formulaManager, config, logger, pShutdownNotifier, pCFA,
-        AnalysisDirection.FORWARD
-    );
   }
 
   @Override

@@ -302,7 +302,7 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (useAdjustableConditions) {
