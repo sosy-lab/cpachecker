@@ -665,6 +665,16 @@ coverage.stdout = true
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
+# Where to perform abstraction
+cpa.abe.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
+
+# Check target states reachability
+cpa.abe.checkTargetStates = true
+
+# Cache formulas produced by path formula manager
+cpa.abe.useCachingPathFormulaManager = true
+
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
   enum:     [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
@@ -712,7 +722,7 @@ cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
-# must behave differntly during merge.
+# must behave differently during merge.
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
@@ -992,6 +1002,13 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# Generate congruences for sums of variables (<=> x and y have same/different
+# evenness)
+cpa.congruence.trackCongruenceSum = false
+
+# Cache formulas produced by path formula manager
+cpa.congruence.useCachingPathFormulaManager = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
   enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
@@ -1156,10 +1173,9 @@ cpa.loopstack.maxLoopIterationsUpperBound = 0
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
 
-# Allowed coefficients in a template.
-cpa.lpi.allowedCoefficients = {
-      Rational.NEG_ONE, Rational.ONE
-  }
+# Attach extra invariant from other CPAs during the value determination
+# computation
+cpa.lpi.attachExtraInvariantDuringValueDetermination = true
 
 # Check whether the policy depends on the initial value
 cpa.lpi.checkPolicyInitialCondition = true
@@ -1170,14 +1186,12 @@ cpa.lpi.checkTargetStates = true
 # Compute abstraction for larger templates using decomposition
 cpa.lpi.computeAbstractionByDecomposition = false
 
+# Do not compute the abstraction until strengthen is called. This speeds up
+# the computation, but does not let other CPAs use the output of LPI.
+cpa.lpi.delayAbstractionUntilStrengthen = false
+
 # Value to substitute for the epsilon
 cpa.lpi.epsilon = Rational.ONE
-
-# Generate templates from assert statements
-cpa.lpi.generateFromAsserts = true
-
-# Generate templates from all program statements
-cpa.lpi.generateFromStatements = true
 
 # Generate new templates using polyhedra convex hull
 cpa.lpi.generateTemplatesUsingConvexHull = false
@@ -1185,18 +1199,8 @@ cpa.lpi.generateTemplatesUsingConvexHull = false
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
 
-# Maximum size for the generated template
-cpa.lpi.maxExpressionSize = 1
-
-# Run simple congruence analysis
-cpa.lpi.runCongruence = true
-
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.lpi.runHopefulValueDetermination = true
-
-# Do not generate templates with threshold larger than specified. Set to '-1'
-# for no limit.
-cpa.lpi.templateConstantThreshold = 100
 
 # Algorithm for converting a formula to a set of lemmas
 cpa.lpi.toLemmasAlgorithm = "RCNF"
@@ -1213,10 +1217,6 @@ cpa.lpi.useCachingPathFormulaManager = true
 
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
-
-# Strategy for filtering variables out of templates using liveness
-cpa.lpi.varFiltering = ALL_LIVE
-  enum:     [ALL_LIVE, ONE_LIVE, ALL]
 
 # Number of value determination steps allowed before widening is run. Value
 # of '-1' runs value determination until convergence.
@@ -1965,7 +1965,7 @@ cpa.smg.runtimeCheck = NONE
 
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
-  allowed values: [SEP, NEVER]
+  allowed values: [SEP, NEVER, END_BLOCK]
 
 # Enable track predicates on SMG state
 cpa.smg.trackPredicates = false
@@ -2047,10 +2047,6 @@ cpa.statistics.metric.structVariablesCount = true
 
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
-
-# Generate congruences for sums of variables (<=> x and y have same/different
-# evenness)
-cpa.stator.congruence.trackCongruenceSum = false
 
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
@@ -2556,6 +2552,28 @@ pcc.useCores = 1
 precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
 
+# Allowed coefficients in a template.
+precision.template.allowedCoefficients = {
+      Rational.NEG_ONE, Rational.ONE
+  }
+
+# Generate templates from assert statements
+precision.template.generateFromAsserts = true
+
+# Generate templates from all program statements
+precision.template.generateFromStatements = true
+
+# Maximum size for the generated template
+precision.template.maxExpressionSize = 1
+
+# Do not generate templates with threshold larger than specified. Set to '-1'
+# for no limit.
+precision.template.templateConstantThreshold = 100
+
+# Strategy for filtering variables out of templates using liveness
+precision.template.varFiltering = ALL_LIVE
+  enum:     [ALL_LIVE, ONE_LIVE, ALL]
+
 # If this option is used, variables that are addressed may get tracked
 # depending on the rest of the precision. When this option is disabled, a
 # variable that is addressed is definitely not tracked.
@@ -2738,4 +2756,4 @@ termination.config = no default value
 
 # maximal number of repeated ranking functions per loop before stopping
 # analysis
-termination.maxRepeatedRankingFunctions = 10
+termination.maxRepeatedRankingFunctionsPerLoop = 100

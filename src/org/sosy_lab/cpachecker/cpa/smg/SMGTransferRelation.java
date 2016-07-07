@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -197,6 +198,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   private final SMGRightHandSideEvaluator expressionEvaluator;
 
+  private final BlockOperator blockOperator;
   private final SMGPredicateManager smgPredicateManager;
 
   /**
@@ -769,11 +771,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGPrecision smgPrecision = (SMGPrecision) precision;
 
+    ((SMGState) state).setBlockEnded(blockOperator.isBlockEnd(cfaEdge.getSuccessor(), 0));
     return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge, smgPrecision);
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager)
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
           throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -781,11 +784,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
     smgPredicateManager = pSMGPredicateManager;
+    blockOperator = pBlockOperator;
   }
 
   public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager) throws InvalidConfigurationException {
-    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel, pSMGPredicateManager);
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
+        throws InvalidConfigurationException {
+    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel,
+        pSMGPredicateManager, pBlockOperator);
     result.exportSMG = SMGExportLevel.NEVER;
     return result;
   }

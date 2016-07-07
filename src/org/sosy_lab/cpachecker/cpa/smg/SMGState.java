@@ -107,6 +107,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
   private final int externalAllocationSize;
   private final boolean trackPredicates;
+  private boolean blockEnded = true;
 
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
@@ -164,7 +165,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (pSMGRuntimeCheck == null) {
       runtimeCheckLevel = SMGRuntimeCheck.NONE;
     } else {
-      this.runtimeCheckLevel = pSMGRuntimeCheck;
+      runtimeCheckLevel = pSMGRuntimeCheck;
     }
 
     invalidFree = false;
@@ -187,7 +188,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     id = id_counter.getAndIncrement();
     memoryErrors = pTargetMemoryErrors;
     unknownOnUndefined = pUnknownOnUndefined;
-    this.runtimeCheckLevel = pSMGRuntimeCheck;
+    runtimeCheckLevel = pSMGRuntimeCheck;
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
@@ -213,6 +214,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pOriginalState.externalAllocationSize;
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    blockEnded = pOriginalState.blockEnded;
   }
 
   /**
@@ -239,6 +241,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pOriginalState.externalAllocationSize;
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    blockEnded = pOriginalState.blockEnded;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
@@ -252,6 +255,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     unknownOnUndefined = pOriginalState.unknownOnUndefined;
     runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    trackPredicates = pOriginalState.trackPredicates;
+    externalAllocationSize = pOriginalState.externalAllocationSize;
+    blockEnded = pOriginalState.blockEnded;
 
     boolean pInvalidFree = pOriginalState.invalidFree;
     boolean pInvalidRead = pOriginalState.invalidRead;
@@ -276,8 +282,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pInvalidFree;
     invalidRead = pInvalidRead;
     invalidWrite = pInvalidWrite;
-    trackPredicates = pOriginalState.trackPredicates;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
   }
 
   public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
@@ -320,6 +324,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    blockEnded = pOriginalState.blockEnded;
   }
 
   /**
@@ -1365,6 +1370,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public boolean isObjectExternallyAllocated(SMGObject pObject) {
     return heap.isObjectExternallyAllocated(pObject);
+  }
+
+  public boolean isBlockEnded() {
+    return blockEnded;
+  }
+
+  public void setBlockEnded(boolean pBlockEnd) {
+    blockEnded = pBlockEnd;
   }
 
   public static class SMGStateEdgePair {

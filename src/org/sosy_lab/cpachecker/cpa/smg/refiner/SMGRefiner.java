@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -138,9 +139,10 @@ public class SMGRefiner implements Refiner {
     Configuration config = smgCpa.getConfiguration();
     CFA cfa = smgCpa.getCFA();
     SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
+    BlockOperator blockOperator = smgCpa.getBlockOperator();
 
     SMGStrongestPostOperator strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa, predicateManager);
+        new SMGStrongestPostOperator(logger, config, cfa, predicateManager, blockOperator);
 
     SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
 

@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 import java.util.logging.Level;
 
@@ -75,7 +76,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Option(secure=true, name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER"},
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER", "END_BLOCK"},
       description="which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
 
@@ -98,7 +99,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private SMGPrecisionAdjustment precisionAdjustment;
-  private SMGPredicateManager smgPredicateManager;
+  private final SMGPredicateManager smgPredicateManager;
+  private final BlockOperator blockOperator;
 
   private final MachineModel machineModel;
 
@@ -122,11 +124,16 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
     precisionAdjustment = new SMGPrecisionAdjustment();
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
+    blockOperator = new BlockOperator();
+    pConfig.inject(blockOperator);
+    blockOperator.setCFA(cfa);
 
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
 
-    if(stopType.equals("NEVER")) {
+    if(stopType.equals("END_BLOCK")) {
+      stopOperator = new SMGStopOperator(abstractDomain);
+    } else if(stopType.equals("NEVER")) {
       stopOperator = new StopNeverOperator();
     } else {
       stopOperator = new StopSepOperator(abstractDomain);
@@ -134,7 +141,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     precision = initializePrecision();
 
-    transferRelation = new SMGTransferRelation(config, logger, machineModel, smgPredicateManager);
+    transferRelation = new SMGTransferRelation(config, logger, machineModel, smgPredicateManager,
+        blockOperator);
   }
 
   public void injectRefinablePrecision() {
@@ -240,5 +248,9 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public boolean isHeapAbstractionEnabled() {
     return enableHeapAbstraction;
+  }
+
+  public BlockOperator getBlockOperator() {
+    return blockOperator;
   }
 }
