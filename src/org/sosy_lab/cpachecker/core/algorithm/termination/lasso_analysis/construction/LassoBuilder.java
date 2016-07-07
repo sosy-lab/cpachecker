@@ -212,8 +212,7 @@ public class LassoBuilder {
     }
   }
 
-  private LinearTransition createLinearTransition(
-      BooleanFormula path, SSAMap inSsa, SSAMap outSSa)
+  private LinearTransition createLinearTransition(BooleanFormula path, SSAMap inSsa, SSAMap outSSa)
       throws TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
     InOutVariables rankVars = extractRankVars(path, inSsa, outSSa);

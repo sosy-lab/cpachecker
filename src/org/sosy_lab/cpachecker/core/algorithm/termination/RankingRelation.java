@@ -71,7 +71,7 @@ public class RankingRelation {
     return rankingRelations
         .keySet()
         .stream()
-        .reduce((a,b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
+        .reduce((a, b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
         .get();
   }
 
@@ -118,7 +118,6 @@ public class RankingRelation {
   public int hashCode() {
     return this.rankingRelations.keySet().hashCode();
   }
-
 
   @Override
   public String toString() {

@@ -41,8 +41,7 @@ class EqualElimination extends BooleanFormulaTransformationVisitor {
   }
 
   @Override
-  public BooleanFormula visitAtom(
-      BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+  public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
     if (pDecl.getKind().equals(FunctionDeclarationKind.EQ)) {
       List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pAtom);
 

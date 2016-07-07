@@ -100,7 +100,7 @@ import javax.annotation.Nullable;
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
-@Options(prefix="termination")
+@Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
   private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
@@ -129,7 +129,6 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   private final TerminationCPA terminationCpa;
   private final Set<CVariableDeclaration> globalDeclaration;
   private final SetMultimap<String, CVariableDeclaration> localDeclarations;
-
 
   public TerminationAlgorithm(
       Configuration pConfig,
@@ -327,7 +326,8 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             totalRepeatedRankingFunctions++;
             repeatedRankingFunctionsSinceSuccessfulIteration++;
-            logger.logf(WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
+            logger.logf(
+                WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
             removeCounterExample(pReachedSet, targetStateWithCounterExample.get());
 
             // Do not use the first reached target state again and again
@@ -365,8 +365,8 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * Removes <code>targetStateWithCounterExample</code> from reached set and ARG.
    */
-  private void removeCounterExample(ReachedSet pReachedSet,
-      ARGState targetStateWithCounterExample) {
+  private void removeCounterExample(
+      ReachedSet pReachedSet, ARGState targetStateWithCounterExample) {
     pReachedSet.remove(targetStateWithCounterExample);
     targetStateWithCounterExample.removeFromARG();
   }
@@ -457,8 +457,8 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     return newCounterexample;
   }
 
-  private AlgorithmStatus checkRecursion(CFANode initialLocation) throws
-      CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+  private AlgorithmStatus checkRecursion(CFANode initialLocation)
+      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     statistics.analysisOfRecursionStarted();
 

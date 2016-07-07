@@ -301,7 +301,6 @@ public class TerminationTransferRelation implements TransferRelation {
     Collection<TerminationState> resultingSuccessors =
         Lists.newArrayListWithCapacity(statesAtCurrentLocation.size());
 
-
     // Add the non target states first because they should be added to the wait list
     // before the CPA algorithm stops due to a target state.
     resultingSuccessors.addAll(getAbstractSuccessors0(statesAtCurrentLocation, pPrecision));
@@ -393,10 +392,10 @@ public class TerminationTransferRelation implements TransferRelation {
       CFAEdge edgeToTargetState = createNegatedRankingRelationAssumeEdge(loopHead, targetNode);
       resultingSuccessors.addAll(
           targetStates
-            .stream()
-            .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
-            .map(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
-            .collect(Collectors.toList()));
+              .stream()
+              .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
+              .map(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
+              .collect(Collectors.toList()));
     }
 
     CFANode node1 = creatCfaNode(functionName);

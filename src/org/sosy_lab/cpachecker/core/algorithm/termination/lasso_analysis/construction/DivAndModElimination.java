@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
+import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.DIV;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.MODULO;
 
@@ -58,10 +59,10 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
   }
 
   @Override
-  public BooleanFormula visitAtom(
-      BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-    DivAndModElimination.DivAndModTransformation divAndModTransformation = new DivAndModTransformation(fmgrView, fmgr);
+  public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+    DivAndModTransformation divAndModTransformation = new DivAndModTransformation(fmgrView, fmgr);
     BooleanFormula result = (BooleanFormula) fmgrView.visit(divAndModTransformation, pAtom);
+
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
     BooleanFormula additionalAxioms =
         booleanFormulaManager.and(divAndModTransformation.getAdditionalAxioms());
@@ -132,20 +133,17 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
      *
      * @see RewriteDivision
      */
-    private Formula transformModulo(
-        Formula dividend,
-        Formula divisor,
-        FormulaType<?> formulaType) {
+    private Formula transformModulo(Formula dividend, Formula divisor, FormulaType<?> formulaType) {
       BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
 
       Formula quotientAuxVar =
           fmgr.makeVariable(
               formulaType,
-              LassoBuilder.TERMINATION_AUX_VARS_PREFIX + "QUOTIENT_AUX_VAR_" + ID_GENERATOR.getFreshId());
+              TERMINATION_AUX_VARS_PREFIX + "QUOTIENT_AUX_VAR_" + ID_GENERATOR.getFreshId());
       Formula remainderAuxVar =
           fmgr.makeVariable(
               formulaType,
-              LassoBuilder.TERMINATION_AUX_VARS_PREFIX + "REMAINDER_AUX_VAR_" + ID_GENERATOR.getFreshId());
+              TERMINATION_AUX_VARS_PREFIX + "REMAINDER_AUX_VAR_" + ID_GENERATOR.getFreshId());
       /*
        * dividend = quotientAuxVar * divisor + remainderAuxVar
        * divisor > 0 ==> 0 <= remainderAuxVar < divisor
@@ -161,20 +159,20 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
       Formula upperBoundPosDivisor = fmgrView.makeMinus(divisor, one);
       BooleanFormula isUpperBoundPosDivisor =
           fmgrView.makeLessOrEqual(remainderAuxVar, upperBoundPosDivisor, true);
-      Formula upperBoundNegDivisor =
-          fmgrView.makeMinus(one, divisor);
+      Formula upperBoundNegDivisor = fmgrView.makeMinus(one, divisor);
       BooleanFormula isUpperBoundNegDivisor =
           fmgrView.makeLessOrEqual(remainderAuxVar, upperBoundNegDivisor, true);
       BooleanFormula equality =
-          fmgrView.makeEqual(dividend,
+          fmgrView.makeEqual(
+              dividend,
               fmgrView.makePlus(fmgrView.makeMultiply(quotientAuxVar, divisor), remainderAuxVar));
 
       BooleanFormula divisorIsPositiveFormula =
-          booleanFormulaManager
-              .and(divisorIsPositive, isLowerBound, isUpperBoundPosDivisor, equality);
+          booleanFormulaManager.and(
+              divisorIsPositive, isLowerBound, isUpperBoundPosDivisor, equality);
       BooleanFormula divisorIsNegativeFormula =
-          booleanFormulaManager
-              .and(divisorIsNegative, isLowerBound, isUpperBoundNegDivisor, equality);
+          booleanFormulaManager.and(
+              divisorIsNegative, isLowerBound, isUpperBoundNegDivisor, equality);
 
       additionalAxioms.add(fmgrView.makeOr(divisorIsPositiveFormula, divisorIsNegativeFormula));
       return remainderAuxVar;
@@ -191,15 +189,15 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
      * @see RewriteDivision
      */
     private Formula transformDivision(
-        Formula dividend,
-        Formula divisor,
-        FormulaType<?> formulaType) {
+        Formula dividend, Formula divisor, FormulaType<?> formulaType) {
       BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
 
       Formula quotientAuxVar =
           fmgr.makeVariable(
               formulaType,
-              LassoBuilder.TERMINATION_AUX_VARS_PREFIX + "QUOTIENT_AUX_VAR_" + ID_GENERATOR.getFreshId());
+              LassoBuilder.TERMINATION_AUX_VARS_PREFIX
+                  + "QUOTIENT_AUX_VAR_"
+                  + ID_GENERATOR.getFreshId());
 
       /*
        * (divisor > 0 ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar+1) * divisor)

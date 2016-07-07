@@ -196,7 +196,6 @@ public class TerminationState extends AbstractSingleWrapperState
     return hondaLocation == null;
   }
 
-
   public CFANode getHondaLocation() {
     return hondaLocation;
   }

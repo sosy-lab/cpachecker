@@ -32,8 +32,7 @@ import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
 import java.util.List;
 
-class InvertInequalityTransformation
-    extends DefaultFormulaVisitor<BooleanFormula> {
+class InvertInequalityTransformation extends DefaultFormulaVisitor<BooleanFormula> {
 
   private final FormulaManagerView fmgr;
 

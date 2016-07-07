@@ -55,9 +55,9 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
   }
 
   @Override
-  public BooleanFormula visitAtom(
-      BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-    IfThenElseTransformation ifThenElseTransformation = new IfThenElseTransformation(fmgrView, fmgr);
+  public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+    IfThenElseTransformation ifThenElseTransformation =
+        new IfThenElseTransformation(fmgrView, fmgr);
     BooleanFormula result = (BooleanFormula) fmgrView.visit(ifThenElseTransformation, pAtom);
 
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
@@ -107,10 +107,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
     }
 
     private Formula transformIfThenElse(
-        Formula pCondition,
-        Formula pThen,
-        Formula pElse,
-        FormulaType<?> pFormulaType) {
+        Formula pCondition, Formula pThen, Formula pElse, FormulaType<?> pFormulaType) {
 
       BooleanFormula condition = (BooleanFormula) pCondition;
       Formula auxVar =
@@ -119,9 +116,10 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
               TERMINATION_AUX_VARS_PREFIX + "IF_THEN_ELSE_AUX_VAR_" + ID_GENERATOR.getFreshId());
 
       // (auxVar == pThen AND condition) OR (auxVar == pThen AND (NOT(condition)))
-      additionalAxioms.add(fmgrView.makeOr(
-          fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pThen), condition),
-          fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pElse), fmgrView.makeNot(condition))));
+      additionalAxioms.add(
+          fmgrView.makeOr(
+              fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pThen), condition),
+              fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pElse), fmgrView.makeNot(condition))));
 
       return auxVar;
     }
