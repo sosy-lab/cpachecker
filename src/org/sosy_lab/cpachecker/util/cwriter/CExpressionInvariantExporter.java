@@ -79,6 +79,10 @@ public class CExpressionInvariantExporter {
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate prefix = PathTemplate.ofFormatString("inv-%s");
 
+  @Option(secure=true, description="Attempt to simplify the invariant before "
+      + "exporting [may be very expensive].")
+  private boolean simplify = false;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaToCExpressionConverter formulaToCExpressionConverter;
@@ -209,4 +213,15 @@ public class CExpressionInvariantExporter {
     );
   }
 
+  private BooleanFormula simplifyInvariant(BooleanFormula pInvariant) {
+    try {
+      return inductiveWeakeningManager.removeRedundancies(pInvariant);
+    } catch (SolverException pE) {
+      throw new UnsupportedOperationException("Solver exception while "
+          + "simplifying", pE);
+    } catch (InterruptedException pE) {
+      throw new UnsupportedOperationException("Interrupted while "
+          + "simplifying", pE);
+    }
+  }
 }
