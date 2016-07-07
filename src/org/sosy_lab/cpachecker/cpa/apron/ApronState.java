@@ -570,7 +570,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pPfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
     BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
     BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
     Tcons0[] constraints = apronState.toTcons(apronManager.getManager());

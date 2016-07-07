@@ -234,9 +234,9 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView fmgr, PathFormulaManager pfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView fmgr) {
     return fmgr.uninstantiate(fmgr.getBooleanFormulaManager().and(
-        manager.abstractStateToConstraints(fmgr, pfmgr, this, false)
+        manager.abstractStateToConstraints(fmgr, this, false)
     ));
   }
 

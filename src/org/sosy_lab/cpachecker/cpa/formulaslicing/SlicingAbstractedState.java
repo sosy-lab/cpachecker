@@ -164,8 +164,7 @@ class SlicingAbstractedState
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
-      PathFormulaManager pfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormula constraint = fmgr.getBooleanFormulaManager().and(lemmas);
     return manager.translateFrom(constraint, fmgr);
   }

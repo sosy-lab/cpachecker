@@ -241,7 +241,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * Add a given assumption for the location and state of a state.
    */
   private void addAssumption(AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
-    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state, pfmgr);
+    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
 
     CFANode loc = extractLocation(state);
     assert loc != null;

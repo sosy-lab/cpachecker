@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -254,14 +253,13 @@ public final class AbstractStates {
    * the given abstract state, according to reported
    * formulas
    */
-  public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state,
-      PathFormulaManager pfmgr) {
+  public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state) {
     List<BooleanFormula> result = new ArrayList<>();
 
     // traverse through all the sub-states contained in this state
     for (FormulaReportingState s : asIterable(state).filter(FormulaReportingState.class)) {
 
-      result.add(s.getFormulaApproximation(manager, pfmgr));
+      result.add(s.getFormulaApproximation(manager));
     }
 
     return manager.getBooleanFormulaManager().and(result);

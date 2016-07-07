@@ -133,11 +133,8 @@ public class CongruenceState implements
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(
-      FormulaManagerView manager, PathFormulaManager pfmgr) {
-    return congruenceManager.toFormulaUninstantiated(
-        this, manager, pfmgr
-    );
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    return congruenceManager.toFormulaUninstantiated(this, manager);
   }
 
   @Override

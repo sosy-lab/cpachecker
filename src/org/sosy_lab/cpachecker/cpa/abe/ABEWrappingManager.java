@@ -51,7 +51,6 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -313,12 +312,9 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
   }
 
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
-    List<BooleanFormula> constraints = new ArrayList<>();
-    for (AbstractState a : AbstractStates.asIterable(pFormulaState)) {
-      if (a instanceof FormulaReportingState) {
-        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr, pfmgr));
-      }
-    }
-    return bfmgr.and(constraints);
+    return bfmgr.and(
+        AbstractStates.asIterable(pFormulaState)
+            .filter(FormulaReportingState.class)
+            .transform(s -> s.getFormulaApproximation(fmgr)).toList());
   }
 }

@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -883,7 +882,7 @@ public class InvariantsState implements AbstractState,
   }
 
   @Override
-  public org.sosy_lab.solver.api.BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
+  public org.sosy_lab.solver.api.BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
 
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();

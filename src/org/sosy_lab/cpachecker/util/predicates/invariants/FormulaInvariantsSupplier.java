@@ -139,12 +139,12 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     }
 
     public BooleanFormula getInvariantFor(
-        CFANode pLocation, FormulaManagerView fmgr, PathFormulaManager pfmgr) {
+        CFANode pLocation, FormulaManagerView fmgr) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
       BooleanFormula invariant = bfmgr.makeBoolean(false);
 
       for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
-        invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState, pfmgr));
+        invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState));
       }
       return invariant;
     }
@@ -176,7 +176,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
         invariants =
             invariantSuppliers
                 .stream()
-                .map(s -> s.getInvariantFor(pNode, pFmgr, pPfmgr))
+                .map(s -> s.getInvariantFor(pNode, pFmgr))
                 .filter(f -> !bfmgr.isTrue(f))
                 .collect(Collectors.toList());
 

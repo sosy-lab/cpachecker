@@ -404,7 +404,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       PredicateAbstractState pElement, FormulaReportingState pFormulaReportingState) {
 
     BooleanFormula formula =
-        pFormulaReportingState.getFormulaApproximation(fmgr, pathFormulaManager);
+        pFormulaReportingState.getFormulaApproximation(fmgr);
 
     if (bfmgr.isTrue(formula) || bfmgr.isFalse(formula)) {
       return pElement;

@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -57,8 +56,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -108,9 +105,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
-  private final Solver solver;
   private final FormulaManagerView fmgr;
-  private final PathFormulaManager pfmgr;
   private final LogManager logger;
   private final CFA cfa;
 
@@ -125,11 +120,9 @@ public class StateToFormulaWriter implements StatisticsProvider {
       ShutdownNotifier shutdownNotifier, CFA pCfa)
           throws InvalidConfigurationException {
     config.inject(this);
-    solver = Solver.create(config, pLogger, shutdownNotifier);
+    Solver solver = Solver.create(config, pLogger, shutdownNotifier);
     logger = pLogger;
     fmgr = solver.getFormulaManager();
-    pfmgr = new PathFormulaManagerImpl(fmgr, config, logger,
-        shutdownNotifier, pCfa, AnalysisDirection.FORWARD);
     cfa = pCfa;
   }
 
@@ -221,7 +214,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
     List<BooleanFormula> stateFormulas = new ArrayList<>();
     for (FormulaReportingState state : states) {
-      stateFormulas.add(state.getFormulaApproximation(fmgr, pfmgr));
+      stateFormulas.add(state.getFormulaApproximation(fmgr));
     }
 
     switch (splitFormulas) {

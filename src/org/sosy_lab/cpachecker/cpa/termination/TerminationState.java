@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -201,8 +200,7 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(
-      FormulaManagerView pManager, PathFormulaManager pPfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
     if (unsatisfiedRankingRelation == null) {
       return pManager.getBooleanFormulaManager().makeBoolean(true);
     } else {

@@ -205,22 +205,35 @@ public class CongruenceManager implements
 
   public BooleanFormula toFormulaUninstantiated(
       CongruenceState state,
-      FormulaManagerView fmgr,
-      PathFormulaManager pfmgr
+      FormulaManagerView fmgr
       ) {
-    return fmgr.uninstantiate(toFormula(pfmgr, fmgr, state, new PathFormula(
-        bfmgr.makeBoolean(true),
-        state.getSSAMap(),
-        state.getPointerTargetSet(),
-        1
-    )));
-  }
-
-  String abstractStateToCExpression(CongruenceState abstractState) throws InterruptedException {
-    BooleanFormula invariant = toFormulaUninstantiated(
-        abstractState, fmgr, pfmgr);
-    BooleanFormula uninstantiated = fmgr.uninstantiate(invariant);
-    return formulaToCExpressionConverter.formulaToCExpression(uninstantiated);
+    PathFormulaManager pfmgrv;
+    try {
+      pfmgrv = new PathFormulaManagerImpl(
+          fmgr,
+          configuration,
+          logManager,
+          shutdownNotifier,
+          cfa,
+          AnalysisDirection.FORWARD
+      );
+    } catch (InvalidConfigurationException pE) {
+      throw new UnsupportedOperationException("Could not construct path "
+          + "formula manager", pE);
+    }
+    return fmgr.uninstantiate(
+        toFormula(
+            pfmgrv,
+            fmgr,
+            state,
+            new PathFormula(
+                fmgr.getBooleanFormulaManager().makeBoolean(true),
+                state.getSSAMap(),
+                state.getPointerTargetSet(),
+                1
+            )
+        )
+    );
   }
 
   public BooleanFormula toFormula(

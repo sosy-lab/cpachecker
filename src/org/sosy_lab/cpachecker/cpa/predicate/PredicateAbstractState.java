@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -115,8 +114,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
 
     @Override
-    public BooleanFormula getFormulaApproximation(FormulaManagerView pManager,
-        PathFormulaManager pPfmgr) {
+    public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
       return super.abstractionFormula.asFormulaFromOtherSolver(pManager);
     }
   }

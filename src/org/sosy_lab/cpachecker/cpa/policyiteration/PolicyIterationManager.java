@@ -361,7 +361,7 @@ public class PolicyIterationManager {
         bfmgr.and(
             pOtherStates
                 .stream()
-                .map(state -> AbstractStates.extractReportedFormulas(fmgr, state, pfmgr))
+                .map(state -> AbstractStates.extractReportedFormulas(fmgr, state))
                 .filter(state -> !bfmgr.isTrue(state))
                 .collect(Collectors.toList()));
     if (bfmgr.isTrue(strengthening) && !delayAbstractionUntilStrengthen) {
@@ -1320,7 +1320,7 @@ public class PolicyIterationManager {
     List<BooleanFormula> constraints = new ArrayList<>();
     for (AbstractState a : AbstractStates.asIterable(pFormulaState)) {
       if (!(a instanceof PolicyAbstractedState) && a instanceof FormulaReportingState) {
-        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr, pfmgr));
+        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr));
       }
     }
     return bfmgr.and(constraints);
