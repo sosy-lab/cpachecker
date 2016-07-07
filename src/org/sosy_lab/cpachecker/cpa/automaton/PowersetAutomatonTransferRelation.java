@@ -220,7 +220,7 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
 
     // The result is based on computing the CARTESIAN PRODUCT!
     for (Collection<AutomatonState> c: Cartesian.product(componentSuccessors)) {
-      PowersetAutomatonState ca = new PowersetAutomatonState(c);
+      PowersetAutomatonState ca = new PowersetAutomatonState(Sets.newLinkedHashSet(c));
       result.add(ca);
     }
 
