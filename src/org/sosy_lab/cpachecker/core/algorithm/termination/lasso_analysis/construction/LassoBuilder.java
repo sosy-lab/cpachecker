@@ -115,7 +115,7 @@ public class LassoBuilder {
     formulaManagerView = checkNotNull(pFormulaManagerView);
     pathFormulaManager = checkNotNull(pPathFormulaManager);
 
-    ifThenElseElimination = new IfThenElseElimination(formulaManagerView);
+    ifThenElseElimination = new IfThenElseElimination(formulaManagerView, formulaManager);
     divAndModElimination = new DivAndModElimination(formulaManagerView, formulaManager);
     equalElimination = new EqualElimination(formulaManagerView);
     notEqualAndNotInequalityElimination =

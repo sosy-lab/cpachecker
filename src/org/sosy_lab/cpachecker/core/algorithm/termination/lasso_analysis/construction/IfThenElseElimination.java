@@ -23,125 +23,107 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
-import org.sosy_lab.cpachecker.util.Triple;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.ITE;
+
+import com.google.common.collect.Lists;
+
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
 
-  private final FormulaManagerView fmgr;
+  private final FormulaManagerView fmgrView;
+  private final FormulaManager fmgr;
 
-  private final IfThenElseElimination.IfThenElseTransformation ifThenElseTransformation;
-
-  IfThenElseElimination(FormulaManagerView pFmgr) {
-    super(pFmgr);
+  IfThenElseElimination(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+    super(pFmgrView);
+    fmgrView = pFmgrView;
     fmgr = pFmgr;
-    ifThenElseTransformation = new IfThenElseTransformation(pFmgr);
   }
 
   @Override
   public BooleanFormula visitAtom(
       BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-    if (LassoBuilder.IF_THEN_ELSE_FUNCTIONS.contains(pDecl.getKind())) {
-      return fmgr.visit(ifThenElseTransformation, pAtom);
-    } else {
-      return pAtom;
-    }
+    IfThenElseTransformation ifThenElseTransformation = new IfThenElseTransformation(fmgrView, fmgr);
+    BooleanFormula result = (BooleanFormula) fmgrView.visit(ifThenElseTransformation, pAtom);
+
+    BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
+    BooleanFormula additionalAxioms =
+        booleanFormulaManager.and(ifThenElseTransformation.getAdditionalAxioms());
+    return fmgrView.makeAnd(result, additionalAxioms);
   }
 
-  private static class IfThenElseTransformation extends DefaultFormulaVisitor<BooleanFormula> {
+  private static class IfThenElseTransformation extends DefaultFormulaVisitor<Formula> {
 
-    private final FormulaManagerView fmgr;
+    private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
-    private IfThenElseTransformation(FormulaManagerView pFmgr) {
+    private final FormulaManagerView fmgrView;
+    private final FormulaManager fmgr;
+
+    private final Collection<BooleanFormula> additionalAxioms;
+
+    private IfThenElseTransformation(FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+      fmgrView = pFmgrView;
       fmgr = pFmgr;
+      additionalAxioms = Lists.newArrayList();
+    }
+
+    public Collection<BooleanFormula> getAdditionalAxioms() {
+      return additionalAxioms;
     }
 
     @Override
-    protected BooleanFormula visitDefault(Formula pF) {
-      return (BooleanFormula) pF;
+    protected Formula visitDefault(Formula pF) {
+      return pF;
     }
 
     @Override
-    public BooleanFormula visitFunction(
+    public Formula visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      List<Formula> newArgs =
+          pArgs.stream().map(f -> fmgrView.visit(this, f)).collect(Collectors.toList());
 
-      FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
-      if (LassoBuilder.IF_THEN_ELSE_FUNCTIONS.contains(kind)) {
+      if (pFunctionDeclaration.getKind().equals(ITE)
+          || pFunctionDeclaration.getName().equalsIgnoreCase("ite")) {
+        return transformIfThenElse(
+            newArgs.get(0), newArgs.get(1), newArgs.get(2), pFunctionDeclaration.getType());
 
-        Optional<Triple<BooleanFormula, Formula, Formula>> ifThenElse =
-            fmgr.splitIfThenElse(pArgs.get(1));
-
-        // right hand side is if-then-else
-        if (ifThenElse.isPresent()) {
-          return transformIfThenElse(getFunction(kind, false), pArgs.get(0), ifThenElse);
-
-        } else { // check left hand side
-          ifThenElse = fmgr.splitIfThenElse(pArgs.get(0));
-
-          // left hand side is if-then-else
-          if (ifThenElse.isPresent()) {
-            return transformIfThenElse(getFunction(kind, false), pArgs.get(1), ifThenElse);
-          }
-        }
-      }
-
-      return (BooleanFormula) pF;
-    }
-
-    private BooleanFormula transformIfThenElse(
-        BiFunction<Formula, Formula, BooleanFormula> function,
-        Formula otherArg,
-        Optional<Triple<BooleanFormula, Formula, Formula>> ifThenElse) {
-
-      BooleanFormula condition = ifThenElse.get().getFirst();
-      Formula thenFomula = ifThenElse.get().getSecond();
-      Formula elseFomula = ifThenElse.get().getThird();
-      return fmgr.makeOr(
-          fmgr.makeAnd(function.apply(otherArg, thenFomula), condition),
-          fmgr.makeAnd(function.apply(otherArg, elseFomula), fmgr.makeNot(condition)));
-    }
-
-    private BiFunction<Formula, Formula, BooleanFormula> getFunction(
-        FunctionDeclarationKind functionKind, boolean swapArguments) {
-      BiFunction<Formula, Formula, BooleanFormula> baseFunction;
-      switch (functionKind) {
-        case EQ:
-          baseFunction = fmgr::makeEqual;
-          break;
-        case GT:
-          baseFunction = (f1, f2) -> fmgr.makeLessOrEqual(f1, f2, true);
-          break;
-        case GTE:
-          baseFunction = (f1, f2) -> fmgr.makeLessOrEqual(f1, f2, true);
-          break;
-        case LT:
-          baseFunction = (f1, f2) -> fmgr.makeLessOrEqual(f1, f2, true);
-          break;
-        case LTE:
-          baseFunction = (f1, f2) -> fmgr.makeGreaterThan(f1, f2, true);
-          break;
-
-        default:
-          throw new AssertionError();
-      }
-
-      BiFunction<Formula, Formula, BooleanFormula> function;
-      if (swapArguments) {
-        function = (f1, f2) -> baseFunction.apply(f2, f1);
       } else {
-        function = baseFunction;
+        return fmgr.makeApplication(pFunctionDeclaration, newArgs);
       }
-      return function;
+    }
+
+    private Formula transformIfThenElse(
+        Formula pCondition,
+        Formula pThen,
+        Formula pElse,
+        FormulaType<?> pFormulaType) {
+
+      BooleanFormula condition = (BooleanFormula) pCondition;
+      Formula auxVar =
+          fmgr.makeVariable(
+              pFormulaType,
+              TERMINATION_AUX_VARS_PREFIX + "IF_THEN_ELSE_AUX_VAR_" + ID_GENERATOR.getFreshId());
+
+      // (auxVar == pThen AND condition) OR (auxVar == pThen AND (NOT(condition)))
+      additionalAxioms.add(fmgrView.makeOr(
+          fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pThen), condition),
+          fmgrView.makeAnd(fmgrView.makeEqual(auxVar, pElse), fmgrView.makeNot(condition))));
+
+      return auxVar;
     }
   }
 }
