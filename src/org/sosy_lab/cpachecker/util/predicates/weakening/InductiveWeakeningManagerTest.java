@@ -49,7 +49,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.IntegerFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import java.util.Set;
 
@@ -65,11 +67,32 @@ public class InductiveWeakeningManagerTest {
 
   private InductiveWeakeningManager inductiveWeakeningManager;
   private IntegerFormulaManager ifmgr;
+  private BooleanFormulaManager bfmgr;
 
+  @Before
+  public void setUp() throws Exception {
+    Configuration config = TestDataTools.configurationForTest().setOptions(
+        ImmutableMap.of(
+            "solver.solver", solver.toString(),
 
-  @Test public void testSlicingVerySimple() throws Exception {
+            // Just to please Princess.
+            "cpa.predicate.encodeFloatAs", "integer"
+        )
+    ).build();
+    ShutdownNotifier notifier = ShutdownNotifier.createDummy();
+    LogManager logger = LogManager.createTestLogManager();
+    Solver solver = Solver.create(config, logger, notifier);
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    inductiveWeakeningManager = new InductiveWeakeningManager(
+        config, solver, logger, notifier);
+    ifmgr = fmgr.getIntegerFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+
     // TODO: SMTINTERPOL currently does not support solving with assumptions.
     Assume.assumeThat(solver, new IsNot<>(Is.is(Solvers.SMTINTERPOL)));
+  }
+
+  @Test public void testSlicingVerySimple() throws Exception {
     SSAMap startingSsa = SSAMap.emptySSAMap().withDefault(0);
     PathFormula transition = new PathFormula(
         ifmgr.equal(
@@ -101,22 +124,27 @@ public class InductiveWeakeningManagerTest {
     );
   }
 
-  @Before
-  public void setUp() throws Exception {
-    Configuration config = TestDataTools.configurationForTest().setOptions(
-        ImmutableMap.of(
-            "solver.solver", solver.toString(),
+  @Test public void testRemovingRedundancies() throws Exception {
+    IntegerFormula x, y, z;
+    x = ifmgr.makeVariable("x");
+    y = ifmgr.makeVariable("y");
+    z = ifmgr.makeVariable("z");
+    IntegerFormula zero = ifmgr.makeNumber(0);
 
-            // Just to please Princess.
-            "cpa.predicate.encodeFloatAs", "integer"
+    BooleanFormula input = bfmgr.and(
+        ifmgr.greaterThan(x, zero),
+        ifmgr.greaterThan(y, zero),
+        ifmgr.greaterThan(ifmgr.add(x, y), zero)
+    );
+
+    BooleanFormula simplified = inductiveWeakeningManager.removeRedundancies(
+        input
+    );
+    assertThat(simplified).isEqualTo(
+        bfmgr.and(
+            ifmgr.greaterThan(x, zero),
+            ifmgr.greaterThan(y, zero)
         )
-    ).build();
-    ShutdownNotifier notifier = ShutdownNotifier.createDummy();
-    LogManager logger = LogManager.createTestLogManager();
-    Solver solver = Solver.create(config, logger, notifier);
-    FormulaManagerView fmgr = solver.getFormulaManager();
-    inductiveWeakeningManager = new InductiveWeakeningManager(
-        config, solver, logger, notifier);
-    ifmgr = fmgr.getIntegerFormulaManager();
+    );
   }
 }

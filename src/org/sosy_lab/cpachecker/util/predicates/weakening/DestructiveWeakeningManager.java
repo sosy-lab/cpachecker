@@ -163,6 +163,8 @@ public class DestructiveWeakeningManager {
         walked.add(toTest);
 
         pe.push();
+
+        // Force all selectors not in {@code toAbstract} to be {@code false}.
         pe.addConstraint(generateNegations(selectionInfo.keySet(), toAbstract));
 
         core = pe.unsatCoreOverAssumptions(toAbstract);
