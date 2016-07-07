@@ -235,6 +235,19 @@ public class LassoBuilder {
     return new LinearTransition(polyhedra, rankVars.getInVars(), rankVars.getOutVars());
   }
 
+  private List<List<LinearInequality>> extractPolyhedra(BooleanFormula pathInDnf)
+      throws TermException {
+    Set<BooleanFormula> clauses =
+        formulaManagerView.getBooleanFormulaManager().toDisjunctionArgs(pathInDnf, true);
+
+    List<List<LinearInequality>> polyhedra = Lists.newArrayListWithCapacity(clauses.size());
+    for (BooleanFormula clause : clauses) {
+      Term term = formulaManager.extractInfo(clause);
+      polyhedra.add(InequalityConverter.convert(term, EXCEPTION));
+    }
+    return polyhedra;
+  }
+
   private Collection<BooleanFormula> toDnf(PathFormula path) throws InterruptedException {
     BooleanFormula simplified = formulaManagerView.simplify(path.getFormula());
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, simplified);
@@ -248,19 +261,6 @@ public class LassoBuilder {
         formulaManagerView.getBooleanFormulaManager().toDisjunctionArgs(dnf, true);
 
     return clauses;
-  }
-
-  private List<List<LinearInequality>> extractPolyhedra(BooleanFormula pathInDnf)
-      throws TermException {
-    Set<BooleanFormula> clauses =
-        formulaManagerView.getBooleanFormulaManager().toDisjunctionArgs(pathInDnf, true);
-
-    List<List<LinearInequality>> polyhedra = Lists.newArrayListWithCapacity(clauses.size());
-    for (BooleanFormula clause : clauses) {
-      Term term = formulaManager.extractInfo(clause);
-      polyhedra.add(InequalityConverter.convert(term, EXCEPTION));
-    }
-    return polyhedra;
   }
 
   private BooleanFormula transformRecursively(
