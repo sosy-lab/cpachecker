@@ -91,7 +91,8 @@ public class CongruenceCPA
     statistics = new CongruenceStatistics();
     CongruenceManager congruenceManager = new CongruenceManager(
         pConfiguration, solver, templateToFormulaConversionManager,
-        formulaManager, statistics, pathFormulaManager, pLogger, pCFA);
+        formulaManager, statistics, pathFormulaManager, pLogger, pCFA,
+        pShutdownNotifier);
     abeCPA = new ABECPA<>(pConfiguration, pLogger, pShutdownNotifier, pCFA,
         congruenceManager, solver);
   }

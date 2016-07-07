@@ -1,27 +1,27 @@
 package org.sosy_lab.cpachecker.cpa.congruence;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.abe.ABEAbstractedState;
 import org.sosy_lab.cpachecker.cpa.abe.ABEIntermediateState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.templates.Template;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 
 public class CongruenceState implements
                              Iterable<Entry<Template, Congruence>>,
                              ABEAbstractedState<CongruenceState>,
+                             Graphable {
 
   private final ImmutableMap<Template, Congruence> data;
   private final CongruenceManager congruenceManager;
@@ -67,6 +67,7 @@ public class CongruenceState implements
     return data.entrySet().iterator();
   }
 
+  @Override
   public String toDOTLabel() {
     StringBuilder b = new StringBuilder();
     for (Entry<Template, Congruence> e : data.entrySet()) {
@@ -80,29 +81,8 @@ public class CongruenceState implements
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hashCode(data);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (!(o instanceof CongruenceState)) {
-      return false;
-    }
-    if (o == this) {
-      return true;
-    }
-    CongruenceState other = (CongruenceState) o;
-    return other.data.equals(data);
-  }
-
-  /**
-   * Convert the state to <b>instantiated</b> formula with respect to the
-   * PathFormula {@code ref}.
-   */
-  public BooleanFormula toFormula(
-      FormulaManagerView manager, PathFormulaManager pfmgr, PathFormula ref) {
-    return congruenceManager.toFormula(pfmgr, manager, this, ref);
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
   @Override
@@ -125,6 +105,10 @@ public class CongruenceState implements
     return this;
   }
 
+  /**
+   * Convert the state to <b>instantiated</b> formula with respect to the
+   * PathFormula {@code ref}.
+   */
   @Override
   public BooleanFormula instantiate() {
     return congruenceManager.toFormula(this);
@@ -141,6 +125,19 @@ public class CongruenceState implements
   }
 
   @Override
+  public int hashCode() {
+    return Objects.hashCode(data);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof CongruenceState)) {
+      return false;
     }
+    if (o == this) {
+      return true;
+    }
+    CongruenceState other = (CongruenceState) o;
+    return other.data.equals(data);
   }
 }
