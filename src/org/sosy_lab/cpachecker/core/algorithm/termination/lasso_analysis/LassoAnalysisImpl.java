@@ -55,7 +55,6 @@ import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -224,23 +223,34 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       throws IOException, SMTLIBException, TermException, InterruptedException {
 
     LassoAnalysisResult result = LassoAnalysisResult.unknown();
+
+    // Try to synthesize non-termination arguments first because it is much cheaper
+    // than synthesizing termination arguments.
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
-      logger.logf(Level.FINE, "Analysing (non)-termination of lasso:\n%s.", lasso);
-      LassoAnalysisResult resultFromLasso = checkTermination(lasso, pRelevantVariables);
+      logger.logf(Level.FINE, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
+      LassoAnalysisResult resultFromLasso = synthesizeNonTerminationArgument(lasso);
       result = result.update(resultFromLasso);
 
+      // Stop and return result if non-termination could be proved.
       if (result.hasNonTerminationArgument()) {
         return result;
       }
     }
 
+    // Synthesize termination arguments
+    for (Lasso lasso : lassos) {
+      shutdownNotifier.shutdownIfNecessary();
+      logger.logf(Level.FINE, "Synthesizing termination argument for lasso:\n%s.", lasso);
+      LassoAnalysisResult resultFromLasso = synthesizeTerminationArgument(lasso, pRelevantVariables);
+      result = result.update(resultFromLasso);
+    }
+
     return result;
   }
 
-  private LassoAnalysisResult checkTermination(
-      Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
-      throws IOException, SMTLIBException, TermException, InterruptedException {
+  private LassoAnalysisResult synthesizeNonTerminationArgument(Lasso lasso)
+      throws IOException, SMTLIBException, TermException {
 
     statistics.nonTerminationAnalysisOfLassoStarted();
     NonTerminationArgument nonTerminationArgument = null;
@@ -251,10 +261,20 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       if (result.equals(LBool.SAT) && nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
         nonTerminationArgument = nonTerminationArgumentSynthesizer.getArgument();
         logger.logf(Level.INFO, "Proved non-termintion: %s", nonTerminationArgument);
+        return LassoAnalysisResult.fromNonTerminationArgument(nonTerminationArgument);
+
+      } else {
+        return LassoAnalysisResult.unknown();
       }
+
     } finally {
       statistics.nonTerminationAnalysisOfLassoFinished();
     }
+  }
+
+  private LassoAnalysisResult synthesizeTerminationArgument(
+      Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
+      throws IOException, SMTLIBException, TermException, InterruptedException {
 
     RankingRelation rankingRelation = null;
     statistics.terminationAnalysisOfLassoStarted();
@@ -273,7 +293,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             rankingRelation =
                 rankingRelationBuilder.fromTerminationArgument(
                     terminationArgument, pRelevantVariables);
-            break;
+            return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
 
           } catch (UnrecognizedCCodeException e) {
             logger.logException(
@@ -284,8 +304,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
     statistics.terminationAnalysisOfLassoFinished();
 
-    return new LassoAnalysisResult(
-        Optional.ofNullable(nonTerminationArgument), Optional.ofNullable(rankingRelation));
+    return LassoAnalysisResult.unknown();
   }
 
   private TerminationArgumentSynthesizer createTerminationArgumentSynthesizer(

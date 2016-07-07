@@ -69,7 +69,15 @@ public interface LassoAnalysis {
       return new LassoAnalysisResult(Optional.empty(), Optional.empty());
     }
 
-    public LassoAnalysisResult(
+    public static LassoAnalysisResult fromNonTerminationArgument(Object nonTerminationArgument) {
+      return new LassoAnalysisResult(Optional.of(nonTerminationArgument), Optional.empty());
+    }
+
+    public static LassoAnalysisResult fromTerminationArgument(RankingRelation terminationArgument) {
+      return new LassoAnalysisResult(Optional.empty(), Optional.of(terminationArgument));
+    }
+
+    private LassoAnalysisResult(
         Optional<?> pNonTerminationArgument, Optional<RankingRelation> pTerminationArgument) {
       checkArgument(!(pNonTerminationArgument.isPresent() && pTerminationArgument.isPresent()));
       nonTerminationArgument = checkNotNull(pNonTerminationArgument);
