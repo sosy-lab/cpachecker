@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import java.util.Collection;
@@ -158,10 +159,10 @@ public class MarkingAutomatonBuilder {
     Preconditions.checkNotNull(pInput);
 
     // Initialize the data structures
-    Map<AutomatonTransition, Integer> edgeToMarkerMap = Maps.newHashMap();
+    Map<AutomatonBoolExpr, Integer> edgeToMarkerMap = Maps.newLinkedHashMap();
     Set<AutomatonTransition> visited = Sets.newIdentityHashSet(); // An equal (but not identical)transition might be used several times
     Deque<BackLinkedState> worklist = Lists.newLinkedList();
-    Map<Integer, MarkerCode> markerCode = Maps.newHashMap();
+    Map<Integer, MarkerCode> markerCode = Maps.newLinkedHashMap();
     Multimap<AutomatonTransition, BackLinkedState> targetStates = HashMultimap.create();
 
     int edgeId = 0;
@@ -186,13 +187,17 @@ public class MarkingAutomatonBuilder {
         final BackLinkedState succ;
 
         if (shouldMark(q, t)) {
-          final int markerId = edgeId++;
+          Integer markerId = edgeToMarkerMap.get(t.getTrigger());
+          final MarkerCode mc;
+          if (markerId == null) {
+            markerId = edgeId++;
+            edgeToMarkerMap.put(t.getTrigger(), Integer.valueOf(markerId));
 
-          edgeToMarkerMap.put(t, Integer.valueOf(markerId));
+            mc = new MarkerCode(pInput.getName(), markerId);
+            markerCode.put(markerId, mc);
+          }
 
           succ = MarkedState.of(q, t.getFollowState(), markerId);
-          final MarkerCode mc = new MarkerCode(pInput.getName(), markerId);
-          markerCode.put(markerId, mc);
 
         } else {
           succ = UnmarkedState.of(q, t.getFollowState());
@@ -216,7 +221,7 @@ public class MarkingAutomatonBuilder {
       List<AutomatonTransition> qPrimeTrans = Lists.newArrayList();
 
       for (AutomatonTransition t: q.getTransitions()) {
-        Integer markerId = edgeToMarkerMap.get(t);
+        Integer markerId = edgeToMarkerMap.get(t.getTrigger());
 
         List<AAstNode> newShadowCode = Lists.newLinkedList();
         newShadowCode.addAll(t.getShadowCode());
