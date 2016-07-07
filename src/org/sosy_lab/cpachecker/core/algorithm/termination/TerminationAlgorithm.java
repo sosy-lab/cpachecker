@@ -439,8 +439,13 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
           if (targetPathIt.isPositionWithState() || lastStateInCfa.isPresent()) {
             ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
-            @Nullable
-            CFAEdge edgeToNextState = state.getEdgeToChild(targetPathIt.getNextAbstractState());
+            ARGState nextAbstractState = targetPathIt.getNextAbstractState();
+
+            @Nullable CFAEdge edgeToNextState = null;
+            // use only edges matching the next location
+            if (AbstractStates.extractLocation(nextAbstractState).equals(nextLocation)) {
+              edgeToNextState = state.getEdgeToChild(nextAbstractState);
+            }
             builder.add(state, edgeToNextState);
           }
 
