@@ -264,7 +264,9 @@ public class LassoBuilder {
   }
 
   private BooleanFormula transformRecursively(
-      BooleanFormulaTransformationVisitor visitor, BooleanFormula formula) {
+      BooleanFormulaTransformationVisitor visitor, BooleanFormula formula)
+          throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
     return formulaManagerView.getBooleanFormulaManager().transformRecursively(visitor, formula);
   }
 
