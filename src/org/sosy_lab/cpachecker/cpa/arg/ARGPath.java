@@ -154,7 +154,8 @@ public class ARGPath extends AbstractAppender {
         // we assume a linear chain of edges from 'prev' to 'succ'
         CFANode curNode = extractLocation(prev);
         CFANode nextNode = extractLocation(succ);
-        while (curNode != nextNode) {
+
+        do { // the chain must not be empty
           if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
             return Collections.emptyList();
           }
@@ -162,7 +163,7 @@ public class ARGPath extends AbstractAppender {
           CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
           fullPath.add(intermediateEdge);
           curNode = intermediateEdge.getSuccessor();
-        }
+        } while (curNode != nextNode);
 
       // we have a normal connection without hole in the edges
       } else {
