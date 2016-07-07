@@ -1,13 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -15,6 +13,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -87,7 +86,7 @@ class SlicingAbstractedState
     return new SlicingAbstractedState(
         pSlice, pSsaMap, pPointerTargetSet, pFmgr,
         pGeneratingState, pNode,
-        ImmutableSet.<PathFormulaWithStartSSA>of());
+        ImmutableSet.of());
   }
 
   public static SlicingAbstractedState makeSliced(Set<BooleanFormula> pSlice,
@@ -148,13 +147,13 @@ class SlicingAbstractedState
       CFANode startingNode
   ) {
     return new SlicingAbstractedState(
-        ImmutableSet.<BooleanFormula>of(),
+        ImmutableSet.of(),
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pFmgr,
         Optional.empty(),
         startingNode,
-        ImmutableSet.<PathFormulaWithStartSSA>of());
+        ImmutableSet.of());
   }
 
 
