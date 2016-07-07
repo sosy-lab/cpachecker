@@ -28,11 +28,6 @@ import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.Inequali
 import static java.util.logging.Level.FINE;
 import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.EQ;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.GT;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.GTE;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.LT;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.LTE;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -59,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
@@ -87,9 +81,6 @@ public class LassoBuilder {
   private final static Set<String> META_VARIABLES = ImmutableSet.of("__VERIFIER_nondet_int");
 
   final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
-
-  final static Set<FunctionDeclarationKind> IF_THEN_ELSE_FUNCTIONS =
-      ImmutableSet.of(EQ, GT, GTE, LT, LTE);
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
