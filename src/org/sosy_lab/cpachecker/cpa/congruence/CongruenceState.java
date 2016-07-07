@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.cpa.congruence;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.CExpressionReportingState;
 import org.sosy_lab.cpachecker.cpa.abe.ABEAbstractedState;
 import org.sosy_lab.cpachecker.cpa.abe.ABEIntermediateState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -23,7 +22,6 @@ import java.util.Optional;
 public class CongruenceState implements
                              Iterable<Entry<Template, Congruence>>,
                              ABEAbstractedState<CongruenceState>,
-                             CExpressionReportingState {
 
   private final ImmutableMap<Template, Congruence> data;
   private final CongruenceManager congruenceManager;
@@ -143,11 +141,6 @@ public class CongruenceState implements
   }
 
   @Override
-  public String reportInvariantAsCExpression() {
-    try {
-      return congruenceManager.abstractStateToCExpression(this);
-    } catch (InterruptedException pE) {
-      throw new UnsupportedOperationException("Failed formatting");
     }
   }
 }

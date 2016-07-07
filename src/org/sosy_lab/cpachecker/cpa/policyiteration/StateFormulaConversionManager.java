@@ -6,7 +6,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -29,7 +28,6 @@ public class StateFormulaConversionManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final FormulaToCExpressionConverter formulaToCExpressionConverter;
   private final TemplateToFormulaConversionManager
       templateToFormulaConversionManager;
   private final Configuration configuration;
@@ -47,26 +45,11 @@ public class StateFormulaConversionManager {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
-    formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);
     configuration = pConfiguration;
     cfa = pCfa;
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
   }
-
-  /**
-   * Represent an input state as a C expression.
-   *
-   * <p>N.B. implementation relies on recursion and string concatenation,
-   * and is consequently relatively slow.
-   */
-  String abstractStateToCExpression(PolicyAbstractedState abstractState) throws InterruptedException {
-    BooleanFormula invariant = bfmgr.and(
-        abstractStateToConstraints(fmgr, pfmgr, abstractState, false));
-    BooleanFormula uninstantiated = fmgr.uninstantiate(invariant);
-    return formulaToCExpressionConverter.formulaToCExpression(uninstantiated);
-  }
-
 
   /**
    * Returns _instantiated_ set of constraints.

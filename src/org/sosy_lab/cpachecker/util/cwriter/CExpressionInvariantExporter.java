@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -37,13 +38,20 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.CExpressionReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -51,9 +59,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -70,9 +79,29 @@ public class CExpressionInvariantExporter {
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate prefix = PathTemplate.ofFormatString("inv-%s");
 
-  public CExpressionInvariantExporter(Configuration pConfiguration)
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManager bfmgr;
+  private final FormulaToCExpressionConverter formulaToCExpressionConverter;
+  private final InductiveWeakeningManager inductiveWeakeningManager;
+
+  public CExpressionInvariantExporter(
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier
+  )
+
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
+    Solver solver = Solver.create(
+        pConfiguration,
+        pLogManager,
+        pShutdownNotifier);
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);
+    inductiveWeakeningManager = new InductiveWeakeningManager(
+        pConfiguration,
+        solver, pLogManager, pShutdownNotifier);
   }
 
   /**
@@ -82,7 +111,7 @@ public class CExpressionInvariantExporter {
    */
   public void exportInvariant(
       String analyzedPrograms,
-      ReachedSet pReachedSet) throws IOException {
+      ReachedSet pReachedSet) throws IOException, InterruptedException {
 
     if (!export || prefix == null) {
       return;
@@ -111,18 +140,17 @@ public class CExpressionInvariantExporter {
       )
       throws IOException {
 
-    Multimap<Integer, CExpressionReportingState> reporting =
-        getReportingStatesForFile(pReachedSet, filename);
+    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
 
     try (Stream<String> lines = Files.lines(Paths.get(filename))) {
       int lineNo = 0;
       Iterator<String> it = lines.iterator();
       while (it.hasNext()) {
         String line = it.next();
-        String invariant = getInvariantForLine(lineNo, reporting);
-        if (!invariant.isEmpty()) {
+        Optional<String> invariant = getInvariantForLine(lineNo, reporting);
+        if (invariant.isPresent()) {
           out.append("__VERIFIER_assume(")
-              .append(invariant)
+              .append(invariant.get())
               .append(");\n");
         }
         out.append(line)
@@ -132,33 +160,53 @@ public class CExpressionInvariantExporter {
     }
   }
 
-  private String getInvariantForLine(
-      int lineNo, Multimap<Integer, CExpressionReportingState> reporting) {
-    Collection<CExpressionReportingState> report = reporting.get(lineNo);
-    return Joiner.on("\n || ").join(
-        report.stream().map(c -> c.reportInvariantAsCExpression()).iterator());
+  private Optional<String> getInvariantForLine(
+      int lineNo, Map<Integer, BooleanFormula> reporting) {
+    return Optional.ofNullable(reporting.get(lineNo))
+        .map(
+            s -> simplify ? simplifyInvariant(s) : s
+        )
+        .map(
+            s -> {
+              try {
+                return formulaToCExpressionConverter.formulaToCExpression(s);
+              } catch (InterruptedException pE) {
+                throw new UnsupportedOperationException(
+                    "Interrupted while converting formula to expression");
+              }
+            }
+        );
   }
 
-  private Multimap<Integer, CExpressionReportingState> getReportingStatesForFile(
+  /**
+   * @return Mapping from line numbers to states associated with the given line.
+   */
+  private Map<Integer, BooleanFormula> getInvariantsForFile(
       ReachedSet pReachedSet,
       String filename) {
 
-    Multimap<Integer, CExpressionReportingState> out = HashMultimap.create();
+    // One formula per reported state.
+    Multimap<Integer, BooleanFormula> byState = HashMultimap.create();
+
     for (AbstractState state : pReachedSet) {
 
       CFANode loc = AbstractStates.extractLocation(state);
       if (loc != null && loc.getNumEnteringEdges() > 0) {
         CFAEdge edge = loc.getEnteringEdge(0);
         FileLocation location = edge.getFileLocation();
-        FluentIterable<CExpressionReportingState> reporting =
-            AbstractStates.asIterable(state)
-                .filter(CExpressionReportingState.class);
+        FluentIterable<FormulaReportingState> reporting =
+            AbstractStates.asIterable(state).filter(FormulaReportingState.class);
+
         if (location.getFileName().equals(filename) && !reporting.isEmpty()) {
-          out.putAll(location.getStartingLineInOrigin(), reporting);
+          BooleanFormula reported = bfmgr.and(
+              reporting.transform(s -> s.getFormulaApproximation(fmgr)).toList());
+          byState.put(location.getStartingLineInOrigin(), reported);
         }
       }
     }
-    return out;
+    return Maps.transformValues(
+        byState.asMap(), invariants -> bfmgr.or(invariants)
+    );
   }
 
 }

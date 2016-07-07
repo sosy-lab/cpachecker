@@ -3,9 +3,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.CExpressionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -20,8 +18,7 @@ import java.util.Optional;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
-                 FormulaReportingState,
-                 CExpressionReportingState {
+                 FormulaReportingState {
 
   private final StateFormulaConversionManager manager;
 
@@ -266,14 +263,5 @@ public final class PolicyAbstractedState extends PolicyState
               extraInvariant);
     }
     return hashCache;
-  }
-
-  @Override
-  public String reportInvariantAsCExpression() {
-    try {
-      return manager.abstractStateToCExpression(this);
-    } catch (InterruptedException pE) {
-      throw new UnsupportedOperationException("Failed formatting");
-    }
   }
 }

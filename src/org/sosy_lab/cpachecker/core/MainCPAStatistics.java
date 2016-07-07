@@ -41,6 +41,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -131,7 +132,7 @@ class MainCPAStatistics implements Statistics {
   public MainCPAStatistics(
       Configuration pConfig,
       LogManager pLogger,
-      String pAnalyzedFiles)
+      String pAnalyzedFiles, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
     analyzedFiles = pAnalyzedFiles;
@@ -168,7 +169,7 @@ class MainCPAStatistics implements Statistics {
     }
 
     coverageReport = new CoverageReport(pConfig, pLogger);
-    cExpressionInvariantExporter = new CExpressionInvariantExporter(pConfig);
+    cExpressionInvariantExporter = new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier);
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -278,6 +279,9 @@ class MainCPAStatistics implements Statistics {
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Encountered IO error while"
             + " generating the invariant as an output program.");
+      } catch (InterruptedException pE) {
+        logger.logUserException(Level.WARNING, pE, "Interrupted while "
+            + "processing invariant");
       }
     }
 

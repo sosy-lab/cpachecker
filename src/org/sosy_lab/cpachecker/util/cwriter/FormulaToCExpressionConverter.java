@@ -104,7 +104,7 @@ public class FormulaToCExpressionConverter {
           case UMINUS:
             return "- ";
           case AND:
-            return "\n&& ";
+            return " && ";
           case OR:
             return "\n|| ";
           case SUB:
