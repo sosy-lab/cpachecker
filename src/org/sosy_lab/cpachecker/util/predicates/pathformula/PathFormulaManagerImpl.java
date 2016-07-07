@@ -119,7 +119,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + BRANCHING_PREDICATE_NAME + "_(\\d+)_(\\d+)$");
+      "^.*" + BRANCHING_PREDICATE_NAME + "_(\\d+)_(\\d+)(@\\d+)?$");
 
   private static final String NONDET_VARIABLE = "__nondet__";
   private static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
