@@ -447,6 +447,12 @@ public class AutomatonTransition {
       Joiner.on(' ').appendTo(sb, actions);
       sb.append(" ");
     }
+    if (!shadowCode.isEmpty()) {
+      sb.append("\n");
+      Joiner.on(' ').appendTo(sb, shadowCode);
+      sb.append(" ");
+      sb.append("\n");
+    }
     sb.append(followState);
     sb.append(";\"");
     return sb.toString();
