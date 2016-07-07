@@ -60,16 +60,20 @@ public enum ShadowCFAEdgeFactory {
     public ShadowCodeStartNode(String pInFunctionWithName, CFANode pWeavedOnLocation) {
       super(pInFunctionWithName);
       weavedOnLocation = Preconditions.checkNotNull(pWeavedOnLocation);
+
+      final int revPostId;
+      if (pWeavedOnLocation.getNumEnteringEdges() > 0) {
+        // Prefer to use the reverse post order id from the predecessor in the CFA!!
+        revPostId = weavedOnLocation.getEnteringEdge(0).getPredecessor().getReversePostorderId();
+      } else {
+        revPostId = weavedOnLocation.getReversePostorderId();
+      }
+      setReversePostorderId(revPostId);
     }
 
     @Override
     public CFANode getWeavedOnLocation() {
       return weavedOnLocation;
-    }
-
-    @Override
-    public int getReversePostorderId() {
-      return weavedOnLocation.getReversePostorderId();
     }
 
   }
