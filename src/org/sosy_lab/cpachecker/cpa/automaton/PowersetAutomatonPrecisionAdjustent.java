@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,6 +38,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
 public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment {
@@ -56,7 +58,7 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
     PowersetAutomatonState state = (PowersetAutomatonState) pState;
 
     PrecisionAdjustmentResult.Action action = Action.CONTINUE;
-    Collection<AutomatonState> components = Lists.newArrayList();
+    Set<AutomatonState> components = Sets.newLinkedHashSet();
 
     boolean adjusted = false;
 
@@ -64,20 +66,20 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
       Optional<PrecisionAdjustmentResult> ePrime = componentPrec.prec(e, pPrecision, pStates, pStateProjection, pFullState);
 
       if (ePrime.isPresent()) {
+        switch (ePrime.get().action()) {
+          case BREAK:
+            action = Action.BREAK;
+            break;
+          case CONTINUE:
+            break;
+          default:
+            throw new CPAException("Unsupported precision adjustment ACTION!");
+        }
+
         if ((ePrime.get().abstractState() != e) || (ePrime.get().precision() != pPrecision)) {
           adjusted = true;
 
           components.add((AutomatonState) ePrime.get().abstractState());
-
-          switch (ePrime.get().action()) {
-            case BREAK:
-              action = Action.BREAK;
-              break;
-            case CONTINUE:
-              break;
-            default:
-              throw new CPAException("Unsupported precision adjustment ACTION!");
-          }
         } else {
           components.add(e);
         }
