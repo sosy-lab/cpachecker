@@ -27,6 +27,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.collect.FluentIterable;
+
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -304,8 +306,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     strengthenTimer.start();
     try {
-      CFANode loc = getAnalysisSuccesor(edge);
-
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       if (element.isAbstractionState()) {
         // can't do anything with this object because the path formula of
@@ -319,9 +319,17 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       final CFANode currentLocation = getAnalysisSuccesor(edge);
 
       boolean targetStateFound = false;
-      boolean intermediateTargetStateFound = false;
 
-      for (AbstractState lElement : otherElements) {
+      // Flatten the full abstract state.
+      // This is important because the other states might be composite state as well,
+      // and provide assumptions that have to be consumed!
+      //
+      // TODO: This has to be discussed. Would it better to require that each composite state has
+      //      to implement, for example, the interface AbstractStateWithAssumptions?
+      final FluentIterable<AbstractState> otheresFlattened =
+          AbstractStates.asFlatIterable(otherElements);
+
+      for (AbstractState lElement : otheresFlattened) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
@@ -341,9 +349,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           targetStateFound = true;
         }
 
-        if (AbstractStates.isIntermediateTargetState(lElement)) {
-          intermediateTargetStateFound = true;
-        }
       }
 
       // check satisfiability in case of error
