@@ -44,10 +44,12 @@ import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -109,12 +111,28 @@ class MainCPAStatistics implements Statistics {
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
+  @Option(
+    secure = true,
+    name = "cinvariants.export",
+    description = "Output an input file, with invariants embedded as assume constraints."
+  )
+  private boolean cInvariantsExport = false;
+
+  @Option(
+    secure = true,
+    name = "cinvariants.prefix",
+    description =
+        "Prefix to add to an output file, which would contain assumed invariants."
+  )
+  @FileOption(Type.OUTPUT_FILE)
+  private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
   private final CoverageReport coverageReport;
   private final String analyzedFiles;
-  private final CExpressionInvariantExporter cExpressionInvariantExporter;
+  private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
@@ -169,7 +187,12 @@ class MainCPAStatistics implements Statistics {
     }
 
     coverageReport = new CoverageReport(pConfig, pLogger);
-    cExpressionInvariantExporter = new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier);
+    if (cInvariantsExport && cInvariantsPrefix != null) {
+      cExpressionInvariantExporter =
+          new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier, cInvariantsPrefix);
+    } else {
+      cExpressionInvariantExporter = null;
+    }
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -274,11 +297,15 @@ class MainCPAStatistics implements Statistics {
             "Out of memory while generating statistics about final reached set");
       }
 
-      try {
-        cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Encountered IO error while"
-            + " generating the invariant as an output program.");
+      if (cExpressionInvariantExporter != null) {
+        try {
+          cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
+        } catch (IOException e) {
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Encountered IO error while generating the invariant as an output program.");
+        }
       }
     }
 

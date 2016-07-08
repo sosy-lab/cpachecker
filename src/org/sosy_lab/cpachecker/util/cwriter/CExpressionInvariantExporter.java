@@ -31,8 +31,6 @@ import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -64,23 +62,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
-
 @Options(prefix="cinvariants")
 public class CExpressionInvariantExporter {
-
-  @Option(secure=true, description="Output an "
-      + "input file, with invariants embedded as assume constraints.")
-  private boolean export = false;
-
-  @Option(secure=true, description="Prefix to add to an output file, which would contain "
-          + "assumed invariants. Ignored if |writeToStats| is set to |true|")
-  @FileOption(Type.OUTPUT_FILE)
-  private @Nullable PathTemplate prefix = PathTemplate.ofFormatString("inv-%s");
 
   @Option(secure=true, description="Attempt to simplify the invariant before "
       + "exporting [may be very expensive].")
   private boolean simplify = false;
+
+  private final PathTemplate prefix;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
@@ -90,11 +79,11 @@ public class CExpressionInvariantExporter {
   public CExpressionInvariantExporter(
       Configuration pConfiguration,
       LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier
-  )
-
+      ShutdownNotifier pShutdownNotifier,
+      PathTemplate pPrefix)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
+    prefix = pPrefix;
     Solver solver = Solver.create(
         pConfiguration,
         pLogManager,
@@ -115,10 +104,6 @@ public class CExpressionInvariantExporter {
   public void exportInvariant(
       String analyzedPrograms,
       ReachedSet pReachedSet) throws IOException {
-
-    if (!export || prefix == null) {
-      return;
-    }
 
     Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);

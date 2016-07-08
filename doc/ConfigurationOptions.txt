@@ -79,6 +79,9 @@ solver.solver = SMTINTERPOL
 # Log solver actions, this may be slow!
 solver.useLogger = false
 
+# Dump failed interpolation queries to this file in SMTLIB2 format
+solver.z3.dumpFailedInterpolationQueries = no default value
+
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
@@ -525,7 +528,6 @@ cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 cinvariants.export = false
 
 # Prefix to add to an output file, which would contain assumed invariants.
-# Ignored if |writeToStats| is set to |true|
 cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
