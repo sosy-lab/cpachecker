@@ -23,14 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,6 +63,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider.PartialCertificateTypes;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -81,6 +91,13 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
 
+  @Option(secure = true, name="dump.enabled", description = "Store the BDD states as DOT files?")
+  private boolean enableDumpBddTo = true;
+
+  @Option(secure = true, name="dump.file", description = "Target for storing the BDD states as DOT files")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dumpBddTo = PathTemplate.ofFormatString("BDD_%d.dot");
+
   @Option(secure=true, description="mergeType")
   private String merge = "join";
 
@@ -97,7 +114,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
     abstractDomain    = DelegateAbstractDomain.<BDDState>getInstance();
     stopOperator      = new StopSepOperator(abstractDomain);
-    mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
+    mergeOperator     = (merge.equalsIgnoreCase("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
     precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     manager           = new NamedRegionManager(rmgr);
@@ -157,6 +174,25 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
       @Override
       public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
         transferRelation.printStatistics(out);
+
+        if (enableDumpBddTo && dumpBddTo != null) {
+          for (AbstractState e: reached) {
+
+            ARGState argState = AbstractStates.extractStateByType(e, ARGState.class);
+            BDDState bddState = AbstractStates.extractStateByType(e, BDDState.class);
+            int stateId = argState.getStateId();
+
+            try (Writer w = MoreFiles
+                .openOutputFile(dumpBddTo.getPath(stateId), Charset.defaultCharset())) {
+
+              w.append(manager.regionToDot(bddState.getRegion()));
+
+            } catch (IOException x) {
+              logger.logUserException(Level.WARNING, x, "Could not write the BDD to DOT file");
+            }
+          }
+        }
+
       }
 
       @Override
