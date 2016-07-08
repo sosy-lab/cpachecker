@@ -98,8 +98,10 @@ public class ConfigurationFilesTest {
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
+          "limits.time.cpu.thread",
           "memorysafety.config",
           "overflow.config",
+          "termination.config",
           "pcc.proofgen.doPCC",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
@@ -258,7 +260,7 @@ public class ConfigurationFilesTest {
                   .trim());
     }
 
-    if (options.useParallelAlgorithm || options.useRestartingAlgorithm) {
+    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
       // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);
