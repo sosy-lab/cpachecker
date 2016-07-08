@@ -103,7 +103,7 @@ public class CExpressionInvariantExporter {
    */
   public void exportInvariant(
       String analyzedPrograms,
-      ReachedSet pReachedSet) throws IOException {
+      ReachedSet pReachedSet) throws IOException, InterruptedException {
 
     Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);
@@ -126,7 +126,7 @@ public class CExpressionInvariantExporter {
       String filename,
       ReachedSet pReachedSet
       )
-      throws IOException {
+      throws IOException, InterruptedException {
 
     Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
 
@@ -149,21 +149,15 @@ public class CExpressionInvariantExporter {
   }
 
   private Optional<String> getInvariantForLine(
-      int lineNo, Map<Integer, BooleanFormula> reporting) {
-    return Optional.ofNullable(reporting.get(lineNo))
-        .map(
-            s -> simplify ? simplifyInvariant(s) : s
-        )
-        .map(
-            s -> {
-              try {
-                return formulaToCExpressionConverter.formulaToCExpression(s);
-              } catch (InterruptedException pE) {
-                throw new UnsupportedOperationException(
-                    "Interrupted while converting formula to expression");
-              }
-            }
-        );
+      int lineNo, Map<Integer, BooleanFormula> reporting) throws InterruptedException{
+    BooleanFormula formula = reporting.get(lineNo);
+    if (formula == null) {
+      return Optional.empty();
+    }
+    if (simplify) {
+      formula = simplifyInvariant(formula);
+    }
+    return Optional.of(formulaToCExpressionConverter.formulaToCExpression(formula));
   }
 
   /**
@@ -197,12 +191,8 @@ public class CExpressionInvariantExporter {
     );
   }
 
-  private BooleanFormula simplifyInvariant(BooleanFormula pInvariant) {
-    try {
-      return inductiveWeakeningManager.removeRedundancies(pInvariant);
-    } catch (InterruptedException pE) {
-      throw new UnsupportedOperationException("Interrupted while "
-          + "simplifying", pE);
-    }
+  private BooleanFormula simplifyInvariant(BooleanFormula pInvariant)
+      throws InterruptedException {
+    return inductiveWeakeningManager.removeRedundancies(pInvariant);
   }
 }
