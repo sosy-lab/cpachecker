@@ -232,6 +232,11 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   }
 
   @Override
+  public void close() {
+    toolchainStorage.clear();
+  }
+
+  @Override
   public LassoAnalysisResult checkTermination(
       CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {

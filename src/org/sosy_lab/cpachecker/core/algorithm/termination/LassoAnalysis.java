@@ -47,6 +47,8 @@ public interface LassoAnalysis {
       CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException;
 
+  void close();
+
   public interface Factory {
 
     public LassoAnalysis create(

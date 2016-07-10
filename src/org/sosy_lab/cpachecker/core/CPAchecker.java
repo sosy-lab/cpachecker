@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -270,6 +271,7 @@ public class CPAchecker {
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
     MainCPAStatistics stats = null;
+    Algorithm algorithm = null;
     ReachedSet reached = null;
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
@@ -284,8 +286,6 @@ public class CPAchecker {
       // create reached set, cpa, algorithm
       stats.creationTime.start();
       reached = factory.createReachedSet();
-
-      Algorithm algorithm;
 
       if (runCBMCasExternalTool) {
 
@@ -387,6 +387,7 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, null);
 
     } finally {
+      CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);

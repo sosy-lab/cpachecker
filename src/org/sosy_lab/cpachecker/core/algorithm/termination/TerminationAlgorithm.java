@@ -102,7 +102,7 @@ import javax.annotation.Nullable;
  * Algorithm that uses a safety-analysis to prove (non-)termination.
  */
 @Options(prefix = "termination")
-public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
+public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
   private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
 
@@ -204,6 +204,11 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return terminationSpecification;
+  }
+
+  @Override
+  public void close() {
+    lassoAnalysis.close();
   }
 
   @Override
