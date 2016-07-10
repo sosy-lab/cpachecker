@@ -104,6 +104,10 @@ public class SMGRefiner implements Refiner {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
+  @Option(secure = true, description = "export interpolant smgs for every path interpolation to this path template")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate exportInterpolantSMGs = PathTemplate.ofFormatString("smg/interpolation-%d/%s");
+
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
@@ -155,7 +159,9 @@ public class SMGRefiner implements Refiner {
     SMGState initaialState = smgCpa.getInitialState(cfa.getMainFunction());
     SMGEdgeInterpolator edgeInterpolator = new SMGEdgeInterpolator(checker, strongestPostOp, smgInterpolantManager, initaialState, smgCpa.getShutdownNotifier(), smgCpa.getPrecision(), logger);
 
-    SMGPathInterpolator interpolator = new SMGPathInterpolator(smgCpa.getShutdownNotifier(), smgInterpolantManager, edgeInterpolator);
+    SMGPathInterpolator interpolator =
+        new SMGPathInterpolator(smgCpa.getShutdownNotifier(), smgInterpolantManager,
+            edgeInterpolator, logger, smgCpa.getExportSMGFilePattern(), smgCpa.getExportSMGLevel());
 
     PathExtractor pathExtractor = new PathExtractor(logger, config);
 

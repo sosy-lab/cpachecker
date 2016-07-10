@@ -68,7 +68,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
-
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg/smg-%s.dot");
 
@@ -166,6 +165,14 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+
+  public SMGExportLevel getExportSMGLevel() {
+    return exportSMG;
+  }
+
+  public PathTemplate getExportSMGFilePattern() {
+    return exportSMGFilePattern;
   }
 
   @Override

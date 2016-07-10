@@ -1950,6 +1950,9 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
+# export interpolant smgs for every path interpolation to this path template
+cpa.smg.refinement.exportInterpolantSMGs = "smg/interpolation-%d/%s"
+
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement

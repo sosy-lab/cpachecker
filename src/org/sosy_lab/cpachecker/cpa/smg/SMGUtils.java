@@ -233,18 +233,23 @@ public final class SMGUtils {
     }
   }
 
-  public static void dumpSMGPlot(LogManager pLogger, String pName, SMGState currentState,
-      String location, PathTemplate pExportSMGFilePattern) {
-    if (pExportSMGFilePattern != null && currentState != null) {
+  public static void dumpSMGPlot(LogManager pLogger, String pName, SMGState pCurrentState,
+      String pLocation, PathTemplate pExportSMGFilePattern) {
+    if (pExportSMGFilePattern != null && pCurrentState != null) {
 
       pName = pName.replace("\"", "");
       Path outputFile = getOutputFile(pExportSMGFilePattern, pName);
-      try {
-        String dot = getDot(currentState, pName, location);
-        MoreFiles.writeFile(outputFile, Charset.defaultCharset(), dot);
-      } catch (IOException e) {
-        pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + pName + " to file");
-      }
+      dumpSMGPlot(pLogger, pName, pCurrentState, pLocation, outputFile);
+    }
+  }
+
+  public static void dumpSMGPlot(LogManager pLogger, String pName, SMGState currentState,
+      String location, Path pOutputFile) {
+    try {
+      String dot = getDot(currentState, pName, location);
+      MoreFiles.writeFile(pOutputFile, Charset.defaultCharset(), dot);
+    } catch (IOException e) {
+      pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + pName + " to file");
     }
   }
 
