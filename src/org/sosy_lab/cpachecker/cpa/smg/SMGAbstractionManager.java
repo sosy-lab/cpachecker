@@ -106,14 +106,19 @@ public class SMGAbstractionManager {
     return bestCandidate;
   }
 
-  public void execute() throws SMGInconsistentException {
-    while (hasCandidates()) {
-      SMGAbstractionCandidate best = getBestCandidate();
-      logger.log(Level.ALL, "Execute abstraction of " + best.toString());
-      best.execute(smg, smgState);
-      invalidateCandidates();
-      logger.log(Level.ALL, "Finish executing abstraction of " + best.toString());
+  public boolean execute() throws SMGInconsistentException {
+
+    SMGAbstractionCandidate currentAbstraction = executeOneStep();
+
+    if (currentAbstraction.isEmpty()) {
+      return false;
     }
+
+    while (!currentAbstraction.isEmpty()) {
+      currentAbstraction = executeOneStep();
+    }
+
+    return true;
   }
 
   public SMGAbstractionCandidate executeOneStep() throws SMGInconsistentException {
@@ -126,6 +131,11 @@ public class SMGAbstractionManager {
       return best;
     } else {
       return new SMGAbstractionCandidate() {
+
+        @Override
+        public boolean isEmpty() {
+          return true;
+        }
 
         @Override
         public int getScore() {

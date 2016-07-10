@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionCandidate {
 
+  public boolean isEmpty();
+
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
 
   public int getScore();

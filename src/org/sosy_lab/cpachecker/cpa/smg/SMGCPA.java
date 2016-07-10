@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,6 +66,16 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SMGCPA.class);
   }
+
+  @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
+
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg/smg-%s.dot");
+
+  @Option(secure=true, toUppercase=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped.")
+  private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
+
+  public static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
 
   @Option(secure = true, description = "with this option enabled, heap abstraction will be enabled.")
   private boolean enableHeapAbstraction = false;
@@ -122,12 +135,11 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     shutdownNotifier = pShutdownNotifier;
 
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
-    precisionAdjustment = new SMGPrecisionAdjustment();
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
-
+    precisionAdjustment = new SMGPrecisionAdjustment(logger, exportSMG, exportSMGFilePattern);
     abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
     mergeOperator = MergeSepOperator.getInstance();
 
@@ -141,8 +153,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     precision = initializePrecision();
 
-    transferRelation = new SMGTransferRelation(config, logger, machineModel, smgPredicateManager,
-        blockOperator);
+    transferRelation =
+        new SMGTransferRelation(config, logger, machineModel, exportSMGFilePattern, exportSMG,
+            smgPredicateManager,
+            blockOperator);
   }
 
   public void injectRefinablePrecision() {

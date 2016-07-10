@@ -211,4 +211,9 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
     return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getDllShape(), length,
         pPointerToStartObject);
   }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
 }

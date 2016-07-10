@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
 
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -40,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
@@ -47,8 +51,12 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWi
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class contains smg utilities, for example filters.
@@ -215,4 +223,37 @@ public final class SMGUtils {
       return UNKNOWN;
     }
   }
+
+  public static void plotWhenConfigured(String pName, SMGState pState, String pLocation,
+      LogManager pLogger, SMGExportLevel pLevel, SMGExportLevel pExportSMGWhen,
+      PathTemplate pExportSMGFilePattern) {
+
+    if (pLevel == pExportSMGWhen) {
+      dumpSMGPlot(pLogger, pName, pState, pLocation, pExportSMGFilePattern);
+    }
+  }
+
+  public static void dumpSMGPlot(LogManager pLogger, String pName, SMGState currentState,
+      String location, PathTemplate pExportSMGFilePattern) {
+    if (pExportSMGFilePattern != null && currentState != null) {
+
+      pName = pName.replace("\"", "");
+      Path outputFile = getOutputFile(pExportSMGFilePattern, pName);
+      try {
+        String dot = getDot(currentState, pName, location);
+        MoreFiles.writeFile(outputFile, Charset.defaultCharset(), dot);
+      } catch (IOException e) {
+        pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + pName + " to file");
+      }
+    }
+  }
+
+  private static Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
+    return pExportSMGFilePattern.getPath(pName);
+  }
+
+  private static String getDot(SMGState pCurrentState, String pName, String pLocation) {
+    return pCurrentState.toDot(pName, pLocation);
+  }
+
 }

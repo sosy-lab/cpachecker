@@ -160,7 +160,7 @@ public class SMGEdgeInterpolator {
     // effort
     if (onlySuccessor
         && initialState.equals(Iterables.getOnlyElement(successors))
-        && !originalPrecision.allowsHeapAbstractionOnEdge(currentEdge)) {
+        && !originalPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       resultingInterpolants.add(pInputInterpolant);
       return resultingInterpolants;
     }
@@ -169,7 +169,7 @@ public class SMGEdgeInterpolator {
     // (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
     if (onlySuccessor && isOnlyVariableRenamingEdge(pCurrentEdge)
-        && !originalPrecision.allowsHeapAbstractionOnEdge(currentEdge)) {
+        && !originalPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       SMGInterpolant interpolant =
           interpolantManager.createInterpolant(Iterables.getOnlyElement(successors));
       resultingInterpolants.add(interpolant);
@@ -206,7 +206,7 @@ public class SMGEdgeInterpolator {
       }
 
       /*Second, check which abstraction should be allowed.*/
-      if (originalPrecision.allowsHeapAbstractionOnEdge(currentEdge)) {
+      if (originalPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
         abstractionBlocks = interpolateAbstractions(initialSuccessor, remainingErrorPath);
       }
 
@@ -223,7 +223,7 @@ public class SMGEdgeInterpolator {
     Set<SMGAbstractionBlock> result = new HashSet<>();
     SMGAbstractionCandidate candidate = abstractionTest.executeHeapAbstractionOneStep(result);
 
-    while (candidate.getScore() != 0) {
+    while (!candidate.isEmpty()) {
 
       if (isRemainingPathFeasible(remainingErrorPath, abstractionTest)) {
         result.add(candidate.createAbstractionBlock(pInitialSuccessor));

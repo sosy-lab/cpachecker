@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
@@ -74,13 +73,15 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode);
 
-  public boolean allowsHeapAbstractionOnEdge(CFAEdge pCfaEdge) {
-    return allowsHeapAbstraction && pCfaEdge.getPredecessor().isLoopStart();
+  public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode) {
+    return allowsHeapAbstraction && pCfaNode.isLoopStart();
   }
 
   public boolean allowsHeapAbstraction() {
     return allowsHeapAbstraction;
   }
+
+  public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
 
   public static class SMGRefineablePrecision extends SMGPrecision {
 
@@ -159,6 +160,11 @@ public abstract class SMGPrecision implements Precision {
         return false;
       }
     }
+
+    @Override
+    public Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location) {
+      return abstractionBlocks.get(location);
+    }
   }
 
   private static class SMGStaticPrecision extends SMGPrecision {
@@ -185,6 +191,11 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public SMGPrecision join(SMGPrecision pPrecision) {
       return this;
+    }
+
+    @Override
+    public Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode pLocation) {
+      return ImmutableSet.of();
     }
   }
 }

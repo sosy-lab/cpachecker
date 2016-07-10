@@ -32,12 +32,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -95,6 +92,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressAndState;
@@ -106,7 +104,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndStateLi
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -117,10 +114,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -136,21 +130,11 @@ import java.util.logging.Level;
 @Options(prefix = "cpa.smg")
 public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
-  @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
-
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg/smg-%s.dot");
-
   @Option(secure=true, description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
   @Option(secure=true, description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
   private boolean handleNonFreedMemoryInMainAsMemLeak = false;
-
-  @Option(secure=true, toUppercase=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped.")
-  private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
-
-  private static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
 
   @Option(secure=true, name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
@@ -196,6 +180,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   final private MachineModel machineModel;
   private final AtomicInteger id_counter;
 
+  private final PathTemplate exportSMGFilePattern;
+
+  private final SMGExportLevel exportSMG;
+
   private final SMGRightHandSideEvaluator expressionEvaluator;
 
   private final BlockOperator blockOperator;
@@ -232,37 +220,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             "printf"
         );
 
-    private void dumpSMGPlot(String name, SMGState currentState, String location) {
-      if (exportSMGFilePattern != null && currentState != null) {
-        if (name == null) {
-          if (currentState.getPredecessorId() == 0) {
-            name = String.format("initial-%03d", currentState.getId());
-          } else {
-            name = String.format("%03d-%03d-%03d", currentState.getPredecessorId(), currentState.getId(), id_counter.getAndIncrement());
-          }
-        }
-        name = name.replace("\"", "");
-        Path outputFile = getOutputFile(exportSMGFilePattern, name);
-        try {
-          String dot = getDot(currentState, name, location);
-          MoreFiles.writeFile(outputFile, Charset.defaultCharset(), dot);
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
-        }
-      }
-    }
-
-    protected Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
-      return pExportSMGFilePattern.getPath(pName);
-    }
-
-    protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
-      return pCurrentState.toDot(pName, pLocation);
-    }
-
     public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
       String name = functionCall.getParameterExpressions().get(0).toASTString();
-      dumpSMGPlot(name, currentState, functionCall.toString());
+      SMGUtils.dumpSMGPlot(logger, name, currentState, functionCall.toString(),
+          exportSMGFilePattern);
     }
 
     public final SMGAddressValueAndStateList evaluateMemset(CFunctionCallExpression functionCall,
@@ -756,48 +717,40 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   final private SMGBuiltins builtins = new SMGBuiltins();
 
-  private void plotWhenConfigured(SMGExportLevel level, String pName, SMGState pState, String pLocation) {
-    //TODO: A variation for more pConfigs
-
-    if (level == exportSMG) {
-      builtins.dumpSMGPlot(pName, pState, pLocation);
-    }
-  }
-
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
-
-    SMGPrecision smgPrecision = (SMGPrecision) precision;
-
     ((SMGState) state).setBlockEnded(blockOperator.isBlockEnd(cfaEdge.getSuccessor(), 0));
-    return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge, smgPrecision);
+    return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
-          throws InvalidConfigurationException {
+      MachineModel pMachineModel, PathTemplate pExportSMGFilePattern,
+      SMGExportLevel pExportSMG, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
+    exportSMGFilePattern = pExportSMGFilePattern;
+    exportSMG = pExportSMG;
     smgPredicateManager = pSMGPredicateManager;
     blockOperator = pBlockOperator;
   }
 
-  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
-        throws InvalidConfigurationException {
-    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel,
-        pSMGPredicateManager, pBlockOperator);
-    result.exportSMG = SMGExportLevel.NEVER;
+  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config,
+      LogManager pLogger,
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator) throws InvalidConfigurationException {
+    PathTemplate noPath = PathTemplate.ofFormatString("");
+    SMGTransferRelation result =
+        new SMGTransferRelation(config, pLogger, pMachineModel, noPath, SMGExportLevel.NEVER, pSMGPredicateManager, pBlockOperator);
     return result;
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      SMGState state, CFAEdge cfaEdge, SMGPrecision precision)
+      SMGState state, CFAEdge cfaEdge)
           throws CPATransferException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
@@ -814,7 +767,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     case StatementEdge:
       successors = handleStatement(smgState, (CStatementEdge) cfaEdge);
-      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successors, cfaEdge.getDescription());
+      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
       break;
 
       // this is an assumption, e.g. if (a == b)
@@ -822,13 +775,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successors = handleAssumption(smgState, assumeEdge.getExpression(),
           cfaEdge, assumeEdge.getTruthAssumption(), true);
-      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successors, cfaEdge.getDescription());
+      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
       break;
 
     case FunctionCallEdge:
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
       successors = handleFunctionCall(smgState, functionCallEdge);
-      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successors, cfaEdge.getDescription());
+      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
       break;
 
     // this is a return edge from function, this is different from return statement
@@ -839,11 +792,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (checkForMemLeaksAtEveryFrameDrop) {
         for (SMGState successor : successors) {
           String name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), id_counter.getAndIncrement());
-          plotWhenConfigured(SMGExportLevel.INTERESTING, "beforePrune" + name, successor, cfaEdge.getDescription());
+          SMGUtils.plotWhenConfigured("beforePrune" + name, successor, cfaEdge.getDescription(), logger,
+              SMGExportLevel.INTERESTING, exportSMG, exportSMGFilePattern);
           successor.pruneUnreachable();
         }
       }
-      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successors, cfaEdge.getDescription());
+      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
       break;
 
     case ReturnStatementEdge:
@@ -868,36 +822,37 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           successor.pruneUnreachable();
         }
       }
-      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successors, cfaEdge.getDescription());
+
+      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
       break;
 
     default:
       successors = ImmutableList.of(smgState);
     }
 
-    if (precision.allowsHeapAbstractionOnEdge(cfaEdge)) {
-      for (SMGState successor : successors) {
-        String name = String.format("%03d-before-abstraction", successor.getId());
-        String name2 = String.format("%03d-after-abstraction", successor.getId());
-        plotWhenConfigured(SMGExportLevel.EVERY, name, successor, cfaEdge.getDescription());
-        successor.executeHeapAbstraction();
-        plotWhenConfigured(SMGExportLevel.EVERY, name2, successor, cfaEdge.getDescription());
-        logger.log(Level.ALL, "Heap abstraction on node " + cfaEdge.getPredecessor().getNodeNumber() + " with state id: " + successor.getId());
-      }
-    }
-
     for (SMGState smg : successors) {
-      plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
+      SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.getDescription(), logger,
+          SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
       logger.log(Level.ALL, "state id " + smg.getId() + " -> state id " + state.getId());
     }
 
     return successors;
   }
 
-  private void plotWhenConfigured(SMGExportLevel pInteresting, String pName, List<SMGState> pStates,
-      String pDescription) {
+  private void plotWhenConfigured(List<SMGState> pStates, String pLocation, SMGExportLevel pLevel) {
     for (SMGState state : pStates) {
-      plotWhenConfigured(pInteresting, pName, state, pDescription);
+      SMGUtils.plotWhenConfigured(getDotExportFileName(state), state, pLocation, logger, pLevel,
+          exportSMG,
+          exportSMGFilePattern);
+    }
+  }
+
+  private String getDotExportFileName(SMGState pState) {
+    if (pState.getPredecessorId() == 0) {
+      return String.format("initial-%03d", pState.getId());
+    } else {
+      return String.format("%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(),
+          id_counter.getAndIncrement());
     }
   }
 
@@ -2501,7 +2456,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (newElement == null) {
       return Collections.emptyList();
     } else {
-      plotWhenConfigured(SMGExportLevel.EVERY, null, newElement, assumeDesc.toString());
+      SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
       return Collections.singleton(newElement);
     }
   }

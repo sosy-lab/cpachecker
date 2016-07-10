@@ -195,4 +195,9 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
     return new SMGSingleLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);
   }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
+  }
 }

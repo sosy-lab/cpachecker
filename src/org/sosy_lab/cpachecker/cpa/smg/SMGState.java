@@ -2165,6 +2165,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
+  public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks)
+      throws SMGInconsistentException {
+    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, blocks);
+    boolean change = manager.execute();
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return change;
+  }
+
   /**
    * Check if symbolic value1 of this smgState is less or equal to value2
    * of smgsState2.

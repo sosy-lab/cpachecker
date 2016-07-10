@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Function;
 import java.util.Optional;
 
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision.SMGRefineablePrecision;
@@ -49,6 +53,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Set;
+import java.util.logging.Level;
 
 
 public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -58,9 +63,16 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
   final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
 
   private final Statistics statistics;
+  private final LogManager logger;
+  private final SMGExportLevel exportSMG;
+  private final PathTemplate exportSMGFilePattern;
 
 
-  public SMGPrecisionAdjustment() {
+  public SMGPrecisionAdjustment(LogManager pLogger, SMGExportLevel pExportSMG, PathTemplate pExportSMGFilePattern) {
+
+    logger = pLogger;
+    exportSMG = pExportSMG;
+    exportSMGFilePattern = pExportSMGFilePattern;
 
     statistics = new Statistics() {
       @Override
@@ -93,26 +105,53 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
   private Optional<PrecisionAdjustmentResult> prec(SMGState pState, SMGPrecision pPrecision,
       LocationState location) throws CPAException {
 
-    if (!pPrecision.allowsAbstraction()) {
+    boolean allowsAbstraction = pPrecision.allowsAbstraction();
+    boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
+
+    if (!allowsAbstraction && !allowsHeapAbstraction) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
     }
 
     totalAbstraction.start();
 
     SMGState result = pState;
+    SMGState newState = new SMGState(pState);
     boolean change = false;
+    CFANode node = location.getLocationNode();
 
-    if (pPrecision instanceof SMGRefineablePrecision) {
-      result = new SMGState(pState);
+    if (allowsAbstraction && pPrecision instanceof SMGRefineablePrecision) {
 
       Set<SMGMemoryPath> mempaths =
-          ((SMGRefineablePrecision) pPrecision).getTrackedMemPaths(location.getLocationNode());
-      change = result.forgetNonTrackedHve(mempaths);
+          ((SMGRefineablePrecision) pPrecision).getTrackedMemPaths(node);
+      change = newState.forgetNonTrackedHve(mempaths);
 
-      if (!change) {
-        result = pState;
+      if (change) {
+        result = newState;
+        logger.log(Level.ALL, "Precision adjustment on node " + node.getNodeNumber()
+        + " with result state id: " + result.getId());
       }
     }
+
+
+
+    if (allowsHeapAbstraction) {
+      String name = String.format("%03d-before-abstraction", result.getId());
+      String name2 = String.format("%03d-after-abstraction", result.getId());
+      String description = "before-heap-abstraction-of-smg-" + result.getId();
+      String description2 = "after-heap-abstraction-of-smg-" + result.getId();
+      SMGUtils.plotWhenConfigured(name, result, description, logger,
+          SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+      change = newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
+      SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
+          SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+      logger.log(Level.ALL, "Heap abstraction on node " + node.getNodeNumber()
+          + " with state id: " + pState.getId());
+
+      if (change) {
+        result = newState;
+      }
+    }
+
 
     totalAbstraction.stop();
     abstractions.inc();
