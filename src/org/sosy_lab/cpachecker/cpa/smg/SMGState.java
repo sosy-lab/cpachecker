@@ -1308,7 +1308,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     if (heap.isCoveredByNullifiedBlocks(
-        edge)) { return SMGValueAndState.of(this, SMGKnownSymValue.ZERO); }
+        edge)) {
+      return SMGValueAndState.of(this, SMGKnownSymValue.ZERO);
+    }
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGValueAndState.of(this);
