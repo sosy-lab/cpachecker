@@ -86,11 +86,11 @@ public abstract class SMGPrecision implements Precision {
   }
 
   public final boolean allowsFieldAbstraction() {
-    return options.allowsStackAbstraction();
+    return options.allowsFieldAbstraction();
   }
 
   public final boolean allowsStackAbstraction() {
-    return options.allowsFieldAbstraction();
+    return options.allowsStackAbstraction();
   }
 
   protected SMGPrecisionAbstractionOptions getAbstractionOptions() {
