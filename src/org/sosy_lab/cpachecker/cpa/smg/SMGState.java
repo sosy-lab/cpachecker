@@ -2216,12 +2216,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) throws SMGInconsistentException {
 
     Set<SMGEdgeHasValue> trackkedHves = new HashSet<>(pMempaths.size());
+    Set<Integer> trackedValues = new HashSet<>();
+    trackedValues.add(0);
 
     for (SMGMemoryPath path : pMempaths) {
       Optional<SMGEdgeHasValue> hve = heap.getHVEdgeFromMemoryLocation(path);
 
       if (hve.isPresent()) {
         trackkedHves.add(hve.get());
+        trackedValues.add(hve.get().getValue());
       }
     }
 
@@ -2231,6 +2234,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       if (!trackkedHves.contains(edge)) {
         heap.removeHasValueEdge(edge);
         change = true;
+      }
+    }
+
+    if (change) {
+      for (Integer value : ImmutableSet.copyOf(heap.getValues())) {
+        if (!trackedValues.contains(value)) {
+          heap.removePointsToEdge(value);
+          heap.removeValue(value);
+          change = true;
+        }
       }
     }
 
