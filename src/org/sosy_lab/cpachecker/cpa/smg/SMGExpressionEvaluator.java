@@ -555,9 +555,26 @@ public class SMGExpressionEvaluator {
     @Override
     public List<SMGAddressAndState> visit(CIdExpression variableName) throws CPATransferException {
 
-      SMGObject object = getInitialSmgState().getObjectForVisibleVariable(variableName.getName());
+      SMGState state = getInitialSmgState();
+      SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
 
-      return SMGAddressAndState.listOf(getInitialSmgState(), SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
+      if (object == null && variableName.getDeclaration() != null) {
+        CSimpleDeclaration dcl = variableName.getDeclaration();
+        if (dcl instanceof CVariableDeclaration) {
+          CVariableDeclaration varDcl = (CVariableDeclaration) dcl;
+
+          if (varDcl.isGlobal()) {
+            object = state.addGlobalVariable(getSizeof(getCfaEdge(), varDcl.getType(), state),
+                varDcl.getName());
+          } else {
+            object = state.addLocalVariable(getSizeof(getCfaEdge(), varDcl.getType(), state),
+                varDcl.getName());
+          }
+        }
+      }
+
+      return SMGAddressAndState.listOf(getInitialSmgState(),
+          SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
     }
 
     @Override

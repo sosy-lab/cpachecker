@@ -165,7 +165,7 @@ public class SMGRefiner implements Refiner {
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
-            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), pCfa,
+            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(),
             checkerForInterpolation);
 
     shutdownNotifier = pShutdownNotifier;

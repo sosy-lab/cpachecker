@@ -668,6 +668,9 @@ public class SMG {
     neq.clear();
     pathPredicate.clear();
     errorPredicate.clear();
+    addValue(nullAddress);
+    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
+    addPointsToEdge(nullPointer);
   }
 
   public void clearObjects() {

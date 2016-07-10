@@ -2318,4 +2318,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGStateInformation pInfo) {
     heap.remember(pMemoryLocation, pRegion, pInfo);
   }
+
+  public void unknownWrite() {
+    heap.unknownWrite();
+  }
 }

@@ -757,17 +757,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     kind = pKind;
   }
 
-  public static SMGTransferRelation createTransferRelationForInterpolation(Configuration config,
-      LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator) throws InvalidConfigurationException {
-    SMGTransferRelation result =
-        new SMGTransferRelation(config, pLogger, pMachineModel,
-            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINMENT,
-            pSMGPredicateManager, pBlockOperator);
-    return result;
-  }
-
   public static SMGTransferRelation createTransferRelationForCEX(Configuration config,
       LogManager pLogger, MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
       BlockOperator pBlockOperator) throws InvalidConfigurationException {
@@ -785,6 +774,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       throws InvalidConfigurationException {
     return new SMGTransferRelation(config, pLogger, pMachineModel, pExportOptions,
         SMGTransferRelationKind.STATIC, pSMGPredicateManager, pBlockOperator);
+  }
+
+  public static SMGTransferRelation createTransferRelationForInterpolation(Configuration config,
+      LogManager pLogger,
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+    SMGTransferRelation result =
+        new SMGTransferRelation(config, pLogger, pMachineModel,
+            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINMENT,
+            pSMGPredicateManager, pBlockOperator);
+    return result;
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -1359,7 +1359,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        result.add(new SMGState(state).setInvalidWrite());
+        SMGState resultState = new SMGState(state);
+        resultState.unknownWrite();
+        result.add(resultState.setInvalidWrite());
       } else {
         List<SMGState> newStates =
             handleAssignmentToField(state, cfaEdge, addressOfField.getObject(),

@@ -1126,4 +1126,8 @@ public class CLangSMG extends SMG {
 
     addObject(pRegion, pInfo.isValid(), pInfo.isExternal());
   }
+
+  public void unknownWrite() {
+    clearValues();
+  }
 }

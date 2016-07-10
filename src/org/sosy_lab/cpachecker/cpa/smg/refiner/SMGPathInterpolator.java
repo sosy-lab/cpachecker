@@ -23,21 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.Lists;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -47,12 +42,9 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
-import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -60,13 +52,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -94,20 +83,17 @@ public class SMGPathInterpolator {
   private final PathTemplate exportPath;
   private final SMGExportLevel exportWhen;
 
-  private final CFA cfa;
-
   public SMGPathInterpolator(ShutdownNotifier pShutdownNotifier,
       SMGInterpolantManager pInterpolantManager,
       SMGEdgeInterpolator pInterpolator, LogManager pLogger,
       PathTemplate pExportPath, SMGExportLevel pExportWhen,
-      CFA pCFA, SMGFeasibilityChecker pChecker) {
+      SMGFeasibilityChecker pChecker) {
     shutdownNotifier = pShutdownNotifier;
     interpolantManager = pInterpolantManager;
     interpolator = pInterpolator;
     logger = pLogger;
     exportPath = pExportPath;
     exportWhen = pExportWhen;
-    cfa = pCFA;
     checker = pChecker;
   }
 
@@ -123,15 +109,13 @@ public class SMGPathInterpolator {
 
     ARGPath errorPathPrefix = getSmallestUnreachablePrefix(pErrorPath, pInterpolant);
 
-    ARGPath errorPathSlice = sliceErrorPath(errorPathPrefix, interpolationId);
-
     Map<ARGState, SMGInterpolant> interpolants =
-        performEdgeBasedInterpolation(errorPathSlice, pInterpolant);
+        performEdgeBasedInterpolation(errorPathPrefix, pInterpolant);
 
-    propagateFalseInterpolant(pErrorPath, errorPathSlice, interpolants);
+    propagateFalseInterpolant(pErrorPath, errorPathPrefix, interpolants);
 
     if(exportWhen == SMGExportLevel.EVERY) {
-      exportInterpolation(errorPathSlice, interpolants, interpolationId);
+      exportInterpolation(errorPathPrefix, interpolants, interpolationId);
     }
 
     logger.log(Level.INFO,
@@ -353,117 +337,6 @@ public class SMGPathInterpolator {
     }
 
     return pathInterpolants;
-  }
-
-  /**
-   * This method returns a sliced error path (prefix). In case the sliced error path becomes feasible,
-   * i.e., because slicing is not fully precise in presence of, e.g., structs or arrays, the original
-   * error path (prefix) that was given as input is returned.
-   *
-   */
-  private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix, int pUniqueInterpolationId)
-      throws CPAException, InterruptedException {
-
-    if (!isPathSlicingPossible(pErrorPathPrefix)) {
-      return pErrorPathPrefix;
-    }
-
-    logger.log(Level.INFO, "Start slicing error path of interpolation " + pUniqueInterpolationId + ".");
-
-    Set<ARGState> useDefStates = new UseDefRelation(pErrorPathPrefix,
-        cfa.getVarClassification().isPresent()
-          ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(), true).getUseDefStates();
-
-    ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.getInnerEdges());
-
-    PathIterator iterator = pErrorPathPrefix.pathIterator();
-    while (iterator.hasNext()) {
-      CFAEdge originalEdge = iterator.getOutgoingEdge();
-
-      // slice edge if there is neither a use nor a definition at the current state
-      if (!useDefStates.contains(iterator.getAbstractState())) {
-        CFANode startNode;
-        CFANode endNode;
-        if (originalEdge == null) {
-          startNode = AbstractStates.extractLocation(iterator.getAbstractState());
-          endNode = AbstractStates.extractLocation(iterator.getNextAbstractState());
-        } else {
-          startNode = originalEdge.getPredecessor();
-          endNode = originalEdge.getSuccessor();
-        }
-        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(startNode, endNode));
-      }
-
-      if (originalEdge != null) {
-        CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
-        /*************************************/
-        /** assure that call stack is valid **/
-        /*************************************/
-        // when entering into a function, remember if call is relevant or not
-        if (typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
-          boolean isAbstractEdgeFunctionCall =
-              abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
-
-          functionCalls.push(
-              (Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall)));
-        }
-
-        // when returning from a function, ...
-        if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
-          Pair<FunctionCallEdge, Boolean> functionCallInfo = functionCalls.pop();
-          // ... if call is relevant and return edge is now a blank edge, restore the original return edge
-          if (functionCallInfo.getSecond()
-              && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
-            abstractEdges.set(iterator.getIndex(), originalEdge);
-          }
-
-          // ... if call is irrelevant and return edge is not sliced, restore the call edge
-          else if (!functionCallInfo.getSecond()
-              && abstractEdges.get(iterator.getIndex()).getEdgeType()
-                  == CFAEdgeType.FunctionReturnEdge) {
-            for (int j = iterator.getIndex(); j >= 0; j--) {
-              if (functionCallInfo.getFirst() == abstractEdges.get(j)) {
-                abstractEdges.set(j, functionCallInfo.getFirst());
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      iterator.advance();
-    }
-
-    ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
-
-    boolean slicedPathReachable = checker.isReachable(slicedErrorPathPrefix);
-
-    if (slicedPathReachable) {
-      logger.log(Level.INFO,
-          "Path slicing not successful on interpolation " + pUniqueInterpolationId + ".");
-    } else {
-      logger.log(Level.INFO,
-          "Path slicing successful on interpolation " + pUniqueInterpolationId + ".");
-    }
-
-    return slicedPathReachable ? pErrorPathPrefix : slicedErrorPathPrefix;
-  }
-
-  /**
-   * This method decides if path slicing is possible.
-   *
-   * It is only possible if the error path is not reachable
-   * due to assumptions.
-   *
-   * @param pErrorPathPrefix the error path prefix to be sliced
-   * @return true, if slicing is possible, else, false
-   */
-  private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix)
-      throws CPAException, InterruptedException {
-    return pErrorPathPrefix.getFirstState().getParents().isEmpty()
-        && !checker.isReachable(pErrorPathPrefix);
   }
 
   private SMGInterpolant joinInterpolants(List<SMGInterpolant> pResultingInterpolants) {
