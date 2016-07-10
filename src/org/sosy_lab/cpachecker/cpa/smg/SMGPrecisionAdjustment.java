@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision.SMGRefineablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -105,10 +104,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
   private Optional<PrecisionAdjustmentResult> prec(SMGState pState, SMGPrecision pPrecision,
       LocationState location) throws CPAException {
 
-    boolean allowsAbstraction = pPrecision.allowsAbstraction();
+    boolean allowsFieldAbstraction = pPrecision.allowsFieldAbstraction();
     boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
 
-    if (!allowsAbstraction && !allowsHeapAbstraction) {
+    if (!allowsFieldAbstraction && !allowsHeapAbstraction) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
     }
 
@@ -119,10 +118,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     boolean change = false;
     CFANode node = location.getLocationNode();
 
-    if (allowsAbstraction && pPrecision instanceof SMGRefineablePrecision) {
+    if (allowsFieldAbstraction) {
 
-      Set<SMGMemoryPath> mempaths =
-          ((SMGRefineablePrecision) pPrecision).getTrackedMemPaths(node);
+      Set<SMGMemoryPath> mempaths = pPrecision.getTrackedMemoryPathsOnNode(node);
       change = newState.forgetNonTrackedHve(mempaths);
 
       if (change) {
@@ -131,8 +129,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
         + " with result state id: " + result.getId());
       }
     }
-
-
 
     if (allowsHeapAbstraction) {
 

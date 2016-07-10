@@ -69,8 +69,6 @@ public class SMGPathInterpolator {
 
     interpolationOffset = -1;
 
-//    ARGPath errorPathPrefix = performRefinementSelection(pErrorPath, pInterpolant);
-
     Map<ARGState, SMGInterpolant> interpolants =
         performEdgeBasedInterpolation(pErrorPath, pInterpolant);
 
@@ -120,8 +118,6 @@ public class SMGPathInterpolator {
       ARGPath pErrorPathPrefix,
       SMGInterpolant pInterpolant
   ) throws InterruptedException, CPAException {
-
-//    pErrorPathPrefix = sliceErrorPath(pErrorPathPrefix);
 
     Map<ARGState, SMGInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
 
