@@ -586,7 +586,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private SMGAddressValueAndStateList removeOptionalObject(SMGOptionalObject pOptionalObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove " + pOptionalObject.toString() +" in state id " + this.getId());
+    logger.log(Level.INFO, "Remove " + pOptionalObject.toString() +" in state id " + this.getId());
 
     /*Just remove the optional Object and merge all incoming pointer
      * with the one pointer in all fields of the optional edge.
@@ -622,7 +622,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGEdgePointsTo pPointerToAbstractObject) {
 
     /*Just replace the optional object with a region*/
-    logger.log(Level.ALL, "Materialise " + pOptionalObject.toString() +" in state id " + this.getId());
+    logger.log(Level.INFO, "Materialise " + pOptionalObject.toString() +" in state id " + this.getId());
 
     Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
 
@@ -653,7 +653,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private SMGAddressValueAndStateList removeSll(SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove " + pListSeg.toString() +" in state id " + this.getId());
+    logger.log(Level.INFO, "Remove " + pListSeg.toString() +" in state id " + this.getId());
 
     /*First, set all sub smgs of sll to be removed to invalid.*/
     Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo());
@@ -685,7 +685,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private SMGAddressValueAndStateList removeDls(SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove " + pListSeg.toString() +" in state id " + this.getId());
+    logger.log(Level.INFO, "Remove " + pListSeg.toString() +" in state id " + this.getId());
 
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
@@ -733,7 +733,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndState materialiseSll(SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise " + pListSeg.toString() +" in state id " + this.getId());
+    logger.log(Level.INFO, "Materialise " + pListSeg.toString() +" in state id " + this.getId());
 
     if (pPointerToAbstractObject.getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
       throw new SMGInconsistentException(
@@ -827,7 +827,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise " + pListSeg.toString() +" in state id " + this.getId());
+    logger.log(Level.INFO, "Materialise " + pListSeg.toString() +" in state id " + this.getId());
 
     SMGRegion newConcreteRegion = new SMGRegion(pListSeg.getSize(), "concrete dll segment ID " + SMGValueFactory.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
@@ -1526,13 +1526,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         */
         if (result) {
 
+          CLangSMG joinSMG = join.getJointSMG();
+          SMGState joinSMGState = new SMGState(this, joinSMG,  HashBiMap.create());
+
+//          SMGDebugTest.dumpPlot(this.getId() + "isLessorEqual" + reachedState.getId(), joinSMGState);
+
           SMGState s1 = new SMGState(reachedState);
           SMGState s2 = new SMGState(this);
 
           s1.pruneUnreachable();
           s2.pruneUnreachable();
 
-          logger.log(Level.ALL, this.getId() + " is Less or Equal " + reachedState.getId());
+          logger.log(Level.INFO, this.getId() + " is Less or Equal " + reachedState.getId());
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {

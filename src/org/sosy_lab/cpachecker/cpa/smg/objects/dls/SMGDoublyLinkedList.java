@@ -131,17 +131,11 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
         int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
 
         if (pIncreaseLevel) {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel + 1);
-        } else {
-
-          if (minimumLength == minlength && maxLevel == getLevel()) {
-            return this;
-          } else {
-            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-                maxLevel);
-          }
+          maxLevel = maxLevel + 1;
         }
+
+        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+            maxLevel);
 
       case REG:
       case OPTIONAL:
@@ -151,16 +145,11 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
         minlength = Math.min(getMinimumLength(), otherLength);
 
         if (pIncreaseLevel) {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel + 1);
-        } else {
-          if (minlength == getMinimumLength() && maxLevel == getLevel()) {
-            return this;
-          } else {
-            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-                maxLevel);
-          }
+          maxLevel = maxLevel + 1;
         }
+
+        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+            maxLevel);
 
       default:
         throw new IllegalArgumentException("join called on unjoinable Objects");

@@ -124,7 +124,7 @@ public class SMGJoinTargetObjectsTest {
     smg1.addPointsToEdge(pt1null);
     smg2.addPointsToEdge(pt2null);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(destSMG), new SMGNodeMapping(mapping1),
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG), new SMGNodeMapping(mapping1),
                                                       new SMGNodeMapping(mapping2), value1,
                                                       value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false, null, null);

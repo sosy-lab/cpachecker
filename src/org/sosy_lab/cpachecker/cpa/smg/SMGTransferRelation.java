@@ -2398,22 +2398,22 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     toStrengthen.add((SMGState) element);
     result.add((SMGState) element);
 
-    for (AbstractState ae : elements) {
-      if (ae instanceof AutomatonState) {
-        // New result
-        result.clear();
-        for (SMGState state : toStrengthen) {
-          Collection<SMGState> ret = strengthen((AutomatonState) ae, state, cfaEdge);
-          if (ret == null) {
-            result.add(state);
-          } else {
-            result.addAll(ret);
-          }
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      }
-    }
+//    for (AbstractState ae : elements) {
+//      if (ae instanceof AutomatonState) {
+//        // New result
+//        result.clear();
+//        for (SMGState state : toStrengthen) {
+//          Collection<SMGState> ret = strengthen((AutomatonState) ae, state, cfaEdge);
+//          if (ret == null) {
+//            result.add(state);
+//          } else {
+//            result.addAll(ret);
+//          }
+//        }
+//        toStrengthen.clear();
+//        toStrengthen.addAll(result);
+//      }
+//    }
 
     possibleMallocFail = false;
     return result;

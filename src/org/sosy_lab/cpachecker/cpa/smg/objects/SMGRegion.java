@@ -93,11 +93,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
         level = level + 1;
       }
 
-      if (level == getLevel()) {
-        return this;
-      } else {
-        return new SMGRegion(getSize(), getLabel(), level);
-      }
+      return new SMGRegion(getSize(), getLabel(), level);
     }
 
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");

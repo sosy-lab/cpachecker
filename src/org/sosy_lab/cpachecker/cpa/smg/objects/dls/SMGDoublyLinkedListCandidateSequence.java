@@ -100,6 +100,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
         throw new AssertionError("Unexpected join failure while abstracting longest mergeable sequence");
       }
 
+//      SMGDebugTest.dumpPlot("afterAbstractionBeforeRemoval", pSmgState);
+
       SMGObject newAbsObj = join.getNewAbstractObject();
 
       Map<Integer, Integer> reached = new HashMap<>();
@@ -169,6 +171,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       pSMG.addHasValueEdge(pfoHve);
 
       pSmgState.pruneUnreachable();
+
+//      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
     }
 
     return pSMG;

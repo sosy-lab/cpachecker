@@ -128,18 +128,11 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
         int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
 
         if (pIncreaseLevel) {
-          return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-              maxLevel + 1);
-        } else {
-
-          if (minimumLength == minlength && maxLevel == getLevel()) {
-            return this;
-          } else {
-            return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-                maxLevel);
-          }
+          maxLevel = maxLevel + 1;
         }
 
+        return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
+            maxLevel);
       case REG:
       case OPTIONAL:
         assert getSize() == pOther.getSize();
@@ -148,15 +141,11 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
         minlength = Math.min(getMinimumLength(), otherLength);
 
         if (pIncreaseLevel) {
-          return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength, maxLevel + 1);
-        } else {
-          if (minimumLength == minlength && maxLevel == getLevel()) {
-            return this;
-          } else {
-            return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-                maxLevel);
-          }
+          maxLevel = maxLevel + 1;
         }
+
+        return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
+            maxLevel);
 
       default:
         throw new IllegalArgumentException("join called on unjoinable Objects");

@@ -105,17 +105,8 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
     switch (pOther.getKind()) {
       case REG:
-        if (level != getLevel()) {
-          return copy(level);
-        } else {
-          return this;
-        }
       case OPTIONAL:
-        if (level != getLevel()) {
-          return copy(level);
-        } else {
-          return this;
-        }
+        return copy(level);
       default:
         return pOther.join(this, pIncreaseLevel);
     }
