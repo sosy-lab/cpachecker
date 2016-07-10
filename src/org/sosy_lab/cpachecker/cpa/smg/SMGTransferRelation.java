@@ -294,6 +294,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             throws CPATransferException {
 
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
+        currentState.setInvalidWrite();
         return SMGAddressValueAndState.of(currentState);
       }
 
@@ -380,7 +381,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       List<SMGAddressValueAndState> result = new ArrayList<>(valueAndStates.size());
 
       for (SMGExplicitValueAndState valueAndState : valueAndStates) {
-        evaluateAlloca(valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr);
+        result.add(evaluateAlloca(valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
       }
 
       return SMGAddressValueAndStateList.copyOfAddressValueList(result);
@@ -715,9 +716,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private SMGAddressValueAndState evaluateMemcpy(SMGState currentState, SMGAddressValue targetStr1Address,
         SMGAddressValue sourceStr2Address, SMGExplicitValue sizeValue) throws SMGInconsistentException {
 
-      // TODO Unsound because source is not overridden
       if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown()
-          || sizeValue.isUnknown()) { return SMGAddressValueAndState.of(currentState, null); }
+          || sizeValue.isUnknown()) {
+        currentState.setInvalidWrite();
+        currentState.clearValues();
+        return SMGAddressValueAndState.of(currentState, null);
+      }
 
       SMGObject source = sourceStr2Address.getObject();
       SMGObject target = targetStr1Address.getObject();

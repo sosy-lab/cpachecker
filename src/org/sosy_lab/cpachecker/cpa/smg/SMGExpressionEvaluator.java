@@ -216,16 +216,11 @@ public class SMGExpressionEvaluator {
       SMGAddressValue fieldOwnerAddress = fieldOwnerAddressAndState.getObject();
       SMGState newState = fieldOwnerAddressAndState.getSmgState();
 
-      if (fieldOwnerAddress.isUnknown()) {
-        result.add(SMGAddressAndState.of(newState));
-        continue;
-      }
-
       String fieldName = fieldReference.getFieldName();
 
       SMGField field = getField(cfaEdge, ownerType, fieldName, newState, fieldReference);
 
-      if (field.isUnknown()) {
+      if (field.isUnknown() || fieldOwnerAddress.isUnknown()) {
         result.add(SMGAddressAndState.of(newState));
         continue;
       }
@@ -988,13 +983,6 @@ public class SMGExpressionEvaluator {
       SMGAddressValue arrayAddress = arrayAddressAndState.getObject();
       SMGState newState = arrayAddressAndState.getSmgState();
 
-      if (arrayAddress.isUnknown()) {
-        // assume address is invalid
-        newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
-        result.add(SMGAddressAndState.of(newState));
-        continue;
-      }
-
       List<SMGExplicitValueAndState> subscriptValueAndStates = evaluateExplicitValue(
           newState, cfaEdge, exp.getSubscriptExpression());
 
@@ -1021,9 +1009,9 @@ public class SMGExpressionEvaluator {
             }
           } else {
             // assume address is invalid
-            //throw new SMGInconsistentException("Can't properly evaluate array subscript");
             newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
           }
+
           result.add(SMGAddressAndState.of(newState));
           continue;
         }
@@ -1858,11 +1846,6 @@ public class SMGExpressionEvaluator {
         SMGSymbolicValue lVal = lValAndState.getObject();
         SMGState newState = lValAndState.getSmgState();
 
-        if (lVal.equals(SMGUnknownValue.getInstance())) {
-          result.add(SMGValueAndState.of(newState));
-          continue;
-        }
-
         SMGValueAndStateList rValAndStates = evaluateExpressionValue(newState, getCfaEdge(), rVarInBinaryExp);
 
         for (SMGValueAndState rValAndState : rValAndStates.getValueAndStateList()) {
@@ -1870,7 +1853,8 @@ public class SMGExpressionEvaluator {
           SMGSymbolicValue rVal = rValAndState.getObject();
           newState = rValAndState.getSmgState();
 
-          if (rVal.equals(SMGUnknownValue.getInstance())) {
+          if (rVal.equals(SMGUnknownValue.getInstance())
+              || lVal.equals(SMGUnknownValue.getInstance())) {
             result.add(SMGValueAndState.of(newState));
             continue;
           }
