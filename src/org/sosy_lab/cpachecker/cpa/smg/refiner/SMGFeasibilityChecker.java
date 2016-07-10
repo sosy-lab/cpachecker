@@ -115,8 +115,32 @@ public class SMGFeasibilityChecker {
     }
   }
 
-  private boolean isTarget(Collection<SMGState> pLastStates, CFAEdge pLastEdge, ARGState pLastState)
-          throws CPATransferException, InterruptedException {
+  private boolean isTarget(Collection<SMGState> pLastStates, CFAEdge pLastEdge, ARGState pLastState,
+      boolean allTargets) throws CPATransferException, InterruptedException {
+
+    Set<ControlAutomatonCPA> automatonCPAsToCheck =
+        getAutomatons(pLastState, allTargets);
+
+    for (SMGState lastState : pLastStates) {
+      // prune unreachable to detect memory leak that was detected by abstraction
+      lastState.pruneUnreachable();
+
+      for (ControlAutomatonCPA automaton : automatonCPAsToCheck) {
+        if (isTarget(lastState, pLastEdge, automaton)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private Set<ControlAutomatonCPA> getAutomatons(ARGState pLastState,
+      boolean allTargets) {
+
+    if (allTargets) {
+      return automatonCPA;
+    }
 
     Predicate<? super AutomatonState> automatonStateIsTarget = (AutomatonState state) -> {
       return state.isTarget() ? true : false;
@@ -132,21 +156,10 @@ public class SMGFeasibilityChecker {
           return automatonNames.contains(automaton.getTopState().getOwningAutomatonName());
         });
 
-    List<ControlAutomatonCPA> automatonCPAsToCheck =
-        FluentIterable.from(automatonCPA).filter(automatonNameFilter).toList();
+    Set<ControlAutomatonCPA> automatonCPAsToCheck =
+        FluentIterable.from(automatonCPA).filter(automatonNameFilter).toSet();
 
-    for (SMGState lastState : pLastStates) {
-      // prune unreachable to detect memory leak that was detected by abstraction
-      lastState.pruneUnreachable();
-
-      for (ControlAutomatonCPA automaton : automatonCPAsToCheck) {
-        if (isTarget(lastState, pLastEdge, automaton)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return automatonCPAsToCheck;
   }
 
   private boolean isTarget(SMGState pLastState, CFAEdge pLastEdge, ControlAutomatonCPA pAutomaton) throws CPATransferException, InterruptedException {
@@ -194,6 +207,12 @@ public class SMGFeasibilityChecker {
 
   public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint,
       SMGPrecision pPrecision)
+      throws CPAException, InterruptedException {
+    return isFeasible(pPath, pStartingPoint, pPrecision, false);
+  }
+
+  public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint,
+      SMGPrecision pPrecision, boolean pAllTargets)
           throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pPath.getInnerEdges().size() > 0);
@@ -202,7 +221,7 @@ public class SMGFeasibilityChecker {
 
     if (result.isReachable()) {
 
-      return isTarget(result.getLastState(), result.getLastEdge(), pPath.getLastState());
+      return isTarget(result.getLastState(), result.getLastEdge(), pPath.getLastState(), pAllTargets);
     } else {
       return false;
     }
@@ -289,7 +308,7 @@ public class SMGFeasibilityChecker {
   }
 
   public boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pState,
-      CFAEdge pCurrentEdge) throws CPAException, InterruptedException {
+      CFAEdge pCurrentEdge, boolean pAllTargets) throws CPAException, InterruptedException {
 
     if (pRemainingErrorPath.size() > 1) {
       return isFeasible(pRemainingErrorPath, pState);
@@ -298,7 +317,8 @@ public class SMGFeasibilityChecker {
     /*Prevent causing side effects when pruning.*/
     SMGState state = new SMGState(pState);
 
-    return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState());
+    return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState(),
+        pAllTargets);
   }
 
   public boolean isReachable(ARGPath pErrorPathPrefix) throws CPAException, InterruptedException {
@@ -320,5 +340,10 @@ public class SMGFeasibilityChecker {
     }
 
     return result;
+  }
+
+  public boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
+      throws CPAException, InterruptedException {
+    return isFeasible(pErrorPath, initialState, precision, pAllTargets);
   }
 }

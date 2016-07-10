@@ -59,13 +59,14 @@ public class SMGEdgeHeapAbstractionInterpolator {
    *        given cfa node.
    * @param pPrecision the current precision of the program.
    * @param pStateLocation the location of the given smgState.
+   * @param pAllTargets should we check for all errors, or only the one in the target
    * @return a set of abstraction blocks that refine the given precision, so that the resulting
    * smg state after heap abstraction is strong enough for the given precision to
    * enable
    */
   public Set<SMGAbstractionBlock> calculateHeapAbstractionBlocks(SMGState pState,
       ARGPath pRemainingErrorPath, SMGPrecision pPrecision, CFANode pStateLocation,
-      CFAEdge pCurrentEdge)
+      CFAEdge pCurrentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -82,7 +83,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     while (!candidate.isEmpty()) {
 
-      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge)) {
+      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge, pAllTargets)) {
         result.add(candidate.createAbstractionBlock(state));
         abstractionTest = new SMGState(state);
       } else {
@@ -98,8 +99,8 @@ public class SMGEdgeHeapAbstractionInterpolator {
   }
 
   private boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pAbstractionTest,
-      CFAEdge pCurrentEdge) throws CPAException, InterruptedException {
+      CFAEdge pCurrentEdge, boolean pAllTargets) throws CPAException, InterruptedException {
 
-    return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge);
+    return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge, pAllTargets);
   }
 }

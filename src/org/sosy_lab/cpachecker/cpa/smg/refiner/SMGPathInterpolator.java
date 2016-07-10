@@ -76,6 +76,7 @@ public class SMGPathInterpolator {
   private final ShutdownNotifier shutdownNotifier;
   private final SMGEdgeInterpolator interpolator;
   private final SMGInterpolantManager interpolantManager;
+  private final SMGFeasibilityChecker checker;
 
   private final LogManager logger;
   private final PathTemplate exportPath;
@@ -84,13 +85,14 @@ public class SMGPathInterpolator {
   public SMGPathInterpolator(ShutdownNotifier pShutdownNotifier,
       SMGInterpolantManager pInterpolantManager,
       SMGEdgeInterpolator pInterpolator, LogManager pLogger,
-      PathTemplate pExportPath, SMGExportLevel pExportWhen) {
+      PathTemplate pExportPath, SMGExportLevel pExportWhen, SMGFeasibilityChecker pChecker) {
     shutdownNotifier = pShutdownNotifier;
     interpolantManager = pInterpolantManager;
     interpolator = pInterpolator;
     logger = pLogger;
     exportPath = pExportPath;
     exportWhen = pExportWhen;
+    checker = pChecker;
   }
 
   public Map<ARGState, SMGInterpolant> performInterpolation(ARGPath pErrorPath,
@@ -274,19 +276,22 @@ public class SMGPathInterpolator {
    * This method performs interpolation on each edge of the path, using the
    * {@link EdgeInterpolator} given to this object at construction.
    *
-   * @param pErrorPathPrefix the error path prefix to interpolate
+   * @param pErrorPath the error path prefix to interpolate
    * @param pInterpolant an initial interpolant
    *    (only non-trivial when interpolating error path suffixes in global refinement)
    * @return the mapping of {@link ARGState}s to {@link Interpolant}
    */
   private Map<ARGState, SMGInterpolant> performEdgeBasedInterpolation(
-      ARGPath pErrorPathPrefix,
+      ARGPath pErrorPath,
       SMGInterpolant pInterpolant
   ) throws InterruptedException, CPAException {
 
-    Map<ARGState, SMGInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
+    /*We may as well interpolate every possible target error if path contains more than one.*/
+    boolean checkAllTargets = !checker.isFeasible(pErrorPath, true);
 
-    PathIterator pathIterator = pErrorPathPrefix.pathIterator();
+    Map<ARGState, SMGInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPath.size());
+
+    PathIterator pathIterator = pErrorPath.pathIterator();
 
     List<SMGInterpolant> interpolants = new ArrayList<>();
     interpolants.add(pInterpolant);
@@ -303,7 +308,8 @@ public class SMGPathInterpolator {
           List<SMGInterpolant> deriveResult = interpolator.deriveInterpolant(
               pathIterator.getOutgoingEdge(),
               pathIterator.getPosition(),
-              interpolant);
+              interpolant,
+              checkAllTargets);
           resultingInterpolants.addAll(deriveResult);
         } else {
           resultingInterpolants.add(interpolantManager.getFalseInterpolant());

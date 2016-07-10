@@ -294,7 +294,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             throws CPATransferException {
 
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
-        currentState.setInvalidWrite();
+        currentState = currentState.setInvalidWrite();
         return SMGAddressValueAndState.of(currentState);
       }
 
@@ -718,7 +718,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown()
           || sizeValue.isUnknown()) {
-        currentState.setInvalidWrite();
+        currentState = currentState.setInvalidWrite();
         currentState.clearValues();
         return SMGAddressValueAndState.of(currentState, null);
       }

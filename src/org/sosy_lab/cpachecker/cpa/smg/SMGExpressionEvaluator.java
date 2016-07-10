@@ -221,6 +221,11 @@ public class SMGExpressionEvaluator {
       SMGField field = getField(cfaEdge, ownerType, fieldName, newState, fieldReference);
 
       if (field.isUnknown() || fieldOwnerAddress.isUnknown()) {
+
+        if (fieldReference.isPointerDereference()) {
+          newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
+        }
+
         result.add(SMGAddressAndState.of(newState));
         continue;
       }

@@ -106,7 +106,7 @@ public class SMGEdgeInterpolator {
   }
 
   public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
-      PathPosition pOffset, SMGInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      PathPosition pOffset, SMGInterpolant pInputInterpolant, boolean pAllTargets) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming
@@ -193,16 +193,16 @@ public class SMGEdgeInterpolator {
     for (SMGState state : successors) {
 
       if (originalPrecision.allowsStackAbstraction()) {
-        interpolateStackVariables(state, remainingErrorPath, currentEdge);
+        interpolateStackVariables(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
       if (originalPrecision.allowsFieldAbstraction()) {
-        interpolateFields(state, remainingErrorPath, currentEdge);
+        interpolateFields(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
       if (originalPrecision.allowsHeapAbstraction()) {
         abstractionBlocks = interpolateHeapAbstraction(state, remainingErrorPath,
-            currentEdge.getPredecessor(), currentEdge);
+            currentEdge.getPredecessor(), currentEdge, pAllTargets);
       }
 
       SMGInterpolant result = interpolantManager.createInterpolant(state, abstractionBlocks);
@@ -244,7 +244,7 @@ public class SMGEdgeInterpolator {
     return false;
   }
 
-  private SMGState interpolateStackVariables(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge)
+  private SMGState interpolateStackVariables(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -258,7 +258,7 @@ public class SMGEdgeInterpolator {
       // interpolant
       SMGStateInformation info = state.forgetStackVariable(memoryLocation);
 
-      if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
+      if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge, pAllTargets)) {
         state.remember(memoryLocation, region, info);
       }
     }
@@ -267,7 +267,7 @@ public class SMGEdgeInterpolator {
   }
 
   private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath,
-      CFAEdge currentEdge)
+      CFAEdge currentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -284,7 +284,7 @@ public class SMGEdgeInterpolator {
       // interpolant
       state.forget(currentHveEdge);
 
-      if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
+      if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge, pAllTargets)) {
         state.remember(currentHveEdge);
       }
     }
@@ -293,11 +293,11 @@ public class SMGEdgeInterpolator {
   }
 
   private Set<SMGAbstractionBlock> interpolateHeapAbstraction(SMGState pInitialSuccessor,
-      ARGPath pRemainingErrorPath, CFANode pStateLocation, CFAEdge pCurrentEdge)
+      ARGPath pRemainingErrorPath, CFANode pStateLocation, CFAEdge pCurrentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     return heapAbstractionInterpolator.calculateHeapAbstractionBlocks(pInitialSuccessor,
-        pRemainingErrorPath, originalPrecision, pStateLocation, pCurrentEdge);
+        pRemainingErrorPath, originalPrecision, pStateLocation, pCurrentEdge, pAllTargets);
   }
 
   private Collection<SMGState> getInitialSuccessor(SMGState pState, CFAEdge pCurrentEdge)
@@ -336,16 +336,7 @@ public class SMGEdgeInterpolator {
 
         // renames from calledFn::___cpa_temp_result_var_ to callerFN::assignedVar
         // if the former is relevant, so is the latter
-        && cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
-
-    // for the next two edge types this would also work, but variables
-    // from the calling/returning function would be added to interpolant
-    // as they are not "cleaned up" by the transfer relation
-    // so these two stay out for now
-
-    //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-    //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
-    ;
+        && cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge;
   }
 
   /**
@@ -356,12 +347,13 @@ public class SMGEdgeInterpolator {
    * @param state the (pseudo) initial state
    * @param pCurrentEdge if the remaining error path has only 1 state and no edges,
    *  the edge leading to the state is necessary to check if it is a target of an automaton, and therefore feasible.
+   * @param pAllTargets should we check for all possible errors, or only the error specified in the Target State
    * @return true, it the path is feasible, else false
    */
-  public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, SMGState state, CFAEdge pCurrentEdge)
+  public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, SMGState state, CFAEdge pCurrentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
-    return checker.isRemainingPathFeasible(remainingErrorPath, state, pCurrentEdge);
+    return checker.isRemainingPathFeasible(remainingErrorPath, state, pCurrentEdge, pAllTargets);
   }
 
   public int getNumberOfInterpolationQueries() {
