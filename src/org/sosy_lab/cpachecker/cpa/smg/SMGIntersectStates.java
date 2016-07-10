@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
@@ -272,22 +271,16 @@ public final class SMGIntersectStates {
     Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Integer, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(hves1).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
-
-          @Override
-          public Integer apply(SMGEdgeHasValue hve) {
-            return hve.getOffset();
-          }
-        });
+        FluentIterable.from(hves1).uniqueIndex(
+            (SMGEdgeHasValue hve) -> {
+              return hve.getOffset();
+            });
 
     Map<Integer, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(hves2).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
-
-          @Override
-          public Integer apply(SMGEdgeHasValue hve) {
-            return hve.getOffset();
-          }
-        });
+        FluentIterable.from(hves2).uniqueIndex(
+            (SMGEdgeHasValue hve) -> {
+              return hve.getOffset();
+            });
 
     Set<Integer> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
     offsetSet.addAll(offsetToHve1Map.keySet());
@@ -497,7 +490,7 @@ public final class SMGIntersectStates {
     /*Global and stack objects already mapped */
     pDestSMG.addHeapObject(destObject);
 
-    intersectPairFields(pSmg1, pSmg2, pObj2, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
+    intersectPairFields(pSmg1, pSmg2, pObj1, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
         pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2, pDestExplicitValues);
 
     return true;
