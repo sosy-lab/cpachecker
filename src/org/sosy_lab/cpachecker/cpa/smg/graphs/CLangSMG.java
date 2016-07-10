@@ -884,8 +884,12 @@ public class CLangSMG extends SMG {
             functionName, pLocationOnStack, variable);
       }
 
-      getMemoryPathsFromObject(frame.getReturnObject(), pResult, pReached, SMGObjectPosition.STACK,
-          null, functionName, pLocationOnStack, frame.getReturnObject().getLabel());
+      if (frame.getReturnObject() != null) {
+        getMemoryPathsFromObject(frame.getReturnObject(), pResult, pReached,
+            SMGObjectPosition.STACK,
+            null, functionName, pLocationOnStack, frame.getReturnObject().getLabel());
+      }
+
       pLocationOnStack = pLocationOnStack + 1;
     }
   }
@@ -926,6 +930,7 @@ public class CLangSMG extends SMG {
           pReached.add(rObject);
           offsets.add(offset);
           offsetToRegion.put(offset, rObject);
+          offsetToParent.put(offset, path);
         }
       }
     }

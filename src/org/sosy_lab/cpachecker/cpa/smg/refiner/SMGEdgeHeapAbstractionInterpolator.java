@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
@@ -63,7 +64,9 @@ public class SMGEdgeHeapAbstractionInterpolator {
    * enable
    */
   public Set<SMGAbstractionBlock> calculateHeapAbstractionBlocks(SMGState pState,
-      ARGPath pRemainingErrorPath, SMGPrecision pPrecision, CFANode pStateLocation) throws CPAException, InterruptedException {
+      ARGPath pRemainingErrorPath, SMGPrecision pPrecision, CFANode pStateLocation,
+      CFAEdge pCurrentEdge, boolean pOnlyCheckReachability)
+      throws CPAException, InterruptedException {
 
     SMGState state = pState;
 
@@ -79,11 +82,20 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     while (!candidate.isEmpty()) {
 
-      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest)) {
-        result.add(candidate.createAbstractionBlock(state));
-        abstractionTest = new SMGState(state);
+      if(pOnlyCheckReachability) {
+        if (isRemainingPathReachable(pRemainingErrorPath, abstractionTest)) {
+          result.add(candidate.createAbstractionBlock(state));
+          abstractionTest = new SMGState(state);
+        } else {
+          state.executeHeapAbstractionOneStep(result);
+        }
       } else {
-        state.executeHeapAbstractionOneStep(result);
+        if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge)) {
+          result.add(candidate.createAbstractionBlock(state));
+          abstractionTest = new SMGState(state);
+        } else {
+          state.executeHeapAbstractionOneStep(result);
+        }
       }
 
       candidate = abstractionTest.executeHeapAbstractionOneStep(result);
@@ -94,9 +106,14 @@ public class SMGEdgeHeapAbstractionInterpolator {
     return result;
   }
 
-  private boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pAbstractionTest) throws CPAException, InterruptedException {
+  private boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pAbstractionTest,
+      CFAEdge pCurrentEdge) throws CPAException, InterruptedException {
 
-    return checker.isFeasible(pRemainingErrorPath, pAbstractionTest);
+    return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge);
   }
 
+  private boolean isRemainingPathReachable(ARGPath pErrorPath, SMGState pInitialState)
+      throws CPAException, InterruptedException {
+    return checker.isReachable(pErrorPath, pInitialState);
+  }
 }

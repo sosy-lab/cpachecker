@@ -272,7 +272,7 @@ public class SMGInterpolant {
     @Override
     public int compareTo(SMGPrecisionIncrement other) {
 
-      for (int i = 0; i < pathsToTrack.size(); i++) {
+      for (int i = 0; i < pathsToTrack.size() && i < other.pathsToTrack.size(); i++) {
         SMGMemoryPath path = pathsToTrack.get(i);
         SMGMemoryPath otherPath = other.pathsToTrack.get(i);
 
@@ -283,7 +283,13 @@ public class SMGInterpolant {
         }
       }
 
-      for (int i = 0; i < abstractionBlock.size(); i++) {
+      if (pathsToTrack.size() < other.pathsToTrack.size()) {
+        return -1;
+      } else if (pathsToTrack.size() > other.pathsToTrack.size()) {
+        return 1;
+      }
+
+      for (int i = 0; i < abstractionBlock.size() && i < other.abstractionBlock.size(); i++) {
         SMGAbstractionBlock offset = abstractionBlock.get(i);
         SMGAbstractionBlock otherOffset = other.abstractionBlock.get(i);
 
@@ -292,6 +298,12 @@ public class SMGInterpolant {
         if (result != 0) {
           return result;
         }
+      }
+
+      if (abstractionBlock.size() < other.abstractionBlock.size()) {
+        return -1;
+      } else if (abstractionBlock.size() > other.abstractionBlock.size()) {
+        return 1;
       }
 
       return 0;

@@ -192,7 +192,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
       if (other.startsWithGlobalVariable()) {
         result = -1;
       } else {
-        result = 0;
+        result = ComparisonChain.start().compare(functionName, other.functionName).result();
       }
     }
 
@@ -201,7 +201,6 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     }
 
     result = ComparisonChain.start()
-        .compare(functionName, other.functionName)
         .compare(variableName, other.variableName)
         .compare(locationOnStack, other.locationOnStack, Ordering.<Integer> natural().nullsFirst())
         .result();
@@ -210,7 +209,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
       return result;
     }
 
-    for (int i = 0; i < pathOffsets.size(); i++) {
+    for (int i = 0; i < pathOffsets.size() && i < other.pathOffsets.size(); i++) {
       int offset = pathOffsets.get(i);
       int otherOffset = other.pathOffsets.get(i);
 
@@ -221,6 +220,14 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
       if (result != 0) {
         return result;
       }
+    }
+
+    if (pathOffsets.size() < other.pathOffsets.size()) {
+      return -1;
+    }
+
+    if (pathOffsets.size() > other.pathOffsets.size()) {
+      return 1;
     }
 
     return result;

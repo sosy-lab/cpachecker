@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -93,7 +95,7 @@ public class SMGFeasibilityChecker {
           logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(),
               " did not yield a successor");
 
-          return ReachabilityResult.isNotReachable();
+          return ReachabilityResult.isNotReachable(iterator.getPosition());
         }
 
         iterator.advance();
@@ -101,7 +103,7 @@ public class SMGFeasibilityChecker {
         next.addAll(successors);
       }
 
-      return ReachabilityResult.isReachable(next, edge);
+      return ReachabilityResult.isReachable(next, edge, iterator.getPosition());
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
@@ -185,22 +187,28 @@ public class SMGFeasibilityChecker {
 
   private static class ReachabilityResult {
 
-    private static final ReachabilityResult NOT_REACHABLE = new ReachabilityResult(false, null, null);
-
     private final boolean isReachable;
     private final Collection<SMGState> lastStates;
     private final CFAEdge lastEdge;
+    private final PathPosition lastPosition;
 
-    private ReachabilityResult(boolean pIsReachable, Collection<SMGState> pLastStates, CFAEdge pLastEdge) {
+    private ReachabilityResult(Collection<SMGState> pLastStates,
+        CFAEdge pLastEdge, PathPosition pLastPosition) {
 
-      if (pIsReachable) {
-        Preconditions.checkNotNull(pLastEdge);
-        Preconditions.checkNotNull(pLastStates);
-      }
+      Preconditions.checkNotNull(pLastEdge);
+      Preconditions.checkNotNull(pLastStates);
 
-      isReachable = pIsReachable;
+      isReachable = true;
       lastStates = pLastStates;
       lastEdge = pLastEdge;
+      lastPosition = pLastPosition;
+    }
+
+    public ReachabilityResult(PathPosition pLastPosition) {
+      isReachable = false;
+      lastStates = null;
+      lastEdge = null;
+      lastPosition = pLastPosition;
     }
 
     public boolean isReachable() {
@@ -217,12 +225,17 @@ public class SMGFeasibilityChecker {
       return lastEdge;
     }
 
-    public static ReachabilityResult isReachable(Collection<SMGState> lastStates, CFAEdge lastEdge) {
-      return new ReachabilityResult(true, lastStates, lastEdge);
+    public PathPosition getLastPosition() {
+      return lastPosition;
     }
 
-    public static ReachabilityResult isNotReachable() {
-      return NOT_REACHABLE;
+    public static ReachabilityResult isReachable(Collection<SMGState> lastStates, CFAEdge lastEdge,
+        PathPosition pLastPosition) {
+      return new ReachabilityResult(lastStates, lastEdge, pLastPosition);
+    }
+
+    public static ReachabilityResult isNotReachable(PathPosition pLastPosition) {
+      return new ReachabilityResult(pLastPosition);
     }
   }
 
@@ -250,5 +263,39 @@ public class SMGFeasibilityChecker {
     }
 
     return isReachable(pErrorPath, pInitialState, precision).isReachable();
+  }
+
+  public boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pState,
+      CFAEdge pCurrentEdge) throws CPAException, InterruptedException {
+
+    if (pRemainingErrorPath.size() > 1) {
+      return isFeasible(pRemainingErrorPath, pState);
+    }
+
+    /*Prevent causing side effects when pruning.*/
+    SMGState state = new SMGState(pState);
+
+    return isTarget(ImmutableSet.of(state), pCurrentEdge);
+  }
+
+  public boolean isReachable(ARGPath pErrorPathPrefix) throws CPAException, InterruptedException {
+    return isReachable(pErrorPathPrefix, initialState);
+  }
+
+  public PathPosition getLastReachablePosition(ARGPath pErrorPath, List<SMGState> pStartingPoints)
+      throws CPAException, InterruptedException {
+
+    PathPosition result = pErrorPath.fullPathIterator().getPosition();
+
+    for (SMGState startPoint : pStartingPoints) {
+      ReachabilityResult reachabilityResult = isReachable(pErrorPath, startPoint, precision);
+      PathPosition reachabilityResultPosition = reachabilityResult.getLastPosition();
+
+      if (result.iterator().getIndex() < reachabilityResultPosition.iterator().getIndex()) {
+        result = reachabilityResultPosition;
+      }
+    }
+
+    return result;
   }
 }

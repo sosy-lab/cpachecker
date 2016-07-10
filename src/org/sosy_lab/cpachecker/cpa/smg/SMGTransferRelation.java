@@ -569,14 +569,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGState currentState = addressAndState.getSmgState();
 
         if (address.isUnknown()) {
-          logger.log(Level.INFO, "Free on expression " + pointerExp.toASTString() + " is invalid, because the target of the address could not be calculated.");
+          logger.log(Level.ALL, "Free on expression " + pointerExp.toASTString() + " is invalid, because the target of the address could not be calculated.");
           SMGState invalidFreeState = currentState.setInvalidFree();
           resultStates.add(invalidFreeState);
           continue;
         }
 
         if (address.getAsInt() == 0) {
-          logger.log(Level.WARNING, pFunctionCall.getFileLocation() + ":",
+          logger.log(Level.ALL, pFunctionCall.getFileLocation() + ":",
               "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
         } else {
@@ -1247,7 +1247,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (builtins.isABuiltIn(functionName)) {
         SMGState newState = new SMGState(pState);
         if (builtins.isConfigurableAllocationFunction(functionName)) {
-          logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+          logger.log(Level.ALL, pCfaEdge.getFileLocation() + ":",
               "Calling " + functionName + " and not using the result, resulting in memory leak.");
           newStates = builtins.evaluateConfigurableAllocationFunction(cFCExpression, newState, pCfaEdge).asSMGStateList();
 
@@ -1269,7 +1269,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           builtins.evaluateVBPlot(cFCExpression, newState);
           break;
         case "__builtin_alloca":
-          logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+          logger.log(Level.ALL, pCfaEdge.getFileLocation() + ":",
               "Calling alloc and not using the result.");
           newStates = builtins.evaluateAlloca(cFCExpression, newState, pCfaEdge).asSMGStateList();
           break;
@@ -1430,7 +1430,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     //FIXME Does not work with variable array length.
     if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType, newState)) {
-      logger.log(Level.WARNING, cfaEdge.getFileLocation() + ":",
+      logger.log(Level.ALL, cfaEdge.getFileLocation() + ":",
           "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType, newState) +
           " bytes into a field with size " + memoryOfField.getSize() + "bytes:",
           cfaEdge.getRawStatement());
@@ -1477,7 +1477,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.WARNING, pEdge.getFileLocation() + ":",
+      logger.log(Level.ALL, pEdge.getFileLocation() + ":",
           "Field " + "(" + pFieldOffset + ", " + pRValueType.toASTString("") + ")" +
           " does not fit object " + pMemoryOfField.toString() + ".");
 
@@ -1615,7 +1615,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Type cannot be resolved
-    logger.log(Level.WARNING, "Type " + realCType.toASTString("")
+    logger.log(Level.ALL, "Type " + realCType.toASTString("")
         + "cannot be resolved sufficiently to handle initializer "
         + pNewInitializer.toASTString());
 
@@ -1873,7 +1873,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
-        logger.log(Level.WARNING, pEdge.getFileLocation() + ":", "Field " + "("
+        logger.log(Level.ALL, pEdge.getFileLocation() + ":", "Field " + "("
             + fieldOffset + ", " + pType.toASTString("") + ")"
             + " does not fit object " + pObject.toString() + ".");
 

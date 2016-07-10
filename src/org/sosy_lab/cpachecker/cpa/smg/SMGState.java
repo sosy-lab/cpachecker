@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Optional;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -75,6 +74,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -136,7 +136,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       logger.log(Level.FINE, pMessage);
     } else if (pUndefinedBehavior) {
       logger.log(Level.FINE, pMessage );
-      logger.log(Level.WARNING, "Non-target undefined behavior detected. The verification result is unreliable.");
+      logger.log(Level.FINE, "Non-target undefined behavior detected. The verification result is unreliable.");
     }
   }
 

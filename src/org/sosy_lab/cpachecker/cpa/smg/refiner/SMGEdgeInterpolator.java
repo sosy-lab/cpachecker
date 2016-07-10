@@ -103,7 +103,8 @@ public class SMGEdgeInterpolator {
   }
 
   public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
-      PathPosition pOffset, SMGInterpolant pInputInterpolant) throws CPAException, InterruptedException {
+      PathPosition pOffset, SMGInterpolant pInputInterpolant,
+      boolean pCheckOnlyReachability) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming
@@ -203,10 +204,10 @@ public class SMGEdgeInterpolator {
 
       /*First, interpolate fields with no heap abstraction for the current state.*/
       if (originalPrecision.allowsFieldAbstraction()) {
-        interpolateFields(state, remainingErrorPath);
+        interpolateFields(state, remainingErrorPath, currentEdge, pCheckOnlyReachability);
       }
 
-      abstractionBlocks = interpolateHeapAbstraction(state, remainingErrorPath, currentEdge.getPredecessor());
+      abstractionBlocks = interpolateHeapAbstraction(state, remainingErrorPath, currentEdge.getPredecessor(), currentEdge, pCheckOnlyReachability);
 
       SMGInterpolant result = interpolantManager.createInterpolant(state, abstractionBlocks);
       resultingInterpolants.add(result);
@@ -226,16 +227,10 @@ public class SMGEdgeInterpolator {
     return false;
   }
 
-  private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath)
+  private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pCheckOnlyReachability)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
-
-    /*If the remaining path is empty, just use the true interpolant.*/
-    if (pRemainingErrorPath.size() == 1) {
-      state.clearValues();
-      return state;
-    }
 
     for (SMGEdgeHasValue currentHveEdge : state.getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
@@ -244,9 +239,16 @@ public class SMGEdgeInterpolator {
       // interpolant
       state.forget(currentHveEdge);
 
-      // check if the remaining path now becomes feasible
-      if (isRemainingPathFeasible(pRemainingErrorPath, state)) {
-        state.remember(currentHveEdge);
+      /* check if the remaining path now becomes feasible
+       * or reachable.*/
+      if (pCheckOnlyReachability) {
+        if (isRemainingPathReachable(pRemainingErrorPath, state)) {
+          state.remember(currentHveEdge);
+        }
+      } else {
+        if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
+          state.remember(currentHveEdge);
+        }
       }
     }
 
@@ -254,11 +256,13 @@ public class SMGEdgeInterpolator {
   }
 
   private Set<SMGAbstractionBlock> interpolateHeapAbstraction(SMGState pInitialSuccessor,
-      ARGPath pRemainingErrorPath, CFANode pStateLocation)
+      ARGPath pRemainingErrorPath, CFANode pStateLocation, CFAEdge pCurrentEdge,
+      boolean pCheckOnlyReachability)
       throws CPAException, InterruptedException {
 
     return heapAbstractionInterpolator.calculateHeapAbstractionBlocks(pInitialSuccessor,
-        pRemainingErrorPath, originalPrecision, pStateLocation);
+        pRemainingErrorPath, originalPrecision, pStateLocation, pCurrentEdge,
+        pCheckOnlyReachability);
   }
 
   private Collection<SMGState> getInitialSuccessor(SMGState pState, CFAEdge pCurrentEdge)
@@ -336,12 +340,14 @@ public class SMGEdgeInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
+   * @param pCurrentEdge if the remaining error path has only 1 state and no edges,
+   *  the edge leading to the state is necessary to check if it is a target of an automaton, and therefore feasible.
    * @return true, it the path is feasible, else false
    */
-  public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, SMGState state)
+  public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, SMGState state, CFAEdge pCurrentEdge)
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
-    return checker.isFeasible(remainingErrorPath, state);
+    return checker.isRemainingPathFeasible(remainingErrorPath, state, pCurrentEdge);
   }
 
   public int getNumberOfInterpolationQueries() {
