@@ -81,7 +81,7 @@ public class SMGEdgeInterpolator {
    */
   private int numberOfInterpolationQueries = 0;
 
-  private final SMGState initialState;
+//  private final SMGState initialState;
 
   private final SMGEdgeHeapAbstractionInterpolator heapAbstractionInterpolator;
 
@@ -92,13 +92,12 @@ public class SMGEdgeInterpolator {
 
   public SMGEdgeInterpolator(SMGFeasibilityChecker pFeasibilityChecker,
       SMGStrongestPostOperator pStrongestPostOperator, SMGInterpolantManager pInterpolantManager,
-      SMGState pInitialState, ShutdownNotifier pShutdownNotifier,
+      ShutdownNotifier pShutdownNotifier,
       SMGPrecision pOriginalPrecision, LogManager pLogger) {
 
     checker = pFeasibilityChecker;
     postOperator = pStrongestPostOperator;
     interpolantManager = pInterpolantManager;
-    initialState = pInitialState;
 
     strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger);
     originalPrecision = pOriginalPrecision;
@@ -170,15 +169,17 @@ public class SMGEdgeInterpolator {
     // cases, the weaker interpolant would be different from the input interpolant, so we spare the
     // effort
 
-    boolean noChange = initialState.equals(Iterables.getOnlyElement(successors)) ||
+    boolean noChange = isEqualStates(initialStates, successors) ||
         isFunctionOrTypeDeclaration(currentEdge);
 
-    if (onlySuccessor
-        && noChange
+    if (noChange
         && !originalPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       resultingInterpolants.add(pInputInterpolant);
       return resultingInterpolants;
     }
+
+    SMGInterpolant trueInterpolant =
+        interpolantManager.getTrueInterpolant(successors.iterator().next().createInterpolant());
 
     // if the current edge just changes the names of variables
     // (e.g. function arguments, returned variables)
@@ -195,12 +196,12 @@ public class SMGEdgeInterpolator {
 
     // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
     // interpolant
+    SMGState weakestState = Iterables.getOnlyElement(trueInterpolant.reconstructStates());
     if (pInputInterpolant.isTrue()
         && !isTrivialToInterpolate(successors)
-        && isSuffixContradicting(remainingErrorPath)) {
-      SMGInterpolant interpolant =
-          interpolantManager.getTrueInterpolant(successors.iterator().next().createInterpolant());
-      resultingInterpolants.add(interpolant);
+        && isSuffixContradicting(remainingErrorPath, weakestState)) {
+
+      resultingInterpolants.add(trueInterpolant);
       return resultingInterpolants;
     }
 
@@ -224,6 +225,27 @@ public class SMGEdgeInterpolator {
     }
 
     return resultingInterpolants;
+  }
+
+  private boolean isEqualStates(List<SMGState> pInitialStates, List<SMGState> pSuccessors) {
+
+    boolean stateIsEqual = false;
+
+    for (SMGState initialState : pInitialStates) {
+      for (SMGState succ : pSuccessors) {
+        stateIsEqual = succ.equals(initialState);
+
+        if (stateIsEqual) {
+          break;
+        }
+      }
+
+      if (!stateIsEqual) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private boolean isFunctionOrTypeDeclaration(CFAEdge pCurrentEdge) {
@@ -363,7 +385,7 @@ public class SMGEdgeInterpolator {
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
    */
-  private boolean isSuffixContradicting(ARGPath errorPath)
+  private boolean isSuffixContradicting(ARGPath errorPath, SMGState initialState)
       throws CPAException, InterruptedException {
     return !isRemainingPathReachable(errorPath, initialState);
   }

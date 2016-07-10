@@ -2322,4 +2322,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public void unknownWrite() {
     heap.unknownWrite();
   }
+
+  public CLangStackFrame getStackFrame() {
+    return heap.getStackFrames().peek();
+  }
 }

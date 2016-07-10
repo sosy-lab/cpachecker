@@ -933,6 +933,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
     newState.resetErrorRelation();
 
+    assert newState.getStackFrame().getFunctionDeclaration().equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
+
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
 
       // Assign the return value to the lValue of the functionCallAssignment
@@ -947,6 +949,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       // Lvalue is one frame above
       newState.dropStackFrame();
+
       LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, newState);
 
       List<SMGAddressAndState> addressAndValues = lValue.accept(visitor);
