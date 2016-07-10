@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -58,7 +59,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   public SMGSingleLinkedListFinder() {
     seqLengthEqualityThreshold = 2;
     seqLengthEntailmentThreshold = 2;
-    seqLengthIncomparableThreshold = 3;
+    seqLengthIncomparableThreshold = 2;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,
@@ -152,8 +153,26 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
+      Set<SMGEdgePointsTo> pointsToThis = SMGUtils.getPointerToThisObject(pObject, pSmg);
+
+      Set<CType> typesOfThisObject = new HashSet<>();
+
+      for (SMGEdgePointsTo edge : pointsToThis) {
+        Set<SMGEdgeHasValue> hves =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
+        for (SMGEdgeHasValue hve : hves) {
+          typesOfThisObject.add(hve.getType());
+        }
+      }
+
+      CType nextType = hveNext.getType();
+
+      if (!typesOfThisObject.contains(nextType)) {
+        continue;
+      }
+
       SMGSingleLinkedListCandidate candidate =
-          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, hveNext.getType(),
+          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextType,
               pSmg.getMachineModel());
       pProgress.initializeCandidiate(candidate);
       continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
