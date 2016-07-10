@@ -115,16 +115,37 @@ public class SMGRefiner implements Refiner {
       values = { "NEVER", "FINAL", "ALWAYS" })
   private String exportInterpolationTree = "NEVER";
 
-  private SMGRefiner(LogManager pLogger, SMGFeasibilityChecker pChecker, ARGCPA pArgCpa,
-      PathExtractor pPathExtractor, SMGPathInterpolator pPathInterpolator,
-      ShutdownNotifier pShutdownNotifier, SMGInterpolantManager pSmgInterpolantManager) {
+  private SMGRefiner(SMGCPA smgCpa, CFA pCfa, LogManager pLogger, ARGCPA pArgCpa,
+      PathExtractor pPathExtractor,
+      ShutdownNotifier pShutdownNotifier,
+      Configuration pConfig, Set<ControlAutomatonCPA> automatonCpas) throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
-
-    checker = pChecker;
     argCpa = pArgCpa;
     pathExtractor = pPathExtractor;
-    interpolantManager = pSmgInterpolantManager;
-    interpolator = pPathInterpolator;
+    SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
+    BlockOperator blockOperator = smgCpa.getBlockOperator();
+
+    SMGStrongestPostOperator strongestPostOp =
+        new SMGStrongestPostOperator(logger, pConfig, pCfa, predicateManager, blockOperator);
+
+    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction());
+
+    checker =
+        new SMGFeasibilityChecker(strongestPostOp, logger, pCfa, initialState, automatonCpas);
+
+    interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger,
+        pCfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
+
+    SMGState initaialState = smgCpa.getInitialState(pCfa.getMainFunction());
+
+    SMGEdgeInterpolator edgeInterpolator =
+        new SMGEdgeInterpolator(checker, strongestPostOp, interpolantManager, initaialState,
+            smgCpa.getShutdownNotifier(), smgCpa.getPrecision(), logger);
+
+    interpolator =
+        new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
+            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel());
 
     shutdownNotifier = pShutdownNotifier;
   }
@@ -142,31 +163,11 @@ public class SMGRefiner implements Refiner {
     LogManager logger = smgCpa.getLogger();
     Configuration config = smgCpa.getConfiguration();
     CFA cfa = smgCpa.getCFA();
-    SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
-    BlockOperator blockOperator = smgCpa.getBlockOperator();
-
-    SMGStrongestPostOperator strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa, predicateManager, blockOperator);
-
-    SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
-
-    SMGFeasibilityChecker checker =
-        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, initialState, automatonCpas);
-
-    SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa
-        .getMachineModel(), logger, cfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
-
-    SMGState initaialState = smgCpa.getInitialState(cfa.getMainFunction());
-    SMGEdgeInterpolator edgeInterpolator = new SMGEdgeInterpolator(checker, strongestPostOp, smgInterpolantManager, initaialState, smgCpa.getShutdownNotifier(), smgCpa.getPrecision(), logger);
-
-    SMGPathInterpolator interpolator =
-        new SMGPathInterpolator(smgCpa.getShutdownNotifier(), smgInterpolantManager,
-            edgeInterpolator, logger, smgCpa.getExportSMGFilePattern(), smgCpa.getExportSMGLevel());
 
     PathExtractor pathExtractor = new PathExtractor(logger, config);
 
-    return new SMGRefiner(logger, checker, argCpa, pathExtractor, interpolator,
-        smgCpa.getShutdownNotifier(), smgInterpolantManager);
+    return new SMGRefiner(smgCpa, cfa, logger, argCpa, pathExtractor,
+        smgCpa.getShutdownNotifier(), config, automatonCpas);
   }
 
   @Override

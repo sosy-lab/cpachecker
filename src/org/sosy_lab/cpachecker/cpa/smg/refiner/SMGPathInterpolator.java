@@ -27,8 +27,13 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -94,7 +99,7 @@ public class SMGPathInterpolator {
 
     int interpolationId = idGenerator.incrementAndGet();
 
-    logger.log(Level.ALL, "Start interpolating path with interpolation id " + interpolationId);
+    logger.log(Level.INFO, "Start interpolating path with interpolation id " + interpolationId);
 
     interpolationOffset = -1;
 
@@ -107,7 +112,7 @@ public class SMGPathInterpolator {
       exportInterpolation(pErrorPath, interpolants, interpolationId);
     }
 
-    logger.log(Level.ALL,
+    logger.log(Level.INFO,
         "Finish generating Interpolants for path with interpolation id " + interpolationId);
 
     return interpolants;
@@ -118,9 +123,12 @@ public class SMGPathInterpolator {
 
     exportCFAPath(pErrorPath.getInnerEdges(), pInterpolationId);
 
-    SMGInterpolant firstInterpolant = pInterpolants.get(pErrorPath.getFirstState());
+    ARGState firstState = pErrorPath.getFirstState();
 
-    exportFirstInterpolant(firstInterpolant, pInterpolationId);
+    if (pInterpolants.containsKey(firstState)) {
+      SMGInterpolant firstInterpolant = pInterpolants.get(firstState);
+      exportFirstInterpolant(firstInterpolant, pInterpolationId);
+    }
 
     PathIterator pathIterator = pErrorPath.fullPathIterator();
 
@@ -128,6 +136,12 @@ public class SMGPathInterpolator {
 
     while (pathIterator.advanceIfPossible()) {
       ARGState currentARGState = pathIterator.getAbstractState();
+
+      if (!pInterpolants.containsKey(currentARGState)) {
+        pathIndex = pathIndex + 1;
+        continue;
+      }
+
       SMGInterpolant currentInterpolant = pInterpolants.get(currentARGState);
       CFANode currentLocation = pathIterator.getLocation();
       CFAEdge currentIncomingEdge = pathIterator.getIncomingEdge();
@@ -140,14 +154,23 @@ public class SMGPathInterpolator {
   private void exportInterpolant(SMGInterpolant pCurrentInterpolant, CFANode pCurrentLocation,
       CFAEdge pIncomingEdge, int pInterpolationId, int pPathIndex) {
 
+    if (pIncomingEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      CDeclarationEdge cDclEdge = (CDeclarationEdge) pIncomingEdge;
+      CDeclaration cDcl = cDclEdge.getDeclaration();
+      if (cDcl instanceof CFunctionDeclaration ||
+          cDcl instanceof CTypeDeclaration) {
+        return;
+      }
+    }
+
     List<SMGState> states = pCurrentInterpolant.reconstructStates();
 
     int counter = 1;
     for (SMGState state : states) {
       String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + counter + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
-      String name = pIncomingEdge.toString() + " on N" + pCurrentLocation.getNodeNumber();
-      SMGUtils.dumpSMGPlot(logger, name, state, name, path);
+      String location = pIncomingEdge.toString() + " on N" + pCurrentLocation.getNodeNumber();
+      SMGUtils.dumpSMGPlot(logger, "graph", state, location, path);
       counter = counter + 1;
     }
   }
@@ -171,7 +194,18 @@ public class SMGPathInterpolator {
     StringBuilder interpolationPath = new StringBuilder();
 
     for (CFAEdge edge : pFullPath) {
+
+      if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+        CDeclarationEdge cDclEdge = (CDeclarationEdge) edge;
+        CDeclaration cDcl = cDclEdge.getDeclaration();
+        if (cDcl instanceof CFunctionDeclaration ||
+            cDcl instanceof CTypeDeclaration) {
+          continue;
+        }
+      }
+
       interpolationPath.append(edge.toString());
+      interpolationPath.append("\n");
     }
 
     Path path = exportPath.getPath(pInterpolationId, "interpolationPath.txt");
