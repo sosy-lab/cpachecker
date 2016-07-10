@@ -129,7 +129,7 @@ public class SMGExpressionEvaluator {
    */
   public int getSizeof(CFAEdge edge, CType pType, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
 
-    CSizeOfVisitor v = new CSizeOfVisitor(machineModel, edge, pState, logger, expression);
+    CSizeOfVisitor v = getSizeOfVisitor(edge, pState, expression);
 
     try {
       return pType.accept(v);
@@ -159,7 +159,7 @@ public class SMGExpressionEvaluator {
    */
   public int getSizeof(CFAEdge edge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
 
-    CSizeOfVisitor v = new CSizeOfVisitor(machineModel, edge, pState, logger);
+    CSizeOfVisitor v = getSizeOfVisitor(edge, pState);
 
     try {
       return pType.accept(v);
@@ -2263,6 +2263,15 @@ public class SMGExpressionEvaluator {
     return new LValueAssignmentVisitor(pCfaEdge, pNewState);
   }
 
+  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
+    return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
+  }
+
+  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
+      CExpression pExpression) {
+    return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
+  }
+
   public static class SMGAddressValueAndState extends SMGValueAndState {
 
     private SMGAddressValueAndState(SMGState pState, SMGAddressValue pValue) {
@@ -2559,11 +2568,11 @@ public class SMGExpressionEvaluator {
         }
 
         if (lengthAsExplicitValue.isUnknown()) {
-          throw new IllegalArgumentException(
-            "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
+          length = handleUnkownArrayLengthValue(pArrayType);
+        } else {
+          length = lengthAsExplicitValue.getAsInt();
         }
 
-        length = lengthAsExplicitValue.getAsInt();
       } else {
 
         /*
@@ -2579,9 +2588,7 @@ public class SMGExpressionEvaluator {
           try {
             addressOfFieldAndState = expression.accept(visitor);
           } catch (CPATransferException e) {
-
-            throw new IllegalArgumentException(
-                "Unable to calculate the size of the array type " + pArrayType.toASTString("") + ".", e);
+            return handleUnkownArrayLengthValue(pArrayType);
           }
 
           assert addressOfFieldAndState.size() > 0;
@@ -2589,8 +2596,7 @@ public class SMGExpressionEvaluator {
           SMGAddress addressOfField = addressOfFieldAndState.get(0).getObject();
 
           if (addressOfField.isUnknown()) {
-            throw new IllegalArgumentException(
-              "Unable to calculate the size of the array type " + pArrayType.toASTString("") + ".");
+            return handleUnkownArrayLengthValue(pArrayType);
           }
 
           SMGObject arrayObject = addressOfField.getObject();
@@ -2603,6 +2609,11 @@ public class SMGExpressionEvaluator {
       }
 
       return length * sizeOfType;
+    }
+
+    protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+      throw new IllegalArgumentException(
+          "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
     }
   }
 

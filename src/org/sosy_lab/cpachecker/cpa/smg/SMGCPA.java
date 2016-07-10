@@ -110,9 +110,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private SMGPrecisionAdjustment precisionAdjustment;
+
   private final SMGPredicateManager smgPredicateManager;
   private final BlockOperator blockOperator;
+  private final SMGPrecisionAdjustment precisionAdjustment;
 
   private final MachineModel machineModel;
 
@@ -122,29 +123,34 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final CFA cfa;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+  private final SMGExportDotOption exportOptions;
 
   private SMGPrecision precision;
 
-  private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
+  private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
     cfa = pCfa;
     machineModel = cfa.getMachineModel();
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    exportOptions = new SMGExportDotOption(exportSMGFilePattern, exportSMG);
 
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
+
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
-    precisionAdjustment = new SMGPrecisionAdjustment(logger, exportSMG, exportSMGFilePattern);
-    abstractDomain = DelegateAbstractDomain.<SMGState>getInstance();
+    precisionAdjustment = new SMGPrecisionAdjustment(logger, exportOptions);
+
+    abstractDomain = DelegateAbstractDomain.<SMGState> getInstance();
     mergeOperator = MergeSepOperator.getInstance();
 
     if(stopType.equals("END_BLOCK")) {
       stopOperator = new SMGStopOperator(abstractDomain);
-    } else if(stopType.equals("NEVER")) {
+    } else if (stopType.equals("NEVER")) {
       stopOperator = new StopNeverOperator();
     } else {
       stopOperator = new StopSepOperator(abstractDomain);
@@ -153,9 +159,13 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     precision = initializePrecision();
 
     transferRelation =
-        new SMGTransferRelation(config, logger, machineModel, exportSMGFilePattern, exportSMG,
-            smgPredicateManager,
-            blockOperator);
+        SMGTransferRelation.createTransferRelation(config, logger, machineModel,
+            exportOptions, smgPredicateManager, blockOperator);
+  }
+
+  public void setTransferRelationToRefinment(PathTemplate pNewPathTemplate) {
+    ((SMGTransferRelation) transferRelation).changeKindToRefinment();
+    exportOptions.changeToRefinment(pNewPathTemplate);
   }
 
   public void injectRefinablePrecision() {
@@ -273,5 +283,9 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public BlockOperator getBlockOperator() {
     return blockOperator;
+  }
+
+  public void nextRefinment() {
+    exportOptions.nextRefinment();
   }
 }

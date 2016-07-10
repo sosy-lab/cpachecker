@@ -1961,6 +1961,9 @@ cpa.smg.refinement.exportInterpolantSMGs = "smg/interpolation-%d/%s"
 cpa.smg.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
+# export interpolant smgs for every path interpolation to this path template
+cpa.smg.refinement.exportRefinmentSMGs = "smg/refinment-%d/smg-%s"
+
 # export interpolation trees to this file template
 cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 

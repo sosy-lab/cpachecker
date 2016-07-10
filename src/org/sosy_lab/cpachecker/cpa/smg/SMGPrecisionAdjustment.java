@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -51,6 +49,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -63,15 +62,13 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
   private final Statistics statistics;
   private final LogManager logger;
-  private final SMGExportLevel exportSMG;
-  private final PathTemplate exportSMGFilePattern;
+  private final SMGExportDotOption exportOptions;
 
 
-  public SMGPrecisionAdjustment(LogManager pLogger, SMGExportLevel pExportSMG, PathTemplate pExportSMGFilePattern) {
+  public SMGPrecisionAdjustment(LogManager pLogger, SMGExportDotOption pExportOptions) {
 
     logger = pLogger;
-    exportSMG = pExportSMG;
-    exportSMGFilePattern = pExportSMGFilePattern;
+    exportOptions = pExportOptions;
 
     statistics = new Statistics() {
       @Override
@@ -124,9 +121,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       change = newState.forgetNonTrackedHve(mempaths);
 
       if (change) {
+        String name = String.format("%03d-%03d-after-field-abstraction", result.getId(), newState.getId());
+        String description = "after-field-abstraction-of-smg-" + result.getId();
+        SMGUtils.plotWhenConfigured(name, newState, description, logger,
+            SMGExportLevel.EVERY, exportOptions);
+
         result = newState;
         logger.log(Level.ALL, "Precision adjustment on node " + node.getNodeNumber()
-        + " with result state id: " + result.getId());
+            + " with result state id: " + result.getId());
       }
     }
 
@@ -139,14 +141,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       change = newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
 
       if (change) {
-        String name = String.format("%03d-before-abstraction", result.getId());
-        String name2 = String.format("%03d-after-abstraction", result.getId());
+        String name = String.format("%03d-before-heap-abstraction", result.getId());
+        String name2 = String.format("%03d-after-heap-abstraction", result.getId());
         String description = "before-heap-abstraction-of-smg-" + result.getId();
         String description2 = "after-heap-abstraction-of-smg-" + result.getId();
         SMGUtils.plotWhenConfigured(name, result, description, logger,
-            SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+            SMGExportLevel.EVERY, exportOptions);
         SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
-            SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+            SMGExportLevel.EVERY, exportOptions);
         logger.log(Level.INFO, "Heap abstraction on node " + node.getNodeNumber()
             + " with state id: " + pState.getId());
         result = newState;
@@ -155,7 +157,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
             location.getLocationNode().getNodeNumber(), result.getId());
 
         SMGDebugTest.dumpPlot(name2deb, result);
-
       }
     }
 

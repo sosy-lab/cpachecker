@@ -50,11 +50,15 @@ public class SMGStrongestPostOperator {
 
   private final SMGTransferRelation transfer;
 
-  public SMGStrongestPostOperator(LogManager pLogger, Configuration pBuild, CFA pCfa,
-                                  SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
-      throws InvalidConfigurationException {
-    transfer = SMGTransferRelation.createTransferRelationForRefinement(pBuild, pLogger, pCfa
-        .getMachineModel(), pSMGPredicateManager, pBlockOperator);
+  private SMGStrongestPostOperator(SMGTransferRelation pTransferRelation) {
+    transfer = pTransferRelation;
+  }
+
+  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(LogManager pLogger,
+      Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator) throws InvalidConfigurationException {
+    SMGTransferRelation transfer =
+        SMGTransferRelation.createTransferRelationForCEX(pConfig, pLogger, pCfa.getMachineModel(), pSMGPredicateManager, pBlockOperator);
+    return new SMGStrongestPostOperator(transfer);
   }
 
   public Collection<SMGState> getStrongestPost(SMGState pOrigin, Precision pPrecision,
@@ -85,5 +89,15 @@ public class SMGStrongestPostOperator {
         return (SMGState) pState;
       }
     }).toList();
+  }
+
+  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(
+      LogManager pLogger, Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+
+    SMGTransferRelation transferRelation = SMGTransferRelation
+        .createTransferRelationForInterpolation(pConfig, pLogger, pCfa.getMachineModel(),
+            pSMGPredicateManager, pBlockOperator);
+    return new SMGStrongestPostOperator(transferRelation);
   }
 }

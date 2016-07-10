@@ -210,7 +210,7 @@ public class SMGPathInterpolator {
       String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + counter + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
       String location = pIncomingEdge.toString() + " on N" + pCurrentLocation.getNodeNumber();
-      SMGUtils.dumpSMGPlot(logger, "graph", state, location, path);
+      SMGUtils.dumpSMGPlot(logger, state, location, path);
       counter = counter + 1;
     }
   }
@@ -228,7 +228,7 @@ public class SMGPathInterpolator {
       String fileName = "smgInterpolant-1-smg-" + counter + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
       String name = "First interpolant";
-      SMGUtils.dumpSMGPlot(logger, name, state, name, path);
+      SMGUtils.dumpSMGPlot(logger, state, name, path);
       counter = counter + 1;
     }
   }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Predicate;
 
 import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -224,40 +223,33 @@ public final class SMGUtils {
     }
   }
 
-  public static void plotWhenConfigured(String pName, SMGState pState, String pLocation,
-      LogManager pLogger, SMGExportLevel pLevel, SMGExportLevel pExportSMGWhen,
-      PathTemplate pExportSMGFilePattern) {
+  public static void plotWhenConfigured(String pSMGName, SMGState pState, String pLocation,
+      LogManager pLogger, SMGExportLevel pLevel, SMGExportDotOption pExportOption) {
 
-    if (pLevel == pExportSMGWhen) {
-      dumpSMGPlot(pLogger, pName, pState, pLocation, pExportSMGFilePattern);
+    if (pExportOption.exportSMG(pLevel)) {
+      dumpSMGPlot(pLogger, pSMGName, pState, pLocation, pExportOption);
     }
   }
 
-  public static void dumpSMGPlot(LogManager pLogger, String pName, SMGState pCurrentState,
-      String pLocation, PathTemplate pExportSMGFilePattern) {
-    if (pExportSMGFilePattern != null && pCurrentState != null) {
-
-      pName = pName.replace("\"", "");
-      Path outputFile = getOutputFile(pExportSMGFilePattern, pName);
-      dumpSMGPlot(pLogger, pName, pCurrentState, pLocation, outputFile);
+  private static void dumpSMGPlot(LogManager pLogger, String pSMGName, SMGState pCurrentState,
+      String pLocation, SMGExportDotOption pExportOption) {
+    if (pCurrentState != null && pExportOption.hasExportPath()) {
+      Path outputFile = pExportOption.getOutputFilePath(pSMGName);
+      dumpSMGPlot(pLogger, pCurrentState, pLocation, outputFile);
     }
   }
 
-  public static void dumpSMGPlot(LogManager pLogger, String pName, SMGState currentState,
+  public static void dumpSMGPlot(LogManager pLogger, SMGState currentState,
       String location, Path pOutputFile) {
     try {
-      String dot = getDot(currentState, pName, location);
+      String dot = getDot(currentState, location);
       MoreFiles.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
-      pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + pName + " to file");
+      pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }
   }
 
-  private static Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
-    return pExportSMGFilePattern.getPath(pName);
-  }
-
-  private static String getDot(SMGState pCurrentState, String pName, String pLocation) {
-    return pCurrentState.toDot(pName, pLocation);
+  private static String getDot(SMGState pCurrentState, String pLocation) {
+    return pCurrentState.toDot("SMG" + pCurrentState.getId(), pLocation);
   }
 }

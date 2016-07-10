@@ -87,6 +87,7 @@ public class SMGRefiner implements Refiner {
 
   private final SMGFeasibilityChecker checker;
   private final ARGCPA argCpa;
+  private final SMGCPA smgCpa;
   private final PathExtractor pathExtractor;
   private final SMGInterpolantManager interpolantManager;
   private final SMGPathInterpolator interpolator;
@@ -111,6 +112,10 @@ public class SMGRefiner implements Refiner {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportInterpolantSMGs = PathTemplate.ofFormatString("smg/interpolation-%d/%s");
 
+  @Option(secure = true, description = "export interpolant smgs for every refinment to this path template")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate exportRefinmentSMGs = PathTemplate.ofFormatString("smg/refinment-%d/smg-%s");
+
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
@@ -118,38 +123,50 @@ public class SMGRefiner implements Refiner {
       values = { "NEVER", "FINAL", "ALWAYS" })
   private String exportInterpolationTree = "NEVER";
 
-  private SMGRefiner(SMGCPA smgCpa, CFA pCfa, LogManager pLogger, ARGCPA pArgCpa,
+  private SMGRefiner(SMGCPA pSmgCpa, CFA pCfa, LogManager pLogger, ARGCPA pArgCpa,
       PathExtractor pPathExtractor,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig, Set<ControlAutomatonCPA> automatonCpas) throws InvalidConfigurationException {
     pConfig.inject(this);
+
     logger = pLogger;
     argCpa = pArgCpa;
+    smgCpa = pSmgCpa;
     pathExtractor = pPathExtractor;
     SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
     BlockOperator blockOperator = smgCpa.getBlockOperator();
 
-    SMGStrongestPostOperator strongestPostOp =
-        new SMGStrongestPostOperator(logger, pConfig, pCfa, predicateManager, blockOperator);
+    smgCpa.injectRefinablePrecision();
+    smgCpa.setTransferRelationToRefinment(exportRefinmentSMGs);
+
+    SMGStrongestPostOperator strongestPostOpForCEX =
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pConfig, pCfa, predicateManager, blockOperator);
 
     SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction());
 
     checker =
-        new SMGFeasibilityChecker(strongestPostOp, logger, pCfa, initialState, automatonCpas);
+        new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas);
 
     interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger,
         pCfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
 
     SMGState initaialState = smgCpa.getInitialState(pCfa.getMainFunction());
 
+    SMGStrongestPostOperator strongestPostOpForInterpolation =
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pConfig, pCfa,
+            predicateManager, blockOperator);
+
+    SMGFeasibilityChecker checkerForInterpolation =
+        new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas);
+
     SMGEdgeInterpolator edgeInterpolator =
-        new SMGEdgeInterpolator(checker, strongestPostOp, interpolantManager, initaialState,
+        new SMGEdgeInterpolator(checkerForInterpolation, strongestPostOpForInterpolation, interpolantManager, initaialState,
             smgCpa.getShutdownNotifier(), smgCpa.getPrecision(), logger);
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
             edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), pCfa,
-            checker);
+            checkerForInterpolation);
 
     shutdownNotifier = pShutdownNotifier;
   }
@@ -161,8 +178,6 @@ public class SMGRefiner implements Refiner {
     SMGCPA smgCpa = retrieveCPA(pCpa, SMGCPA.class);
     Set<ControlAutomatonCPA> automatonCpas =
         CPAs.asIterable(pCpa).filter(ControlAutomatonCPA.class).toSet();
-
-    smgCpa.injectRefinablePrecision();
 
     LogManager logger = smgCpa.getLogger();
     Configuration config = smgCpa.getConfiguration();
@@ -178,7 +193,14 @@ public class SMGRefiner implements Refiner {
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
     CounterexampleInfo cexInfo = performRefinement(reached);
-    return cexInfo.isSpurious();
+
+    boolean isSpuriousCEX = cexInfo.isSpurious();
+
+    if (isSpuriousCEX) {
+      smgCpa.nextRefinment();
+    }
+
+    return isSpuriousCEX;
   }
 
   private CounterexampleInfo performRefinement(ARGReachedSet pReached) throws CPAException, InterruptedException {
@@ -234,7 +256,6 @@ public class SMGRefiner implements Refiner {
 
       if (isErrorPathFeasible(currentPath)) {
         if(feasiblePath == null) {
-//          madeProgress(currentPath);
           feasiblePath = currentPath;
         }
 

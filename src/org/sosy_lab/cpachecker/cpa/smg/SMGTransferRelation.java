@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -180,9 +179,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   final private MachineModel machineModel;
   private final AtomicInteger id_counter;
 
-  private final PathTemplate exportSMGFilePattern;
-
-  private final SMGExportLevel exportSMG;
+  private final SMGExportDotOption exportSMGOptions;
 
   private final SMGRightHandSideEvaluator expressionEvaluator;
 
@@ -194,6 +191,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
    * in a failure of the malloc function.
    */
   private boolean possibleMallocFail;
+
+  private SMGTransferRelationKind kind;
 
   /**
    * name for the special variable used as container for return values of functions
@@ -222,8 +221,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
       String name = functionCall.getParameterExpressions().get(0).toASTString();
-      SMGUtils.dumpSMGPlot(logger, name, currentState, functionCall.toString(),
-          exportSMGFilePattern);
+      if(exportSMGOptions.hasExportPath() && currentState != null) {
+        SMGUtils.dumpSMGPlot(logger, currentState, functionCall.toASTString(), exportSMGOptions.getOutputFilePath(name));
+      }
     }
 
     public final SMGAddressValueAndStateList evaluateMemset(CFunctionCallExpression functionCall,
@@ -413,12 +413,21 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           currentState = valueAndState.getSmgState();
 
           if (sizeValue.isUnknown()) {
-            throw new UnrecognizedCCodeException(
-              "Not able to compute allocation size", cfaEdge);
+
+            if(kind == SMGTransferRelationKind.REFINMENT) {
+              sizeValue = SMGKnownExpValue.ZERO;
+            } else {
+              throw new UnrecognizedCCodeException(
+                  "Not able to compute allocation size", cfaEdge);
+            }
           }
         } else {
-          throw new UnrecognizedCCodeException(
-              "Not able to compute allocation size", cfaEdge);
+          if (kind == SMGTransferRelationKind.REFINMENT) {
+            sizeValue = SMGKnownExpValue.ZERO;
+          } else {
+            throw new UnrecognizedCCodeException(
+                "Not able to compute allocation size", cfaEdge);
+          }
         }
       }
 
@@ -504,12 +513,20 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             value = resultValueAndState.getObject();
 
             if(value.isUnknown()) {
+              if (kind == SMGTransferRelationKind.REFINMENT) {
+                resultValueAndState = SMGExplicitValueAndState.of(currentState ,SMGKnownExpValue.ZERO);
+              } else {
+                throw new UnrecognizedCCodeException(
+                    "Not able to compute allocation size", cfaEdge);
+              }
+            }
+          } else {
+            if (kind == SMGTransferRelationKind.REFINMENT) {
+              resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGKnownExpValue.ZERO);
+            } else {
               throw new UnrecognizedCCodeException(
                   "Not able to compute allocation size", cfaEdge);
             }
-          } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
           }
         }
         result.add(resultValueAndState);
@@ -725,29 +742,49 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
   }
 
-  public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, PathTemplate pExportSMGFilePattern,
-      SMGExportLevel pExportSMG, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
+  private SMGTransferRelation(Configuration config, LogManager pLogger,
+      MachineModel pMachineModel, SMGExportDotOption pExportOptions, SMGTransferRelationKind pKind,
+      SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
       throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
-    exportSMGFilePattern = pExportSMGFilePattern;
-    exportSMG = pExportSMG;
     smgPredicateManager = pSMGPredicateManager;
     blockOperator = pBlockOperator;
+    exportSMGOptions = pExportOptions;
+    kind = pKind;
   }
 
-  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config,
-      LogManager pLogger, MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
+  public static SMGTransferRelation createTransferRelationForInterpolation(Configuration config,
+      LogManager pLogger,
+      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
       BlockOperator pBlockOperator) throws InvalidConfigurationException {
-    PathTemplate noPath = null;
     SMGTransferRelation result =
-        new SMGTransferRelation(config, pLogger, pMachineModel, noPath, SMGExportLevel.NEVER,
+        new SMGTransferRelation(config, pLogger, pMachineModel,
+            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINMENT,
             pSMGPredicateManager, pBlockOperator);
     return result;
+  }
+
+  public static SMGTransferRelation createTransferRelationForCEX(Configuration config,
+      LogManager pLogger, MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+    SMGTransferRelation result =
+        new SMGTransferRelation(config, pLogger, pMachineModel,
+            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.STATIC,
+            pSMGPredicateManager, pBlockOperator);
+    return result;
+  }
+
+  public static SMGTransferRelation createTransferRelation(Configuration config, LogManager pLogger,
+      MachineModel pMachineModel, SMGExportDotOption pExportOptions,
+      SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator)
+      throws InvalidConfigurationException {
+    return new SMGTransferRelation(config, pLogger, pMachineModel, pExportOptions,
+        SMGTransferRelationKind.STATIC, pSMGPredicateManager, pBlockOperator);
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -794,7 +831,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         for (SMGState successor : successors) {
           String name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), id_counter.getAndIncrement());
           SMGUtils.plotWhenConfigured("beforePrune" + name, successor, cfaEdge.getDescription(), logger,
-              SMGExportLevel.INTERESTING, exportSMG, exportSMGFilePattern);
+              SMGExportLevel.INTERESTING, exportSMGOptions);
           successor.pruneUnreachable();
         }
       }
@@ -833,7 +870,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     for (SMGState smg : successors) {
       SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.getDescription(), logger,
-          SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+          SMGExportLevel.EVERY, exportSMGOptions);
       logger.log(Level.ALL, "state id " + smg.getId() + " -> state id " + state.getId());
     }
 
@@ -843,8 +880,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private void plotWhenConfigured(List<SMGState> pStates, String pLocation, SMGExportLevel pLevel) {
     for (SMGState state : pStates) {
       SMGUtils.plotWhenConfigured(getDotExportFileName(state), state, pLocation, logger, pLevel,
-          exportSMG,
-          exportSMGFilePattern);
+          exportSMGOptions);
     }
   }
 
@@ -2363,6 +2399,28 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
+    private class CSizeOfVisitor extends SMGExpressionEvaluator.CSizeOfVisitor {
+
+      public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
+          LogManagerWithoutDuplicates pLogger) {
+        super(pModel, pEdge, pState, pLogger);
+      }
+
+      public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
+          LogManagerWithoutDuplicates pLogger, CExpression pExpression) {
+        super(pModel, pEdge, pState, pLogger, pExpression);
+      }
+
+      @Override
+      protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+        if (kind == SMGTransferRelationKind.REFINMENT) {
+          return 0;
+        } else {
+          return super.handleUnkownArrayLengthValue(pArrayType);
+        }
+      }
+    }
+
     @Override
     protected org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
@@ -2379,6 +2437,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     public org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new LValueAssignmentVisitor(pCfaEdge, pNewState);
+    }
+
+    @Override
+    protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
+      return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
+    }
+
+    @Override
+    protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
+        CExpression pExpression) {
+      return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
     }
 
     @Override
@@ -2456,7 +2525,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (newElement == null) {
       return Collections.emptyList();
     } else {
-      SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+      SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMGOptions);
       return Collections.singleton(newElement);
     }
   }
@@ -3114,5 +3183,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     public static SMGAddress getUnknownInstance() {
       return UNKNOWN;
     }
+  }
+
+  public void changeKindToRefinment() {
+    kind = SMGTransferRelationKind.REFINMENT;
   }
 }
