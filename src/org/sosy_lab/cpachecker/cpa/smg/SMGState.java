@@ -2179,7 +2179,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getMemoryPaths();
   }
 
-  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath location) throws SMGInconsistentException {
+  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath location) {
     return heap.forget(location);
   }
 
@@ -2214,7 +2214,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getHeapObjectMemoryPaths();
   }
 
-  public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) throws SMGInconsistentException {
+  public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) {
 
     Set<SMGEdgeHasValue> trackkedHves = new HashSet<>(pMempaths.size());
     Set<Integer> trackedValues = new HashSet<>();
@@ -2232,6 +2232,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     boolean change = false;
 
     for (SMGEdgeHasValue edge : heap.getHVEdges()) {
+
+      //TODO Robust heap abstraction?
+      if (edge.getObject().isAbstract()) {
+        trackedValues.add(edge.getValue());
+        continue;
+      }
+
       if (!trackkedHves.contains(edge)) {
         heap.removeHasValueEdge(edge);
         change = true;

@@ -275,6 +275,11 @@ public class SMGEdgeInterpolator {
     for (SMGEdgeHasValue currentHveEdge : state.getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 
+      //TODO Robust heap abstracion?
+      if (currentHveEdge.getObject().isAbstract()) {
+        continue;
+      }
+
       // temporarily remove the hve edge of the current memory path from the candidate
       // interpolant
       state.forget(currentHveEdge);

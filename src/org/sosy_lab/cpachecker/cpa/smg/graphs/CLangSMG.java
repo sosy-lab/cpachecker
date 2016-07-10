@@ -935,6 +935,10 @@ public class CLangSMG extends SMG {
             functionName, pLocationOnStack, variable);
       }
 
+      if (frame.getReturnObject() == null) {
+        continue;
+      }
+
       getHeapObjectMemoryPathsFromObject(frame.getReturnObject(), pResult, pReached, SMGObjectPosition.STACK,
           null, functionName, pLocationOnStack, frame.getReturnObject().getLabel());
       pLocationOnStack = pLocationOnStack + 1;
