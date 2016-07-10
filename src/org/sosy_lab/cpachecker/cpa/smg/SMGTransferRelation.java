@@ -1322,8 +1322,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        //TODO: Really? I would say that when we do not know where to write a value, we are in trouble
-        result.add(new SMGState(state));
+        result.add(new SMGState(state).setInvalidWrite());
       } else {
         List<SMGState> newStates =
             handleAssignmentToField(state, cfaEdge, addressOfField.getObject(),
@@ -1862,7 +1861,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         throws SMGInconsistentException, UnrecognizedCCodeException {
 
       if (pOffset.isUnknown() || pObject == null) {
-        return SMGValueAndState.of(pSmgState);
+        return SMGValueAndState.of(pSmgState.setInvalidRead());
       }
 
       int fieldOffset = pOffset.getAsInt();
