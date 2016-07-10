@@ -2007,7 +2007,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (operand2 instanceof CLeftHandSide) {
-          deriveFurtherInformation((CLeftHandSide) operand2, operand1, op.getOppositLogicalOperator());
+          BinaryOperator resultOp = op.getOppositLogicalOperator();
+
+          switch (resultOp) {
+            case EQUALS:
+            case NOT_EQUALS:
+              break;
+            default:
+              resultOp = resultOp.getOppositLogicalOperator();
+          }
+
+          deriveFurtherInformation((CLeftHandSide) operand2, operand1, resultOp);
         }
 
         return null;
