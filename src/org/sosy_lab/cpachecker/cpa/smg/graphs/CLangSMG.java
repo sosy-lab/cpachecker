@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -574,7 +573,7 @@ public class CLangSMG extends SMG {
     }
   }
 
-  public Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation) throws SMGInconsistentException {
+  public Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation) {
 
     Optional<SMGObject> initialRegion = getInitialRegion(pLocation);
 
@@ -616,7 +615,7 @@ public class CLangSMG extends SMG {
     throw new AssertionError();
   }
 
-  private Optional<SMGObject> getInitialRegion(SMGMemoryPath pLocation) throws SMGInconsistentException {
+  private Optional<SMGObject> getInitialRegion(SMGMemoryPath pLocation) {
 
     String initalVarName = pLocation.getVariableName();
 
@@ -637,11 +636,9 @@ public class CLangSMG extends SMG {
       }
       CLangStackFrame frame = Iterables.get(stack_objects, locationOnStack);
 
-      if (!frame.getFunctionDeclaration().getName().equals(functionName)) {
-        throw new SMGInconsistentException(
-              "Unexpected stack frame on stack position " + locationOnStack + "\n"
-                  + "Expected " + functionName + " but encountered "
-                  + frame.getFunctionDeclaration().getName());
+      if (!frame.getFunctionDeclaration().getName()
+          .equals(functionName)) {
+        return Optional.empty();
       }
 
       if (frame.containsVariable(initalVarName)) {
@@ -1014,7 +1011,7 @@ public class CLangSMG extends SMG {
     removeObjectAndEdges(obj);
   }
 
-  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) throws SMGInconsistentException {
+  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) {
 
     Optional<SMGEdgeHasValue> edgeToForget = getHVEdgeFromMemoryLocation(pLocation);
 

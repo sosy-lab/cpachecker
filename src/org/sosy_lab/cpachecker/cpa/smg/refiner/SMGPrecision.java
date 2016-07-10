@@ -68,7 +68,7 @@ public abstract class SMGPrecision implements Precision {
     SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
 
     return new SMGRefineablePrecision(pPrecision.logger,
-        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
+        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, false),
         emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable);
   }
 

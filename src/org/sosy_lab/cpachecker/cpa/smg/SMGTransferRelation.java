@@ -869,7 +869,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     for (SMGState smg : successors) {
-      SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.getDescription(), logger,
+      SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.toString(), logger,
           SMGExportLevel.EVERY, exportSMGOptions);
       logger.log(Level.ALL, "state id " + smg.getId() + " -> state id " + state.getId());
     }

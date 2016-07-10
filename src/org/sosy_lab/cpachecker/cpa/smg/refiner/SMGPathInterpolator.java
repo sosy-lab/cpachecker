@@ -121,6 +121,10 @@ public class SMGPathInterpolator {
   private void exportInterpolation(ARGPath pErrorPath, Map<ARGState, SMGInterpolant> pInterpolants,
       int pInterpolationId) {
 
+    if (exportPath == null) {
+      return;
+    }
+
     exportCFAPath(pErrorPath.getInnerEdges(), pInterpolationId);
 
     ARGState firstState = pErrorPath.getFirstState();
@@ -202,6 +206,10 @@ public class SMGPathInterpolator {
   }
 
   private void exportCFAPath(List<CFAEdge> pFullPath, int pInterpolationId) {
+
+    if(exportPath == null) {
+      return;
+    }
 
     StringBuilder interpolationPath = new StringBuilder();
 
