@@ -2266,6 +2266,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.clearValues();
   }
 
+  public void writeUnknownValueInUnknownField(SMGObject target) {
+    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(target));
+    hves.forEach((SMGEdgeHasValue hve) -> {
+      heap.removeHasValueEdge(hve);
+    });
+  }
+
   public void clearObjects() {
     heap.clearObjects();
   }

@@ -716,11 +716,30 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private SMGAddressValueAndState evaluateMemcpy(SMGState currentState, SMGAddressValue targetStr1Address,
         SMGAddressValue sourceStr2Address, SMGExplicitValue sizeValue) throws SMGInconsistentException {
 
+      /*If target is unknown, clear all values, because we don't know where memcpy was used,
+       *  and mark invalid write.
+       * If source is unknown, just clear all values of target, and mark invalid read.
+       * If size is unknown, clear all values of target, and mark invalid write and read.*/
       if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown()
           || sizeValue.isUnknown()) {
-        currentState = currentState.setInvalidWrite();
-        currentState.clearValues();
-        return SMGAddressValueAndState.of(currentState, null);
+
+        if (sizeValue.isUnknown()) {
+          currentState = currentState.setInvalidWrite();
+          currentState = currentState.setInvalidRead();
+        } else if (targetStr1Address.isUnknown()) {
+          currentState = currentState.setInvalidWrite();
+        } else {
+          currentState = currentState.setInvalidRead();
+        }
+
+        if (targetStr1Address.isUnknown()) {
+          currentState.unknownWrite();
+          return SMGAddressValueAndState.of(currentState);
+        } else {
+          //TODO More precise clear of values
+          currentState.writeUnknownValueInUnknownField(targetStr1Address.getAddress().getObject());
+          return SMGAddressValueAndState.of(currentState);
+        }
       }
 
       SMGObject source = sourceStr2Address.getObject();
