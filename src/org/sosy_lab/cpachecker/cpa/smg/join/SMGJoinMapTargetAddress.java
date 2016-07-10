@@ -60,6 +60,7 @@ final class SMGJoinMapTargetAddress {
 
     /*When mapping optional object to other abstract object, use tg of other object.*/
     if ((pt.getObject().isAbstract() && pt.getObject().getKind() != SMGObjectKind.OPTIONAL)
+        || pt2 == null
         || pt2.getObject().getKind() == SMGObjectKind.OPTIONAL) {
       tg = pt.getTargetSpecifier();
     } else {
@@ -70,9 +71,6 @@ final class SMGJoinMapTargetAddress {
 
     if (!edges.isEmpty()) {
       value = Iterables.getOnlyElement(edges).getValue();
-      /*Needed in case of dest smg == inputSmg1 == inputSmg2*/
-      mapping1.map(pAddress1, value);
-      mapping2.map(pAddress2, value);
       return;
     }
 

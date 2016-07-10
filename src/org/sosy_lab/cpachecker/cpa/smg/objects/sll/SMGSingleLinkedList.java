@@ -116,9 +116,7 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   }
 
   @Override
-  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
-
-    int maxLevel = Math.max(getLevel(), pOther.getLevel());
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
 
     switch (pOther.getKind()) {
       case SLL:
@@ -127,12 +125,8 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
 
         int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
 
-        if (pIncreaseLevel) {
-          maxLevel = maxLevel + 1;
-        }
-
         return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-            maxLevel);
+            pDestLevel);
       case REG:
       case OPTIONAL:
         assert getSize() == pOther.getSize();
@@ -140,12 +134,8 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
         int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
         minlength = Math.min(getMinimumLength(), otherLength);
 
-        if (pIncreaseLevel) {
-          maxLevel = maxLevel + 1;
-        }
-
         return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-            maxLevel);
+            pDestLevel);
 
       default:
         throw new IllegalArgumentException("join called on unjoinable Objects");

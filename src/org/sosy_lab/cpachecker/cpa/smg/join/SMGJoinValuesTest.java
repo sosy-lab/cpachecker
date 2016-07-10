@@ -87,7 +87,7 @@ public class SMGJoinValuesTest {
     mapping1.map(value1, value3);
     mapping2.map(value2, value3);
 
-    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0, false, false, 0, 0, dummyState, dummyState);
+    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertTrue(jv.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jv.getStatus());
     Assert.assertSame(smg1, jv.getInputSMG1());
@@ -105,17 +105,17 @@ public class SMGJoinValuesTest {
     smgDest.addValue(value3);
 
     mapping1.map(value1, value3);
-    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0, false, false, 0, 0, dummyState, dummyState);
+    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertFalse(jv.isDefined());
 
     mapping1 = new SMGNodeMapping();
     mapping2.map(value2, value3);
-    jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0, false, false, 0, 0, dummyState, dummyState);
+    jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertFalse(jv.isDefined());
 
     mapping2 = new SMGNodeMapping();
 
-    jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0, false, false, 0, 0, dummyState, dummyState);
+    jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertTrue(jv.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jv.getStatus());
     Assert.assertSame(smg1, jv.getInputSMG1());
@@ -139,8 +139,7 @@ public class SMGJoinValuesTest {
     SMGRegion obj1 = new SMGRegion(8, "Object");
     SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, 0);
     smg1.addPointsToEdge(pt);
-    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0, false, false, 0, 0, dummyState, dummyState);
+    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertFalse(jv.isDefined());
   }
-
 }

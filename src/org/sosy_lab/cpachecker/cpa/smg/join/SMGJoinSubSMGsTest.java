@@ -52,7 +52,8 @@ public class SMGJoinSubSMGsTest {
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
-    jssDefined = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg1, smg2, destSmg, mapping1, mapping2, obj1, obj2, null, 0, false, false, null, null);
+    SMGLevelMapping levelMapping = SMGLevelMapping.createDefaultLevelMap();
+    jssDefined = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, smg1, smg2, destSmg, mapping1, mapping2, levelMapping, obj1, obj2, null, 0, false, null, null);
   }
 
   @Test

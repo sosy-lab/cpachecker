@@ -187,11 +187,11 @@ final class SMGJoinMatchObjects {
   private static SMGJoinStatus updateStatusForAbstractions(SMGObject pObj1, SMGObject pObj2, SMGJoinStatus pStatus) {
     SMGJoinStatus result = pStatus;
 
-    if (pObj1.join(pObj2, false).isMoreGeneral(pObj2)) {
+    if (pObj1.join(pObj2, pObj1.getLevel()).isMoreGeneral(pObj2)) {
       result = SMGJoinStatus.updateStatus(result, SMGJoinStatus.LEFT_ENTAIL);
     }
 
-    if (pObj2.join(pObj1, false).isMoreGeneral(pObj1)) {
+    if (pObj2.join(pObj1, pObj2.getLevel()).isMoreGeneral(pObj1)) {
       result = SMGJoinStatus.updateStatus(result, SMGJoinStatus.RIGHT_ENTAIL);
     }
 

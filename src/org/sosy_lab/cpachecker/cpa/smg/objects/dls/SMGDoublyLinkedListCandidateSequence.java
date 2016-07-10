@@ -48,12 +48,14 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   private final SMGDoublyLinkedListCandidate candidate;
   private final int length;
   private final SMGJoinStatus seqStatus;
+  private final boolean includesDll;
 
   public SMGDoublyLinkedListCandidateSequence(SMGDoublyLinkedListCandidate pCandidate,
-      int pLength, SMGJoinStatus pSmgJoinStatus) {
+      int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesDll) {
     candidate = pCandidate;
     length = pLength;
     seqStatus = pSmgJoinStatus;
+    includesDll = pIncludesDll;
   }
 
   public SMGDoublyLinkedListCandidate getCandidate() {
@@ -187,6 +189,11 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   @Override
   public int getScore() {
     int score = getLength() + getStatusScore() + getRecursivScore();
+
+    if (includesDll) {
+      score = score + 1;
+    }
+
     return score;
   }
 
@@ -197,10 +204,10 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   private int getStatusScore() {
     switch (seqStatus) {
       case EQUAL:
-        return 3;
+        return 50;
       case LEFT_ENTAIL:
       case RIGHT_ENTAIL:
-        return 2;
+        return 30;
       case INCOMPARABLE:
       default:
         return 0;

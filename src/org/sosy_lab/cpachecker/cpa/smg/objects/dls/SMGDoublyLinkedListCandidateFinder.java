@@ -86,11 +86,45 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
         if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) != SMGJoinStatus.INCOMPARABLE && candidateLength.get(candidate) > 1)) {
-          returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate), candidateSeqJoinGood.get(candidate)));
+          returnSet.add(getCandidate(candidate));
         }
       }
     }
     return Collections.unmodifiableSet(returnSet);
+  }
+
+  private SMGDoublyLinkedListCandidateSequence getCandidate(
+      SMGDoublyLinkedListCandidate pCandidate) {
+
+    int length = candidateLength.get(pCandidate);
+    SMGJoinStatus status = candidateSeqJoinGood.get(pCandidate);
+
+
+    return new SMGDoublyLinkedListCandidateSequence(pCandidate, length, status,
+        isDllPartOfSequence(pCandidate, length));
+  }
+
+  private boolean isDllPartOfSequence(SMGDoublyLinkedListCandidate pCandidate, int pLength) {
+
+    SMGObject nextObject = pCandidate.getObject();
+
+    if (nextObject.getKind() == SMGObjectKind.DLL) {
+      return true;
+    }
+
+    for (int i = 1; i < pLength; i++) {
+
+
+      SMGEdgeHasValue nextHveEdge = Iterables.getOnlyElement(smg.getHVEdges(
+          SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pCandidate.getNfo())));
+      nextObject = smg.getPointer(nextHveEdge.getValue()).getObject();
+
+      if (nextObject.getKind() == SMGObjectKind.DLL) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private void startTraversal(SMGObject pObject, SMGState pSmgState) throws SMGInconsistentException {

@@ -156,7 +156,7 @@ public final class SMGUtils {
 
     @Override
     public CType visit(CArrayType pArrayType) {
-      if (model.getSizeof(pArrayType) % fieldOffset == 0) {
+      if (fieldOffset % model.getSizeof(pArrayType) == 0) {
         return pArrayType.getType();
       } else {
         return UNKNOWN;
@@ -255,5 +255,4 @@ public final class SMGUtils {
   private static String getDot(SMGState pCurrentState, String pName, String pLocation) {
     return pCurrentState.toDot(pName, pLocation);
   }
-
 }

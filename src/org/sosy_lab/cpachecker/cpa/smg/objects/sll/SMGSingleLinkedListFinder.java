@@ -49,14 +49,14 @@ import java.util.Set;
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
   private CLangSMG smg;
-  private  Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
-  private  Map<SMGSingleLinkedListCandidate, Integer> candidateLength = new HashMap<>();
-  private  Map<SMGSingleLinkedListCandidate, SMGJoinStatus> candidateSeqJoinStatus = new HashMap<>();
+  private Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates = new HashMap<>();
+  private Map<SMGSingleLinkedListCandidate, Integer> candidateLength = new HashMap<>();
+  private Map<SMGSingleLinkedListCandidate, SMGJoinStatus> candidateSeqJoinStatus = new HashMap<>();
 
   private final int seqLengthThreshold;
 
   public SMGSingleLinkedListFinder() {
-    seqLengthThreshold = 3;
+    seqLengthThreshold = 4;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthThreshold) {
@@ -81,12 +81,60 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         if (candidateLength.get(candidate) >= seqLengthThreshold
             || (candidateSeqJoinStatus.get(candidate) != SMGJoinStatus.INCOMPARABLE
                 && candidateLength.get(candidate) > 1)) {
-          returnSet.add(new SMGSingleLinkedListCandidateSequence(candidate, candidateLength.get(candidate), candidateSeqJoinStatus.get(candidate)));
+          addCandidateAndSubSetSequences(returnSet, candidate);
         }
       }
     }
 
     return Collections.unmodifiableSet(returnSet);
+  }
+
+  private void addCandidateAndSubSetSequences(Set<SMGAbstractionCandidate> pReturnSet,
+      SMGSingleLinkedListCandidate pCandidate) {
+
+    int length = candidateLength.get(pCandidate);
+    SMGJoinStatus smgJoinStatus = candidateSeqJoinStatus.get(pCandidate);
+    SMGSingleLinkedListCandidateSequence seq =
+        new SMGSingleLinkedListCandidateSequence(pCandidate, length, smgJoinStatus, isSllPartOfSequence(pCandidate, length));
+    pReturnSet.add(seq);
+
+    SMGObject object = pCandidate.getStartObject();
+    int nfo = pCandidate.getNfo();
+    for (int i = 2; i < length; i++) {
+
+      SMGEdgeHasValue edge = Iterables.getOnlyElement(
+          smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(nfo)));
+      int pointer = edge.getValue();
+      object = smg.getPointer(pointer).getObject();
+      SMGSingleLinkedListCandidate subSequenceCandidate = candidates.get(object).get(nfo);
+
+      int subSequencelength = candidateLength.get(subSequenceCandidate);
+      SMGJoinStatus subSequenceJoinStatus = candidateSeqJoinStatus.get(subSequenceCandidate);
+      SMGSingleLinkedListCandidateSequence subSequence =
+          new SMGSingleLinkedListCandidateSequence(subSequenceCandidate, subSequencelength, subSequenceJoinStatus, isSllPartOfSequence(pCandidate, subSequencelength));
+      pReturnSet.add(subSequence);
+    }
+  }
+
+  private boolean isSllPartOfSequence(SMGSingleLinkedListCandidate pCandidate, int pLength) {
+
+    SMGObject nextObject = pCandidate.getStartObject();
+
+    if (nextObject.getKind() == SMGObjectKind.SLL) {
+      return true;
+    }
+
+    for (int i = 1; i < pLength; i++) {
+      SMGEdgeHasValue nextHveEdge = Iterables.getOnlyElement(smg.getHVEdges(
+          SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pCandidate.getNfo())));
+      nextObject = smg.getPointer(nextHveEdge.getValue()).getObject();
+
+      if (nextObject.getKind() == SMGObjectKind.SLL) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private void startTraversal(SMGObject pObject, SMGState pSmgState) throws SMGInconsistentException {

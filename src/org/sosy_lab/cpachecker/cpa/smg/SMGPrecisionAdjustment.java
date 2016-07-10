@@ -136,6 +136,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
+      String namedeb = String.format("%03d-node-%03d-before-abstraction", location.getLocationNode().getNodeNumber(), result.getId());
+
+      SMGDebugTest.dumpPlot(namedeb, result);
+
       change = newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
 
       if (change) {
@@ -150,9 +154,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
         logger.log(Level.INFO, "Heap abstraction on node " + node.getNodeNumber()
             + " with state id: " + pState.getId());
         result = newState;
+
+        String name2deb = String.format("%03d-node-%03d-after-abstraction",
+            location.getLocationNode().getNodeNumber(), result.getId());
+
+        SMGDebugTest.dumpPlot(name2deb, result);
+
       }
     }
-
 
     totalAbstraction.stop();
     abstractions.inc();

@@ -123,7 +123,7 @@ public class SMGAbstractionManager {
 
   public SMGAbstractionCandidate executeOneStep() throws SMGInconsistentException {
 
-//    SMGDebugTest.dumpPlot("beforeAbs", smgState);
+    SMGDebugTest.dumpPlot("beforeAbs", smgState);
 
     if (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();

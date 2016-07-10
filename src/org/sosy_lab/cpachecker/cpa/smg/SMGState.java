@@ -1529,7 +1529,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           CLangSMG joinSMG = join.getJointSMG();
           SMGState joinSMGState = new SMGState(this, joinSMG,  HashBiMap.create());
 
-//          SMGDebugTest.dumpPlot(this.getId() + "isLessorEqual" + reachedState.getId(), joinSMGState);
+          SMGDebugTest.dumpPlot(this.getId() + "isLessorEqual" + reachedState.getId(), joinSMGState);
 
           SMGState s1 = new SMGState(reachedState);
           SMGState s2 = new SMGState(this);

@@ -29,14 +29,14 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import java.util.HashMap;
 import java.util.List;
@@ -64,8 +64,9 @@ final class SMGJoinSubSMGs {
   public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
       SMG pSMG1, SMG pSMG2, SMG pDestSMG,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMap,
       SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean pIncreaseLevel, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+      int pLDiff, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
 
@@ -97,72 +98,34 @@ final class SMGJoinSubSMGs {
     Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
-    /*Ignore optional objects for level increase, they have no sub smgs attached.*/
-    boolean object1IsAbstract = pObj1.isAbstract() && pObj1.getKind() != SMGObjectKind.OPTIONAL;
-    boolean object2IsAbstract = pObj2.isAbstract() && pObj1.getKind() != SMGObjectKind.OPTIONAL;
-
-    int nfo1 = -1;
-    int pfo1 = -1;
-    int nfo2 = -1;
-    int pfo2 = -1;
-
-    if (object1IsAbstract) {
-      switch (pObj1.getKind()) {
-        case SLL:
-          nfo1 = ((SMGSingleLinkedList) pObj1).getNfo();
-          break;
-        case DLL:
-          nfo1 = ((SMGDoublyLinkedList) pObj1).getNfo();
-          pfo1 = ((SMGDoublyLinkedList) pObj1).getPfo();
-          break;
-        case OPTIONAL:
-          break;
-        default:
-          throw new AssertionError();
-      }
-    }
-
-    if (object2IsAbstract) {
-      switch (pObj2.getKind()) {
-        case SLL:
-          nfo2 = ((SMGSingleLinkedList) pObj2).getNfo();
-          break;
-        case DLL:
-          nfo2 = ((SMGDoublyLinkedList) pObj2).getNfo();
-          pfo2 = ((SMGDoublyLinkedList) pObj2).getPfo();
-          break;
-        case OPTIONAL:
-          break;
-        default:
-          throw new AssertionError();
-      }
-    }
+    int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
     for (SMGEdgeHasValue hvIn1 : edgesOnObject1) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
-
-      int value1Level;
-      int value2Level;
-
-      value1Level = pObj1.getLevel();
-      value2Level = pObj2.getLevel();
 
       int lDiff = pLDiff;
 
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
-      if (object1IsAbstract && hvIn1.getOffset() != nfo1 && hvIn1.getOffset() != pfo1) {
-        lDiff = lDiff + 1;
-        value1Level = value1Level + 1;
-      }
+      int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
+      int value2Level =
+          getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
 
-      if (object2IsAbstract && hvIn1.getOffset() != nfo2 && hvIn1.getOffset() != pfo2) {
-        lDiff = lDiff - 1;
-        value2Level = value2Level + 1;
+      int levelDiff1 = value1Level - pObj1.getLevel();
+      int levelDiff2 = value2Level - pObj2.getLevel();
+
+      lDiff = lDiff + (levelDiff1 - levelDiff2);
+
+      SMGLevelMapping levelMap =
+          updateLevelMap(value1Level, value2Level, pLevelMap, pObj1.getLevel(), pObj2.getLevel());
+
+      if (levelMap == null) {
+        defined = false;
+        return;
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, hvIn1.getValue(), hvIn2.getValue(), lDiff, pIncreaseLevel, identicalInputSmg, value1Level, value2Level, pSmgState1, pSmgState2);
+          mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
@@ -232,6 +195,60 @@ final class SMGJoinSubSMGs {
     }
 
     defined = true;
+  }
+
+  private SMGLevelMapping updateLevelMap(int pValue1Level, int pValue2Level,
+      SMGLevelMapping pLevelMap, int pObjectLevel, int pObjectLevel2) {
+
+    SMGJoinLevel joinLevel = SMGJoinLevel.valueOf(pValue1Level, pValue2Level);
+
+    if (pLevelMap.containsKey(joinLevel)) {
+      return pLevelMap;
+    }
+
+    int oldLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObjectLevel, pObjectLevel2));
+
+    if (pValue1Level == pObjectLevel + 1 || pValue2Level == pObjectLevel2 + 1) {
+      int result = oldLevel + 1;
+      SMGLevelMapping newLevelMap = new SMGLevelMapping();
+      newLevelMap.putAll(pLevelMap);
+      newLevelMap.put(joinLevel, result);
+      return newLevelMap;
+    }
+
+    if (pValue1Level == pObjectLevel && pValue2Level == pObjectLevel) {
+      pLevelMap.put(joinLevel, oldLevel);
+      SMGLevelMapping newLevelMap = new SMGLevelMapping();
+      newLevelMap.putAll(pLevelMap);
+      newLevelMap.put(joinLevel, oldLevel);
+      return newLevelMap;
+    }
+
+    if (pValue1Level == pObjectLevel - 1 && pValue2Level == pObjectLevel2 - 1) {
+      int result = oldLevel - 1;
+      SMGLevelMapping newLevelMap = new SMGLevelMapping();
+      newLevelMap.putAll(pLevelMap);
+      newLevelMap.put(joinLevel, result);
+      return newLevelMap;
+    }
+
+    return null;
+  }
+
+  private int getValueLevel(SMGObject pObject, int pValue, SMG pInputSMG1) {
+
+    if (pInputSMG1.isPointer(pValue)) {
+      SMGEdgePointsTo pointer = pInputSMG1.getPointer(pValue);
+
+      if (pointer.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
+        return pObject.getLevel() + 1;
+      } else {
+        SMGObject targetObject = pointer.getObject();
+        return targetObject.getLevel();
+      }
+    } else {
+      return 0;
+    }
   }
 
   public boolean isDefined() {

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
@@ -97,8 +98,8 @@ final class SMGJoinTargetObjects {
 
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
                               SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, boolean pIncreaseLevel, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMapping,
+                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
@@ -149,7 +150,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    SMGObject newObject = target1.join(target2, pIncreaseLevel);
+    SMGObject newObject = target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
@@ -171,8 +172,9 @@ final class SMGJoinTargetObjects {
     value = mta.getValue();
 
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
-                                            mapping1, mapping2,
-                                            target1, target2, newObject, ldiff, pIncreaseLevel, identicalInputSmgs, pSmgState1, pSmgState2);
+        mapping1, mapping2, pLevelMapping,
+        target1, target2, newObject, ldiff, identicalInputSmgs, pSmgState1, pSmgState2);
+
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();

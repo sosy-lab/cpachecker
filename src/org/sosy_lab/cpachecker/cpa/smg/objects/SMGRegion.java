@@ -80,20 +80,13 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   }
 
   @Override
-  public SMGObject join(SMGObject pOther, boolean increaseLevel) {
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
     if (pOther.isAbstract()) {
       // I am concrete, and the other is abstract: the abstraction should
       // know how to join with me
-      return pOther.join(this, increaseLevel);
+      return pOther.join(this, pDestLevel);
     } else if (getSize() == pOther.getSize()) {
-
-      int level = Math.max(this.getLevel(), pOther.getLevel());
-
-      if (increaseLevel) {
-        level = level + 1;
-      }
-
-      return new SMGRegion(getSize(), getLabel(), level);
+      return new SMGRegion(getSize(), getLabel(), pDestLevel);
     }
 
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
