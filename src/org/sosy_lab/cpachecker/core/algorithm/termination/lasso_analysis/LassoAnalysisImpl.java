@@ -333,31 +333,34 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     RankingRelation rankingRelation = null;
     statistics.terminationAnalysisOfLassoStarted();
-    for (RankingTemplate rankingTemplate : rankingTemplates) {
-      shutdownNotifier.shutdownIfNecessary();
+    try {
+      for (RankingTemplate rankingTemplate : rankingTemplates) {
+        shutdownNotifier.shutdownIfNecessary();
 
-      try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
-          createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
+        try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
+            createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
 
-        LBool result = terminationArgumentSynthesizer.synthesize();
-        if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
-          TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
-          logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
+          LBool result = terminationArgumentSynthesizer.synthesize();
+          if (result.equals(LBool.SAT) && terminationArgumentSynthesizer.synthesisSuccessful()) {
+            TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
+            logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
 
-          try {
-            rankingRelation =
-                rankingRelationBuilder.fromTerminationArgument(
-                    terminationArgument, pRelevantVariables);
-            return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
+            try {
+              rankingRelation =
+                  rankingRelationBuilder.fromTerminationArgument(
+                      terminationArgument, pRelevantVariables);
+              return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
 
-          } catch (UnrecognizedCCodeException e) {
-            logger.logException(
-                Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
+            } catch (UnrecognizedCCodeException e) {
+              logger.logException(
+                  Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
+            }
           }
         }
       }
+    } finally {
+      statistics.terminationAnalysisOfLassoFinished();
     }
-    statistics.terminationAnalysisOfLassoFinished();
 
     return LassoAnalysisResult.unknown();
   }
