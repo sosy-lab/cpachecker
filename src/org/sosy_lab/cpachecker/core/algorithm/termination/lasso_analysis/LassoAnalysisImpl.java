@@ -154,6 +154,20 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     )
   private LassoAnalysisType analysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
 
+  @Option(
+      secure = true,
+      description =
+          "If true, an external tool is used as SMT solver instead of SMTInterpol."
+    )
+  private boolean externalSolver = false;
+
+  @Option(
+      secure = true,
+      description = "Shell command used to call the external SMT solver."
+    )
+  private String externalSolverCommand =
+      "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
+
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
       LogManager pLogger,
@@ -192,7 +206,9 @@ public class LassoAnalysisImpl implements LassoAnalysis {
         new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
 
     lassoRankerPreferences = new LassoRankerPreferences();
-    lassoRankerPreferences.externalSolver = false; // use SMTInterpol
+    lassoRankerPreferences.smt_solver_command = externalSolverCommand;
+    lassoRankerPreferences.externalSolver = externalSolver;
+
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
     terminationAnalysisSettings = new TerminationAnalysisSettings();
     terminationAnalysisSettings.analysis = analysisType.toAnalysisType();

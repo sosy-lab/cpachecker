@@ -2763,6 +2763,12 @@ termination.config = no default value
 termination.lassoAnalysis.analysisType = LINEAR_WITH_GUESSES
   enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
 
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+termination.lassoAnalysis.externalSolver = false
+
+# Shell command used to call the external SMT solver.
+termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
+
 # Number of non-strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
 termination.lassoAnalysis.nonStrictInvariants = 3
