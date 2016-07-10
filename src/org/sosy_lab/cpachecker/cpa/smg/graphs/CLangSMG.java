@@ -974,6 +974,8 @@ public class CLangSMG extends SMG {
 
       SMGMemoryPath path =
           getSMGMemoryPath(pVariableName, offset, pPos, pFunctionName, pLocationOnStack, pParent);
+
+      offsetToParent.put(offset, path);
       pResult.put(rObject, path);
     }
 

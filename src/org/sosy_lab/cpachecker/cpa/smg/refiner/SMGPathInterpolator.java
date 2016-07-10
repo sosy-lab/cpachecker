@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -77,7 +76,6 @@ public class SMGPathInterpolator {
   private final ShutdownNotifier shutdownNotifier;
   private final SMGEdgeInterpolator interpolator;
   private final SMGInterpolantManager interpolantManager;
-  private final SMGFeasibilityChecker checker;
 
   private final LogManager logger;
   private final PathTemplate exportPath;
@@ -86,15 +84,13 @@ public class SMGPathInterpolator {
   public SMGPathInterpolator(ShutdownNotifier pShutdownNotifier,
       SMGInterpolantManager pInterpolantManager,
       SMGEdgeInterpolator pInterpolator, LogManager pLogger,
-      PathTemplate pExportPath, SMGExportLevel pExportWhen,
-      SMGFeasibilityChecker pChecker) {
+      PathTemplate pExportPath, SMGExportLevel pExportWhen) {
     shutdownNotifier = pShutdownNotifier;
     interpolantManager = pInterpolantManager;
     interpolator = pInterpolator;
     logger = pLogger;
     exportPath = pExportPath;
     exportWhen = pExportWhen;
-    checker = pChecker;
   }
 
   public Map<ARGState, SMGInterpolant> performInterpolation(ARGPath pErrorPath,
@@ -107,31 +103,19 @@ public class SMGPathInterpolator {
 
     interpolationOffset = -1;
 
-    ARGPath errorPathPrefix = getSmallestUnreachablePrefix(pErrorPath, pInterpolant);
-
     Map<ARGState, SMGInterpolant> interpolants =
-        performEdgeBasedInterpolation(errorPathPrefix, pInterpolant);
+        performEdgeBasedInterpolation(pErrorPath, pInterpolant);
 
-    propagateFalseInterpolant(pErrorPath, errorPathPrefix, interpolants);
+    propagateFalseInterpolant(pErrorPath, pErrorPath, interpolants);
 
     if(exportWhen == SMGExportLevel.EVERY) {
-      exportInterpolation(errorPathPrefix, interpolants, interpolationId);
+      exportInterpolation(pErrorPath, interpolants, interpolationId);
     }
 
     logger.log(Level.INFO,
         "Finish generating Interpolants for path with interpolation id " + interpolationId);
 
     return interpolants;
-  }
-
-  private ARGPath getSmallestUnreachablePrefix(ARGPath pErrorPath, SMGInterpolant pInterpolant) throws CPAException, InterruptedException {
-
-    PathPosition position =
-        checker.getLastReachablePosition(pErrorPath, pInterpolant.reconstructStates());
-
-    PathIterator it = position.iterator();
-    it.advanceIfPossible();
-    return it.getPrefixInclusive();
   }
 
   private void exportInterpolation(ARGPath pErrorPath, Map<ARGState, SMGInterpolant> pInterpolants,
@@ -299,8 +283,6 @@ public class SMGPathInterpolator {
     List<SMGInterpolant> interpolants = new ArrayList<>();
     interpolants.add(pInterpolant);
 
-    boolean isReachablePath = checker.isReachable(pErrorPathPrefix);
-
     while (pathIterator.hasNext()) {
 
       List<SMGInterpolant> resultingInterpolants = new ArrayList<>();
@@ -313,8 +295,7 @@ public class SMGPathInterpolator {
           List<SMGInterpolant> deriveResult = interpolator.deriveInterpolant(
               pathIterator.getOutgoingEdge(),
               pathIterator.getPosition(),
-              interpolant,
-              !isReachablePath);
+              interpolant);
           resultingInterpolants.addAll(deriveResult);
         } else {
           resultingInterpolants.add(interpolantManager.getFalseInterpolant());

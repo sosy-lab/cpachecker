@@ -106,8 +106,7 @@ public class SMGEdgeInterpolator {
   }
 
   public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
-      PathPosition pOffset, SMGInterpolant pInputInterpolant,
-      boolean pCheckOnlyReachability) throws CPAException, InterruptedException {
+      PathPosition pOffset, SMGInterpolant pInputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming
@@ -178,9 +177,6 @@ public class SMGEdgeInterpolator {
       return resultingInterpolants;
     }
 
-    SMGInterpolant trueInterpolant =
-        interpolantManager.getTrueInterpolant(successors.iterator().next().createInterpolant());
-
     // if the current edge just changes the names of variables
     // (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
@@ -194,30 +190,19 @@ public class SMGEdgeInterpolator {
 
     ARGPath remainingErrorPath = pOffset.iterator().getSuffixExclusive();
 
-    // if the remaining path, i.e., the suffix, is contradicting by itself, then return the TRUE
-    // interpolant
-    SMGState weakestState = Iterables.getOnlyElement(trueInterpolant.reconstructStates());
-    if (pInputInterpolant.isTrue()
-        && !isTrivialToInterpolate(successors)
-        && isSuffixContradicting(remainingErrorPath, weakestState)) {
-
-      resultingInterpolants.add(trueInterpolant);
-      return resultingInterpolants;
-    }
-
     for (SMGState state : successors) {
 
       if (originalPrecision.allowsStackAbstraction()) {
-        interpolateStackVariables(state, remainingErrorPath, currentEdge, pCheckOnlyReachability);
+        interpolateStackVariables(state, remainingErrorPath, currentEdge);
       }
 
       if (originalPrecision.allowsFieldAbstraction()) {
-        interpolateFields(state, remainingErrorPath, currentEdge, pCheckOnlyReachability);
+        interpolateFields(state, remainingErrorPath, currentEdge);
       }
 
       if (originalPrecision.allowsHeapAbstraction()) {
         abstractionBlocks = interpolateHeapAbstraction(state, remainingErrorPath,
-            currentEdge.getPredecessor(), currentEdge, pCheckOnlyReachability);
+            currentEdge.getPredecessor(), currentEdge);
       }
 
       SMGInterpolant result = interpolantManager.createInterpolant(state, abstractionBlocks);
@@ -259,7 +244,7 @@ public class SMGEdgeInterpolator {
     return false;
   }
 
-  private SMGState interpolateStackVariables(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pCheckOnlyReachability)
+  private SMGState interpolateStackVariables(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -273,23 +258,16 @@ public class SMGEdgeInterpolator {
       // interpolant
       SMGStateInformation info = state.forgetStackVariable(memoryLocation);
 
-      /* check if the remaining path now becomes feasible
-       * or reachable.*/
-      if (pCheckOnlyReachability) {
-        if (isRemainingPathReachable(pRemainingErrorPath, state)) {
-          state.remember(memoryLocation, region, info);
-        }
-      } else {
-        if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
-          state.remember(memoryLocation, region, info);
-        }
+      if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
+        state.remember(memoryLocation, region, info);
       }
     }
 
     return state;
   }
 
-  private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pCheckOnlyReachability)
+  private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath,
+      CFAEdge currentEdge)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -301,16 +279,8 @@ public class SMGEdgeInterpolator {
       // interpolant
       state.forget(currentHveEdge);
 
-      /* check if the remaining path now becomes feasible
-       * or reachable.*/
-      if (pCheckOnlyReachability) {
-        if (isRemainingPathReachable(pRemainingErrorPath, state)) {
-          state.remember(currentHveEdge);
-        }
-      } else {
-        if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
-          state.remember(currentHveEdge);
-        }
+      if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
+        state.remember(currentHveEdge);
       }
     }
 
@@ -318,22 +288,16 @@ public class SMGEdgeInterpolator {
   }
 
   private Set<SMGAbstractionBlock> interpolateHeapAbstraction(SMGState pInitialSuccessor,
-      ARGPath pRemainingErrorPath, CFANode pStateLocation, CFAEdge pCurrentEdge,
-      boolean pCheckOnlyReachability)
+      ARGPath pRemainingErrorPath, CFANode pStateLocation, CFAEdge pCurrentEdge)
       throws CPAException, InterruptedException {
 
     return heapAbstractionInterpolator.calculateHeapAbstractionBlocks(pInitialSuccessor,
-        pRemainingErrorPath, originalPrecision, pStateLocation, pCurrentEdge,
-        pCheckOnlyReachability);
+        pRemainingErrorPath, originalPrecision, pStateLocation, pCurrentEdge);
   }
 
   private Collection<SMGState> getInitialSuccessor(SMGState pState, CFAEdge pCurrentEdge)
       throws CPAException, InterruptedException {
     return getInitialSuccessor(pState, pCurrentEdge, strongPrecision);
-  }
-
-  private boolean isTrivialToInterpolate(Collection<SMGState> pSuccessors) {
-    return pSuccessors.size() == 1 && Iterables.getOnlyElement(pSuccessors).sizeOfHveEdges() < 1;
   }
 
   /**
@@ -377,23 +341,6 @@ public class SMGEdgeInterpolator {
     //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
     //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
     ;
-  }
-
-  /**
-   * This method checks, if the given error path is contradicting in itself.
-   *
-   * @param errorPath the error path to check.
-   * @return true, if the given error path is contradicting in itself, else false
-   */
-  private boolean isSuffixContradicting(ARGPath errorPath, SMGState initialState)
-      throws CPAException, InterruptedException {
-    return !isRemainingPathReachable(errorPath, initialState);
-  }
-
-  private boolean isRemainingPathReachable(ARGPath pErrorPath, SMGState pInitialState)
-      throws CPAException, InterruptedException {
-    numberOfInterpolationQueries++;
-    return checker.isReachable(pErrorPath, pInitialState);
   }
 
   /**

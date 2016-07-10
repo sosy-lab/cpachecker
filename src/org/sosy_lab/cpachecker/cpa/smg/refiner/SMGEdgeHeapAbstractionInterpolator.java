@@ -65,7 +65,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
    */
   public Set<SMGAbstractionBlock> calculateHeapAbstractionBlocks(SMGState pState,
       ARGPath pRemainingErrorPath, SMGPrecision pPrecision, CFANode pStateLocation,
-      CFAEdge pCurrentEdge, boolean pOnlyCheckReachability)
+      CFAEdge pCurrentEdge)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -82,20 +82,11 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     while (!candidate.isEmpty()) {
 
-      if(pOnlyCheckReachability) {
-        if (isRemainingPathReachable(pRemainingErrorPath, abstractionTest)) {
-          result.add(candidate.createAbstractionBlock(state));
-          abstractionTest = new SMGState(state);
-        } else {
-          state.executeHeapAbstractionOneStep(result);
-        }
+      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge)) {
+        result.add(candidate.createAbstractionBlock(state));
+        abstractionTest = new SMGState(state);
       } else {
-        if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge)) {
-          result.add(candidate.createAbstractionBlock(state));
-          abstractionTest = new SMGState(state);
-        } else {
-          state.executeHeapAbstractionOneStep(result);
-        }
+        state.executeHeapAbstractionOneStep(result);
       }
 
       candidate = abstractionTest.executeHeapAbstractionOneStep(result);
@@ -110,10 +101,5 @@ public class SMGEdgeHeapAbstractionInterpolator {
       CFAEdge pCurrentEdge) throws CPAException, InterruptedException {
 
     return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge);
-  }
-
-  private boolean isRemainingPathReachable(ARGPath pErrorPath, SMGState pInitialState)
-      throws CPAException, InterruptedException {
-    return checker.isReachable(pErrorPath, pInitialState);
   }
 }
