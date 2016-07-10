@@ -79,9 +79,6 @@ solver.solver = SMTINTERPOL
 # Log solver actions, this may be slow!
 solver.useLogger = false
 
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
-
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
@@ -2758,6 +2755,10 @@ termination.check = false
 # When checking for the termination property, use this configuration file
 # instead of the current one.
 termination.config = no default value
+
+# Keep all stem states after successful refinement of the termination
+# argument.
+termination.keepStem = true
 
 # Analysis type used for synthesis of termination arguments.
 termination.lassoAnalysis.analysisType = LINEAR_WITH_GUESSES

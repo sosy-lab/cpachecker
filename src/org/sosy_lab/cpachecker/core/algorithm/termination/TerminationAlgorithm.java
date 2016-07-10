@@ -94,6 +94,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -115,6 +116,12 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
   )
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 100;
+
+  @Option(
+      secure = true,
+      description = "Keep all stem states after successful refinement of the termination argument."
+  )
+  private boolean keepStem = true;
 
   private final TerminationStatistics statistics;
 
@@ -297,10 +304,11 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
       // potential non-termination
       if (status.isPrecise() && targetStateWithCounterExample.isPresent()) {
 
+        ARGState targetState = targetStateWithCounterExample.get();
         CounterexampleInfo originalCounterexample =
-            targetStateWithCounterExample.get().getCounterexampleInformation().get();
+            targetState.getCounterexampleInformation().get();
         ARGState loopHeadState =
-            Iterables.getOnlyElement(targetStateWithCounterExample.get().getParents());
+            Iterables.getOnlyElement(targetState.getParents());
         ARGState nonTerminationLoopHead = createNonTerminationState(loopHeadState);
         CounterexampleInfo counterexample =
             removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
@@ -308,7 +316,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
             lassoAnalysis.checkTermination(counterexample, relevantVariables);
 
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
-          removeIntermediateStates(pReachedSet, targetStateWithCounterExample.get());
+          removeIntermediateStates(pReachedSet, targetState);
           result = Result.FALSE;
 
         } else if (lassoAnalysisResult.hasTerminationArgument()) {
@@ -318,7 +326,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
           if (rankingRelations.add(rankingRelation)) {
             terminationCpa.addRankingRelation(rankingRelation);
             // Prepare reached set for next iteration.
-            resetReachedSet(pReachedSet, initialLocation);
+            prepareForNextIteration(pReachedSet, targetState, initialLocation);
             // a ranking relation was synthesized and the reached set was reseted
             result = Result.TRUE;
             repeatedRankingFunctionsSinceSuccessfulIteration = 0;
@@ -328,7 +336,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
             repeatedRankingFunctionsSinceSuccessfulIteration++;
             logger.logf(
                 WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
-            removeCounterExample(pReachedSet, targetStateWithCounterExample.get());
+            removeCounterExample(pReachedSet, targetState);
 
             // Do not use the first reached target state again and again
             // if we cannot synthesis new termination arguments from it.
@@ -342,7 +350,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
             } else {
               // Prepare reached set for next iteration.
-              resetReachedSet(pReachedSet, initialLocation);
+              prepareForNextIteration(pReachedSet, targetState, initialLocation);
               // a ranking relation was synthesized and the reached set was reseted
               result = Result.TRUE;
             }
@@ -350,7 +358,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
         } else { // no termination argument and no non-termination argument could be synthesized
           logger.logf(WARNING, "Could not synthesize a termination or non-termination argument.");
-          removeCounterExample(pReachedSet, targetStateWithCounterExample.get());
+          removeCounterExample(pReachedSet, targetState);
           result = Result.UNKNOWN;
         }
 
@@ -478,11 +486,52 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void resetReachedSet(ReachedSet pReachedSet, CFANode initialLocation)
+  private void prepareForNextIteration(
+      ReachedSet pReachedSet, ARGState pTargetState, CFANode pInitialLocation)
+          throws InterruptedException {
+
+    if (keepStem) {
+      Set<ARGState> workList = Sets.newHashSet(pTargetState);
+      Set<ARGState> firstLoopState = Sets.newHashSet();
+
+      // get all loop states having a stem predecessor
+      while(!workList.isEmpty()) {
+        ARGState next = workList.iterator().next();
+        workList.remove(next);
+        for (ARGState parent : next.getParents()) {
+
+          if (extractStateByType(parent, TerminationState.class).isPartOfLoop()) {
+            workList.add(parent);
+          } else {
+            firstLoopState.add(parent);
+          }
+        }
+      }
+
+      firstLoopState
+          .stream()
+          .map(ARGState::getChildren)
+          .flatMap(Collection::stream)
+          .forEach(pReachedSet::reAddToWaitlist);
+      Set<ARGState> statesToRemove = firstLoopState
+          .stream()
+          .map(ARGState::getSubgraph)
+          .flatMap(Collection::stream)
+          .collect(Collectors.toSet());
+
+      pReachedSet.removeAll(statesToRemove);
+      statesToRemove.forEach(ARGState::removeFromARG);
+
+    } else {
+      resetReachedSet(pReachedSet, pInitialLocation);
+    }
+  }
+
+  private void resetReachedSet(ReachedSet pReachedSet, CFANode pInitialLocation)
       throws InterruptedException {
-    AbstractState initialState = safetyCPA.getInitialState(initialLocation, getDefaultPartition());
+    AbstractState initialState = safetyCPA.getInitialState(pInitialLocation, getDefaultPartition());
     Precision initialPrecision =
-        safetyCPA.getInitialPrecision(initialLocation, getDefaultPartition());
+        safetyCPA.getInitialPrecision(pInitialLocation, getDefaultPartition());
     pReachedSet.clear();
     pReachedSet.add(initialState, initialPrecision);
   }
