@@ -886,12 +886,15 @@ public class CLangSMG extends SMG {
   public void clearObjects() {
     global_objects.clear();
     heap_objects.clear();
+    super.clearObjects();
 
     for (CLangStackFrame frame : stack_objects) {
       frame.clearStackVariables();
-    }
 
-    super.clearObjects();
+      if(frame.getReturnObject() != null) {
+        addObject(frame.getReturnObject());
+      }
+    }
 
     /*May not remove null object.*/
     heap_objects.add(getNullObject());

@@ -672,6 +672,7 @@ public class SMG {
 
   public void clearObjects() {
     objects.clear();
+    object_validity.clear();
 
     /*May not clear null objects*/
     addObject(nullObject);
