@@ -309,6 +309,13 @@ final class SMGJoinValues {
         return Pair.of(false, true);
     }
 
+    if (mapping2.containsKey(pTarget)) {
+      SMGObject jointList = mapping2.get(pTarget);
+      if (mapping1.containsValue(jointList)) {
+        return Pair.of(false, true);
+      }
+    }
+
     /*Optional objects may be pointed to by one offset.*/
     Set<SMGEdgePointsTo> pointedToTarget = SMGUtils.getPointerToThisObject(pTarget, pInputSMG2);
 
@@ -464,6 +471,13 @@ final class SMGJoinValues {
         break;
       default:
         return Pair.of(false, true);
+    }
+
+    if(pMapping1.containsKey(pTarget)) {
+      SMGObject jointObject = mapping1.get(pTarget);
+      if(mapping2.containsValue(jointObject)) {
+        return Pair.of(false, true);
+      }
     }
 
     /*Optional objects may be pointed to by one offset.*/
