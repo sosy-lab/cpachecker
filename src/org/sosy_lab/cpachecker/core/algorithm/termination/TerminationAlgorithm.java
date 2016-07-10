@@ -336,16 +336,17 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
             repeatedRankingFunctionsSinceSuccessfulIteration++;
             logger.logf(
                 WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
-            removeCounterExample(pReachedSet, targetState);
 
             // Do not use the first reached target state again and again
             // if we cannot synthesis new termination arguments from it.
             if (repeatedRankingFunctionsSinceSuccessfulIteration
                 > maxRepeatedRankingFunctionsPerLoop / 5) {
+              removeCounterExample(pReachedSet, targetState);
               result = Result.UNKNOWN;
 
             } else if (totalRepeatedRankingFunctions >= maxRepeatedRankingFunctionsPerLoop) {
               // stop analysis for this loop because there is no progress
+              removeCounterExample(pReachedSet, targetState);
               return Result.UNKNOWN;
 
             } else {
@@ -492,7 +493,7 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
 
     if (keepStem) {
       Set<ARGState> workList = Sets.newHashSet(pTargetState);
-      Set<ARGState> firstLoopState = Sets.newHashSet();
+      Set<ARGState> firstLoopStates = Sets.newHashSet();
 
       // get all loop states having a stem predecessor
       while(!workList.isEmpty()) {
@@ -503,17 +504,17 @@ public class TerminationAlgorithm implements Algorithm, StatisticsProvider {
           if (extractStateByType(parent, TerminationState.class).isPartOfLoop()) {
             workList.add(parent);
           } else {
-            firstLoopState.add(parent);
+            firstLoopStates.add(next);
           }
         }
       }
 
-      firstLoopState
+      firstLoopStates
           .stream()
-          .map(ARGState::getChildren)
+          .map(ARGState::getParents)
           .flatMap(Collection::stream)
           .forEach(pReachedSet::reAddToWaitlist);
-      Set<ARGState> statesToRemove = firstLoopState
+      Set<ARGState> statesToRemove = firstLoopStates
           .stream()
           .map(ARGState::getSubgraph)
           .flatMap(Collection::stream)
