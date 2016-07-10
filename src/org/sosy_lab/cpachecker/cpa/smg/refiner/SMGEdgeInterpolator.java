@@ -231,6 +231,12 @@ public class SMGEdgeInterpolator {
 
     SMGState state = pState;
 
+    /*If the remaining path is empty, just use the true interpolant.*/
+    if (pRemainingErrorPath.size() == 1) {
+      state.clearValues();
+      return state;
+    }
+
     for (SMGEdgeHasValue currentHveEdge : state.getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 

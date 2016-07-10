@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -80,12 +80,7 @@ public class SMGFeasibilityChecker {
     try {
       CFAEdge edge = null;
 
-      PathIterator iterator = pPath.fullPathIterator();
-
-      if (!iterator.hasNext()) {
-        Collection<SMGState> lastStates = ImmutableList.of(pStartingPoint);
-        return ReachabilityResult.isReachable(lastStates, null);
-      }
+      PathIterator iterator = pPath.pathIterator();
 
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
@@ -102,6 +97,8 @@ public class SMGFeasibilityChecker {
         }
 
         iterator.advance();
+        next.clear();
+        next.addAll(successors);
       }
 
       return ReachabilityResult.isReachable(next, edge);
@@ -174,6 +171,8 @@ public class SMGFeasibilityChecker {
       SMGPrecision pPrecision)
           throws CPAException, InterruptedException {
 
+    Preconditions.checkArgument(pPath.getInnerEdges().size() > 0);
+
     ReachabilityResult result = isReachable(pPath, pStartingPoint, pPrecision);
 
     if (result.isReachable()) {
@@ -193,6 +192,12 @@ public class SMGFeasibilityChecker {
     private final CFAEdge lastEdge;
 
     private ReachabilityResult(boolean pIsReachable, Collection<SMGState> pLastStates, CFAEdge pLastEdge) {
+
+      if (pIsReachable) {
+        Preconditions.checkNotNull(pLastEdge);
+        Preconditions.checkNotNull(pLastStates);
+      }
+
       isReachable = pIsReachable;
       lastStates = pLastStates;
       lastEdge = pLastEdge;
@@ -239,6 +244,10 @@ public class SMGFeasibilityChecker {
 
   public boolean isReachable(ARGPath pErrorPath, SMGState pInitialState)
       throws CPAException, InterruptedException {
+
+    if (pErrorPath.size() == 1) {
+      return true;
+    }
 
     return isReachable(pErrorPath, pInitialState, precision).isReachable();
   }
