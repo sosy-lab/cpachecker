@@ -112,7 +112,7 @@ public class SMGRefiner implements Refiner {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportInterpolantSMGs = PathTemplate.ofFormatString("smg/interpolation-%d/%s");
 
-  @Option(secure = true, description = "export interpolant smgs for every refinment to this path template")
+  @Option(secure = true, description = "export interpolant smgs for every path interpolation to this path template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportRefinmentSMGs = PathTemplate.ofFormatString("smg/refinment-%d/smg-%s");
 
