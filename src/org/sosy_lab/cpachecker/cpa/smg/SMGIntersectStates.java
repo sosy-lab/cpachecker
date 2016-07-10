@@ -490,10 +490,12 @@ public final class SMGIntersectStates {
     /*Global and stack objects already mapped */
     pDestSMG.addHeapObject(destObject);
 
-    intersectPairFields(pSmg1, pSmg2, pObj1, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
-        pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2, pDestExplicitValues);
+    boolean defined =
+        intersectPairFields(pSmg1, pSmg2, pObj1, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
+            pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2,
+            pDestExplicitValues);
 
-    return true;
+    return defined;
   }
 
   private static boolean matchObject(SMGObject pObj1, SMGObject pObj2) {
