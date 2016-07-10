@@ -53,23 +53,30 @@ import java.util.regex.Pattern;
  */
 public class LassoAnalysisLoader {
 
-  private final static String LASSO_ANALYSIS_IMPL =
+  private final static String LASSO_ANALYSIS_IMPL_CLASS =
       "org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisImpl";
   private final static String LASSO_CLASS = "de.uni_freiburg.informatik.ultimate.lassoranker.Lasso";
   private final static String SMT_UTILS_CLASS =
       "de.uni_freiburg.informatik.ultimate.modelcheckerutils.smt.SmtUtils";
-  private final static String TOOL_CHAIN_STORAGE =
+  private final static String TOOL_CHAIN_STORAGE_CLASS =
       "de.uni_freiburg.informatik.ultimate.core.coreplugin.services.ToolchainStorage";
-  private final static String I_TOOL_CHAIN_STORAGE =
+  private final static String I_TOOL_CHAIN_STORAGE_CLASS =
       "de.uni_freiburg.informatik.ultimate.core.model.services.IToolchainStorage";
-  private final static String TOOL_CHAIN_CANCEL_EXCEPTION =
+  private final static String TOOL_CHAIN_CANCEL_EXCEPTION_CLASS =
       "de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException";
+  private final static String SCRIPTOR_CLASS =
+      "de.uni_freiburg.informatik.ultimate.smtsolver.external.Scriptor";
+  private final static String MONITORED_PROCESS_CLASS =
+      "de.uni_freiburg.informatik.ultimate.core.lib.util.MonitoredProcess";
+
   private final static Pattern LASSO_RANKER_CLASSES =
       Pattern.compile(
           "^de\\.uni_freiburg\\.informatik\\.ultimate\\.lassoranker\\..*|"
               + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.modelcheckerutils\\..*|"
               + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.core\\..*|"
               + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.util\\.ToolchainCanceledException|"
+              + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.smtsolver\\..*|"
+              + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.core\\.lib\\..*|"
               + "^org\\.sosy_lab\\.cpachecker\\.core\\.algorithm\\.termination\\.lasso_analysis\\..*");
 
   private final Configuration config;
@@ -102,52 +109,41 @@ public class LassoAnalysisLoader {
 
     String lassoClass = LASSO_CLASS.replace('.', File.separatorChar) + ".class";
     String smtUtilsClass = SMT_UTILS_CLASS.replace('.', File.separatorChar) + ".class";
-    String toolStorageClass = TOOL_CHAIN_STORAGE.replace('.', File.separatorChar) + ".class";
-    String iToolStorageClass = I_TOOL_CHAIN_STORAGE.replace('.', File.separatorChar) + ".class";
+    String toolStorageClass = TOOL_CHAIN_STORAGE_CLASS.replace('.', File.separatorChar) + ".class";
+    String iToolStorageClass = I_TOOL_CHAIN_STORAGE_CLASS.replace('.', File.separatorChar) + ".class";
     String toolchainCancelExceptionClass =
-        TOOL_CHAIN_CANCEL_EXCEPTION.replace('.', File.separatorChar) + ".class";
+        TOOL_CHAIN_CANCEL_EXCEPTION_CLASS.replace('.', File.separatorChar) + ".class";
+    String scriptorClass = SCRIPTOR_CLASS.replace('.', File.separatorChar) + ".class";
+    String monitoredProcessClass =
+        MONITORED_PROCESS_CLASS.replace('.', File.separatorChar) + ".class";
     URL lassoClassUrl = TerminationAlgorithmClassLoader.getResource(lassoClass);
     URL smtUtilsClassUrl = TerminationAlgorithmClassLoader.getResource(smtUtilsClass);
     URL toolStorageUrl = TerminationAlgorithmClassLoader.getResource(toolStorageClass);
     URL iToolStorageUrl = TerminationAlgorithmClassLoader.getResource(iToolStorageClass);
     URL toolchainCancelExceptionURL =
         TerminationAlgorithmClassLoader.getResource(toolchainCancelExceptionClass);
+    URL scriptorURL =
+        TerminationAlgorithmClassLoader.getResource(scriptorClass);
+    URL monitoredProcessURL =
+        TerminationAlgorithmClassLoader.getResource(monitoredProcessClass);
 
     ClassLoader lassoAnalysisClassLoader = TerminationAlgorithmClassLoader;
-    if (lassoClassUrl != null
-        && lassoClassUrl.getProtocol().equals("jar")
-        && lassoClassUrl.getFile().contains("!")
-        && smtUtilsClassUrl != null
-        && smtUtilsClassUrl.getProtocol().equals("jar")
-        && smtUtilsClassUrl.getFile().contains("!")
-        && toolStorageUrl != null
-        && toolStorageUrl.getProtocol().equals("jar")
-        && toolStorageUrl.getFile().contains("!")
-        && iToolStorageUrl != null
-        && iToolStorageUrl.getProtocol().equals("jar")
-        && iToolStorageUrl.getFile().contains("!")
-        && toolchainCancelExceptionURL != null
-        && toolchainCancelExceptionURL.getProtocol().equals("jar")
-        && toolchainCancelExceptionURL.getFile().contains("!")) {
+    if (isClassInJar(lassoClassUrl)
+        && isClassInJar(smtUtilsClassUrl)
+        &&isClassInJar(toolStorageUrl)
+        &&isClassInJar(iToolStorageUrl)
+        &&isClassInJar(toolchainCancelExceptionURL)
+        &&isClassInJar(scriptorURL)
+        &&isClassInJar(monitoredProcessURL)) {
+
       try {
-        lassoClassUrl =
-            new URL(lassoClassUrl.getFile().substring(0, lassoClassUrl.getFile().lastIndexOf('!')));
-        smtUtilsClassUrl =
-            new URL(
-                smtUtilsClassUrl
-                    .getFile()
-                    .substring(0, smtUtilsClassUrl.getFile().lastIndexOf('!')));
-        toolStorageUrl =
-            new URL(
-                toolStorageUrl.getFile().substring(0, toolStorageUrl.getFile().lastIndexOf('!')));
-        iToolStorageUrl =
-            new URL(
-                iToolStorageUrl.getFile().substring(0, iToolStorageUrl.getFile().lastIndexOf('!')));
-        toolchainCancelExceptionURL =
-            new URL(
-                toolchainCancelExceptionURL
-                    .getFile()
-                    .substring(0, toolchainCancelExceptionURL.getFile().lastIndexOf('!')));
+        lassoClassUrl = toUrlOfJar(lassoClassUrl);
+        smtUtilsClassUrl = toUrlOfJar(smtUtilsClassUrl);
+        toolStorageUrl = toUrlOfJar(toolStorageUrl);
+        iToolStorageUrl = toUrlOfJar(iToolStorageUrl);
+        toolchainCancelExceptionURL = toUrlOfJar(toolchainCancelExceptionURL);
+        scriptorURL = toUrlOfJar(scriptorURL);
+        monitoredProcessURL = toUrlOfJar(monitoredProcessURL);
 
         URL[] urls = {
           lassoClassUrl,
@@ -155,6 +151,8 @@ public class LassoAnalysisLoader {
           toolStorageUrl,
           iToolStorageUrl,
           toolchainCancelExceptionURL,
+          scriptorURL,
+          monitoredProcessURL,
           TerminationAlgorithm.class.getProtectionDomain().getCodeSource().getLocation(),
         };
 
@@ -176,18 +174,33 @@ public class LassoAnalysisLoader {
           "Could not create proper classpath for LassoRanker because location of LassoRanker "
               + "classes is unexpected, loading correct java-cup classes may fail. "
               + "Locations of LassoRanker are ",
-          lassoClassUrl,
-          smtUtilsClassUrl);
+              lassoClassUrl,
+              smtUtilsClassUrl,
+              toolStorageUrl,
+              iToolStorageUrl,
+              toolchainCancelExceptionURL,
+              scriptorURL,
+              monitoredProcessURL);
     }
 
     LassoAnalysis.Factory factory;
     try {
-      Class<?> lassoImpl = Class.forName(LASSO_ANALYSIS_IMPL, true, lassoAnalysisClassLoader);
+      Class<?> lassoImpl = Class.forName(LASSO_ANALYSIS_IMPL_CLASS, true, lassoAnalysisClassLoader);
       factory = Classes.createFactory(LassoAnalysis.Factory.class, lassoImpl);
     } catch (ClassNotFoundException | UnsuitedClassException e) {
       throw new RuntimeException(e);
     }
 
     return factory.create(logger, config, shutdownNotifier, solverContext, cfa, statistics);
+  }
+
+  private boolean isClassInJar(URL classUrl) {
+    return classUrl != null
+        && classUrl.getProtocol().equals("jar")
+        && classUrl.getFile().contains("!");
+  }
+
+  private URL toUrlOfJar(URL classUrl) throws MalformedURLException {
+    return new URL(classUrl.getFile().substring(0, classUrl.getFile().lastIndexOf('!')));
   }
 }

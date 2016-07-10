@@ -26,6 +26,8 @@
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-model.jar" sourcepath="lib/java-contrib/ultimate-model-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-core-rcp.jar" sourcepath="lib/java-contrib/ultimate-core-rcp-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-util.jar" sourcepath="lib/java-contrib/ultimate-util-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/ultimate-smt-solver-bridge.jar" sourcepath="lib/java-contrib/ultimate-smt-solver-bridge-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/ultimate-core.jar" sourcepath="lib/java-contrib/ultimate-core-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
