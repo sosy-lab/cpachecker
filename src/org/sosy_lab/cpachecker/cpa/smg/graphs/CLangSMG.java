@@ -925,7 +925,7 @@ public class CLangSMG extends SMG {
 
   private void getHeapObjectMemoryPathsFromStack(Map<SMGObject, SMGMemoryPath> pResult, Set<SMGObject> pReached) {
 
-    int pLocationOnStack = 1;
+    int pLocationOnStack = 0;
 
     for (CLangStackFrame frame : stack_objects) {
       List<String> stackVariables = new ArrayList<>(frame.getVariables().keySet());
