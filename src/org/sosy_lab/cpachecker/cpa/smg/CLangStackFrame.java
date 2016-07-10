@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 /**
  * Represents a C language stack frame
@@ -127,6 +127,14 @@ final public class CLangStackFrame {
     return to_return.toString();
   }
 
+  public void removeVariable(String pName) {
+    if (RETVAL_LABEL.equals(pName)) {
+      // Do nothing for the moment
+    } else {
+      stack_variables.remove(pName);
+    }
+  }
+
   /**
    * Getter for obtaining an object corresponding to a variable name
    *
@@ -136,6 +144,11 @@ final public class CLangStackFrame {
    * @return SMG object corresponding to pName in the frame
    */
   public SMGRegion getVariable(String pName) {
+
+    if (pName.equals(RETVAL_LABEL) && returnValueObject != null) {
+      return returnValueObject;
+    }
+
     SMGRegion to_return = stack_variables.get(pName);
 
     if (to_return == null) {
@@ -152,7 +165,11 @@ final public class CLangStackFrame {
    * @return True if variable pName is present, false otherwise
    */
   public boolean containsVariable(String pName) {
-    return stack_variables.containsKey(pName);
+    if (pName.equals(RETVAL_LABEL)) {
+      return returnValueObject != null;
+    } else {
+      return stack_variables.containsKey(pName);
+    }
   }
 
   /**
@@ -194,5 +211,9 @@ final public class CLangStackFrame {
    */
   public boolean hasVariable(String var) {
     return stack_variables.containsKey(var);
+  }
+
+  public void clearStackVariables() {
+    stack_variables.clear();
   }
 }

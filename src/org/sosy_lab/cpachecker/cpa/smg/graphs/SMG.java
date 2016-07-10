@@ -669,4 +669,12 @@ public class SMG {
     pathPredicate.clear();
     errorPredicate.clear();
   }
+
+  public void clearObjects() {
+    objects.clear();
+
+    /*May not clear null objects*/
+    addObject(nullObject);
+    object_validity.put(nullObject, false);
+  }
 }

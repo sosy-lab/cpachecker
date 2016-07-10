@@ -41,11 +41,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 public class SMGEdgeInterpolator {
@@ -200,14 +204,20 @@ public class SMGEdgeInterpolator {
       return resultingInterpolants;
     }
 
-    for(SMGState state : successors) {
+    for (SMGState state : successors) {
 
-      /*First, interpolate fields with no heap abstraction for the current state.*/
+      if (originalPrecision.allowsStackAbstraction()) {
+        interpolateStackVariables(state, remainingErrorPath, currentEdge, pCheckOnlyReachability);
+      }
+
       if (originalPrecision.allowsFieldAbstraction()) {
         interpolateFields(state, remainingErrorPath, currentEdge, pCheckOnlyReachability);
       }
 
-      abstractionBlocks = interpolateHeapAbstraction(state, remainingErrorPath, currentEdge.getPredecessor(), currentEdge, pCheckOnlyReachability);
+      if (originalPrecision.allowsHeapAbstraction()) {
+        abstractionBlocks = interpolateHeapAbstraction(state, remainingErrorPath,
+            currentEdge.getPredecessor(), currentEdge, pCheckOnlyReachability);
+      }
 
       SMGInterpolant result = interpolantManager.createInterpolant(state, abstractionBlocks);
       resultingInterpolants.add(result);
@@ -225,6 +235,36 @@ public class SMGEdgeInterpolator {
     }
 
     return false;
+  }
+
+  private SMGState interpolateStackVariables(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pCheckOnlyReachability)
+      throws CPAException, InterruptedException {
+
+    SMGState state = pState;
+
+    for (Entry<MemoryLocation, SMGRegion> memoryLocationEntry : state.getStackVariables().entrySet()) {
+      shutdownNotifier.shutdownIfNecessary();
+      MemoryLocation memoryLocation = memoryLocationEntry.getKey();
+      SMGRegion region = memoryLocationEntry.getValue();
+
+      // temporarily remove the hve edge of the current memory path from the candidate
+      // interpolant
+      SMGStateInformation info = state.forgetStackVariable(memoryLocation);
+
+      /* check if the remaining path now becomes feasible
+       * or reachable.*/
+      if (pCheckOnlyReachability) {
+        if (isRemainingPathReachable(pRemainingErrorPath, state)) {
+          state.remember(memoryLocation, region, info);
+        }
+      } else {
+        if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge)) {
+          state.remember(memoryLocation, region, info);
+        }
+      }
+    }
+
+    return state;
   }
 
   private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pCheckOnlyReachability)

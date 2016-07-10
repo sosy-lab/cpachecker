@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -2178,11 +2179,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getMemoryPaths();
   }
 
-  public void remember(SMGStateInformation pForgottenInformation) {
-    heap.remember(pForgottenInformation);
-  }
-
-  public SMGStateInformation forget(SMGMemoryPath location) throws SMGInconsistentException {
+  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath location) throws SMGInconsistentException {
     return heap.forget(location);
   }
 
@@ -2196,6 +2193,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void clearValues() {
     heap.clearValues();
+  }
+
+  public void clearObjects() {
+    heap.clearObjects();
   }
 
   public SMGIntersectionResult intersectStates(SMGState pOtherState) {
@@ -2256,5 +2257,65 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void remember(SMGEdgeHasValue pHveEdge) {
     heap.addHasValueEdge(pHveEdge);
+  }
+
+  public Map<MemoryLocation, SMGRegion> getStackVariables() {
+
+    Map<MemoryLocation, SMGRegion> result = new HashMap<>();
+
+    for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
+      String variableName = variableEntry.getKey();
+      SMGRegion reg = variableEntry.getValue();
+      result.put(MemoryLocation.valueOf(variableName), reg);
+    }
+
+    for (CLangStackFrame frame : heap.getStackFrames()) {
+      String functionName = frame.getFunctionDeclaration().getName();
+
+      for (Entry<String, SMGRegion> variableEntry : frame.getVariables().entrySet()) {
+        String variableName = variableEntry.getKey();
+        SMGRegion reg = variableEntry.getValue();
+        result.put(MemoryLocation.valueOf(functionName, variableName), reg);
+      }
+    }
+
+    return result;
+  }
+
+  public boolean forgetNonTrackedStackVariables(Set<MemoryLocation> pTrackedStackVariables) {
+
+    boolean change = false;
+
+    for (String variable : ImmutableSet.copyOf((heap.getGlobalObjects().keySet()))) {
+      MemoryLocation globalVar = MemoryLocation.valueOf(variable);
+      if (!pTrackedStackVariables.contains(globalVar)) {
+        heap.removeGlobalVariableAndEdges(variable);
+        change = true;
+      }
+    }
+
+    for (CLangStackFrame frame : heap.getStackFrames()) {
+      String functionName = frame.getFunctionDeclaration().getName();
+
+      for (String variable : ImmutableSet.copyOf(frame.getVariables().keySet())) {
+        MemoryLocation var = MemoryLocation.valueOf(functionName, variable);
+
+        if (!pTrackedStackVariables.contains(var)) {
+          heap.removeStackVariableAndEdges(variable, frame);
+          change = true;
+        }
+      }
+    }
+
+    return change;
+  }
+
+  public SMGStateInformation forgetStackVariable(MemoryLocation pMemoryLocation) {
+    return heap.forgetStackVariable(pMemoryLocation);
+  }
+
+  public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
+      SMGStateInformation pInfo) {
+    heap.remember(pMemoryLocation, pRegion, pInfo);
   }
 }

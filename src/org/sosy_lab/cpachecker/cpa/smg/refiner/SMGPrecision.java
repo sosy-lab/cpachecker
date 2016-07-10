@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Collection;
 import java.util.Map;
@@ -64,10 +65,11 @@ public abstract class SMGPrecision implements Precision {
 
     SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
     SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
+    SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
 
     return new SMGRefineablePrecision(pPrecision.logger,
-        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, false),
-        emptyMemoryPaths, emptyAbstractionBlocks);
+        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
+        emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable);
   }
 
   public LogManager getLogger() {
@@ -77,6 +79,8 @@ public abstract class SMGPrecision implements Precision {
   public abstract boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode);
 
   public abstract Set<SMGMemoryPath> getTrackedMemoryPathsOnNode(CFANode pCfaNode);
+
+  public abstract Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode);
 
   public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode) {
     return options.allowsHeapAbstraction() && pCfaNode.isLoopStart();
@@ -103,14 +107,17 @@ public abstract class SMGPrecision implements Precision {
   private static class SMGRefineablePrecision extends SMGPrecision {
 
     private final ImmutableSetMultimap<CFANode, SMGMemoryPath> trackedMemoryPaths;
+    private final ImmutableSetMultimap<CFANode, MemoryLocation> trackedStackVariables;
     private final ImmutableSetMultimap<CFANode, SMGAbstractionBlock> abstractionBlocks;
 
     private SMGRefineablePrecision(LogManager pLogger, SMGPrecisionAbstractionOptions pOptions,
         SetMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
-        SetMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks) {
+        SetMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
+        SetMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
       super(pLogger, pOptions);
       trackedMemoryPaths = ImmutableSetMultimap.copyOf(pTrackedMemoryPaths);
       abstractionBlocks = ImmutableSetMultimap.copyOf(pAbstractionBlocks);
+      trackedStackVariables = ImmutableSetMultimap.copyOf(pTrackedStackVariables);
     }
 
     @Override
@@ -123,10 +130,21 @@ public abstract class SMGPrecision implements Precision {
     }
 
     @Override
+    public Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode) {
+      if (trackedStackVariables.containsKey(pCfaNode)) {
+        return trackedStackVariables.get(pCfaNode);
+      } else {
+        return ImmutableSet.of();
+      }
+    }
+
+    @Override
     public Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement) {
 
       SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create();
       resultMemoryPaths.putAll(trackedMemoryPaths);
+      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create();
+      resultStackVariables.putAll(trackedStackVariables);
       SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create();
       resultAbstractionBlocks.putAll(abstractionBlocks);
 
@@ -135,12 +153,14 @@ public abstract class SMGPrecision implements Precision {
         CFANode cfaNode = entry.getKey();
         Collection<SMGAbstractionBlock> incAbstractionBlocks = inc.getAbstractionBlock();
         Collection<SMGMemoryPath> incMemoryPaths = inc.getPathsToTrack();
+        Collection<MemoryLocation> incStackVariables = inc.getStackVariablesToTrack();
         resultAbstractionBlocks.putAll(cfaNode, incAbstractionBlocks);
         resultMemoryPaths.putAll(cfaNode, incMemoryPaths);
+        resultStackVariables.putAll(cfaNode, incStackVariables);
       }
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), resultMemoryPaths,
-          resultAbstractionBlocks);
+          resultAbstractionBlocks, resultStackVariables);
     }
 
     @Override
@@ -155,6 +175,9 @@ public abstract class SMGPrecision implements Precision {
       SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create();
       resultMemoryPaths.putAll(trackedMemoryPaths);
       resultMemoryPaths.putAll(other.trackedMemoryPaths);
+      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create();
+      resultStackVariables.putAll(trackedStackVariables);
+      resultStackVariables.putAll(other.trackedStackVariables);
       SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create();
       resultAbstractionBlocks.putAll(abstractionBlocks);
       resultAbstractionBlocks.putAll(other.abstractionBlocks);
@@ -162,7 +185,7 @@ public abstract class SMGPrecision implements Precision {
       assert getAbstractionOptions().equals(pPrecision.getAbstractionOptions());
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), resultMemoryPaths,
-          resultAbstractionBlocks);
+          resultAbstractionBlocks, resultStackVariables);
     }
 
     @Override
@@ -184,8 +207,8 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public String toString() {
       return "SMGRefineablePrecision [trackedMemoryPaths=" + trackedMemoryPaths
-          + ", abstractionBlocks=" + abstractionBlocks
-          + ", precisionOptions=" + getAbstractionOptions().toString() + "]";
+          + ", trackedStackVariables=" + trackedStackVariables + ", abstractionBlocks="
+          + abstractionBlocks + "]";
     }
   }
 
@@ -217,6 +240,11 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public Set<SMGMemoryPath> getTrackedMemoryPathsOnNode(CFANode pCfaNode) {
+      throw new UnsupportedOperationException("Method not yet implemented.");
+    }
+
+    @Override
+    public Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode) {
       throw new UnsupportedOperationException("Method not yet implemented.");
     }
 

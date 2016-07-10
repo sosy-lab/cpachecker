@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -102,9 +103,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       LocationState location) throws CPAException {
 
     boolean allowsFieldAbstraction = pPrecision.allowsFieldAbstraction();
-    boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
+    boolean allowsHeapAbstraction =
+        pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
+    boolean allowsStackAbstraction = pPrecision.allowsStackAbstraction();
 
-    if (!allowsFieldAbstraction && !allowsHeapAbstraction) {
+    if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
     }
 
@@ -112,15 +115,31 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     SMGState result = pState;
     SMGState newState = new SMGState(pState);
-    boolean change = false;
     CFANode node = location.getLocationNode();
+
+    if (allowsStackAbstraction) {
+      Set<MemoryLocation> stackVariables = pPrecision.getTrackedStackVariablesOnNode(node);
+      boolean stackAbstractionChange = newState.forgetNonTrackedStackVariables(stackVariables);
+
+      if (stackAbstractionChange) {
+        String name =
+            String.format("%03d-%03d-after-stack-abstraction", result.getId(), newState.getId());
+        String description = "after-stack-abstraction-of-smg-" + result.getId();
+        SMGUtils.plotWhenConfigured(name, newState, description, logger,
+            SMGExportLevel.EVERY, exportOptions);
+
+        result = newState;
+        logger.log(Level.ALL, "Precision adjustment on node " + node.getNodeNumber()
+            + " with result state id: " + result.getId());
+      }
+    }
 
     if (allowsFieldAbstraction) {
 
       Set<SMGMemoryPath> mempaths = pPrecision.getTrackedMemoryPathsOnNode(node);
-      change = newState.forgetNonTrackedHve(mempaths);
+      boolean fieldAbstractionChange = newState.forgetNonTrackedHve(mempaths);
 
-      if (change) {
+      if (fieldAbstractionChange) {
         String name = String.format("%03d-%03d-after-field-abstraction", result.getId(), newState.getId());
         String description = "after-field-abstraction-of-smg-" + result.getId();
         SMGUtils.plotWhenConfigured(name, newState, description, logger,
@@ -134,13 +153,15 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      String namedeb = String.format("%03d-node-%03d-before-abstraction", location.getLocationNode().getNodeNumber(), result.getId());
+      String namedeb = String.format("%03d-node-%03d-before-abstraction",
+          location.getLocationNode().getNodeNumber(), result.getId());
 
       SMGDebugTest.dumpPlot(namedeb, result);
 
-      change = newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
+      boolean heapAbstractionChange =
+          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
 
-      if (change) {
+      if (heapAbstractionChange) {
         String name = String.format("%03d-before-heap-abstraction", result.getId());
         String name2 = String.format("%03d-after-heap-abstraction", result.getId());
         String description = "before-heap-abstraction-of-smg-" + result.getId();

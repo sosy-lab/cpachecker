@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,11 +49,13 @@ public class SMGInterpolant {
 
   private final Set<SMGAbstractionBlock> abstractionBlock;
   private final Set<SMGMemoryPath> trackedMemoryPaths;
+  private final Set<MemoryLocation> trackedStackVariables;
   private final Set<SMGState> smgStates;
 
   private SMGInterpolant() {
     abstractionBlock = ImmutableSet.of();
     trackedMemoryPaths = ImmutableSet.of();
+    trackedStackVariables = ImmutableSet.of();
     smgStates = ImmutableSet.of();
   }
 
@@ -61,12 +64,15 @@ public class SMGInterpolant {
     abstractionBlock = ImmutableSet.of();
 
     Set<SMGMemoryPath> memoryPaths = new HashSet<>();
+    Set<MemoryLocation> stackVariables = new HashSet<>();
 
     for (SMGState state : smgStates) {
       memoryPaths.addAll(state.getMemoryPaths());
+      stackVariables.addAll(state.getStackVariables().keySet());
     }
 
     trackedMemoryPaths = memoryPaths;
+    trackedStackVariables = stackVariables;
   }
 
   public SMGInterpolant(Set<SMGState> pStates, Set<SMGAbstractionBlock> pAbstractionBlock) {
@@ -75,12 +81,15 @@ public class SMGInterpolant {
     abstractionBlock = pAbstractionBlock;
 
     Set<SMGMemoryPath> memoryPaths = new HashSet<>();
+    Set<MemoryLocation> stackVariables = new HashSet<>();
 
     for (SMGState state : smgStates) {
       memoryPaths.addAll(state.getMemoryPaths());
+      stackVariables.addAll(state.getStackVariables().keySet());
     }
 
     trackedMemoryPaths = memoryPaths;
+    trackedStackVariables = stackVariables;
   }
 
   public List<SMGState> reconstructStates() {
@@ -103,9 +112,9 @@ public class SMGInterpolant {
 
   public boolean isTrue() {
     /* No heap abstraction can be performed without hv-edges, thats
-     * why every interpolant without hv-edges is true.
+     * why every interpolant without hv-edges and stack variables is true.
      */
-    return !isFalse() && trackedMemoryPaths.isEmpty();
+    return !isFalse() && trackedMemoryPaths.isEmpty() && trackedStackVariables.isEmpty();
   }
 
   public boolean isFalse() {
@@ -193,6 +202,7 @@ public class SMGInterpolant {
     SMGState newState = new SMGState(templateState);
 
     newState.clearValues();
+    newState.clearObjects();
 
     return new SMGInterpolant(ImmutableSet.of(newState));
   }
@@ -202,25 +212,36 @@ public class SMGInterpolant {
     memoryPaths.addAll(trackedMemoryPaths);
     List<SMGAbstractionBlock> blocks = new ArrayList<>(abstractionBlock.size());
     blocks.addAll(abstractionBlock);
+    List<MemoryLocation> stackVariables = new ArrayList<>(trackedStackVariables.size());
+    stackVariables.addAll(trackedStackVariables);
 
-    return new SMGPrecisionIncrement(memoryPaths, blocks);
+    return new SMGPrecisionIncrement(memoryPaths, blocks, stackVariables);
   }
 
   public static class SMGPrecisionIncrement implements Comparable<SMGPrecisionIncrement> {
 
     private final List<SMGMemoryPath> pathsToTrack;
     private final List<SMGAbstractionBlock> abstractionBlock;
+    private final List<MemoryLocation> stackVariablesToTrack;
 
     public SMGPrecisionIncrement(List<SMGMemoryPath> pPathsToTrack,
-        List<SMGAbstractionBlock> pAbstractionBlock) {
+        List<SMGAbstractionBlock> pAbstractionBlock,
+        List<MemoryLocation> pStackVariablesToTrack) {
       pathsToTrack = pPathsToTrack;
       abstractionBlock = pAbstractionBlock;
+      stackVariablesToTrack = pStackVariablesToTrack;
     }
 
-    @Override
-    public String toString() {
-      return "SMGPrecisionIncrement [pathsToTrack=" + pathsToTrack + ", abstractionBlock="
-          + abstractionBlock + "]";
+    public Collection<SMGMemoryPath> getPathsToTrack() {
+      return pathsToTrack;
+    }
+
+    public Collection<SMGAbstractionBlock> getAbstractionBlock() {
+      return abstractionBlock;
+    }
+
+    public List<MemoryLocation> getStackVariablesToTrack() {
+      return stackVariablesToTrack;
     }
 
     @Override
@@ -229,6 +250,8 @@ public class SMGInterpolant {
       int result = 1;
       result = prime * result + ((abstractionBlock == null) ? 0 : abstractionBlock.hashCode());
       result = prime * result + ((pathsToTrack == null) ? 0 : pathsToTrack.hashCode());
+      result =
+          prime * result + ((stackVariablesToTrack == null) ? 0 : stackVariablesToTrack.hashCode());
       return result;
     }
 
@@ -258,15 +281,14 @@ public class SMGInterpolant {
       } else if (!pathsToTrack.equals(other.pathsToTrack)) {
         return false;
       }
+      if (stackVariablesToTrack == null) {
+        if (other.stackVariablesToTrack != null) {
+          return false;
+        }
+      } else if (!stackVariablesToTrack.equals(other.stackVariablesToTrack)) {
+        return false;
+      }
       return true;
-    }
-
-    public Collection<SMGMemoryPath> getPathsToTrack() {
-      return pathsToTrack;
-    }
-
-    public Collection<SMGAbstractionBlock> getAbstractionBlock() {
-      return abstractionBlock;
     }
 
     @Override
@@ -303,6 +325,23 @@ public class SMGInterpolant {
       if (abstractionBlock.size() < other.abstractionBlock.size()) {
         return -1;
       } else if (abstractionBlock.size() > other.abstractionBlock.size()) {
+        return 1;
+      }
+
+      for (int i = 0; i < stackVariablesToTrack.size() && i < other.stackVariablesToTrack.size(); i++) {
+        MemoryLocation path = stackVariablesToTrack.get(i);
+        MemoryLocation otherPath = other.stackVariablesToTrack.get(i);
+
+        int result = path.compareTo(otherPath);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      if (stackVariablesToTrack.size() < other.stackVariablesToTrack.size()) {
+        return -1;
+      } else if (stackVariablesToTrack.size() > other.stackVariablesToTrack.size()) {
         return 1;
       }
 
