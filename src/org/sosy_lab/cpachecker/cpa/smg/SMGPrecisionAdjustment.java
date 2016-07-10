@@ -135,19 +135,20 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
 
     if (allowsHeapAbstraction) {
-      String name = String.format("%03d-before-abstraction", result.getId());
-      String name2 = String.format("%03d-after-abstraction", result.getId());
-      String description = "before-heap-abstraction-of-smg-" + result.getId();
-      String description2 = "after-heap-abstraction-of-smg-" + result.getId();
-      SMGUtils.plotWhenConfigured(name, result, description, logger,
-          SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+
       change = newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
-      SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
-          SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
-      logger.log(Level.ALL, "Heap abstraction on node " + node.getNodeNumber()
-          + " with state id: " + pState.getId());
 
       if (change) {
+        String name = String.format("%03d-before-abstraction", result.getId());
+        String name2 = String.format("%03d-after-abstraction", result.getId());
+        String description = "before-heap-abstraction-of-smg-" + result.getId();
+        String description2 = "after-heap-abstraction-of-smg-" + result.getId();
+        SMGUtils.plotWhenConfigured(name, result, description, logger,
+            SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+        SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
+            SMGExportLevel.EVERY, exportSMG, exportSMGFilePattern);
+        logger.log(Level.INFO, "Heap abstraction on node " + node.getNodeNumber()
+            + " with state id: " + pState.getId());
         result = newState;
       }
     }
