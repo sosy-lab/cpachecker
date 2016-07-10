@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
@@ -38,10 +41,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,14 +115,31 @@ public class SMGFeasibilityChecker {
     }
   }
 
-  private boolean isTarget(Collection<SMGState> pLastStates, CFAEdge pLastEdge)
+  private boolean isTarget(Collection<SMGState> pLastStates, CFAEdge pLastEdge, ARGState pLastState)
           throws CPATransferException, InterruptedException {
+
+    Predicate<? super AutomatonState> automatonStateIsTarget = (AutomatonState state) -> {
+      return state.isTarget() ? true : false;
+    };
+
+    Function<AutomatonState, String> toNameFunction = (AutomatonState state) -> {return state.getOwningAutomatonName();};
+
+    Set<String> automatonNames = AbstractStates.asIterable(pLastState).filter(AutomatonState.class)
+        .filter(automatonStateIsTarget).transform(toNameFunction).toSet();
+
+    Predicate<? super ControlAutomatonCPA> automatonNameFilter =
+        ((ControlAutomatonCPA automaton) -> {
+          return automatonNames.contains(automaton.getTopState().getOwningAutomatonName());
+        });
+
+    List<ControlAutomatonCPA> automatonCPAsToCheck =
+        FluentIterable.from(automatonCPA).filter(automatonNameFilter).toList();
 
     for (SMGState lastState : pLastStates) {
       // prune unreachable to detect memory leak that was detected by abstraction
       lastState.pruneUnreachable();
 
-      for (ControlAutomatonCPA automaton : automatonCPA) {
+      for (ControlAutomatonCPA automaton : automatonCPAsToCheck) {
         if (isTarget(lastState, pLastEdge, automaton)) {
           return true;
         }
@@ -179,7 +202,7 @@ public class SMGFeasibilityChecker {
 
     if (result.isReachable()) {
 
-      return isTarget(result.getLastState(), result.getLastEdge());
+      return isTarget(result.getLastState(), result.getLastEdge(), pPath.getLastState());
     } else {
       return false;
     }
@@ -275,7 +298,7 @@ public class SMGFeasibilityChecker {
     /*Prevent causing side effects when pruning.*/
     SMGState state = new SMGState(pState);
 
-    return isTarget(ImmutableSet.of(state), pCurrentEdge);
+    return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState());
   }
 
   public boolean isReachable(ARGPath pErrorPathPrefix) throws CPAException, InterruptedException {

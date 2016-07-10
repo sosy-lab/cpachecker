@@ -484,7 +484,8 @@ public class SMGRefiner implements Refiner {
     return precision;
   }
 
-  private boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {
+  private boolean isErrorPathFeasible(ARGPath pErrorPath)
+      throws CPAException, InterruptedException {
     return checker.isFeasible(pErrorPath);
   }
 
