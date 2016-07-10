@@ -87,12 +87,12 @@ public class SMGInterpolant {
     if (isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      List<SMGState> smgStates = new ArrayList<>(this.smgStates.size());
+      List<SMGState> result = new ArrayList<>(this.smgStates.size());
       for (SMGState state : smgStates) {
-        smgStates.add(new SMGState(state));
+        result.add(new SMGState(state));
       }
 
-      return smgStates;
+      return result;
     }
   }
 
