@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -197,16 +198,21 @@ public class SMGInterpolant {
   }
 
   public SMGPrecisionIncrement getPrecisionIncrement() {
-    return new SMGPrecisionIncrement(trackedMemoryPaths, abstractionBlock);
+    List<SMGMemoryPath> memoryPaths = new ArrayList<>(trackedMemoryPaths.size());
+    memoryPaths.addAll(trackedMemoryPaths);
+    List<SMGAbstractionBlock> blocks = new ArrayList<>(abstractionBlock.size());
+    blocks.addAll(abstractionBlock);
+
+    return new SMGPrecisionIncrement(memoryPaths, blocks);
   }
 
-  public static class SMGPrecisionIncrement {
+  public static class SMGPrecisionIncrement implements Comparable<SMGPrecisionIncrement> {
 
-    private final Set<SMGMemoryPath> pathsToTrack;
-    private final Set<SMGAbstractionBlock> abstractionBlock;
+    private final List<SMGMemoryPath> pathsToTrack;
+    private final List<SMGAbstractionBlock> abstractionBlock;
 
-    public SMGPrecisionIncrement(Set<SMGMemoryPath> pPathsToTrack,
-        Set<SMGAbstractionBlock> pAbstractionBlock) {
+    public SMGPrecisionIncrement(List<SMGMemoryPath> pPathsToTrack,
+        List<SMGAbstractionBlock> pAbstractionBlock) {
       pathsToTrack = pPathsToTrack;
       abstractionBlock = pAbstractionBlock;
     }
@@ -255,12 +261,40 @@ public class SMGInterpolant {
       return true;
     }
 
-    public Set<SMGMemoryPath> getPathsToTrack() {
+    public Collection<SMGMemoryPath> getPathsToTrack() {
       return pathsToTrack;
     }
 
-    public Set<SMGAbstractionBlock> getAbstractionBlock() {
+    public Collection<SMGAbstractionBlock> getAbstractionBlock() {
       return abstractionBlock;
+    }
+
+    @Override
+    public int compareTo(SMGPrecisionIncrement other) {
+
+      for (int i = 0; i < pathsToTrack.size(); i++) {
+        SMGMemoryPath path = pathsToTrack.get(i);
+        SMGMemoryPath otherPath = other.pathsToTrack.get(i);
+
+        int result = path.compareTo(otherPath);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      for (int i = 0; i < abstractionBlock.size(); i++) {
+        SMGAbstractionBlock offset = abstractionBlock.get(i);
+        SMGAbstractionBlock otherOffset = other.abstractionBlock.get(i);
+
+        int result = offset.compareTo(otherOffset);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      return 0;
     }
   }
 }

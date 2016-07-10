@@ -741,11 +741,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public static SMGTransferRelation createTransferRelationForRefinement(Configuration config,
-      LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator) throws InvalidConfigurationException {
-    PathTemplate noPath = PathTemplate.ofFormatString("");
+      LogManager pLogger, MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+    PathTemplate noPath = null;
     SMGTransferRelation result =
-        new SMGTransferRelation(config, pLogger, pMachineModel, noPath, SMGExportLevel.NEVER, pSMGPredicateManager, pBlockOperator);
+        new SMGTransferRelation(config, pLogger, pMachineModel, noPath, SMGExportLevel.NEVER,
+            pSMGPredicateManager, pBlockOperator);
     return result;
   }
 

@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
-import java.util.Optional;
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
@@ -31,7 +32,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateSequenceBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+
+import java.util.Optional;
 
 public class SMGSingleLinkedListCandidateSequenceBlock
     implements SMGAbstractionBlock {
@@ -128,6 +132,22 @@ public class SMGSingleLinkedListCandidateSequenceBlock
       return false;
     }
     return true;
+  }
+
+  @Override
+  public int compareTo(SMGAbstractionBlock other) {
+    if(other instanceof SMGDoublyLinkedListCandidateSequenceBlock) {
+      return -1;
+    }
+
+    SMGSingleLinkedListCandidateSequenceBlock otherBlock =
+        (SMGSingleLinkedListCandidateSequenceBlock) other;
+
+    return ComparisonChain.start()
+        .compare(shape, otherBlock.shape)
+        .compare(length, otherBlock.length, Ordering.<Integer> natural().nullsFirst())
+        .compare(pointerToStartObject, otherBlock.pointerToStartObject)
+        .result();
   }
 
 }

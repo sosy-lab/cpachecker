@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -75,6 +76,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 
 @Options(prefix = "cpa.smg.refinement")
@@ -424,7 +427,7 @@ public class SMGRefiner implements Refiner {
     // get all unique precisions from the subtree
     Set<SMGPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractValuePrecision(pReached, descendant));
+      uniquePrecisions.add(extractSMGPrecision(pReached, descendant));
     }
 
     // join all unique precisions into a single precision
@@ -446,10 +449,20 @@ public class SMGRefiner implements Refiner {
     return subgraph;
   }
 
-  private SMGPrecision extractValuePrecision(final ARGReachedSet pReached,
+  private SMGPrecision extractSMGPrecision(final ARGReachedSet pReached,
       ARGState state) {
-    return (SMGPrecision) Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(state)).get(0);
+    FluentIterable<Precision> precisions = Precisions
+        .asIterable(pReached.asReachedSet().getPrecision(state));
+
+    SMGPrecision precision = (SMGPrecision) precisions.filter(new Predicate<Precision>() {
+
+      @Override
+      public boolean apply(@Nullable Precision precision) {
+        return precision instanceof SMGPrecision;
+      }
+    }).get(0);
+
+    return precision;
   }
 
   private boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {

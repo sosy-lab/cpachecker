@@ -204,6 +204,7 @@ public class SMGInterpolationTree {
 
       if (stateHasNonTrivialInterpolant(currentState)) {
         refinementRoots.add(currentState);
+        continue;
       }
 
       Collection<ARGState> successors = successorRelation.get(currentState);

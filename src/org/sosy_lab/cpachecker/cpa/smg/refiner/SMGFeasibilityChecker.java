@@ -94,7 +94,7 @@ public class SMGFeasibilityChecker {
             strongestPostOp.getStrongestPost(next, precision, edge);
 
         // no successors => path is infeasible
-        if (!successors.isEmpty()) {
+        if (successors.isEmpty()) {
           logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(),
               " did not yield a successor");
 
@@ -235,5 +235,11 @@ public class SMGFeasibilityChecker {
     }
 
     return result;
+  }
+
+  public boolean isReachable(ARGPath pErrorPath, SMGState pInitialState)
+      throws CPAException, InterruptedException {
+
+    return isReachable(pErrorPath, pInitialState, precision).isReachable();
   }
 }

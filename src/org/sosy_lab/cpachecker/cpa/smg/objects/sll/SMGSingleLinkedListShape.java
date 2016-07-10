@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
 
-public class SMGSingleLinkedListShape {
+public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListShape> {
 
   private final int hfo;
   private final int nfo;
@@ -76,5 +78,13 @@ public class SMGSingleLinkedListShape {
 
   public int getNfo() {
     return nfo;
+  }
+
+  @Override
+  public int compareTo(SMGSingleLinkedListShape other) {
+    return ComparisonChain.start()
+        .compare(nfo, other.nfo, Ordering.<Integer> natural().nullsFirst())
+        .compare(hfo, other.hfo, Ordering.<Integer> natural().nullsFirst())
+        .result();
   }
 }

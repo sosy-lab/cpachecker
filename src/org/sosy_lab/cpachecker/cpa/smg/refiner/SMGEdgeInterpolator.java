@@ -315,7 +315,13 @@ public class SMGEdgeInterpolator {
    */
   private boolean isSuffixContradicting(ARGPath errorPath)
       throws CPAException, InterruptedException {
-    return !isRemainingPathFeasible(errorPath, initialState);
+    return !isRemainingPathReachable(errorPath, initialState);
+  }
+
+  private boolean isRemainingPathReachable(ARGPath pErrorPath, SMGState pInitialState)
+      throws CPAException, InterruptedException {
+    numberOfInterpolationQueries++;
+    return checker.isReachable(pErrorPath, pInitialState);
   }
 
   /**

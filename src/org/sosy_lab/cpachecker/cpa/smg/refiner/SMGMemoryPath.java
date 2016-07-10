@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SMGMemoryPath {
+public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
   private final String variableName;
   private final String functionName;
@@ -174,5 +176,53 @@ public class SMGMemoryPath {
 
   public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Integer pOffset) {
     return new SMGMemoryPath(pParent, pOffset);
+  }
+
+  @Override
+  public int compareTo(SMGMemoryPath other) {
+    int result = 0;
+
+    if (startsWithGlobalVariable()) {
+      if (other.startsWithGlobalVariable()) {
+        result = 0;
+      } else {
+        result = 1;
+      }
+    } else {
+      if (other.startsWithGlobalVariable()) {
+        result = -1;
+      } else {
+        result = 0;
+      }
+    }
+
+    if (result != 0) {
+      return result;
+    }
+
+    result = ComparisonChain.start()
+        .compare(functionName, other.functionName)
+        .compare(variableName, other.variableName)
+        .compare(locationOnStack, other.locationOnStack, Ordering.<Integer> natural().nullsFirst())
+        .result();
+
+    if (result != 0) {
+      return result;
+    }
+
+    for (int i = 0; i < pathOffsets.size(); i++) {
+      int offset = pathOffsets.get(i);
+      int otherOffset = other.pathOffsets.get(i);
+
+      result = ComparisonChain.start()
+          .compare(offset, otherOffset, Ordering.<Integer> natural().nullsFirst())
+          .result();
+
+      if (result != 0) {
+        return result;
+      }
+    }
+
+    return result;
   }
 }

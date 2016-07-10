@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -132,8 +133,8 @@ public abstract class SMGPrecision implements Precision {
       for (Entry<CFANode, SMGPrecisionIncrement> entry : pPrecisionIncrement.entrySet()) {
         SMGPrecisionIncrement inc = entry.getValue();
         CFANode cfaNode = entry.getKey();
-        Set<SMGAbstractionBlock> incAbstractionBlocks = inc.getAbstractionBlock();
-        Set<SMGMemoryPath> incMemoryPaths = inc.getPathsToTrack();
+        Collection<SMGAbstractionBlock> incAbstractionBlocks = inc.getAbstractionBlock();
+        Collection<SMGMemoryPath> incMemoryPaths = inc.getPathsToTrack();
         resultAbstractionBlocks.putAll(cfaNode, incAbstractionBlocks);
         resultMemoryPaths.putAll(cfaNode, incMemoryPaths);
       }
@@ -179,6 +180,13 @@ public abstract class SMGPrecision implements Precision {
     public Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location) {
       return abstractionBlocks.get(location);
     }
+
+    @Override
+    public String toString() {
+      return "SMGRefineablePrecision [trackedMemoryPaths=" + trackedMemoryPaths
+          + ", abstractionBlocks=" + abstractionBlocks
+          + ", precisionOptions=" + getAbstractionOptions().toString() + "]";
+    }
   }
 
   private static class SMGStaticPrecision extends SMGPrecision {
@@ -210,6 +218,11 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public Set<SMGMemoryPath> getTrackedMemoryPathsOnNode(CFANode pCfaNode) {
       throw new UnsupportedOperationException("Method not yet implemented.");
+    }
+
+    @Override
+    public String toString() {
+      return "Static precision " + getAbstractionOptions().toString();
     }
   }
 

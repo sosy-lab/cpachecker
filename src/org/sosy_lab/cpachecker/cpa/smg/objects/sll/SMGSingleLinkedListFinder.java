@@ -56,7 +56,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private final int seqLengthThreshold;
 
   public SMGSingleLinkedListFinder() {
-    seqLengthThreshold = 4;
+    seqLengthThreshold = 2;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthThreshold) {
