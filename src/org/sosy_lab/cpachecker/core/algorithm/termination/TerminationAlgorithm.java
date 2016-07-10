@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
@@ -94,7 +95,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -514,19 +514,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         }
       }
 
-      firstLoopStates
-          .stream()
-          .map(ARGState::getParents)
-          .flatMap(Collection::stream)
-          .forEach(pReachedSet::reAddToWaitlist);
-      Set<ARGState> statesToRemove = firstLoopStates
-          .stream()
-          .map(ARGState::getSubgraph)
-          .flatMap(Collection::stream)
-          .collect(Collectors.toSet());
-
-      pReachedSet.removeAll(statesToRemove);
-      statesToRemove.forEach(ARGState::removeFromARG);
+      ARGReachedSet argReachedSet = new ARGReachedSet(pReachedSet);
+      firstLoopStates.forEach(argReachedSet::removeSubtree);
 
     } else {
       resetReachedSet(pReachedSet, pInitialLocation);
