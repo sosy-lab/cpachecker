@@ -330,7 +330,7 @@ public class SMGRefiner implements Refiner {
   }
 
   private SMGInterpolationTree createInterpolationTree(List<ARGPath> pTargetPaths) {
-    return new SMGInterpolationTree(interpolantManager, logger, pTargetPaths, false);
+    return new SMGInterpolationTree(interpolantManager, logger, pTargetPaths, true);
   }
 
   private void refineUsingInterpolants(ARGReachedSet pReached, SMGInterpolationTree pInterpolationTree) throws InterruptedException {
