@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
@@ -109,9 +110,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
   private final int externalAllocationSize;
   private final boolean trackPredicates;
-  private boolean blockEnded = true;
 
-  private final boolean createdOnLoopBound;
+  private final boolean blockEnded;
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
   private final boolean invalidWrite;
@@ -178,7 +178,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pExternalAllocationSize;
     trackPredicates = pTrackPredicates;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
-    createdOnLoopBound = false;
+    blockEnded = false;
   }
 
   public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
@@ -201,7 +201,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pTrackPredicates;
     externalAllocationSize = pExternalAllocationSize;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
-    createdOnLoopBound = false;
+    blockEnded = false;
   }
 
   SMGState(SMGState pOriginalState, SMGRuntimeCheck pSMGRuntimeCheck) {
@@ -221,7 +221,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
-    createdOnLoopBound = pOriginalState.createdOnLoopBound;
   }
 
   /**
@@ -249,7 +248,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
-    createdOnLoopBound = pOriginalState.createdOnLoopBound;
   }
 
   /**
@@ -260,7 +258,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pOriginalState Original state. Will be the predecessor of the
    * new state
    */
-  public SMGState(SMGState pOriginalState, CFANode node) {
+  public SMGState(SMGState pOriginalState, BlockOperator pBlockOperator, CFANode pCurrentLocation) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     predecessorId = pOriginalState.getId();
@@ -275,8 +273,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pOriginalState.invalidWrite;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
-    createdOnLoopBound = node.isLoopStart();
-    blockEnded = pOriginalState.blockEnded;
+    blockEnded = pBlockOperator.isBlockEnd(pCurrentLocation, 0);
     trackPredicates = pOriginalState.trackPredicates;
   }
 
@@ -294,7 +291,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     blockEnded = pOriginalState.blockEnded;
-    createdOnLoopBound = pOriginalState.createdOnLoopBound;
 
     boolean pInvalidFree = pOriginalState.invalidFree;
     boolean pInvalidRead = pOriginalState.invalidRead;
@@ -342,7 +338,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pExternalAllocationSize;
     trackPredicates = pTrackPredicates;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
-    createdOnLoopBound = false;
+    blockEnded = false;
   }
 
   public SMGState(SMGState pOriginalState, CLangSMG pDestSMG,
@@ -363,7 +359,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pOriginalState.externalAllocationSize;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
-    createdOnLoopBound = pOriginalState.createdOnLoopBound;
   }
 
   /**
@@ -1448,10 +1443,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return blockEnded;
   }
 
-  public void setBlockEnded(boolean pBlockEnd) {
-    blockEnded = pBlockEnd;
-  }
-
   public static class SMGStateEdgePair {
 
     private final SMGState smgState;
@@ -1543,10 +1534,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
-    if (!createdOnLoopBound) {
-      return reachedState;
-    }
-
     SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);
 
     if(join.getStatus() != SMGJoinStatus.INCOMPARABLE) {
@@ -1596,10 +1583,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     if(morePreciseIsLessOrEqual) {
-
-      if(!createdOnLoopBound) {
-        return false;
-      }
 
       SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 

@@ -742,7 +742,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
-    ((SMGState) state).setBlockEnded(blockOperator.isBlockEnd(cfaEdge.getSuccessor(), 0));
     return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
   }
 
@@ -931,10 +930,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
-    SMGState newState = new SMGState(smgState, functionReturnEdge.getPredecessor());
+    SMGState newState = new SMGState(smgState, blockOperator, functionReturnEdge.getSuccessor());
+
     if (smgPredicateManager.isErrorPathFeasible(newState)) {
       newState = newState.setInvalidRead();
     }
+
     newState.resetErrorRelation();
 
     assert newState.getStackFrame().getFunctionDeclaration().equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
@@ -1006,7 +1007,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     logger.log(Level.FINEST, "Handling function call: ", functionEntryNode.getFunctionName());
 
-    SMGState initialNewState = new SMGState(pSmgState, callEdge.getPredecessor());
+    SMGState initialNewState = new SMGState(pSmgState, blockOperator, callEdge.getSuccessor());
 
     CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
 
@@ -1124,7 +1125,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleAssumption(SMGState pSmgState, CExpression expression, CFAEdge cfaEdge,
       boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
-    SMGState smgState = new SMGState(pSmgState, cfaEdge.getPredecessor());
+    SMGState smgState = new SMGState(pSmgState, blockOperator, cfaEdge.getSuccessor());
 
     if (smgPredicateManager.isErrorPathFeasible(smgState)) {
       smgState = smgState.setInvalidRead();
@@ -1196,7 +1197,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGState newState;
 
         if (createNewStateIfNecessary) {
-          newState = new SMGState(smgState, cfaEdge.getPredecessor());
+          newState = new SMGState(smgState, blockOperator, cfaEdge.getSuccessor());
         } else {
           // Don't continuously create new states when strengthening.
           newState = smgState;
@@ -1293,7 +1294,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       String functionName = fileNameExpression.toASTString();
 
       if (builtins.isABuiltIn(functionName)) {
-        SMGState newState = new SMGState(pState, pCfaEdge.getPredecessor());
+        SMGState newState = new SMGState(pState, blockOperator, pCfaEdge.getSuccessor());
         if (builtins.isConfigurableAllocationFunction(functionName)) {
           logger.log(Level.INFO, pCfaEdge.getFileLocation() + ":",
               "Calling " + functionName + " and not using the result, resulting in memory leak.");
@@ -1330,7 +1331,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           newStates = result.asSMGStateList();
           break;
         case "printf":
-          return ImmutableList.of(new SMGState(pState, pCfaEdge.getPredecessor()));
+          return ImmutableList.of(new SMGState(pState, blockOperator, pCfaEdge.getSuccessor()));
         default:
           // nothing to do here
         }
@@ -1371,7 +1372,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        SMGState resultState = new SMGState(state, cfaEdge.getPredecessor());
+        SMGState resultState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
         resultState.unknownWrite();
         result.add(resultState.setInvalidWrite());
       } else {
@@ -1545,7 +1546,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pLFieldType, CRightHandSide rValue)
       throws CPATransferException {
 
-    SMGState newState = new SMGState(state, cfaEdge.getPredecessor());
+    SMGState newState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
 
     List<SMGState> newStates = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
 
@@ -1553,7 +1554,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     // alternate State (don't create state if not enabled)
     if (possibleMallocFail && enableMallocFailure) {
       possibleMallocFail = false;
-      SMGState otherState = new SMGState(state, cfaEdge.getPredecessor());
+      SMGState otherState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
       SMGState mallocFailState =
           writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
@@ -1600,7 +1601,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of(smgState);
     }
 
-    SMGState newState = new SMGState(smgState, edge.getPredecessor());
+    SMGState newState = new SMGState(smgState, blockOperator, edge.getSuccessor());
 
     List<SMGState> newStates = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
 

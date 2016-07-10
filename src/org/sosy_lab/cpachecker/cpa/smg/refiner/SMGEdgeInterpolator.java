@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
@@ -90,13 +91,13 @@ public class SMGEdgeInterpolator {
   public SMGEdgeInterpolator(SMGFeasibilityChecker pFeasibilityChecker,
       SMGStrongestPostOperator pStrongestPostOperator, SMGInterpolantManager pInterpolantManager,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      LogManager pLogger, BlockOperator pBlockOperator) {
 
     checker = pFeasibilityChecker;
     postOperator = pStrongestPostOperator;
     interpolantManager = pInterpolantManager;
 
-    strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger);
+    strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator);
     shutdownNotifier = pShutdownNotifier;
     heapAbstractionInterpolator =
         new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker);
