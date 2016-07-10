@@ -42,12 +42,10 @@ public class SMGAbstractionManager {
   private final CLangSMG smg;
   private final SMGState smgState;
   private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
-  private final boolean onlyDll;
   private final Set<SMGAbstractionBlock> blocks;
 
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate) {
     smg = pSMG;
-    onlyDll = false;
     smgState = pSMGstate;
     logger = pLogger;
     blocks = ImmutableSet.of();
@@ -55,40 +53,21 @@ public class SMGAbstractionManager {
 
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate, Set<SMGAbstractionBlock> pBlocks) {
     smg = pSMG;
-    onlyDll = false;
     smgState = pSMGstate;
     logger = pLogger;
     blocks = pBlocks;
-  }
-
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, boolean pOnlyDll, SMGState pSMGstate) {
-    smg = pSMG;
-    onlyDll = pOnlyDll;
-    smgState = pSMGstate;
-    logger = pLogger;
-    blocks = ImmutableSet.of();
   }
 
   private boolean hasCandidates() throws SMGInconsistentException {
     SMGDoublyLinkedListCandidateFinder dllCandidateFinder =
         new SMGDoublyLinkedListCandidateFinder();
 
-    Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg, smgState);
+    Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg, smgState, blocks);
     abstractionCandidates.addAll(candidates);
 
-    if (!onlyDll) {
-      SMGSingleLinkedListFinder sllCandidateFinder =
-          new SMGSingleLinkedListFinder();
-      abstractionCandidates.addAll(sllCandidateFinder.traverse(smg, smgState));
-    }
-
-    for (SMGAbstractionCandidate candidate : new ArrayList<>(abstractionCandidates)) {
-      for (SMGAbstractionBlock block : blocks) {
-        if (block.isBlocked(candidate, smg)) {
-          abstractionCandidates.remove(candidate);
-        }
-      }
-    }
+    SMGSingleLinkedListFinder sllCandidateFinder =
+        new SMGSingleLinkedListFinder();
+    abstractionCandidates.addAll(sllCandidateFinder.traverse(smg, smgState, blocks));
 
     return (!abstractionCandidates.isEmpty());
   }

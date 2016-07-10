@@ -23,10 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
+import java.util.Set;
+
 public interface SMGAbstractionFinder {
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState) throws SMGInconsistentException;
+
+  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState)
+      throws SMGInconsistentException;
+
+  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, SMGState pSMGState,
+      Set<SMGAbstractionBlock> abstractionLocks)
+      throws SMGInconsistentException;
 }

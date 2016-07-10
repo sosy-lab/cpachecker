@@ -93,7 +93,7 @@ public class SMGFeasibilityChecker {
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
-        int c = 0;
+//        int c = 0;
 
 //        for (SMGState state : next) {
 //          SMGDebugTest.dumpPlot("beforeStrongest" + c, state);
