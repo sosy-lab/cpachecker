@@ -59,7 +59,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   public SMGSingleLinkedListFinder() {
     seqLengthEqualityThreshold = 2;
     seqLengthEntailmentThreshold = 2;
-    seqLengthIncomparableThreshold = 2;
+    seqLengthIncomparableThreshold = 3;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,

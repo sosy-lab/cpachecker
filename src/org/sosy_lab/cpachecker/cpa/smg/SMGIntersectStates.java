@@ -53,9 +53,6 @@ public final class SMGIntersectStates {
       CLangSMG pHeap2, BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2) {
 
-    SMGDebugTest.dumpPlot("intArg1", pSmgState1);
-    SMGDebugTest.dumpPlot("intArg2", pSmgState2);
-
     CLangSMG destSMG = new CLangSMG(pHeap1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
@@ -185,8 +182,6 @@ public final class SMGIntersectStates {
     }
 
     SMGState pIntersectResult = new SMGState(pSmgState1, destSMG, destExplicitValues);
-
-    SMGDebugTest.dumpPlot("intRes", pSmgState2);
 
     return new SMGIntersectionResult(pSmgState1, pSmgState2, pIntersectResult, true);
   }

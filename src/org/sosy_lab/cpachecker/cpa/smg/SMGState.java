@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -110,6 +111,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean trackPredicates;
   private boolean blockEnded = true;
 
+  private final boolean createdOnLoopBound;
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
   private final boolean invalidWrite;
@@ -176,6 +178,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pExternalAllocationSize;
     trackPredicates = pTrackPredicates;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
+    createdOnLoopBound = false;
   }
 
   public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
@@ -198,6 +201,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pTrackPredicates;
     externalAllocationSize = pExternalAllocationSize;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
+    createdOnLoopBound = false;
   }
 
   SMGState(SMGState pOriginalState, SMGRuntimeCheck pSMGRuntimeCheck) {
@@ -217,6 +221,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
+    createdOnLoopBound = pOriginalState.createdOnLoopBound;
   }
 
   /**
@@ -244,6 +249,35 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
+    createdOnLoopBound = pOriginalState.createdOnLoopBound;
+  }
+
+  /**
+   * Copy constructor.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pOriginalState Original state. Will be the predecessor of the
+   * new state
+   */
+  public SMGState(SMGState pOriginalState, CFANode node) {
+    heap = new CLangSMG(pOriginalState.heap);
+    logger = pOriginalState.logger;
+    predecessorId = pOriginalState.getId();
+    id_counter = pOriginalState.id_counter;
+    id = id_counter.getAndIncrement();
+    explicitValues.putAll(pOriginalState.explicitValues);
+    memoryErrors = pOriginalState.memoryErrors;
+    unknownOnUndefined = pOriginalState.unknownOnUndefined;
+    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
+    invalidFree = pOriginalState.invalidFree;
+    invalidRead = pOriginalState.invalidRead;
+    invalidWrite = pOriginalState.invalidWrite;
+    externalAllocationSize = pOriginalState.externalAllocationSize;
+    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    createdOnLoopBound = node.isLoopStart();
+    blockEnded = pOriginalState.blockEnded;
+    trackPredicates = pOriginalState.trackPredicates;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
@@ -260,6 +294,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     blockEnded = pOriginalState.blockEnded;
+    createdOnLoopBound = pOriginalState.createdOnLoopBound;
 
     boolean pInvalidFree = pOriginalState.invalidFree;
     boolean pInvalidRead = pOriginalState.invalidRead;
@@ -307,6 +342,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pExternalAllocationSize;
     trackPredicates = pTrackPredicates;
     morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
+    createdOnLoopBound = false;
   }
 
   public SMGState(SMGState pOriginalState, CLangSMG pDestSMG,
@@ -327,6 +363,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     externalAllocationSize = pOriginalState.externalAllocationSize;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
+    createdOnLoopBound = pOriginalState.createdOnLoopBound;
   }
 
   /**
@@ -596,7 +633,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList removeOptionalObject(SMGOptionalObject pOptionalObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.INFO, "Remove " + pOptionalObject.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Remove " + pOptionalObject.toString() + " in state id " + this.getId());
 
     /*Just remove the optional Object and merge all incoming pointer
      * with the one pointer in all fields of the optional edge.
@@ -632,7 +669,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGEdgePointsTo pPointerToAbstractObject) {
 
     /*Just replace the optional object with a region*/
-    logger.log(Level.INFO,
+    logger.log(Level.ALL,
         "Materialise " + pOptionalObject.toString() + " in state id " + this.getId());
 
     Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
@@ -667,7 +704,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList removeSll(SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.INFO, "Remove " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Remove " + pListSeg.toString() + " in state id " + this.getId());
 
     /*First, set all sub smgs of sll to be removed to invalid.*/
     Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo());
@@ -702,7 +739,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList removeDls(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.INFO, "Remove " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Remove " + pListSeg.toString() + " in state id " + this.getId());
 
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
@@ -754,7 +791,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndState materialiseSll(SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.INFO, "Materialise " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Materialise " + pListSeg.toString() + " in state id " + this.getId());
 
     if (pPointerToAbstractObject
         .getTargetSpecifier() != SMGTargetSpecifier.FIRST) { throw new SMGInconsistentException(
@@ -848,7 +885,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.INFO, "Materialise " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Materialise " + pListSeg.toString() + " in state id " + this.getId());
 
     SMGRegion newConcreteRegion = new SMGRegion(pListSeg.getSize(),
         "concrete dll segment ID " + SMGValueFactory.getNewValue(), 0);
@@ -1506,10 +1543,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
+    if (!createdOnLoopBound) {
+      return reachedState;
+    }
+
     SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);
 
-    if (join.isDefined() && join.getStatus() != SMGJoinStatus.INCOMPARABLE
-        && join.getStatus() != SMGJoinStatus.INCOMPLETE) {
+    if(join.getStatus() != SMGJoinStatus.INCOMPARABLE) {
+      return reachedState;
+    }
+
+    if (join.isDefined()) {
 
       CLangSMG destHeap = join.getJointSMG();
 
@@ -1553,6 +1597,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     if(morePreciseIsLessOrEqual) {
 
+      if(!createdOnLoopBound) {
+        return false;
+      }
+
       SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 
       if (join.isDefined()) {
@@ -1564,23 +1612,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         */
         if (result) {
 
-          CLangSMG joinSMG = join.getJointSMG();
-          SMGState joinSMGState = new SMGState(this, joinSMG, HashBiMap.create());
-
-          SMGDebugTest.dumpPlot(this.getId() + "isLessorEqual" + reachedState.getId(),
-              joinSMGState);
-
           SMGState s1 = new SMGState(reachedState);
           SMGState s2 = new SMGState(this);
 
           s1.pruneUnreachable();
           s2.pruneUnreachable();
 
-          logger.log(Level.INFO, this.getId() + " is Less or Equal " + reachedState.getId());
+          logger.log(Level.ALL, this.getId() + " is Less or Equal " + reachedState.getId());
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {
-          return result;
+          return false;
         }
       } else {
         return false;

@@ -27,7 +27,6 @@ import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGDebugTest;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -72,8 +71,6 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
     }
 
     for (int i = 1; i < length; i++) {
-
-      SMGDebugTest.dumpPlot("beforeConcAbs", pSmgState);
 
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
@@ -149,8 +146,6 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
       SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
       pSMG.addHasValueEdge(nfoHve);
       pSmgState.pruneUnreachable();
-
-      SMGDebugTest.dumpPlot("afterConcAbs", pSmgState);
     }
 
     return pSMG;

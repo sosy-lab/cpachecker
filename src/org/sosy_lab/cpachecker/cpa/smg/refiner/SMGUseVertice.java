@@ -21,19 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-public class SMGDebugTest {
 
-//  public static void dumpPlot(String name, SMGState state) {
-//    Path path = PathTemplate.ofFormatString("output/smg/smgspec/" + name).getPath();
-//
-//    try {
-//      String dot = state.toDot(name, name);
-//      MoreFiles.writeFile(path, Charset.defaultCharset(), dot);
-//    } catch (IOException e) {
-//
-//    }
-//  }
+public interface SMGUseVertice {
+
+  public int getPosition();
 
 }

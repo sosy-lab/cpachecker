@@ -61,14 +61,15 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
-  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
+  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision)
+  {
 
     SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
     SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
     SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
 
     return new SMGRefineablePrecision(pPrecision.logger,
-        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, false),
+        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
         emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable);
   }
 

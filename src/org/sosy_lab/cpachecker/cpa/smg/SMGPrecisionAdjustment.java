@@ -153,11 +153,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      String namedeb = String.format("%03d-node-%03d-before-abstraction",
-          location.getLocationNode().getNodeNumber(), result.getId());
-
-      SMGDebugTest.dumpPlot(namedeb, result);
-
       boolean refineablePrecision = pPrecision.usesHeapInterpoaltion();
       boolean heapAbstractionChange =
           newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
@@ -171,14 +166,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
             SMGExportLevel.EVERY, exportOptions);
         SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
             SMGExportLevel.EVERY, exportOptions);
-        logger.log(Level.INFO, "Heap abstraction on node " + node.getNodeNumber()
+        logger.log(Level.ALL, "Heap abstraction on node " + node.getNodeNumber()
             + " with state id: " + pState.getId());
         result = newState;
-
-        String name2deb = String.format("%03d-node-%03d-after-abstraction",
-            location.getLocationNode().getNodeNumber(), result.getId());
-
-        SMGDebugTest.dumpPlot(name2deb, result);
       }
     }
 

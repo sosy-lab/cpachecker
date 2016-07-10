@@ -114,14 +114,12 @@ public class SMGAbstractionManager {
 
   public SMGAbstractionCandidate executeOneStep() throws SMGInconsistentException {
 
-    SMGDebugTest.dumpPlot("beforeAbs", smgState);
-
     if (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
-      logger.log(Level.INFO, "Execute abstraction of " + best.toString());
+      logger.log(Level.ALL, "Execute abstraction of " + best.toString());
       best.execute(smg, smgState);
       invalidateCandidates();
-      logger.log(Level.INFO, "Finish executing abstraction of " + best.toString());
+      logger.log(Level.ALL, "Finish executing abstraction of " + best.toString());
       return best;
     } else {
       return new SMGAbstractionCandidate() {
