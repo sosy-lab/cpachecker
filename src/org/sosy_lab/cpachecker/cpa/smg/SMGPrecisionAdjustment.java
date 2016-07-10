@@ -158,8 +158,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
       SMGDebugTest.dumpPlot(namedeb, result);
 
+      boolean refineablePrecision = pPrecision.usesHeapInterpoaltion();
       boolean heapAbstractionChange =
-          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
+          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
 
       if (heapAbstractionChange) {
         String name = String.format("%03d-before-heap-abstraction", result.getId());

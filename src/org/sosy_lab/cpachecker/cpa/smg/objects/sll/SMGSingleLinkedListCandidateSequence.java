@@ -167,7 +167,7 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
     int score = length + getStatusScore() + getRecursiveFieldTypeScore();
 
     if (includesSll) {
-      score = score + 1;
+      score = score + 2;
     }
 
     return score;
@@ -183,6 +183,7 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
       case EQUAL:
         return 50;
       case LEFT_ENTAIL:
+        return 31;
       case RIGHT_ENTAIL:
         return 30;
       case INCOMPARABLE:

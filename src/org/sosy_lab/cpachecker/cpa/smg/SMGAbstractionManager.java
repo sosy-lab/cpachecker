@@ -38,35 +38,47 @@ import java.util.logging.Level;
 public class SMGAbstractionManager {
 
   private final LogManager logger;
-
   private final CLangSMG smg;
   private final SMGState smgState;
-  private List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
+
+  private final List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
   private final Set<SMGAbstractionBlock> blocks;
+  private final SMGDoublyLinkedListCandidateFinder dllCandidateFinder;
+  private final SMGSingleLinkedListFinder sllCandidateFinder;
 
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate) {
     smg = pSMG;
     smgState = pSMGstate;
     logger = pLogger;
     blocks = ImmutableSet.of();
+    dllCandidateFinder = new SMGDoublyLinkedListCandidateFinder();
+    sllCandidateFinder = new SMGSingleLinkedListFinder();
   }
 
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate, Set<SMGAbstractionBlock> pBlocks) {
+  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
+      Set<SMGAbstractionBlock> pBlocks) {
     smg = pSMG;
     smgState = pSMGstate;
     logger = pLogger;
     blocks = pBlocks;
+    dllCandidateFinder = new SMGDoublyLinkedListCandidateFinder();
+    sllCandidateFinder = new SMGSingleLinkedListFinder();
+  }
+
+  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
+      Set<SMGAbstractionBlock> pBlocks, int equalSeq, int entailSeq, int incSeq) {
+    smg = pSMG;
+    smgState = pSMGstate;
+    logger = pLogger;
+    blocks = pBlocks;
+    dllCandidateFinder = new SMGDoublyLinkedListCandidateFinder(equalSeq, entailSeq, incSeq);
+    sllCandidateFinder = new SMGSingleLinkedListFinder(equalSeq, entailSeq, incSeq);
   }
 
   private boolean hasCandidates() throws SMGInconsistentException {
-    SMGDoublyLinkedListCandidateFinder dllCandidateFinder =
-        new SMGDoublyLinkedListCandidateFinder();
 
     Set<SMGAbstractionCandidate> candidates = dllCandidateFinder.traverse(smg, smgState, blocks);
     abstractionCandidates.addAll(candidates);
-
-    SMGSingleLinkedListFinder sllCandidateFinder =
-        new SMGSingleLinkedListFinder();
     abstractionCandidates.addAll(sllCandidateFinder.traverse(smg, smgState, blocks));
 
     return (!abstractionCandidates.isEmpty());

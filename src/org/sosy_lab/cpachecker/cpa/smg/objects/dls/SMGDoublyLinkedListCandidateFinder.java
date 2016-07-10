@@ -378,7 +378,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
         if (count != 2) {
           hasToBeLastInSequence = true;
-          joinStatus = SMGJoinStatus.INCOMPARABLE;
+          joinStatus = SMGJoinStatus.RIGHT_ENTAIL;
         }
       }
     }

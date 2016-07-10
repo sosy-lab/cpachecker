@@ -191,7 +191,7 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
     int score = getLength() + getStatusScore() + getRecursivScore();
 
     if (includesDll) {
-      score = score + 1;
+      score = score + 2;
     }
 
     return score;
@@ -206,6 +206,7 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       case EQUAL:
         return 50;
       case LEFT_ENTAIL:
+        return 31;
       case RIGHT_ENTAIL:
         return 30;
       case INCOMPARABLE:
