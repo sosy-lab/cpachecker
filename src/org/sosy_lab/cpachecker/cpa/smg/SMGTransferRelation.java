@@ -996,14 +996,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return expressionEvaluator.readValue(smgState, tmpMemory, SMGKnownExpValue.ZERO, type, pCFAEdge).getObject();
   }
 
-  private List<SMGState> handleFunctionCall(SMGState smgState, CFunctionCallEdge callEdge)
+  private List<SMGState> handleFunctionCall(SMGState pSmgState, CFunctionCallEdge callEdge)
       throws CPATransferException, SMGInconsistentException  {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
     logger.log(Level.FINEST, "Handling function call: ", functionEntryNode.getFunctionName());
 
-    SMGState initialNewState = new SMGState(smgState);
+    SMGState initialNewState = new SMGState(pSmgState);
 
     CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
 
@@ -1060,7 +1060,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           for (SMGState newStateWithExpVal : newStatesWithExpVal) {
 
             if (!valuesMap.containsKey(newStateWithExpVal)) {
-              valuesMap.put(newStateWithExpVal, valuesMap.get(initialNewState));
+              List<Pair<SMGRegion, SMGSymbolicValue>> newValues = new ArrayList<>(paramDecl.size());
+              newValues.addAll(valuesMap.get(newState));
+              valuesMap.put(newStateWithExpVal, newValues);
             }
 
             Pair<SMGRegion, SMGSymbolicValue> lhsValuePair = Pair.of(paramObj, value);

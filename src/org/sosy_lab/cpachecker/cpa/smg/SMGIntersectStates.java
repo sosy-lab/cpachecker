@@ -289,7 +289,8 @@ public final class SMGIntersectStates {
           }
         });
 
-    Set<Integer> offsetSet = offsetToHve1Map.keySet();
+    Set<Integer> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
+    offsetSet.addAll(offsetToHve1Map.keySet());
     offsetSet.addAll(offsetToHve2Map.keySet());
 
     for (Integer offset : offsetSet) {

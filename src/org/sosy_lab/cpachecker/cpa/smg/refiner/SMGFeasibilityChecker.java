@@ -93,8 +93,22 @@ public class SMGFeasibilityChecker {
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
+        int c = 0;
+
+//        for (SMGState state : next) {
+//          SMGDebugTest.dumpPlot("beforeStrongest" + c, state);
+//          c++;
+//        }
+
         Collection<SMGState> successors =
             strongestPostOp.getStrongestPost(next, precision, edge);
+
+//        c = 0;
+//
+//        for (SMGState state : successors) {
+//          SMGDebugTest.dumpPlot("afterStrongest" + c, state);
+//          c++;
+//        }
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
@@ -126,13 +140,16 @@ public class SMGFeasibilityChecker {
       lastState.pruneUnreachable();
 
       for (ControlAutomatonCPA automaton : automatonCPAsToCheck) {
-        if (isTarget(lastState, pLastEdge, automaton)) {
+        boolean isTarget = isTarget(lastState, pLastEdge, automaton);
+        if (allTargets && isTarget) {
           return true;
+        } else if (!allTargets && !isTarget) {
+          return false;
         }
       }
     }
 
-    return false;
+    return !allTargets;
   }
 
   private Set<ControlAutomatonCPA> getAutomatons(ARGState pLastState,

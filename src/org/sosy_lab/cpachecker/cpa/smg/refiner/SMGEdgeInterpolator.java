@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
+import org.sosy_lab.cpachecker.cpa.smg.SMGDebugTest;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
@@ -272,6 +273,8 @@ public class SMGEdgeInterpolator {
 
     SMGState state = pState;
 
+    SMGDebugTest.dumpPlot("StatebeforeFieldAbstr", state);
+
     for (SMGEdgeHasValue currentHveEdge : state.getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -284,8 +287,11 @@ public class SMGEdgeInterpolator {
       // interpolant
       state.forget(currentHveEdge);
 
+      SMGDebugTest.dumpPlot("stateBeforeCheck", state);
+
       if (isRemainingPathFeasible(pRemainingErrorPath, state, currentEdge, pAllTargets)) {
         state.remember(currentHveEdge);
+        SMGDebugTest.dumpPlot("stateafterRemember", state);
       }
     }
 

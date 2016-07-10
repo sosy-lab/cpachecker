@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
@@ -214,15 +216,31 @@ public class SMGRefiner implements Refiner {
   }
 
   private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(obtainErrorPathId(path)));
+    Integer pathId = obtainErrorPathId(path);
+    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(pathId));
 
-    previousErrorPathIds.add(obtainErrorPathId(path));
+    previousErrorPathIds.add(pathId);
 
     return progress;
   }
 
   private int obtainErrorPathId(ARGPath path) {
-    return path.toString().hashCode();
+
+    Predicate<? super AutomatonState> automatonStateIsTarget = (AutomatonState state) -> {
+      return state.isTarget() ? true : false;
+    };
+
+    Function<AutomatonState, String> toNameFunction = (AutomatonState state) -> {
+      return state.getOwningAutomatonName();
+    };
+
+    Set<String> automatonNames =
+        AbstractStates.asIterable(path.getLastState()).filter(AutomatonState.class)
+            .filter(automatonStateIsTarget).transform(toNameFunction).toSet();
+
+    int id = path.toString().hashCode() + automatonNames.hashCode();
+
+    return id;
   }
 
   private CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached,
