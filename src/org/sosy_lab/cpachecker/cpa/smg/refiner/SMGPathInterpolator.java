@@ -279,7 +279,7 @@ public class SMGPathInterpolator {
           List<SMGInterpolant> deriveResult = interpolator.deriveInterpolant(
               pathIterator.getOutgoingEdge(),
               pathIterator.getPosition(),
-              pInterpolant);
+              interpolant);
           resultingInterpolants.addAll(deriveResult);
         } else {
           resultingInterpolants.add(interpolantManager.getFalseInterpolant());

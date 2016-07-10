@@ -28,9 +28,13 @@ import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
@@ -160,8 +164,12 @@ public class SMGEdgeInterpolator {
     // in general, this returned interpolant might be stronger than needed, but only in very rare
     // cases, the weaker interpolant would be different from the input interpolant, so we spare the
     // effort
+
+    boolean noChange = initialState.equals(Iterables.getOnlyElement(successors)) ||
+        isFunctionOrTypeDeclaration(currentEdge);
+
     if (onlySuccessor
-        && initialState.equals(Iterables.getOnlyElement(successors))
+        && noChange
         && !originalPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       resultingInterpolants.add(pInputInterpolant);
       return resultingInterpolants;
@@ -205,6 +213,17 @@ public class SMGEdgeInterpolator {
     }
 
     return resultingInterpolants;
+  }
+
+  private boolean isFunctionOrTypeDeclaration(CFAEdge pCurrentEdge) {
+
+    if (pCurrentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      CDeclarationEdge dclEdge = (CDeclarationEdge) pCurrentEdge;
+      CDeclaration dcl = dclEdge.getDeclaration();
+      return dcl instanceof CFunctionDeclaration || dcl instanceof CTypeDeclaration;
+    }
+
+    return false;
   }
 
   private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath)
