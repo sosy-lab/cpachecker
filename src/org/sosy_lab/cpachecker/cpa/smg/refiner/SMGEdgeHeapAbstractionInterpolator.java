@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableSet;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.HashSet;
@@ -64,7 +63,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
    * smg state after heap abstraction is strong enough for the given precision to
    * enable
    */
-  public Set<SMGAbstractionBlock> calculateHeapAbstractionBlocks(SMGState pState,
+  public SMGHeapAbstractionInterpoaltionResult calculateHeapAbstractionBlocks(SMGState pState,
       ARGPath pRemainingErrorPath, SMGPrecision pPrecision, CFANode pStateLocation,
       CFAEdge pCurrentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
@@ -72,22 +71,26 @@ public class SMGEdgeHeapAbstractionInterpolator {
     SMGState state = pState;
 
     if (!pPrecision.allowsHeapAbstractionOnNode(pStateLocation)) {
-      return ImmutableSet.of();
+      return SMGHeapAbstractionInterpoaltionResult.emptyAndUnchanged();
     }
 
     logger.log(Level.ALL, "Begin interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
 
     SMGState abstractionTest = new SMGState(pState);
     Set<SMGAbstractionBlock> result = new HashSet<>();
+    result.addAll(pPrecision.getAbstractionBlocks(pStateLocation));
     SMGAbstractionCandidate candidate = abstractionTest.executeHeapAbstractionOneStep(result);
+    boolean change = false;
 
     while (!candidate.isEmpty()) {
 
-      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge, pAllTargets)) {
+      if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge,
+          pAllTargets)) {
         result.add(candidate.createAbstractionBlock(state));
         abstractionTest = new SMGState(state);
       } else {
         state.executeHeapAbstractionOneStep(result);
+        change = true;
       }
 
       candidate = abstractionTest.executeHeapAbstractionOneStep(result);
@@ -95,7 +98,11 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     logger.log(Level.ALL, "Finish interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
 
-    return result;
+    if (!change && result.isEmpty()) {
+      return SMGHeapAbstractionInterpoaltionResult.emptyAndUnchanged();
+    } else {
+      return new SMGHeapAbstractionInterpoaltionResult(result, change);
+    }
   }
 
   private boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pAbstractionTest,

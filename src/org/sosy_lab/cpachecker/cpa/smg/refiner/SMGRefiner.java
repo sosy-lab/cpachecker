@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
@@ -78,8 +76,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 
 @Options(prefix = "cpa.smg.refinement")
@@ -161,7 +157,7 @@ public class SMGRefiner implements Refiner {
 
     SMGEdgeInterpolator edgeInterpolator =
         new SMGEdgeInterpolator(checkerForInterpolation, strongestPostOpForInterpolation, interpolantManager,
-            smgCpa.getShutdownNotifier(), smgCpa.getPrecision(), logger);
+            smgCpa.getShutdownNotifier(), logger);
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
@@ -253,7 +249,7 @@ public class SMGRefiner implements Refiner {
     CounterexampleInfo cex = isAnyPathFeasible(pReached, pTargetPaths);
 
     if (cex.isSpurious()) {
-      SMGInterpolationTree interpolationTree = obtainInterpolants(pTargetPaths);
+      SMGInterpolationTree interpolationTree = obtainInterpolants(pTargetPaths, pReached);
       refineUsingInterpolants(pReached, interpolationTree);
     }
 
@@ -316,20 +312,20 @@ public class SMGRefiner implements Refiner {
     return CFAPathWithAssumptions.empty();
   }
 
-  private SMGInterpolationTree obtainInterpolants(List<ARGPath> pTargetPaths)
+  private SMGInterpolationTree obtainInterpolants(List<ARGPath> pTargetPaths, ARGReachedSet pReachedSet)
       throws CPAException, InterruptedException {
 
     SMGInterpolationTree interpolationTree = createInterpolationTree(pTargetPaths);
 
     while (interpolationTree.hasNextPathForInterpolation()) {
-      performPathInterpolation(interpolationTree);
+      performPathInterpolation(interpolationTree, pReachedSet);
     }
 
     exportTree(interpolationTree, "FINAL");
     return interpolationTree;
   }
 
-  private void performPathInterpolation(SMGInterpolationTree interpolationTree)
+  private void performPathInterpolation(SMGInterpolationTree interpolationTree, ARGReachedSet pReachedSet)
       throws CPAException, InterruptedException {
     ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
 
@@ -350,7 +346,7 @@ public class SMGRefiner implements Refiner {
         errorPath.getFirstState().getStateId(),
         ", using interpolant ", initialItp);
 
-    interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp));
+    interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp, pReachedSet));
     exportTree(interpolationTree, "ALWAYS");
   }
 
@@ -464,7 +460,7 @@ public class SMGRefiner implements Refiner {
     // get all unique precisions from the subtree
     Set<SMGPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractSMGPrecision(pReached, descendant));
+      uniquePrecisions.add(SMGCEGARUtils.extractSMGPrecision(pReached, descendant));
     }
 
     // join all unique precisions into a single precision
@@ -484,22 +480,6 @@ public class SMGRefiner implements Refiner {
       }
     }
     return subgraph;
-  }
-
-  private SMGPrecision extractSMGPrecision(final ARGReachedSet pReached,
-      ARGState state) {
-    FluentIterable<Precision> precisions = Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(state));
-
-    SMGPrecision precision = (SMGPrecision) precisions.filter(new Predicate<Precision>() {
-
-      @Override
-      public boolean apply(@Nullable Precision precision) {
-        return precision instanceof SMGPrecision;
-      }
-    }).get(0);
-
-    return precision;
   }
 
   private boolean isErrorPathFeasible(ARGPath pErrorPath)

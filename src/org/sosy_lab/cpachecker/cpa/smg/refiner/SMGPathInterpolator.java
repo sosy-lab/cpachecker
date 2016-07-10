@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -96,7 +97,7 @@ public class SMGPathInterpolator {
   }
 
   public Map<ARGState, SMGInterpolant> performInterpolation(ARGPath pErrorPath,
-      SMGInterpolant pInterpolant) throws InterruptedException, CPAException {
+      SMGInterpolant pInterpolant, ARGReachedSet pReachedSet) throws InterruptedException, CPAException {
     totalInterpolations.inc();
 
     int interpolationId = idGenerator.incrementAndGet();
@@ -106,7 +107,7 @@ public class SMGPathInterpolator {
     interpolationOffset = -1;
 
     Map<ARGState, SMGInterpolant> interpolants =
-        performEdgeBasedInterpolation(pErrorPath, pInterpolant);
+        performEdgeBasedInterpolation(pErrorPath, pInterpolant, pReachedSet);
 
     propagateFalseInterpolant(pErrorPath, pErrorPath, interpolants);
 
@@ -279,11 +280,12 @@ public class SMGPathInterpolator {
    * @param pErrorPath the error path prefix to interpolate
    * @param pInterpolant an initial interpolant
    *    (only non-trivial when interpolating error path suffixes in global refinement)
+   * @param pReachedSet used to extract the current SMGPrecision, useful for heap abstraction interpolation
    * @return the mapping of {@link ARGState}s to {@link Interpolant}
    */
   private Map<ARGState, SMGInterpolant> performEdgeBasedInterpolation(
       ARGPath pErrorPath,
-      SMGInterpolant pInterpolant
+      SMGInterpolant pInterpolant, ARGReachedSet pReachedSet
   ) throws InterruptedException, CPAException {
 
     /*We may as well interpolate every possible target error if path contains more than one.*/
@@ -305,11 +307,16 @@ public class SMGPathInterpolator {
 
         // interpolate at each edge as long as the previous interpolant is not false
         if (!interpolant.isFalse()) {
+
+          ARGState nextARGState = pathIterator.getNextAbstractState();
+
           List<SMGInterpolant> deriveResult = interpolator.deriveInterpolant(
               pathIterator.getOutgoingEdge(),
               pathIterator.getPosition(),
               interpolant,
-              checkAllTargets);
+              checkAllTargets,
+              pReachedSet,
+              nextARGState);
           resultingInterpolants.addAll(deriveResult);
         } else {
           resultingInterpolants.add(interpolantManager.getFalseInterpolant());
