@@ -130,7 +130,7 @@ public class SMGPathInterpolator {
       exportFirstInterpolant(firstInterpolant, pInterpolationId);
     }
 
-    PathIterator pathIterator = pErrorPath.fullPathIterator();
+    PathIterator pathIterator = pErrorPath.pathIterator();
 
     int pathIndex = 2;
 
@@ -290,9 +290,9 @@ public class SMGPathInterpolator {
         if (!interpolant.isTrivial() && interpolationOffset == -1) {
           interpolationOffset = pathIterator.getIndex();
         }
-
-        pathIterator.advance();
       }
+
+      pathIterator.advance();
 
       SMGInterpolant jointResultInterpolant = joinInterpolants(resultingInterpolants);
 

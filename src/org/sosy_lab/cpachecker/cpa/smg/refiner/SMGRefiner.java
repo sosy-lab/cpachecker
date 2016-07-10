@@ -348,7 +348,7 @@ public class SMGRefiner implements Refiner {
 
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
-      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
+      precisions.add(mergeSMGPrecisionsForSubgraph(root, pReached)
           .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
 
       refinementInformation.put(root, precisions);
@@ -420,7 +420,7 @@ public class SMGRefiner implements Refiner {
     return extractedCPA;
   }
 
-  private SMGPrecision mergeValuePrecisionsForSubgraph(
+  private SMGPrecision mergeSMGPrecisionsForSubgraph(
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached
   ) {

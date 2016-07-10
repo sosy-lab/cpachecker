@@ -116,9 +116,9 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public Set<SMGMemoryPath> getTrackedMemoryPathsOnNode(CFANode pLocationNode) {
       if (trackedMemoryPaths.containsKey(pLocationNode)) {
-        return ImmutableSet.of();
-      } else {
         return trackedMemoryPaths.get(pLocationNode);
+      } else {
+        return ImmutableSet.of();
       }
     }
 

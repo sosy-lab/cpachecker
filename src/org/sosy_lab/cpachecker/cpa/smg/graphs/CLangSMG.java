@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -52,6 +51,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
@@ -871,7 +871,7 @@ public class CLangSMG extends SMG {
 
   private void getMemoryPathsFromStack(Set<SMGMemoryPath> pResult, Set<SMGObject> pReached) {
 
-    int pLocationOnStack = 1;
+    int pLocationOnStack = 0;
 
     for (CLangStackFrame frame : stack_objects) {
       List<String> stackVariables = new ArrayList<>(frame.getVariables().keySet());
