@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
@@ -346,6 +347,28 @@ public class SMGInterpolant {
       }
 
       return 0;
+    }
+
+    @Override
+    public String toString() {
+      return "SMGPrecisionIncrement [pathsToTrack=" + pathsToTrack + ", abstractionBlock="
+          + abstractionBlock + ", stackVariablesToTrack=" + stackVariablesToTrack + "]";
+    }
+
+    public SMGPrecisionIncrement join(SMGPrecisionIncrement pInc2) {
+      Set<SMGMemoryPath> pathsToTrack = new HashSet<>();
+      pathsToTrack.addAll(this.pathsToTrack);
+      pathsToTrack.addAll(pInc2.pathsToTrack);
+      Set<SMGAbstractionBlock> abstractionBlock = new HashSet<>();
+      abstractionBlock.addAll(this.abstractionBlock);
+      abstractionBlock.addAll(pInc2.abstractionBlock);
+      Set<MemoryLocation> stackVariablesToTrack = new HashSet<>();
+      stackVariablesToTrack.addAll(this.stackVariablesToTrack);
+      stackVariablesToTrack.addAll(pInc2.stackVariablesToTrack);
+
+      return new SMGPrecisionIncrement(FluentIterable.from(pathsToTrack).toList(),
+          FluentIterable.from(abstractionBlock).toList(),
+          FluentIterable.from(stackVariablesToTrack).toList());
     }
   }
 }

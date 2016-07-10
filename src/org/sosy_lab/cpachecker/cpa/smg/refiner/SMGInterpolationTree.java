@@ -299,7 +299,16 @@ public class SMGInterpolationTree {
 
       if (stateHasNonTrivialInterpolant(currentState) && !currentState.isTarget()) {
         SMGInterpolant itp = interpolants.get(currentState);
-        increment.put(AbstractStates.extractLocation(currentState), itp.getPrecisionIncrement());
+        SMGPrecisionIncrement inc = itp.getPrecisionIncrement();
+        CFANode loc = AbstractStates.extractLocation(currentState);
+
+        if (increment.containsKey(loc)) {
+          SMGPrecisionIncrement inc2 = increment.get(loc);
+          SMGPrecisionIncrement joinInc = inc.join(inc2);
+          increment.put(loc, joinInc);
+        } else {
+          increment.put(loc, inc);
+        }
       }
 
       if (!stateHasFalseInterpolant(currentState)) {

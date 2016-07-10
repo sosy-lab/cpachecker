@@ -320,7 +320,8 @@ public class SMGPathInterpolator {
 
       SMGInterpolant jointResultInterpolant = joinInterpolants(resultingInterpolants);
 
-      pathInterpolants.put(pathIterator.getAbstractState(), jointResultInterpolant);
+      ARGState argState = pathIterator.getAbstractState();
+      pathInterpolants.put(argState, jointResultInterpolant);
       interpolants.clear();
       interpolants.addAll(resultingInterpolants);
     }
