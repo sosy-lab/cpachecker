@@ -265,6 +265,28 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-smt-solver-bridge.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-smt-solver-bridge.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-smt-solver-bridge-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-core-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="module-library">
       <library name="objenesis.jar">
