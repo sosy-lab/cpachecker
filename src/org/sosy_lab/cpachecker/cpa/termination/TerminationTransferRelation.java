@@ -327,7 +327,7 @@ public class TerminationTransferRelation implements TransferRelation {
     logger.logf(
         FINEST,
         "Adding declarations of primed variables %s after %s in function %s.",
-        MoreStrings.longStringOf(
+        MoreStrings.lazyString(
             () ->
                 relevantVariables
                     .values()

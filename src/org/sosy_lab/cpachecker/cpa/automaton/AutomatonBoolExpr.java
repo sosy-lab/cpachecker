@@ -25,11 +25,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -52,9 +49,12 @@ import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
+import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -569,12 +569,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
                 if (((Boolean)result).booleanValue()) {
-                  if (pArgs.getLogger().wouldBeLogged(Level.FINER)) {
-                    String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                    modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                    aqe.toString() + "\"";
-                    pArgs.getLogger().log(Level.FINER, message);
-                  }
+                  pArgs
+                      .getLogger()
+                      .log(
+                          Level.FINER,
+                          "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
+                          modifiedQueryString,
+                          aqe.getCPAName(),
+                          aqe);
                   return CONST_TRUE;
                 }
               }

@@ -124,6 +124,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -1046,6 +1047,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     public void log(Level pPriority, Object... pArgs) {
       if (wouldBeLogged(pPriority)) {
         logger.log(pPriority, pArgs);
+      }
+    }
+
+    @Override
+    public void log(Level pPriority, Supplier<String> pMsgSupplier) {
+      if (wouldBeLogged(pPriority)) {
+        super.log(pPriority, pMsgSupplier);
       }
     }
 

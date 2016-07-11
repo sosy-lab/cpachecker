@@ -218,7 +218,7 @@ public class AutomatonInternalTest {
     result = args.replaceVariables("$1 == $5");
     assertThat(result).isNull(); // $5 has not been found
     // this test should issue a log message!
-    verify(mockLogger).log(eq(Level.WARNING), anyVararg());
+    verify(mockLogger).log(eq(Level.WARNING), (Object[]) anyVararg());
   }
 
   @Test

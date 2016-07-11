@@ -822,9 +822,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param edge The current edge in the CFA.
    */
   private void logDebug(final String msg, final CFAEdge edge) {
-    if (logger.wouldBeLogged(Level.ALL)) {
-      logger.log(Level.ALL, getLogMessage(msg, edge));
-    }
+    logger.log(Level.ALL, () -> getLogMessage(msg, edge));
   }
 
   /**
