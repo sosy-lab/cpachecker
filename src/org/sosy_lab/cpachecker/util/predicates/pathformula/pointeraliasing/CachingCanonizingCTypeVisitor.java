@@ -66,26 +66,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CCompositeType visit(final CCompositeType t) {
-      List<CCompositeTypeMemberDeclaration> memberDeclarations =
-          new ArrayList<>(t.getMembers().size());
-      boolean modifiedMembers = false;
-      for (CCompositeTypeMemberDeclaration oldMemberDeclaration : t.getMembers()) {
-        final CType oldMemberType = oldMemberDeclaration.getType();
-        final CType memberType = oldMemberType.accept(CachingCanonizingCTypeVisitor.this);
-        if (memberType != oldMemberType) {
-          modifiedMembers = true;
-          memberDeclarations.add(
-              new CCompositeTypeMemberDeclaration(memberType, oldMemberDeclaration.getName()));
-        } else {
-          memberDeclarations.add(oldMemberDeclaration);
-        }
-      }
-
-      if (modifiedMembers) {
-        // Here CCompositeType mutability is used to prevent infinite recursion
-        t.setMembers(memberDeclarations);
-      }
-      return t;
+      throw new AssertionError("should never be called");
     }
 
     @Override
@@ -215,7 +196,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
       return result;
     } else {
       CCompositeType canonicalType = t.getCanonicalType();
-      // Need to create our own instance because typeVisitor will modify it to prevent recursion.
+      List<CCompositeTypeMemberDeclaration> oldMembers = canonicalType.getMembers();
+
+      // Need to create our own instance because we will modify it to prevent recursion.
       canonicalType =
           new CCompositeType(
               !typeVisitor.ignoreConst && canonicalType.isConst(),
@@ -225,7 +208,22 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
               canonicalType.getName(),
               canonicalType.getOrigName());
       typeCache.put(t, canonicalType);
-      return typeVisitor.visit(canonicalType);
+
+      List<CCompositeTypeMemberDeclaration> memberDeclarations = new ArrayList<>(oldMembers.size());
+      for (CCompositeTypeMemberDeclaration oldMemberDeclaration : oldMembers) {
+        final CType oldMemberType = oldMemberDeclaration.getType();
+        final CType memberType = oldMemberType.accept(this);
+        if (memberType != oldMemberType) {
+          memberDeclarations.add(
+              new CCompositeTypeMemberDeclaration(memberType, oldMemberDeclaration.getName()));
+        } else {
+          memberDeclarations.add(oldMemberDeclaration);
+        }
+      }
+
+      // Here CCompositeType mutability is used to prevent infinite recursion
+      canonicalType.setMembers(memberDeclarations);
+      return canonicalType;
     }
   }
 
@@ -239,7 +237,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
       if (!(result instanceof CCompositeType)) {
         result = result.accept(typeVisitor);
       } else {
-        result = result.accept(this);
+        result = visit((CCompositeType) result);
       }
       typeCache.put(t, result);
       return result;
