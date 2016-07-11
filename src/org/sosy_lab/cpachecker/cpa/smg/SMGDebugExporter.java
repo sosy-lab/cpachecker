@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-public class SMGDebugTest {
+public class SMGDebugExporter {
 
 //  public static void dumpPlot(String name, SMGState state) {
 //    Path path = PathTemplate.ofFormatString("output/smg/smgspec/" + name).getPath();
