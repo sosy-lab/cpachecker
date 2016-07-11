@@ -129,8 +129,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
             SMGExportLevel.EVERY, exportOptions);
 
         result = newState;
-        logger.log(Level.ALL, "Precision adjustment on node " + node.getNodeNumber()
-            + " with result state id: " + result.getId());
+        logger.log(Level.ALL, "Precision adjustment on node ", node.getNodeNumber(), " with result state id: ", result.getId());
       }
     }
 
@@ -146,8 +145,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
             SMGExportLevel.EVERY, exportOptions);
 
         result = newState;
-        logger.log(Level.ALL, "Precision adjustment on node " + node.getNodeNumber()
-            + " with result state id: " + result.getId());
+        logger.log(Level.ALL, "Precision adjustment on node ", node.getNodeNumber(),
+             " with result state id: ", result.getId());
       }
     }
 
@@ -166,8 +165,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
             SMGExportLevel.EVERY, exportOptions);
         SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
             SMGExportLevel.EVERY, exportOptions);
-        logger.log(Level.ALL, "Heap abstraction on node " + node.getNodeNumber()
-            + " with state id: " + pState.getId());
+        logger.log(Level.ALL, "Heap abstraction on node ", node.getNodeNumber(),
+            " with state id: ", pState.getId());
         result = newState;
       }
     }

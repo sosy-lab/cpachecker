@@ -628,7 +628,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList removeOptionalObject(SMGOptionalObject pOptionalObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove " + pOptionalObject.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Remove ", pOptionalObject, " in state id ", this.getId());
 
     /*Just remove the optional Object and merge all incoming pointer
      * with the one pointer in all fields of the optional edge.
@@ -665,7 +665,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     /*Just replace the optional object with a region*/
     logger.log(Level.ALL,
-        "Materialise " + pOptionalObject.toString() + " in state id " + this.getId());
+        "Materialise ", pOptionalObject, " in state id ", this.getId());
 
     Set<SMGEdgePointsTo> pointer = heap.getPointerToObject(pOptionalObject);
 
@@ -699,7 +699,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList removeSll(SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
 
     /*First, set all sub smgs of sll to be removed to invalid.*/
     Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo());
@@ -734,7 +734,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndStateList removeDls(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
 
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
@@ -786,7 +786,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndState materialiseSll(SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
 
     if (pPointerToAbstractObject
         .getTargetSpecifier() != SMGTargetSpecifier.FIRST) { throw new SMGInconsistentException(
@@ -880,7 +880,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise " + pListSeg.toString() + " in state id " + this.getId());
+    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
 
     SMGRegion newConcreteRegion = new SMGRegion(pListSeg.getSize(),
         "concrete dll segment ID " + SMGValueFactory.getNewValue(), 0);
@@ -1603,7 +1603,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           s1.pruneUnreachable();
           s2.pruneUnreachable();
 
-          logger.log(Level.ALL, this.getId() + " is Less or Equal " + reachedState.getId());
+          logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {
@@ -2016,12 +2016,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     } else {
       temp = pOp.getOppositLogicalOperator();
     }
-    logger.log(Level.FINER, "SymValue1 " + pV1 + " " + temp +" SymValue2 " + pV2 +
-        "; AddPredicate: " + pEdge.toString());
+    logger.log(Level.FINER, "SymValue1 ", pV1 + " ", temp, " SymValue2 ", pV2,
+        "; AddPredicate: ", pEdge);
     if (!pV1.isUnknown() && !pV2.isUnknown()) {
       logger.log(Level.FINER,
-          "SymValue1 " + pV1.getAsInt() + " " + temp + " SymValue2 " + pV2.getAsInt() +
-              "; AddPredicate: " + pEdge.toString());
+          "SymValue1 ", pV1.getAsInt(), " ", temp, " SymValue2 ", pV2.getAsInt(),
+              "; AddPredicate: ", pEdge);
     }
     heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
   }
@@ -2037,11 +2037,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       } else {
         temp = pOp.getOppositLogicalOperator();
       }
-      logger.log(Level.FINER, "SymValue " + pV1 + " " + temp + "; ExplValue " + pV2 +
-          "; AddPredicate: " + pEdge.toString());
+      logger.log(Level.FINER, "SymValue ", pV1, " ", temp, "; ExplValue ", pV2,
+          "; AddPredicate: ", pEdge);
       if (!pV1.isUnknown()) {
-        logger.log(Level.FINER, "SymValue " + pV1.getAsInt() + " " + temp + "; ExplValue " + pV2 +
-            "; AddPredicate: " + pEdge.toString());
+        logger.log(Level.FINER, "SymValue ", pV1.getAsInt(), " ", temp, "; ExplValue ", pV2,
+            "; AddPredicate: ", pEdge);
       }
       heap.addPredicateRelation(pV1, pCType1, pV2, pCType2, pOp, pEdge);
     }
@@ -2055,9 +2055,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
                                 SMGExplicitValue pExplicitValue, Integer pCType2,
                                 CFAEdge pEdge) {
     if (isTrackPredicatesEnabled()) {
-      logger.log(Level.FINER, "Add Error Predicate: SymValue  " +
-          pSymbolicValue + " ; ExplValue" + " " +
-          pExplicitValue + "; on edge: " + pEdge.toString());
+      logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
+          pSymbolicValue, " ; ExplValue", " ",
+          pExplicitValue, "; on edge: ", pEdge);
       heap.addErrorRelation(pSymbolicValue, pCType1, pExplicitValue, pCType2);
     }
   }

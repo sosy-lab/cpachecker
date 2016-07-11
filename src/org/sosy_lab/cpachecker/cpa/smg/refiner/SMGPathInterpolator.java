@@ -102,7 +102,7 @@ public class SMGPathInterpolator {
 
     int interpolationId = idGenerator.incrementAndGet();
 
-    logger.log(Level.ALL, "Start interpolating path with interpolation id " + interpolationId);
+    logger.log(Level.ALL, "Start interpolating path with interpolation id ", interpolationId);
 
     interpolationOffset = -1;
 
@@ -116,7 +116,7 @@ public class SMGPathInterpolator {
     }
 
     logger.log(Level.ALL,
-        "Finish generating Interpolants for path with interpolation id " + interpolationId);
+        "Finish generating Interpolants for path with interpolation id ", interpolationId);
 
     return interpolants;
   }

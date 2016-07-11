@@ -587,14 +587,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGState currentState = addressAndState.getSmgState();
 
         if (address.isUnknown()) {
-          logger.log(Level.INFO, "Free on expression " + pointerExp.toASTString() + " is invalid, because the target of the address could not be calculated.");
+          logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(), " is invalid, because the target of the address could not be calculated.");
           SMGState invalidFreeState = currentState.setInvalidFree();
           resultStates.add(invalidFreeState);
           continue;
         }
 
         if (address.getAsInt() == 0) {
-          logger.log(Level.INFO, pFunctionCall.getFileLocation() + ":",
+          logger.log(Level.INFO, pFunctionCall.getFileLocation(), ":",
               "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
         } else {
@@ -812,9 +812,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       SMGState state, CFAEdge cfaEdge)
           throws CPATransferException {
-    logger.log(Level.FINEST, "SMG GetSuccessor >>");
-    logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
-    logger.log(Level.FINEST, "Code:", cfaEdge.getCode());
+    logger.log(Level.ALL, "SMG GetSuccessor >>");
+    logger.log(Level.ALL, "Edge:", cfaEdge.getEdgeType());
+    logger.log(Level.ALL, "Code:", cfaEdge.getCode());
 
     List<SMGState> successors;
 
@@ -893,7 +893,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     for (SMGState smg : successors) {
       SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.toString(), logger,
           SMGExportLevel.EVERY, exportSMGOptions);
-      logger.log(Level.ALL, "state id " + smg.getId() + " -> state id " + state.getId());
+      logger.log(Level.ALL, "state id ", smg.getId(), " -> state id ", state.getId());
     }
 
     return successors;
@@ -920,7 +920,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
-    logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
+    logger.log(Level.ALL, "Handling return Statement: ", returnExp);
 
     if (smgPredicateManager.isErrorPathFeasible(smgState)) {
       smgState = smgState.setInvalidRead();
@@ -944,7 +944,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleFunctionReturn(SMGState smgState,
       CFunctionReturnEdge functionReturnEdge) throws CPATransferException {
 
-    logger.log(Level.FINEST, "Handling function return");
+    logger.log(Level.ALL, "Handling function return");
 
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
@@ -1024,7 +1024,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
-    logger.log(Level.FINEST, "Handling function call: ", functionEntryNode.getFunctionName());
+    logger.log(Level.ALL, "Handling function call: ", functionEntryNode.getFunctionName());
 
     SMGState initialNewState = new SMGState(pSmgState, blockOperator, callEdge.getSuccessor());
 
@@ -1239,10 +1239,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
         } catch (SolverException pE) {
           result.add(newState);
-          logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + predicateFormula);
+          logger.log(Level.WARNING, "Solver Exception: ", pE, " on predicate ", predicateFormula);
         } catch (InterruptedException pE) {
           result.add(newState);
-          logger.log(Level.WARNING, "Solver Interrupted Exception: " + pE + " on predicate " + predicateFormula);
+          logger.log(Level.WARNING, "Solver Interrupted Exception: ", pE, " on predicate ", predicateFormula);
         }
       } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
           || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
@@ -1294,7 +1294,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private List<SMGState> handleStatement(SMGState pState, CStatementEdge pCfaEdge) throws CPATransferException {
-    logger.log(Level.FINEST, ">>> Handling statement");
+    logger.log(Level.ALL, ">>> Handling statement");
     List<SMGState> newStates = null;
 
     CStatement cStmt = pCfaEdge.getStatement();
@@ -1315,8 +1315,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (builtins.isABuiltIn(functionName)) {
         SMGState newState = new SMGState(pState, blockOperator, pCfaEdge.getSuccessor());
         if (builtins.isConfigurableAllocationFunction(functionName)) {
-          logger.log(Level.INFO, pCfaEdge.getFileLocation() + ":",
-              "Calling " + functionName + " and not using the result, resulting in memory leak.");
+          logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
+              "Calling ", functionName, " and not using the result, resulting in memory leak.");
           newStates = builtins.evaluateConfigurableAllocationFunction(cFCExpression, newState, pCfaEdge).asSMGStateList();
 
           for (SMGState state : newStates) {
@@ -1337,7 +1337,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           builtins.evaluateVBPlot(cFCExpression, newState);
           break;
         case "__builtin_alloca":
-          logger.log(Level.INFO, pCfaEdge.getFileLocation() + ":",
+          logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
               "Calling alloc and not using the result.");
           newStates = builtins.evaluateAlloca(cFCExpression, newState, pCfaEdge).asSMGStateList();
           break;
@@ -1376,7 +1376,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CRightHandSide rValue) throws CPATransferException {
 
     SMGState state = pState;
-    logger.log(Level.FINEST, "Handling assignment:", lValue, "=", rValue);
+    logger.log(Level.ALL, "Handling assignment:", lValue, "=", rValue);
 
     List<SMGState> result = new ArrayList<>(4);
 
@@ -1506,9 +1506,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     //FIXME Does not work with variable array length.
     if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType, newState)) {
-      logger.log(Level.INFO, cfaEdge.getFileLocation() + ":",
-          "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType, newState) +
-          " bytes into a field with size " + memoryOfField.getSize() + "bytes:",
+      logger.log(Level.INFO, cfaEdge.getFileLocation(), ":",
+          "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType, newState),
+          " bytes into a field with size ", memoryOfField.getSize(), "bytes:",
           cfaEdge.getRawStatement());
     }
 
@@ -1553,9 +1553,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.INFO, pEdge.getFileLocation() + ":",
-          "Field " + "(" + pFieldOffset + ", " + pRValueType.toASTString("") + ")" +
-          " does not fit object " + pMemoryOfField.toString() + ".");
+      logger.log(Level.INFO, pEdge.getFileLocation(), ":",
+          "Field ", "(", pFieldOffset, ", ", pRValueType.toASTString(""), ")",
+          " does not fit object ", pMemoryOfField.toString(), ".");
 
       return pNewState.setInvalidWrite();
     }
@@ -1590,7 +1590,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
-    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl);
+    logger.log(Level.ALL, "Handling variable declaration:", pVarDecl);
 
     String varName = pVarDecl.getName();
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
@@ -1618,7 +1618,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private List<SMGState> handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
-    logger.log(Level.FINEST, ">>> Handling declaration");
+    logger.log(Level.ALL, ">>> Handling declaration");
 
     CDeclaration cDecl = edge.getDeclaration();
 
@@ -1638,7 +1638,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
 
     if (newInitializer != null) {
-      logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
+      logger.log(Level.ALL, "Handling variable declaration: handling initializer");
 
       return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);
     } else if (pVarDecl.isGlobal()) {
@@ -1691,9 +1691,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Type cannot be resolved
-    logger.log(Level.INFO, "Type " + realCType.toASTString("")
-        + "cannot be resolved sufficiently to handle initializer "
-        + pNewInitializer.toASTString());
+    logger.log(Level.INFO, "Type ", realCType.toASTString(""),
+        "cannot be resolved sufficiently to handle initializer "
+        , pNewInitializer);
 
     return ImmutableList.of(pNewState);
   }
@@ -1949,9 +1949,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
-        logger.log(Level.INFO, pEdge.getFileLocation() + ":", "Field " + "("
-            + fieldOffset + ", " + pType.toASTString("") + ")"
-            + " does not fit object " + pObject.toString() + ".");
+        logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
+             fieldOffset, ", ", pType.toASTString(""), ")",
+            " does not fit object ", pObject, ".");
 
         return SMGValueAndState.of(pSmgState.setInvalidRead());
       }
@@ -2182,7 +2182,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       @Override
       public List<SMGAddressAndState> visit(CIdExpression variableName) throws CPATransferException {
-        logger.log(Level.FINEST, ">>> Handling statement: variable assignment");
+        logger.log(Level.ALL, ">>> Handling statement: variable assignment");
 
         // a = ...
         return super.visit(variableName);
@@ -2191,7 +2191,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       @Override
       public List<SMGAddressAndState> visit(CPointerExpression pLValue)
           throws CPATransferException {
-        logger.log(Level.FINEST, ">>> Handling statement: assignment to dereferenced pointer");
+        logger.log(Level.ALL, ">>> Handling statement: assignment to dereferenced pointer");
 
         List<SMGAddressAndState> addresses = super.visit(pLValue);
 
@@ -2210,14 +2210,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       @Override
       public List<SMGAddressAndState> visit(CFieldReference lValue) throws CPATransferException {
-        logger.log(Level.FINEST, ">>> Handling statement: assignment to field reference");
+        logger.log(Level.ALL, ">>> Handling statement: assignment to field reference");
 
         return super.visit(lValue);
       }
 
       @Override
       public List<SMGAddressAndState> visit(CArraySubscriptExpression lValue) throws CPATransferException {
-        logger.log(Level.FINEST, ">>> Handling statement: assignment to array Cell");
+        logger.log(Level.ALL, ">>> Handling statement: assignment to array Cell");
 
         return super.visit(lValue);
       }
