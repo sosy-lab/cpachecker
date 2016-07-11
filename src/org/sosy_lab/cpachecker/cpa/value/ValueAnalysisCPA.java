@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -126,17 +127,18 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     config.inject(this);
 
     Timer precisionReadTime = new Timer();
+    AtomicLong precisionFileSize = new AtomicLong(0);
 
     abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
     transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
-    precision           = initializePrecision(config, cfa, precisionReadTime);
+    precision           = initializePrecision(config, cfa, precisionReadTime, precisionFileSize);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
 
     precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, transferRelation, cfa);
 
     reducer             = new ValueAnalysisReducer();
-    statistics          = new ValueAnalysisCPAStatistics(this, config, precisionReadTime);
+    statistics          = new ValueAnalysisCPAStatistics(this, config, precisionReadTime, precisionFileSize.longValue());
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
 
     errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
@@ -167,9 +169,10 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     return null;
   }
 
-  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa, Timer pPrecisionReadTime) throws InvalidConfigurationException {
+  private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa, Timer pPrecisionReadTime,
+      AtomicLong pPrecisionFileSize) throws InvalidConfigurationException {
 
-    if (initialPrecisionFile == null) {
+  if (initialPrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     } else {
@@ -181,6 +184,11 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
         // refine the refinable component precision with increment from file
         return precision.withIncrement(restoreMappingFromFile(cfa));
       } finally {
+        try {
+          pPrecisionFileSize.addAndGet(initialPrecisionFile.asByteSource().size());
+        } catch (IOException e) {
+          // do nothing
+        }
         pPrecisionReadTime.stop();
       }
     }

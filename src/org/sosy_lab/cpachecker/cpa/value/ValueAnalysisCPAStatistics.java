@@ -55,12 +55,13 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   private final ValueAnalysisCPA cpa;
   private final Timer precisionReadTime;
+  private final long precisionFileSize;
 
-  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config, Timer pPrecisionReadTime)
-      throws InvalidConfigurationException {
+ public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config, Timer pPrecisionReadTime,
+      long pPrecisionFileSize) throws InvalidConfigurationException {
     this.cpa = cpa;
     precisionReadTime = pPrecisionReadTime;
-
+    precisionFileSize = pPrecisionFileSize;
     config.inject(this, ValueAnalysisCPAStatistics.class);
   }
 
@@ -85,6 +86,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     writer.put(numberOfVariables);
     writer.put(numberOfGlobalVariables);
     writer.put("Initial precision read time", precisionReadTime);
+    writer.put("Initial precision file size:", precisionFileSize);
 
     if (precisionFile != null) {
       exportPrecision(reached);

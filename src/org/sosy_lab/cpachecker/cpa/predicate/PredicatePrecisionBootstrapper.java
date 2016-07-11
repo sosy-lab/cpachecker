@@ -72,10 +72,12 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   private static class PrecisionBootstrapStatistics extends AbstractStatistics {
     Timer readTime = new Timer();
+    long fileSizes = 0;
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       super.printStatistics(pOut, pResult, pReached);
       pOut.print("Time for reading initial predicates:\t"+ readTime);
+      pOut.println("Initial precision file size:     " + fileSizes);
     }
   }
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
@@ -107,7 +109,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         try {
           statistics.readTime.start();
           result = result.mergeWith(parser.parsePredicates(predicatesFile));
-
+          statistics.fileSizes += predicatesFile.asByteSource().size();
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
 

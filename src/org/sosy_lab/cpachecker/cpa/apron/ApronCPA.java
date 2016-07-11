@@ -102,6 +102,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   private Path precisionFile = null;
 
   private final Timer precisionReadTime = new Timer();
+  private long precisionFileSize;
 
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
@@ -151,6 +152,11 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
           tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
         } finally {
           precisionReadTime.stop();
+          try {
+            precisionFileSize = initialPrecisionFile.asByteSource().size();
+          } catch (IOException e) {
+            precisionFileSize = -1;
+          }
         }
       }
       // static full precision is default
@@ -260,6 +266,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
           exportPrecision(pReached);
         }
         pOut.println("Initial precision read time:     " + precisionReadTime);
+        pOut.println("Initial precision file size:     " + precisionFileSize);
 
       }
 
