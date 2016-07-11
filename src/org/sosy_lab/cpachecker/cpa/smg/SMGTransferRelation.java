@@ -1392,7 +1392,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (addressOfField.isUnknown()) {
         SMGState resultState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
-        resultState.unknownWrite();
+        /*Check for dereference errors in rValue*/
+        List<SMGState> newStates =
+            readValueToBeAssiged(resultState, cfaEdge, rValue).asSMGStateList();
+        newStates.forEach((SMGState smgState) -> {
+          smgState.unknownWrite();
+        });
+
+        result.addAll(newStates);
       } else {
         List<SMGState> newStates =
             handleAssignmentToField(state, cfaEdge, addressOfField.getObject(),
