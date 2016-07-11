@@ -587,7 +587,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGState currentState = addressAndState.getSmgState();
 
         if (address.isUnknown()) {
-          logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(), " is invalid, because the target of the address could not be calculated.");
+          logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
+              " is invalid, because the target of the address could not be calculated.");
           SMGState invalidFreeState = currentState.setInvalidFree();
           resultStates.add(invalidFreeState);
           continue;
@@ -1504,12 +1505,18 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject memoryOfField, int fieldOffset, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
+    int sizeOfField = expressionEvaluator.getSizeof(cfaEdge, rValueType, newState);
+
     //FIXME Does not work with variable array length.
-    if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType, newState)) {
-      logger.log(Level.INFO, cfaEdge.getFileLocation(), ":",
-          "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType, newState),
-          " bytes into a field with size ", memoryOfField.getSize(), "bytes:",
-          cfaEdge.getRawStatement());
+    if (memoryOfField.getSize() < sizeOfField) {
+
+      logger.log(Level.INFO, () -> {
+        String log =
+            String.format("%s: Attempting to write %d bytes into a field with size %d bytes: %s",
+                cfaEdge.getFileLocation(), sizeOfField, memoryOfField.getSize(),
+                cfaEdge.getRawStatement());
+        return log;
+      });
     }
 
     if (expressionEvaluator.isStructOrUnionType(rValueType)) {
@@ -1553,9 +1560,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.INFO, pEdge.getFileLocation(), ":",
-          "Field ", "(", pFieldOffset, ", ", pRValueType.toASTString(""), ")",
-          " does not fit object ", pMemoryOfField.toString(), ".");
+      logger.log(Level.INFO, () -> {
+        String msg =
+            String.format("%s: Field (%d, %s) does not fit object %s.", pEdge.getFileLocation(),
+                pFieldOffset, pRValueType.toASTString(""), pMemoryOfField.toString());
+        return msg;
+      });
 
       return pNewState.setInvalidWrite();
     }
@@ -1691,9 +1701,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Type cannot be resolved
-    logger.log(Level.INFO, "Type ", realCType.toASTString(""),
-        "cannot be resolved sufficiently to handle initializer "
-        , pNewInitializer);
+    logger.log(Level.INFO,() -> {
+          String msg =
+              String.format("Type %s cannot be resolved sufficiently to handle initializer %s",
+                  realCType.toASTString(""), pNewInitializer);
+          return msg;
+        });
 
     return ImmutableList.of(pNewState);
   }
