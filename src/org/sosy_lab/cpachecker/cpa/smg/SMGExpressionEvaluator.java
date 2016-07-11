@@ -1001,6 +1001,7 @@ public class SMGExpressionEvaluator {
                 evaluateNonAddressValue(newState, cfaEdge, exp.getSubscriptExpression());
             for (SMGValueAndState symbolicValueAndState: subscriptSymbolicValueAndStates.getValueAndStateList()) {
               SMGSymbolicValue value = symbolicValueAndState.getObject();
+              newState = subscriptValueAndState.getSmgState();
               if (!value.isUnknown() && !newState
                   .isObjectExternallyAllocated(arrayAddress.getObject())) {
                 int size = arrayAddress.getObject().getSize();

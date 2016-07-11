@@ -2105,7 +2105,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
-    if (explicitValues.containsKey(pKey)) { return explicitValues.get(pKey); }
+    if (explicitValues.containsKey(pKey)) {
+      return explicitValues.get(pKey);
+    }
+
     return SMGUnknownValue.getInstance();
   }
 

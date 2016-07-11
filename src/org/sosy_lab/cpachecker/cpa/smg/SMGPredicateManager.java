@@ -202,6 +202,8 @@ public class SMGPredicateManager {
         if (!isUnsat(errorPredicateFormula)) {
           logger.log(Level.WARNING, "Sat: " + errorPredicateFormula);
           return true;
+        } else {
+          return false;
         }
       } catch (SolverException pE) {
         logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + errorPredicate);
@@ -210,6 +212,7 @@ public class SMGPredicateManager {
             errorPredicate);
       }
     }
-    return false;
+
+    return !errorPredicate.isEmpty();
   }
 }
