@@ -200,7 +200,7 @@ public class SMGPredicateManager {
       BooleanFormula errorPredicateFormula = getErrorPredicateFormula(errorPredicate, pState.getPathPredicateRelation());
       try {
         if (!isUnsat(errorPredicateFormula)) {
-          logger.log(Level.WARNING, "Sat: " + errorPredicateFormula);
+          logger.log(Level.INFO, "Sat: ", errorPredicateFormula);
           return true;
         } else {
           return false;
