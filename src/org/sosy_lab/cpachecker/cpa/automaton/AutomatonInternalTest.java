@@ -223,32 +223,30 @@ public class AutomatonInternalTest {
 
   @Test
   public void testASTcomparison() {
+    assert_().about(astMatcher).that("x= $?;").matches("x=5;");
+    assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
+    assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
+    assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
 
-   assert_().about(astMatcher).that("x= $?;").matches("x=5;");
-   assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
-   assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
-   assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
+    assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
 
-   assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
+    assert_().about(astMatcher).that("init($?);").matches("init(a);");
+    assert_().about(astMatcher).that("init($?);").matches("init();");
+    assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
 
-   assert_().about(astMatcher).that("init($?);").matches("init(a);");
-   assert_().about(astMatcher).that("init($?);").matches("init();");
-   assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
+    assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
+    assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
 
-   assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
-   assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
+    assert_().about(astMatcher).that("x=$?").matches("x = 5;");
+    assert_().about(astMatcher).that("x=$?;").matches("x = 5");
 
-   assert_().about(astMatcher).that("x=$?").matches("x = 5;");
-   assert_().about(astMatcher).that("x=$?;").matches("x = 5");
+    assert_().about(astMatcher).that("f($?);").matches("f();");
+    assert_().about(astMatcher).that("f($?);").matches("f(x);");
+    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
 
-
-   assert_().about(astMatcher).that("f($?);").matches("f();");
-   assert_().about(astMatcher).that("f($?);").matches("f(x);");
-   assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
-
-   assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
-   assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
-   assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
+    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
+    assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
+    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
   }
 
   private final SubjectFactory<ASTMatcherSubject, String> astMatcher =
