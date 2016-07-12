@@ -179,7 +179,6 @@ public class ArithmeticOverflowAssumptionBuilder implements GenericAssumptionBui
    * required for non-overflowing behavior.
    *
    * @param result Output list to write the generated assumptions to.
-   * @throws UnrecognizedCCodeException
    */
   private void visit(CExpression pExpression, Set<CExpression> result)
       throws UnrecognizedCCodeException {
