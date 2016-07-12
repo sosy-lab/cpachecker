@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
+import java.util.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -97,7 +99,6 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
@@ -579,13 +580,8 @@ class FunctionCloner implements CFAVisitor {
     public CType visit(CCompositeType type) {
       // possible problem: compositeType contains itself again -> recursion
       // solution: cache the empty compositeType and fill it later.
-      CCompositeType comp =
-          new CCompositeType(
-              type.isConst(),
-              type.isVolatile(),
-              type.getKind(),
-              type.getName(),
-              type.getOrigName());
+      CCompositeType comp = new CCompositeType(type.isConst(), type.isVolatile(), type.getKind(),
+              ImmutableList.<CCompositeTypeMemberDeclaration>of(), type.getName(), type.getOrigName());
       typeCache.put(type, comp);
 
       // convert members and set them

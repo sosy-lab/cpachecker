@@ -204,6 +204,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
               !typeVisitor.ignoreConst && canonicalType.isConst(),
               !typeVisitor.ignoreVolatile && canonicalType.isVolatile(),
               canonicalType.getKind(),
+              canonicalType.getMembers(),
               canonicalType.getName(),
               canonicalType.getOrigName());
       typeCache.put(t, canonicalType);
