@@ -95,6 +95,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -504,13 +505,18 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       while(!workList.isEmpty()) {
         ARGState next = workList.iterator().next();
         workList.remove(next);
-        for (ARGState parent : next.getParents()) {
 
-          if (extractStateByType(parent, TerminationState.class).isPartOfLoop()) {
-            workList.add(parent);
-          } else {
-            firstLoopStates.add(next);
-          }
+        Collection<ARGState> parentLoopStates =
+            next
+            .getParents()
+            .stream()
+            .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
+            .collect(Collectors.toList());
+
+        if (parentLoopStates.isEmpty()) {
+          firstLoopStates.add(next);
+        } else {
+          workList.addAll(parentLoopStates);
         }
       }
 
