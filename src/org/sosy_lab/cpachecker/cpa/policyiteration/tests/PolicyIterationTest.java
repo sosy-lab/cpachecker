@@ -161,6 +161,23 @@ public class PolicyIterationTest {
             "precision.trackVariablesBesidesEqAddBool", "false"));
   }
 
+  // Testing overflow tracking.
+  @Test public void overflow_guards_true_assert() throws Exception {
+    checkWithOverflow("overflow/guards_true_assert.c");
+  }
+
+  @Test public void overflow_increment_false_assert() throws Exception {
+    checkWithOverflow("overflow/increment_false_assert.c");
+  }
+
+  @Test public void overflow_simplest_true_assert() throws Exception {
+    checkWithOverflow("overflow/simplest_true_assert.c");
+  }
+
+  @Test public void increment_in_guard_false_assert() throws Exception {
+    checkWithOverflow("overflow/increment_in_guard_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, ImmutableMap.of());
   }
@@ -172,6 +189,14 @@ public class PolicyIterationTest {
   private void checkWithSlicing(String filename, Map<String, String> extra)
       throws Exception {
     check(filename, getProperties("policyIteration-with-slicing.properties", extra));
+  }
+
+  private void checkWithOverflow(String filename)
+        throws Exception {
+    check(
+        filename,
+        getProperties("policyIteration-with-overflow.properties", ImmutableMap.of())
+    );
   }
 
   private void check(String filename, Configuration config) throws Exception {
