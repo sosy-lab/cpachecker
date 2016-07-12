@@ -35,6 +35,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
+import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -65,14 +73,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /**
  * Creates {@link Lasso}s from {@link CounterexampleInfo}.
@@ -268,14 +268,14 @@ public class LassoBuilder {
       BooleanFormulaTransformationVisitor visitor, BooleanFormula formula)
       throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
-    return formulaManagerView.getBooleanFormulaManager().transformRecursively(visitor, formula);
+    return formulaManagerView.getBooleanFormulaManager().transformRecursively(formula, visitor);
   }
 
   private InOutVariables extractRankVars(
       BooleanFormula path, SSAMap inSsa, SSAMap outSsa, Set<String> pRelevantVariables) {
     InOutVariablesCollector veriablesCollector =
         new InOutVariablesCollector(formulaManagerView, inSsa, outSsa);
-    formulaManagerView.visitRecursively(veriablesCollector, path);
+    formulaManagerView.visitRecursively(path, veriablesCollector);
     Map<RankVar, Term> inRankVars =
         createRankVars(veriablesCollector.getInVariables(), pRelevantVariables);
     Map<RankVar, Term> outRankVars =

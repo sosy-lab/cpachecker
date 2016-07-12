@@ -59,7 +59,7 @@ public class FormulaToCExpressionConverter {
   }
 
   private String recFormulaToCExpression(Formula invariant) {
-    return fmgr.visit(new DefaultFormulaVisitor<String>() {
+    return fmgr.visit(invariant, new DefaultFormulaVisitor<String>() {
 
       @Override
       protected String visitDefault(Formula f) {
@@ -140,6 +140,6 @@ public class FormulaToCExpressionConverter {
             )
             + ")";
       }
-    }, invariant);
+    });
   }
 }

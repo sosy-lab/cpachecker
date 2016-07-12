@@ -30,6 +30,8 @@ import static org.sosy_lab.solver.api.FunctionDeclarationKind.MODULO;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
+
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -45,8 +47,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
-
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
   private final FormulaManagerView fmgrView;
@@ -61,7 +61,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
   @Override
   public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
     DivAndModTransformation divAndModTransformation = new DivAndModTransformation(fmgrView, fmgr);
-    BooleanFormula result = (BooleanFormula) fmgrView.visit(divAndModTransformation, pAtom);
+    BooleanFormula result = (BooleanFormula) fmgrView.visit(pAtom, divAndModTransformation);
 
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
     BooleanFormula additionalAxioms =
@@ -106,7 +106,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
 
       List<Formula> newArgs =
-          pArgs.stream().map(f -> fmgrView.visit(this, f)).collect(Collectors.toList());
+          pArgs.stream().map(f -> fmgrView.visit(f, this)).collect(Collectors.toList());
 
       if (pFunctionDeclaration.getKind().equals(DIV)
           || pFunctionDeclaration.getName().equalsIgnoreCase("div")) {

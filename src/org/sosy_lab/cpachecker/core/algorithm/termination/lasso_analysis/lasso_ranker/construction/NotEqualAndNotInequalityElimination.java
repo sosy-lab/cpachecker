@@ -54,12 +54,12 @@ class NotEqualAndNotInequalityElimination extends BooleanFormulaTransformationVi
     // Pattern matching on (NOT (= A B)).
     if (split.size() == 2) {
       return fmgr.makeOr(
-          fmgr.visit(strictInequalityTransformation, split.get(0)),
-          fmgr.visit(strictInequalityTransformation, split.get(1)));
+          fmgr.visit(split.get(0), strictInequalityTransformation),
+          fmgr.visit(split.get(1), strictInequalityTransformation));
 
       // handle <,<=, >, >=
     } else {
-      return fmgr.visit(invertInequalityTransformation, pOperand);
+      return fmgr.visit(pOperand, invertInequalityTransformation);
     }
   }
 

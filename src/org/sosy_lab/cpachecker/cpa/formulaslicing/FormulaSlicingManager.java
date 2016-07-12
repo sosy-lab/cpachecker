@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -49,6 +48,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -541,7 +541,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
     final AtomicBoolean out = new AtomicBoolean(false);
-    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    fmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -560,7 +560,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, atom);
+    });
     return out.get();
   }
 }

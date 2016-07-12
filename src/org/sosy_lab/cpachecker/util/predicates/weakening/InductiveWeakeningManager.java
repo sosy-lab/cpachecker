@@ -287,8 +287,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // Assume the formula to be a conjunction over disjunctions.
     BooleanFormula nnf = fmgr.applyTactic(input, Tactic.NNF);
 
-    return bfmgr.transformRecursively(
-        new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(nnf, new BooleanFormulaTransformationVisitor(fmgr) {
           @Override
           public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
             try {
@@ -306,7 +305,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
               throw new UnsupportedOperationException("Error while "
                   + "simplifying", pE); }
           }
-        }, nnf);
+        });
   }
 
   private List<BooleanFormula> simplifyArgs(

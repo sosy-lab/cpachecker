@@ -48,7 +48,7 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(input, new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
       public BooleanFormula visitNot(BooleanFormula pOperand) {
         List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
@@ -61,7 +61,7 @@ public class FormulaLinearizationManager {
         }
         return super.visitNot(pOperand);
       }
-    }, input);
+    });
   }
 
   /**
@@ -71,13 +71,13 @@ public class FormulaLinearizationManager {
       throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.transformRecursively(
-        new BooleanFormulaTransformationVisitor(fmgr) {
+        input, new BooleanFormulaTransformationVisitor(fmgr) {
 
       @Override
       public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
         return annotateDisjunction(processedOperands);
       }
-    }, input);
+    });
   }
 
   private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {
@@ -211,7 +211,7 @@ public class FormulaLinearizationManager {
   private Multimap<String, Pair<Formula, List<Formula>>> findUFs(Formula f) {
     final Multimap<String, Pair<Formula, List<Formula>>> UFs = HashMultimap.create();
 
-    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    fmgr.visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -227,7 +227,7 @@ public class FormulaLinearizationManager {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, f);
+    });
 
     return UFs;
   }

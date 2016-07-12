@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,6 +48,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -170,7 +170,7 @@ public class CEXWeakeningManager {
     final List<BooleanFormula> newToAbstract = new ArrayList<>();
 
     // Perform the required abstraction.
-    bfmgr.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>() {
+    bfmgr.visitRecursively(primed, new DefaultBooleanFormulaVisitor<TraversalProcess>() {
 
       @Override
       protected TraversalProcess visitDefault() {
@@ -265,7 +265,7 @@ public class CEXWeakeningManager {
             toAbstract, m, selectionInfo, f, depth + 1);
       }
 
-    }, primed);
+    });
 
     return newToAbstract;
   }

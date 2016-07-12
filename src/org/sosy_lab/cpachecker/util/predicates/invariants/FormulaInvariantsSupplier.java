@@ -194,7 +194,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
                     i -> {
                       try {
                         return pFmgr.transformRecursively(
-                            new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr), i);
+                            i, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
                       } catch (IllegalArgumentException e) {
                         logger.logUserException(
                             Level.INFO,

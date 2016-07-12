@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
@@ -57,6 +56,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -175,7 +175,7 @@ public class RCNFManager implements StatisticsProvider {
   private BooleanFormula dropBoundVariables(BooleanFormula input)
       throws InterruptedException {
 
-    Optional<BooleanFormula> body = fmgr.visit(quantifiedBodyExtractor, input);
+    Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
     if (body.isPresent()) {
       return fmgr.filterLiterals(body.get(), input1 -> !hasBoundVariables(input1));
     } else {
@@ -186,7 +186,7 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   private BooleanFormula factorize(BooleanFormula input) {
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(input, new BooleanFormulaTransformationVisitor(fmgr) {
 
       /**
        * Flatten AND-.
@@ -230,11 +230,11 @@ public class RCNFManager implements StatisticsProvider {
 
         return bfmgr.and(common, bfmgr.or(branches));
       }
-    }, input);
+    });
   }
 
   private BooleanFormula expandClause(final BooleanFormula input) {
-    return bfmgr.visit(new DefaultBooleanFormulaVisitor<BooleanFormula>() {
+    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<BooleanFormula>() {
       @Override
       protected BooleanFormula visitDefault() {
         return input;
@@ -270,7 +270,7 @@ public class RCNFManager implements StatisticsProvider {
           return bfmgr.or(operands);
         }
       }
-    }, input);
+    });
   }
 
   private Set<BooleanFormula> convert(BooleanFormula input) {
@@ -298,7 +298,7 @@ public class RCNFManager implements StatisticsProvider {
    * Transform {@code a = b} to {@code a >= b /\ a <= b}.
    */
   private BooleanFormula transformEquality(BooleanFormula input) {
-    return fmgr.visit(new DefaultFormulaVisitor<BooleanFormula>() {
+    return fmgr.visit(input, new DefaultFormulaVisitor<BooleanFormula>() {
       @Override
       protected BooleanFormula visitDefault(Formula f) {
         return (BooleanFormula) f;
@@ -322,12 +322,12 @@ public class RCNFManager implements StatisticsProvider {
           return (BooleanFormula) f;
         }
       }
-    }, input);
+    });
   }
 
   private boolean hasBoundVariables(BooleanFormula input) {
     final AtomicBoolean hasBound = new AtomicBoolean(false);
-    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    fmgr.visitRecursively(input, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -338,7 +338,7 @@ public class RCNFManager implements StatisticsProvider {
         hasBound.set(true);
         return TraversalProcess.ABORT;
       }
-    }, input);
+    });
     return hasBound.get();
   }
 

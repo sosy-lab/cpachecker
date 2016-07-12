@@ -89,22 +89,22 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
 
   @Override
   public <R> R visit(
-      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor,
-      BooleanFormula formula) {
-    return manager.visit(visitor, formula);
+      BooleanFormula formula,
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor) {
+    return manager.visit(formula, visitor);
   }
 
   @Override
   public void visitRecursively(
-      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor,
-      BooleanFormula f) {
-    manager.visitRecursively(rFormulaVisitor, f);
+      BooleanFormula f,
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor) {
+    manager.visitRecursively(f, rFormulaVisitor);
   }
 
   @Override
   public BooleanFormula transformRecursively(
-      org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor pVisitor, BooleanFormula f) {
-    return manager.transformRecursively(pVisitor, f);
+      BooleanFormula f, org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor pVisitor) {
+    return manager.transformRecursively(f, pVisitor);
   }
 
   @Override
@@ -120,6 +120,16 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula makeBoolean(boolean pValue) {
     return manager.makeBoolean(pValue);
+  }
+
+  @Override
+  public BooleanFormula makeTrue() {
+    return manager.makeTrue();
+  }
+
+  @Override
+  public BooleanFormula makeFalse() {
+    return manager.makeFalse();
   }
 
   @Override

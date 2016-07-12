@@ -1121,7 +1121,7 @@ public class FormulaManagerView {
       }
 
       //noinspection ResultOfMethodCallIgnored
-      visit(process, tt);
+      visit(tt, process);
     }
 
     @SuppressWarnings("unchecked")
@@ -1138,7 +1138,7 @@ public class FormulaManagerView {
       BooleanFormula pFormula,
       final boolean splitArithEqualities) {
     final ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
-    booleanFormulaManager.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>(){
+    booleanFormulaManager.visitRecursively(pFormula, new DefaultBooleanFormulaVisitor<TraversalProcess>(){
       @Override
       protected TraversalProcess visitDefault() {
         return TraversalProcess.CONTINUE;
@@ -1160,7 +1160,7 @@ public class FormulaManagerView {
         return TraversalProcess.CONTINUE;
       }
 
-    }, pFormula);
+    });
     return result.build();
   }
 
@@ -1177,7 +1177,7 @@ public class FormulaManagerView {
    */
   public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
     return booleanFormulaManager.visit(
-        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
+        f, new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
       @Override
       protected Optional<BooleanFormula> visitDefault() {
         return Optional.empty();
@@ -1187,7 +1187,7 @@ public class FormulaManagerView {
       public Optional<BooleanFormula> visitNot(BooleanFormula negated) {
         return Optional.of(negated);
       }
-    }, f);
+    });
   }
 
   /**
@@ -1212,7 +1212,7 @@ public class FormulaManagerView {
     if (result != null) { return result; }
 
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
-    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -1229,7 +1229,7 @@ public class FormulaManagerView {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, f);
+    });
     result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
@@ -1272,7 +1272,7 @@ public class FormulaManagerView {
           }
         };
 
-    return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
+    return booleanFormulaManager.visit(t, new DefaultBooleanFormulaVisitor<Boolean>() {
 
       @Override public Boolean visitDefault() {
         return false;
@@ -1285,22 +1285,22 @@ public class FormulaManagerView {
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
         // Return false unless the operand is atomic.
-        return booleanFormulaManager.visit(isAtomicVisitor, operand);
+        return booleanFormulaManager.visit(operand, isAtomicVisitor);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
-          if (!booleanFormulaManager.visit(this, operand)) {
+          if (!booleanFormulaManager.visit(operand, this)) {
             return false;
           }
         }
         return true;
       }
-    }, t);
+    });
   }
 
   private boolean containsIfThenElse(Formula f) {
     final AtomicBoolean containsITE = new AtomicBoolean(false);
-    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -1317,7 +1317,7 @@ public class FormulaManagerView {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, f);
+    });
     return containsITE.get();
   }
 
@@ -1335,7 +1335,7 @@ public class FormulaManagerView {
     final Set<Formula> allLiterals = new HashSet<>();
     final AtomicBoolean andFound = new AtomicBoolean(false);
 
-    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -1360,7 +1360,7 @@ public class FormulaManagerView {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, f);
+    });
 
     BooleanFormula result = booleanFormulaManager.makeBoolean(true);
     if (andFound.get()) {
@@ -1528,7 +1528,7 @@ public class FormulaManagerView {
    */
   public <T extends Formula> Optional<Triple<BooleanFormula, T, T>>
       splitIfThenElse(final T pF) {
-    return visit(new DefaultFormulaVisitor<Optional<Triple<BooleanFormula, T, T>>>() {
+    return visit(pF, new DefaultFormulaVisitor<Optional<Triple<BooleanFormula, T, T>>>() {
 
             @Override
             protected Optional<Triple<BooleanFormula, T, T>> visitDefault(Formula f) {
@@ -1554,7 +1554,7 @@ public class FormulaManagerView {
               }
               return Optional.empty();
             }
-          }, pF
+          }
       );
   }
 
@@ -1570,8 +1570,8 @@ public class FormulaManagerView {
    * Visit the formula with a given visitor.
    */
   @CanIgnoreReturnValue
-  public <R> R visit(FormulaVisitor<R> rFormulaVisitor, Formula f) {
-    return manager.visit(rFormulaVisitor, unwrap(f));
+  public <R> R visit(Formula f, FormulaVisitor<R> rFormulaVisitor) {
+    return manager.visit(unwrap(f), rFormulaVisitor);
   }
 
   /**
@@ -1584,9 +1584,9 @@ public class FormulaManagerView {
    * is visited only once. Thus it can be used to traverse DAG-like formulas efficiently.
    */
   public void visitRecursively(
-      FormulaVisitor<TraversalProcess> rFormulaVisitor,
-      Formula f) {
-    manager.visitRecursively(rFormulaVisitor, unwrap(f));
+      Formula f,
+      FormulaVisitor<TraversalProcess> rFormulaVisitor) {
+    manager.visitRecursively(unwrap(f), rFormulaVisitor);
   }
 
   /**
@@ -1601,10 +1601,10 @@ public class FormulaManagerView {
    * @param pFormulaVisitor Transformation described by the user.
    */
   public <T extends Formula> T transformRecursively(
-      FormulaTransformationVisitor pFormulaVisitor,
-      T f) {
+      T f,
+      FormulaTransformationVisitor pFormulaVisitor) {
     @SuppressWarnings("unchecked")
-    T out = (T) manager.transformRecursively(pFormulaVisitor, unwrap(f));
+    T out = (T) manager.transformRecursively(unwrap(f), pFormulaVisitor);
     return out;
   }
 
@@ -1621,7 +1621,7 @@ public class FormulaManagerView {
 
     BooleanFormula nnfNotTransformed =
         booleanFormulaManager.transformRecursively(
-            new BooleanFormulaTransformationVisitor(this) {
+            nnf, new BooleanFormulaTransformationVisitor(this) {
               @Override
               public BooleanFormula visitNot(BooleanFormula pOperand) {
                 if (!toKeep.apply(pOperand)) {
@@ -1629,9 +1629,9 @@ public class FormulaManagerView {
                 }
                 return super.visitNot(pOperand);
               }
-            }, nnf);
+            });
     return booleanFormulaManager.transformRecursively(
-        new BooleanFormulaTransformationVisitor(this) {
+        nnfNotTransformed, new BooleanFormulaTransformationVisitor(this) {
           @Override
           public BooleanFormula visitAtom(
               BooleanFormula pOperand,
@@ -1641,7 +1641,7 @@ public class FormulaManagerView {
             }
             return super.visitAtom(pOperand, decl);
           }
-        }, nnfNotTransformed);
+        });
   }
 
   public BooleanFormula translateFrom(BooleanFormula other,

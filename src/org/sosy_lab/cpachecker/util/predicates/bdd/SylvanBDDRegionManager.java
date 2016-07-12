@@ -35,8 +35,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
 
-import jsylvan.JSylvan;
-
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -71,6 +69,8 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
+
+import jsylvan.JSylvan;
 
 /**
  * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
@@ -330,7 +330,7 @@ class SylvanBDDRegionManager implements RegionManager {
 
     try (FormulaToRegionConverter converter =
              new FormulaToRegionConverter(fmgr, atomToRegion)) {
-      return wrap(bfmgr.visit(converter, pF));
+      return wrap(bfmgr.visit(pF, converter));
     }
   }
 
@@ -485,7 +485,7 @@ class SylvanBDDRegionManager implements RegionManager {
     private long convert(BooleanFormula pOperand) {
       Long operand = cache.get(pOperand);
       if (operand == null) {
-        operand = ref(bfmgr.visit(this, pOperand));
+        operand = ref(bfmgr.visit(pOperand, this));
         cache.put(pOperand, operand);
       }
       return operand;

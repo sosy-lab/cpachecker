@@ -58,7 +58,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
   public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
     IfThenElseTransformation ifThenElseTransformation =
         new IfThenElseTransformation(fmgrView, fmgr);
-    BooleanFormula result = (BooleanFormula) fmgrView.visit(ifThenElseTransformation, pAtom);
+    BooleanFormula result = (BooleanFormula) fmgrView.visit(pAtom, ifThenElseTransformation);
 
     BooleanFormulaManagerView booleanFormulaManager = fmgrView.getBooleanFormulaManager();
     BooleanFormula additionalAxioms =
@@ -94,7 +94,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
     public Formula visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       List<Formula> newArgs =
-          pArgs.stream().map(f -> fmgrView.visit(this, f)).collect(Collectors.toList());
+          pArgs.stream().map(f -> fmgrView.visit(f, this)).collect(Collectors.toList());
 
       if (pFunctionDeclaration.getKind().equals(ITE)
           || pFunctionDeclaration.getName().equalsIgnoreCase("ite")) {

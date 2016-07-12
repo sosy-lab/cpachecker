@@ -631,6 +631,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           bfmgr.and(semiCNFConverter.toLemmas(pPathFormula.getFormula(), fmgr));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
+              cnfFormula,
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
                 @Override
                 protected List<BooleanFormula> visitDefault() {
@@ -641,8 +642,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 public List<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
                   return operands;
                 }
-              },
-              cnfFormula);
+              });
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
           new StaticCandidateProvider(
