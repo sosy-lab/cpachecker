@@ -108,7 +108,7 @@ public class TerminationLoopInformation {
   /**
    * The current ranking relation.
    */
-  private Optional<RankingRelation> rankingRelation;
+  private Optional<RankingRelation> rankingRelation = Optional.empty();
 
   /**
    * Mapping of relevant variables to the corresponding primed variable.
@@ -122,7 +122,7 @@ public class TerminationLoopInformation {
 
   private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
 
-  private CFANode targetNode;
+  private Optional<CFANode> targetNode = Optional.empty();
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -202,7 +202,7 @@ public class TerminationLoopInformation {
     }
 
     // Create a unique target node for each loop
-    targetNode = new CLabelNode(functionName, NON_TERMINATION_LABEL);
+    targetNode = Optional.of(new CLabelNode(functionName, NON_TERMINATION_LABEL));
 
     relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
     relevantVariables = builder.build();
@@ -296,11 +296,13 @@ public class TerminationLoopInformation {
   }
 
   public CFAEdge createEdgeToNonTerminationLabel(CFANode pLocation) {
-    return createBlankEdge(pLocation, targetNode, "Label: " + NON_TERMINATION_LABEL);
+    Preconditions.checkState(targetNode.isPresent());
+    return createBlankEdge(pLocation, targetNode.get(), "Label: " + NON_TERMINATION_LABEL);
   }
 
   public CFAEdge createNegatedRankingRelationAssumeEdgeToTargetNode(CFANode pLoopHead) {
-    return createNegatedRankingRelationAssumeEdge(pLoopHead, targetNode);
+    Preconditions.checkState(targetNode.isPresent());
+    return createNegatedRankingRelationAssumeEdge(pLoopHead, targetNode.get());
   }
 
   private CFANode creatCfaNode(String functionName) {
