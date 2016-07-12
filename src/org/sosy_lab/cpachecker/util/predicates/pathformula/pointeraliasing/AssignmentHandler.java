@@ -664,7 +664,7 @@ class AssignmentHandler {
         final Formula address = lvalue.asAliased().getAddress();
         result =
             conv.ptsMgr.makePointerAssignment(
-                targetName, targetType, oldIndex, newIndex, address, rhs);
+                targetName, oldIndex, newIndex, address, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }

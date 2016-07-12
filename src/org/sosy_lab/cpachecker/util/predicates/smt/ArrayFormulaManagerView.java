@@ -55,11 +55,13 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> TE select(
-      final ArrayFormula<TI, TE> pArray, final Formula pIndex) {
+      final ArrayFormula<TI, TE> pArray, final TI pIndex) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
-    final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
+    @SuppressWarnings("unchecked")
+    final TI declaredIndex = (TI) unwrap(pIndex);
+    final TE selectResult = manager.select(declaredArray, declaredIndex);
     final FormulaType<TE> resultType = getElementType(pArray);
 
     // the result of a select can also be a reference to an array! (multi-dimensional arrays)
@@ -72,15 +74,18 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store(
-      final ArrayFormula<TI, TE> pArray, final Formula pIndex, final Formula pValue) {
+      final ArrayFormula<TI, TE> pArray,
+      final TI pIndex,
+      final TE pValue) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
     final ArrayFormulaType<TI, TE> inputArrayType =
         new ArrayFormulaType<>(getIndexType(pArray), getElementType(pArray));
 
+    @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> resultFormula =
-        manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
+        manager.store(declaredArray, (TI) unwrap(pIndex), (TE) unwrap(pValue));
     if (resultFormula instanceof WrappingFormula<?, ?>) {
       return resultFormula;
     } else {

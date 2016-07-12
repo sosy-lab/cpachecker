@@ -159,14 +159,18 @@ class PointerTargetSetManager {
    * @param address The address to access
    * @return A formula representing {@code targetName@ssaIndex[address]}
    */
-  Formula makePointerDereference(
+  <I extends Formula, V extends Formula> V makePointerDereference(
       final String targetName,
-      final FormulaType<?> targetType,
+      final FormulaType<V> targetType,
       final int ssaIndex,
-      final Formula address) {
+      final I address) {
     if (options.useArraysForHeap()) {
-      final ArrayFormula<?, ?> arrayFormula =
-          afmgr.makeArray(targetName, ssaIndex, typeHandler.getPointerType(), targetType);
+      final ArrayFormula<I, V> arrayFormula =
+          afmgr.makeArray(
+              targetName,
+              ssaIndex,
+              formulaManager.getFormulaType(address),
+              targetType);
       return afmgr.select(arrayFormula, address);
     } else {
       return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
@@ -180,11 +184,14 @@ class PointerTargetSetManager {
    * @param address The address to access
    * @return A formula representing {@code targetName[address]}
    */
-  Formula makePointerDereference(
-      final String targetName, final FormulaType<?> targetType, final Formula address) {
+  <I extends Formula, E extends Formula> E makePointerDereference(
+      final String targetName,
+      final FormulaType<E> targetType,
+      final I address) {
     if (options.useArraysForHeap()) {
-      final ArrayFormula<?, ?> arrayFormula =
-          afmgr.makeArray(targetName, typeHandler.getPointerType(), targetType);
+      final ArrayFormula<I, E> arrayFormula =
+          afmgr.makeArray(targetName,
+              formulaManager.getFormulaType(address), targetType);
       return afmgr.select(arrayFormula, address);
     } else {
       return ffmgr.declareAndCallUF(targetName, targetType, address);
@@ -194,25 +201,33 @@ class PointerTargetSetManager {
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
-   * @param targetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
    * @param address The address where the value should be written
    * @param value The value to write
    * @return A formula representing an assignment of the form {@code targetName@newIndex[address] = value}
    */
-  BooleanFormula makePointerAssignment(
+  <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
       final String targetName,
-      final FormulaType<?> targetType,
       final int oldIndex,
       final int newIndex,
-      final Formula address,
-      final Formula value) {
+      final I address,
+      final E value) {
+    FormulaType<E> targetType = formulaManager.getFormulaType(value);
+    FormulaType<I> addressType = formulaManager.getFormulaType(address);
     if (options.useArraysForHeap()) {
-      final ArrayFormula<?, ?> oldFormula =
-          afmgr.makeArray(targetName, oldIndex, typeHandler.getPointerType(), targetType);
-      final ArrayFormula<?, ?> arrayFormula =
-          afmgr.makeArray(targetName, newIndex, typeHandler.getPointerType(), targetType);
+      final ArrayFormula<I, E> oldFormula =
+          afmgr.makeArray(
+              targetName,
+              oldIndex,
+              addressType,
+              targetType);
+      final ArrayFormula<I, E> arrayFormula =
+          afmgr.makeArray(
+              targetName,
+              newIndex,
+              addressType,
+              targetType);
       return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
     } else {
       final Formula lhs =
@@ -286,7 +301,7 @@ class PointerTargetSetManager {
             pts1.getFields(),
             pts2.getFields(),
             Equivalence.equals(),
-            PersistentSortedMaps.<CompositeField, Boolean>getExceptionMergeConflictHandler(),
+            PersistentSortedMaps.getExceptionMergeConflictHandler(),
             new MapsDifference.DefaultVisitor<CompositeField, Boolean>() {
               @Override
               public void leftValueOnly(CompositeField pKey, Boolean pLeftValue) {
@@ -533,11 +548,12 @@ class PointerTargetSetManager {
    * @param ssa  The SSA map.
    * @return A boolean formula for the import constraint.
    */
-  private BooleanFormula makeValueImportConstraints(final Formula address,
-                                                final String variablePrefix,
-                                                final CType variableType,
-                                                final List<Pair<CCompositeType, String>> sharedFields,
-                                                final SSAMapBuilder ssa) {
+  private <I extends Formula >BooleanFormula makeValueImportConstraints(
+      final I address,
+      final String variablePrefix,
+      final CType variableType,
+      final List<Pair<CCompositeType, String>> sharedFields,
+      final SSAMapBuilder ssa) {
 
     assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a variable";
 
@@ -553,12 +569,21 @@ class PointerTargetSetManager {
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
-          result = bfmgr.and(result, makeValueImportConstraints(
-                                       formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset)),
-                                       newPrefix,
-                                       memberType,
-                                       sharedFields,
-                                       ssa));
+          result = bfmgr.and(
+              result,
+              makeValueImportConstraints(
+                  formulaManager.makePlus(
+                      address,
+                      formulaManager.makeNumber(
+                          typeHandler.getPointerType(),
+                          offset)
+                  ),
+                  newPrefix,
+                  memberType,
+                  sharedFields,
+                  ssa
+              )
+          );
         }
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
           offset += typeHandler.getSizeof(memberType);
@@ -585,8 +610,8 @@ class PointerTargetSetManager {
    * @param ssa The SSA map.
    * @return A formula for the dereference of the type.
    */
-  private Formula makeDereference(
-      final CType type, final Formula address, final SSAMapBuilder ssa) {
+  private <I extends Formula> Formula makeDereference(
+      final CType type, final I address, final SSAMapBuilder ssa) {
     final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);

@@ -117,7 +117,9 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
           indexExprFormula, null, null);
 
     // SELECT! ---------------------------------------------------------------
-    return amgr.select(selectFrom, castedIndexExprFormula);
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    Formula out = amgr.select((ArrayFormula) selectFrom, castedIndexExprFormula);
+    return out;
   }
 
   @Override
