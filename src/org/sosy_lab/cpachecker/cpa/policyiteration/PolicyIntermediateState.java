@@ -42,6 +42,14 @@ public final class PolicyIntermediateState extends PolicyState {
         node, pPathFormula, generatingState);
   }
 
+  public PolicyIntermediateState withPathFormula(
+      PathFormula pPathFormula
+  ) {
+    return new PolicyIntermediateState(
+        getNode(), pPathFormula, startingAbstraction
+    );
+  }
+
   public void setMergedInto(PolicyIntermediateState other) {
     mergedInto = other;
   }
@@ -87,7 +95,8 @@ public final class PolicyIntermediateState extends PolicyState {
     PolicyIntermediateState that = (PolicyIntermediateState) pO;
     return Objects.equals(pathFormula, that.pathFormula) &&
         Objects.equals(startingAbstraction, that.startingAbstraction) &&
-        Objects.equals(mergedInto, that.mergedInto);
+        Objects.equals(mergedInto, that.mergedInto) &&
+        Objects.equals(getNode(), that.getNode());
   }
 
   @Override

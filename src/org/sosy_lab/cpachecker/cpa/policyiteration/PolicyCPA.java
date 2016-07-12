@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -80,8 +79,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
-      CFA cfa,
-      Specification specification)
+      CFA cfa)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
@@ -214,6 +212,20 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         (PolicyState)state,
         (TemplatePrecision) precision, states,
         fullState);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    return policyIterationManager.strengthen(
+        ((PolicyState) state).asIntermediate(),
+        cfaEdge,
+        otherStates
+    );
   }
 
   @Override

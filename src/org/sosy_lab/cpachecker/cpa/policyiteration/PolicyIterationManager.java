@@ -5,6 +5,7 @@ import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -21,9 +22,11 @@ import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
@@ -259,6 +262,36 @@ public class PolicyIterationManager {
         iOldState.getBackpointerState());
 
     return Collections.singleton(out);
+  }
+
+  /**
+   * Pre-abstraction strengthening.
+   */
+  public Collection<? extends AbstractState> strengthen(
+      PolicyIntermediateState pState,
+      CFAEdge pEdge,
+      List<AbstractState> pOtherStates)
+      throws CPATransferException, InterruptedException {
+    String functionName = pEdge.getPredecessor().getFunctionName();
+
+    // Collect assumptions.
+    List<? extends AssumeEdge> assumptions = FluentIterable
+        .from(pOtherStates)
+        .filter(AbstractStateWithAssumptions.class)
+        .transformAndConcat(a -> a.getAsAssumeEdges(functionName))
+        .toList();
+    if (assumptions.isEmpty()) {
+
+      // No changes required.
+      return Collections.singleton(pState);
+    }
+
+    PathFormula pf = pState.getPathFormula();
+    for (AssumeEdge edge : assumptions) {
+      pf = pfmgr.makeAnd(pf, edge);
+    }
+
+    return Collections.singleton(pState.withPathFormula(pf));
   }
 
   public Optional<PrecisionAdjustmentResult> precisionAdjustment(
