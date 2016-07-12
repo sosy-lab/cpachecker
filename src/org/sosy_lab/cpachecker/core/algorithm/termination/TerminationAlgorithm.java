@@ -111,18 +111,25 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   @Nullable private static Specification terminationSpecification;
 
+  private enum ResetReachedSetStrategy {
+    REMOVE_TARGET_STATE,
+    REMOVE_LOOP,
+    RESET
+  }
+
+  @Option(
+      secure = true,
+      description = "Strategy used to prepare reched set and ARG for next iteration "
+          + "after successful refinement of the termination argument."
+  )
+  private ResetReachedSetStrategy resetReachedSetStrategy = ResetReachedSetStrategy.REMOVE_LOOP;
+
   @Option(
     secure = true,
     description = "maximal number of repeated ranking functions per loop before stopping analysis"
   )
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 100;
-
-  @Option(
-      secure = true,
-      description = "Keep all stem states after successful refinement of the termination argument."
-  )
-  private boolean keepStem = true;
 
   private final TerminationStatistics statistics;
 
@@ -347,12 +354,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
             // if we cannot synthesis new termination arguments from it.
             if (repeatedRankingFunctionsSinceSuccessfulIteration
                 > maxRepeatedRankingFunctionsPerLoop / 5) {
-              removeCounterExample(pReachedSet, targetState);
+              removeTargetState(pReachedSet, targetState);
               result = Result.UNKNOWN;
 
             } else if (totalRepeatedRankingFunctions >= maxRepeatedRankingFunctionsPerLoop) {
               // stop analysis for this loop because there is no progress
-              removeCounterExample(pReachedSet, targetState);
+              removeTargetState(pReachedSet, targetState);
               return Result.UNKNOWN;
 
             } else {
@@ -365,7 +372,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
         } else { // no termination argument and no non-termination argument could be synthesized
           logger.logf(WARNING, "Could not synthesize a termination or non-termination argument.");
-          removeCounterExample(pReachedSet, targetState);
+          removeTargetState(pReachedSet, targetState);
           result = Result.UNKNOWN;
         }
 
@@ -375,15 +382,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return result;
-  }
-
-  /**
-   * Removes <code>targetStateWithCounterExample</code> from reached set and ARG.
-   */
-  private void removeCounterExample(
-      ReachedSet pReachedSet, ARGState targetStateWithCounterExample) {
-    pReachedSet.remove(targetStateWithCounterExample);
-    targetStateWithCounterExample.removeFromARG();
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
@@ -497,35 +495,59 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       ReachedSet pReachedSet, ARGState pTargetState, CFANode pInitialLocation)
           throws InterruptedException {
 
-    if (keepStem) {
-      Set<ARGState> workList = Sets.newHashSet(pTargetState);
-      Set<ARGState> firstLoopStates = Sets.newHashSet();
+    switch (resetReachedSetStrategy) {
+      case REMOVE_TARGET_STATE:
+        pTargetState.getParents().forEach(pReachedSet::reAddToWaitlist);
+        removeTargetState(pReachedSet, pTargetState);
+        break;
 
-      // get all loop states having a stem predecessor
-      while(!workList.isEmpty()) {
-        ARGState next = workList.iterator().next();
-        workList.remove(next);
+      case REMOVE_LOOP:
+        removeLoop(pReachedSet, pTargetState);
+        break;
 
-        Collection<ARGState> parentLoopStates =
-            next
-            .getParents()
-            .stream()
-            .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
-            .collect(Collectors.toList());
+      case RESET:
+        resetReachedSet(pReachedSet, pInitialLocation);
+        break;
 
-        if (parentLoopStates.isEmpty()) {
-          firstLoopStates.add(next);
-        } else {
-          workList.addAll(parentLoopStates);
-        }
-      }
-
-      ARGReachedSet argReachedSet = new ARGReachedSet(pReachedSet);
-      firstLoopStates.forEach(argReachedSet::removeSubtree);
-
-    } else {
-      resetReachedSet(pReachedSet, pInitialLocation);
+      default:
+        throw new AssertionError(resetReachedSetStrategy);
     }
+  }
+
+  /**
+   * Removes <code>pTargetState</code> from reached set and ARG.
+   */
+  private void removeTargetState(ReachedSet pReachedSet, ARGState pTargetState) {
+    assert pTargetState.isTarget();
+    pReachedSet.remove(pTargetState);
+    pTargetState.removeFromARG();
+  }
+
+  private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState) {
+    Set<ARGState> workList = Sets.newHashSet(pTargetState);
+    Set<ARGState> firstLoopStates = Sets.newHashSet();
+
+    // get all loop states having only stem predecessors
+    while(!workList.isEmpty()) {
+      ARGState next = workList.iterator().next();
+      workList.remove(next);
+
+      Collection<ARGState> parentLoopStates =
+          next
+          .getParents()
+          .stream()
+          .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
+          .collect(Collectors.toList());
+
+      if (parentLoopStates.isEmpty()) {
+        firstLoopStates.add(next);
+      } else {
+        workList.addAll(parentLoopStates);
+      }
+    }
+
+    ARGReachedSet argReachedSet = new ARGReachedSet(pReachedSet);
+    firstLoopStates.forEach(argReachedSet::removeSubtree);
   }
 
   private void resetReachedSet(ReachedSet pReachedSet, CFANode pInitialLocation)

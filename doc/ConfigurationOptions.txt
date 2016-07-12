@@ -2762,10 +2762,6 @@ termination.check = false
 # instead of the current one.
 termination.config = no default value
 
-# Keep all stem states after successful refinement of the termination
-# argument.
-termination.keepStem = true
-
 # Analysis type used for synthesis of termination arguments.
 termination.lassoAnalysis.analysisType = LINEAR_WITH_GUESSES
   enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
@@ -2787,3 +2783,8 @@ termination.lassoAnalysis.strictInvariants = 2
 # maximal number of repeated ranking functions per loop before stopping
 # analysis
 termination.maxRepeatedRankingFunctionsPerLoop = 100
+
+# Strategy used to prepare reched set and ARG for next iteration after
+# successful refinement of the termination argument.
+termination.resetReachedSetStrategy = REMOVE_LOOP
+  enum:     [REMOVE_TARGET_STATE, REMOVE_LOOP, RESET]
