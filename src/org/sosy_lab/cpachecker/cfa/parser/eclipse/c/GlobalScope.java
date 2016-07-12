@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -48,9 +46,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of {@link Scope} for the global scope
@@ -372,7 +371,6 @@ class GlobalScope extends AbstractScope {
       CCompositeType renamedCompositeType = new CCompositeType(oldType.isConst(),
                                                                oldType.isVolatile(),
                                                                oldType.getKind(),
-                                                               ImmutableList.<CCompositeTypeMemberDeclaration>of(),
                                                                newName,
                                                                oldType.getOrigName());
 
