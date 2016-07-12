@@ -35,7 +35,6 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -67,7 +66,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -155,15 +153,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
     ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(configFiles.size()));
-    List<Pair<ListenableFuture<ParallelAnalysisResult>, String>> futures = new ArrayList<>();
+    List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>();
 
     for (Path p : configFiles) {
-      futures.add(
-          Pair.of(
-              exec.submit(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed)),
-              CONFIG_FILE_CONDITION_SPLITTER.split(p.toString()).iterator().next()));
+      futures.add(exec.submit(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed)));
     }
-    addCancellationCallback(futures);
 
     // shutdown the executor service,
     exec.shutdown();
@@ -185,24 +179,27 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private void handleFutureResults(
-      List<Pair<ListenableFuture<ParallelAnalysisResult>, String>> futures)
+  private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
+
     List<CPAException> exceptions = new ArrayList<>();
-    for (Pair<ListenableFuture<ParallelAnalysisResult>, String> f : futures) {
+    for (ListenableFuture<ParallelAnalysisResult> f : Futures.inCompletionOrder(futures)) {
       try {
-        ParallelAnalysisResult result = f.getFirst().get();
+        ParallelAnalysisResult result = f.get();
         if (result.hasValidReachedSet() && finalResult == null) {
           finalResult = result;
-          stats.successfulAnalysisName = f.getSecond();
+          stats.successfulAnalysisName = result.getAnalysisName();
+
+          // cancel other computations
+          futures.forEach(future -> future.cancel(true));
+          logger.log(Level.INFO, result.getAnalysisName() + " finished successfully.");
+          shutdownManager.requestShutdown(SUCCESS_MESSAGE);
+        } else if (!result.hasValidReachedSet()) {
+          logger.log(Level.INFO, result.getAnalysisName() + " finished without usable result.");
         }
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
-        if (cause instanceof RuntimeException) {
-          throw (RuntimeException) cause;
-        } else if (cause instanceof Error) {
-          throw (Error) cause;
-        } else if (cause instanceof CPAException) {
+        if (cause instanceof CPAException) {
             if (cause.getMessage().contains("recursion")) {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to recursion");
@@ -212,7 +209,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                 Level.WARNING, cause, "Analysis not completed due to concurrency");
             }
             exceptions.add((CPAException) cause);
+
         } else {
+          // cancel other computations
+          futures.forEach(future -> future.cancel(true));
+          shutdownManager.requestShutdown("cancelling all remaining analyses");
           throw new CPAException("An unexpected exception occured", cause);
         }
       } catch (CancellationException e) {
@@ -230,25 +231,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void addCancellationCallback(
-      List<Pair<ListenableFuture<ParallelAnalysisResult>, String>> futures) {
-    final FutureCallback<ParallelAnalysisResult> callback =
-        new FutureCallback<ParallelAnalysisResult>() {
-          @Override
-          public void onSuccess(ParallelAnalysisResult pResult) {
-            if (pResult.hasValidReachedSet()) {
-              // cancel other computations
-              futures.forEach(f -> f.getFirst().cancel(true));
-              shutdownManager.requestShutdown("cancelling all remaining analyses");
-            }
-          }
-
-          @Override
-          public void onFailure(Throwable pT) {}
-        };
-    futures.forEach(f -> Futures.addCallback(f.getFirst(), callback));
-  }
-
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final Path pSingleConfigFileName,
       final int analysisNumber) {
@@ -262,90 +244,81 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final CoreComponentsFactory coreComponents;
       Path singleConfigFileName = null;
 
-      try {
-        Iterable<String> parts =
-            CONFIG_FILE_CONDITION_SPLITTER.split(pSingleConfigFileName.toString());
-        int size = Iterables.size(parts);
+      Iterable<String> parts =
+          CONFIG_FILE_CONDITION_SPLITTER.split(pSingleConfigFileName.toString());
+      int size = Iterables.size(parts);
 
-        Iterator<String> configIt = parts.iterator();
-        singleConfigFileName = Paths.get(configIt.next());
-        supplyReached = Iterables.contains(parts, "supply-reached");
-        supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
+      Iterator<String> configIt = parts.iterator();
+      singleConfigFileName = Paths.get(configIt.next());
+      supplyReached = Iterables.contains(parts, "supply-reached");
+      supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
 
-        checkIsValidConfig(supplyReached, supplyRefinableReached, singleConfigFileName, size);
+      checkIsValidConfig(supplyReached, supplyRefinableReached, singleConfigFileName, size);
 
-        final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
-        if (singleConfig == null) {
-          return ParallelAnalysisResult.absent();
-        }
-
-        singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
-
-        ShutdownManager singleShutdownManager =
-            ShutdownManager.createWithParent(shutdownManager.getNotifier());
-
-        ResourceLimitChecker singleAnalysisOverallLimit =
-            ResourceLimitChecker.fromConfiguration(
-                singleConfig, singleLogger, singleShutdownManager);
-        singleAnalysisOverallLimit.start();
-
-        coreComponents =
-            new CoreComponentsFactory(
-                singleConfig,
-                singleLogger,
-                singleShutdownManager.getNotifier(),
-                aggregatedReachedSetManager.asView());
-        cpa = coreComponents.createCPA(cfa, specification);
-
-        // TODO global info will not work correctly with parallel analyses
-        // as it is a mutable singleton object
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-        algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
-
-        reached = coreComponents.createReachedSet();
-
-        Collection<Statistics> subStats =
-            stats.getNewSubStatistics(
-                reached,
-                singleConfigFileName.toString(),
-                Iterables.getOnlyElement(
-                    FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
-                        .filter(ThreadCpuTimeLimit.class),
-                    null));
-
-        if (cpa instanceof StatisticsProvider) {
-          ((StatisticsProvider) cpa).collectStatistics(subStats);
-        }
-
-        if (algorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) algorithm).collectStatistics(subStats);
-        }
-
-        try {
-          initializeReachedSet(cpa, mainEntryNode, reached);
-        } catch (InterruptedException e) {
-          singleLogger.log(
-              Level.INFO, "Initializing reached set took too long, analysis cannot be started");
-          return ParallelAnalysisResult.absent();
-        }
-
-        return runParallelAnalysis(
-            algorithm,
-            reached,
-            singleLogger,
-            cpa,
-            supplyReached,
-            supplyRefinableReached,
-            coreComponents);
-
-      } catch (CPAException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Skipping analysis due to problems while creating the necessary components.");
-        return ParallelAnalysisResult.absent();
+      final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
+      if (singleConfig == null) {
+        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
       }
+
+      singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
+
+      ShutdownManager singleShutdownManager =
+          ShutdownManager.createWithParent(shutdownManager.getNotifier());
+
+      ResourceLimitChecker singleAnalysisOverallLimit =
+          ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
+      singleAnalysisOverallLimit.start();
+
+      coreComponents =
+          new CoreComponentsFactory(
+              singleConfig,
+              singleLogger,
+              singleShutdownManager.getNotifier(),
+              aggregatedReachedSetManager.asView());
+      cpa = coreComponents.createCPA(cfa, specification);
+
+      // TODO global info will not work correctly with parallel analyses
+      // as it is a mutable singleton object
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+      algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
+
+      reached = coreComponents.createReachedSet();
+
+      Collection<Statistics> subStats =
+          stats.getNewSubStatistics(
+              reached,
+              singleConfigFileName.toString(),
+              Iterables.getOnlyElement(
+                  FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
+                      .filter(ThreadCpuTimeLimit.class),
+                  null));
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(subStats);
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(subStats);
+      }
+
+      try {
+        initializeReachedSet(cpa, mainEntryNode, reached);
+      } catch (InterruptedException e) {
+        singleLogger.logUserException(
+            Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
+        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
+      }
+
+      return runParallelAnalysis(
+          singleConfigFileName.toString(),
+          algorithm,
+          reached,
+          singleLogger,
+          cpa,
+          supplyReached,
+          supplyRefinableReached,
+          coreComponents);
     };
   }
 
@@ -365,13 +338,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private ParallelAnalysisResult runParallelAnalysis(
+      final String analysisName,
       final Algorithm algorithm,
       final ReachedSet reached,
       final LogManager singleLogger,
       final ConfigurableProgramAnalysis cpa,
       final boolean supplyReached,
       final boolean supplyRefinableReached,
-      final CoreComponentsFactory coreComponents) {
+      final CoreComponentsFactory coreComponents)
+      throws CPAException {
     try {
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
@@ -395,14 +370,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (status.isSound()
               && !from(currentReached)
                   .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
-            singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
-            shutdownManager.requestShutdown(SUCCESS_MESSAGE);
             if (oldReached != null) {
               aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
             } else {
               aggregatedReachedSetManager.addReachedSet(currentReached);
             }
-            return ParallelAnalysisResult.of(currentReached, status);
+            return ParallelAnalysisResult.of(currentReached, status, analysisName);
           }
 
           // reset the flag
@@ -441,21 +414,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         aggregatedReachedSetManager.addReachedSet(currentReached);
       }
 
-      ParallelAnalysisResult result = ParallelAnalysisResult.of(currentReached, status);
-      if (result.hasValidReachedSet()) {
-        singleLogger.log(Level.INFO, SUCCESS_MESSAGE);
-        shutdownManager.requestShutdown(SUCCESS_MESSAGE);
-      } else {
-        singleLogger.log(Level.INFO, "Analysis finished without usable result");
-      }
-      return result;
+      return ParallelAnalysisResult.of(currentReached, status, analysisName);
 
-    } catch (CPAException e) {
-      singleLogger.logUserException(Level.WARNING, e, "Analysis did not finish properly");
-      return ParallelAnalysisResult.absent();
     } catch (InterruptedException e) {
       singleLogger.log(Level.INFO, "Analysis was terminated");
-      return ParallelAnalysisResult.absent();
+      return ParallelAnalysisResult.absent(analysisName);
     }
   }
 
@@ -511,19 +474,22 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private final @Nullable ReachedSet reached;
     private final @Nullable AlgorithmStatus status;
+    private final String analysisName;
 
     private ParallelAnalysisResult(
-        @Nullable ReachedSet pReached, @Nullable AlgorithmStatus pStatus) {
+        @Nullable ReachedSet pReached, @Nullable AlgorithmStatus pStatus, String pAnalysisName) {
       reached = pReached;
       status = pStatus;
+      analysisName = pAnalysisName;
     }
 
-    public static ParallelAnalysisResult of(ReachedSet pReached, AlgorithmStatus pStatus) {
-      return new ParallelAnalysisResult(pReached, pStatus);
+    public static ParallelAnalysisResult of(
+        ReachedSet pReached, AlgorithmStatus pStatus, String pAnalysisName) {
+      return new ParallelAnalysisResult(pReached, pStatus, pAnalysisName);
     }
 
-    public static ParallelAnalysisResult absent() {
-      return new ParallelAnalysisResult(null, null);
+    public static ParallelAnalysisResult absent(String pAnalysisName) {
+      return new ParallelAnalysisResult(null, null, pAnalysisName);
     }
 
     public boolean hasValidReachedSet() {
@@ -544,6 +510,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     public @Nullable AlgorithmStatus getStatus() {
       return status;
+    }
+
+    public String getAnalysisName() {
+      return analysisName;
     }
   }
 
