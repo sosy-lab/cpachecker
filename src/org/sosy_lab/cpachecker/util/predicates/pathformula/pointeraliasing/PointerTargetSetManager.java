@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
@@ -88,9 +89,13 @@ class PointerTargetSetManager {
    * @return An array of {@code size} voids.
    */
   static CType getFakeBaseType(int size) {
-    return CTypeUtils.simplifyType(new CArrayType(false, false, CVoidType.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
-                                                                                        CNumericTypes.SIGNED_CHAR,
-                                                                                        BigInteger.valueOf(size))));
+    return checkIsSimplified(
+        new CArrayType(
+            false,
+            false,
+            CVoidType.VOID,
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY, CNumericTypes.SIGNED_CHAR, BigInteger.valueOf(size))));
   }
 
   /**
@@ -544,7 +549,7 @@ class PointerTargetSetManager {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
+        final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
@@ -649,7 +654,7 @@ class PointerTargetSetManager {
    * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
    *
    * @param base the name of the newly allocated base variable
-   * @param currentType type of the allocated base or the next added pointer target
+   * @param cType type of the allocated base or the next added pointer target
    * @param containerType either {@code null} or the type of the innermost container of the next added pointer target
    * @param properOffset either {@code 0} or the offset of the next added pointer target in its innermost container
    * @param containerOffset either {@code 0} or the offset of the innermost container (relative to the base adddress)
@@ -660,13 +665,13 @@ class PointerTargetSetManager {
   @CheckReturnValue
   PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
       final String base,
-      final CType currentType,
+      final CType cType,
       final @Nullable CType containerType,
       final int properOffset,
       final int containerOffset,
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
-    final CType cType = CTypeUtils.simplifyType(currentType);
+    checkIsSimplified(cType);
     /* Remove assertion: it fails on a correct code (gcc compiles it)
      * struct A;
      * ...
@@ -719,7 +724,7 @@ class PointerTargetSetManager {
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     for (final Map.Entry<String, CType> entry : bases.entrySet()) {
       String name = entry.getKey();
-      CType type = CTypeUtils.simplifyType(entry.getValue());
+      CType type = checkIsSimplified(entry.getValue());
       targets = addToTargets(name, type, null, 0, 0, targets, fields);
     }
     return targets;

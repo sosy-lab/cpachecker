@@ -104,7 +104,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private static final String NONDET_VARIABLE = "__nondet__";
   static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
-  private static final CType NONDET_TYPE = CNumericTypes.INT;
+  private static final CType NONDET_TYPE = CNumericTypes.SIGNED_INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
   private final FormulaManagerView fmgr;

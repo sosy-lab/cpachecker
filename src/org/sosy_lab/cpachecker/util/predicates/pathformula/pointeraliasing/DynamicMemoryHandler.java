@@ -79,6 +79,7 @@ class DynamicMemoryHandler {
   private static final String MALLOC_INDEX_SEPARATOR = "#";
 
   private final CToFormulaConverterWithPointerAliasing conv;
+  private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
@@ -100,6 +101,7 @@ class DynamicMemoryHandler {
       PointerTargetSetBuilder pPts, Constraints pConstraints,
       ErrorConditions pErrorConditions) {
     conv = pConv;
+    typeHandler = pConv.typeHandler;
     edge = pEdge;
     ssa = pSsa;
     pts = pPts;
@@ -302,8 +304,10 @@ class DynamicMemoryHandler {
     }
 
     if (errorConditions.isEnabled()) {
-      final Formula operand = expressionVisitor.asValueFormula(parameters.get(0).accept(expressionVisitor),
-                                                 CTypeUtils.simplifyType(parameters.get(0).getExpressionType()));
+      final Formula operand =
+          expressionVisitor.asValueFormula(
+              parameters.get(0).accept(expressionVisitor),
+              typeHandler.getSimplifiedType(parameters.get(0)));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
@@ -408,13 +412,13 @@ class DynamicMemoryHandler {
    * @param e The expression type to get the size from.
    * @return The size of the expression.
    */
-  private static @Nullable CType getSizeofType(CExpression e) {
+  private @Nullable CType getSizeofType(CExpression e) {
     if (e instanceof CUnaryExpression &&
         ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
-      return CTypeUtils.simplifyType(((CUnaryExpression) e).getOperand().getExpressionType());
+      return typeHandler.getSimplifiedType(((CUnaryExpression) e).getOperand());
     } else if (e instanceof CTypeIdExpression &&
                ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
-      return CTypeUtils.simplifyType(((CTypeIdExpression) e).getType());
+      return typeHandler.simplifyType(((CTypeIdExpression) e).getType());
     } else {
       return null;
     }
@@ -657,7 +661,7 @@ class DynamicMemoryHandler {
             : "Wrong assumptions on deferred allocations tracking: rhs " + rhsExpression + " does not match " + usedPointer;
         assert rhsUsedDeferredAllocationPointers.size() == 1
             : "Wrong assumptions on deferred allocations tracking: rhs is not a single pointer, rhsUsedDeferredAllocationPointers.size() is " + rhsUsedDeferredAllocationPointers.size();
-        final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
+        final CType lhsType = typeHandler.getSimplifiedType(lhs);
         // The worse case -- LHS has type void *
         if (lhsType.equals(CPointerType.POINTER_TO_VOID) &&
             // Check if the LHS is encoded as a variable
@@ -766,8 +770,8 @@ class DynamicMemoryHandler {
         case GREATER_THAN:
         case LESS_EQUAL:
         case LESS_THAN:
-          final CType operand1Type = CTypeUtils.simplifyType(binaryExpression.getOperand1().getExpressionType());
-          final CType operand2Type = CTypeUtils.simplifyType(binaryExpression.getOperand2().getExpressionType());
+          final CType operand1Type = typeHandler.getSimplifiedType(binaryExpression.getOperand1());
+          final CType operand2Type = typeHandler.getSimplifiedType(binaryExpression.getOperand2());
           CType type = null;
           if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand1Type)) {
             type = operand1Type;

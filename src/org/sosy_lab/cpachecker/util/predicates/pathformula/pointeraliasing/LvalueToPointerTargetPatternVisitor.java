@@ -146,7 +146,7 @@ class LvalueToPointerTargetPatternVisitor
     @Override
     public PointerTargetPatternBuilder visit(final CIdExpression e)
         throws UnrecognizedCCodeException {
-      final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
+      final CType expressionType = typeHandler.getSimplifiedType(e);
       final String name = e.getDeclaration().getQualifiedName();
       if (!pts.isBase(name, expressionType) && !CTypeUtils.containsArray(expressionType)) {
         return null;
@@ -194,7 +194,7 @@ class LvalueToPointerTargetPatternVisitor
     if (result == null) {
       result = PointerTargetPatternBuilder.any();
     }
-    CType containerType = CTypeUtils.simplifyType(arrayExpression.getExpressionType());
+    CType containerType = typeHandler.getSimplifiedType(arrayExpression);
     if (containerType instanceof CArrayType || containerType instanceof CPointerType) {
       final CType elementType;
       if (containerType instanceof CPointerType) {
@@ -231,7 +231,7 @@ class LvalueToPointerTargetPatternVisitor
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPatternBuilder result = ownerExpression.accept(this);
     if (result != null) {
-      final CType containerType = CTypeUtils.simplifyType(ownerExpression.getExpressionType());
+      final CType containerType = typeHandler.getSimplifiedType(ownerExpression);
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
         result.shift(
@@ -248,7 +248,7 @@ class LvalueToPointerTargetPatternVisitor
   @Override
   public PointerTargetPatternBuilder visit(final CIdExpression e)
       throws UnrecognizedCCodeException {
-    final CType expressionType = CTypeUtils.simplifyType(e.getExpressionType());
+    final CType expressionType = typeHandler.getSimplifiedType(e);
     final String name = e.getDeclaration().getQualifiedName();
     if (!pts.isActualBase(name) && !CTypeUtils.containsArray(expressionType)) {
       return null;
@@ -275,7 +275,7 @@ class LvalueToPointerTargetPatternVisitor
   public PointerTargetPatternBuilder visit(final CPointerExpression e)
       throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
-    final CType type = CTypeUtils.simplifyType(operand.getExpressionType());
+    final CType type = typeHandler.getSimplifiedType(operand);
     final PointerTargetPatternBuilder result =
         e.getOperand().accept(new PointerTargetEvaluatingVisitor());
     if (type instanceof CPointerType) {

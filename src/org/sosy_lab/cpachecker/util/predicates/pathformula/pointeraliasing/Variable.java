@@ -67,6 +67,7 @@ final class Variable {
   }
 
   static Variable create(String pName, CType pT) {
+    CTypeUtils.checkIsSimplified(pT);
     return new Variable(checkNotNull(pName), checkNotNull(pT));
   }
 }

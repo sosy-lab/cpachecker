@@ -109,8 +109,9 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
      * @return A formula for the expression value.
      */
     private Formula convert0(Expression value, CRightHandSide rhs) {
-      CType type = CTypeUtils.simplifyType(rhs.getExpressionType());
-      return ((CExpressionVisitorWithPointerAliasing)delegate).asValueFormula(value, type);
+      CExpressionVisitorWithPointerAliasing v = (CExpressionVisitorWithPointerAliasing) delegate;
+      CType type = v.typeHandler.getSimplifiedType(rhs);
+      return v.asValueFormula(value, type);
     }
 
     /**
@@ -158,18 +159,19 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             // recursive application of pointer-aliasing.
             return asValueFormula(
                 e.accept(CExpressionVisitorWithPointerAliasing.this),
-                CTypeUtils.simplifyType(e.getExpressionType()));
+                typeHandler.getSimplifiedType(e));
           }
         };
 
     this.conv = cToFormulaConverter;
+    this.typeHandler = cToFormulaConverter.typeHandler;
     this.edge = cfaEdge;
     this.ssa = ssa;
     this.constraints = constraints;
     this.errorConditions = errorConditions;
     this.pts = pts;
 
-    this.baseVisitor = new BaseVisitor(cfaEdge, pts);
+    this.baseVisitor = new BaseVisitor(cfaEdge, pts, typeHandler);
   }
 
   /**
@@ -250,7 +252,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     // -- fixed-length arrays for which the aliased location of the first element is returned here
     // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
     //    is returned
-    final CType baseType = CTypeUtils.simplifyType(e.getArrayExpression().getExpressionType());
+    final CType baseType = typeHandler.getSimplifiedType(e.getArrayExpression());
     // Fixed-length arrays
     // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
     if (baseType instanceof CArrayType && ((CArrayType) baseType).getLength() != null) {
@@ -262,9 +264,9 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     // Now we should always have the aliased location of the first array element
     assert base.isAliasedLocation();
 
-    final CType elementType = CTypeUtils.simplifyType(e.getExpressionType());
+    final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
-    final CType subscriptType = CTypeUtils.simplifyType(subscript.getExpressionType());
+    final CType subscriptType = typeHandler.getSimplifiedType(subscript);
     final Formula index = conv.makeCast(subscriptType,
                                         CPointerType.POINTER_TO_VOID,
                                         asValueFormula(subscript.accept(this), subscriptType),
@@ -298,14 +300,14 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       }
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
-      final CType fieldOwnerType = CTypeUtils.simplifyType(e.getFieldOwner().getExpressionType());
+      final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
       if (fieldOwnerType instanceof CCompositeType) {
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
 
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                    conv.typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName));
+                                                    typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName));
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
@@ -352,7 +354,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   @Override
   public Expression visit(final CCastExpression e) throws UnrecognizedCCodeException {
-    final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
+    final CType resultType = typeHandler.getSimplifiedType(e);
     final CExpression operand = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand(), resultType);
 
     final Expression result = operand.accept(this);
@@ -368,7 +370,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       }
     }
 
-    final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
+    final CType operandType = typeHandler.getSimplifiedType(operand);
     if (CTypeUtils.isSimpleType(resultType)) {
       return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), constraints, edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
@@ -396,7 +398,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    final CType resultType = CTypeUtils.simplifyType(e.getExpressionType());
+    final CType resultType = typeHandler.getSimplifiedType(e);
 
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName())
         && !CTypeUtils.containsArray(resultType)) {
@@ -462,13 +464,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             isDeref = true;
           }
           if (isDeref) {
-            final CPointerType pointerType = (CPointerType)CTypeUtils.simplifyType(fieldOwner.getExpressionType());
+            final CPointerType pointerType =
+                (CPointerType) typeHandler.getSimplifiedType(fieldOwner);
             final Formula base = asSafeValueFormula(fieldOwner.accept(this), pointerType);
             final String fieldName = field.getFieldName();
-            final CCompositeType compositeType = (CCompositeType)CTypeUtils.simplifyType(pointerType.getType());
+            final CCompositeType compositeType =
+                (CCompositeType) CTypeUtils.checkIsSimplified(pointerType.getType());
             usedFields.add(Pair.of(compositeType, fieldName));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                        conv.typeHandler.getOffset(compositeType, fieldName));
+                                                        typeHandler.getOffset(compositeType, fieldName));
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
@@ -518,7 +522,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   @Override
   public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
     final CExpression operand = e.getOperand();
-    final CType operandType = CTypeUtils.simplifyType(operand.getExpressionType());
+    final CType operandType = typeHandler.getSimplifiedType(operand);
     final Expression operandExpression = operand.accept(this);
     if (operandType instanceof CArrayType && ((CArrayType) operandType).getLength() != null) {
       return operandExpression.asAliasedLocation();
@@ -543,8 +547,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     final Formula result = delegate.handleBinaryExpression(exp, f1, f2);
 
-    final CType t1 = CTypeUtils.simplifyType(exp.getOperand1().getExpressionType());
-    final CType t2 = CTypeUtils.simplifyType(exp.getOperand2().getExpressionType());
+    final CType t1 = typeHandler.getSimplifiedType(exp.getOperand1());
+    final CType t2 = typeHandler.getSimplifiedType(exp.getOperand2());
     final BinaryOperator op = exp.getOperator();
 
     switch (op) {
@@ -604,7 +608,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
-    final CType resultType = CTypeUtils.simplifyType(conv.getReturnType(e, edge));
+    final CType resultType = conv.getReturnType(e, edge);
     if (resultType instanceof CCompositeType ||
         CTypeUtils.containsArray(resultType)) {
       conv.logger.logfOnce(Level.WARNING,
@@ -653,6 +657,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   private final CToFormulaConverterWithPointerAliasing conv;
+  private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

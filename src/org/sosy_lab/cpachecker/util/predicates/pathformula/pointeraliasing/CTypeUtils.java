@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -30,11 +32,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 import java.util.OptionalInt;
 
@@ -76,7 +76,7 @@ class CTypeUtils {
    * @return whether the {@code type} contains array
    */
   static boolean containsArray(CType type) {
-    type = simplifyType(type);
+    checkIsSimplified(type);
     if (type instanceof CArrayType) {
       return true;
     } else if (type instanceof CCompositeType) {
@@ -105,7 +105,7 @@ class CTypeUtils {
    * @return The type of the base variable
    */
   static CType getBaseType(CType type) {
-    type = simplifyType(type);
+    checkIsSimplified(type);
     if (!(type instanceof CArrayType)) {
       return new CPointerType(false, false, type);
     } else {
@@ -114,11 +114,9 @@ class CTypeUtils {
   }
 
   static CType implicitCastToPointer(CType type) {
-    type = CTypeUtils.simplifyType(type);
+    checkIsSimplified(type);
     if (type instanceof CArrayType) {
-      return new CPointerType(false,
-                              false,
-                              CTypeUtils.simplifyType(((CArrayType) type).getType()));
+      return new CPointerType(false, false, checkIsSimplified(((CArrayType) type).getType()));
     } else if (type instanceof CFunctionType) {
       return new CPointerType(false, false, type);
     } else {
@@ -131,21 +129,29 @@ class CTypeUtils {
   }
 
   /**
-   * <p>
-   * The method should be used everywhere the type of any expression is determined. This is because the encoding uses
-   * types for naming of the UFs as well as for over-approximating points-to sets (may-aliases). To make the encoding
-   * precise enough the types should correspond to actually different types (requiring explicit casts to be
-   * converted to one another), so {@link CCompositeType}s, corresponding  {@link CElaboratedType}s and
-   * {@link CTypedefType}s shouldn't be distinguished and are converted to the same canonical type by this method.
-   * </p>
-   * <p>
-   * This method will also perform {@code const} and {@code volatile} modifiers elimination.
-   * </p>
-   * @param type The type obtained form the CFA
-   * @return The corresponding simplified canonical type
+   * Only for use from {@link #checkIsSimplified(CType)}.
    */
-  static synchronized CType simplifyType(final CType type) {
+  private static synchronized CType simplifyType(final CType type) {
     return type.accept(typeVisitor);
+  }
+
+  /**
+   * The code in this package works only with "simplified" types,
+   * which have typedefs resolved and const and volatile removed
+   * (as produced by {@link TypeHandlerWithPointerAliasing#simplifyType(CType)}.
+   * This method can be used as an assertion check that a given type has been simplified.
+   * @param type A C-type.
+   * @return The same type object, if it is simplified, otherwise an exception is thrown.
+   */
+  static <T extends CType> T checkIsSimplified(final T type) {
+    checkArgument(!type.isConst(), "Type %s is const but should have been simplified.", type);
+    checkArgument(!type.isVolatile(), "Type %s is volatile but should have been simplified.", type);
+    // More expensive checks as assertions
+    assert type.equals(type.getCanonicalType())
+        : "Type " + type + " is not equal to its canonical type but should have been simplified.";
+    assert type.equals(simplifyType(type))
+        : "Type " + type + " is not equal to its simplified type but should have been simplified.";
+    return type;
   }
 
   /**
@@ -162,6 +168,7 @@ class CTypeUtils {
    * @return The string representation of the type
    */
   static String typeToString(final CType type) {
-    return simplifyType(type).toString();
+    checkIsSimplified(type);
+    return type.toString();
   }
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -157,7 +158,7 @@ public interface PointerTargetSetBuilder {
           final String fieldName = field.getSecond();
           for (final CCompositeTypeMemberDeclaration declaration : fieldComposite.getMembers()) {
             if (declaration.getName().equals(fieldName)) {
-              return Triple.of(fieldComposite, fieldName, CTypeUtils.simplifyType(declaration.getType()));
+              return Triple.of(fieldComposite, fieldName, declaration.getType());
             }
           }
           throw new AssertionError("Tried to start tracking for a non-existent field " + fieldName +
@@ -220,7 +221,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public BooleanFormula prepareBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
+      checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
@@ -242,7 +243,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void shareBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
+      checkIsSimplified(type);
 //      Preconditions.checkArgument(bases.containsKey(name),
 //                                  "The base should be prepared beforehead with prepareBase()");
 
@@ -269,7 +270,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public BooleanFormula addBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
+      checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
         return formulaManager.getBooleanFormulaManager().makeBoolean(true);
@@ -305,19 +306,19 @@ public interface PointerTargetSetBuilder {
      * Recursively adds pointer targets for the given base variable when the newly used field is added for tracking.
      *
      * @param base The base variable
-     * @param currentType The type of the base variable or of the next subfield
+     * @param cType The type of the base variable or of the next subfield
      * @param properOffset Either {@code 0} or the offset of the next subfield in its innermost container
      * @param containerOffset Either {@code 0} or the offset of the innermost container relative to the base address
      * @param composite The composite of the newly used field
      * @param memberName The name of the newly used field
      */
     private void addTargets(final String base,
-                            final CType currentType,
+                            final CType cType,
                             final int properOffset,
                             final int containerOffset,
                             final String composite,
                             final String memberName) {
-      final CType cType = CTypeUtils.simplifyType(currentType);
+      checkIsSimplified(cType);
       if (cType instanceof CElaboratedType) {
         // unresolved struct type won't have any targets, do nothing
 
@@ -413,6 +414,7 @@ public interface PointerTargetSetBuilder {
         FluentIterable.from(fields)
                       .filter(isNewFieldPredicate)
                       .transform(typeFieldFunction)
+                      .transform(t -> Triple.of(t.getFirst(), t.getSecond(), typeHandler.simplifyType(t.getThird())))
                       .toSortedList(simpleTypedFieldsFirstComparator);
       if (typedFields.isEmpty()) {
         return;
@@ -608,7 +610,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public boolean isBase(final String name, CType type) {
-      type = CTypeUtils.simplifyType(type);
+      checkIsSimplified(type);
       final CType baseType = bases.get(name);
       return baseType != null && baseType.equals(type);
     }

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
@@ -82,6 +83,7 @@ class AssignmentHandler {
   private final BooleanFormulaManagerView bfmgr;
 
   private final CToFormulaConverterWithPointerAliasing conv;
+  private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
   private final String function;
   private final SSAMapBuilder ssa;
@@ -104,6 +106,7 @@ class AssignmentHandler {
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
     conv = pConv;
 
+    typeHandler = pConv.typeHandler;
     options = conv.options;
     fmgr = conv.fmgr;
     bfmgr = conv.bfmgr;
@@ -139,9 +142,9 @@ class AssignmentHandler {
       return conv.bfmgr.makeBoolean(true);
     }
 
-    final CType lhsType = CTypeUtils.simplifyType(lhs.getExpressionType());
-    final CType rhsType = rhs != null ? CTypeUtils.simplifyType(rhs.getExpressionType()) :
-                                        CNumericTypes.SIGNED_CHAR;
+    final CType lhsType = typeHandler.getSimplifiedType(lhs);
+    final CType rhsType =
+        rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
     final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
@@ -171,7 +174,7 @@ class AssignmentHandler {
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
         ? null
-        : PointerTargetPattern.forLeftHandSide(lhs, conv.typeHandler, edge, pts);
+        : PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
@@ -240,10 +243,11 @@ class AssignmentHandler {
                                                        updatedTypes));
     }
     if (lhsLocation.isAliased()) {
-      finishAssignments(CTypeUtils.simplifyType(variable.getExpressionType()),
-                             lhsLocation.asAliased(),
-                             PointerTargetPattern.forLeftHandSide(variable, conv.typeHandler, edge, pts),
-                             updatedTypes);
+      finishAssignments(
+          typeHandler.getSimplifiedType(variable),
+          lhsLocation.asAliased(),
+          PointerTargetPattern.forLeftHandSide(variable, typeHandler, edge, pts),
+          updatedTypes);
     }
     return result;
   }
@@ -273,10 +277,8 @@ class AssignmentHandler {
     assert pAssignments.size() > 0 : "Cannot handle initialization assignments without an "
         + "assignment right hand side.";
 
-    final CType lhsType = CTypeUtils.simplifyType(
-        pAssignments.get(0).getLeftHandSide().getExpressionType());
-    final CType rhsType =
-        CTypeUtils.simplifyType(pAssignments.get(0).getRightHandSide().getExpressionType());
+    final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
+    final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
 
     final CExpressionVisitorWithPointerAliasing rhsVisitor =
         new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
@@ -399,7 +401,7 @@ class AssignmentHandler {
     //assert rvalue != null || !useOldSSAIndices || updatedTypes != null; // otherwise the call is useless
     checkNotNull(rvalue);
 
-    lvalueType = CTypeUtils.simplifyType(lvalueType);
+    checkIsSimplified(lvalueType);
 
     if (lvalue.isAliased() && !isSimpleType(lvalueType) && updatedTypes == null) {
       updatedTypes = new HashSet<>();
@@ -473,15 +475,15 @@ class AssignmentHandler {
       final @Nullable Set<CType> updatedTypes,
       final @Nullable Set<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
-    lvalueType = CTypeUtils.simplifyType(lvalueType);
-    rvalueType = CTypeUtils.simplifyType(rvalueType);
+    checkIsSimplified(lvalueType);
+    checkIsSimplified(rvalueType);
     BooleanFormula result;
 
     if (lvalueType instanceof CArrayType) {
       Preconditions.checkArgument(lvalue.isAliased(),
                                   "Array elements are always aliased (i.e. can't be encoded with variables)");
       final CArrayType lvalueArrayType = (CArrayType) lvalueType;
-      final CType lvalueElementType = CTypeUtils.simplifyType(lvalueArrayType.getType());
+      final CType lvalueElementType = checkIsSimplified(lvalueArrayType.getType());
 
       // There are only two cases of assignment to an array
       Preconditions.checkArgument(
@@ -491,7 +493,7 @@ class AssignmentHandler {
         // Only possible from another array of the same type
         rvalue.asLocation().isAliased() &&
         rvalueType instanceof CArrayType &&
-        CTypeUtils.simplifyType(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
+        checkIsSimplified(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
         "Impossible array assignment due to incompatible types: assignment of %s to %s",
         rvalueType, lvalueType);
 
@@ -541,7 +543,7 @@ class AssignmentHandler {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final CType newLvalueType = CTypeUtils.simplifyType(memberDeclaration.getType());
+        final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
         // Optimizing away the assignments from uninitialized fields
         if (conv.isRelevantField(lvalueCompositeType, memberName) &&
              (!lvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
@@ -608,8 +610,8 @@ class AssignmentHandler {
       final @Nullable Set<CType> updatedTypes,
       final @Nullable Set<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
-    lvalueType = CTypeUtils.simplifyType(lvalueType);
-    rvalueType = CTypeUtils.simplifyType(rvalueType);
+    checkIsSimplified(lvalueType);
+    checkIsSimplified(rvalueType);
     // Arrays and functions are implicitly converted to pointers
     rvalueType = implicitCastToPointer(rvalueType);
 
@@ -700,7 +702,7 @@ class AssignmentHandler {
       return;
     }
 
-    lvalueType = CTypeUtils.simplifyType(lvalueType);
+    checkIsSimplified(lvalueType);
     final int size = conv.getSizeof(lvalueType);
 
     if (options.useQuantifiersOnArrays()) {
@@ -780,9 +782,9 @@ class AssignmentHandler {
     } else if (pattern.isSemiExact()) {
       // For semiexact retention constraints we need the first element type of the composite
       if (lvalueType instanceof CArrayType) {
-        lvalueType = CTypeUtils.simplifyType(((CArrayType) lvalueType).getType());
+        lvalueType = checkIsSimplified(((CArrayType) lvalueType).getType());
       } else { // CCompositeType
-        lvalueType = CTypeUtils.simplifyType(((CCompositeType) lvalueType).getMembers().get(0).getType());
+        lvalueType = checkIsSimplified(((CCompositeType) lvalueType).getMembers().get(0).getType());
       }
       addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain);
 
@@ -951,7 +953,7 @@ class AssignmentHandler {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
                                                            offsetFormula));
-      final CType newRvalueType = CTypeUtils.simplifyType(((CArrayType) rvalueType).getType());
+      final CType newRvalueType = checkIsSimplified(((CArrayType) rvalueType).getType());
       return Pair.of(newRvalue, newRvalueType);
     }
     case DET_VALUE: {
@@ -981,7 +983,7 @@ class AssignmentHandler {
                                                                final int offset,
                                                                final String memberName,
                                                                final CType memberType) {
-    final CType newLvalueType = CTypeUtils.simplifyType(memberType);
+    final CType newLvalueType = checkIsSimplified(memberType);
     if (lvalue.isAliased()) {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
@@ -1012,7 +1014,7 @@ class AssignmentHandler {
                                                                  final CType rvalueType,
                                                                  final CType memberType) {
     // Support both structure assignment and initialization with a value (or nondet)
-    final CType newLvalueType = CTypeUtils.simplifyType(memberType);
+    final CType newLvalueType = checkIsSimplified(memberType);
     switch (rvalue.getKind()) {
     case ALIASED_LOCATION: {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);

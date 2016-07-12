@@ -41,9 +41,13 @@ import javax.annotation.Nullable;
 
 class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeException> {
 
-  BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
+  BaseVisitor(
+      final CFAEdge cfaEdge,
+      final PointerTargetSetBuilder pts,
+      final TypeHandlerWithPointerAliasing pTypeHandler) {
     this.cfaEdge = cfaEdge;
     this.pts = pts;
+    typeHandler = pTypeHandler;
   }
 
   @Override
@@ -79,7 +83,7 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeE
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
       return Variable.create(base.getName()  + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + e.getFieldName(),
-                             CTypeUtils.simplifyType(e.getExpressionType()));
+                             typeHandler.getSimplifiedType(e));
     } else {
       return null;
     }
@@ -87,7 +91,7 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeE
 
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
-    CType type = CTypeUtils.simplifyType(e.getExpressionType());
+    CType type = typeHandler.getSimplifiedType(e);
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName()) &&
         !CTypeUtils.containsArray(type)) {
       lastBase = Variable.create(e.getDeclaration().getQualifiedName(), type);
@@ -113,6 +117,7 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeE
   }
 
   private final PointerTargetSetBuilder pts;
+  private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge cfaEdge;
 
   private @Nullable Variable lastBase = null;
