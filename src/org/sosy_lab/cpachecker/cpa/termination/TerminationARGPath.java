@@ -35,6 +35,7 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -52,15 +53,15 @@ import javax.annotation.Nullable;
  */
 public class TerminationARGPath extends ARGPath {
 
-  private final TerminationTransferRelation terminationTransferRelation;
+  private final TerminationLoopInformation terminationInformation;
 
   // Construct full path at most once.
   @Nullable private List<CFAEdge> terminationFullPath = null;
 
   public TerminationARGPath(
-      ARGPath pBasicArgPath, TerminationTransferRelation pTerminationTransferRelation) {
+      ARGPath pBasicArgPath, TerminationLoopInformation pTerminationInformation) {
     super(pBasicArgPath);
-    terminationTransferRelation = checkNotNull(pTerminationTransferRelation);
+    terminationInformation = checkNotNull(pTerminationInformation);
   }
 
   @Override
@@ -86,7 +87,7 @@ public class TerminationARGPath extends ARGPath {
       if (terminationPrev.isPartOfStem() && terminationSucc.isPartOfLoop()) {
         CFANode curNode = extractLocation(prev);
         List<CFAEdge> stemToLoopTransition =
-            terminationTransferRelation.createStemToLoopTransition(curNode, curNode);
+            terminationInformation.createStemToLoopTransition(curNode, curNode);
         intermediateTermiantionEdges.addAll(stemToLoopTransition);
         fullPathBuilder.addAll(stemToLoopTransition);
       }
@@ -99,7 +100,7 @@ public class TerminationARGPath extends ARGPath {
         // add negated ranking relation before target state (non-termination label)
         if (AbstractStates.isTargetState(succ)) {
           CFAEdge negatedRankingRelationAssumeEdge =
-              terminationTransferRelation.createNegatedRankingRelationAssumeEdge(curNode, nextNode);
+              terminationInformation.createNegatedRankingRelationAssumeEdge(curNode, nextNode);
 
           intermediateTermiantionEdges.add(negatedRankingRelationAssumeEdge);
           fullPathBuilder.add(negatedRankingRelationAssumeEdge);
@@ -126,7 +127,7 @@ public class TerminationARGPath extends ARGPath {
     }
 
     terminationFullPath = fullPathBuilder.build();
-    terminationTransferRelation.resetCfa();
+    terminationInformation.resetCfa();
     return terminationFullPath;
   }
 

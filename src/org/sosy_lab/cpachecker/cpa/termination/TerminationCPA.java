@@ -28,10 +28,8 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -42,12 +40,11 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class TerminationCPA extends AbstractSingleWrapperCPA {
 
+  private final TerminationLoopInformation terminationInformation;
   private final Configuration config;
 
   private final AbstractDomain abstractDomain;
@@ -65,53 +62,22 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
 
     config = Preconditions.checkNotNull(pConfig);
+    terminationInformation = new TerminationLoopInformation(pCfa.getMachineModel(), pLogger);
     transferRelation =
         new TerminationTransferRelation(
-            pCpa.getTransferRelation(), pCfa.getMachineModel(), pLogger);
+            pCpa.getTransferRelation(), terminationInformation, pLogger);
     abstractDomain = new TerminationAbstractDomain(pCpa.getAbstractDomain());
     stopOperator = new TerminationStopOperator(pCpa.getStopOperator());
     mergeOperator = new TerminationMergeOperator(pCpa.getMergeOperator());
     precisionAdjustment = new TerminationPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }
 
-  /**
-   * Sets the loop to check for non-termination.
-   *
-   * @param loop
-   *        the loop to process
-   * @param pRelevantVariables
-   *        all variables that might be relevant to prove (non-)termination of the given loop.
-   */
-  public void setProcessedLoop(Loop loop, Set<CVariableDeclaration> pRelevantVariables) {
-    transferRelation.setProcessedLoop(loop, pRelevantVariables);
-  }
-
-  /**
-   * The {@link TerminationCPA} is reseted. No loop will be checked for non-termination.
-   */
-  public void reset() {
-    transferRelation.reset();
-  }
-
   public Configuration getConfig() {
     return config;
   }
 
-  /**
-   * Adds a new ranking relation that is valid for the loop currently processed.
-   *
-   * @param pRankingRelation
-   *            the new ranking relation to add as condition
-   */
-  public void addRankingRelation(RankingRelation pRankingRelation) {
-    transferRelation.addRankingRelation(pRankingRelation);
-  }
-
-  /**
-   * Removes all temporarily added {@link CFAEdge}s from the CFA.
-   */
-  public void resetCfa() {
-    transferRelation.resetCfa();
+  public TerminationLoopInformation getTerminationInformation() {
+    return terminationInformation;
   }
 
   @Override
@@ -120,7 +86,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public TerminationTransferRelation getTransferRelation() {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 

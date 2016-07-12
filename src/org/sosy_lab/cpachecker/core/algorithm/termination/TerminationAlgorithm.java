@@ -145,7 +145,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private final ConfigurableProgramAnalysis safetyCPA;
 
   private final LassoAnalysis lassoAnalysis;
-  private final TerminationCPA terminationCpa;
+  private final TerminationLoopInformation terminationInformation;
   private final Set<CVariableDeclaration> globalDeclaration;
   private final SetMultimap<String, CVariableDeclaration> localDeclarations;
 
@@ -175,10 +175,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         requiredSpecification,
         pSpecification);
 
-    terminationCpa = CPAs.retrieveCPA(pSafetyCPA, TerminationCPA.class);
+    TerminationCPA terminationCpa = CPAs.retrieveCPA(pSafetyCPA, TerminationCPA.class);
     if (terminationCpa == null) {
       throw new InvalidConfigurationException("TerminationAlgorithm requires TerminationCPA");
     }
+    terminationInformation = terminationCpa.getTerminationInformation();
 
     ARGCPA agrCpa = CPAs.retrieveCPA(pSafetyCPA, ARGCPA.class);
     if (agrCpa == null) {
@@ -296,14 +297,14 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
-    terminationCpa.setProcessedLoop(pLoop, relevantVariables);
+    terminationInformation.setProcessedLoop(pLoop, relevantVariables);
 
     Result result = Result.TRUE;
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.safetyAnalysisStarted();
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
-      terminationCpa.resetCfa();
+      terminationInformation.resetCfa();
       statistics.safetyAnalysisFinished();
       shutdownNotifier.shutdownIfNecessary();
 
@@ -340,7 +341,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
           // Do not add a ranking relation twice
           if (rankingRelations.add(rankingRelation)) {
-            terminationCpa.addRankingRelation(rankingRelation);
+            terminationInformation.addRankingRelation(rankingRelation);
             // Prepare reached set for next iteration.
             prepareForNextIteration(pReachedSet, targetState, initialLocation);
             // a ranking relation was synthesized and the reached set was reseted
@@ -485,7 +486,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // the safety analysis will fail if the program is recursive
     try {
-      terminationCpa.reset();
+      terminationInformation.reset();
       ReachedSet reachedSet = reachedSetFactory.create();
       resetReachedSet(reachedSet, initialLocation);
       return safetyAlgorithm.run(reachedSet);

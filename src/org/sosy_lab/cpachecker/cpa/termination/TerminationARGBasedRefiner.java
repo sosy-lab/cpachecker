@@ -102,6 +102,6 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached)
       throws InterruptedException, CPATransferException {
     ARGPath basicPath = ARGUtils.getOnePathTo(pLastElement);
-    return new TerminationARGPath(basicPath, terminationCPA.getTransferRelation());
+    return new TerminationARGPath(basicPath, terminationCPA.getTerminationInformation());
   }
 }

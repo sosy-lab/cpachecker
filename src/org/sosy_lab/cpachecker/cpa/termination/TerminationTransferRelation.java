@@ -23,39 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.termination;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singletonList;
 import static java.util.logging.Level.FINEST;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -63,30 +50,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
-import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -97,7 +76,7 @@ public class TerminationTransferRelation implements TransferRelation {
    *  Inserted nodes and edges:                  .  int x',y',z', ..., pc';
    *                                             .
    *                                             .
-   *                                             .  [stay_in_loop]
+   *                                             .
    *                                             |
    *          original edge(s) after loop head   v   loop head
    *   ... <------------------------------------ 0 <-------------------------------------------
@@ -132,8 +111,6 @@ public class TerminationTransferRelation implements TransferRelation {
    *
    */
 
-  private final static String NON_TERMINATION_LABEL = "__CPACHECKER_NON_TERMINATION";
-
   private final static String TMP_VARIABLE_NAME = "__CPAchecker_termination_temp";
 
   private final static CFunctionDeclaration NONDET_INT =
@@ -143,123 +120,19 @@ public class TerminationTransferRelation implements TransferRelation {
           "__VERIFIER_nondet_int",
           Collections.emptyList());
 
-  /**
-   * The loop that is currently analyzed by the {@link TerminationAlgorithm}
-   */
-  private Optional<Loop> loop = Optional.empty();
-
-  /**
-   * All locations after an outgoing edge of the loop currently processed or an empty set.
-   * Needs to be set before modifying the {@link CFA}!
-   *
-   * @see Loop#getOutgoingEdges()
-   */
-  private Set<CFANode> loopLeavingLocations = Collections.emptySet();
-
-  /**
-   * All outgoing edges of the loop currently processed or an empty set.
-   * Needs to be set before modifying the {@link CFA}!
-   *
-   * @see Loop#getOutgoingEdges()
-   */
-  private Set<CFAEdge> loopLeavingEdges = Collections.emptySet();
-
-  /**
-   * The current ranking relation.
-   */
-  private Optional<RankingRelation> rankingRelation;
-
-  /**
-   * Mapping of relevant variables to the corresponding primed variable.
-   */
-  private Map<CVariableDeclaration, CVariableDeclaration> relevantVariables =
-      Collections.emptyMap();
-
-  // reusing of intermediate location is required to build counter examples
-  private List<CFANode> relevantVariablesInitializationIntermediateLocations =
-      Collections.emptyList();
-
-  private CFANode targetNode;
-
   private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
 
   private final TransferRelation transferRelation;
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+  private final TerminationLoopInformation terminationInformation;
   private final LogManager logger;
 
   public TerminationTransferRelation(
-      TransferRelation pTransferRelation, MachineModel pMachineModel, LogManager pLogger) {
-    transferRelation = Preconditions.checkNotNull(pTransferRelation);
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
-    logger = Preconditions.checkNotNull(pLogger);
-    resetRankingRelation();
-  }
-
-  private void resetRankingRelation() {
-    rankingRelation = Optional.empty();
-  }
-
-  private CExpression getRankingRelationAsCExpression() {
-    return rankingRelation
-        .map(RankingRelation::asCExpression)
-        .orElseGet(() -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(ZERO, ONE, EQUALS));
-  }
-
-  /**
-   * Adds a new ranking relation that is valid for the loop currently processed.
-   *
-   * @param pRankingRelation
-   *            the new {@link RankingRelation}
-   */
-  void addRankingRelation(RankingRelation pRankingRelation) {
-    rankingRelation =
-        Optional.of(rankingRelation.map(r -> r.merge(pRankingRelation)).orElse(pRankingRelation));
-  }
-
-  /**
-   * Sets the loop to check for non-termination.
-   *
-   * @param pLoop
-   *        the loop to process
-   * @param pRelevantVariables
-   *        all variables that might be relevant to prove (non-)termination of the given loop.
-   */
-  void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
-    resetCfa();
-    loop = Optional.of(pLoop);
-    loopLeavingLocations =
-        pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(Collectors.toSet());
-    loopLeavingEdges = pLoop.getOutgoingEdges().stream().collect(Collectors.toSet());
-    resetRankingRelation();
-
-    String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
-    ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
-    Builder<CVariableDeclaration, CVariableDeclaration> builder = ImmutableMap.builder();
-
-    for (CVariableDeclaration relevantVariable : pRelevantVariables) {
-      CVariableDeclaration primedVariable = TerminationUtils.createPrimedVariable(relevantVariable);
-      builder.put(relevantVariable, primedVariable);
-      intermediateStates.add(new CFANode(functionName));
-    }
-
-    // Create a unique target node for each loop
-    targetNode = new CLabelNode(functionName, NON_TERMINATION_LABEL);
-
-    relevantVariablesInitializationIntermediateLocations = intermediateStates.build();
-    relevantVariables = builder.build();
-  }
-
-  /**
-   * The {@link TerminationTransferRelation} is reseted.
-   * No loop will be checked for non-termination.
-   */
-  void reset() {
-    loop = Optional.empty();
-    loopLeavingLocations = Collections.emptySet();
-    loopLeavingEdges = Collections.emptySet();
-    relevantVariables = Collections.emptyMap();
-    relevantVariablesInitializationIntermediateLocations = Collections.emptyList();
-    targetNode = null;
+      TransferRelation pTransferRelation,
+      TerminationLoopInformation terminationInformation,
+      LogManager pLogger) {
+    transferRelation = checkNotNull(pTransferRelation);
+    this.terminationInformation = checkNotNull(terminationInformation);
+    logger = checkNotNull(pLogger);
   }
 
   @Override
@@ -274,13 +147,12 @@ public class TerminationTransferRelation implements TransferRelation {
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
 
-    } else if (loop.isPresent()
-        && CFAUtils.leavingEdges(location)
-            .anyMatch(edge -> loop.get().getIncomingEdges().contains(edge))) {
+    } else if (terminationState.isPartOfStem()
+        && terminationInformation.isPredecessorOfIncommingEdge(location)) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
       targetStatesAtCurrentLocation = Collections.emptyList();
 
-    } else if (loop.map(Loop::getLoopHeads).map(lh -> lh.contains(location)).orElse(false)) {
+    } else if (terminationInformation.isLoopHead(location)) {
       statesAtCurrentLocation = insertRankingRelation(terminationState, pPrecision, location);
       targetStatesAtCurrentLocation =
           statesAtCurrentLocation
@@ -322,34 +194,12 @@ public class TerminationTransferRelation implements TransferRelation {
   private Collection<TerminationState> declarePrimedVariables(
       TerminationState pState, Precision pPrecision, CFANode pCfaNode)
       throws CPATransferException, InterruptedException {
-    String function = pCfaNode.getFunctionName();
 
-    logger.logf(
-        FINEST,
-        "Adding declarations of primed variables %s after %s in function %s.",
-        MoreStrings.lazyString(
-            () ->
-                relevantVariables
-                    .values()
-                    .stream()
-                    .map(AbstractSimpleDeclaration::getName)
-                    .collect(Collectors.joining(" ,"))),
-        pCfaNode,
-        function);
-
-    CFANode currentNode = pCfaNode;
     Collection<TerminationState> states = Collections.singletonList(pState);
 
-    for (CVariableDeclaration primedVariable : relevantVariables.values()) {
-      CFANode nextNode = creatCfaNode(function);
-      CFAEdge edge = createDeclarationEdge(primedVariable, currentNode, nextNode);
+    for (CFAEdge edge : terminationInformation.createPrimedVariableDeclarations(pCfaNode)) {
       states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
-      currentNode = nextNode;
     }
-
-    // blank edge back to original CFA node
-    CFAEdge edge = createBlankEdge(currentNode, pCfaNode, "");
-    states = getAbstractSuccessorsForEdge0(states, pPrecision, edge);
 
     return states;
   }
@@ -363,14 +213,15 @@ public class TerminationTransferRelation implements TransferRelation {
     logger.logf(
         FINEST,
         "Adding ranking relations %s after location %s in function %s.",
-        getRankingRelationAsCExpression(),
+        terminationInformation.getRankingRelationAsCExpression(),
         loopHead,
         functionName);
 
     // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
     CFANode potentialNonTerminationNode = creatCfaNode(functionName);
     CFAEdge negativeRankingRelation =
-        createNegatedRankingRelationAssumeEdge(loopHead, potentialNonTerminationNode);
+        terminationInformation.createNegatedRankingRelationAssumeEdge(
+            loopHead, potentialNonTerminationNode);
 
     Collection<? extends TerminationState> potentialNonTerminationStates =
         getAbstractSuccessorsForEdge0(
@@ -380,8 +231,7 @@ public class TerminationTransferRelation implements TransferRelation {
     if (loopHeadState.isPartOfLoop() && loopHeadState.getHondaLocation().equals(loopHead)) {
       // loopHead - Label: __CPACHECKER_NON_TERMINATION; -> nodeAfterLabel
       CFAEdge nonTerminationLabel =
-          createBlankEdge(
-              potentialNonTerminationNode, targetNode, "Label: " + NON_TERMINATION_LABEL);
+          terminationInformation.createEdgeToNonTerminationLabel(potentialNonTerminationNode);
 
       Collection<TerminationState> targetStates =
           getAbstractSuccessorsForEdge0(
@@ -389,7 +239,9 @@ public class TerminationTransferRelation implements TransferRelation {
 
       // Use a direct edge from the loopHead to the target state
       // because the intermediate state is never visible to any other component.
-      CFAEdge edgeToTargetState = createNegatedRankingRelationAssumeEdge(loopHead, targetNode);
+      CFAEdge edgeToTargetState =
+          terminationInformation.createNegatedRankingRelationAssumeEdgeToTargetNode(loopHead);
+      Optional<RankingRelation> rankingRelation = terminationInformation.getRankingRelation();
       resultingSuccessors.addAll(
           targetStates
               .stream()
@@ -408,15 +260,15 @@ public class TerminationTransferRelation implements TransferRelation {
 
     // loopHead --> node1
     CFAEdge positiveRankingRelation =
-        createAssumeEdge(getRankingRelationAsCExpression(), loopHead, node1, true);
+        createAssumeEdge(
+            terminationInformation.getRankingRelationAsCExpression(), loopHead, node1, true);
     statesAtNode1.addAll(
         getAbstractSuccessorsForEdge0(
             Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation));
 
     // node1 - int __CPAchecker_termination_temp;  -> node 2
     CFANode node2 = creatCfaNode(functionName);
-    CVariableDeclaration nondetVariable = createLoaclVariable(functionName, TMP_VARIABLE_NAME);
-    CFAEdge nondetEdge = createDeclarationEdge(nondetVariable, node1, node2);
+    CDeclarationEdge nondetEdge = createTmpVarDeclaration(node1, node2);
     Collection<TerminationState> statesAtNode2 =
         getAbstractSuccessorsForEdge0(statesAtNode1, pPrecision, nondetEdge);
 
@@ -425,7 +277,7 @@ public class TerminationTransferRelation implements TransferRelation {
     CFunctionCallAssignmentStatement nondetAssignment =
         new CFunctionCallAssignmentStatement(
             FileLocation.DUMMY,
-            new CIdExpression(FileLocation.DUMMY, nondetVariable),
+            new CIdExpression(FileLocation.DUMMY, nondetEdge.getDeclaration()),
             new CFunctionCallExpression(
                 FileLocation.DUMMY,
                 CNumericTypes.INT,
@@ -439,7 +291,7 @@ public class TerminationTransferRelation implements TransferRelation {
 
     // node3 - [! (__CPAchecker_termination_temp == 0)] -> node 4
     CFANode node4 = creatCfaNode(functionName);
-    CExpression nondetTmpVariable = new CIdExpression(FileLocation.DUMMY, nondetVariable);
+    CExpression nondetTmpVariable = new CIdExpression(DUMMY, nondetEdge.getDeclaration());
     CExpression nondetTmpVariableAssumption =
         new CBinaryExpression(
             FileLocation.DUMMY,
@@ -483,10 +335,6 @@ public class TerminationTransferRelation implements TransferRelation {
     return resultingSuccessors;
   }
 
-  protected CFAEdge createNegatedRankingRelationAssumeEdge(CFANode startNode, CFANode endNode) {
-    return createAssumeEdge(getRankingRelationAsCExpression(), startNode, endNode, false);
-  }
-
   private Collection<? extends TerminationState> initializePrimedVariables(
       CFANode startNode,
       CFANode endNode,
@@ -496,100 +344,13 @@ public class TerminationTransferRelation implements TransferRelation {
     Collection<? extends TerminationState> states = pStates;
 
     // x' = x; y' = y; ....
-    for (CFAEdge assignment : createStemToLoopTransition(startNode, endNode)) {
+    List<CFAEdge> stemToLoopTransition =
+        terminationInformation.createStemToLoopTransition(startNode, endNode);
+    for (CFAEdge assignment : stemToLoopTransition) {
       states = getAbstractSuccessorsForEdge0(states, pPrecision, assignment);
     }
 
     return states;
-  }
-
-  protected List<CFAEdge> createStemToLoopTransition(CFANode startNode, CFANode endNode) {
-    CFANode currentNode = startNode;
-    ImmutableList.Builder<CFAEdge> builder = ImmutableList.builder();
-
-    Iterator<CFANode> intermediateLocations =
-        relevantVariablesInitializationIntermediateLocations.iterator();
-    for (CStatement assignment : createPrimedVariableAssignments()) {
-      CFANode nextNode = intermediateLocations.next();
-      CFAEdge edge = crateCStatementEdge(assignment, currentNode, nextNode);
-
-      builder.add(edge);
-      currentNode = nextNode;
-    }
-
-    // blank edge to endNode
-    CFAEdge edge = createBlankEdge(currentNode, endNode, "");
-    builder.add(edge);
-
-    return builder.build();
-  }
-
-  private List<CStatement> createPrimedVariableAssignments() {
-    ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
-
-    for (Entry<CVariableDeclaration, CVariableDeclaration> relevantVariable :
-        relevantVariables.entrySet()) {
-
-      CVariableDeclaration unprimedVariable = relevantVariable.getKey();
-      CVariableDeclaration primedVariable = relevantVariable.getValue();
-      CStatement assignment = createAssignmentStatement(primedVariable, unprimedVariable);
-
-      builder.add(assignment);
-    }
-
-    return builder.build();
-  }
-
-  private CStatementEdge crateCStatementEdge(
-      CStatement pStatement, CFANode pPredecessor, CFANode pSuccessor) {
-    CStatementEdge edge =
-        new CStatementEdge(pStatement.toASTString(), pStatement, DUMMY, pPredecessor, pSuccessor);
-    addToCfa(edge);
-    return edge;
-  }
-
-  private CExpressionAssignmentStatement createAssignmentStatement(
-      CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide) {
-    return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY,
-        new CIdExpression(FileLocation.DUMMY, pLeftHandSide),
-        new CIdExpression(FileLocation.DUMMY, pRightHandSide));
-  }
-
-  private CVariableDeclaration createLoaclVariable(String functionName, String variableName) {
-    return new CVariableDeclaration(
-        FileLocation.DUMMY,
-        false,
-        CStorageClass.AUTO,
-        CNumericTypes.INT,
-        variableName,
-        variableName,
-        functionName + "::" + variableName,
-        null);
-  }
-
-  private CAssumeEdge createAssumeEdge(
-      CExpression condition, CFANode predecessor, CFANode successor, boolean postive) {
-    CAssumeEdge edge =
-        new CAssumeEdge(condition.toASTString(), DUMMY, predecessor, successor, condition, postive);
-    addToCfa(edge);
-    return edge;
-  }
-
-  private CDeclarationEdge createDeclarationEdge(
-      CDeclaration pDeclaration, CFANode pPredecessor, CFANode pSuccessor) {
-    CDeclarationEdge edge =
-        new CDeclarationEdge(
-            pDeclaration.toASTString(), FileLocation.DUMMY, pPredecessor, pSuccessor, pDeclaration);
-    addToCfa(edge);
-    return edge;
-  }
-
-  private BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {
-    BlankEdge edge =
-        new BlankEdge(pDescription + ";", DUMMY, pPredecessor, pSuccessor, pDescription);
-    addToCfa(edge);
-    return edge;
   }
 
   private Collection<TerminationState> getAbstractSuccessorsForEdge0(
@@ -600,7 +361,7 @@ public class TerminationTransferRelation implements TransferRelation {
     for (TerminationState state : pStates) {
 
       // Loop states should never leave the loop currently processed.
-      if (state.isPartOfStem() || !loopLeavingEdges.contains(pEdge)) {
+      if (state.isPartOfStem() || !terminationInformation.isloopLeavingEdge(pEdge)) {
 
         AbstractState wrappedState = state.getWrappedState();
         transferRelation
@@ -625,15 +386,59 @@ public class TerminationTransferRelation implements TransferRelation {
           .getAbstractSuccessors(state.getWrappedState(), pPrecision)
           .stream()
           .map(state::withWrappedState)
-          .filter(s -> s.isPartOfStem() || !loopLeavingLocations.contains(extractLocation(s)))
+          .filter(
+              s ->
+                  s.isPartOfStem()
+                      || !terminationInformation.isloopLeavingLocation(extractLocation(s)))
           .forEach(resultingSuccessors::add);
     }
 
     return resultingSuccessors;
   }
 
+  private CDeclarationEdge createTmpVarDeclaration(CFANode predecessor, CFANode successor) {
+    String function = predecessor.getFunctionName();
+    CVariableDeclaration declaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            CNumericTypes.INT,
+            TMP_VARIABLE_NAME,
+            TMP_VARIABLE_NAME,
+            function + "::" + TMP_VARIABLE_NAME,
+            null);
+    CDeclarationEdge edge =
+        new CDeclarationEdge(declaration.toASTString(), DUMMY, predecessor, successor, declaration);
+    addToCfa(edge);
+    return edge;
+  }
+
   private CFANode creatCfaNode(String functionName) {
     return new CFANode(functionName);
+  }
+
+  public BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {
+    BlankEdge edge =
+        new BlankEdge(pDescription + ";", DUMMY, pPredecessor, pSuccessor, pDescription);
+    addToCfa(edge);
+    return edge;
+  }
+
+  private CStatementEdge crateCStatementEdge(
+      CStatement pStatement, CFANode pPredecessor, CFANode pSuccessor) {
+    CStatementEdge edge =
+        new CStatementEdge(pStatement.toASTString(), pStatement, DUMMY, pPredecessor, pSuccessor);
+    addToCfa(edge);
+    return edge;
+  }
+
+  private CAssumeEdge createAssumeEdge(
+      CExpression condition, CFANode predecessor, CFANode successor, boolean postive) {
+    CAssumeEdge edge =
+        new CAssumeEdge(condition.toASTString(), DUMMY, predecessor, successor, condition, postive);
+    addToCfa(edge);
+    return edge;
   }
 
   /**
@@ -649,9 +454,10 @@ public class TerminationTransferRelation implements TransferRelation {
   /**
    * Removes all temporarily added {@link CFAEdge}s from the CFA.
    */
-  void resetCfa() {
+  public void resetCfa() {
     createdCfaEdges.forEach(CFACreationUtils::removeEdgeFromNodes);
     createdCfaEdges.clear();
+    terminationInformation.resetCfa();
   }
 
   @Override
