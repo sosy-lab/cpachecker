@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
@@ -164,13 +165,11 @@ class PointerTargetSetManager {
       final FormulaType<V> targetType,
       final int ssaIndex,
       final I address) {
+    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
+    checkArgument(typeHandler.getPointerType().equals(addressType));
     if (options.useArraysForHeap()) {
       final ArrayFormula<I, V> arrayFormula =
-          afmgr.makeArray(
-              targetName,
-              ssaIndex,
-              formulaManager.getFormulaType(address),
-              targetType);
+          afmgr.makeArray(targetName, ssaIndex, addressType, targetType);
       return afmgr.select(arrayFormula, address);
     } else {
       return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
@@ -188,10 +187,10 @@ class PointerTargetSetManager {
       final String targetName,
       final FormulaType<E> targetType,
       final I address) {
+    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
+    checkArgument(typeHandler.getPointerType().equals(addressType));
     if (options.useArraysForHeap()) {
-      final ArrayFormula<I, E> arrayFormula =
-          afmgr.makeArray(targetName,
-              formulaManager.getFormulaType(address), targetType);
+      final ArrayFormula<I, E> arrayFormula = afmgr.makeArray(targetName, addressType, targetType);
       return afmgr.select(arrayFormula, address);
     } else {
       return ffmgr.declareAndCallUF(targetName, targetType, address);
@@ -201,6 +200,7 @@ class PointerTargetSetManager {
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
    * @param address The address where the value should be written
@@ -209,12 +209,15 @@ class PointerTargetSetManager {
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
       final String targetName,
+      final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
       final I address,
       final E value) {
     FormulaType<E> targetType = formulaManager.getFormulaType(value);
+    checkArgument(pTargetType.equals(targetType));
     FormulaType<I> addressType = formulaManager.getFormulaType(address);
+    checkArgument(typeHandler.getPointerType().equals(addressType));
     if (options.useArraysForHeap()) {
       final ArrayFormula<I, E> oldFormula =
           afmgr.makeArray(
