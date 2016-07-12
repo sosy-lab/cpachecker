@@ -29,6 +29,7 @@ import static java.util.logging.Level.FINE;
 import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -121,6 +122,16 @@ public class LassoBuilder {
   public Collection<Lasso> buildLasso(
       CounterexampleInfo pCounterexampleInfo, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException, TermException, SolverException {
+    StemAndLoop stemAndLoop = createStemAndLoop(pCounterexampleInfo);
+    shutdownNotifier.shutdownIfNecessary();
+
+    Set<String> relevantVariables =
+        pRelevantVariables.stream().map(AVariableDeclaration::getQualifiedName).collect(toSet());
+    return createLassos(stemAndLoop, relevantVariables);
+  }
+
+  private StemAndLoop createStemAndLoop(CounterexampleInfo pCounterexampleInfo)
+      throws CPATransferException, InterruptedException {
     PathIterator path = pCounterexampleInfo.getTargetPath().fullPathIterator();
 
     List<CFAEdge> stemEdges = Lists.newArrayList();
@@ -168,23 +179,19 @@ public class LassoBuilder {
 
     logger.logf(Level.FINE, "Stem formula %s", stemPathFormula.getFormula());
     logger.logf(Level.FINE, "Loop formula %s", loopPathFormula.getFormula());
-    shutdownNotifier.shutdownIfNecessary();
 
-    Set<String> relevantVariables =
-        pRelevantVariables.stream().map(AVariableDeclaration::getQualifiedName).collect(toSet());
-    return createLassos(stemPathFormula, loopPathFormula, loopInVars.build(), relevantVariables);
+    StemAndLoop stemAndLoop = new StemAndLoop(stemPathFormula, loopPathFormula, loopInVars.build());
+    return stemAndLoop;
   }
 
   private Collection<Lasso> createLassos(
-      PathFormula stemPathFormula,
-      PathFormula loopPathFormula,
-      SSAMap pLoopInVars,
+      StemAndLoop pStemAndLoop,
       Set<String> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
-    Collection<BooleanFormula> stemDnf = toDnf(stemPathFormula);
-    Collection<BooleanFormula> loopDnf = toDnf(loopPathFormula);
+    Collection<BooleanFormula> stemDnf = toDnf(pStemAndLoop.getStem());
+    Collection<BooleanFormula> loopDnf = toDnf(pStemAndLoop.getLoop());
 
-    Collection<Lasso> lassos = Lists.newArrayListWithCapacity(stemDnf.size() * loopDnf.size());
+    ImmutableList.Builder<Lasso> lassos = ImmutableList.builder();
     for (BooleanFormula stem : stemDnf) {
       for (BooleanFormula loop : loopDnf) {
         shutdownNotifier.shutdownIfNecessary();
@@ -194,10 +201,16 @@ public class LassoBuilder {
 
           LinearTransition stemTransition =
               createLinearTransition(
-                  stem, SSAMap.emptySSAMap(), stemPathFormula.getSsa(), pRelevantVariables);
+                  stem,
+                  pStemAndLoop.getStemInVars(),
+                  pStemAndLoop.getStemOutVars(),
+                  pRelevantVariables);
           LinearTransition loopTransition =
               createLinearTransition(
-                  loop, pLoopInVars, loopPathFormula.getSsa(), pRelevantVariables);
+                  loop,
+                  pStemAndLoop.getLoopInVars(),
+                  pStemAndLoop.getLoopOutVars(),
+                  pRelevantVariables);
 
           Lasso lasso = new Lasso(stemTransition, loopTransition);
           lassos.add(lasso);
@@ -205,7 +218,7 @@ public class LassoBuilder {
       }
     }
 
-    return lassos;
+    return lassos.build();
   }
 
   private boolean isUnsat(BooleanFormula formula) throws SolverException, InterruptedException {
@@ -306,6 +319,43 @@ public class LassoBuilder {
 
     public Map<RankVar, Term> getOutVars() {
       return outVars;
+    }
+  }
+
+  private static class StemAndLoop {
+
+    private final PathFormula stem;
+    private final PathFormula loop;
+    private final SSAMap loopInVars;
+
+    public StemAndLoop(PathFormula pStem, PathFormula pLoop, SSAMap pLoopInVars) {
+      stem =checkNotNull(pStem);
+      loop =checkNotNull(pLoop);
+      loopInVars =checkNotNull(pLoopInVars);
+    }
+
+    public PathFormula getStem() {
+      return stem;
+    }
+
+    public SSAMap getStemInVars() {
+      return SSAMap.emptySSAMap();
+    }
+
+    public SSAMap getStemOutVars() {
+      return stem.getSsa();
+    }
+
+    public PathFormula getLoop() {
+      return loop;
+    }
+
+    public SSAMap getLoopInVars() {
+      return loopInVars;
+    }
+
+    public SSAMap getLoopOutVars() {
+      return loop.getSsa();
     }
   }
 }
