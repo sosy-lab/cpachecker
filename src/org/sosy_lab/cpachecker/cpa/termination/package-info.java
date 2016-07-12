@@ -26,4 +26,7 @@
  * {@link org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm}
  * to encode ranking relations in the program and check their validity.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cpa.termination;

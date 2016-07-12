@@ -218,7 +218,7 @@ public class TerminationLoopInformation {
     loopLeavingEdges = Collections.emptySet();
     relevantVariables = Collections.emptyMap();
     relevantVariablesInitializationIntermediateLocations = Collections.emptyList();
-    targetNode = null;
+    targetNode = Optional.empty();
     resetCfa();
   }
 

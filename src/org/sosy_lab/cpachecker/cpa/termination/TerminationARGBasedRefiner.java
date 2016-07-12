@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,6 +65,7 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
               + " this prefix can be omitted."
     )
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
+    @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     private Refiner.Factory refinerFactory;
 
     public TerminationARGBasedRefinerConfig(Configuration config)
