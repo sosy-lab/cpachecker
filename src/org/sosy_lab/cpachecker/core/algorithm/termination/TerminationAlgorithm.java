@@ -121,9 +121,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   @Option(
-      secure = true,
-      description = "Strategy used to prepare reched set and ARG for next iteration "
-          + "after successful refinement of the termination argument."
+    secure = true,
+    description =
+        "Strategy used to prepare reched set and ARG for next iteration "
+            + "after successful refinement of the termination argument."
   )
   private ResetReachedSetStrategy resetReachedSetStrategy = ResetReachedSetStrategy.REMOVE_LOOP;
 
@@ -323,8 +324,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         ARGState targetState = targetStateWithCounterExample.get();
         CounterexampleInfo originalCounterexample =
             targetState.getCounterexampleInformation().get();
-        ARGState loopHeadState =
-            Iterables.getOnlyElement(targetState.getParents());
+        ARGState loopHeadState = Iterables.getOnlyElement(targetState.getParents());
         ARGState nonTerminationLoopHead = createNonTerminationState(loopHeadState);
         CounterexampleInfo counterexample =
             removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
@@ -496,7 +496,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void prepareForNextIteration(
       ReachedSet pReachedSet, ARGState pTargetState, CFANode pInitialLocation)
-          throws InterruptedException {
+      throws InterruptedException {
 
     switch (resetReachedSetStrategy) {
       case REMOVE_TARGET_STATE:
@@ -531,16 +531,15 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Set<ARGState> firstLoopStates = Sets.newHashSet();
 
     // get all loop states having only stem predecessors
-    while(!workList.isEmpty()) {
+    while (!workList.isEmpty()) {
       ARGState next = workList.iterator().next();
       workList.remove(next);
 
       Collection<ARGState> parentLoopStates =
-          next
-          .getParents()
-          .stream()
-          .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
-          .collect(Collectors.toList());
+          next.getParents()
+              .stream()
+              .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
+              .collect(Collectors.toList());
 
       if (parentLoopStates.isEmpty()) {
         firstLoopStates.add(next);

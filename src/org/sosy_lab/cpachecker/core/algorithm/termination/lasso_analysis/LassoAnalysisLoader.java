@@ -112,7 +112,8 @@ public class LassoAnalysisLoader {
     String lassoClass = LASSO_CLASS.replace('.', File.separatorChar) + ".class";
     String smtUtilsClass = SMT_UTILS_CLASS.replace('.', File.separatorChar) + ".class";
     String toolStorageClass = TOOL_CHAIN_STORAGE_CLASS.replace('.', File.separatorChar) + ".class";
-    String iToolStorageClass = I_TOOL_CHAIN_STORAGE_CLASS.replace('.', File.separatorChar) + ".class";
+    String iToolStorageClass =
+        I_TOOL_CHAIN_STORAGE_CLASS.replace('.', File.separatorChar) + ".class";
     String toolchainCancelExceptionClass =
         TOOL_CHAIN_CANCEL_EXCEPTION_CLASS.replace('.', File.separatorChar) + ".class";
     String scriptorClass = SCRIPTOR_CLASS.replace('.', File.separatorChar) + ".class";
@@ -124,19 +125,17 @@ public class LassoAnalysisLoader {
     URL iToolStorageUrl = TerminationAlgorithmClassLoader.getResource(iToolStorageClass);
     URL toolchainCancelExceptionURL =
         TerminationAlgorithmClassLoader.getResource(toolchainCancelExceptionClass);
-    URL scriptorURL =
-        TerminationAlgorithmClassLoader.getResource(scriptorClass);
-    URL monitoredProcessURL =
-        TerminationAlgorithmClassLoader.getResource(monitoredProcessClass);
+    URL scriptorURL = TerminationAlgorithmClassLoader.getResource(scriptorClass);
+    URL monitoredProcessURL = TerminationAlgorithmClassLoader.getResource(monitoredProcessClass);
 
     ClassLoader lassoAnalysisClassLoader = TerminationAlgorithmClassLoader;
     if (isClassInJar(lassoClassUrl)
         && isClassInJar(smtUtilsClassUrl)
-        &&isClassInJar(toolStorageUrl)
-        &&isClassInJar(iToolStorageUrl)
-        &&isClassInJar(toolchainCancelExceptionURL)
-        &&isClassInJar(scriptorURL)
-        &&isClassInJar(monitoredProcessURL)) {
+        && isClassInJar(toolStorageUrl)
+        && isClassInJar(iToolStorageUrl)
+        && isClassInJar(toolchainCancelExceptionURL)
+        && isClassInJar(scriptorURL)
+        && isClassInJar(monitoredProcessURL)) {
 
       try {
         lassoClassUrl = toUrlOfJar(lassoClassUrl);
@@ -176,13 +175,13 @@ public class LassoAnalysisLoader {
           "Could not create proper classpath for LassoRanker because location of LassoRanker "
               + "classes is unexpected, loading correct java-cup classes may fail. "
               + "Locations of LassoRanker are ",
-              lassoClassUrl,
-              smtUtilsClassUrl,
-              toolStorageUrl,
-              iToolStorageUrl,
-              toolchainCancelExceptionURL,
-              scriptorURL,
-              monitoredProcessURL);
+          lassoClassUrl,
+          smtUtilsClassUrl,
+          toolStorageUrl,
+          iToolStorageUrl,
+          toolchainCancelExceptionURL,
+          scriptorURL,
+          monitoredProcessURL);
     }
 
     LassoAnalysis.Factory factory;

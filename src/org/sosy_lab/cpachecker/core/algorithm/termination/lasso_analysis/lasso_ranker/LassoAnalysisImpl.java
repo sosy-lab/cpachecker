@@ -77,7 +77,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 
-@Options(prefix="termination.lassoAnalysis")
+@Options(prefix = "termination.lassoAnalysis")
 public class LassoAnalysisImpl implements LassoAnalysis {
 
   // The configuration library does not support small letters in enum constants.
@@ -110,7 +110,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
 
     private AnalysisType toAnalysisType() {
-       return analysisType;
+      return analysisType;
     }
   }
 
@@ -134,38 +134,33 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final Collection<RankingTemplate> rankingTemplates;
 
   @Option(
-      secure = true,
-      description = "Number of non-strict supporting invariants for each Motzkin transformation "
-          + "during synthesis of termination arguments."
-    )
+    secure = true,
+    description =
+        "Number of non-strict supporting invariants for each Motzkin transformation "
+            + "during synthesis of termination arguments."
+  )
   @IntegerOption(min = 0)
   private int nonStrictInvariants = 3;
 
   @Option(
-      secure = true,
-      description = "Number of strict supporting invariants for each Motzkin transformation "
-          + "during synthesis of termination arguments."
-    )
+    secure = true,
+    description =
+        "Number of strict supporting invariants for each Motzkin transformation "
+            + "during synthesis of termination arguments."
+  )
   @IntegerOption(min = 0)
   private int strictInvariants = 2;
 
-  @Option(
-      secure = true,
-      description = "Analysis type used for synthesis of termination arguments."
-    )
+  @Option(secure = true, description = "Analysis type used for synthesis of termination arguments.")
   private LassoAnalysisType analysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
 
   @Option(
-      secure = true,
-      description =
-          "If true, an external tool is used as SMT solver instead of SMTInterpol."
-    )
+    secure = true,
+    description = "If true, an external tool is used as SMT solver instead of SMTInterpol."
+  )
   private boolean externalSolver = false;
 
-  @Option(
-      secure = true,
-      description = "Shell command used to call the external SMT solver."
-    )
+  @Option(secure = true, description = "Shell command used to call the external SMT solver.")
   private String externalSolverCommand =
       "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
 
@@ -298,7 +293,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
       logger.logf(Level.FINE, "Synthesizing termination argument for lasso:\n%s.", lasso);
-      LassoAnalysisResult resultFromLasso = synthesizeTerminationArgument(lasso, pRelevantVariables);
+      LassoAnalysisResult resultFromLasso =
+          synthesizeTerminationArgument(lasso, pRelevantVariables);
       result = result.update(resultFromLasso);
     }
 

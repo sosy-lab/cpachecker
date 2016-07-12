@@ -216,10 +216,7 @@ public class LassoBuilder {
   }
 
   private LinearTransition createLinearTransition(
-      BooleanFormula path,
-      SSAMap inSsa,
-      SSAMap outSSa,
-      Set<String> pRelevantVariables)
+      BooleanFormula path, SSAMap inSsa, SSAMap outSSa, Set<String> pRelevantVariables)
       throws TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
     InOutVariables rankVars = extractRankVars(path, inSsa, outSSa, pRelevantVariables);
@@ -256,16 +253,13 @@ public class LassoBuilder {
 
   private BooleanFormula transformRecursively(
       BooleanFormulaTransformationVisitor visitor, BooleanFormula formula)
-          throws InterruptedException {
+      throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     return formulaManagerView.getBooleanFormulaManager().transformRecursively(visitor, formula);
   }
 
   private InOutVariables extractRankVars(
-      BooleanFormula path,
-      SSAMap inSsa,
-      SSAMap outSsa,
-      Set<String> pRelevantVariables) {
+      BooleanFormula path, SSAMap inSsa, SSAMap outSsa, Set<String> pRelevantVariables) {
     InOutVariablesCollector veriablesCollector =
         new InOutVariablesCollector(formulaManagerView, inSsa, outSsa);
     formulaManagerView.visitRecursively(veriablesCollector, path);
