@@ -221,11 +221,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param ssaSavedType The type of the variable as saved in the SSA map.
    */
   @Override
-  protected void checkSsaSavedType(final String name, final CType type, CType ssaSavedType) {
-    if (ssaSavedType != null) {
+  protected void checkSsaSavedType(
+      final String name, final CType type, final @Nullable CType ssaSavedType) {
+    if (ssaSavedType != null && !ssaSavedType.equals(type)) {
       checkIsSimplified(ssaSavedType);
-    }
-    if (ssaSavedType != null && !ssaSavedType.equals(checkIsSimplified(type))) {
+      checkIsSimplified(type);
       logger.logf(Level.FINEST,
                   "Variable %s was found with multiple types! (Type1: %s, Type2: %s)",
                   name,
