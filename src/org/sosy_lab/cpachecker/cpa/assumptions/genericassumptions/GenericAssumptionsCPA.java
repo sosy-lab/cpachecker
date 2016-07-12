@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import com.google.common.collect.ImmutableList;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -41,8 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import com.google.common.collect.ImmutableList;
-
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
@@ -53,9 +54,9 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
 
-  private GenericAssumptionsCPA() {
-    transferRelation = new GenericAssumptionsTransferRelation();
-    topState = new GenericAssumptionsState(ImmutableList.<CExpression>of());
+  private GenericAssumptionsCPA(CFA pCFA, LogManager pLogManager) {
+    transferRelation = new GenericAssumptionsTransferRelation(pCFA, pLogManager);
+    topState = new GenericAssumptionsState(ImmutableList.of());
     abstractDomain = new GenericAssumptionsDomain(topState);
   }
 

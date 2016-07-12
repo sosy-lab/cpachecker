@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -49,9 +51,12 @@ public class GenericAssumptionsTransferRelation extends SingleEdgeTransferRelati
    *
    * Modify this to register new kind of assumptions.
    */
-  private final List<GenericAssumptionBuilder> assumptionBuilders =
-    ImmutableList.<GenericAssumptionBuilder>of(
-        new ArithmeticOverflowAssumptionBuilder());
+  private final List<GenericAssumptionBuilder> assumptionBuilders;
+
+  public GenericAssumptionsTransferRelation(CFA pCFA, LogManager logger) {
+    assumptionBuilders = ImmutableList.of(
+            new ArithmeticOverflowAssumptionBuilder(pCFA, logger));
+  }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
