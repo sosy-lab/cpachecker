@@ -326,9 +326,9 @@ class AssignmentHandler {
       if (options.useArraysForHeap()) {
         final ArrayFormulaManagerView afmgr = fmgr.getArrayFormulaManager();
         final ArrayFormula<?, ?> newArray =
-            afmgr.makeArray(targetName, newIndex, FormulaType.IntegerType, targetType);
+            afmgr.makeArray(targetName, newIndex, conv.voidPointerFormulaType, targetType);
         final ArrayFormula<?, ?> oldArray =
-            afmgr.makeArray(targetName, oldIndex, FormulaType.IntegerType, targetType);
+            afmgr.makeArray(targetName, oldIndex, conv.voidPointerFormulaType, targetType);
         copyOldValue = fmgr.makeEqual(newArray, oldArray);
 
       } else {

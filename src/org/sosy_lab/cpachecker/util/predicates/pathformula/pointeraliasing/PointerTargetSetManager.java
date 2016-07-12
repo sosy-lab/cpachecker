@@ -161,7 +161,7 @@ class PointerTargetSetManager {
       final Formula address) {
     if (options.useArraysForHeap()) {
       final ArrayFormula<?, ?> arrayFormula =
-          afmgr.makeArray(targetName, ssaIndex, FormulaType.IntegerType, targetType);
+          afmgr.makeArray(targetName, ssaIndex, typeHandler.getPointerType(), targetType);
       return afmgr.select(arrayFormula, address);
     } else {
       return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
@@ -179,7 +179,7 @@ class PointerTargetSetManager {
       final String targetName, final FormulaType<?> targetType, final Formula address) {
     if (options.useArraysForHeap()) {
       final ArrayFormula<?, ?> arrayFormula =
-          afmgr.makeArray(targetName, FormulaType.IntegerType, targetType);
+          afmgr.makeArray(targetName, typeHandler.getPointerType(), targetType);
       return afmgr.select(arrayFormula, address);
     } else {
       return ffmgr.declareAndCallUF(targetName, targetType, address);
@@ -205,9 +205,9 @@ class PointerTargetSetManager {
       final Formula value) {
     if (options.useArraysForHeap()) {
       final ArrayFormula<?, ?> oldFormula =
-          afmgr.makeArray(targetName, oldIndex, FormulaType.IntegerType, targetType);
+          afmgr.makeArray(targetName, oldIndex, typeHandler.getPointerType(), targetType);
       final ArrayFormula<?, ?> arrayFormula =
-          afmgr.makeArray(targetName, newIndex, FormulaType.IntegerType, targetType);
+          afmgr.makeArray(targetName, newIndex, typeHandler.getPointerType(), targetType);
       return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
     } else {
       final Formula lhs =
