@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling.EXCEPTION;
@@ -39,7 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.TermRankVar;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.TermRankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;

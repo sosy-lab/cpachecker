@@ -21,42 +21,43 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
+
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-class EqualElimination extends BooleanFormulaTransformationVisitor {
+class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
-  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManager fmgr;
 
-  EqualElimination(FormulaManagerView pFmgr) {
+  DnfTransformation(FormulaManagerView pFmgr) {
     super(pFmgr);
-    fmgr = pFmgr;
+    fmgr = pFmgr.getBooleanFormulaManager();
   }
 
   @Override
-  public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
-    if (pDecl.getKind().equals(FunctionDeclarationKind.EQ)) {
-      List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pAtom);
+  public BooleanFormula visitAnd(List<BooleanFormula> pProcessedOperands) {
+    Collection<BooleanFormula> clauses = Lists.newArrayList(fmgr.makeBoolean(true));
 
-      if (split.size() == 1) {
-        return split.get(0);
-
-      } else if (split.size() == 2) {
-        return fmgr.makeAnd(split.get(0), split.get(1));
-
-      } else {
-        throw new AssertionError();
-      }
-
-    } else {
-      return super.visitAtom(pAtom, pDecl);
+    for (BooleanFormula operands : pProcessedOperands) {
+      Set<BooleanFormula> childOperators = fmgr.toDisjunctionArgs(operands, false);
+      clauses =
+          clauses
+              .stream()
+              .flatMap(c -> childOperators.stream().map(co -> fmgr.and(c, co)))
+              .collect(Collectors.toCollection(ArrayList::new));
     }
+
+    return fmgr.or(clauses);
   }
 }

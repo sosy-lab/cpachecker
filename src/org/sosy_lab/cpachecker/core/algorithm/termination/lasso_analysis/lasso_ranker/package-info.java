@@ -22,10 +22,12 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Synthesis of (non)-termination arguments extracted from a counterexample
- * that might be a prove for non-termination.
+ * Synthesis of (non)-termination arguments for a
+ * {@link de.uni_freiburg.informatik.ultimate.lassoranker.Lasso}
+ * extracted from a path to a target state.
+ * The LassoRanker library from UltimateAutomizer is used.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -37,12 +37,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.LassoRankerToolchainStorage;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;

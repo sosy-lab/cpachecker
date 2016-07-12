@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,6 +35,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.solver.SolverContextFactory;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.SolverContext;
@@ -54,7 +56,7 @@ import java.util.regex.Pattern;
 public class LassoAnalysisLoader {
 
   private final static String LASSO_ANALYSIS_IMPL_CLASS =
-      "org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisImpl";
+      "org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.LassoAnalysisImpl";
   private final static String LASSO_CLASS = "de.uni_freiburg.informatik.ultimate.lassoranker.Lasso";
   private final static String SMT_UTILS_CLASS =
       "de.uni_freiburg.informatik.ultimate.modelcheckerutils.smt.SmtUtils";
@@ -77,7 +79,7 @@ public class LassoAnalysisLoader {
               + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.util\\.ToolchainCanceledException|"
               + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.smtsolver\\..*|"
               + "^de\\.uni_freiburg\\.informatik\\.ultimate\\.core\\.lib\\..*|"
-              + "^org\\.sosy_lab\\.cpachecker\\.core\\.algorithm\\.termination\\.lasso_analysis\\..*");
+              + "^org\\.sosy_lab\\.cpachecker\\.core\\.algorithm\\.termination\\.lasso_analysis\\.lasso_ranker\\..*");
 
   private final Configuration config;
   private final LogManager logger;

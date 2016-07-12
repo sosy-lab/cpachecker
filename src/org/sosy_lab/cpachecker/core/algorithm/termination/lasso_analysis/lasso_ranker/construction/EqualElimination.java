@@ -21,43 +21,42 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
-
-import com.google.common.collect.Lists;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-class DnfTransformation extends BooleanFormulaTransformationVisitor {
+class EqualElimination extends BooleanFormulaTransformationVisitor {
 
-  private final BooleanFormulaManager fmgr;
+  private final FormulaManagerView fmgr;
 
-  DnfTransformation(FormulaManagerView pFmgr) {
+  EqualElimination(FormulaManagerView pFmgr) {
     super(pFmgr);
-    fmgr = pFmgr.getBooleanFormulaManager();
+    fmgr = pFmgr;
   }
 
   @Override
-  public BooleanFormula visitAnd(List<BooleanFormula> pProcessedOperands) {
-    Collection<BooleanFormula> clauses = Lists.newArrayList(fmgr.makeBoolean(true));
+  public BooleanFormula visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+    if (pDecl.getKind().equals(FunctionDeclarationKind.EQ)) {
+      List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pAtom);
 
-    for (BooleanFormula operands : pProcessedOperands) {
-      Set<BooleanFormula> childOperators = fmgr.toDisjunctionArgs(operands, false);
-      clauses =
-          clauses
-              .stream()
-              .flatMap(c -> childOperators.stream().map(co -> fmgr.and(c, co)))
-              .collect(Collectors.toCollection(ArrayList::new));
+      if (split.size() == 1) {
+        return split.get(0);
+
+      } else if (split.size() == 2) {
+        return fmgr.makeAnd(split.get(0), split.get(1));
+
+      } else {
+        throw new AssertionError();
+      }
+
+    } else {
+      return super.visitAtom(pAtom, pDecl);
     }
-
-    return fmgr.or(clauses);
   }
 }

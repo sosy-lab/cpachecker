@@ -21,9 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
 
-import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.DIV;
 import static org.sosy_lab.solver.api.FunctionDeclarationKind.MODULO;
 
