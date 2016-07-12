@@ -187,7 +187,7 @@ public class AutomatonInternalTest {
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
     assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
-    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression  =  CPAchecker_AutomatonAnalysis_JokerExpression");
+    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard0  =  CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard1");
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
     assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression_Num5 ");
   }
@@ -244,9 +244,48 @@ public class AutomatonInternalTest {
     assert_().about(astMatcher).that("f($?);").matches("f(x);");
     assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
 
+    // Too-large number in a joker makes it be ignored.
+    assert_().about(astMatcher).that("$12345678901;").doesNotMatch("x");
+  }
+
+  @Test
+  public void testAstMatcherFunctionParameters() {
+    assert_().about(astMatcher).that("f();").matches("f();");
+    assert_().about(astMatcher).that("f();").doesNotMatch("f(x);");
+    assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
+
+    assert_().about(astMatcher).that("f($1);").doesNotMatch("f();");
+    assert_().about(astMatcher).that("f($1);").matches("f(x);").withVariableValue(1, "x");
+    assert_().about(astMatcher).that("f($1);").doesNotMatch("f(x, y);");
+
+    assert_().about(astMatcher).that("f($?);").matches("f();");
+    assert_().about(astMatcher).that("f($?);").matches("f(x);");
+    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+
     assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
     assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
     assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
+  }
+
+  @Test
+  public void testAstMatcherFunctionCall() {
+    assert_().about(astMatcher).that("$?();").matches("f();");
+    assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
+    assert_().about(astMatcher).that("$1();").matches("f();").withVariableValue(1, "f");
+
+    assert_().about(astMatcher).that("x = $?();").doesNotMatch("f();");
+    assert_().about(astMatcher).that("x = $?();").matches("x = f();");
+    assert_().about(astMatcher).that("x = $1();").matches("x = f();").withVariableValue(1, "f");
+
+    assert_().about(astMatcher).that("$?($?);").matches("f();");
+    assert_().about(astMatcher).that("$?($?);").matches("f(y);");
+    assert_().about(astMatcher).that("$?($?);").matches("f(y, z);");
+    assert_().about(astMatcher).that("$?($?);").doesNotMatch("x = f();");
+
+    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f();");
+    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y);");
+    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y, z);");
+    assert_().about(astMatcher).that("$? = $1($?);").doesNotMatch("f();");
   }
 
   private final SubjectFactory<ASTMatcherSubject, String> astMatcher =
