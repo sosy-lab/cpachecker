@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,10 +33,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.solver.api.SolverContext;
 
-import java.util.Optional;
 import java.util.Set;
-
-import javax.annotation.CheckReturnValue;
 
 public interface LassoAnalysis {
 
@@ -59,71 +53,5 @@ public interface LassoAnalysis {
         CFA pCfa,
         TerminationStatistics pStatistics)
         throws InvalidConfigurationException;
-  }
-
-  public static class LassoAnalysisResult {
-
-    private Optional<?> nonTerminationArgument;
-
-    private Optional<RankingRelation> terminationArgument;
-
-    public static LassoAnalysisResult unknown() {
-      return new LassoAnalysisResult(Optional.empty(), Optional.empty());
-    }
-
-    public static LassoAnalysisResult fromNonTerminationArgument(Object nonTerminationArgument) {
-      return new LassoAnalysisResult(Optional.of(nonTerminationArgument), Optional.empty());
-    }
-
-    public static LassoAnalysisResult fromTerminationArgument(RankingRelation terminationArgument) {
-      return new LassoAnalysisResult(Optional.empty(), Optional.of(terminationArgument));
-    }
-
-    private LassoAnalysisResult(
-        Optional<?> pNonTerminationArgument, Optional<RankingRelation> pTerminationArgument) {
-      checkArgument(!(pNonTerminationArgument.isPresent() && pTerminationArgument.isPresent()));
-      nonTerminationArgument = checkNotNull(pNonTerminationArgument);
-      terminationArgument = checkNotNull(pTerminationArgument);
-    }
-
-    public Object getNonTerminationArgument() {
-      return nonTerminationArgument.get();
-    }
-
-    public RankingRelation getTerminationArgument() {
-      return terminationArgument.get();
-    }
-
-    public boolean isUnknowm() {
-      return !hasNonTerminationArgument() && !hasTerminationArgument();
-    }
-
-    public boolean hasNonTerminationArgument() {
-      return nonTerminationArgument.isPresent();
-    }
-
-    public boolean hasTerminationArgument() {
-      return terminationArgument.isPresent();
-    }
-
-    @CheckReturnValue
-    public LassoAnalysisResult update(LassoAnalysisResult pOther) {
-      if (isUnknowm()) {
-        return pOther;
-      } else if (pOther.isUnknowm()) {
-        return this;
-      } else if (hasNonTerminationArgument()) {
-        return this;
-      } else if (pOther.hasNonTerminationArgument()) {
-        return pOther;
-
-      } else { // merge
-        assert hasTerminationArgument() && pOther.hasTerminationArgument();
-
-        RankingRelation newRankingRelation =
-            getTerminationArgument().merge(pOther.getTerminationArgument());
-        return new LassoAnalysisResult(Optional.empty(), Optional.of(newRankingRelation));
-      }
-    }
   }
 }

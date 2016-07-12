@@ -325,7 +325,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         ARGState nonTerminationLoopHead = createNonTerminationState(loopHeadState);
         CounterexampleInfo counterexample =
             removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
-        LassoAnalysis.LassoAnalysisResult lassoAnalysisResult =
+        LassoAnalysisResult lassoAnalysisResult =
             lassoAnalysis.checkTermination(counterexample, relevantVariables);
 
         if (lassoAnalysisResult.hasNonTerminationArgument()) {

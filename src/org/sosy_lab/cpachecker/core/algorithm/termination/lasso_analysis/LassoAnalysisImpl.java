@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.termination.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
