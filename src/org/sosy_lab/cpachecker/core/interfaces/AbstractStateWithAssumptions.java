@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+
+import java.util.List;
 
 /**
  * Sub-interface for {@link AbstractState}s that marks states
@@ -41,7 +41,7 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * Get the list of assumptions in form of statements.
    * @return A (possibly empty list) of statements.
    */
-  List<AStatement> getAssumptions();
+  List<? extends AStatement> getAssumptions();
 
   /**
    * Get the list of assumptions transformed into AssumeEdges.
@@ -58,5 +58,5 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * @param functionName the function name where the assumptions are
    * @return A (possibly empty list) of assume edges.
    */
-  List<AssumeEdge> getAsAssumeEdges(String functionName);
+  List<? extends AssumeEdge> getAsAssumeEdges(String functionName);
 }
