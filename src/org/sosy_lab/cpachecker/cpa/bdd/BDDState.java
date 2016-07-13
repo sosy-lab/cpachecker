@@ -108,11 +108,6 @@ public class BDDState implements AbstractQueryableState,
   }
 
   @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    throw new InvalidQueryException("BDDCPA Element cannot check anything");
-  }
-
-  @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
       case "VALUES":

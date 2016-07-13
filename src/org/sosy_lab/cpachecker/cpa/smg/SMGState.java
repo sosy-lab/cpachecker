@@ -1661,11 +1661,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return checkProperty(pProperty);
-  }
-
   public void addGlobalObject(SMGRegion newObject) {
     heap.addGlobalObject(newObject);
   }

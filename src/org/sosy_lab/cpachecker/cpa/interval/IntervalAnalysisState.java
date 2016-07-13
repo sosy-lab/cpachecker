@@ -412,11 +412,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-
-  @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 

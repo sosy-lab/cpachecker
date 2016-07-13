@@ -201,11 +201,6 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   }
 
   @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-
-  @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     List<String> parts = propertySplitter.splitToList(pProperty);
 

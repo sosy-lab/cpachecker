@@ -55,11 +55,6 @@ public class ValidVarsState implements AbstractState, AbstractQueryableState, Gr
   }
 
   @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-
-  @Override
   public String toDOTLabel() {
     return validVariables.toStringInDOTFormat();
   }

@@ -200,11 +200,6 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     }
     return this.properties.contains(prop);
   }
-  @Override
-  public Boolean evaluateProperty(
-      String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
 
   @Override
   public String getCPAName() {

@@ -126,11 +126,6 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
   }
 
   @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-
-  @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 

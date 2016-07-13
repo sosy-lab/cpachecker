@@ -121,11 +121,6 @@ AbstractQueryableState, Serializable {
   }
 
   @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    return false;
-  }
-
-  @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.compareToIgnoreCase("caller") == 0) {
       if (callerNode != null) {

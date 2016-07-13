@@ -1560,11 +1560,6 @@ public class InvariantsState implements AbstractState,
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return checkProperty(pProperty);
-  }
-
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {
     return pMemoryLocation != null
         && !pMemoryLocation.getIdentifier().contains("*")
