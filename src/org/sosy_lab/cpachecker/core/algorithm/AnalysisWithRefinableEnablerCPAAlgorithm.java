@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -276,8 +275,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       try {
         for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
-            for (AssumeEdge assume : s.getAsAssumeEdges(node.getFunctionName())) {
-              predNode = createFakeEdge(assume.getRawStatement(),  (CExpression) assume.getExpression(), predNode);
+            for (CExpression assume :
+                from(s.getAssumptions(node.getFunctionName())).filter(CExpression.class)) {
+              predNode = createFakeEdge(assume, predNode);
             }
           }
         }
@@ -287,7 +287,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
       if(fakeEdgesFromLastRun.isEmpty()){
         // create fake edge with assumption true
-        predNode = createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
+        predNode = createFakeEdge(CIntegerLiteralExpression.ONE, predNode);
       }
 
       // create fake states, one per fake edge, note that states are the same except for enabler state (may be different)
@@ -342,7 +342,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       if(enablerCPA != Enabler.PREDICATE) {
         // add another edge after fake edges with assumptions as required by ValueAnalysisPathInterpolator
         // currently it is used by Value, Apron, Octagon, Interval Refiner (all except predicate refiner)
-        createFakeEdge("1", CIntegerLiteralExpression.ONE, predNode);
+        createFakeEdge(CIntegerLiteralExpression.ONE, predNode);
       }
 
       assert (ARGUtils.checkARG(pReachedSet));
@@ -454,10 +454,16 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     return pFakeEnablerState;
   }
 
-  private CFANode createFakeEdge(final String pRawAssumeExpr, final CExpression pAssumeExpr, final CFANode pPredecessor) {
+  private CFANode createFakeEdge(final CExpression pAssumeExpr, final CFANode pPredecessor) {
     CFANode successor = new CFANode(pPredecessor.getFunctionName());
     CAssumeEdge assumeEdge =
-        new CAssumeEdge(pRawAssumeExpr, FileLocation.DUMMY, pPredecessor, successor, pAssumeExpr, true);
+        new CAssumeEdge(
+            pAssumeExpr.toASTString(),
+            FileLocation.DUMMY,
+            pPredecessor,
+            successor,
+            pAssumeExpr,
+            true);
     pPredecessor.addLeavingEdge(assumeEdge);
     successor.addEnteringEdge(assumeEdge);
     fakeEdgesFromLastRun.add(assumeEdge);

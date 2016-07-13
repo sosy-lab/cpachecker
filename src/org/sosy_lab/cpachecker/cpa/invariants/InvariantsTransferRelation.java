@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -85,6 +87,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
@@ -505,8 +508,31 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     InvariantsState state = (InvariantsState) pElement;
 
     for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
-      for (AssumeEdge edge : assumptionState.getAsAssumeEdges(pCfaEdge.getSuccessor().getFunctionName())) {
-        state = handleAssume(state, edge, getExpressionToFormulaVisitor(pCfaEdge, state));
+      String function = pCfaEdge.getSuccessor().getFunctionName();
+      for (AExpression assumption : assumptionState.getAssumptions(function)) {
+        AssumeEdge fakeEdge;
+        if (assumption instanceof CExpression) {
+          fakeEdge =
+              new CAssumeEdge(
+                  assumption.toASTString(),
+                  FileLocation.DUMMY,
+                  new CFANode(function),
+                  new CFANode(function),
+                  (CExpression) assumption,
+                  true);
+        } else if (assumption instanceof JExpression) {
+          fakeEdge =
+              new JAssumeEdge(
+                  assumption.toASTString(),
+                  FileLocation.DUMMY,
+                  new CFANode(function),
+                  new CFANode(function),
+                  (JExpression) assumption,
+                  true);
+        } else {
+          throw new AssertionError("unexpected expression type " + assumption);
+        }
+        state = handleAssume(state, fakeEdge, getExpressionToFormulaVisitor(pCfaEdge, state));
         if (state == null) {
           return Collections.emptySet();
         }

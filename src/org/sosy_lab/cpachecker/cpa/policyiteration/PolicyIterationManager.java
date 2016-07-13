@@ -21,8 +21,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -275,11 +275,12 @@ public class PolicyIterationManager {
     String functionName = pEdge.getPredecessor().getFunctionName();
 
     // Collect assumptions.
-    List<? extends AssumeEdge> assumptions = FluentIterable
-        .from(pOtherStates)
-        .filter(AbstractStateWithAssumptions.class)
-        .transformAndConcat(a -> a.getAsAssumeEdges(functionName))
-        .toList();
+    FluentIterable<CExpression> assumptions =
+        FluentIterable.from(pOtherStates)
+            .filter(AbstractStateWithAssumptions.class)
+            .transformAndConcat(a -> a.getAssumptions(functionName))
+            .filter(CExpression.class);
+
     if (assumptions.isEmpty()) {
 
       // No changes required.
@@ -287,8 +288,8 @@ public class PolicyIterationManager {
     }
 
     PathFormula pf = pState.getPathFormula();
-    for (AssumeEdge edge : assumptions) {
-      pf = pfmgr.makeAnd(pf, edge);
+    for (CExpression assumption : assumptions) {
+      pf = pfmgr.makeAnd(pf, assumption);
     }
 
     return Collections.singleton(pState.withPathFormula(pf));

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -68,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -2555,7 +2555,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private Collection<SMGState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
+    FluentIterable<CExpression> assumptions =
+        from(pAutomatonState.getAssumptions(pCfaEdge.getPredecessor().getFunctionName()))
+            .filter(CExpression.class);
 
     if(assumptions.isEmpty()) {
       return Collections.singleton(pElement);
@@ -2565,15 +2567,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGState newElement = pElement;
 
-    for (AssumeEdge assume : assumptions) {
-      if (!(assume instanceof CAssumeEdge)) {
-        continue;
-      }
-
-      assumeDesc.append(assume.getDescription());
+    for (CExpression assume : assumptions) {
+      assumeDesc.append(assume.toASTString());
 
       // only create new SMGState if necessary
-      List<SMGState> newElements = handleAssumption(newElement, ((CAssumeEdge)assume).getExpression(), pCfaEdge, assume.getTruthAssumption(), pElement == newElement);
+      List<SMGState> newElements =
+          handleAssumption(newElement, assume, pCfaEdge, true, pElement == newElement);
 
       assert newElements.size() < 2;
 

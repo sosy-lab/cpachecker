@@ -24,19 +24,19 @@
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeNoTopDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * CPA for detecting overflows in C programs.
@@ -106,7 +105,7 @@ public class OverflowCPA
     }
 
     // No overflows <=> all assumptions hold.
-    List<CExpression> noOverflows;
+    List<? extends AExpression> noOverflows;
     if (assumptions.isEmpty()) {
       noOverflows = Collections.emptyList();
     } else {
@@ -114,43 +113,13 @@ public class OverflowCPA
     }
 
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
-    outStates.addAll(assumptions.stream().map(
-
-        // Overflow <=> there exists a violating assumption.
-        a -> mkState(Collections.singletonList(mkNot(a)), cfaEdge, true)
-    ).iterator());
-    outStates.add(mkState(noOverflows, cfaEdge, false));
+    outStates.addAll(
+        Lists.transform(
+            assumptions,
+            // Overflow <=> there exists a violating assumption.
+            a -> new OverflowState(ImmutableList.of(mkNot(a)), true)));
+    outStates.add(new OverflowState(noOverflows, false));
     return outStates.build();
-  }
-
-  private OverflowState mkState(
-      List<CExpression> expression,
-      CFAEdge pEdge,
-      boolean pHasOverflow
-      ) {
-    return new OverflowState(
-        expression.stream().map(
-            e -> mkAssumeEdge(
-                pEdge.getPredecessor(),
-                e,
-                pEdge.getSuccessor()
-            )
-        ).collect(Collectors.toList()),
-        pHasOverflow);
-  }
-
-  private CAssumeEdge mkAssumeEdge(
-      CFANode predecessor,
-      CExpression pExpression,
-      CFANode successor) {
-    return new CAssumeEdge(
-        pExpression.toASTString(),
-        FileLocation.DUMMY,
-        predecessor,
-        successor,
-        pExpression,
-        true
-    );
   }
 
   private CExpression mkNot(CExpression arg) {

@@ -38,9 +38,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -233,7 +237,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+  public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
+      throws CPATransferException, InterruptedException {
+    CAssumeEdge fakeEdge =
+        new CAssumeEdge(
+            pAssumption.toASTString(),
+            FileLocation.DUMMY,
+            new CFANode("dummy"),
+            new CFANode("dummy"),
+            pAssumption,
+            true);
+    return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     return makeAnd(pOldFormula, pEdge, errorConditions);
   }

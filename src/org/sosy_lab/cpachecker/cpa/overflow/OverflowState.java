@@ -27,7 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -46,13 +46,12 @@ class OverflowState implements AbstractStateWithAssumptions,
                                Targetable,
                                Graphable {
 
-  private final ImmutableList<AssumeEdge> assumptions;
+  private final ImmutableList<? extends AExpression> assumptions;
   private final boolean hasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
 
-  public OverflowState(
-      List<AssumeEdge> pAssumeEdges, boolean pHasOverflow) {
-    assumptions = ImmutableList.copyOf(pAssumeEdges);
+  public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow) {
+    assumptions = ImmutableList.copyOf(pAssumptions);
     hasOverflow = pHasOverflow;
   }
 
@@ -61,7 +60,7 @@ class OverflowState implements AbstractStateWithAssumptions,
   }
 
   @Override
-  public List<AssumeEdge> getAsAssumeEdges(String functionName) {
+  public List<? extends AExpression> getAssumptions(String functionName) {
     return assumptions;
   }
 

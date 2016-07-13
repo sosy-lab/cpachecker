@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
 import java.util.List;
 
@@ -39,16 +39,17 @@ public interface AbstractStateWithAssumptions extends AbstractState {
   /**
    * Get the list of assumptions represented as AssumeEdges.
    *
-   * Assumptions about function return value are transformed from
-   * "return N;" to "[retVar == N]", where "retVar" is the name of a pseudo variable
-   * (just as {@link AReturnStatement#asAssignment()} does.
+   * Implementors should make sure that only expressions are returned
+   * which would also occur in the CFA, i.e., the expressions should be simplified and normalized.
+   * For example, this means that the expression "x" is not valid
+   * and should "x != 0" instead.
    *
-   * The CFANodes attached to the produced edges are not real nodes
-   * and should not be used. In particular, there is no guarantee that the list
-   * of edges corresponds to a connected chain of nodes and edges.
+   * Assumptions about function return value are transformed from
+   * "return N;" to "retVar == N", where "retVar" is the name of a pseudo variable
+   * (just as {@link AReturnStatement#asAssignment()} does.
    *
    * @param functionName the function name where the assumptions are
    * @return A (possibly empty list) of assume edges.
    */
-  List<? extends AssumeEdge> getAsAssumeEdges(String functionName);
+  List<? extends AExpression> getAssumptions(String functionName);
 }

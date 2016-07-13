@@ -24,6 +24,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -36,7 +37,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -367,14 +367,21 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     PathFormula pf = pElement.getPathFormula();
 
-    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(pNode.getFunctionName())) {
+    for (CExpression assumption :
+        from(pAssumeElement.getAssumptions(pNode.getFunctionName())).filter(CExpression.class)) {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future
       if(assumptionContainsProblemType(assumption)) {
         continue;
       }
-      pf = convertEdgeToPathFormula(pf, assumption);
+      pathFormulaTimer.start();
+      try {
+        // compute new pathFormula with the operation on the edge
+        pf = pathFormulaManager.makeAnd(pf, assumption);
+      } finally {
+        pathFormulaTimer.stop();
+      }
     }
 
     if (pf != pElement.getPathFormula()) {
@@ -511,8 +518,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     return result;
   }
 
-  private boolean assumptionContainsProblemType(AssumeEdge assumption) {
-    CExpression expression = (CExpression) assumption.getExpression();
+  private boolean assumptionContainsProblemType(CExpression expression) {
     CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
     expression.accept(collector);
     for (CIdExpression var : collector.getReferencedIdExpressions()) {

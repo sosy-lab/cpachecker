@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -151,6 +152,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     return delegate.makeAnd(pPathFormula, pOtherFormula);
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
+      throws CPATransferException, InterruptedException {
+    return delegate.makeAnd(pPathFormula, pAssumption);
   }
 
   @Override

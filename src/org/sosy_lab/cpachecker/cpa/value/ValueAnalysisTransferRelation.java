@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -154,6 +153,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 
@@ -574,6 +574,11 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
+    return handleAssumption(expression, truthValue);
+  }
+
+  private ValueAnalysisState handleAssumption(AExpression expression, boolean truthValue)
+      throws UnrecognizedCCodeException {
 
     totalAssumptions.inc();
 
@@ -1778,13 +1783,11 @@ public class ValueAnalysisTransferRelation
 
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
-
     ValueAnalysisState state = pState;
 
-
-    for (AssumeEdge assumeEdge : assumeEdges) {
-      state = this.handleAssumption(assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
+    for (AExpression assumption :
+        pAutomatonState.getAssumptions(pCfaEdge.getPredecessor().getFunctionName())) {
+      state = handleAssumption(assumption, true);
 
       if (state == null) {
         break;

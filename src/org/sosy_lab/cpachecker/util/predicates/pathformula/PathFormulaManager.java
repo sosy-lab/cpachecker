@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -59,6 +60,9 @@ public interface PathFormulaManager {
   PathFormula makeOr(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
+
+  PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
+      throws CPATransferException, InterruptedException;
 
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 

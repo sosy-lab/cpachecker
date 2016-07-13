@@ -38,9 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -262,12 +260,12 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
-  public List<AssumeEdge> getAsAssumeEdges(String cFunctionName) {
+  public List<AExpression> getAssumptions(String cFunctionName) {
     if (assumptions.isEmpty()) {
       return ImmutableList.of();
     }
 
-    List<AssumeEdge> result = new ArrayList<>(assumptions.size());
+    List<AExpression> result = new ArrayList<>(assumptions.size());
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
     for (AStatement statement : assumptions) {
 
@@ -283,8 +281,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
                   expression,
                   CBinaryExpression.BinaryOperator.EQUALS);
 
-          result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName), assumeExp, true));
+          result.add(assumeExp);
         } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
           //TODO FunctionCalls, ExpressionStatements etc
         }
@@ -293,9 +290,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       if (statement instanceof CExpressionStatement) {
         if (((CExpressionStatement) statement).getExpression().getExpressionType() instanceof CSimpleType
             && ((CSimpleType) (((CExpressionStatement) statement).getExpression().getExpressionType())).getType().isIntegerType()) {
-          result.add(new CAssumeEdge(statement.toASTString(), statement.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName),
-              ((CExpressionStatement) statement).getExpression(), true));
+          result.add(((CExpressionStatement) statement).getExpression());
         }
       }
     }
