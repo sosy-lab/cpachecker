@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -67,7 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -111,6 +110,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -392,7 +392,8 @@ public class VariableClassificationBuilder {
 
     for (CFANode node : nodes) {
       for (CAssumeEdge edge : Iterables.filter(leavingEdges(node), CAssumeEdge.class)) {
-        for (CIdExpression identifier : edge.getExpression().accept(new CIdExpressionCollectingVisitor())) {
+        for (CIdExpression identifier :
+            CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(edge.getExpression())) {
           assumeVariables.add(identifier.getDeclaration().getQualifiedName());
         }
       }
@@ -417,7 +418,9 @@ public class VariableClassificationBuilder {
           }
 
           CAssignment assignment = (CAssignment) edge.getStatement();
-          for (CIdExpression id : assignment.getLeftHandSide().accept(new CIdExpressionCollectingVisitor())) {
+          for (CIdExpression id :
+              CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(
+                  assignment.getLeftHandSide())) {
             assignedVariables.add(id.getDeclaration().getQualifiedName());
           }
         }

@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -198,12 +198,11 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     CType typ = exp.getExpressionType();
 
     if (useLiveness) {
-      CIdExpressionCollectingVisitor idCollectingVisitor =
-          new CIdExpressionCollectingVisitor();
       Set<CSimpleDeclaration> referencedDeclarations =
-          exp.accept(idCollectingVisitor)
-             .stream()
-             .map(s -> s.getDeclaration()).collect(Collectors.toSet());
+          CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(exp)
+              .stream()
+              .map(s -> s.getDeclaration())
+              .collect(Collectors.toSet());
 
       Set<ASimpleDeclaration> liveVars =
           cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet();
