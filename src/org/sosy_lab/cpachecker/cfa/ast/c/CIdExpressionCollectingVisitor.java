@@ -30,11 +30,7 @@ import java.util.Set;
 
 
 public class CIdExpressionCollectingVisitor
-    extends DefaultCExpressionVisitor<Set<CIdExpression>, RuntimeException>
-    implements CStatementVisitor<Set<CIdExpression>, RuntimeException>,
-               CRightHandSideVisitor<Set<CIdExpression>, RuntimeException>,
-               CInitializerVisitor<Set<CIdExpression>, RuntimeException>,
-               CDesignatorVisitor<Set<CIdExpression>, RuntimeException> {
+    extends DefaultCExpressionVisitor<Set<CIdExpression>, RuntimeException> {
 
   @Override
   protected Set<CIdExpression> visitDefault(CExpression pExp) {
@@ -88,104 +84,7 @@ public class CIdExpressionCollectingVisitor
   }
 
   @Override
-  public Set<CIdExpression> visit(CInitializerExpression pE) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return pE.getExpression().<Set<CIdExpression>, RuntimeException>accept(this);
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CInitializerList pI) {
-    Set<CIdExpression> result = Collections.emptySet();
-    for (CInitializer i: pI.getInitializers()) {
-      // Do not remove explicit type inference, otherwise build fails with IntelliJ
-      result = Sets.union(result, i.<Set<CIdExpression>, RuntimeException>accept(this));
-    }
-    return result;
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CDesignatedInitializer pI) {
-    Set<CIdExpression> result = Collections.emptySet();
-    for (CDesignator d: pI.getDesignators()) {
-      // Do not remove explicit type inference, otherwise build fails with IntelliJ
-      result = Sets.union(result, d.<Set<CIdExpression>, RuntimeException>accept(this));
-    }
-    return result;
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CExpressionAssignmentStatement pS) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return Sets.union(
-        pS.getLeftHandSide().<Set<CIdExpression>, RuntimeException>accept(this),
-        pS.getRightHandSide().<Set<CIdExpression>, RuntimeException>accept(this));
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CExpressionStatement pS) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return pS.getExpression().<Set<CIdExpression>, RuntimeException>accept(this);
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CFunctionCallAssignmentStatement pS) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    Set<CIdExpression> result =
-        Sets.union(
-            pS.getLeftHandSide().<Set<CIdExpression>, RuntimeException>accept(this),
-            pS.getRightHandSide()
-                .getFunctionNameExpression()
-                .<Set<CIdExpression>, RuntimeException>accept(this));
-
-    for (CExpression expr : pS.getRightHandSide().getParameterExpressions()) {
-      result = Sets.union(result, expr.<Set<CIdExpression>, RuntimeException>accept(this));
-    }
-    return result;
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CFunctionCallStatement pS) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return pS.getFunctionCallExpression().<Set<CIdExpression>, RuntimeException>accept(this);
-  }
-
-  @Override
   public Set<CIdExpression> visit(CIdExpression pE) {
     return Collections.singleton(pE);
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CArrayDesignator pArrayDesignator) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return pArrayDesignator
-        .getSubscriptExpression()
-        .<Set<CIdExpression>, RuntimeException>accept(this);
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CArrayRangeDesignator pArrayRangeDesignator) {
-    // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return Sets.union(
-        pArrayRangeDesignator
-            .getFloorExpression()
-            .<Set<CIdExpression>, RuntimeException>accept(this),
-        pArrayRangeDesignator
-            .getCeilExpression()
-            .<Set<CIdExpression>, RuntimeException>accept(this));
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CFieldDesignator pFieldDesignator) {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<CIdExpression> visit(CFunctionCallExpression pIastFunctionCallExpression) {
-    Set<CIdExpression> result = Collections.emptySet();
-    for (CExpression e: pIastFunctionCallExpression.getParameterExpressions()) {
-      // Do not remove explicit type inference, otherwise build fails with IntelliJ
-      result = Sets.union(result, e.<Set<CIdExpression>, RuntimeException>accept(this));
-    }
-    return result;
   }
 }
