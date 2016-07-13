@@ -520,6 +520,6 @@ public class PredicatePrecision implements Precision {
 
   @Override
   public Precision join(Precision pOther) {
-    return unionOf(ImmutableSet.of(pOther));
+    return unionOf(ImmutableSet.of(this, pOther));
   }
 }
