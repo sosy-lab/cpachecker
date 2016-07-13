@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -103,13 +102,7 @@ public class OverflowCPA
 
     List<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
     if (assumptions.isEmpty()) {
-      return ImmutableList.of(
-          new OverflowState(
-              ImmutableList.of(),
-              ImmutableList.of(),
-              false
-          )
-      );
+      return ImmutableList.of(new OverflowState(ImmutableList.of(), false));
     }
 
     // No overflows <=> all assumptions hold.
@@ -136,7 +129,6 @@ public class OverflowCPA
       boolean pHasOverflow
       ) {
     return new OverflowState(
-        expression.stream().map(e -> mkStatement(e)).collect(Collectors.toList()),
         expression.stream().map(
             e -> mkAssumeEdge(
                 pEdge.getPredecessor(),
@@ -159,10 +151,6 @@ public class OverflowCPA
         pExpression,
         true
     );
-  }
-
-  private CExpressionStatement mkStatement(CExpression pExpression) {
-    return new CExpressionStatement(FileLocation.DUMMY, pExpression);
   }
 
   private CExpression mkNot(CExpression arg) {
@@ -201,10 +189,7 @@ public class OverflowCPA
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    return new OverflowState(
-        ImmutableList.of(),
-        ImmutableList.of(),
-        false);
+    return new OverflowState(ImmutableList.of(), false);
   }
 
   @Override

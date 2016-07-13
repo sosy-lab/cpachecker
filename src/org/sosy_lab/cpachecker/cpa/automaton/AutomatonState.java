@@ -348,7 +348,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           pPreviousState.getVars(),
           pPreviousState.getInternalState(),
           pPreviousState.automatonCPA,
-          pPreviousState.getAssumptions(),
+          pPreviousState.getAssumptionsAsStatements(),
           pPreviousState.getCandidateInvariants(),
           -1,
           -1,
@@ -454,8 +454,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return AutomatonState.AutomatonAnalysisNamePrefix + automatonCPA.getAutomaton().getName();
   }
 
-  @Override
-  public ImmutableList<AStatement> getAssumptions() {
+  ImmutableList<AStatement> getAssumptionsAsStatements() {
     return assumptions;
   }
 

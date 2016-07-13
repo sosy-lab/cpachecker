@@ -27,8 +27,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -48,16 +46,13 @@ class OverflowState implements AbstractStateWithAssumptions,
                                Targetable,
                                Graphable {
 
-  private final ImmutableList<CStatement> assumptions;
-  private final ImmutableList<AssumeEdge> assumeEdges;
+  private final ImmutableList<AssumeEdge> assumptions;
   private final boolean hasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
 
   public OverflowState(
-      List<CStatement> pAssumptions,
       List<AssumeEdge> pAssumeEdges, boolean pHasOverflow) {
-    assumptions = ImmutableList.copyOf(pAssumptions);
-    assumeEdges = ImmutableList.copyOf(pAssumeEdges);
+    assumptions = ImmutableList.copyOf(pAssumeEdges);
     hasOverflow = pHasOverflow;
   }
 
@@ -66,18 +61,13 @@ class OverflowState implements AbstractStateWithAssumptions,
   }
 
   @Override
-  public List<? extends AStatement> getAssumptions() {
+  public List<AssumeEdge> getAsAssumeEdges(String functionName) {
     return assumptions;
   }
 
   @Override
-  public List<AssumeEdge> getAsAssumeEdges(String functionName) {
-    return assumeEdges;
-  }
-
-  @Override
   public int hashCode() {
-    return Objects.hash(assumptions, assumeEdges, hasOverflow);
+    return Objects.hash(assumptions, hasOverflow);
   }
 
   @Override
@@ -89,18 +79,12 @@ class OverflowState implements AbstractStateWithAssumptions,
       return false;
     }
     OverflowState that = (OverflowState) pO;
-    return hasOverflow == that.hasOverflow &&
-        Objects.equals(assumptions, that.assumptions) &&
-        Objects.equals(assumeEdges, that.assumeEdges);
+    return hasOverflow == that.hasOverflow && Objects.equals(assumptions, that.assumptions);
   }
 
   @Override
   public String toString() {
-    return "OverflowState{" +
-        "assumptions=" + assumptions +
-        ", assumeEdges=" + assumeEdges +
-        ", hasOverflow=" + hasOverflow +
-        '}';
+    return "OverflowState{" + ", assumeEdges=" + assumptions + ", hasOverflow=" + hasOverflow + '}';
   }
 
   @Override

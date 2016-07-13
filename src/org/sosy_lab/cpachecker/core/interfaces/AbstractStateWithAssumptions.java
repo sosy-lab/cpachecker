@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
 import java.util.List;
@@ -38,14 +37,7 @@ import java.util.List;
 public interface AbstractStateWithAssumptions extends AbstractState {
 
   /**
-   * Get the list of assumptions in form of statements.
-   * @return A (possibly empty list) of statements.
-   */
-  List<? extends AStatement> getAssumptions();
-
-  /**
-   * Get the list of assumptions transformed into AssumeEdges.
-   * This might be easier to use by other CPAs.
+   * Get the list of assumptions represented as AssumeEdges.
    *
    * Assumptions about function return value are transformed from
    * "return N;" to "[retVar == N]", where "retVar" is the name of a pseudo variable
