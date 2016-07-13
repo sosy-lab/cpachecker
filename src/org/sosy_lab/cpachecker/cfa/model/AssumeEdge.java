@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.model;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-import java.util.Objects;
 import java.util.Optional;
 
 
@@ -83,26 +82,5 @@ public class AssumeEdge extends AbstractCFAEdge {
   @Override
   public Optional<? extends AExpression> getRawAST() {
     return Optional.of(expression);
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (pO == null || getClass() != pO.getClass()) {
-      return false;
-    }
-    if (!super.equals(pO)) {
-      return false;
-    }
-    AssumeEdge that = (AssumeEdge) pO;
-    return truthAssumption == that.truthAssumption &&
-        Objects.equals(expression, that.expression);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), truthAssumption, expression);
   }
 }
