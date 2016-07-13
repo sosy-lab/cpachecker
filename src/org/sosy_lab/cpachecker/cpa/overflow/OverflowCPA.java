@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.collect.ImmutableList;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -53,8 +55,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -62,26 +64,26 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * CPA for detecting overflows.
+ * CPA for detecting overflows in C programs.
  */
 public class OverflowCPA
     extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysis{
 
-  private final CFA cfa;
-  private final LogManager logger;
   private final CBinaryExpressionBuilder expressionBuilder;
   private final AbstractDomain domain;
+  private final ArithmeticOverflowAssumptionBuilder noOverflowAssumptionBuilder;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OverflowCPA.class);
   }
 
-  private OverflowCPA(CFA pCfa, LogManager pLogger) {
-    cfa = pCfa;
-    logger = pLogger;
+  private OverflowCPA(CFA pCfa, LogManager pLogger, Configuration pConfiguration)
+      throws InvalidConfigurationException {
     expressionBuilder = new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
     domain = new FlatLatticeNoTopDomain();
+    noOverflowAssumptionBuilder =
+        new ArithmeticOverflowAssumptionBuilder(pCfa, pLogger, pConfiguration);
   }
 
   @Override
@@ -98,11 +100,17 @@ public class OverflowCPA
       return Collections.emptyList();
     }
 
-    ArithmeticOverflowAssumptionBuilder builder = new
-        ArithmeticOverflowAssumptionBuilder(cfa, logger);
 
-    List<CExpression> assumptions =
-        builder.assumptionsForEdge(cfaEdge);
+    List<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
+    if (assumptions.isEmpty()) {
+      return ImmutableList.of(
+          new OverflowState(
+              ImmutableList.of(),
+              ImmutableList.of(),
+              false
+          )
+      );
+    }
 
     // No overflows <=> all assumptions hold.
     List<CExpression> noOverflows;
