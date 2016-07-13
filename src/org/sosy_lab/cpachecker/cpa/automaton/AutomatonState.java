@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -237,27 +235,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return internalState.hashCode();
   }
 
-  public List<CStatementEdge> getAsStatementEdges(String cFunctionName) {
-    if (assumptions.isEmpty()) { return ImmutableList.of(); }
-
-    List<CStatementEdge> result = new ArrayList<>(assumptions.size());
-    for (AStatement statement : assumptions) {
-
-      if (statement instanceof CAssignment) {
-        CAssignment assignment = (CAssignment) statement;
-
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-
-          result.add(new CStatementEdge(assignment.toASTString(), assignment, assignment.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName)));
-        } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
-          //TODO FunctionCalls, ExpressionStatements etc
-        }
-      }
-    }
-    return result;
-  }
 
   @Override
   public List<AExpression> getAssumptions(String cFunctionName) {

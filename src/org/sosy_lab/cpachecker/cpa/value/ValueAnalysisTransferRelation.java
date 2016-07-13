@@ -178,10 +178,6 @@ public class ValueAnalysisTransferRelation
       + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression).")
   private boolean assignSymbolicAssumptionVars = false;
 
-  @Option(secure=true, description = "Process the Automaton ASSUMEs as if they were statements, not as if they were"
-      + " assumptions.")
-  private boolean automatonAssumesAsStatements = false;
-
   @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
   private boolean optimizeBooleanVariables = true;
 
@@ -1519,8 +1515,7 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           AutomatonState autoState = (AutomatonState) ae;
-          Collection<ValueAnalysisState> ret = automatonAssumesAsStatements ?
-              strengthenAutomatonStatement(autoState, state, cfaEdge) : strengthenAutomatonAssume(autoState, state, cfaEdge);
+          Collection<ValueAnalysisState> ret = strengthenAutomatonAssume(autoState, state, cfaEdge);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1755,30 +1750,6 @@ public class ValueAnalysisTransferRelation
       }
     }
     return null;
-  }
-
-  private Collection<ValueAnalysisState> strengthenAutomatonStatement(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
-
-    List<CStatementEdge> statementEdges = pAutomatonState.getAsStatementEdges(
-        pCfaEdge.getPredecessor().getFunctionName());
-
-    ValueAnalysisState state = pState;
-
-    for (CStatementEdge stmtEdge : statementEdges) {
-      state = handleStatementEdge((AStatementEdge)stmtEdge, (AStatement)stmtEdge.getStatement());
-
-      if (state == null) {
-        break;
-      } else {
-        setInfo(state, precision, pCfaEdge);
-      }
-    }
-
-    if (state == null) {
-      return Collections.emptyList();
-    } else {
-      return Collections.singleton(state);
-    }
   }
 
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {

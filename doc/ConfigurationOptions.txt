@@ -83,6 +83,9 @@ solver.solver = SMTINTERPOL
 # Log solver actions, this may be slow!
 solver.useLogger = false
 
+# Dump failed interpolation queries to this file in SMTLIB2 format
+solver.z3.dumpFailedInterpolationQueries = no default value
+
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
@@ -2133,10 +2136,6 @@ cpa.value.abstraction.onlyAtNonLinearCFA = false
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to
 # 1, even if x is a symbolic expression).
 cpa.value.assignSymbolicAssumptionVars = false
-
-# Process the Automaton ASSUMEs as if they were statements, not as if they
-# were assumptions.
-cpa.value.automatonAssumesAsStatements = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
