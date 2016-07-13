@@ -509,7 +509,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
       String function = pCfaEdge.getSuccessor().getFunctionName();
-      for (AExpression assumption : assumptionState.getAssumptions(function)) {
+      for (AExpression assumption : assumptionState.getAssumptions()) {
         AssumeEdge fakeEdge;
         if (assumption instanceof CExpression) {
           fakeEdge =

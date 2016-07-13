@@ -267,18 +267,15 @@ public class PolicyIterationManager {
   /**
    * Pre-abstraction strengthening.
    */
-  public Collection<? extends AbstractState> strengthen(
-      PolicyIntermediateState pState,
-      CFAEdge pEdge,
-      List<AbstractState> pOtherStates)
+  Collection<? extends AbstractState> strengthen(
+      PolicyIntermediateState pState, List<AbstractState> pOtherStates)
       throws CPATransferException, InterruptedException {
-    String functionName = pEdge.getPredecessor().getFunctionName();
 
     // Collect assumptions.
     FluentIterable<CExpression> assumptions =
         FluentIterable.from(pOtherStates)
             .filter(AbstractStateWithAssumptions.class)
-            .transformAndConcat(a -> a.getAssumptions(functionName))
+            .transformAndConcat(AbstractStateWithAssumptions::getAssumptions)
             .filter(CExpression.class);
 
     if (assumptions.isEmpty()) {

@@ -331,7 +331,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(currentLocation, element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(element, (AbstractStateWithAssumptions) lElement);
         }
 
         if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
@@ -362,13 +362,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
-      AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pElement, AbstractStateWithAssumptions pAssumeElement)
+      throws CPATransferException, InterruptedException {
 
     PathFormula pf = pElement.getPathFormula();
 
-    for (CExpression assumption :
-        from(pAssumeElement.getAssumptions(pNode.getFunctionName())).filter(CExpression.class)) {
+    for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future

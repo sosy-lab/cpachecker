@@ -237,7 +237,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
 
   @Override
-  public List<AExpression> getAssumptions(String cFunctionName) {
+  public List<AExpression> getAssumptions() {
     if (assumptions.isEmpty()) {
       return ImmutableList.of();
     }

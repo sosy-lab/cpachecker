@@ -60,7 +60,7 @@ class OverflowState implements AbstractStateWithAssumptions,
   }
 
   @Override
-  public List<? extends AExpression> getAssumptions(String functionName) {
+  public List<? extends AExpression> getAssumptions() {
     return assumptions;
   }
 

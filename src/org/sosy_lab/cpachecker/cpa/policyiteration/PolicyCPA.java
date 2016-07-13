@@ -223,7 +223,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       throws CPATransferException, InterruptedException {
     return policyIterationManager.strengthen(
         ((PolicyState) state).asIntermediate(),
-        cfaEdge,
         otherStates
     );
   }

@@ -2556,8 +2556,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CFAEdge pCfaEdge) throws CPATransferException {
 
     FluentIterable<CExpression> assumptions =
-        from(pAutomatonState.getAssumptions(pCfaEdge.getPredecessor().getFunctionName()))
-            .filter(CExpression.class);
+        from(pAutomatonState.getAssumptions()).filter(CExpression.class);
 
     if(assumptions.isEmpty()) {
       return Collections.singleton(pElement);

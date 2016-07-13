@@ -275,8 +275,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       try {
         for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
-            for (CExpression assume :
-                from(s.getAssumptions(node.getFunctionName())).filter(CExpression.class)) {
+            for (CExpression assume : from(s.getAssumptions()).filter(CExpression.class)) {
               predNode = createFakeEdge(assume, predNode);
             }
           }

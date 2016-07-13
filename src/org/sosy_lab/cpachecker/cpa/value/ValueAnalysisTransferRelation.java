@@ -1756,8 +1756,7 @@ public class ValueAnalysisTransferRelation
 
     ValueAnalysisState state = pState;
 
-    for (AExpression assumption :
-        pAutomatonState.getAssumptions(pCfaEdge.getPredecessor().getFunctionName())) {
+    for (AExpression assumption : pAutomatonState.getAssumptions()) {
       state = handleAssumption(assumption, true);
 
       if (state == null) {

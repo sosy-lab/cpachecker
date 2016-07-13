@@ -48,8 +48,7 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * "return N;" to "retVar == N", where "retVar" is the name of a pseudo variable
    * (just as {@link AReturnStatement#asAssignment()} does.
    *
-   * @param functionName the function name where the assumptions are
    * @return A (possibly empty list) of assume edges.
    */
-  List<? extends AExpression> getAssumptions(String functionName);
+  List<? extends AExpression> getAssumptions();
 }
