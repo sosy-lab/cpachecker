@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
@@ -122,17 +121,11 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final MergeOperator mergeOperator;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  private final CFA cfa;
-  private final LogManager logger;
-
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
     throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
-
-    this.cfa = pCFA;
-    this.logger = pLogger;
 
     this.transferRelation = new AutomatonTransferRelation(this, pLogger);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
@@ -150,7 +143,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      this.automaton = constructAutomataFromFile(pConfig, inputFile);
+      this.automaton = constructAutomataFromFile(pConfig, pLogger, inputFile, pCFA);
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
@@ -166,7 +159,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     }
   }
 
-  private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
+  private Automaton constructAutomataFromFile(
+      Configuration pConfig, LogManager logger, Path pFile, CFA cfa)
       throws InvalidConfigurationException {
 
     Scope scope = cfa.getLanguage() == Language.C
@@ -273,14 +267,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
-  }
-
-  MachineModel getMachineModel() {
-    return cfa.getMachineModel();
-  }
-
-  LogManager getLogManager() {
-    return logger;
   }
 
   boolean isTreatingErrorsAsTargets() {
