@@ -104,7 +104,10 @@ public class AutomatonInternalTest {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (Reader input = defaultSpec.openBufferedStream()) {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpecPath, logger, sf);
-      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser, CProgramScope.empty()).parse();
+      Symbol symbol =
+          new AutomatonParser(
+                  scanner, sf, logger, parser, MachineModel.LINUX32, CProgramScope.empty())
+              .parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {

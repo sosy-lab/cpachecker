@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -59,25 +60,34 @@ import com.google.common.base.Throwables;
 parser code {:
   private LogManager logger;
   private CParser cparser;
+  private MachineModel machineModel;
   private Scope scope;
 
   // this int is used to determine unique names for anonymous automata
   private static int anonymousCounter;
 
-  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, CParser pCparser, Scope scope) {
-      super(scanner, sf);
-      this.logger = pLogger;
-      this.cparser = pCparser;
-      this.scope = scope;
+  AutomatonParser(
+      Scanner scanner,
+      SymbolFactory sf,
+      LogManager pLogger,
+      CParser pCparser,
+      MachineModel pMachineModel,
+      Scope pScope) {
+    super(scanner, sf);
+    logger = pLogger;
+    cparser = pCparser;
+    machineModel = pMachineModel;
+    scope = pScope;
   }
   
-  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger) {
-      super(scanner, sf);
-      this.logger = pLogger;
-      this.cparser = DummyParser.getInstance();
-      this.scope = DummyScope.getInstance();
+  AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger) {
+    super(scanner, sf);
+    logger = pLogger;
+    cparser = DummyParser.getInstance();
+    machineModel = MachineModel.LINUX32; // won't be used anyway
+    scope = DummyScope.getInstance();
   }
-  
+
   @Override
   public void report_error(String message, Object info) {
     String errorString = message;
@@ -91,7 +101,7 @@ parser code {:
     AutomatonTransition trans = new AutomatonTransition(
         AutomatonBoolExpr.TRUE, 
         Collections.singletonList(pA),
-        new ArrayList<CStatement>(),
+        Collections.emptyList(),
         Collections.<AutomatonAction>emptyList(),
         "OK");
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
@@ -127,7 +137,7 @@ parser code {:
     switch (pLanguage) {
     case C:
       CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
-      automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, scope);
+      automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
       break;
     default:
       automatonParser = new AutomatonParser(scanner, sf, pLogger);
@@ -158,7 +168,7 @@ non terminal Map<String, AutomatonVariable> LocalDefs ;
 non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
-non terminal List<CStatement> Assume ;
+non terminal List<AExpression> Assume ;
 non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
@@ -254,8 +264,8 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              ;
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
-Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.parseListOfStatements(a.toString(), cparser, scope); :}
-             | /* empty */ {: RESULT = new ArrayList<CStatement>(); :};
+Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
+             | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}

@@ -27,10 +27,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -46,6 +56,44 @@ class CParserUtils {
   static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
+  }
+
+  static List<AExpression> convertStatementsToAssumptions(
+      Iterable<CStatement> assumptions, MachineModel machineModel, LogManager logger) {
+    ImmutableList.Builder<AExpression> result = ImmutableList.builder();
+    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+    for (CStatement statement : assumptions) {
+
+      if (statement instanceof CAssignment) {
+        CAssignment assignment = (CAssignment) statement;
+
+        if (assignment.getRightHandSide() instanceof CExpression) {
+
+          CExpression expression = (CExpression) assignment.getRightHandSide();
+          CBinaryExpression assumeExp =
+              expressionBuilder.buildBinaryExpressionUnchecked(
+                  assignment.getLeftHandSide(),
+                  expression,
+                  CBinaryExpression.BinaryOperator.EQUALS);
+
+          result.add(assumeExp);
+        } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
+          // TODO FunctionCalls, ExpressionStatements etc
+        }
+      }
+
+      if (statement instanceof CExpressionStatement) {
+        if (((CExpressionStatement) statement).getExpression().getExpressionType()
+                instanceof CSimpleType
+            && ((CSimpleType)
+                    (((CExpressionStatement) statement).getExpression().getExpressionType()))
+                .getType()
+                .isIntegerType()) {
+          result.add(((CExpressionStatement) statement).getExpression());
+        }
+      }
+    }
+    return result.build();
   }
 
   /**

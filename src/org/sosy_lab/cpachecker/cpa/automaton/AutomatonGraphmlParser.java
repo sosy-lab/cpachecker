@@ -402,7 +402,7 @@ public class AutomatonGraphmlParser {
           actions = Collections.emptyList();
         }
 
-        List<CStatement> assumptions = Lists.newArrayList();
+        List<AExpression> assumptions = Lists.newArrayList();
         ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
@@ -468,7 +468,11 @@ public class AutomatonGraphmlParser {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
           Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
           assumptions.addAll(
-              parseStatements(transAssumes, determineScope(assumptionScopes, newStack), cparser));
+              CParserUtils.convertStatementsToAssumptions(
+                  parseStatements(
+                      transAssumes, determineScope(assumptionScopes, newStack), cparser),
+                  machine,
+                  logger));
           if (graphType == GraphType.PROOF_WITNESS && !assumptions.isEmpty()) {
             throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
           }
@@ -611,7 +615,7 @@ public class AutomatonGraphmlParser {
                       conjunctedTriggers,
                       new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
                   Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.<CStatement>emptyList(),
+                  Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
@@ -652,7 +656,7 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   stutterCondition,
                   Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.<CStatement>emptyList(),
+                  Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
@@ -666,7 +670,7 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   AutomatonBoolExpr.TRUE,
                   assertions,
-                  Collections.<CStatement>emptyList(),
+                  Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
@@ -1076,7 +1080,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonTransition createAutomatonTransition(
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
-      List<CStatement> pAssumptions,
+      List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pTargetStateId,
@@ -1117,7 +1121,7 @@ public class AutomatonGraphmlParser {
     private ViolationCopyingAutomatonTransition(
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
-        List<CStatement> pAssumptions,
+        List<AExpression> pAssumptions,
         ExpressionTree<AExpression> pCandidateInvariants,
         List<AutomatonAction> pActions,
         String pTargetStateId) {

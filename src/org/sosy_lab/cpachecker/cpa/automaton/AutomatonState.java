@@ -31,14 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -51,9 +43,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -78,7 +68,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           new AutomatonInternalState(
               "_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
           pAutomatonCPA,
-          ImmutableList.<AStatement>of(),
+          ImmutableList.of(),
           ExpressionTrees.<AExpression>getTrue(),
           0,
           0,
@@ -104,7 +94,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           Collections.<String, AutomatonVariable>emptyMap(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
-          ImmutableList.<AStatement>of(),
+          ImmutableList.of(),
           ExpressionTrees.<AExpression>getTrue(),
           0,
           0,
@@ -125,7 +115,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
-  private final ImmutableList<AStatement> assumptions;
+  private final ImmutableList<AExpression> assumptions;
   private transient final ExpressionTree<AExpression> candidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
@@ -135,7 +125,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<AStatement> pAssumptions,
+      ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
@@ -163,7 +153,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         pVars,
         pInternalState,
         pAutomatonCPA,
-        ImmutableList.<AStatement>of(),
+        ImmutableList.of(),
         ExpressionTrees.<AExpression>getTrue(),
         successfulMatches,
         failedMatches,
@@ -174,7 +164,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<AStatement> pAssumptions,
+      ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
@@ -237,41 +227,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
 
   @Override
-  public List<AExpression> getAssumptions() {
-    if (assumptions.isEmpty()) {
-      return ImmutableList.of();
-    }
-
-    List<AExpression> result = new ArrayList<>(assumptions.size());
-    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
-    for (AStatement statement : assumptions) {
-
-      if (statement instanceof CAssignment) {
-        CAssignment assignment = (CAssignment) statement;
-
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-          CExpression expression = (CExpression) assignment.getRightHandSide();
-          CBinaryExpression assumeExp =
-              expressionBuilder.buildBinaryExpressionUnchecked(
-                  assignment.getLeftHandSide(),
-                  expression,
-                  CBinaryExpression.BinaryOperator.EQUALS);
-
-          result.add(assumeExp);
-        } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
-          //TODO FunctionCalls, ExpressionStatements etc
-        }
-      }
-
-      if (statement instanceof CExpressionStatement) {
-        if (((CExpressionStatement) statement).getExpression().getExpressionType() instanceof CSimpleType
-            && ((CSimpleType) (((CExpressionStatement) statement).getExpression().getExpressionType())).getType().isIntegerType()) {
-          result.add(((CExpressionStatement) statement).getExpression());
-        }
-      }
-    }
-    return result;
+  public ImmutableList<AExpression> getAssumptions() {
+    return assumptions;
   }
 
   /**
@@ -320,7 +277,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           pPreviousState.getVars(),
           pPreviousState.getInternalState(),
           pPreviousState.automatonCPA,
-          pPreviousState.getAssumptionsAsStatements(),
+          pPreviousState.getAssumptions(),
           pPreviousState.getCandidateInvariants(),
           -1,
           -1,
@@ -424,10 +381,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public String getCPAName() {
     return AutomatonState.AutomatonAnalysisNamePrefix + automatonCPA.getAutomaton().getName();
-  }
-
-  ImmutableList<AStatement> getAssumptionsAsStatements() {
-    return assumptions;
   }
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
