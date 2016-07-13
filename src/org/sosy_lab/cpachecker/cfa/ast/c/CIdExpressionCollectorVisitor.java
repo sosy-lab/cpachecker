@@ -23,30 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 
 public class CIdExpressionCollectorVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
-  public static Set<String> getVariablesOfExpression(CExpression expr) {
-    Set<String> result = new HashSet<>();
-    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+  public static ImmutableSet<String> getVariablesOfExpression(CExpression expr) {
+    ImmutableSet.Builder<String> result = ImmutableSet.builder();
 
-    expr.accept(collector);
-
-    for (CIdExpression id : collector.getReferencedIdExpressions()) {
+    for (CIdExpression id : getIdExpressionsOfExpression(expr)) {
       String assignToVar = id.getDeclaration().getQualifiedName();
       result.add(assignToVar);
     }
 
-    return result;
+    return result.build();
   }
 
-  private final Set<CIdExpression> referencedVariables = new HashSet<>();
+  public static ImmutableSet<CIdExpression> getIdExpressionsOfExpression(CExpression expr) {
+    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
+    expr.accept(collector);
+    return collector.getReferencedIdExpressions();
+  }
 
-  public Set<CIdExpression> getReferencedIdExpressions() {
-    return referencedVariables;
+  private final ImmutableSet.Builder<CIdExpression> referencedVariables = ImmutableSet.builder();
+
+  public ImmutableSet<CIdExpression> getReferencedIdExpressions() {
+    return referencedVariables.build();
   }
 
   @Override

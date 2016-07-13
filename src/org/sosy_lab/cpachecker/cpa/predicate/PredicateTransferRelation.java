@@ -519,9 +519,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean assumptionContainsProblemType(CExpression expression) {
-    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-    expression.accept(collector);
-    for (CIdExpression var : collector.getReferencedIdExpressions()) {
+    for (CIdExpression var :
+        CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(expression)) {
       if (var.getExpressionType() instanceof CProblemType) {
         return true;
       }

@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,8 +37,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Abstract base class for static refinement approaches.
@@ -67,9 +67,7 @@ abstract public class StaticRefiner {
   protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) {
     if (pAssume.getExpression() instanceof CExpression) {
       CExpression ce = (CExpression) pAssume.getExpression();
-      CIdExpressionCollectorVisitor referencedVariablesVisitor = new CIdExpressionCollectorVisitor();
-      ce.accept(referencedVariablesVisitor);
-      return referencedVariablesVisitor.getReferencedIdExpressions();
+      return CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(ce);
     } else {
       throw new RuntimeException("Only C programming language supported!");
     }
