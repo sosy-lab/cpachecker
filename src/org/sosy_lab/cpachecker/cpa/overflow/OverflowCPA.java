@@ -31,10 +31,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -55,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
 import java.util.Collection;
@@ -123,11 +122,11 @@ public class OverflowCPA
   }
 
   private CExpression mkNot(CExpression arg) {
-    return expressionBuilder.buildBinaryExpressionUnchecked(
-        arg,
-        CIntegerLiteralExpression.ZERO,
-        BinaryOperator.EQUALS
-    );
+    try {
+      return expressionBuilder.negateExpressionAndSimplify(arg);
+    } catch (UnrecognizedCCodeException e) {
+      throw new AssertionError(e);
+    }
   }
 
   @Override
