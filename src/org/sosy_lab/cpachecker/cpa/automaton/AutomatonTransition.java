@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -40,8 +39,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * A transition in the automaton implements one of the pattern matching methods.
@@ -65,21 +65,6 @@ class AutomatonTransition {
    */
   private final String followStateName;
   private AutomatonInternalState followState = null;
-
-  public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
-      List<AutomatonAction> pActions,
-      String pFollowStateName) {
-    this(
-        pTrigger,
-        pAssertions,
-        ImmutableList.<CStatement>of(),
-        ExpressionTrees.<AExpression>getTrue(),
-        pActions,
-        pFollowStateName,
-        null,
-        null);
-  }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
@@ -144,26 +129,6 @@ class AutomatonTransition {
         pAssertions,
         pAssumption,
         ExpressionTrees.<AExpression>getTrue(),
-        pActions,
-        pFollowState.getName(),
-        pFollowState,
-        pViolatedPropertyDescription);
-  }
-
-  public AutomatonTransition(
-      AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
-      List<CStatement> pAssumption,
-      ExpressionTree<AExpression> pCandidateInvariants,
-      List<AutomatonAction> pActions,
-      AutomatonInternalState pFollowState,
-      StringExpression pViolatedPropertyDescription) {
-
-    this(
-        pTrigger,
-        pAssertions,
-        pAssumption,
-        pCandidateInvariants,
         pActions,
         pFollowState.getName(),
         pFollowState,
