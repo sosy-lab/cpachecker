@@ -1565,11 +1565,6 @@ public class InvariantsState implements AbstractState,
     return checkProperty(pProperty);
   }
 
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("Cannot modify properties.");
-  }
-
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {
     return pMemoryLocation != null
         && !pMemoryLocation.getIdentifier().contains("*")

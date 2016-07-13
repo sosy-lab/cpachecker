@@ -55,6 +55,7 @@ public interface AbstractQueryableState extends AbstractState {
    * @param modification how the state should be modified
    * @throws InvalidQueryException if the modification is not given in the (CPA-specific) syntax
    */
-  void modifyProperty(String modification) throws InvalidQueryException;
-
+  default void modifyProperty(String modification) throws InvalidQueryException {
+    throw new InvalidQueryException(getCPAName() + " does not support modifying states.");
+  }
 }

@@ -25,12 +25,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.annotation.Nonnull;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -39,7 +34,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nonnull;
 
 public class CallstackState implements AbstractState, Partitionable,
 AbstractQueryableState, Serializable {
@@ -137,11 +137,6 @@ AbstractQueryableState, Serializable {
 
     throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass()
         .getCanonicalName()));
-  }
-
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("modifyProperty not implemented by " + this.getClass().getCanonicalName());
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {

@@ -417,11 +417,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
-  }
-
-  @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 

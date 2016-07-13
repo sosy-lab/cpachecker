@@ -318,11 +318,6 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return checkProperty(pProperty);
   }
 
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("not implemented by " + this.getClass().getCanonicalName());
-  }
-
   /** A ThreadState describes the state of a single thread. */
   private static class ThreadState {
 
