@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.base.Throwables;
 
@@ -79,10 +78,6 @@ parser code {:
       this.scope = DummyScope.getInstance();
   }
   
-  public List<CStatement> generateSourceASTOfBlock(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
-    return AutomatonASTComparator.generateSourceASTOfBlock(code, cparser, scope);
-  }
-
   @Override
   public void report_error(String message, Object info) {
     String errorString = message;
@@ -148,10 +143,6 @@ parser code {:
     }
 
     return ((List<Automaton>) symbol.value);
-  }
-
-  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
-    return AutomatonASTComparator.generatePatternAST(pattern, cparser, scope);
   }
 :};
 
@@ -263,7 +254,7 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              ;
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
-Assume    ::= ASSUME CURLYEXPR:a {: RESULT = parser.generateSourceASTOfBlock(a.toString()); :}
+Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.parseListOfStatements(a.toString(), cparser, scope); :}
              | /* empty */ {: RESULT = new ArrayList<CStatement>(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
@@ -316,7 +307,7 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | MATCH STRING_LITERAL:lit
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeExact(lit.toString()); :}
             | MATCH CURLYEXPR:expr
-              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(parser.generateASTPattern(expr.toString())); :}
+              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(AutomatonASTComparator.generatePatternAST(expr.toString(), cparser, scope)); :}
             | MATCH SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | MATCH LABEL STRING_LITERAL:lit

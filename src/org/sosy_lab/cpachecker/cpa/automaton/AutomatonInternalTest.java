@@ -320,7 +320,7 @@ public class AutomatonInternalTest {
     private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
       CAstNode sourceAST;
       ASTMatcher matcher;
-      sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+      sourceAST = CParserUtils.parseSingleStatement(src, parser, CProgramScope.empty());
       matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);

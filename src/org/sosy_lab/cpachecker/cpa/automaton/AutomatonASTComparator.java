@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static org.sosy_lab.cpachecker.util.Pair.zipList;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -56,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -65,8 +61,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.math.BigDecimal;
@@ -92,23 +86,8 @@ class AutomatonASTComparator {
   private static final Pattern JOKER_PATTERN = Pattern.compile("\\$(\\d+|\\?)");
 
   static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
-    // $?-Jokers, $1-Jokers and function declaration
-    String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
-
-    return parse(tmp, parser, scope).accept(ASTMatcherGenerator.INSTANCE);
-  }
-
-  static CStatement generateSourceAST(String pSource, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
-    String tmp = addFunctionDeclaration(pSource);
-
-    return parse(tmp, parser, scope);
-  }
-
-  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
-      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
-    String tmp = addFunctionDeclaration(pSource);
-
-    return parseBlockOfStatements(tmp, parser, scope);
+    return CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope)
+        .accept(ASTMatcherGenerator.INSTANCE);
   }
 
   @VisibleForTesting
@@ -137,70 +116,6 @@ class AutomatonASTComparator {
     matcher.appendTail(result);
     return result.toString();
   }
-
-  /**
-   * Surrounds the argument with a function declaration.
-   * This is necessary so the string can be parsed by the CDT parser.
-   * @param pBody the body of the function
-   * @return "void test() { " + body + ";}";
-   */
-  private static String addFunctionDeclaration(String pBody) {
-    if (pBody.trim().endsWith(";")) {
-      return "void test() { " + pBody + "}";
-    } else {
-      return "void test() { " + pBody + ";}";
-    }
-  }
-
-  /**
-   * Parse the content of a file into an AST with the Eclipse CDT parser.
-   * If an error occurs, the program is halted.
-   *
-   * @param code The C code to parse.
-   * @param parser The parser to use
-   * @param scope the scope to use
-   * @return The AST.
-   */
-  private static CStatement parse(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
-    try {
-      CAstNode statement = parser.parseSingleStatement(code, scope);
-      if (!(statement instanceof CStatement)) {
-        throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
-      }
-      return (CStatement)statement;
-    } catch (ParserException e) {
-      throw new InvalidAutomatonException("Error during parsing C code \""
-          + code + "\": " + e.getMessage());
-    }
-  }
-
-  /**
-   * Parse the assumption of a automaton, which are C assignments,
-   * return statements or function calls, into a list of
-   * CStatements with the Eclipse CDT parser. If an error occurs,
-   * an empty list will be returned, and the error will be logged.
-   *
-   *
-   * @param code The C code to parse.
-   * @return The AST.
-   */
-  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
-    List<CAstNode> statements;
-
-    statements = parser.parseStatements(code, scope);
-
-    for (CAstNode statement : statements) {
-      if (!(statement instanceof CStatement)) {
-        throw new InvalidAutomatonException("Code in assumption: <"
-      + statement.toASTString() + "> is not a valid assumption.");
-      }
-    }
-
-    Function<CAstNode, CStatement> function = statement -> (CStatement) statement;
-
-    return ImmutableList.copyOf(Lists.transform(statements, function));
-  }
-
 
   /**
    * The interface for a pre-compiled AST pattern.

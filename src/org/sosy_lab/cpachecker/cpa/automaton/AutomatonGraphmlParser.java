@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -127,6 +126,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -793,8 +793,7 @@ public class AutomatonGraphmlParser {
       }
     }
     if (fallBack) {
-      return AutomatonASTComparator.generateSourceASTOfBlock(
-          tryFixArrayInitializers(pCode), pCParser, pScope);
+      return CParserUtils.parseListOfStatements(tryFixArrayInitializers(pCode), pCParser, pScope);
     }
     return result;
   }
@@ -823,19 +822,17 @@ public class AutomatonGraphmlParser {
     String assumeCode = tryFixArrayInitializers(pAssumeCode);
     Collection<CStatement> statements = null;
     try {
-      statements = AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, pCParser, pScope);
+      statements = CParserUtils.parseListOfStatements(assumeCode, pCParser, pScope);
     } catch (RuntimeException e) {
       if (e.getMessage() != null && e.getMessage().contains("Syntax error:")) {
         statements =
-            AutomatonASTComparator.generateSourceASTOfBlock(
-                tryFixACSL(assumeCode, pScope), pCParser, pScope);
+            CParserUtils.parseListOfStatements(tryFixACSL(assumeCode, pScope), pCParser, pScope);
       } else {
         throw e;
       }
     } catch (CParserException e) {
       statements =
-          AutomatonASTComparator.generateSourceASTOfBlock(
-              tryFixACSL(assumeCode, pScope), pCParser, pScope);
+          CParserUtils.parseListOfStatements(tryFixACSL(assumeCode, pScope), pCParser, pScope);
     }
     statements = removeDuplicates(adjustCharAssignments(statements));
     // Check that no expressions were split
