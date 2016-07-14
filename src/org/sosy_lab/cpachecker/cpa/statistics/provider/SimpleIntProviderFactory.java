@@ -26,31 +26,16 @@ package org.sosy_lab.cpachecker.cpa.statistics.provider;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -67,6 +52,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.IntMerger;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.SimpleIntProviderImplementation;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import java.util.stream.StreamSupport;
 
 /**
  * This factory class provides a lot of StatisticsProvider.
@@ -80,35 +68,14 @@ public class SimpleIntProviderFactory {
    * Helper method to count expressions.
    * See the other countExpressions overload for more information.
    */
-  private static int countExpressions(CExpression pExpression, Counter<CExpression> counter) {
-    int count = counter.count(pExpression);
-    if (pExpression instanceof CIdExpression) {
-    } else if (pExpression instanceof CBinaryExpression) {
-      CBinaryExpression binexp = (CBinaryExpression)pExpression;
-      count += countExpressions(binexp.getOperand1(), counter);
-      count += countExpressions(binexp.getOperand2(), counter);
-    } else if (pExpression instanceof CUnaryExpression) {
-      CUnaryExpression unexp = (CUnaryExpression)pExpression;
-      count += countExpressions(unexp.getOperand(), counter);
-    } else if (pExpression instanceof CCastExpression) {
-      CCastExpression castexp = (CCastExpression)pExpression;
-      count += countExpressions(castexp.getOperand(), counter);
-    } else if (pExpression instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubExp = (CArraySubscriptExpression)pExpression;
-      count += countExpressions(arraySubExp.getArrayExpression(), counter);
-      count += countExpressions(arraySubExp.getSubscriptExpression(), counter);
-    } else if (pExpression instanceof CComplexCastExpression) {
-      CComplexCastExpression castexp = (CComplexCastExpression)pExpression;
-      count += countExpressions(castexp.getOperand(), counter);
-    } else if (pExpression instanceof CFieldReference) {
-      CFieldReference castexp = (CFieldReference)pExpression;
-      count += countExpressions(castexp.getFieldOwner(), counter);
-    } else if (pExpression instanceof CPointerExpression) {
-      CPointerExpression exp = (CPointerExpression)pExpression;
-      count += countExpressions(exp.getOperand(), counter);
-    }
-    return count;
+  private static int countExpressions(CAstNode pExpression, Counter<CExpression> counter) {
+    return StreamSupport.stream(
+            CFAUtils.traverseRecursively(pExpression).filter(CExpression.class).spliterator(),
+            false)
+        .mapToInt(counter::count)
+        .sum();
   }
+
   /**
    * Helper method for counting declarations.
    */
@@ -129,30 +96,6 @@ public class SimpleIntProviderFactory {
     return count;
   }
 
-  public static abstract class DefaultCInitializerVisitor<R, X extends Exception>
-    extends DefaultCExpressionVisitor<R, X>
-    implements CInitializerVisitor<R, X> {
-    @Override
-    public R visit(CInitializerExpression pInitializerExpression) throws X {
-      return visitDefault(pInitializerExpression.getExpression());
-    }
-
-    public abstract R combineMultiple(R left, R right);
-    @Override
-    public R visit(CInitializerList pInitializerList) throws X {
-      R ret = combineMultiple(null, null); // get default value
-      for (CInitializer initalizer : pInitializerList.getInitializers()) {
-        ret = combineMultiple(ret, initalizer.accept(this));
-      }
-      return ret;
-    }
-
-    @Override
-    public R visit(CDesignatedInitializer pCStructInitializerPart) throws X {
-      return pCStructInitializerPart.getRightHandSide().accept(this);
-    }
-  }
-
   /**
    * Counts some property within the expression tree, note that counter must handle only one single CExpression instance.
    * This method ensures that counter.count is called on every Expression in the current Expression tree (given by pEdge).
@@ -167,26 +110,7 @@ public class SimpleIntProviderFactory {
         CVariableDeclaration varDecl = (CVariableDeclaration) decl;
         CInitializer init = varDecl.getInitializer();
         if (init != null) {
-          count += init.accept(new DefaultCInitializerVisitor<Integer, RuntimeException>() {
-            @Override
-            public Integer combineMultiple(Integer pLeft, Integer pRight) {
-              if (pLeft == null) {
-                if (pRight == null) {
-                  return 0;
-                }
-                return pRight;
-              }
-              if (pRight == null) {
-                return pLeft;
-              }
-              return pLeft + pRight;
-            }
-
-            @Override
-            protected Integer visitDefault(CExpression pExp) {
-              return counter.count(pExp);
-            }
-          });
+            count += countExpressions(init, counter);
         }
       }
       break;
@@ -201,48 +125,12 @@ public class SimpleIntProviderFactory {
       }
 
       break;
-    case StatementEdge:
-      CStatementEdge stmtEdge = (CStatementEdge) pEdge;
+      case StatementEdge:
+        CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
-      CStatement stmt = stmtEdge.getStatement();
-      count += stmt.accept(new CStatementVisitor<Integer, RuntimeException>() {
-        @Override
-        public Integer visit(CExpressionStatement pStmt) {
-          return countExpressions(pStmt.getExpression(), counter);
-        }
-
-        @Override
-        public Integer visit(CExpressionAssignmentStatement assignment) {
-          int count = 0;
-          count += countExpressions(assignment.getLeftHandSide(), counter);
-          count += countExpressions(assignment.getRightHandSide(), counter);
-          return count;
-        }
-
-        @Override
-        public Integer visit(CFunctionCallAssignmentStatement pStmt)
-            {
-          int count = 0;
-          CFunctionCallExpression exp = pStmt.getFunctionCallExpression();
-          count += countExpressions(exp.getFunctionNameExpression(), counter);
-          for (CExpression expresion : exp.getParameterExpressions()) {
-            count += countExpressions(expresion, counter);
-          }
-          count += countExpressions(pStmt.getLeftHandSide(), counter);
-          return count;
-        }
-
-        @Override
-        public Integer visit(CFunctionCallStatement pStmt) {
-          int count = 0;
-          CFunctionCallExpression exp = pStmt.getFunctionCallExpression();
-          count += countExpressions(exp.getFunctionNameExpression(), counter);
-          for (CExpression expresion : exp.getParameterExpressions()) {
-            count += countExpressions(expresion, counter);
-          }
-          return count;
-        }});
-      break;
+        CStatement stmt = stmtEdge.getStatement();
+        count += countExpressions(stmt, counter);
+        break;
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
@@ -360,32 +248,14 @@ public class SimpleIntProviderFactory {
     case FunctionCallEdge:
       count += 1;
       break;
-    case StatementEdge:
-      CStatementEdge stmtEdge = (CStatementEdge) pEdge;
+      case StatementEdge:
+        CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
-      CStatement stmt = stmtEdge.getStatement();
-      count += stmt.accept(new CStatementVisitor<Integer, RuntimeException>() {
-        @Override
-        public Integer visit(CExpressionStatement pStmt) {
-          return 0;
+        CStatement stmt = stmtEdge.getStatement();
+        if (stmt instanceof CFunctionCall) {
+          count++;
         }
-
-        @Override
-        public Integer visit(CExpressionAssignmentStatement assignment) {
-          return 0;
-        }
-
-        @Override
-        public Integer visit(CFunctionCallAssignmentStatement pStmt)
-            {
-          return 1;
-        }
-
-        @Override
-        public Integer visit(CFunctionCallStatement pStmt) {
-          return 1;
-        }});
-      break;
+        break;
 
     default:
       // no function calls
