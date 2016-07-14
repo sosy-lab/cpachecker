@@ -79,6 +79,11 @@ public class GlobalInfo {
     return Optional.fromNullable(cpa);
   }
 
+  public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa, PresenceConditionManager pPcManager) {
+    setUpInfoFromCPA(pCpa);
+    pcManager = pPcManager;
+  }
+
   public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
     cpa = pCpa;
     absManager = null;
@@ -104,15 +109,10 @@ public class GlobalInfo {
         } else if (c instanceof AssumptionStorageCPA) {
           Preconditions.checkState(assumptionFormulaManagerView == null);
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
-        } else if (c instanceof BDDCPA) {
-          pcManager = new RegionPresenceConditionManager(((BDDCPA) c).getManager());
         }
       }
     }
 
-    if (pcManager == null) {
-      pcManager = new BinaryPresenceConditionManager();
-    }
   }
 
   public AutomatonInfo getAutomatonInfo() {
