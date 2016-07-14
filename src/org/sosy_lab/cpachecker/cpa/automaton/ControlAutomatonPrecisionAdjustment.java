@@ -179,7 +179,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
       final Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
-      final PresenceCondition targetRegion = PresenceConditions.extractPresenceCondition(pFullState);
+      final PresenceCondition targetRegion = PresenceConditions.manager().makeTrue(); // FIXME: Make it variability aware!
 
       if (areBlacklisted(pi, violated, targetRegion)) { // FIXME: Make it variability aware!
         return Optional.of(PrecisionAdjustmentResult.create(
