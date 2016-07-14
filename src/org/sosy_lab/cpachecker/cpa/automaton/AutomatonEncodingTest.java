@@ -142,7 +142,7 @@ public class AutomatonEncodingTest {
     Map<String, String> prop = ImmutableMap.of(
         "specification",                    pSpecFile,
         "cpa.predicate.ignoreIrrelevantVariables", "true",
-        "cfa.useMultiEdges",                "FALSE",
+        "cpa.composite.aggregateBasicBlocks", "false",
         "automata.properties.granularity",  "BASENAME",
         "analysis.checkCounterexamples", "FALSE"
       );
