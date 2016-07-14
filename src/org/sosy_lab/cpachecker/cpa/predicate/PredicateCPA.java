@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
@@ -108,6 +109,9 @@ ProofChecker, AutoCloseable, AnalysisCache {
   @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
 
+  @Option(secure=true, description="Identified required precision elements during the analysis.")
+  private boolean eagerPrecisionMinining = false;
+
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
@@ -118,7 +122,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
   private final MergeOperator merge;
-  private final PredicatePrecisionAdjustment prec;
+  private final PrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
@@ -132,7 +136,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
   private final PrefixProvider prefixProvider;
   private final InvariantsManager invariantsManager;
   private final BlockOperator blk;
-
+  private final RegionManager regionManager;
 
   private class ShutdownNotifierSupplier implements Supplier<ShutdownNotifier> {
     @Override
@@ -170,7 +174,6 @@ ProofChecker, AutoCloseable, AnalysisCache {
     }
     pathFormulaManager = pfMgr;
 
-    RegionManager regionManager;
     if (abstractionType.equals("FORMULA") || blk.alwaysReturnsFalse()) {
       // No need to load BDD library if we never abstract (might use lots of memory)
       regionManager = new SymbolicRegionManager(solver);
@@ -226,7 +229,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
         ? invariantsManager.asAsyncInvariantsSupplier()
         : (InvariantSupplier) TrivialInvariantSupplier.INSTANCE;
 
-    prec = new PredicatePrecisionAdjustment(
+    PredicatePrecisionAdjustment predPrec = new PredicatePrecisionAdjustment(
             logger,
             config,
             formulaManager,
@@ -235,6 +238,13 @@ ProofChecker, AutoCloseable, AnalysisCache {
             predicateManager,
             invSupply,
             predicateProvider);
+
+    if (eagerPrecisionMinining) {
+      PrecisionAdjustment miningPrec = new PrecisionMiningPrecisionAdjustment(logger, config, pfMgr, predicateManager);
+      prec = WrappingPrecisionAdjustment.wrap(predPrec, miningPrec);
+    } else {
+      prec = predPrec;
+    }
 
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);
@@ -258,7 +268,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
             domain,
             merge,
             transfer,
-            prec);
+            predPrec);
   }
 
   @Override
@@ -303,6 +313,10 @@ ProofChecker, AutoCloseable, AnalysisCache {
 
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
+  }
+
+  public RegionManager getRegionManager() {
+    return regionManager;
   }
 
   public PrefixProvider getPrefixProvider() {
