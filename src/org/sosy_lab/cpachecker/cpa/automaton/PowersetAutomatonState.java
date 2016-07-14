@@ -81,7 +81,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   private static final long serialVersionUID = -8033111447137153782L;
   private final Set<AutomatonState> states;
 
-  public PowersetAutomatonState(Collection<AutomatonState> elements) {
+  public PowersetAutomatonState(Set<AutomatonState> elements) {
     Preconditions.checkNotNull(elements);
     this.states = ImmutableSet.copyOf(elements);
   }
@@ -116,8 +116,8 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append('{');
-    if (states.size() > 10) {
-      builder.append(String.format("%d different automata states!", states.size()));
+    if (states.size() > 0) {
+      builder.append(String.format("%d automata states!", states.size()));
     } else {
       for (AbstractState element : states) {
         builder.append(element.toString());
