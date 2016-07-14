@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Preconditions;
 
@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 
-public class SourceLocationMapper {
+class SourceLocationMatcher {
 
   public static interface LocationDescriptor {
 
