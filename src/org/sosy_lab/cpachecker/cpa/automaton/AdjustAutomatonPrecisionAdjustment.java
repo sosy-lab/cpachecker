@@ -57,6 +57,9 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
   @Option(secure = true, description = "Adjust the automaton transitions")
   private boolean adjustAutomatonTransitions = true;
 
+  @Option(secure = true, name="adjustment.variabilityAware", description = "Adjust the automaton transitions")
+  private boolean variabilityAware = false;
+
   AdjustAutomatonPrecisionAdjustment(
       final PrecisionAdjustment pWrappedPrecisionOp, final Configuration pConfig)
       throws InvalidConfigurationException {
@@ -74,7 +77,13 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final Automaton a = state.getOwningAutomaton();
 
-    final PresenceCondition pc = PresenceConditions.extractPresenceCondition(pFullState);
+    final PresenceCondition pc;
+    if (variabilityAware) {
+      pc = PresenceConditions.extractPresenceCondition(pFullState);
+    } else {
+      pc = PresenceConditions.manager().makeTrue();
+    }
+
     final Pair<AutomatonInternalState, PresenceCondition> cacheKey = Pair.of(state.getInternalState(), pc);
 
     List<AutomatonTransition> relevantTransitions;
