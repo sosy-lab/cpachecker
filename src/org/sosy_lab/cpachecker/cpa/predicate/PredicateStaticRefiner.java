@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -71,7 +70,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -278,16 +276,12 @@ public class PredicateStaticRefiner extends StaticRefiner
     if (!cfa.getLoopStructure().isPresent()) {
       return false;
     }
-    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
-    LoopStructure loopStructure = cfa.getLoopStructure().get();
+    Set<String> referenced =
+        CFAUtils.getVariableNamesOfExpression((CExpression) e.getExpression()).toSet();
+    Set<String> loopExitConditionVariables =
+        cfa.getLoopStructure().get().getLoopExitConditionVariables();
 
-    for (String var: referenced) {
-      if (loopStructure.getLoopExitConditionVariables().contains(var)) {
-        return true;
-      }
-    }
-
-    return false;
+    return !Collections.disjoint(referenced, loopExitConditionVariables);
   }
 
   private Multimap<String, AStatementEdge> buildDirectlyAffectingStatements() {
@@ -347,7 +341,8 @@ public class PredicateStaticRefiner extends StaticRefiner
   private boolean hasContradictingOperationInFlow(
       AssumeEdge e, Multimap<String, AStatementEdge> directlyAffectingStatements)
       throws SolverException, CPATransferException, InterruptedException {
-    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
+    Set<String> referenced =
+        CFAUtils.getVariableNamesOfExpression((CExpression) e.getExpression()).toSet();
     for (String varName: referenced) {
       Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
       for (AStatementEdge stmtEdge: affectedByStmts) {
@@ -463,7 +458,8 @@ public class PredicateStaticRefiner extends StaticRefiner
       // Check whether the predicate should be used global or only local
       boolean applyGlobal = true;
       if (applyScoped) {
-        for (CIdExpression idExpr : getVariablesOfAssume(assume)) {
+        for (CIdExpression idExpr :
+            CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
           CSimpleDeclaration decl = idExpr.getDeclaration();
           if (decl instanceof CVariableDeclaration) {
             if (!((CVariableDeclaration) decl).isGlobal()) {

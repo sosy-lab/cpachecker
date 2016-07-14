@@ -35,8 +35,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -49,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -372,7 +371,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future
-      if(assumptionContainsProblemType(assumption)) {
+      if (CFAUtils.getIdExpressionsOfExpression(assumption)
+          .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
         continue;
       }
       pathFormulaTimer.start();
@@ -516,15 +516,5 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return result;
-  }
-
-  private boolean assumptionContainsProblemType(CExpression expression) {
-    for (CIdExpression var :
-        CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(expression)) {
-      if (var.getExpressionType() instanceof CProblemType) {
-        return true;
-      }
-    }
-    return false;
   }
 }

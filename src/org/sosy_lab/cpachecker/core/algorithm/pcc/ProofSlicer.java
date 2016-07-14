@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import static com.google.common.collect.Iterables.addAll;
+
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -185,7 +186,7 @@ public class ProofSlicer {
             if (succVars.contains(varNameAssigned)) {
               for (CExpression expr : ((CFunctionCallAssignmentStatement) stm).getRightHandSide()
                   .getParameterExpressions()) {
-                updatedVars.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(expr));
+                addAll(updatedVars, CFAUtils.getVariableNamesOfExpression(expr));
               }
             }
           } else { // CExpressionAssignmentStatement
@@ -193,9 +194,10 @@ public class ProofSlicer {
                 VarNameRetriever.getVarName(((CExpressionAssignmentStatement) stm)
                     .getLeftHandSide());
             if (succVars.contains(varNameAssigned)) {
-              updatedVars.addAll(CIdExpressionCollectorVisitor
-                  .getVariablesOfExpression(((CExpressionAssignmentStatement) stm)
-                      .getRightHandSide()));
+              addAll(
+                  updatedVars,
+                  CFAUtils.getVariableNamesOfExpression(
+                      ((CExpressionAssignmentStatement) stm).getRightHandSide()));
             }
           }
           if (succVars.contains(varNameAssigned)) {
@@ -237,8 +239,8 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
 
           if (retStm.getExpression().isPresent()) {
-            updatedVars.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(retStm
-                .getExpression().get()));
+            addAll(
+                updatedVars, CFAUtils.getVariableNamesOfExpression(retStm.getExpression().get()));
           }
         } else {
           updatedVars.addAll(succVars);
@@ -255,7 +257,7 @@ public class ProofSlicer {
         for (int i = 0; i < paramDecl.size(); i++) {
           paramName = paramDecl.get(i).getQualifiedName();
           if (succVars.contains(paramName)) {
-            updatedVars.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(args.get(i)));
+            addAll(updatedVars, CFAUtils.getVariableNamesOfExpression(args.get(i)));
             paramNames.add(paramName);
           }
         }
@@ -285,8 +287,8 @@ public class ProofSlicer {
         assert (false);
         return;
       case AssumeEdge:
-        Set<String> assumeVars = CIdExpressionCollectorVisitor.
-            getVariablesOfExpression(((CAssumeEdge) edge).getExpression());
+        Set<String> assumeVars =
+            CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression()).toSet();
         for (String var : assumeVars) {
           if (succVars.contains(var)) {
             updatedVars.addAll(assumeVars);
@@ -307,8 +309,9 @@ public class ProofSlicer {
     if (pInitializer instanceof CDesignatedInitializer) {
       throw new AssertionError("CDesignatedInitializer unsupported in slicing"); // currently not supported
     } else if (pInitializer instanceof CInitializerExpression) {
-      return CIdExpressionCollectorVisitor
-          .getVariablesOfExpression(((CInitializerExpression) pInitializer).getExpression());
+      return CFAUtils.getVariableNamesOfExpression(
+              ((CInitializerExpression) pInitializer).getExpression())
+          .toSet();
     } else { // CInitializerList
       Collection<String> result = new HashSet<>();
 
@@ -372,8 +375,7 @@ public class ProofSlicer {
           }
         }
         // assume edge not present
-        return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CAssumeEdge) edge)
-            .getExpression());
+        return CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression()).toSet();
       }
     }
 

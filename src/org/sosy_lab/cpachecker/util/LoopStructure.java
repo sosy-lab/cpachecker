@@ -46,9 +46,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -348,17 +346,13 @@ public final class LoopStructure {
   }
 
   private ImmutableSet<String> collectLoopCondVars() {
-    ImmutableSet.Builder<String> result = ImmutableSet.builder();
-    for (Loop l : loops.values()) {
-      // Get all variables that are used in exit-conditions
-      for (CFAEdge e : l.getOutgoingEdges()) {
-        if (e instanceof CAssumeEdge) {
-          CExpression expr = ((CAssumeEdge) e).getExpression();
-          result.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(expr));
-        }
-      }
-    }
-    return result.build();
+    // Get all variables that are used in exit-conditions
+    return from(loops.values())
+        .transform(Loop::getOutgoingEdges)
+        .filter(CAssumeEdge.class)
+        .transform(CAssumeEdge::getExpression)
+        .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
+        .toSet();
   }
 
   /**

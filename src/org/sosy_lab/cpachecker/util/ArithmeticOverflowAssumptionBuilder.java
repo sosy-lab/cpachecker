@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -70,7 +70,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 /**
  * Generate assumptions related to over/underflow
@@ -199,10 +198,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
-          CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(exp)
-              .stream()
-              .map(s -> s.getDeclaration())
-              .collect(Collectors.toSet());
+          CFAUtils.getIdExpressionsOfExpression(exp)
+              .transform(CIdExpression::getDeclaration)
+              .toSet();
 
       Set<ASimpleDeclaration> liveVars =
           cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet();

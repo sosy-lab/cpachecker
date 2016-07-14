@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -594,7 +593,7 @@ public class ARGPathExporter {
             if (functionValidAssignment instanceof CExpressionStatement) {
               CExpression expression = (CExpression) functionValidAssignment.getExpression();
               for (CIdExpression idExpression :
-                  CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(expression)) {
+                  CFAUtils.getIdExpressionsOfExpression(expression).toSet()) {
                 final CSimpleDeclaration declaration = idExpression.getDeclaration();
                 final String qualified = declaration.getQualifiedName();
                 if (declaration.getName().contains("static")
@@ -620,10 +619,9 @@ public class ARGPathExporter {
                   cfaEdgeWithAssignments.getExpStmts(),
                   statement ->
                       statement.getExpression() instanceof CExpression
-                          && !Iterables.any(
-                              CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(
-                                  (CExpression) statement.getExpression()),
-                              isTmpVariable));
+                          && !CFAUtils.getIdExpressionsOfExpression(
+                                  (CExpression) statement.getExpression())
+                              .anyMatch(isTmpVariable));
 
           if (!assignments.isEmpty()) {
             code.add(

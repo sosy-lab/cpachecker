@@ -433,6 +433,23 @@ public class CFAUtils {
   }
 
   /**
+   * Return all variable names that are referenced in an expression,
+   * in pre-order and possibly with duplicates.
+   */
+  public static FluentIterable<String> getVariableNamesOfExpression(CExpression expr) {
+    return getIdExpressionsOfExpression(expr)
+        .transform(id -> id.getDeclaration().getQualifiedName());
+  }
+
+  /**
+   * Return all {@link CIdExpression}s that appear in an expression,
+   * in pre-order and possibly with duplicates.
+   */
+  public static FluentIterable<CIdExpression> getIdExpressionsOfExpression(CExpression expr) {
+    return traverseRecursively(expr).filter(CIdExpression.class);
+  }
+
+  /**
    * Get an iterable that recursively lists all AST nodes that occur in an AST
    * (in pre-order).
    */

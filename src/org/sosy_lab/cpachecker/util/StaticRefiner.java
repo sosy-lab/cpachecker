@@ -31,9 +31,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -62,15 +59,6 @@ abstract public class StaticRefiner {
     this.logger = pLogger;
 
     pConfig.inject(this, StaticRefiner.class);
-  }
-
-  protected Set<CIdExpression> getVariablesOfAssume(AssumeEdge pAssume) {
-    if (pAssume.getExpression() instanceof CExpression) {
-      CExpression ce = (CExpression) pAssume.getExpression();
-      return CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(ce);
-    } else {
-      throw new RuntimeException("Only C programming language supported!");
-    }
   }
 
   /**

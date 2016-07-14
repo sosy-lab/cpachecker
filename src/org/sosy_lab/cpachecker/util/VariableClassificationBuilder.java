@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -392,10 +391,10 @@ public class VariableClassificationBuilder {
 
     for (CFANode node : nodes) {
       for (CAssumeEdge edge : Iterables.filter(leavingEdges(node), CAssumeEdge.class)) {
-        for (CIdExpression identifier :
-            CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(edge.getExpression())) {
-          assumeVariables.add(identifier.getDeclaration().getQualifiedName());
-        }
+        assumeVariables.addAll(
+            CFAUtils.getIdExpressionsOfExpression(edge.getExpression())
+                .transform(id -> id.getDeclaration().getQualifiedName())
+                .toSet());
       }
     }
 
@@ -418,11 +417,10 @@ public class VariableClassificationBuilder {
           }
 
           CAssignment assignment = (CAssignment) edge.getStatement();
-          for (CIdExpression id :
-              CIdExpressionCollectorVisitor.getIdExpressionsOfExpression(
-                  assignment.getLeftHandSide())) {
-            assignedVariables.add(id.getDeclaration().getQualifiedName());
-          }
+          assignedVariables.addAll(
+              CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
+                  .transform(id -> id.getDeclaration().getQualifiedName())
+                  .toSet());
         }
       }
     }
