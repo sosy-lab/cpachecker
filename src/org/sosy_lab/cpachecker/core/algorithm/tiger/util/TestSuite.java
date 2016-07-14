@@ -117,7 +117,7 @@ public class TestSuite extends AlgorithmResult {
   public void addGoals(Collection<Goal> pGoals) {
     if (isVariabilityAware()) {
       for (Goal goal : pGoals) {
-        remainingPresenceConditions.put(goal, pcm().makeTrue());
+        remainingPresenceConditions.remove(goal); // null equals 'true'
       }
     }
 
@@ -285,7 +285,7 @@ public class TestSuite extends AlgorithmResult {
 
   public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed) {
     for (Goal goal : pTestGoalsToBeProcessed) {
-      addTimedOutGoal(goal, remainingPresenceConditions.get(goal));
+      addTimedOutGoal(goal, getRemainingPresenceCondition(goal));
     }
   }
 
@@ -361,7 +361,7 @@ public class TestSuite extends AlgorithmResult {
 
   public boolean isGoalCovered(Goal pGoal) {
     if (isVariabilityAware()) {
-      return pcm().checkEqualsFalse(remainingPresenceConditions.get(pGoal));
+      return pcm().checkEqualsFalse(getRemainingPresenceCondition(pGoal));
     } else {
       List<TestCase> testCases = coveringTestCases.get(pGoal);
       return (testCases != null && testCases.size() > 0);
