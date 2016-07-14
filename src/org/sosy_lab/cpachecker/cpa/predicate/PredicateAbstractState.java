@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -34,6 +35,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
@@ -43,6 +45,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceCondition;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.Serializable;
@@ -50,7 +54,8 @@ import java.io.Serializable;
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractState implements AbstractState, Partitionable, Serializable {
+public abstract class PredicateAbstractState
+    implements AbstractState, Partitionable, Serializable, AbstractStateWithPresenceCondition {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -266,5 +271,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
     return new NonAbstractionState(pathFormula, abstractionFormula,
         PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+  }
+
+  @Override
+  public Optional<PresenceCondition> getPresenceCondition() {
+    return Optional.<PresenceCondition>of(new RegionPresenceCondition(abstractionFormula.asRegion()));
   }
 }
