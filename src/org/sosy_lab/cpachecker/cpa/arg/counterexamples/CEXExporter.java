@@ -41,6 +41,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -136,24 +137,25 @@ public class CEXExporter {
 
   /**
    * Export an Error Trace in different formats, for example as C-file, dot-file or automaton.
-   *
-   * @param pTargetState state of an ARG, used as fallback, if pCounterexampleInfo contains no targetPath.
+   *  @param pTargetState state of an ARG, used as fallback, if pCounterexampleInfo contains no targetPath.
    * @param pCounterexampleInfo contains further information and the (optional) targetPath.
    *                            If the targetPath is available, it will be used for the output.
-   *                            Otherwise we use backwards reachable states from pTargetState.
+   * @param pReached
    */
-  public void exportCounterexample(final ARGState pTargetState,
-      final CounterexampleInfo pCounterexampleInfo) {
+  public void exportCounterexample(
+      final ARGState pTargetState,
+      final CounterexampleInfo pCounterexampleInfo, ReachedSet pReached) {
     checkNotNull(pTargetState);
     checkNotNull(pCounterexampleInfo);
 
     if (exportErrorPath) {
-      exportCounterexample0(pTargetState, pCounterexampleInfo);
+      exportCounterexample0(pTargetState, pCounterexampleInfo, pReached);
     }
   }
 
-  private void exportCounterexample0(final ARGState lastState,
-                                    final CounterexampleInfo counterexample) {
+  private void exportCounterexample0(
+      final ARGState lastState,
+      final CounterexampleInfo counterexample, ReachedSet pReached) {
 
     final ARGPath targetPath = counterexample.getTargetPath();
     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
@@ -224,7 +226,7 @@ public class CEXExporter {
               ARGToDotWriter.write(
                   pAppendable,
                   rootState,
-                  ARGState::getChildren,
+                  pReached::getPrecision, ARGState::getChildren,
                   Predicates.in(pathElements),
                   isTargetPathEdge);
             });

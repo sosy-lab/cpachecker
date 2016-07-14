@@ -188,11 +188,12 @@ class BAMCPAStatistics implements Statistics {
 
         // dump small graph
         writeArg(indexedFile.getPath(((ARGState) reachedSet.getFirstState()).getStateId()),
-                localConnections, Collections.singleton((ARGState) reachedSet.getFirstState()));
+                localConnections, Collections.singleton((ARGState) reachedSet.getFirstState()),
+            mainReachedSet);
       }
 
       // dump super-graph
-      writeArg(superArgFile, connections, rootStates);
+      writeArg(superArgFile, connections, rootStates, mainReachedSet);
     }
   }
 
@@ -203,17 +204,19 @@ class BAMCPAStatistics implements Statistics {
 
       final Multimap<ARGState, ARGState> connections = HashMultimap.create();
       final Set<ARGState> rootStates = getUsedRootStates(mainReachedSet, connections);
-      writeArg(superArgFile, connections, rootStates);
+      writeArg(superArgFile, connections, rootStates, mainReachedSet);
     }
   }
 
-  private void writeArg(final Path file,
-                        final Multimap<ARGState, ARGState> connections,
-                        final Set<ARGState> rootStates) {
+  private void writeArg(
+      final Path file,
+      final Multimap<ARGState, ARGState> connections,
+      final Set<ARGState> rootStates, UnmodifiableReachedSet pMainReachedSet) {
     try (Writer w = MoreFiles.openOutputFile(file, Charset.defaultCharset())) {
       ARGToDotWriter.write(
           w,
           rootStates,
+          pMainReachedSet::getPrecision,
           connections,
           ARGState::getChildren,
           Predicates.alwaysTrue(),

@@ -144,7 +144,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample);
+      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, pReached);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

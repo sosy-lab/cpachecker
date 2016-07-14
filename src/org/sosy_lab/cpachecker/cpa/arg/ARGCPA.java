@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.ConjunctiveCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
@@ -297,11 +298,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
   }
 
-  void exportCounterexampleOnTheFly(ARGState pTargetState,
-    CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
+  void exportCounterexampleOnTheFly(
+      ARGState pTargetState,
+      CounterexampleInfo pCounterexampleInfo, ReachedSet pReached) throws InterruptedException {
     if (dumpErrorPathImmediately) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo);
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, pReached);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }

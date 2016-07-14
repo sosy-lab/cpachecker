@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -35,25 +34,22 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ARGToDotWriter {
 
@@ -71,12 +67,15 @@ public class ARGToDotWriter {
    * Create String with ARG in the DOT format of Graphviz.
    * @param sb Where to write the ARG into.
    * @param rootState the root element of the ARG
+   * @param pPrecision
    * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
    * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
    * @param highlightEdge Which edges to highlight in the graph?
    */
-  public static void write(Appendable sb,
+  public static void write(
+      Appendable sb,
       final ARGState rootState,
+      Function<ARGState, Precision> pPrecisionFunction,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> displayedElements,
       final Predicate<? super Pair<ARGState, ARGState>> highlightEdge)
@@ -84,6 +83,7 @@ public class ARGToDotWriter {
 
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     toDotWriter.writeSubgraph(rootState,
+        pPrecisionFunction,
         successorFunction,
         displayedElements,
         highlightEdge);
@@ -101,6 +101,7 @@ public class ARGToDotWriter {
    */
   public static void write(final Appendable sb,
       final Set<ARGState> rootStates,
+      final Function<ARGState, Precision> precisionFunction,
       final Multimap<ARGState, ARGState> connections,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> displayedElements,
@@ -111,7 +112,7 @@ public class ARGToDotWriter {
     for (ARGState rootState : rootStates) {
       toDotWriter.enterSubgraph("cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
       toDotWriter.writeSubgraph(rootState,
-              successorFunction,
+          precisionFunction, successorFunction,
               displayedElements,
               highlightEdge);
       toDotWriter.leaveSubgraph();
@@ -129,11 +130,14 @@ public class ARGToDotWriter {
    * Create String with ARG in the DOT format of Graphviz.
    * Only the states and edges are written, no surrounding graph definition.
    * @param rootState the root element of the ARG
+   * @param pPrecisionFunction
    * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
    * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
    * @param highlightEdge Which edges to highlight in the graph?
    */
-  void writeSubgraph(final ARGState rootState,
+  void writeSubgraph(
+      final ARGState rootState,
+      final Function<ARGState, Precision> precisionFunction,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> displayedElements,
       final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
@@ -146,6 +150,12 @@ public class ARGToDotWriter {
 
     while (!worklist.isEmpty()) {
       ARGState currentElement = worklist.removeLast();
+      Precision pi = null;
+      try {
+        pi = precisionFunction.apply(currentElement);
+      } catch (Exception e) {
+      }
+
       if (!displayedElements.apply(currentElement)) {
         continue;
       }
@@ -154,7 +164,7 @@ public class ARGToDotWriter {
       }
 
       sb.append(determineNode(currentElement));
-      sb.append(determineStateHint(currentElement));
+      sb.append(determineStateHint(currentElement, pi));
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getStateId());
@@ -264,20 +274,32 @@ public class ARGToDotWriter {
     return rawString;
   }
 
-  private static String determineStateHint(final ARGState currentElement) {
+  private static String determineStateHint(final ARGState currentElement, Precision pPi) {
 
     final String stateNodeId = Integer.toString(currentElement.getStateId());
     final String hintNodeId = stateNodeId + "hint";
 
     final StringBuilder labelBuilder = new StringBuilder();
 
-//    Collection<PredicateAbstractState> abstraction = AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class);
-//    for (PredicateAbstractState e: abstraction) {
-//      final String formual = GlobalInfo
-//          .getInstance().getPredicateFormulaManagerView().simplify(e.getAbstractionFormula().asFormula())
-//          .toString();
-//      labelBuilder.append(formual + "\n");
-//    }
+    {
+      Collection<BDDState> abstraction =
+          AbstractStates.extractStatesByType(currentElement, BDDState.class);
+      for (BDDState e : abstraction) {
+        Appender formual = GlobalInfo
+            .getInstance().getPresenceConditionManager().dump(e.getPresenceCondition().get());
+        labelBuilder.append("BDD: " + formual + "\n");
+      }
+    }
+
+    for (PredicateAbstractState e : AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class)) {
+      final String formual = GlobalInfo
+          .getInstance().getPredicateFormulaManagerView()
+          .simplify(e.getAbstractionFormula().asFormula())
+          .toString();
+      labelBuilder.append("PA: " + formual + "\n");
+    }
+
+    labelBuilder.append("PI: " + pPi + "\n");
 
     Collection<AutomatonState> automatonStates = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
     for (AutomatonState q: automatonStates) {
@@ -338,6 +360,8 @@ public class ARGToDotWriter {
       for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
         builder.append(" @ ");
         builder.append(loc.toString());
+        builder.append(" r ");
+        builder.append(loc.getReversePostorderId());
         if (loc instanceof ShadowCFANode) {
           builder.append(" ~ weaved ");
         }

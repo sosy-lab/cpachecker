@@ -301,6 +301,7 @@ public class ARGReachedSet {
                                     "Refinement " + refinementNumber);
 
       refinementGraph.writeSubgraph(e,
+          mUnmodifiableReached::getPrecision,
           Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
           Predicates.alwaysTrue(),
           Predicates.alwaysFalse());

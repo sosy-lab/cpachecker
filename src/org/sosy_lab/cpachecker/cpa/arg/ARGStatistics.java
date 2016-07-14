@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -44,7 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
@@ -98,6 +99,11 @@ public class ARGStatistics implements IterationStatistics {
       + " The .graphml file will be in die GraphML dialect of the tool \"yEd\".")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path graphMLFile = Paths.get("ARG.graphml");
+
+  @Option(secure=true, name="reached.file",
+      description="export final ARG as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path reachedFile = Paths.get("reached-arg.txt");
 
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
@@ -205,7 +211,7 @@ public class ARGStatistics implements IterationStatistics {
 
     if (cexExporter != null) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
-        cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
+        cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), pReached);
       }
     }
 
@@ -241,7 +247,8 @@ public class ARGStatistics implements IterationStatistics {
     String extension = path.substring(sepIx, path.length());
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
-  private void exportARG(UnmodifiableReachedSet pReached,
+
+  private void exportARG(final UnmodifiableReachedSet pReached,
                          final Map<ARGState, CounterexampleInfo> counterexamples) {
     final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
     for (CounterexampleInfo cex : counterexamples.values()) {
@@ -258,14 +265,31 @@ public class ARGStatistics implements IterationStatistics {
                                      : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState: rootStates) {
-      exportARG0(rootState, Predicates.in(allTargetPathEdges));
+      exportARG0(rootState, pReached::getPrecision, Predicates.in(allTargetPathEdges));
+    }
+
+    if (reachedFile != null) {
+      if (pReached.size() > 10) {
+        try (Writer w = MoreFiles.openOutputFile(reachedFile, Charset.defaultCharset())) {
+
+          Joiner.on('\n').appendTo(w, pReached);
+
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+        } catch (OutOfMemoryError e) {
+          logger.logUserException(Level.WARNING, e,
+              "Could not write reached set to file due to memory problems");
+        }
+      }
     }
   }
 
 
-  private void exportARG0(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+  private void exportARG0(final ARGState rootState, final Function<ARGState, Precision>
+      pPrecisionFunction, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (proofWitness != null) {
@@ -285,7 +309,7 @@ public class ARGStatistics implements IterationStatistics {
                MoreFiles.openOutputFile(
                    adjustPathNameForPartitioning(rootState, argFile), Charset.defaultCharset())) {
         ARGToDotWriter.write(
-            w, rootState, ARGState::getChildren, Predicates.alwaysTrue(), isTargetPathEdge);
+            w, rootState, pPrecisionFunction, ARGState::getChildren, Predicates.alwaysTrue(), isTargetPathEdge);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
@@ -308,7 +332,7 @@ public class ARGStatistics implements IterationStatistics {
                    adjustPathNameForPartitioning(rootState, simplifiedArgFile),
                    Charset.defaultCharset())) {
         ARGToDotWriter.write(w, rootState,
-            relevantSuccessorFunction,
+            pPrecisionFunction, relevantSuccessorFunction,
             Predicates.alwaysTrue(),
             Predicates.alwaysFalse());
 
@@ -338,7 +362,7 @@ public class ARGStatistics implements IterationStatistics {
       try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
         // TODO: Support for partitioned state spaces
         refinementGraphWriter.writeSubgraph(rootState,
-            relevantSuccessorFunction,
+            pPrecisionFunction, relevantSuccessorFunction,
             Predicates.alwaysTrue(),
             Predicates.alwaysFalse());
         refinementGraphWriter.finish();
