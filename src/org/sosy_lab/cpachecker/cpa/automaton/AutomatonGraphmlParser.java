@@ -80,9 +80,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LocationDescriptor;
-import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetDescriptor;
-import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineDescriptor;
+import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMatcher;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -510,7 +509,8 @@ public class AutomatonGraphmlParser {
           }
           if (matchOriginLineNumber > 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.empty() : Optional.of(originFileTags.iterator().next());
-            LocationDescriptor originDescriptor = new OriginLineDescriptor(matchOriginFileName, matchOriginLineNumber);
+            OriginLineMatcher originDescriptor =
+                new OriginLineMatcher(matchOriginFileName, matchOriginLineNumber);
 
             AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
             conjunctedTriggers = and(conjunctedTriggers, startingLineMatchingExpr);
@@ -535,7 +535,7 @@ public class AutomatonGraphmlParser {
 
           if (offset >= 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.empty() : Optional.of(originFileTags.iterator().next());
-            LocationDescriptor originDescriptor = new OffsetDescriptor(matchOriginFileName, offset);
+            OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset);
 
             AutomatonBoolExpr offsetMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
             conjunctedTriggers = and(conjunctedTriggers, offsetMatchingExpr);

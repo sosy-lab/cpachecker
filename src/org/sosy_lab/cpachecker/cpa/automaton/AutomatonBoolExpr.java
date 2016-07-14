@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -40,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
-import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LocationDescriptor;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -508,9 +509,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static class MatchLocationDescriptor implements AutomatonBoolExpr {
 
-    private final LocationDescriptor matchDescriptor;
+    private final Predicate<FileLocation> matchDescriptor;
 
-    public MatchLocationDescriptor(LocationDescriptor pOriginDescriptor) {
+    public MatchLocationDescriptor(Predicate<FileLocation> pOriginDescriptor) {
       Preconditions.checkNotNull(pOriginDescriptor);
 
       this.matchDescriptor = pOriginDescriptor;
@@ -522,12 +523,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     protected boolean eval(CFAEdge edge) {
-      for (FileLocation l : CFAUtils.getFileLocationsFromCfaEdge(edge)) {
-        if (matchDescriptor.matches(l)) {
-          return true;
-        }
-      }
-      return false;
+      return Iterables.any(CFAUtils.getFileLocationsFromCfaEdge(edge), matchDescriptor);
     }
 
     @Override
