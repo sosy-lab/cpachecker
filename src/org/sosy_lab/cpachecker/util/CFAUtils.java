@@ -635,7 +635,9 @@ public class CFAUtils {
 
     @Override
     public Iterable<CAstNode> visit(CVariableDeclaration pNode) {
-      return ImmutableList.of(pNode.getInitializer());
+      return pNode.getInitializer() == null
+          ? ImmutableList.of()
+          : ImmutableList.of(pNode.getInitializer());
     }
 
     @Override
