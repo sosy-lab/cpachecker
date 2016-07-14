@@ -24,28 +24,11 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.FileLocationCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
-import java.util.Collections;
-import java.util.Deque;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 
 public class SourceLocationMapper {
@@ -206,83 +189,5 @@ public class SourceLocationMapper {
     public String toString() {
       return "OFFSET " + offset;
     }
-  }
-
-  private static Set<FileLocation> collectFileLocationsFrom(CAstNode astNode) {
-    final FileLocationCollectingVisitor visitor = new FileLocationCollectingVisitor();
-    return astNode.accept(visitor);
-  }
-
-  private static Set<CAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
-    final Set<CAstNode> result = Sets.newHashSet();
-    final Deque<CFAEdge> edges = Queues.newArrayDeque();
-
-    edges.add(pEdge);
-
-    while (!edges.isEmpty()) {
-      CFAEdge edge = edges.pop();
-
-      switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        result.add(((CAssumeEdge) edge).getExpression());
-      break;
-      case CallToReturnEdge:
-        CFunctionSummaryEdge fnSumEdge = (CFunctionSummaryEdge) edge;
-        result.add(fnSumEdge.getExpression());
-      break;
-      case DeclarationEdge:
-        result.add(((CDeclarationEdge) edge).getDeclaration());
-      break;
-      case FunctionCallEdge:
-        if (edge.getPredecessor().getLeavingSummaryEdge() != null) {
-          edges.add(edge.getPredecessor().getLeavingSummaryEdge());
-        }
-        result.addAll(((CFunctionCallEdge) edge).getArguments());
-      break ;
-      case FunctionReturnEdge:
-      break;
-      case ReturnStatementEdge:
-        CReturnStatementEdge retStmt = (CReturnStatementEdge) edge;
-        if (retStmt.getRawAST().isPresent()) {
-          result.add(retStmt.getRawAST().get());
-        }
-
-        if (retStmt.getExpression().isPresent()) {
-          result.add(retStmt.getExpression().get());
-        }
-      break;
-      case StatementEdge:
-        result.add(((CStatementEdge) edge).getStatement());
-      break;
-      case BlankEdge:
-        // do nothing
-        break;
-      default:
-        throw new AssertionError("Unhandled edge type in switch statement: " + edge.getEdgeType());
-      }
-    }
-
-    return result;
-  }
-
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
-    Set<FileLocation> result = Sets.newHashSet();
-
-    final Set<CAstNode> astNodes = getAstNodesFromCfaEdge(pEdge);
-    for (CAstNode n: astNodes) {
-      result.addAll(collectFileLocationsFrom(n));
-    }
-
-    result.add(pEdge.getFileLocation());
-
-    result = FluentIterable.from(result).filter(Predicates.not(Predicates.equalTo(FileLocation.DUMMY))).toSet();
-
-    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
-      if (!functionEntryNode.getFileLocation().equals(FileLocation.DUMMY)) {
-        return Collections.singleton(functionEntryNode.getFileLocation());
-      }
-    }
-    return result;
   }
 }

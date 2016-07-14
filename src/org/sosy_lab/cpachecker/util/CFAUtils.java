@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.TreeTraverser;
@@ -40,7 +42,9 @@ import com.google.common.collect.UnmodifiableIterator;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -77,12 +81,16 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -430,6 +438,46 @@ public class CFAUtils {
       }
     }
     return blankPaths;
+  }
+
+  /**
+   * Get all {@link FileLocation} objects that are attached to an edge or its AST nodes.
+   * The result has non-deterministic order.
+   */
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+    Set<FileLocation> result =
+        from(getAstNodesFromCfaEdge(pEdge))
+            .transformAndConcat(node -> traverseRecursively((CAstNode) node))
+            .transform(CAstNode::getFileLocation)
+            .copyInto(new HashSet<>());
+
+    result.add(pEdge.getFileLocation());
+    result.remove(FileLocation.DUMMY);
+
+    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
+      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
+      if (!functionEntryNode.getFileLocation().equals(FileLocation.DUMMY)) {
+        return Collections.singleton(functionEntryNode.getFileLocation());
+      }
+    }
+    return Collections.unmodifiableSet(result);
+  }
+
+  private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
+    switch (edge.getEdgeType()) {
+      case CallToReturnEdge:
+        FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
+        return ImmutableSet.of(fnSumEdge.getExpression());
+
+      case FunctionCallEdge:
+        FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
+        return Iterables.concat(
+            Optionals.asSet(edge.getRawAST()),
+            getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
+
+      default:
+        return Optionals.asSet(edge.getRawAST());
+    }
   }
 
   /**

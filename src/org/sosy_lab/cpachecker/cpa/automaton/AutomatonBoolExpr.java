@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
@@ -523,8 +522,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     protected boolean eval(CFAEdge edge) {
-      Set<FileLocation> fileLocs = SourceLocationMapper.getFileLocationsFromCfaEdge(edge);
-      for (FileLocation l: fileLocs) {
+      for (FileLocation l : CFAUtils.getFileLocationsFromCfaEdge(edge)) {
         if (matchDescriptor.matches(l)) {
           return true;
         }

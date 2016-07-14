@@ -102,7 +102,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathA
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
@@ -349,7 +348,7 @@ public class ARGPathExporter {
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
-        Set<FileLocation> fileLocations = SourceLocationMapper.getFileLocationsFromCfaEdge(e);
+        Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (fileLocations.size() > 0) {
           String fileName = fileLocations.iterator().next().getFileName();
           if (fileName != null) {
@@ -500,7 +499,7 @@ public class ARGPathExporter {
       }
 
       if (exportLineNumbers) {
-        Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(pEdge);
+        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
@@ -511,7 +510,7 @@ public class ARGPathExporter {
       }
 
       if (exportOffset) {
-        Set<FileLocation> locations = SourceLocationMapper.getFileLocationsFromCfaEdge(pEdge);
+        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
         if (locations.size() > 0) {
           FileLocation l = locations.iterator().next();
           if (!l.getFileName().equals(defaultSourcefileName)) {
