@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
-import static com.google.common.collect.Iterables.addAll;
-
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -186,7 +184,7 @@ public class ProofSlicer {
             if (succVars.contains(varNameAssigned)) {
               for (CExpression expr : ((CFunctionCallAssignmentStatement) stm).getRightHandSide()
                   .getParameterExpressions()) {
-                addAll(updatedVars, CFAUtils.getVariableNamesOfExpression(expr));
+                CFAUtils.getVariableNamesOfExpression(expr).copyInto(updatedVars);
               }
             }
           } else { // CExpressionAssignmentStatement
@@ -194,10 +192,9 @@ public class ProofSlicer {
                 VarNameRetriever.getVarName(((CExpressionAssignmentStatement) stm)
                     .getLeftHandSide());
             if (succVars.contains(varNameAssigned)) {
-              addAll(
-                  updatedVars,
-                  CFAUtils.getVariableNamesOfExpression(
-                      ((CExpressionAssignmentStatement) stm).getRightHandSide()));
+              CFAUtils.getVariableNamesOfExpression(
+                      ((CExpressionAssignmentStatement) stm).getRightHandSide())
+                  .copyInto(updatedVars);
             }
           }
           if (succVars.contains(varNameAssigned)) {
@@ -239,8 +236,8 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
 
           if (retStm.getExpression().isPresent()) {
-            addAll(
-                updatedVars, CFAUtils.getVariableNamesOfExpression(retStm.getExpression().get()));
+            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().get())
+                .copyInto(updatedVars);
           }
         } else {
           updatedVars.addAll(succVars);
@@ -257,7 +254,7 @@ public class ProofSlicer {
         for (int i = 0; i < paramDecl.size(); i++) {
           paramName = paramDecl.get(i).getQualifiedName();
           if (succVars.contains(paramName)) {
-            addAll(updatedVars, CFAUtils.getVariableNamesOfExpression(args.get(i)));
+            CFAUtils.getVariableNamesOfExpression(args.get(i)).copyInto(updatedVars);
             paramNames.add(paramName);
           }
         }
