@@ -32,6 +32,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.classpath.icedtea.Config;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -109,18 +110,22 @@ import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
+import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
@@ -155,6 +160,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.management.JMException;
+import javax.management.RuntimeErrorException;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm
@@ -601,6 +607,7 @@ public class TigerAlgorithm
   private boolean testGeneration(Set<Goal> pGoalsToCover,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
           throws CPAException, InterruptedException, InvalidConfigurationException {
+
     try (StatCpuTimer t = tigerStats.testGenerationTime.start()) {
       boolean wasSound = true;
       int numberOfTestGoals = pGoalsToCover.size();
@@ -850,16 +857,16 @@ public class TigerAlgorithm
 
             try (Writer w = MoreFiles.openOutputFile(argFile, Charset.defaultCharset())) {
               ARGToDotWriter.write(w, (ARGState) reachedSet.getFirstState(),
-                  ARGState::getChildren,
+                  reachedSet::getPrecision, ARGState::getChildren,
                   Predicates.alwaysTrue(),
                   Predicates.in(allTargetPathEdges));
             } catch (IOException e) {
               logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
             }
 
-            throw new RuntimeException(
-                "Each ARG path of a counterexample must be along a critical edge! None for edge "
-                    + goal.getCriticalEdge());
+            throw new RuntimeException(String.format(
+                "Each ARG path of a counterexample must be along a critical edge! Goal %d has "
+                    + "none for edge '%s'", goal.getIndex(), goal.getCriticalEdge().toString()));
           }
 
           Preconditions.checkState(criticalState != null,
@@ -1034,6 +1041,21 @@ public class TigerAlgorithm
     TIMEOUT
   }
 
+  private PresenceConditionManager createPresenceConditionManager (ConfigurableProgramAnalysis pCpa) {
+    if (useTigerAlgorithm_with_pc) {
+      BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
+      if (bddCpa != null) {
+        return new RegionPresenceConditionManager(bddCpa.getManager());
+      } else {
+        PredicateCPA predCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+        Preconditions.checkNotNull(predCpa);
+        return new RegionPresenceConditionManager(predCpa.getRegionManager());
+      }
+    } else {
+      return new BinaryPresenceConditionManager();
+    }
+  }
+
   private ReachabilityAnalysisResult runReachabilityAnalysis(
       Set<Goal> pUncoveredGoals,
       Set<Goal> pTestGoalsToBeProcessed,
@@ -1042,7 +1064,8 @@ public class TigerAlgorithm
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
     ARGCPA cpa = composeCPA(pTestGoalsToBeProcessed);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+    PresenceConditionManager pcm =  createPresenceConditionManager(cpa);
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa, pcm);
 
     Preconditions.checkState(cpa.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
@@ -1235,22 +1258,7 @@ public class TigerAlgorithm
   }
 
   private void restrictBdd(PresenceCondition pRemainingPresenceCondition) {
-    try (StatCpuTimer t = tigerStats.restrictBddTime.start()) {
-      // inject goal Presence Condition in BDDCPA
-      BDDCPA bddcpa = null;
-      if (cpa instanceof WrapperCPA) {
-        // must be non-null, otherwise Exception in constructor of this class
-        bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
-      } else if (cpa instanceof BDDCPA) {
-        bddcpa = (BDDCPA) cpa;
-      }
-      if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
-        // FIXME. Set the constraint!
-        logger.logf(Level.INFO, "Restrict global BDD. FIXME!!!");
-//        logger.logf(Level.INFO, "Restrict BDD to %s.",
-//            bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
-      }
-    }
+    logger.logf(Level.INFO, "Restrict global BDD. FIXME!!!");
   }
 
   private Algorithm initializeAlgorithm(PresenceCondition pRemainingPresenceCondition, ARGCPA lARTCPA,
