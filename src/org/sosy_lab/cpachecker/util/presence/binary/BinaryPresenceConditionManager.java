@@ -135,8 +135,7 @@ public class BinaryPresenceConditionManager implements PresenceConditionManager 
 
   @Override
   public PresenceCondition removeMarkerVariables(PresenceCondition pCond) {
-    // TODO: implement
-    throw new UnsupportedOperationException();
+    return pCond;
   }
 
 }
