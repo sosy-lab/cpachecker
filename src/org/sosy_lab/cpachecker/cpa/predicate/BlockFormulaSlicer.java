@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -53,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -79,6 +77,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -382,13 +381,12 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
     if (decl instanceof CVariableDeclaration) {
       final CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-      final String functionName = edge.getPredecessor().getFunctionName();
 
-      if (importantVars.remove(buildVarName(vdecl.isGlobal() ? null : functionName, vdecl.getName()))) {
+      if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
         if (initializer != null && initializer instanceof CInitializerExpression) {
           final CExpression init = ((CInitializerExpression) initializer).getExpression();
-          addAllVarsFromExpr(init, functionName, importantVars);
+          addAllVarsFromExpr(init, importantVars);
         }
         return true;
 
@@ -405,8 +403,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       Collection<String> importantVars) {
 
     final CExpression expression = edge.getExpression();
-    final String functionName = edge.getPredecessor().getFunctionName();
-    addAllVarsFromExpr(expression, functionName, importantVars);
+    addAllVarsFromExpr(expression, importantVars);
 
     return true;
   }
@@ -418,7 +415,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
     // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
-      return handleAssignment((CAssignment) statement, edge, importantVars);
+      return handleAssignment((CAssignment) statement, importantVars);
     }
 
     // call of external function, "scanf(...)" without assignment
@@ -436,22 +433,17 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
 
-  private boolean handleAssignment(CAssignment statement, CFAEdge edge,
-      Collection<String> importantVars) {
+  private boolean handleAssignment(CAssignment statement, Collection<String> importantVars) {
     final CExpression lhs = statement.getLeftHandSide();
 
     // a = ?
     if (lhs instanceof CIdExpression) {
-      final String functionName = edge.getPredecessor().getFunctionName();
-      final String scopedFunctionName = isGlobal(lhs) ? null : functionName;
-      final String varName = ((CIdExpression) lhs).getName();
-
-      if (importantVars.remove(buildVarName(scopedFunctionName, varName))) {
+      if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
         final ARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
         if (rhs instanceof CExpression) {
-          addAllVarsFromExpr((CExpression) rhs, functionName, importantVars);
+          addAllVarsFromExpr((CExpression) rhs, importantVars);
           return true;
 
           // a = f(x)
@@ -481,7 +473,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       return false;
 
     } else {
-      return handleAssignment(edge.asAssignment().get(), edge, importantVars);
+      return handleAssignment(edge.asAssignment().get(), importantVars);
     }
   }
 
@@ -500,18 +492,19 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     if (call instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
       CExpression lhs = cAssignment.getLeftHandSide();
-
-      final String innerFunctionName = edge.getPredecessor().getFunctionName();
-      final String outerFunctionName = isGlobal(lhs) ? null : edge.getSuccessor().getFunctionName();
-
-      if (importantVars.remove(buildVarName(outerFunctionName, lhs.toASTString()))) {
-        Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
-        if (returnVar.isPresent()) {
-          importantVars.add(buildVarName(innerFunctionName, returnVar.get().getName()));
-          return true;
+      if (lhs instanceof CIdExpression) {
+        if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
+          Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
+          if (returnVar.isPresent()) {
+            importantVars.add(returnVar.get().getQualifiedName());
+            return true;
+          }
         }
+        return false;
+      } else {
+        // pointer assignment or something else --> important
+        return true;
       }
-      return false;
 
       // f(x); --> function could change global vars, the 'return' is unimportant
     } else if (call instanceof CFunctionCallStatement) {
@@ -536,12 +529,9 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
     assert args.size() >= params.size();
 
-    final String innerFunctionName = edge.getSuccessor().getFunctionName();
-    final String outerFunctionName = edge.getPredecessor().getFunctionName();
-
     for (int i = 0; i < params.size(); i++) {
-      if (importantVars.remove(buildVarName(innerFunctionName, params.get(i).getName()))) {
-        addAllVarsFromExpr(args.get(i), outerFunctionName, importantVars);
+      if (importantVars.remove(params.get(i).getQualifiedName())) {
+        addAllVarsFromExpr(args.get(i), importantVars);
       }
     }
 
@@ -549,27 +539,16 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return true;
   }
 
-  private String buildVarName(String function, String var) {
-    if (function == null) {
-      return var;
-    } else {
-      return function + "::" + var;
-    }
-  }
-
-  private void addAllVarsFromExpr(
-      CExpression exp, String functionName, Collection<String> importantVars) {
-    exp.accept(new VarCollector(functionName, importantVars));
+  private void addAllVarsFromExpr(CExpression exp, Collection<String> importantVars) {
+    exp.accept(new VarCollector(importantVars));
   }
 
   /** This Visitor collects all var-names in the expression. */
   private class VarCollector extends DefaultCExpressionVisitor<Void, RuntimeException> {
 
     final Collection<String> vars;
-    final private String functionName;
 
-    VarCollector(String functionName, Collection<String> vars) {
-      this.functionName = functionName;
+    VarCollector(Collection<String> vars) {
       this.vars = vars;
     }
 
@@ -599,9 +578,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
     @Override
     public Void visit(CIdExpression exp) {
-      String var = exp.getName();
-      String function = isGlobal(exp) ? null : functionName;
-      vars.add(buildVarName(function, var));
+      vars.add(exp.getDeclaration().getQualifiedName());
       return null;
     }
 
@@ -713,14 +690,6 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       }
       return oldFormula;
     }
-  }
-
-  private static boolean isGlobal(CExpression exp) {
-    if (exp instanceof CIdExpression) {
-      CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
-      if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
-    }
-    return false;
   }
 
   /** This function returns, if all parents of a state,
