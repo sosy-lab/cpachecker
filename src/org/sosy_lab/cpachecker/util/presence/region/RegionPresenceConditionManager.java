@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.solver.SolverException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -44,7 +45,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
   private final RegionManager mgr;
 
   public RegionPresenceConditionManager(RegionManager pMgr) {
-    mgr = pMgr;
+    mgr = Preconditions.checkNotNull(pMgr);
   }
 
   @Override
@@ -108,7 +109,6 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
 
   @Override
   public boolean checkSat(PresenceCondition pCond) {
-    Preconditions.checkArgument(mgr instanceof NamedRegionManager);
     Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
@@ -128,19 +128,25 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
   }
 
   @Override
-  public Appender dump(PresenceCondition pCond) {
-    Preconditions.checkArgument(mgr instanceof NamedRegionManager);
+  public Appender dump(final PresenceCondition pCond) {
     Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
-    NamedRegionManager nmgr = (NamedRegionManager) mgr;
-
-    return nmgr.dumpRegion(cond.getRegion());
+    if (mgr instanceof NamedRegionManager) {
+      NamedRegionManager nmgr = (NamedRegionManager) mgr;
+      return nmgr.dumpRegion(cond.getRegion());
+    } else {
+      return new Appender() {
+        @Override
+        public void appendTo(Appendable pAppendable) throws IOException {
+          pAppendable.append(cond.getRegion().toString());
+        }
+      };
+    }
   }
 
   @Override
   public boolean checkEqualsTrue(PresenceCondition pCond) {
-    Preconditions.checkArgument(mgr instanceof NamedRegionManager);
     Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
@@ -150,7 +156,6 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
 
   @Override
   public boolean checkEqualsFalse(PresenceCondition pCond) {
-    Preconditions.checkArgument(mgr instanceof NamedRegionManager);
     Preconditions.checkArgument(pCond instanceof RegionPresenceCondition);
 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
