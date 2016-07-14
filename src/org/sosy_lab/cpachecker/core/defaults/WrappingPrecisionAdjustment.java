@@ -66,11 +66,29 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
       if (result.get().action() == Action.BREAK) {
         return result;
       } else {
-        return wrappingPrec(result.get().abstractState(), pPrecision, pStates, pProjection, pFullState);
+        return wrappingPrec(result.get().abstractState(), result.get().precision(), pStates, pProjection, pFullState);
       }
     } else {
       return wrappingPrec(pState, pPrecision, pStates, pProjection, pFullState);
     }
+  }
+
+  public static PrecisionAdjustment wrap(final PrecisionAdjustment pOuterSecondCalled,
+       final PrecisionAdjustment pInnerFirstCalled) {
+
+    return new WrappingPrecisionAdjustment(pInnerFirstCalled) {
+      @Override
+      protected Optional<PrecisionAdjustmentResult> wrappingPrec(
+          AbstractState pState,
+          Precision pPrecision,
+          UnmodifiableReachedSet pStates,
+          Function<AbstractState, AbstractState> pProjection,
+          AbstractState pFullState) throws CPAException, InterruptedException {
+
+        return pOuterSecondCalled.prec(pState, pPrecision, pStates, pProjection, pFullState);
+      }
+    };
+
   }
 
 }
