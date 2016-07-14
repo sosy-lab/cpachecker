@@ -37,9 +37,6 @@ import com.google.common.collect.Multimap;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -51,10 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -66,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -386,7 +381,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
         final CInitializer initializer = vdecl.getInitializer();
         if (initializer != null && initializer instanceof CInitializerExpression) {
           final CExpression init = ((CInitializerExpression) initializer).getExpression();
-          addAllVarsFromExpr(init, importantVars);
+          CFAUtils.getVariableNamesOfExpression(init).copyInto(importantVars);
         }
         return true;
 
@@ -401,10 +396,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   private boolean handleAssumption(CAssumeEdge edge,
       Collection<String> importantVars) {
-
-    final CExpression expression = edge.getExpression();
-    addAllVarsFromExpr(expression, importantVars);
-
+    CFAUtils.getVariableNamesOfExpression(edge.getExpression()).copyInto(importantVars);
     return true;
   }
 
@@ -443,7 +435,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
         // a = b + c
         if (rhs instanceof CExpression) {
-          addAllVarsFromExpr((CExpression) rhs, importantVars);
+          CFAUtils.getVariableNamesOfExpression((CExpression) rhs).copyInto(importantVars);
           return true;
 
           // a = f(x)
@@ -531,70 +523,13 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
     for (int i = 0; i < params.size(); i++) {
       if (importantVars.remove(params.get(i).getQualifiedName())) {
-        addAllVarsFromExpr(args.get(i), importantVars);
+        CFAUtils.getVariableNamesOfExpression(args.get(i)).copyInto(importantVars);
       }
     }
 
     // TODO how can we (not) handle untracked params in CtoFormulaCOnverter??
     return true;
   }
-
-  private void addAllVarsFromExpr(CExpression exp, Collection<String> importantVars) {
-    exp.accept(new VarCollector(importantVars));
-  }
-
-  /** This Visitor collects all var-names in the expression. */
-  private class VarCollector extends DefaultCExpressionVisitor<Void, RuntimeException> {
-
-    final Collection<String> vars;
-
-    VarCollector(Collection<String> vars) {
-      this.vars = vars;
-    }
-
-    @Override
-    protected Void visitDefault(CExpression pExp) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CBinaryExpression exp) {
-      exp.getOperand1().accept(this);
-      exp.getOperand2().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CCastExpression exp) {
-      exp.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CComplexCastExpression exp) {
-      exp.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CIdExpression exp) {
-      vars.add(exp.getDeclaration().getQualifiedName());
-      return null;
-    }
-
-    @Override
-    public Void visit(CUnaryExpression exp) {
-      exp.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CPointerExpression exp) {
-      exp.getOperand().accept(this);
-      return null;
-    }
-  }
-
 
   /** This function returns a PathFormula for the whole block from start to end.
    * The SSA-indices of the new formula are based on the old formula.
