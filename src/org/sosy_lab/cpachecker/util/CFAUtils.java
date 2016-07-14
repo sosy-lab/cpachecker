@@ -34,16 +34,50 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
+import com.google.common.collect.TreeTraverser;
 import com.google.common.collect.UnmodifiableIterator;
 
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -396,5 +430,182 @@ public class CFAUtils {
       }
     }
     return blankPaths;
+  }
+
+  /**
+   * Get an iterable that recursively lists all AST nodes that occur in an AST
+   * (in pre-order).
+   */
+  public static FluentIterable<CAstNode> traverseRecursively(CAstNode root) {
+    return AstNodeTraverser.INSTANCE.preOrderTraversal(root);
+  }
+
+  /**
+   * Get an iterable that recursively lists all AST nodes that occur in a CRightHandSide
+   * (in pre-order).
+   */
+  @SuppressWarnings("unchecked") // by construction, we only get CRHS if we start with a CRHS
+  public static FluentIterable<CRightHandSide> traverseRecursively(CRightHandSide root) {
+    return (FluentIterable<CRightHandSide>)
+        (FluentIterable<?>) AstNodeTraverser.INSTANCE.preOrderTraversal(root);
+  }
+
+  /**
+   * Get an iterable that recursively lists all AST nodes that occur in a CExpression
+   * (in pre-order).
+   */
+  @SuppressWarnings("unchecked") // by construction, we only get CExps if we start with a CExp
+  public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
+    return (FluentIterable<CExpression>)
+        (FluentIterable<?>) AstNodeTraverser.INSTANCE.preOrderTraversal(root);
+  }
+
+  private static final class AstNodeTraverser extends TreeTraverser<CAstNode> {
+
+    private static final AstNodeTraverser INSTANCE = new AstNodeTraverser();
+
+    @SuppressWarnings("unchecked") // cast is safe for iterable
+    @Override
+    public Iterable<CAstNode> children(CAstNode pRoot) {
+      return (Iterable<CAstNode>) pRoot.accept(ChildExpressionVisitor.INSTANCE);
+    }
+  }
+
+  private static final class ChildExpressionVisitor
+      extends DefaultCExpressionVisitor<Iterable<? extends CAstNode>, RuntimeException>
+      implements CAstNodeVisitor<Iterable<? extends CAstNode>, RuntimeException> {
+
+    private static final ChildExpressionVisitor INSTANCE = new ChildExpressionVisitor();
+
+    @Override
+    protected Iterable<CAstNode> visitDefault(CExpression pExp) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CArraySubscriptExpression pE) {
+      return ImmutableList.of(pE.getArrayExpression(), pE.getSubscriptExpression());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CBinaryExpression pE) {
+      return ImmutableList.of(pE.getOperand1(), pE.getOperand2());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CCastExpression pE) {
+      return ImmutableList.of(pE.getOperand());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CComplexCastExpression pE) {
+      return ImmutableList.of(pE.getOperand());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CFieldReference pE) {
+      return ImmutableList.of(pE.getFieldOwner());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CPointerExpression pE) {
+      return ImmutableList.of(pE.getOperand());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CUnaryExpression pE) {
+      return ImmutableList.of(pE.getOperand());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CFunctionCallExpression pE) {
+      return Iterables.concat(
+          ImmutableList.of(pE.getFunctionNameExpression()), pE.getParameterExpressions());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CExpressionAssignmentStatement pS) {
+      return ImmutableList.of(pS.getLeftHandSide(), pS.getRightHandSide());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CExpressionStatement pS) {
+      return ImmutableList.of(pS.getExpression());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CFunctionCallAssignmentStatement pS) {
+      return ImmutableList.of(pS.getLeftHandSide(), pS.getRightHandSide());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CFunctionCallStatement pS) {
+      return ImmutableList.of(pS.getFunctionCallExpression());
+    }
+
+    @Override
+    public Iterable<CExpression> visit(CReturnStatement pNode) {
+      return Optionals.asSet(pNode.getReturnValue());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CComplexTypeDeclaration pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends CAstNode> visit(CEnumerator pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CParameterDeclaration> visit(CFunctionDeclaration pNode) {
+      return pNode.getParameters();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CParameterDeclaration pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CVariableDeclaration pNode) {
+      return ImmutableList.of(pNode.getInitializer());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CTypeDefDeclaration pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CDesignatedInitializer pNode) {
+      return Iterables.concat(pNode.getDesignators(), ImmutableList.of(pNode.getRightHandSide()));
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CInitializerExpression pNode) {
+      return ImmutableList.of(pNode.getExpression());
+    }
+
+    @Override
+    public Iterable<CInitializer> visit(CInitializerList pNode) {
+      return pNode.getInitializers();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CArrayDesignator pNode) {
+      return ImmutableList.of(pNode.getSubscriptExpression());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CArrayRangeDesignator pNode) {
+      return ImmutableList.of(pNode.getFloorExpression(), pNode.getCeilExpression());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(CFieldDesignator pNode) {
+      return ImmutableList.of();
+    }
   }
 }
