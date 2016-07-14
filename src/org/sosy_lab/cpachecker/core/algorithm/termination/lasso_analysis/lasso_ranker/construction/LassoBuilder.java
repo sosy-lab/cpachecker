@@ -83,6 +83,8 @@ public class LassoBuilder {
 
   final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
 
+  final static String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -190,6 +192,18 @@ public class LassoBuilder {
       throws InterruptedException, TermException, SolverException {
     Collection<BooleanFormula> stemDnf = toDnf(pStemAndLoop.getStem());
     Collection<BooleanFormula> loopDnf = toDnf(pStemAndLoop.getLoop());
+    InOutVariables stemRankVars =
+        extractRankVars(
+            pStemAndLoop.getStem(),
+            pStemAndLoop.getStemInVars(),
+            pStemAndLoop.getStemOutVars(),
+            pRelevantVariables);
+    InOutVariables loopRankVars =
+        extractRankVars(
+            pStemAndLoop.getLoop(),
+            pStemAndLoop.getLoopInVars(),
+            pStemAndLoop.getLoopOutVars(),
+            pRelevantVariables);
 
     ImmutableList.Builder<Lasso> lassos = ImmutableList.builder();
     for (BooleanFormula stem : stemDnf) {
@@ -202,15 +216,11 @@ public class LassoBuilder {
           LinearTransition stemTransition =
               createLinearTransition(
                   stem,
-                  pStemAndLoop.getStemInVars(),
-                  pStemAndLoop.getStemOutVars(),
-                  pRelevantVariables);
+                  stemRankVars);
           LinearTransition loopTransition =
               createLinearTransition(
                   loop,
-                  pStemAndLoop.getLoopInVars(),
-                  pStemAndLoop.getLoopOutVars(),
-                  pRelevantVariables);
+                  loopRankVars);
 
           Lasso lasso = new Lasso(stemTransition, loopTransition);
           lassos.add(lasso);
@@ -228,11 +238,9 @@ public class LassoBuilder {
     }
   }
 
-  private LinearTransition createLinearTransition(
-      BooleanFormula path, SSAMap inSsa, SSAMap outSSa, Set<String> pRelevantVariables)
+  private LinearTransition createLinearTransition(BooleanFormula path, InOutVariables rankVars)
       throws TermException {
     List<List<LinearInequality>> polyhedra = extractPolyhedra(path);
-    InOutVariables rankVars = extractRankVars(path, inSsa, outSSa, pRelevantVariables);
     return new LinearTransition(polyhedra, rankVars.getInVars(), rankVars.getOutVars());
   }
 
@@ -249,8 +257,8 @@ public class LassoBuilder {
     return polyhedra;
   }
 
-  private Collection<BooleanFormula> toDnf(PathFormula path) throws InterruptedException {
-    BooleanFormula simplified = formulaManagerView.simplify(path.getFormula());
+  private Collection<BooleanFormula> toDnf(BooleanFormula path) throws InterruptedException {
+    BooleanFormula simplified = formulaManagerView.simplify(path);
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, simplified);
     BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, withoutIfThenElse);
     BooleanFormula nnf = formulaManagerView.applyTactic(withoutDivAndMod, Tactic.NNF);
@@ -334,8 +342,8 @@ public class LassoBuilder {
       loopInVars =checkNotNull(pLoopInVars);
     }
 
-    public PathFormula getStem() {
-      return stem;
+    public BooleanFormula getStem() {
+      return stem.getFormula();
     }
 
     public SSAMap getStemInVars() {
@@ -346,8 +354,8 @@ public class LassoBuilder {
       return stem.getSsa();
     }
 
-    public PathFormula getLoop() {
-      return loop;
+    public BooleanFormula getLoop() {
+      return loop.getFormula();
     }
 
     public SSAMap getLoopInVars() {
