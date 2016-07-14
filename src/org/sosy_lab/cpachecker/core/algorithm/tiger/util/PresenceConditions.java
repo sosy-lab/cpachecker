@@ -24,10 +24,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
@@ -47,6 +50,11 @@ public class PresenceConditions {
     AbstractStateWithPresenceCondition e = AbstractStates.extractStateByType(pAbstractState, AbstractStateWithPresenceCondition.class);
     if (e != null) {
       Optional<PresenceCondition> p = e.getPresenceCondition();
+
+      if (e instanceof PredicateAbstractState) {
+        Preconditions.checkState(((PredicateAbstractState) e).isAbstractionState());
+      }
+
       if (p.isPresent()) {
         return p.get();
       }
