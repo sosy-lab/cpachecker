@@ -39,6 +39,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -305,18 +306,15 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   public BooleanFormula getInvariantFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
-    Set<BooleanFormula> localInvariants = locationInvariantsCache.get(pNode);
+    Set<BooleanFormula> localInvariants =
+        locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
     BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
 
     if (useGlobalInvariants) {
       globalInvariant = globalInvariants.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
     }
 
-    if (localInvariants == null) {
-      return globalInvariant;
-    } else {
-      return localInvariants.stream().reduce(globalInvariant, (a, b) -> bfmgr.and(a, b));
-    }
+    return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
   }
 
   /**
