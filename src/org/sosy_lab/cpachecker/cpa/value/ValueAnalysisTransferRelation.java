@@ -278,13 +278,13 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor) {
+  protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
     if (successor != null) {
       successor = ValueAnalysisState.copyOf(successor);
     }
 
-    return super.postProcessing(successor);
+    return super.postProcessing(successor, edge);
   }
 
 
@@ -1501,7 +1501,7 @@ public class ValueAnalysisTransferRelation
         result.clear();
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((RTTState)ae);
+          Collection<ValueAnalysisState> ret = strengthen((RTTState)ae, cfaEdge);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1571,7 +1571,7 @@ public class ValueAnalysisTransferRelation
       if (rawResult == element) {
         postProcessedResult.add(element);
       } else {
-        postProcessedResult.addAll(postProcessing(rawResult));
+        postProcessedResult.addAll(postProcessing(rawResult, cfaEdge));
       }
     }
 
@@ -1773,7 +1773,7 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private Collection<ValueAnalysisState> strengthen(RTTState rttState) {
+  private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
 
@@ -1807,7 +1807,7 @@ public class ValueAnalysisTransferRelation
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
-      boolean truthAssumption = ((AssumeEdge) edge).getTruthAssumption();
+      boolean truthAssumption = ((AssumeEdge)edge).getTruthAssumption();
       if (value == null || !value.isExplicitlyKnown()) {
         return null;
       } else if (representsBoolean(value, truthAssumption)) {

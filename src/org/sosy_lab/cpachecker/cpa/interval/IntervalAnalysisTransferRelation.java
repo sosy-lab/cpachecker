@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.util.Optional;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -75,6 +73,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 
@@ -96,7 +95,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   }
 
   @Override
-  protected Collection<IntervalAnalysisState> postProcessing(Collection<IntervalAnalysisState> successors) {
+  protected Collection<IntervalAnalysisState> postProcessing(Collection<IntervalAnalysisState> successors, CFAEdge edge) {
     return new HashSet<>(successors);
   }
 
@@ -145,7 +144,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     } else if (summaryExpr instanceof CFunctionCallStatement) {
       // nothing to do
     } else {
-      throw new UnrecognizedCCodeException("on function return", edge, summaryExpr);
+      throw new UnrecognizedCCodeException("on function return", cfaEdge, summaryExpr);
     }
 
     return soleSuccessor(newState);
@@ -175,7 +174,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     // set the interval of each formal parameter to the interval of its respective actual parameter
     for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
-      Interval interval = evaluateInterval(state, arguments.get(i));
+      Interval interval = evaluateInterval(state, arguments.get(i), callEdge);
       String formalParameterName = parameters.get(i).getQualifiedName();
       newState.addInterval(formalParameterName, interval, this.threshold);
     }
@@ -200,7 +199,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CAssignment ass = returnEdge.asAssignment().get();
       newState.addInterval(
           ((CIdExpression)ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-          evaluateInterval(state, ass.getRightHandSide()), threshold);
+          evaluateInterval(state, ass.getRightHandSide(), returnEdge), threshold);
     }
 
     return soleSuccessor(newState);
@@ -219,7 +218,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
           throws UnrecognizedCCodeException {
 
-    if ((truthValue ? Interval.ZERO : Interval.ONE).equals(evaluateInterval(state, expression))) {
+    if ((truthValue ? Interval.ZERO : Interval.ONE).equals(evaluateInterval(state, expression, cfaEdge))) {
       // the assumption is unsatisfiable
       return noSuccessors();
     }
@@ -240,7 +239,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     // If none of the operands is an identifier, nothing is done.
 
     IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, edge);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
     Interval interval1 = operand1.accept(visitor);
     Interval interval2 = operand2.accept(visitor);
 
@@ -301,7 +300,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
 
     default:
-      throw new UnrecognizedCCodeException("unexpected operator in assumption", edge, expression);
+      throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
     }
   }
 
@@ -419,7 +418,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       // variable may be initialized explicitly on the spot ...
       if (init instanceof CInitializerExpression) {
         CExpression exp = ((CInitializerExpression) init).getExpression();
-        interval = evaluateInterval(state, exp);
+        interval = evaluateInterval(state, exp, declarationEdge);
       } else {
         interval = Interval.createUnboundInterval();
       }
@@ -448,14 +447,14 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
       // a = ?
       IntervalAnalysisState successor = IntervalAnalysisState.copyOf(state);
-      addInterval(successor, op1, evaluateInterval(state, op2));
+      addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
       return soleSuccessor(successor);
     }
     return soleSuccessor(state);
   }
 
-  private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression) throws UnrecognizedCCodeException {
-    return expression.accept(new ExpressionValueVisitor(readableState, edge));
+  private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+    return expression.accept(new ExpressionValueVisitor(readableState, cfaEdge));
   }
 
   private Collection<IntervalAnalysisState> soleSuccessor(IntervalAnalysisState successor) {

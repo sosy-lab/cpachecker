@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -155,7 +156,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // normal assignment, "a = ..."
     if (statement instanceof CAssignment) {
-      result = handleAssignment((CAssignment) statement, cfaEdge.getSuccessor());
+      result = handleAssignment((CAssignment) statement, cfaEdge.getSuccessor(), cfaEdge);
 
       // call of external function, "scanf(...)" without assignment
       // internal functioncalls are handled as FunctionCallEdges
@@ -172,7 +173,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleAssignment(CAssignment assignment, CFANode successor) {
+  private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge) {
     CExpression lhs = assignment.getLeftHandSide();
 
     if (!(lhs instanceof CIdExpression)) {

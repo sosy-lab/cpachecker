@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -142,7 +143,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
   }
 
   @Override
-  protected Collection<ApronState> postProcessing(Collection<ApronState> successors) {
+  protected Collection<ApronState> postProcessing(Collection<ApronState> successors, CFAEdge edge) {
 
     successors.removeAll(Collections.singleton(null));
 
@@ -194,7 +195,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       }
 
     } else if (expression instanceof CBinaryExpression) {
-      return handleBinaryAssumption(expression, truthAssumption);
+      return handleBinaryAssumption(expression, truthAssumption, cfaEdge);
 
     } else {
       Set<Texpr0Node> coeffs = expression.accept(new CApronExpressionVisitor());
@@ -214,7 +215,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
   }
 
-  private Set<ApronState> handleBinaryAssumption(CExpression expression, boolean truthAssumption)
+  private Set<ApronState> handleBinaryAssumption(CExpression expression, boolean truthAssumption, CFAEdge edge)
       throws CPATransferException {
     CBinaryExpression binExp = (CBinaryExpression) expression;
 

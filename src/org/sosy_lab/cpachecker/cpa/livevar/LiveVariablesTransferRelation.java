@@ -32,7 +32,6 @@ import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 import static org.sosy_lab.cpachecker.util.LiveVariables.TO_EQUIV_WRAPPER;
 
 import com.google.common.base.Equivalence.Wrapper;
-import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -67,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -81,6 +81,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -118,7 +119,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor) {
+  protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor, CFAEdge edge) {
     if (successor == null) {
       return Collections.emptySet();
     }

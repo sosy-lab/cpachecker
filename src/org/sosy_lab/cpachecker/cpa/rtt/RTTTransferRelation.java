@@ -211,7 +211,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
     // expression is a binary operation, e.g. a = b;
     if (statement instanceof JAssignment) {
-      return handleAssignment((JAssignment) statement);
+      return handleAssignment((JAssignment) statement, cfaEdge);
 
       // external function call - do nothing
     } else if (statement instanceof JMethodOrConstructorInvocation) {
@@ -226,7 +226,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     return state;
   }
 
-  private RTTState handleAssignment(JAssignment assignExpression)
+  private RTTState handleAssignment(JAssignment assignExpression, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
     JExpression op1 = assignExpression.getLeftHandSide();
@@ -250,7 +250,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
         newState.forget(scopedName);
         return newState;
       } else {
-        return handleAssignmentToVariable((JIdExpression) op1, op2);
+        return handleAssignmentToVariable((JIdExpression) op1, op2, edge);
       }
     }
 
@@ -260,7 +260,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
   /** assigns the evaluated RightHandSide to the LeftHandSide if possible,
    *  or deletes its value. */
-  private RTTState handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp)
+  private RTTState handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp, CFAEdge edge)
       throws UnrecognizedCCodeException {
 
     String lParamObjectScope = nameProvider.getObjectScope(state, functionName, lParam);

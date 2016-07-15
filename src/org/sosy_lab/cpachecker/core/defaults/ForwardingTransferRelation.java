@@ -126,9 +126,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
-  /** the given edge, not casted, for local access (like logging) */
-  protected @Nullable CFAEdge edge;
-
   /** the given state, casted to correct type, for local access */
   protected @Nullable T state;
 
@@ -137,10 +134,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** the function BEFORE the current edge */
   protected @Nullable String functionName;
-
-  protected CFAEdge getEdge() {
-    return checkNotNull(edge);
-  }
 
   protected T getState() {
     return checkNotNull(state);
@@ -230,7 +223,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
         throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
-    final Collection<T> result = postProcessing(successor);
+    final Collection<T> result = postProcessing(successor, cfaEdge);
 
     resetInfo();
 
@@ -241,14 +234,12 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   @SuppressWarnings("unchecked")
   protected void setInfo(final AbstractState abstractState,
       final Precision abstractPrecision, final CFAEdge cfaEdge) {
-    edge = cfaEdge;
     state = (T) abstractState;
     precision = (P) abstractPrecision;
     functionName = cfaEdge.getPredecessor().getFunctionName();
   }
 
   protected void resetInfo() {
-    edge = null;
     state = null;
     precision = null;
     functionName = null;
@@ -263,8 +254,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This method should convert/cast/copy the intermediate result into a Collection<T>.
    * This method can modify the successor, if needed. */
-  @SuppressWarnings("unchecked")
-  protected Collection<T> postProcessing(@Nullable S successor) {
+  @SuppressWarnings({"unchecked", "unused"})
+  protected Collection<T> postProcessing(@Nullable S successor, CFAEdge edge) {
     if (successor == null) {
       return Collections.emptySet();
     } else {

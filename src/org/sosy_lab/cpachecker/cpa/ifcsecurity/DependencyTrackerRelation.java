@@ -159,7 +159,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
        */
 
     } else {
-      throw new UnrecognizedCCodeException("on function return", edge, pSummaryExpr);
+      throw new UnrecognizedCCodeException("on function return", pCfaEdge, pSummaryExpr);
     }
     result.getDependencies().put(function, new TreeSet<Variable>());
     return result;
