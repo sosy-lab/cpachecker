@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
@@ -14,6 +16,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -192,12 +195,9 @@ public class ValueDeterminationManager {
   }
 
   private Set<CFAEdge> getInnerLoopEdgesOf(CFANode node) {
-    return loopStructure
-        .getLoopsForLoopHead(node)
-        .stream()
-        .map(
-            l -> (Set<CFAEdge>)l.getInnerLoopEdges()
-        ).reduce(new HashSet<>(), (a, b) -> Sets.union(a, b));
+    return from(loopStructure.getLoopsForLoopHead(node))
+        .transformAndConcat(Loop::getInnerLoopEdges)
+        .toSet();
   }
 
   /**

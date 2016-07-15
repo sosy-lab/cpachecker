@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -32,7 +34,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 public class AggregatedReachedSets {
   protected final Set<UnmodifiableReachedSet> reachedSets;
@@ -67,10 +68,7 @@ public class AggregatedReachedSets {
       try {
         return Sets.union(
             super.snapShot(),
-            otherAggregators
-                .stream()
-                .flatMap(s -> s.snapShot().stream())
-                .collect(Collectors.toSet()));
+            from(otherAggregators).transformAndConcat(AggregatedReachedSets::snapShot).toSet());
       } finally {
         lock.readLock().unlock();
       }

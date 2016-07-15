@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -1490,14 +1493,11 @@ public class InvariantsState implements AbstractState,
   }
 
   public Set<MemoryLocation> getVariables() {
-    Set<MemoryLocation> result = environment.keySet();
-    for (NumeralFormula<CompoundInterval> value : environment.values()) {
-      Set<MemoryLocation> valueVars = value.accept(COLLECT_VARS_VISITOR);
-      if (!valueVars.isEmpty()) {
-        result = Sets.union(result, valueVars);
-      }
-    }
-    return result;
+    ImmutableSet.Builder<MemoryLocation> result = ImmutableSet.builder();
+    result.addAll(environment.keySet());
+    result.addAll(
+        from(environment.values()).transformAndConcat(value -> value.accept(COLLECT_VARS_VISITOR)));
+    return result.build();
   }
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
