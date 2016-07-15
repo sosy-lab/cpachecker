@@ -135,7 +135,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   @Override
-  protected Collection<BDDState> preCheck() {
+  protected Collection<BDDState> preCheck(BDDState state, VariableTrackingPrecision precision) {
     // no variables should be tracked
     if (precision.isEmpty()) {
       return Collections.singleton(state);

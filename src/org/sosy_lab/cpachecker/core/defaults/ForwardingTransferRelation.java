@@ -159,7 +159,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    final Collection<T> preCheck = preCheck();
+    final Collection<T> preCheck = preCheck(state, precision);
     if (preCheck != null) { return preCheck; }
 
     final S successor;
@@ -247,8 +247,9 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
-   * otherwise the return-value for skipping. */
-  protected @Nullable Collection<T> preCheck() {
+   * otherwise the return-value for skipping.  */
+  @SuppressWarnings("unused")
+  protected @Nullable Collection<T> preCheck(T state, P precision) {
     return null;
   }
 
