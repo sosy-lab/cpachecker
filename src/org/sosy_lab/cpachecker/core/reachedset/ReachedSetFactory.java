@@ -98,7 +98,9 @@ public class ReachedSetFactory {
       + "\nNORMAL: just a simple set"
       + "\nLOCATIONMAPPED: a different set per location "
       + "(faster, states with different locations cannot be merged)"
-      + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
+      + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)"
+      + "\nPSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states' lattice "
+      + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {

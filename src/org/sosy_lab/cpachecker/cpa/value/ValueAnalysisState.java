@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -76,9 +77,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState,
-    ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
-    LatticeAbstractState<ValueAnalysisState> {
+public class ValueAnalysisState
+    implements AbstractQueryableState, FormulaReportingState,
+        ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
+        LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {
 
   private static final long serialVersionUID = -3152134511524554357L;
 
@@ -807,5 +809,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       throw new IOException("",e);
     }
     memLocToType = PathCopyingPersistentTreeMap.of();
+  }
+
+  @Override
+  public Comparable<?> getPseudoPartitionKey() {
+    return getSize();
+  }
+
+  @Override
+  public Object getPseudoHashCode() {
+    return this;
   }
 }

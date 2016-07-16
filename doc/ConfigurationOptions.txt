@@ -200,6 +200,9 @@ analysis.programNames = no default value
 # LOCATIONMAPPED: a different set per location (faster, states with different
 # locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
+# PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the
+# states' lattice (maybe faster for some special analyses which use merge_sep
+# and stop_sep
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED]
 
