@@ -199,7 +199,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final MergeOperator mergeOperator;
   private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  private final Reducer reducer;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
@@ -216,21 +215,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
-
-    List<Reducer> wrappedReducers = new ArrayList<>();
-    for (ConfigurableProgramAnalysis cpa : cpas) {
-      if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
-        wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
-      } else {
-        wrappedReducers.clear();
-        break;
-      }
-    }
-    if (!wrappedReducers.isEmpty()) {
-      reducer = new CompositeReducer(wrappedReducers);
-    } else {
-      reducer = null;
-    }
   }
 
   @Override
@@ -260,7 +244,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    List<Reducer> wrappedReducers = new ArrayList<>();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      Preconditions.checkState(
+          cpa instanceof ConfigurableProgramAnalysisWithBAM,
+          "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+      wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
+    }
+    return new CompositeReducer(wrappedReducers);
   }
 
   @Override

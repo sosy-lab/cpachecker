@@ -55,7 +55,6 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     return AutomaticCPAFactory.forType(BAMPredicateCPA.class).withOptions(BAMBlockOperator.class);
   }
 
-  private final BAMPredicateReducer reducer;
   private final BAMBlockOperator blk;
   private RelevantPredicatesComputer relevantPredicatesComputer;
 
@@ -101,7 +100,6 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
         throw new AssertionError("unhandled case");
     }
 
-    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this);
     blk = pBlk;
   }
 
@@ -119,7 +117,8 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   @Override
   public BAMPredicateReducer getReducer() {
-    return reducer;
+    return new BAMPredicateReducer(
+        getSolver().getFormulaManager().getBooleanFormulaManager(), this);
   }
 
   public void setPartitioning(BlockPartitioning partitioning) {

@@ -59,7 +59,6 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private final Reducer reducer;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
@@ -73,7 +72,6 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
     this.stopOperator = new StopSepOperator(abstractDomain);
     this.transferRelation = new FunctionPointerTransferRelation(pLogger, pConfig);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    this.reducer = NoOpReducer.getInstance();
   }
 
   @Override
@@ -113,7 +111,7 @@ public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithBAM, P
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return NoOpReducer.getInstance();
   }
 
   @Override

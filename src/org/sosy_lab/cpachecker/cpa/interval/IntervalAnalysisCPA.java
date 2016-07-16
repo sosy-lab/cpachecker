@@ -103,8 +103,6 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
    */
   private PrecisionAdjustment precisionAdjustment;
 
-  private final IntervalAnalysisReducer reducer;
-
   private final StateToFormulaWriter writer;
 
   /**
@@ -126,8 +124,6 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
     transferRelation    = new IntervalAnalysisTransferRelation(config, logger);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
-    reducer = new IntervalAnalysisReducer();
 
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
 
@@ -167,7 +163,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return new IntervalAnalysisReducer();
   }
 
   /* (non-Javadoc)

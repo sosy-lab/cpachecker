@@ -75,7 +75,6 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
-  private final BDDReducer reducer;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
   private final LogManager logger;
@@ -104,7 +103,6 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     bvmgr             = new BitvectorManager(rmgr);
     predmgr           = new PredicateManager(config, manager, cfa);
     transferRelation  = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
-    reducer           = new BDDReducer(predmgr);
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {
@@ -168,7 +166,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return new BDDReducer(predmgr);
   }
 
   public Configuration getConfiguration() {

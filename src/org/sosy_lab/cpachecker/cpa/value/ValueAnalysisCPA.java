@@ -104,7 +104,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private ValueAnalysisTransferRelation transferRelation;
   private VariableTrackingPrecision precision;
   private ValueAnalysisPrecisionAdjustment precisionAdjustment;
-  private final ValueAnalysisReducer reducer;
   private final ValueAnalysisCPAStatistics statistics;
   private final StateToFormulaWriter writer;
 
@@ -133,7 +132,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
     precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, transferRelation, cfa);
 
-    reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
 
@@ -293,7 +291,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return new ValueAnalysisReducer();
   }
 
   @Override

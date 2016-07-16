@@ -112,7 +112,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final MergeOperator mergeOperator;
   private final ARGStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  private final Reducer reducer;
   private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
 
@@ -125,17 +124,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
-
-    if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)cpa).getReducer();
-      if (wrappedReducer != null) {
-        reducer = new ARGReducer(wrappedReducer);
-      } else {
-        reducer = null;
-      }
-    } else {
-      reducer = null;
-    }
 
     if (cpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker)cpa;
@@ -212,7 +200,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    ConfigurableProgramAnalysis cpa = getWrappedCpa();
+    Preconditions.checkState(
+        cpa instanceof ConfigurableProgramAnalysisWithBAM,
+        "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+    return new ARGReducer(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
   }
 
   @Override
