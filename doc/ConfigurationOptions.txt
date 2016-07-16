@@ -2410,6 +2410,13 @@ overflow.check = false
 # instead of the current one.
 overflow.config = no default value
 
+# Track overflow for signed integers.
+overflow.trackSignedIntegers = true
+
+# Only check live variables for overflow, as compiler can remove dead
+# variables.
+overflow.useLiveness = true
+
 # List of files with configurations to use. Files can be suffixed with
 # ::supply-reached this signalizes that the (finished) reached set of an
 # analysis can be used in other analyses (e.g. for invariants computation).
