@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
 public class ReachedSetFactory {
 
   private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED
+    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED
   }
 
   @Option(secure=true, name="traversal.order",
@@ -140,6 +140,9 @@ public class ReachedSetFactory {
     switch (reachedSet) {
     case PARTITIONED:
       return new PartitionedReachedSet(waitlistFactory);
+
+    case PSEUDOPARTITIONED:
+      return new PseudoPartitionedReachedSet(waitlistFactory);
 
     case LOCATIONMAPPED:
       return new LocationMappedReachedSet(waitlistFactory);

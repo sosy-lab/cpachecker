@@ -201,7 +201,7 @@ analysis.programNames = no default value
 # locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED]
 
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
