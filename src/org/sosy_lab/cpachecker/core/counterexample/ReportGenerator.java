@@ -280,7 +280,7 @@ public class ReportGenerator {
                   + "\"><td><pre>"
                   + lineNumber
                   + "</pre></td>"
-                  + htmlEscape(line)
+                  + line
                   + "</tr>\n");
           lineNumber++;
         }
