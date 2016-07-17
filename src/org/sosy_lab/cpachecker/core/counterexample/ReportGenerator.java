@@ -30,7 +30,9 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 
 import org.sosy_lab.common.JSON;
@@ -61,6 +63,9 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -237,7 +242,7 @@ public class ReportGenerator {
   private void insertStatistics(Writer report, String statistics) throws IOException {
     int iterator = 0;
     for (String line : LINE_SPLITTER.split(statistics)) {
-      line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
+      line = "<pre id=\"statistics-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
       report.write(line);
       iterator++;
     }
@@ -268,14 +273,14 @@ public class ReportGenerator {
 
         String line;
         while (null != (line = source.readLine())) {
-          line = "<td><pre class=\"prettyprint\">" + line + "  </pre></td>";
+          line = "<td><pre class=\"prettyprint\">" + htmlEscape(line) + "  </pre></td>";
           report.write(
               "<tr id=\"source-"
                   + lineNumber
                   + "\"><td><pre>"
                   + lineNumber
                   + "</pre></td>"
-                  + line
+                  + htmlEscape(line)
                   + "</tr>\n");
           lineNumber++;
         }
@@ -299,7 +304,7 @@ public class ReportGenerator {
 
     int iterator = 0;
     for (String line : lines) {
-      line = "<pre id=\"config-" + iterator + "\">" + line + "</pre>\n";
+      line = "<pre id=\"config-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
       report.write(line);
       iterator++;
     }
@@ -312,7 +317,7 @@ public class ReportGenerator {
         int iterator = 0;
         String line;
         while (null != (line = log.readLine())) {
-          line = "<pre id=\"log-" + iterator + "\">" + line + "</pre>\n";
+          line = "<pre id=\"log-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
           bufferedWriter.write(line);
           iterator++;
         }
@@ -373,5 +378,27 @@ public class ReportGenerator {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of source file names failed.");
     }
+  }
+
+  private static String htmlEscape(String text) {
+
+    Map<String, String> htmlReplacements = new ImmutableMap.Builder<String, String>()
+        .put("&", "&amp;")
+        .put("<", "&lt;")
+        .put(">", "&gt;")
+        .build();
+
+    String regexp = Joiner.on('|').join(htmlReplacements.keySet());
+
+    StringBuffer sb = new StringBuffer();
+    Pattern p = Pattern.compile(regexp);
+    Matcher m = p.matcher(text);
+
+    while (m.find()) {
+      m.appendReplacement(sb, htmlReplacements.get(m.group()));
+    }
+
+    m.appendTail(sb);
+    return sb.toString();
   }
 }
