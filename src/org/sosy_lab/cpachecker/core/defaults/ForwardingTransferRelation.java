@@ -25,6 +25,10 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -40,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -78,7 +81,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -628,42 +630,23 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return Pair.of(pExpression, pAssumeTruth);
   }
 
-  private static boolean isBooleanExpression(AExpression pExpression) {
-    if (pExpression instanceof CExpression) {
-      return isBooleanExpression((CExpression) pExpression);
-    } else if (pExpression instanceof JExpression) {
-      return isBooleanExpression(((JExpression) pExpression));
-    }
-    return false;
-  }
-
-  private static boolean isBooleanExpression(CExpression pExpression) {
-    if (pExpression instanceof CBinaryExpression) {
-      return Arrays.asList(
+  private static final ImmutableSet<ABinaryOperator> BOOLEAN_BINARY_OPERATORS =
+      ImmutableSet.of(
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL,
-          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN)
-          .contains(((CBinaryExpression)pExpression).getOperator());
-    } else {
-      return false;
-    }
-  }
-
-  private static boolean isBooleanExpression(JExpression pExpression) {
-    if (pExpression instanceof JBinaryExpression) {
-      return Arrays.asList(
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_EQUAL,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_THAN,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_EQUAL,
-          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN)
-          .contains(((JBinaryExpression)pExpression).getOperator());
-    } else {
-      return false;
-    }
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN);
+
+  private static boolean isBooleanExpression(AExpression pExpression) {
+    return pExpression instanceof ABinaryExpression
+        && BOOLEAN_BINARY_OPERATORS.contains(((ABinaryExpression) pExpression).getOperator());
   }
 }
