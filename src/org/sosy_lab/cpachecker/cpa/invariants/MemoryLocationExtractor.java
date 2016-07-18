@@ -118,7 +118,8 @@ public class MemoryLocationExtractor {
     if (pParameterDeclaration instanceof CSimpleDeclaration) {
       CSimpleDeclaration decl = (CSimpleDeclaration) pParameterDeclaration;
 
-      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal() || decl instanceof CEnumerator)) {
+      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
+          || decl instanceof CEnumerator)) {
         return scope(varName);
       }
     }
@@ -177,7 +178,8 @@ public class MemoryLocationExtractor {
     if (var.getDeclaration() != null) {
       CSimpleDeclaration decl = var.getDeclaration();
 
-      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal() || decl instanceof CEnumerator)) {
+      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
+          || decl instanceof CEnumerator)) {
         return scope(varName);
       }
     }

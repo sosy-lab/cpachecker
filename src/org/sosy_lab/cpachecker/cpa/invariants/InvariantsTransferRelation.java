@@ -541,7 +541,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     CFAEdge edge = pCfaEdge;
     CLeftHandSide leftHandSide = getLeftHandSide(edge);
-    if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference && ((CFieldReference) leftHandSide).isPointerDereference()) {
+    if (leftHandSide instanceof CPointerExpression
+        || (leftHandSide instanceof CFieldReference
+            && ((CFieldReference) leftHandSide).isPointerDereference())) {
       FluentIterable<PointerState> pointerStates = FluentIterable.from(pOtherElements).filter(PointerState.class);
       if (pointerStates.isEmpty()) {
         return Collections.singleton(state.clear());

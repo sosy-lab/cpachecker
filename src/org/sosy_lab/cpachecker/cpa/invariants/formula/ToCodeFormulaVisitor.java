@@ -305,7 +305,7 @@ public class ToCodeFormulaVisitor
       BitVectorInfo sourceBitVectorInfo = (BitVectorInfo) sourceInfo;
       int sourceSize = sourceBitVectorInfo.getSize();
       int targetSize = ((BitVectorInfo) targetInfo).getSize();
-      if (sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned()
+      if ((sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned())
           || sourceFormula == null) {
         return sourceFormula;
       }

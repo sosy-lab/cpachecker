@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
+
+import java.math.BigInteger;
+
+import javax.annotation.Nullable;
 
 /**
  * This factory provides operators that can be applied to an interval operand
@@ -176,7 +176,7 @@ public enum ISIOperatorFactory {
          * for dividing [0, 0] (a singleton interval of zero) by anything.
          */
         if (pSecondOperand.equals(BigInteger.ONE)
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return pFirstOperand;
         }
         if (pSecondOperand.compareTo(BigInteger.ZERO) < 0) {
@@ -419,7 +419,7 @@ public enum ISIOperatorFactory {
          */
         if (pFirstOperand.isTop()
             || pSecondOperand.signum() == 0
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return pFirstOperand;
         }
         // Negative left shifts are not defined.
@@ -487,7 +487,7 @@ public enum ISIOperatorFactory {
          */
         if (pFirstOperand.isTop()
             || pSecondOperand.signum() == 0
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return pFirstOperand;
         }
         // Negative right shifts are not defined.

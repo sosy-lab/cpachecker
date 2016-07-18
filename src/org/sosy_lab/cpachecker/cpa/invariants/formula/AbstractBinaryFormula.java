@@ -78,8 +78,10 @@ public abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormul
        }
        if (operator.equals(other.operator) && isCommutative == other.isCommutative) {
          if (isCommutative) {
-           return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2())
-               || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
+          return (getOperand1().equals(other.getOperand1())
+                  && getOperand2().equals(other.getOperand2()))
+              || (getOperand1().equals(other.getOperand2())
+                  && getOperand2().equals(other.getOperand1()));
          } else {
            return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2());
          }

@@ -776,7 +776,9 @@ public class CompoundIntervalFormulaManager {
             Union<CompoundInterval> union = (Union<CompoundInterval>) newValue;
             NumeralFormula<CompoundInterval> op1 = union.getOperand1();
             NumeralFormula<CompoundInterval> op2 = union.getOperand2();
-            useNewValue = !(op1.equals(value) && op2.equals(otherValue) || op1.equals(otherValue) && op2.equals(value));
+            useNewValue =
+                !((op1.equals(value) && op2.equals(otherValue))
+                    || (op1.equals(otherValue) && op2.equals(value)));
           }
           if (useNewValue) {
             return equal(var, newValue);

@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigInteger;
 import java.util.Objects;
@@ -360,10 +362,12 @@ public class SimpleInterval {
   public boolean touches(SimpleInterval pOther) {
     if (pOther == null) { return false; }
     if (intersectsWith(pOther)) { return true; }
-    return this.lowerBound != null && pOther.upperBound != null
-        && pOther.upperBound.add(BigInteger.ONE).equals(this.lowerBound)
-        || pOther.lowerBound != null && this.upperBound != null
-        && this.upperBound.add(BigInteger.ONE).equals(pOther.lowerBound);
+    return (this.lowerBound != null
+            && pOther.upperBound != null
+            && pOther.upperBound.add(BigInteger.ONE).equals(this.lowerBound))
+        || (pOther.lowerBound != null
+            && this.upperBound != null
+            && this.upperBound.add(BigInteger.ONE).equals(pOther.lowerBound));
   }
 
   /**

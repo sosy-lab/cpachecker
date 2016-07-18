@@ -390,8 +390,12 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     while (leftInclusive < rightExclusive) {
       int index = IntMath.mean(leftInclusive, rightExclusive);
       BitVectorInterval intervalAtIndex = this.intervals[index];
-      boolean lbIndexLeqLb = !intervalAtIndex.hasLowerBound() || hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0;
-      boolean ubIndexGeqUb = !intervalAtIndex.hasUpperBound() || hasUpperBound && intervalAtIndex.getUpperBound().compareTo(ub) >= 0;
+      boolean lbIndexLeqLb =
+          !intervalAtIndex.hasLowerBound()
+              || (hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0);
+      boolean ubIndexGeqUb =
+          !intervalAtIndex.hasUpperBound()
+              || (hasUpperBound && intervalAtIndex.getUpperBound().compareTo(ub) >= 0);
       if (lbIndexLeqLb) { // Interval at index starts before interval
         if (ubIndexGeqUb) { // Interval at index ends after interval
           return true;
@@ -1347,7 +1351,9 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   public CompoundBitVectorInterval logicalAnd(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) { return bottom(info); }
-    if (isSingleton() && containsZero() || pState.isSingleton() && pState.containsZero()) { return logicalFalse(info); }
+    if ((isSingleton() && containsZero()) || (pState.isSingleton() && pState.containsZero())) {
+      return logicalFalse(info);
+    }
     if (!containsZero() && !pState.containsZero()) { return logicalTrue(info); }
     return getInternal(info.getRange());
   }

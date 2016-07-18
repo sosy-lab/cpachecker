@@ -470,10 +470,10 @@ public class InvariantsState implements AbstractState,
         InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, pMemoryLocation);
 
     // Optimization: If the value being assigned is equivalent to the value already stored, do nothing
-    if (getEnvironmentValue(typeInfo, pMemoryLocation).equals(pValue)
+    if ((getEnvironmentValue(typeInfo, pMemoryLocation).equals(pValue)
             && (pValue instanceof Variable<?>
-                || pValue instanceof Constant<?>
-                    && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())
+                || (pValue instanceof Constant<?>
+                    && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())))
         || variable.accept(
             new StateEqualsVisitor(
                 getFormulaResolver(), this.environment, compoundIntervalManagerFactory),
@@ -1360,18 +1360,18 @@ public class InvariantsState implements AbstractState,
         } else if (compoundIntervalManager
                 .lessEqual(oldExactValue, currentExactValue)
                 .isDefinitelyTrue()
-            || oldExactValue.hasUpperBound()
+            || (oldExactValue.hasUpperBound()
                 && (!currentExactValue.hasUpperBound()
                     || compare(oldExactValue.getUpperBound(), currentExactValue.getUpperBound())
-                        < 0)) {
+                        < 0))) {
           newValue = compoundIntervalManager.union(oldExactValue, currentExactValue).extendToMaxValue();
         } else if (compoundIntervalManager
                 .greaterEqual(oldExactValue, currentExactValue)
                 .isDefinitelyTrue()
-            || oldExactValue.hasLowerBound()
+            || (oldExactValue.hasLowerBound()
                 && (!currentExactValue.hasLowerBound()
                     || compare(oldExactValue.getLowerBound(), currentExactValue.getLowerBound())
-                        > 0)) {
+                        > 0))) {
           newValue = compoundIntervalManager.union(oldExactValue, currentExactValue).extendToMinValue();
         } else {
           NumeralFormula<CompoundInterval> newFormula = resultEnvironment.get(memoryLocation);

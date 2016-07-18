@@ -44,8 +44,12 @@ public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantTyp
 
   @Override
   public boolean equals(Object pOther) {
-    assert(this == pOther && pOther instanceof BooleanConstant && this.value == ((BooleanConstant<?>) pOther).value
-        || this != pOther && (!(pOther instanceof BooleanConstant) || this.value != ((BooleanConstant<?>) pOther).value));
+    assert (this == pOther
+            && pOther instanceof BooleanConstant
+            && this.value == ((BooleanConstant<?>) pOther).value)
+        || (this != pOther
+            && (!(pOther instanceof BooleanConstant)
+                || this.value != ((BooleanConstant<?>) pOther).value));
     return this == pOther;
   }
 

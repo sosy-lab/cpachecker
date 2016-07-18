@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.util.Map;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -101,7 +101,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
       NumeralFormula<CompoundInterval> pOtherO1,
       NumeralFormula<CompoundInterval> pOtherO2) {
     return visitNonCommutative(pO1, pO2, pOtherO1, pOtherO2)
-        || pO1.accept(this, pOtherO2) && pO2.accept(this, pOtherO1);
+        || (pO1.accept(this, pOtherO2) && pO2.accept(this, pOtherO1));
   }
 
   /**
@@ -122,7 +122,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
       BooleanFormula<CompoundInterval> pOtherO1,
       BooleanFormula<CompoundInterval> pOtherO2) {
     return visitNonCommutative(pO1, pO2, pOtherO1, pOtherO2)
-        || pO1.accept(this, pOtherO2) && pO2.accept(this, pOtherO1);
+        || (pO1.accept(this, pOtherO2) && pO2.accept(this, pOtherO1));
   }
 
   /**
