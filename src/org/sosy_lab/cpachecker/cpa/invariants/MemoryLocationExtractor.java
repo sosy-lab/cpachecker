@@ -214,7 +214,8 @@ public class MemoryLocationExtractor {
       subscriptValue = compoundIntervalManagerFactory.createCompoundIntervalManager(machineModel, pOwner.getExpressionType()).allPossibleValues();
     }
     if (subscriptValue.isSingleton()) {
-      return MemoryLocation.valueOf(String.format("%s[%d]", getMemoryLocation(pOwner), subscriptValue.getValue()).toString());
+      return MemoryLocation.valueOf(
+          String.format("%s[%s]", getMemoryLocation(pOwner), subscriptValue.getValue()).toString());
     }
     return MemoryLocation.valueOf(String.format("%s[*]", getMemoryLocation(pOwner)));
   }

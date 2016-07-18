@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import com.google.common.testing.AbstractPackageSanityTests;
+
 import org.junit.Ignore;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
-import com.google.common.testing.AbstractPackageSanityTests;
-
+@SuppressWarnings("JUnitAmbiguousTestClass") // because of AbstractPackageSanityTests
 public class PackageSanityTest extends AbstractPackageSanityTests {
 
   {
