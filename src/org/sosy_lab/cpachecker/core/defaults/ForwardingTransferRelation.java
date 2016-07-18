@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -652,7 +653,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   private static boolean isBooleanExpression(JExpression pExpression) {
-    if (pExpression instanceof CBinaryExpression) {
+    if (pExpression instanceof JBinaryExpression) {
       return Arrays.asList(
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS,
@@ -660,7 +661,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_THAN,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_EQUAL,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN)
-          .contains(((CBinaryExpression)pExpression).getOperator());
+          .contains(((JBinaryExpression)pExpression).getOperator());
     } else {
       return false;
     }
