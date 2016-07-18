@@ -1652,10 +1652,11 @@ public class ValueAnalysisTransferRelation
                 Value otherVariableValue = pValueState.getValueFor(otherVariableLocation);
                 if (otherVariableValue != null) {
                   if (variableType.equals(otherVariableType)
-                      || variableType.equals(CNumericTypes.FLOAT)
-                      && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                      && otherVariableValue.isExplicitlyKnown()
-                      && Long.valueOf(0).equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT))) {
+                      || (variableType.equals(CNumericTypes.FLOAT)
+                          && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
+                          && otherVariableValue.isExplicitlyKnown()
+                          && Long.valueOf(0)
+                              .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
                     value = otherVariableValue;
                     shouldAssign = true;
                   }

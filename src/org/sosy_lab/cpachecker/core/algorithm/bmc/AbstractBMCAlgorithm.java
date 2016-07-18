@@ -445,7 +445,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     Collection<ARGState> missingChildren = new ArrayList<>();
     for (ARGState e : from(pReachedSet).transform(toState(ARGState.class))) {
       for (ARGState child : e.getChildren()) {
-        if (!pReachedSet.contains(child) && !(child.isCovered() && child.getChildren().isEmpty())
+        if ((!pReachedSet.contains(child) && !(child.isCovered() && child.getChildren().isEmpty()))
             || pReachedSet.getWaitlist().containsAll(child.getParents())) {
           missingChildren.add(child);
         }

@@ -547,8 +547,9 @@ public class OctagonInterval {
     Long bound = (x.signum() == y.signum()) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound
-    if (!x.isEqual(0) && (y.greaterThan(0) && y.greaterThan(OctagonIntValue.ONE.div(x).mul(bound))
-        || y.lessThan(0) && y.lessThan(OctagonIntValue.ONE.div(x).mul(bound)))) {
+    if (!x.isEqual(0)
+        && ((y.greaterThan(0) && y.greaterThan(OctagonIntValue.ONE.div(x).mul(bound)))
+            || (y.lessThan(0) && y.lessThan(OctagonIntValue.ONE.div(x).mul(bound))))) {
       return OctagonIntValue.of(bound);
     } else {
       return x.mul(y);

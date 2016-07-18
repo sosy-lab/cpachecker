@@ -180,10 +180,9 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
       ABEIntermediateState<A> iState1 = pState1.asIntermediate();
       ABEIntermediateState<A> iState2 = pState2.asIntermediate();
       return iState1.isMergedInto(iState2)
-          || iState1.getPathFormula().getFormula().equals(
-            iState2.getPathFormula().getFormula()
-          ) && clientManager.isLessOrEqual(
-            iState1.getBackpointerState(), iState2.getBackpointerState());
+          || (iState1.getPathFormula().getFormula().equals(iState2.getPathFormula().getFormula())
+              && clientManager.isLessOrEqual(
+                  iState1.getBackpointerState(), iState2.getBackpointerState()));
     } else {
       return clientManager.isLessOrEqual(
           pState1.asAbstracted(), pState2.asAbstracted()
@@ -249,7 +248,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
     BooleanFormula extraInvariant = extractFormula(pFullState);
 
     // Perform reachability checking, for property states, or before the abstractions.
-    if ((hasTargetState && checkTargetStates || shouldPerformAbstraction)
+    if (((hasTargetState && checkTargetStates) || shouldPerformAbstraction)
         && isUnreachable(iState, extraInvariant)) {
 
       logger.log(Level.INFO, "Returning bottom state");

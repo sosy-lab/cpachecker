@@ -402,7 +402,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   public InvariantSupplier getSupplier() throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
 
-    if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
+    if ((async && !invariantGenerationFuture.isDone()) || cancelled.get()) {
       // grab intermediate result that is available so far
       return algorithm.getCurrentInvariants();
 
@@ -424,7 +424,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
 
-    if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
+    if ((async && !invariantGenerationFuture.isDone()) || cancelled.get()) {
       // grab intermediate result that is available so far
       return algorithm.getCurrentInvariantsAsExpressionTree();
 

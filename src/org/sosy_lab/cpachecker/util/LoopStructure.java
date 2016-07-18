@@ -489,7 +489,8 @@ public final class LoopStructure {
     }
     String loopFunction = pSingleLoopHead.getFunctionName();
     // A size of one means only the loop head is contained
-    if (loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)) {
+    if (loopNodes.isEmpty()
+        || (loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead))) {
       return new LoopStructure(ImmutableMultimap.<String, Loop>of());
     }
 

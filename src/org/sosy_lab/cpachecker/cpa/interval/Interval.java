@@ -588,7 +588,7 @@ public class Interval implements Serializable{
     Long bound = (Long.signum(x) == Long.signum(y)) ? Long.MAX_VALUE : Long.MIN_VALUE;
 
     // if overflow occurs, return the respective bound
-    if (x != 0 && (y > 0 && y > (bound / x) || y < 0 && y < (bound / x))) {
+    if (x != 0 && ((y > 0 && y > (bound / x)) || (y < 0 && y < (bound / x)))) {
       return bound;
     } else {
       return x * y;

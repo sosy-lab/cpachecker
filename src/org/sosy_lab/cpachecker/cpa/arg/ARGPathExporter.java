@@ -985,10 +985,10 @@ public class ARGPathExporter {
                     pPrecedingEdge -> pPrecedingEdge.label.summarizes(pEdge.label));
 
             if ((!pEdge.label.hasTransitionRestrictions()
-                        || summarizedByPreceedingEdge
-                        || pEdge.label.getMapping().size() == 1
-                            && pEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT))
-                    && (leavingEdges.get(pEdge.source).size() == 1)) {
+                    || summarizedByPreceedingEdge
+                    || (pEdge.label.getMapping().size() == 1
+                        && pEdge.label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
+                && (leavingEdges.get(pEdge.source).size() == 1)) {
               return true;
             }
 

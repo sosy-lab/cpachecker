@@ -25,14 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
+import com.google.common.primitives.UnsignedLongs;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -114,8 +107,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
-import com.google.common.primitives.UnsignedLongs;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
 
 
 /**
@@ -581,7 +581,7 @@ public abstract class AbstractExpressionValueVisitor
       case INT: {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
-        if (!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG
+        if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
             || sizeInBits > SIZE_OF_JAVA_LONG) {
           BigInteger leftBigInt = l.getNumber() instanceof BigInteger ? (BigInteger) l.getNumber() : BigInteger.valueOf(l.longValue());
           BigInteger rightBigInt = r.getNumber() instanceof BigInteger ? (BigInteger) r.getNumber() : BigInteger.valueOf(r.longValue());

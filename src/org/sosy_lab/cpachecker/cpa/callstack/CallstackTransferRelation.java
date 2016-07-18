@@ -140,9 +140,10 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       boolean isPredecessorAritificialPCNode = predFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
       boolean isFunctionTransition = !succFunction.equals(predFunction);
       if (!successorIsInCallstackContext
-          && !e.getCurrentFunction().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+          && !e.getCurrentFunction()
+              .equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
           && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
-              || isPredecessorAritificialPCNode && isFunctionTransition)) {
+              || (isPredecessorAritificialPCNode && isFunctionTransition))) {
         /*
          * This edge is syntactically reachable, but makes no sense from this
          * state, as it would change function without passing a function entry

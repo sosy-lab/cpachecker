@@ -487,15 +487,18 @@ class AssignmentHandler {
 
       // There are only two cases of assignment to an array
       Preconditions.checkArgument(
-        // Initializing array with a value (possibly nondet), useful for stack declarations and memset implementation
-        rvalue.isValue() && isSimpleType(rvalueType) ||
-        // Array assignment (needed for structure assignment implementation)
-        // Only possible from another array of the same type
-        rvalue.asLocation().isAliased() &&
-        rvalueType instanceof CArrayType &&
-        checkIsSimplified(((CArrayType) rvalueType).getType()).equals(lvalueElementType),
-        "Impossible array assignment due to incompatible types: assignment of %s to %s",
-        rvalueType, lvalueType);
+          // Initializing array with a value (possibly nondet), useful for stack declarations and memset implementation
+          (rvalue.isValue() && isSimpleType(rvalueType))
+              ||
+              // Array assignment (needed for structure assignment implementation)
+              // Only possible from another array of the same type
+              (rvalue.asLocation().isAliased()
+                  && rvalueType instanceof CArrayType
+                  && checkIsSimplified(((CArrayType) rvalueType).getType())
+                      .equals(lvalueElementType)),
+          "Impossible array assignment due to incompatible types: assignment of %s to %s",
+          rvalueType,
+          lvalueType);
 
       OptionalInt lvalueLength = CTypeUtils.getArrayLength(lvalueArrayType);
       // Try to fix the length if it's unknown (or too big)
@@ -532,10 +535,10 @@ class AssignmentHandler {
       // There are two cases of assignment to a structure/union
       if (!(
           // Initialization with a value (possibly nondet), useful for stack declarations and memset implementation
-          rvalue.isValue() && isSimpleType(rvalueType) ||
-          // Structure assignment
-          rvalueType.equals(lvalueType)
-          )) {
+          (rvalue.isValue() && isSimpleType(rvalueType))
+              ||
+              // Structure assignment
+              rvalueType.equals(lvalueType))) {
         throw new UnrecognizedCCodeException("Impossible structure assignment due to incompatible types:"
             + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
       }
@@ -545,18 +548,24 @@ class AssignmentHandler {
         final String memberName = memberDeclaration.getName();
         final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
         // Optimizing away the assignments from uninitialized fields
-        if (conv.isRelevantField(lvalueCompositeType, memberName) &&
-             (!lvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
-              !isSimpleType(newLvalueType) || // That's not a simple assignment, check the nested composite
-               rvalue.isValue() || // This is initialization, so the assignment is mandatory
-               pts.tracksField(lvalueCompositeType, memberName) || // The field is tracked as essential
-               // The variable representing the RHS was used somewhere (i.e. has SSA index)
-               !rvalue.isAliasedLocation() &&
-                 conv.hasIndex(rvalue.asUnaliasedLocation().getVariableName() +
-                            CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
-                            memberName,
-                          newLvalueType,
-                          ssa))) {
+        if (conv.isRelevantField(lvalueCompositeType, memberName)
+            && (
+                // Assignment to a variable, no profit in optimizing it
+                !lvalue.isAliased()
+                || // That's not a simple assignment, check the nested composite
+                !isSimpleType(newLvalueType)
+                || // This is initialization, so the assignment is mandatory
+                rvalue.isValue()
+                || // The field is tracked as essential
+                pts.tracksField(lvalueCompositeType, memberName)
+                || // The variable representing the RHS was used somewhere (i.e. has SSA index)
+                (!rvalue.isAliasedLocation()
+                    && conv.hasIndex(
+                        rvalue.asUnaliasedLocation().getVariableName()
+                            + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
+                            + memberName,
+                        newLvalueType,
+                        ssa)))) {
           final Pair<? extends Location, CType> newLvalue =
                                          shiftCompositeLvalue(lvalue, offset, memberName, memberDeclaration.getType());
           final Pair<? extends Expression, CType> newRvalue =

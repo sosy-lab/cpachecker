@@ -120,10 +120,8 @@ public class Template {
       } else if (Objects.equals(a, Rational.NEG_ONE)
           && Objects.equals(b, Rational.NEG_ONE)) {
         return Kind.NEG_SUM_LOWER_BOUND;
-      } else if (Objects.equals(a, Rational.ONE)
-          && Objects.equals(b, Rational.NEG_ONE)
-          || Objects.equals(a, Rational.NEG_ONE)
-          && Objects.equals(b, Rational.ONE)) {
+      } else if ((Objects.equals(a, Rational.ONE) && Objects.equals(b, Rational.NEG_ONE))
+          || (Objects.equals(a, Rational.NEG_ONE) && Objects.equals(b, Rational.ONE))) {
         return Kind.DIFFERENCE;
       }
     }

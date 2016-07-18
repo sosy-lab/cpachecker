@@ -388,8 +388,10 @@ class DynamicMemoryHandler {
    * @return True, if the expression is a {@code sizeof} expression, false otherwise.
    */
   private static boolean isSizeof(final CExpression e) {
-    return e instanceof CUnaryExpression && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF ||
-           e instanceof CTypeIdExpression && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF;
+    return (e instanceof CUnaryExpression
+            && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF)
+        || (e instanceof CTypeIdExpression
+            && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF);
   }
 
   /**

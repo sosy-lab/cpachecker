@@ -1396,8 +1396,7 @@ public class SMGExpressionEvaluator {
       if (isPointerOp1 && isPointerOp2) {
 
         return value1 != value2;
-      } else if (isPointerOp1 && value2 == 0 ||
-          isPointerOp2 && value1 == 0) {
+      } else if ((isPointerOp1 && value2 == 0) || (isPointerOp2 && value1 == 0)) {
         return value1 != value2;
       } else {
         return pNewState.isInNeq(pValue1, pValue2);

@@ -327,7 +327,7 @@ public class PolicyIterationManager {
     final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState, pArgState);
 
     // Perform reachability checking, for property states, or before the abstractions.
-    if ((hasTargetState && checkTargetStates || shouldPerformAbstraction)
+    if (((hasTargetState && checkTargetStates) || shouldPerformAbstraction)
         && isUnreachable(iState, extraInvariant)) {
 
       logger.log(Level.INFO, "Returning bottom state");
@@ -758,8 +758,8 @@ public class PolicyIterationManager {
       boolean unsignedAndLower = template.isUnsigned() &&
           (template.getKind() == Kind.NEG_LOWER_BOUND ||
               template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
-      if (bound.isPresent() &&
-          !templateToFormulaConversionManager.isOverflowing(template, bound.get())
+      if ((bound.isPresent()
+              && !templateToFormulaConversionManager.isOverflowing(template, bound.get()))
           || unsignedAndLower) {
         Rational boundValue;
         if (bound.isPresent() && unsignedAndLower) {
@@ -1322,8 +1322,8 @@ public class PolicyIterationManager {
       PolicyIntermediateState state1,
       PolicyIntermediateState state2) {
     return state1.isMergedInto(state2)
-        || state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
-        && isLessOrEqualAbstracted(state1.getBackpointerState(), state2.getBackpointerState());
+        || (state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
+            && isLessOrEqualAbstracted(state1.getBackpointerState(), state2.getBackpointerState()));
   }
 
   /**

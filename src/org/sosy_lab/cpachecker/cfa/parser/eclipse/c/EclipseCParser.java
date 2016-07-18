@@ -278,7 +278,7 @@ class EclipseCParser implements CParser {
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
 
-    if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
+    if (!((statements.length == 2 && statements[1] == null) || statements.length == 1)) {
       throw new CParserException("Not exactly one statement in function body: " + pCode);
     }
 

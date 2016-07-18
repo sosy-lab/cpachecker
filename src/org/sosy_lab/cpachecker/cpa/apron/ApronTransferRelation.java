@@ -249,8 +249,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
                                                                                                  left,
                                                                                                  right)))));
           } else {
-            if (left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim)
-                || right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim)) {
+            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
+                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
               Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
               Texpr0BinNode increasedLeft = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
 
@@ -303,8 +303,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         case GREATER_THAN: {
           if (truthAssumption) {
             Tcons0 act;
-            if (left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim)
-                || right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim)) {
+            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
+                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
               Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
               act = new Tcons0(Tcons0.SUP,
                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
@@ -346,8 +346,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         case LESS_THAN: {
           if (truthAssumption) {
             Tcons0 act;
-            if (left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim)
-                || right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim)) {
+            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
+                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
               Texpr0BinNode increasedLeft = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
               act = new Tcons0(Tcons0.SUP,
                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
@@ -373,8 +373,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
         case NOT_EQUALS:  {
           if (truthAssumption) {
-            if (left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim)
-                || right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim)) {
+            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
+                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
               Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
               Texpr0BinNode increasedLeft = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
 

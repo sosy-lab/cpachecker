@@ -234,13 +234,21 @@ public class SignCExpressionVisitor
 
   private SIGN evaluatePlusOperator(SIGN pLeft, CExpression pLeftExp, SIGN pRight, CExpression pRightExp) {
     // Special case: - + 1 => -0, 1 + - => -0
-    if (pLeft == SIGN.MINUS && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
-        || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.MINUS) {
+    if ((pLeft == SIGN.MINUS
+            && (pRightExp instanceof CIntegerLiteralExpression)
+            && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
+        || ((pLeftExp instanceof CIntegerLiteralExpression)
+            && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
+            && pRight == SIGN.MINUS)) {
       return SIGN.MINUS0;
     }
     // Special case: +0 + 1 => +, 1 + +0 => +
-    if (pLeft == SIGN.PLUS0 && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)
-        || (pLeftExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pLeftExp).getValue().equals(BigInteger.ONE) && pRight == SIGN.PLUS0) {
+    if ((pLeft == SIGN.PLUS0
+            && (pRightExp instanceof CIntegerLiteralExpression)
+            && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
+        || ((pLeftExp instanceof CIntegerLiteralExpression)
+            && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
+            && pRight == SIGN.PLUS0)) {
       return SIGN.PLUS;
     }
     SIGN leftToRightResult = evaluateNonCommutativePlusOperator(pLeft, pRight);
@@ -312,8 +320,7 @@ public class SignCExpressionVisitor
     if (left == SIGN.PLUS && right == SIGN.MINUS) {
       return SIGN.MINUS;
     }
-    if (left == SIGN.PLUS && right == SIGN.PLUS
-        || left == SIGN.MINUS && right == SIGN.MINUS) {
+    if ((left == SIGN.PLUS && right == SIGN.PLUS) || (left == SIGN.MINUS && right == SIGN.MINUS)) {
       return SIGN.PLUS;
     }
     return SIGN.EMPTY;

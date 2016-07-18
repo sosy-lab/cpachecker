@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,6 +38,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 
 
 public class ARGBasedPartialReachedSetConstructionAlgorithm extends
@@ -83,8 +83,10 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
       if (!isToAdd && !pNode.isCovered()) {
         if (handlePredicateStates) {
           CFANode loc = AbstractStates.extractLocation(pNode);
-          isToAdd = isPredicateAbstractionState(pNode)
-              || loc.getNumEnteringEdges() > 0 && !(loc instanceof FunctionEntryNode || loc instanceof FunctionExitNode);
+          isToAdd =
+              isPredicateAbstractionState(pNode)
+                  || (loc.getNumEnteringEdges() > 0
+                      && !(loc instanceof FunctionEntryNode || loc instanceof FunctionExitNode));
         } else {
           for (ARGState parent : pNode.getParents()) {
             if (!isTransferSuccessor(parent, pNode)) {

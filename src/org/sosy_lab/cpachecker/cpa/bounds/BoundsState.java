@@ -73,7 +73,9 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
 
   private BoundsState(boolean pStopIt, boolean pStopRec, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, int pDeepestRecursion, String pCurrentFunction, int pReturnFromCounter) {
     Preconditions.checkArgument(pDeepestIteration >= 0);
-    Preconditions.checkArgument(pDeepestIteration == 0 && pIterations.isEmpty() || pDeepestIteration > 0 && !pIterations.isEmpty());
+    Preconditions.checkArgument(
+        (pDeepestIteration == 0 && pIterations.isEmpty())
+            || (pDeepestIteration > 0 && !pIterations.isEmpty()));
     Preconditions.checkArgument(pDeepestRecursion >= 1);
     this.stopIt = pStopIt;
     this.stopRec = pStopRec;

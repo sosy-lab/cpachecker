@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -71,6 +70,7 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
@@ -326,9 +326,9 @@ public final class VariableAndFieldRelevancyComputer {
        int currentSize,
        int pendingSize,
        final boolean forceSquash) {
-         if (currentSize > 0 && pendingSize > currentSize ||
-             currentSize == 0 && pendingSize >= INITIAL_SIZE ||
-             forceSquash) {
+         if ((currentSize > 0 && pendingSize > currentSize)
+             || (currentSize == 0 && pendingSize >= INITIAL_SIZE)
+             || forceSquash) {
            relevantVariables = copy(relevantVariables);
            relevantFields = copy(relevantFields);
            addressedVariables = copy(addressedVariables);
