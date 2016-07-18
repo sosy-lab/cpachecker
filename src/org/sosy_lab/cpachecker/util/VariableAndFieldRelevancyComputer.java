@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
+import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
+import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -74,7 +76,8 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
  *<p>
@@ -98,6 +101,9 @@ import javax.annotation.Nonnull;
  * The class also collects a set of all explicitly addressed variables that is returned by
  * {@link VarFieldDependencies#computeAddressedVariables()}.
  */
+@ParametersAreNonnullByDefault
+@ReturnValuesAreNonnullByDefault
+@FieldsAreNonnullByDefault
 public final class VariableAndFieldRelevancyComputer {
   /** Represents an approximation of a node in dependency graph i.e. variable, field or `top' (unknown location). */
   private abstract static class VariableOrField implements Comparable<VariableOrField> {
@@ -143,11 +149,11 @@ public final class VariableAndFieldRelevancyComputer {
     }
 
     private static final class Variable extends VariableOrField {
-      private Variable(final @Nonnull String scopedName) {
+      private Variable(final String scopedName) {
         this.scopedName = scopedName;
       }
 
-      public @Nonnull String getScopedName() {
+      public String getScopedName() {
         return scopedName;
       }
 
@@ -188,11 +194,11 @@ public final class VariableAndFieldRelevancyComputer {
         return scopedName.hashCode();
       }
 
-      private final @Nonnull String scopedName;
+      private final String scopedName;
     }
 
     private static final class Field extends VariableOrField {
-      private Field(final @Nonnull CCompositeType composite, final @Nonnull String name) {
+      private Field(final CCompositeType composite, final String name) {
         this.composite = composite;
         this.name = name;
       }
@@ -201,12 +207,12 @@ public final class VariableAndFieldRelevancyComputer {
         return composite;
       }
 
-      public @Nonnull String getName() {
+      public String getName() {
         return name;
       }
 
       @Override
-      public @Nonnull String toString() {
+      public String toString() {
         return composite + SCOPE_SEPARATOR + name;
       }
 
@@ -246,22 +252,22 @@ public final class VariableAndFieldRelevancyComputer {
         return prime * composite.hashCode() + name.hashCode();
       }
 
-      private final @Nonnull CCompositeType composite;
-      private final @Nonnull String name;
+      private final CCompositeType composite;
+      private final String name;
     }
 
     private VariableOrField() {
     }
 
-    public static @Nonnull Variable newVariable(final @Nonnull String scopedName) {
+    public static Variable newVariable(final String scopedName) {
       return new Variable(scopedName);
     }
 
-    public static @Nonnull Field newField(final @Nonnull CCompositeType composite, final @Nonnull String name) {
+    public static Field newField(final CCompositeType composite, final String name) {
       return new Field(composite, name);
     }
 
-    public static @Nonnull Unknown unknown() {
+    public static Unknown unknown() {
       return Unknown.INSTANCE;
     }
 
@@ -277,7 +283,7 @@ public final class VariableAndFieldRelevancyComputer {
       return this instanceof Unknown;
     }
 
-    public @Nonnull Variable asVariable() {
+    public Variable asVariable() {
       if (this instanceof Variable) {
         return (Variable) this;
       } else {
@@ -286,7 +292,7 @@ public final class VariableAndFieldRelevancyComputer {
       }
     }
 
-    public @Nonnull Field asField() {
+    public Field asField() {
       if (this instanceof Field) {
         return (Field) this;
       } else {
@@ -306,7 +312,7 @@ public final class VariableAndFieldRelevancyComputer {
 
   public static final class VarFieldDependencies {
     @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
-    private static @Nonnull <T> Set<T> copy(final @Nonnull Set<T> source) {
+    private static <T> Set<T> copy(final Set<T> source) {
       if (source instanceof HashSet) {
         return (Set<T>)((HashSet<T>) source).clone();
       } else {
@@ -314,15 +320,15 @@ public final class VariableAndFieldRelevancyComputer {
       }
     }
 
-    private static @Nonnull <T1, T2> Multimap<T1, T2> copy(final @Nonnull Multimap<T1, T2> source) {
+    private static <T1, T2> Multimap<T1, T2> copy(final Multimap<T1, T2> source) {
       return HashMultimap.create(source);
     }
 
-    private VarFieldDependencies(@Nonnull Set<String> relevantVariables,
-       @Nonnull Multimap<CCompositeType, String> relevantFields,
-       @Nonnull Set<String> addressedVariables,
-       @Nonnull Multimap<VariableOrField, VariableOrField> dependencies,
-       @Nonnull PersistentList<VarFieldDependencies> pendingMerges,
+    private VarFieldDependencies(Set<String> relevantVariables,
+       Multimap<CCompositeType, String> relevantFields,
+       Set<String> addressedVariables,
+       Multimap<VariableOrField, VariableOrField> dependencies,
+       PersistentList<VarFieldDependencies> pendingMerges,
        int currentSize,
        int pendingSize,
        final boolean forceSquash) {
@@ -367,23 +373,23 @@ public final class VariableAndFieldRelevancyComputer {
          this.pendingSize = pendingSize;
      }
 
-    private VarFieldDependencies(final @Nonnull Set<String> relevantVariables,
-        final @Nonnull Multimap<CCompositeType, String> relevantFields,
-        final @Nonnull Set<String> addressedVariables,
-        final @Nonnull Multimap<VariableOrField, VariableOrField> dependencies,
-        final @Nonnull PersistentList<VarFieldDependencies> pendingMerges,
+    private VarFieldDependencies(final Set<String> relevantVariables,
+        final Multimap<CCompositeType, String> relevantFields,
+        final Set<String> addressedVariables,
+        final Multimap<VariableOrField, VariableOrField> dependencies,
+        final PersistentList<VarFieldDependencies> pendingMerges,
         final int currentSize,
         final int pendingSize) {
         this(relevantVariables, relevantFields, addressedVariables, dependencies, pendingMerges,
              currentSize, pendingSize, false);
     }
 
-     public static @Nonnull VarFieldDependencies emptyDependencies() {
+     public static VarFieldDependencies emptyDependencies() {
        return EMPTY_DEPENDENCIES;
      }
 
-     public @Nonnull VarFieldDependencies withDependency(final @Nonnull VariableOrField lhs,
-                                                         final @Nonnull VariableOrField rhs) {
+     public VarFieldDependencies withDependency(final VariableOrField lhs,
+                                                         final VariableOrField rhs) {
        if (!lhs.isUnknown()) {
          final VarFieldDependencies singleDependency =
              new VarFieldDependencies(ImmutableSet.of(),
@@ -427,7 +433,7 @@ public final class VariableAndFieldRelevancyComputer {
        }
      }
 
-     public @Nonnull VarFieldDependencies withAddressedVariable(final @Nonnull VariableOrField.Variable variable) {
+     public VarFieldDependencies withAddressedVariable(final VariableOrField.Variable variable) {
        final VarFieldDependencies singleVariable =
            new VarFieldDependencies(ImmutableSet.of(),
                                     ImmutableMultimap.of(),
@@ -440,7 +446,7 @@ public final class VariableAndFieldRelevancyComputer {
                                        currentSize, pendingSize + 1);
      }
 
-     public @Nonnull VarFieldDependencies withDependencies(final @Nonnull VarFieldDependencies other) {
+     public VarFieldDependencies withDependencies(final VarFieldDependencies other) {
        if (currentSize + pendingSize == 0) {
          return other;
        }
@@ -514,7 +520,7 @@ public final class VariableAndFieldRelevancyComputer {
      private final Multimap<VariableOrField, VariableOrField> dependencies;
      private final PersistentList<VarFieldDependencies> pendingMerges;
      private final int currentSize, pendingSize;
-     private VarFieldDependencies squashed = null;
+     private @Nullable VarFieldDependencies squashed = null;
 
      private static final int INITIAL_SIZE = 500;
      private static final VarFieldDependencies EMPTY_DEPENDENCIES =
@@ -594,12 +600,12 @@ public final class VariableAndFieldRelevancyComputer {
     extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
     implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
 
-    private CollectingRHSVisitor(final @Nonnull VariableOrField lhs, final boolean addressed) {
+    private CollectingRHSVisitor(final VariableOrField lhs, final boolean addressed) {
       this.lhs = lhs;
       this.addressed = addressed;
     }
 
-    public static CollectingRHSVisitor create(final @Nonnull VariableOrField lhs) {
+    public static CollectingRHSVisitor create(final VariableOrField lhs) {
       return new CollectingRHSVisitor(lhs, false);
     }
 
@@ -674,11 +680,11 @@ public final class VariableAndFieldRelevancyComputer {
       return VarFieldDependencies.emptyDependencies();
     }
 
-    private final @Nonnull VariableOrField lhs;
+    private final VariableOrField lhs;
     private final boolean addressed;
   }
 
-  private static CCompositeType getCanonicalFieldOwnerType(final @Nonnull CFieldReference fieldReference) {
+  private static CCompositeType getCanonicalFieldOwnerType(final CFieldReference fieldReference) {
     CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
 
     if (fieldOwnerType instanceof CPointerType) {
