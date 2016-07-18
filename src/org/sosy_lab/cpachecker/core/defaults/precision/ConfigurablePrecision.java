@@ -33,9 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -138,12 +136,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
-      return !(pType instanceof CSimpleType
-                  && (((CSimpleType) pType).getType() == CBasicType.FLOAT
-                      || ((CSimpleType) pType).getType() == CBasicType.DOUBLE)
-              || pType instanceof JSimpleType
-                  && (((JSimpleType) pType).getType() == JBasicType.FLOAT
-                      || ((JSimpleType) pType).getType() == JBasicType.DOUBLE))
+      return !((pType instanceof CSimpleType
+                  && (((CSimpleType) pType).getType().isFloatingPointType()))
+              || (pType instanceof JSimpleType
+                  && (((JSimpleType) pType).getType().isFloatingPointType())))
           && isTracking(pVariable);
     }
   }
