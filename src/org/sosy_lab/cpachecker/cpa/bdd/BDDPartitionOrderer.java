@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /** This Visitor collects a graph of dependencies of partitions.
  * They can be used for ordering variables in the BDD. */
@@ -184,7 +184,7 @@ public class BDDPartitionOrderer {
 
   /** This Visitor collects all assumptionEdges from the CFA.
    * For each assumption only the true-edge is collected. */
-  private class CFAAssumptionCollector extends DefaultCFAVisitor {
+  private static class CFAAssumptionCollector extends DefaultCFAVisitor {
 
     private Collection<CAssumeEdge> assumptions = new ArrayList<>();
 
