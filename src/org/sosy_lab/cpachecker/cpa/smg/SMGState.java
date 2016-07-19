@@ -1251,7 +1251,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // Do not create a value if the read is invalid.
     if (valueAndState.getObject().isUnknown() && valueAndState.getSmgState().invalidRead == false) {
       SMGStateEdgePair stateAndNewEdge;
-      if (valueAndState.getSmgState().heap.isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
+      if (valueAndState.getSmgState().isObjectExternallyAllocated(pObject) && pType.getCanonicalType()
           instanceof CPointerType) {
         SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
