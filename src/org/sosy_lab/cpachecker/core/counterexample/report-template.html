@@ -34,7 +34,6 @@ body {
 }
 
 .sections{
-    position: relative;
     height: 100%;
     padding: 0;
 }
@@ -127,6 +126,7 @@ body {
     border: solid 4px;
     border-color: lightgrey;
     overflow: hidden;
+    position:  relative;
 }
 
 .popover{
@@ -163,15 +163,19 @@ body {
     overflow: auto;
 }
 #externalFiles_section .fileContent {
-    height: 100%;
+    height: calc(100% - 50px);
     width: 100%;
     margin: 5px;
+    position:  relative;
 }
 
 #externalFiles_section div.content {
-    height: calc(100% - 100px); /* 100% - navigation - scrollbar */
-    width: 100%;
     overflow: auto;
+    position:  absolute;
+    top:  50px;
+    bottom: 5px;
+    left: 5px;
+    right:  5px;
 }
 table {
     border-collapse: separate;
