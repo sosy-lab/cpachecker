@@ -121,11 +121,12 @@ body {
 #externalFiles_section{
     float: right;
     width: 75%;
-    height: inherit;
+    height: 100%;
     background-color: white;
     padding: 5px;
     border: solid 4px;
     border-color: lightgrey;
+    overflow: hidden;
 }
 
 .popover{
@@ -162,8 +163,7 @@ body {
     overflow: auto;
 }
 #externalFiles_section .fileContent {
-    position: fixed;
-    height: calc(100% - 50px); /* 100% - Header height */
+    height: 100%;
     width: 100%;
     margin: 5px;
 }
