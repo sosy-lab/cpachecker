@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 import java.io.PrintStream;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
@@ -219,10 +218,10 @@ public class TerminationStatistics implements Statistics {
   }
 
   private static String format(int value) {
-    return String.format(Locale.ROOT, "%5d", value);
+    return String.format("%5d", value);
   }
 
   private static String div(double val, double full) {
-    return String.format(Locale.ROOT, "%8.2f", val/full);
+    return String.format("%8.2f", val / full);
   }
 }

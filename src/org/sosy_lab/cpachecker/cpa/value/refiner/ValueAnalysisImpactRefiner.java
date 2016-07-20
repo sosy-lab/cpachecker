@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -316,7 +315,7 @@ public class ValueAnalysisImpactRefiner
 
   @Override
   protected void printAdditionalStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    pOut.println("Total number of restarts:      " + String.format(Locale.US, "%9d", restartCounter));
+    pOut.println("Total number of restarts:      " + String.format("%9d", restartCounter));
     StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut);
     w.beginLevel()
       .put(timeStrengthen)
