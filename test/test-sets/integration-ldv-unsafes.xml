@@ -67,6 +67,7 @@
       <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--net--wireless--ath--ath9k--ath9k_htc.ko-ldv_main1_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-net--wireless--cfg80211.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main11_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.12-rc1/fs--nilfs2--nilfs2.ko-ldv_main10_false-unreach-label.cil.out.c</exclude>
 
     </tasks>
   </rundefinition>
