@@ -365,7 +365,11 @@ class DynamicMemoryHandler {
         + "_"
         + CToFormulaConverterWithPointerAliasing.getPointerAccessName(type)
         + MALLOC_INDEX_SEPARATOR
-        + conv.makeFreshIndex(functionName, type, ssa);
+        + conv.makeFreshIndex(
+            CToFormulaConverterWithPointerAliasing.SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX
+                + functionName,
+            type,
+            ssa);
   }
 
   /**

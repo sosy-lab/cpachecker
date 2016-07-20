@@ -109,6 +109,11 @@ import javax.annotation.Nullable;
 
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
+  /**
+   * Prefix for marking symbols in the SSAMap that do not need update terms.
+   */
+  static final String SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX = "#";
+
   // Overrides just for visibility in other classes of this package
 
   @SuppressWarnings("hiding")
@@ -244,7 +249,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    if (isPointerAccessSymbol(symbolName)) {
+    if (symbolName.startsWith(SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX)) {
+      return bfmgr.makeTrue();
+    } else if (isPointerAccessSymbol(symbolName)) {
       assert symbolName.equals(getPointerAccessName(symbolType));
       if (options.useArraysForHeap()) {
         return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
