@@ -77,8 +77,7 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeE
 
   @Override
   public Variable visit(CFieldReference e) throws UnrecognizedCCodeException {
-
-    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, cfaEdge);
+    e = e.withExplicitPointerDereference();
 
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {

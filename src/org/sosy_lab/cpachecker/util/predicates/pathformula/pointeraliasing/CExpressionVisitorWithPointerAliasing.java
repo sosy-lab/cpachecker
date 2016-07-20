@@ -289,8 +289,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   @Override
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
-
-    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, edge);
+    e = e.withExplicitPointerDereference();
 
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {

@@ -225,8 +225,7 @@ class LvalueToPointerTargetPatternVisitor
 
   @Override
   public PointerTargetPatternBuilder visit(CFieldReference e) throws UnrecognizedCCodeException {
-
-    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, cfaEdge);
+    e = e.withExplicitPointerDereference();
 
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPatternBuilder result = ownerExpression.accept(this);

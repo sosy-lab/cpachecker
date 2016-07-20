@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -188,34 +187,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   Formula makeBaseAddressOfTerm(final Formula address) {
     return ptsMgr.makePointerDereference("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
-  }
-
-  /**
-   * Eliminates the arrow operator for field references.
-   *
-   * @param e The field reference with arrow operator.
-   * @param edge The current edge in the CFA (or logging purposes).
-   * @return The field reference without the arrow operator.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   */
-  static CFieldReference eliminateArrow(final CFieldReference e, final CFAEdge edge)
-      throws UnrecognizedCCodeException {
-    if (e.isPointerDereference()) {
-      final CType fieldOwnerType = e.getFieldOwner().getExpressionType();
-      if (fieldOwnerType instanceof CPointerType) {
-        return new CFieldReference(e.getFileLocation(),
-                                   e.getExpressionType(),
-                                   e.getFieldName(),
-                                   new CPointerExpression(e.getFieldOwner().getFileLocation(),
-                                                          ((CPointerType) fieldOwnerType).getType(),
-                                                          e.getFieldOwner()),
-                                   false);
-      } else {
-        throw new UnrecognizedCCodeException("Can't dereference a non-pointer in the field reference", edge, e);
-      }
-    } else {
-      return e;
-    }
   }
 
   /**
