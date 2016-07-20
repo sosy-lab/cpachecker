@@ -105,6 +105,30 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
     return isPointerDereference;
   }
 
+  /**
+   * Convert an expression {@code s->m} to the equivalent {@code (*s).m}.
+   * Other expressions are returned unchanged.
+   */
+  public CFieldReference withExplicitPointerDereference() {
+    if (!isPointerDereference) {
+      return this;
+    }
+
+    CType pointerType = owner.getExpressionType().getCanonicalType();
+    CType structType;
+    if (pointerType instanceof CProblemType) {
+      structType = pointerType;
+    } else if (pointerType instanceof CPointerType) {
+      structType = ((CPointerType) pointerType).getType();
+    } else {
+      throw new AssertionError("Pointer dereference of non-pointer in " + this);
+    }
+
+    CExpression pointerDereference = new CPointerExpression(getFileLocation(), structType, owner);
+    return new CFieldReference(
+        getFileLocation(), getExpressionType(), name, pointerDereference, false);
+  }
+
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
     return v.visit(this);

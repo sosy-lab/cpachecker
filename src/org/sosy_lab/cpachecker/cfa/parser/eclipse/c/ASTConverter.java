@@ -942,24 +942,8 @@ class ASTConverter {
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if there is a "var->field" convert it to (*var).field
-    } else if (simplifyPointerExpressions && e.isPointerDereference()) {
-      CType newType = null;
-      CType typeDefType = owner.getExpressionType();
-
-      //unpack typedefs
-      while (typeDefType instanceof CTypedefType) {
-        typeDefType = ((CTypedefType)typeDefType).getRealType();
-      }
-
-      if (typeDefType instanceof CPointerType) {
-        newType = ((CPointerType)typeDefType).getType();
-      } else {
-        throw new CFAGenerationRuntimeException("The owner of the struct with field dereference has an invalid type", owner);
-      }
-
-      CPointerExpression exp = new CPointerExpression(loc, newType, owner);
-
-      return new CFieldReference(loc, fullFieldReference.getExpressionType(), fieldName, exp, false);
+    } else if (simplifyPointerExpressions) {
+      return ((CFieldReference) fullFieldReference).withExplicitPointerDereference();
     }
 
     return (CFieldReference) fullFieldReference;
