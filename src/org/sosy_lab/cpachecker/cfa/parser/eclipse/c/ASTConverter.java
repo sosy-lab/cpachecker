@@ -841,8 +841,13 @@ class ASTConverter {
     final FileLocation loc = getLocation(e);
 
     CType ownerType = owner.getExpressionType().getCanonicalType();
-    while (ownerType instanceof CPointerType) {
-      ownerType = ((CPointerType)ownerType).getType().getCanonicalType();
+    if (e.isPointerDereference()) {
+      if (ownerType instanceof CPointerType) {
+        ownerType = ((CPointerType) ownerType).getType();
+      } else if (!(ownerType instanceof CProblemType)) {
+        throw new CFAGenerationRuntimeException(
+            "Pointer dereference of non-pointer type " + ownerType, e, niceFileNameFunction);
+      }
     }
 
     // In case of an anonymous struct, the type provided by Eclipse
@@ -858,10 +863,9 @@ class ASTConverter {
       fullFieldReference = new CFieldReference(loc,
           typeConverter.convert(e.getExpressionType()), fieldName, owner,
           e.isPointerDereference());
-    } else {
-      assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
-
-      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<>());
+    } else if (ownerType instanceof CCompositeType) {
+      wayToInnerField =
+          getWayToInnerField((CCompositeType) ownerType, fieldName, loc, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         fullFieldReference = owner;
         boolean isPointerDereference = e.isPointerDereference();
@@ -870,8 +874,20 @@ class ASTConverter {
           isPointerDereference = false;
         }
       } else {
-        throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e, niceFileNameFunction);
+        throw new CFAGenerationRuntimeException(
+            "Accessing unknown field " + fieldName + " in type " + ownerType,
+            e,
+            niceFileNameFunction);
       }
+    } else {
+      throw new CFAGenerationRuntimeException(
+          "Cannot access field "
+              + fieldName
+              + " in type "
+              + ownerType
+              + " which is not a composite type",
+          e,
+          niceFileNameFunction);
     }
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
@@ -958,27 +974,24 @@ class ASTConverter {
    * @param allReferences an empty list
    * @return the fields (including the searched one) in the right order
    */
-  private static List<Pair<String, CType>> getWayToInnerField(CType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
-    CType type = owner.getCanonicalType();
-
-    if (type instanceof CCompositeType) {
-      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
-        if (member.getName().equals(fieldName)) {
-          allReferences.add(Pair.of(member.getName(), member.getType()));
-          return allReferences;
-        }
+  private static List<Pair<String, CType>> getWayToInnerField(CCompositeType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
+    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
+      if (member.getName().equals(fieldName)) {
+        allReferences.add(Pair.of(member.getName(), member.getType()));
+        return allReferences;
       }
+    }
 
-      // no field found in current struct, so proceed to the structs/unions which are
-      // fields inside the current struct
-      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
-        if (member.getName().contains("__anon_type_member_")) {
-          List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
-          tmp.add(Pair.of(member.getName(), member.getType()));
-          tmp = getWayToInnerField(member.getType(), fieldName, loc, tmp);
-          if (!tmp.isEmpty()) {
-            return tmp;
-          }
+    // no field found in current struct, so proceed to the structs/unions which are
+    // fields inside the current struct
+    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
+      CType memberType = member.getType().getCanonicalType();
+      if (memberType instanceof CCompositeType && member.getName().contains("__anon_type_member_")) {
+        List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
+        tmp.add(Pair.of(member.getName(), member.getType()));
+        tmp = getWayToInnerField((CCompositeType)memberType, fieldName, loc, tmp);
+        if (!tmp.isEmpty()) {
+          return tmp;
         }
       }
     }
