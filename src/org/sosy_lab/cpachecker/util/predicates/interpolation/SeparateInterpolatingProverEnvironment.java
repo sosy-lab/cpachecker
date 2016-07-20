@@ -30,11 +30,12 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -44,14 +45,17 @@ import java.util.Set;
  * Whenever it is used, it copies the formulas to the interpolation SMT solver
  * and back accordingly.
  */
-public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironmentWithAssumptions<T> {
+public class SeparateInterpolatingProverEnvironment<T>
+    implements InterpolatingProverEnvironment<T> {
 
   private final FormulaManager mainFmgr;
   private final FormulaManager itpFmgr;
-  private final InterpolatingProverEnvironmentWithAssumptions<T> itpEnv;
+  private final InterpolatingProverEnvironment<T> itpEnv;
 
-  public SeparateInterpolatingProverEnvironment(FormulaManager pMainFmgr, FormulaManager pItpFmgr,
-      InterpolatingProverEnvironmentWithAssumptions<T> pItpEnv) {
+  public SeparateInterpolatingProverEnvironment(
+      FormulaManager pMainFmgr,
+      FormulaManager pItpFmgr,
+      InterpolatingProverEnvironment<T> pItpEnv) {
     mainFmgr = checkNotNull(pMainFmgr);
     itpFmgr = checkNotNull(pItpFmgr);
     itpEnv = checkNotNull(pItpEnv);
@@ -84,7 +88,8 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions) throws SolverException, InterruptedException {
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
+      throws SolverException, InterruptedException {
     return itpEnv.isUnsatWithAssumptions(assumptions);
   }
 

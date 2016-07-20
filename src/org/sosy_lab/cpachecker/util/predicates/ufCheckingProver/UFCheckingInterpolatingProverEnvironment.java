@@ -23,31 +23,33 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
-import java.util.List;
-import java.util.Set;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-public class UFCheckingInterpolatingProverEnvironmentWithAssumptions<T>
-    extends UFCheckingBasicProverEnvironment<T>
-    implements InterpolatingProverEnvironmentWithAssumptions<T> {
+public class UFCheckingInterpolatingProverEnvironment<T> extends UFCheckingBasicProverEnvironment<T>
+    implements InterpolatingProverEnvironment<T> {
 
-  private final InterpolatingProverEnvironmentWithAssumptions<T> delegate;
+  private final InterpolatingProverEnvironment<T> delegate;
 
-  public UFCheckingInterpolatingProverEnvironmentWithAssumptions(
-      LogManager pLogger, InterpolatingProverEnvironmentWithAssumptions<T> ipe,
-      FormulaManagerView pFmgr, UFCheckingProverOptions options) {
+  public UFCheckingInterpolatingProverEnvironment(
+      LogManager pLogger,
+      InterpolatingProverEnvironment<T> ipe,
+      FormulaManagerView pFmgr,
+      UFCheckingProverOptions options) {
     super(pLogger, ipe, pFmgr, options);
     this.delegate = ipe;
   }
 
   @Override
-  public boolean isUnsatWithAssumptions(List<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> pAssumptions)
+      throws SolverException, InterruptedException {
     // TODO forward to isUnsat() ??
     return delegate.isUnsatWithAssumptions(pAssumptions);
   }

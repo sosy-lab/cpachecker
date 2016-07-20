@@ -27,25 +27,24 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 /**
  * Model wrapping for InterpolatingProverEnvironment
  */
-class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
-    InterpolatingProverEnvironmentWithAssumptions<E> {
+class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnvironment<E> {
 
-  private final InterpolatingProverEnvironmentWithAssumptions<E> delegate;
+  private final InterpolatingProverEnvironment<E> delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
-  InterpolatingProverEnvironmentWithAssumptionsView(
-      InterpolatingProverEnvironmentWithAssumptions<E> pDelegate,
-      FormulaWrappingHandler pWrappingHandler) {
+  InterpolatingProverEnvironmentView(
+      InterpolatingProverEnvironment<E> pDelegate, FormulaWrappingHandler pWrappingHandler) {
     delegate = pDelegate;
     wrappingHandler = pWrappingHandler;
   }
@@ -111,7 +110,7 @@ class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
   }
 
   @Override
-  public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions)
+  public boolean isUnsatWithAssumptions(Collection<BooleanFormula> assumptions)
       throws SolverException, InterruptedException {
     return delegate.isUnsatWithAssumptions(assumptions);
   }

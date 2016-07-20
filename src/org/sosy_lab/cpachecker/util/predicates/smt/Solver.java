@@ -42,7 +42,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
-import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 import org.sosy_lab.solver.SolverContextFactory;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
@@ -51,7 +51,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
@@ -220,32 +219,28 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
     InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
-
-    InterpolatingProverEnvironmentWithAssumptions<?> ipeA = (InterpolatingProverEnvironmentWithAssumptions<?>) ipe;
 
     if (solvingContext != interpolatingContext) {
       // If interpolatingContext is not the normal solver,
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipeA = new SeparateInterpolatingProverEnvironment<>(
-          solvingContext.getFormulaManager(),
-          interpolatingContext.getFormulaManager(),
-          ipeA
-      );
+      ipe =
+          new SeparateInterpolatingProverEnvironment<>(
+              solvingContext.getFormulaManager(), interpolatingContext.getFormulaManager(), ipe);
     }
 
     if (checkUFs) {
-      ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr, ufCheckingProverOptions);
+      ipe =
+          new UFCheckingInterpolatingProverEnvironment<>(
+              logger, ipe, fmgr, ufCheckingProverOptions);
     }
 
-    ipeA = new InterpolatingProverEnvironmentWithAssumptionsView<>(
-        ipeA,
-        fmgr.getFormulaWrappingHandler());
+    ipe = new InterpolatingProverEnvironmentView<>(ipe, fmgr.getFormulaWrappingHandler());
 
-    return ipeA;
+    return ipe;
   }
 
   /**

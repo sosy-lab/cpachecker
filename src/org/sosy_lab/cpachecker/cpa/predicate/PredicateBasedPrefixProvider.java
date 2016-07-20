@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePre
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +104,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     List<RawInfeasiblePrefix> rawPrefixes;
 
-    try (InterpolatingProverEnvironmentWithAssumptions<?> prover = solver.newProverEnvironmentWithInterpolation()) {
+    try (InterpolatingProverEnvironment<?> prover =
+        solver.newProverEnvironmentWithInterpolation()) {
       rawPrefixes = extractInfeasiblePrefixes(pPath, blockFormulas, prover);
     }
 
@@ -118,8 +119,10 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return infeasiblePrefixes;
   }
 
-  private <T> List<RawInfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath pPath, List<BooleanFormula> blockFormulas,
-      InterpolatingProverEnvironmentWithAssumptions<T> prover)
+  private <T> List<RawInfeasiblePrefix> extractInfeasiblePrefixes(
+      final ARGPath pPath,
+      List<BooleanFormula> blockFormulas,
+      InterpolatingProverEnvironment<T> prover)
       throws CPAException, InterruptedException {
     List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
     List<T> terms = new ArrayList<>(blockFormulas.size());
@@ -212,8 +215,9 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return rawPrefixes;
   }
 
-  private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
-      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException, InterruptedException {
+  private <T> List<BooleanFormula> extractInterpolantSequence(
+      final List<T> pTerms, final InterpolatingProverEnvironment<T> pProver)
+      throws SolverException, InterruptedException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 
