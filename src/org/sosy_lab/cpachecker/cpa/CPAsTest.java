@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompa
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import java.io.IOException;
@@ -176,6 +177,7 @@ public class CPAsTest {
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
+              .set(new SolverFactory(), SolverFactory.class)
               .createInstance();
     } catch (LinkageError e) {
       assume().fail(e.getMessage());

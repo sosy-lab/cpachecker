@@ -117,7 +117,9 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config");
+          "counterexample.checker.config",
+          // LoopstackCPA can be removed from inhering configuration.
+          "cpa.loopstack.loopIterationsBeforeAbstraction");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
