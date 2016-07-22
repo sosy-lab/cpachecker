@@ -82,7 +82,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       ShutdownNotifier shutdownNotifier,
       CFA cfa,
       SolverFactory pSolverFactory
-  ) throws InvalidConfigurationException, CPAException {
+  ) throws InvalidConfigurationException {
     pConfig.inject(this);
 
     logger = pLogger;
