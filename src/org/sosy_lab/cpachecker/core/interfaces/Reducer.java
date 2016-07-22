@@ -30,9 +30,31 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public interface Reducer {
 
+  /**
+   * Return an over-approximation of {@code expandedState},
+   * discarding all information which is not relevant to the block
+   * {@code context}.
+   *
+   * @param expandedState Input state to be reduced.
+   * @param context Block with respect to which the reduction is performed.
+   * @param callNode Function call node for the block.
+   */
   AbstractState getVariableReducedState(AbstractState expandedState, Block context, CFANode callNode)
       throws InterruptedException;
 
+  /**
+   * Perform the oppose of the reduction: return an under-approximation of
+   * the state {@code reducedState} which includes constraints from
+   * {@code rootState}, where all of the added constraints are irrelevant to
+   * {@code reducedContext}.
+   *
+   * @param rootState State which was not reduced, and contains the global
+   *                  information, some of which was reduced before due to
+   *                  its irrelevancy to the block {@code reducedContext}.
+   * @param reducedContext Block with respect to which the reduction was
+   *                       performed.
+   * @param reducedState Input state to be expanded.
+   */
   AbstractState getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState)
       throws InterruptedException;
 
