@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * Linear expression over program variables.
@@ -44,6 +45,16 @@ import java.util.Objects;
 public class Template {
   // todo: switch to MemoryLocation, additionally track type.
   private final LinearExpression<CIdExpression> linearExpression;
+
+  public Stream<String> getUsedVars() {
+    return linearExpression.getMap().keySet()
+        .stream()
+        .map(s -> s.getDeclaration().getQualifiedName());
+  }
+
+  public boolean hasGlobals() {
+    return getUsedVars().filter(s -> !s.contains("::")).findAny().isPresent();
+  }
 
   /**
    * Template type.
