@@ -230,7 +230,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
   /**
    * This method checks if a unsat call is necessary. It the path is not single-block encoded,
-   * then unsatisfiability has to be check always. In case it is single-block encoded,
+   * then unsatisfiability has to be checked always. In case it is single-block encoded,
    * then it suffices to check unsatisfiability at assume edges.
    *
    * @param pPath the path to check
@@ -240,6 +240,14 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   private boolean checkUnsat(final ARGPath pPath, final CFAEdge pCfaEdge) {
     if (!isSingleBlockEncoded(pPath)) {
       return true;
+    }
+
+    // since replacing multi-edges with aggregateBasicBlocks,
+    // (cf. option cpa.composite.aggregateBasicBlocks) there
+    // may be holes in the path, represented by nulls,
+    // therefore the special handling of null is required
+    if (pCfaEdge == null) {
+      return false;
     }
 
     return pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
