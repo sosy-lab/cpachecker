@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -74,14 +75,17 @@ public class CPABuilder {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ReachedSetFactory reachedSetFactory;
+  private final SolverFactory solverFactory;
 
   public CPABuilder(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
+    pConfig.inject(this);
+
     this.config = pConfig;
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
-    config.inject(this);
+    solverFactory = new SolverFactory();
   }
 
   public ConfigurableProgramAnalysis buildCPAs(
@@ -116,6 +120,7 @@ public class CPABuilder {
       factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
       factory.setLogger(logger.withComponentName(cpaAlias));
       factory.set(cfa, CFA.class);
+      factory.set(solverFactory, SolverFactory.class);
       factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
       factory.set(automaton, Automaton.class);
 
@@ -161,6 +166,7 @@ public class CPABuilder {
     factory.setShutdownNotifier(shutdownNotifier);
     factory.set(pAggregatedReachedSets, AggregatedReachedSets.class);
     factory.set(specification, Specification.class);
+    factory.set(solverFactory, SolverFactory.class);
     if (reachedSetFactory != null) {
       factory.set(reachedSetFactory, ReachedSetFactory.class);
     }
