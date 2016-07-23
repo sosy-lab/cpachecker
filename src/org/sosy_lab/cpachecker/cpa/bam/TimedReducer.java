@@ -104,8 +104,8 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
+  public AbstractState getVariableReducedStateForProofChecking(
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
     return wrappedReducer.getVariableReducedStateForProofChecking(pExpandedState, pContext, pCallNode);
 
   }

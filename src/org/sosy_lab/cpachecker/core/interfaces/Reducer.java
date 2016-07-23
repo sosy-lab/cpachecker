@@ -72,12 +72,21 @@ public interface Reducer {
    * (see {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
    * A greater value indicates a bigger difference in the precision.
    * If the implementation of this function is not important, return zero. */
-  int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
+  @SuppressWarnings("unused")
+  default int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return 0;
+  }
 
-  AbstractState getVariableReducedStateForProofChecking(AbstractState expandedState, Block context, CFANode callNode);
+  default AbstractState getVariableReducedStateForProofChecking(
+      AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
+    return getVariableReducedState(expandedState, context, callNode);
+  }
 
-  AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState)
-      throws InterruptedException;
+  default AbstractState getVariableExpandedStateForProofChecking(
+      AbstractState rootState, Block reducedContext, AbstractState reducedState)
+      throws InterruptedException {
+    return getVariableExpandedState(rootState, reducedContext, reducedState);
+  }
 
   /**
    * Use the expandedState as basis for a new state,

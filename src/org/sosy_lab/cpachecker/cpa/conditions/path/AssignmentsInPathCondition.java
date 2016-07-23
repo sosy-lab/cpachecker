@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
-import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -50,8 +49,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of assignments (per identifier)
@@ -201,6 +201,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       return exceedingMemoryLocations;
     }
   }
+
   private class AssignementsInPathConditionReducer implements Reducer {
 
     @Override
@@ -227,23 +228,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     @Override
     public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
       return ((UniqueAssignmentsInPathConditionState)pStateKey).mapping;
-    }
-
-    @Override
-    public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-      return 0;
-    }
-
-    @Override
-    public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-        CFANode pCallNode) {
-      return getVariableReducedState(pExpandedState, pContext, pCallNode);
-    }
-
-    @Override
-    public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-        AbstractState pReducedState) {
-      return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
     }
 
     @Override

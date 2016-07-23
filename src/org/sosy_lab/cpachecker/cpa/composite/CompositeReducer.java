@@ -131,8 +131,8 @@ class CompositeReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
+  public AbstractState getVariableReducedStateForProofChecking(
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
     List<AbstractState> result = new ArrayList<>();
     int i = 0;
     for (AbstractState expandedState : ((CompositeState)pExpandedState).getWrappedStates()) {

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,6 +32,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class BDDReducer implements Reducer {
 
@@ -111,23 +111,6 @@ public class BDDReducer implements Reducer {
   @Override
   public Object getHashCodeForState(AbstractState stateKey, Precision precisionKey) {
     return Pair.of(((BDDState)stateKey).getRegion(), precisionKey);
-  }
-
-  @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
-  }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
-    // TODO what to do?
-    return getVariableReducedState(pExpandedState, pContext, pCallNode);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
-    // TODO what to do?
-    return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
   @Override
