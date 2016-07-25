@@ -80,16 +80,12 @@ public class GlobalInfo {
   }
 
   public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa, PresenceConditionManager pPcManager) {
-    setUpInfoFromCPA(pCpa);
-    pcManager = pPcManager;
-  }
-
-  public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
     cpa = pCpa;
     absManager = null;
     apronManager = null;
     apronLogger = null;
-    pcManager = null;
+
+    pcManager = pPcManager;
 
     if (pCpa != null) {
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(pCpa)) {
@@ -112,7 +108,10 @@ public class GlobalInfo {
         }
       }
     }
+  }
 
+  public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
+    setUpInfoFromCPA(pCpa, new BinaryPresenceConditionManager());
   }
 
   public AutomatonInfo getAutomatonInfo() {
