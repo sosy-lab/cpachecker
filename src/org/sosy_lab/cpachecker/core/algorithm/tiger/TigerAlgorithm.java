@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
@@ -112,6 +113,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -1415,7 +1417,7 @@ public class TigerAlgorithm
           testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
           testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
         } else {
-          // TODO handle path without PresenceConditionManager
+          parseCounterexampleWithBDD(pRemainingGoals, pCex);
         }
       }
 
@@ -1430,12 +1432,47 @@ public class TigerAlgorithm
   }
 
   private PresenceCondition parseCounterexampleWithBDD(Set<Goal> goals, CounterexampleInfo pCex) {
+    ARGCPA cpa = null;
     try {
-      ARGCPA cpa = composeCPA(goals, true);
+      cpa = composeCPA(goals, true);
     } catch (CPAException | InvalidConfigurationException e) {
       logger.logf(Level.WARNING, "CPA for handling features could not be created.");
+
+      return null;
     }
 
+    CFAPathWithAssumptions cfaPath = pCex.getCFAPathWithAssignments();
+
+    assert (cfaPath.size() > 0);
+
+    CFANode initialNode = cfaPath.get(0).getCFAEdge().getPredecessor();
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+
+    AbstractState currentState = cpa.getInitialState(initialNode, partition);
+    Precision currentPrecision = cpa.getInitialPrecision(initialNode, partition);
+
+    for (int i = 0; i < cfaPath.size(); i++) {
+      CFAEdgeWithAssumptions edgeWithAssumptions = cfaPath.get(i);
+      try {
+        Collection<? extends AbstractState> successors =
+            cpa.getTransferRelation().getAbstractSuccessorsForEdge(currentState, currentPrecision,
+                edgeWithAssumptions.getCFAEdge());
+
+        assert (successors.size() == 1);
+
+        currentState = successors.iterator().next();
+      } catch (CPATransferException e) {
+        logger.logf(Level.WARNING,
+            "Failed to get next abstract state when calculating presence conditions for test cases.");
+
+        return null;
+      } catch (InterruptedException e) {
+        logger.logf(Level.WARNING,
+            "Failed to get next abstract state when calculating presence conditions for test cases.");
+
+        return null;
+      }
+    }
 
     return null;
   }
@@ -1672,16 +1709,16 @@ public class TigerAlgorithm
       CompositeCPA argCompositeCpa = (CompositeCPA) oldArgCPA.getWrappedCPAs().iterator().next();
       lComponentAnalyses.addAll(argCompositeCpa.getWrappedCPAs());
 
-      // create BBD CPA for handling features
-      if (useBddForPresenceCondtion) {
+      // create BBDCPA to handle features in a second step after test generation
+      if (addBDDToHandleFeatures) {
         final CPAFactory automataFactory = BDDCPA.factory();
 
         automataFactory.setConfiguration(config);
         automataFactory.setLogger(logger.withComponentName(BDDCPA.class.toString()));
         automataFactory.set(cfa, CFA.class);
+        automataFactory.setShutdownNotifier(mainShutdownManager.getNotifier());
 
         ConfigurableProgramAnalysis bddCpa = automataFactory.createInstance();
-
         lComponentAnalyses.add(bddCpa);
       }
 
