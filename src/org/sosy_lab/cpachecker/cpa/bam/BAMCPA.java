@@ -76,7 +76,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return AutomaticCPAFactory.forType(BAMCPA.class);
   }
 
-  private BlockPartitioning blockPartitioning;
+  private final BlockPartitioning blockPartitioning;
 
   private final LogManager logger;
   private final TimedReducer reducer;
@@ -142,6 +142,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     final BAMCache cache = new BAMCache(config, reducer, logger);
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
+    heuristic = blockHeuristic.create(pLogger, pCfa);
+    blockPartitioning = buildBlockPartitioning(pCfa);
+
     if (handleRecursiveProcedures) {
 
       if (cfa.getVarClassification().isPresent() && !cfa.getVarClassification().get().getRelevantFields().isEmpty()) {
@@ -149,43 +152,64 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.", cfa.getMainFunction().getLeavingEdge(0));
       }
 
-      transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
+      transfer =
+          new BAMTransferRelationWithFixPointForRecursion(
+              config,
+              logger,
+              this,
+              wrappedProofChecker,
+              data,
+              pShutdownNotifier,
+              blockPartitioning);
       stop = new BAMStopOperatorForRecursion(pCpa.getStopOperator(), transfer);
     } else {
-      transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
+      transfer =
+          new BAMTransferRelation(
+              config,
+              logger,
+              this,
+              wrappedProofChecker,
+              data,
+              pShutdownNotifier,
+              blockPartitioning);
       stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
     }
 
-    prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), data, transfer, logger);
+    prec =
+        new BAMPrecisionAdjustment(
+            pCpa.getPrecisionAdjustment(), data, transfer, logger, blockPartitioning);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
 
     stats = new BAMCPAStatistics(this, data, config, logger);
-    heuristic = blockHeuristic.create(pLogger, pCfa);
+  }
+
+  private BlockPartitioning buildBlockPartitioning(CFA pCfa) {
+    BlockPartitioningBuilder blockBuilder;
+    if (useExtendedPartitioningBuilder) {
+      blockBuilder = new ExtendedBlockPartitioningBuilder();
+    } else {
+      blockBuilder = new BlockPartitioningBuilder();
+    }
+    BlockPartitioning partitioning =
+        heuristic.buildPartitioning(pCfa.getMainFunction(), blockBuilder);
+
+    if (exportBlocksPath != null) {
+      BlockToDotWriter writer = new BlockToDotWriter(partitioning);
+      writer.dump(exportBlocksPath, logger);
+    }
+
+    BAMPredicateCPA predicateCpa =
+        ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(BAMPredicateCPA.class);
+    if (predicateCpa != null) {
+      predicateCpa.setPartitioning(partitioning);
+    }
+
+    return partitioning;
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    if (blockPartitioning == null) {
-      BlockPartitioningBuilder blockBuilder;
-      if (useExtendedPartitioningBuilder) {
-        blockBuilder = new ExtendedBlockPartitioningBuilder();
-      } else {
-        blockBuilder = new BlockPartitioningBuilder();
-      }
-      blockPartitioning = heuristic.buildPartitioning(pNode, blockBuilder);
-
-      if (exportBlocksPath != null) {
-        BlockToDotWriter writer = new BlockToDotWriter(blockPartitioning);
-        writer.dump(exportBlocksPath, logger);
-      }
-
-      transfer.setBlockPartitioning(blockPartitioning);
-
-      BAMPredicateCPA predicateCpa = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(BAMPredicateCPA.class);
-      if (predicateCpa != null) {
-        predicateCpa.setPartitioning(blockPartitioning);
-      }
-    }
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     return getWrappedCpa().getInitialState(pNode, pPartition);
   }
 
@@ -229,7 +253,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return super.getWrappedCpa();
   }
 
-  BlockPartitioning getBlockPartitioning() {
+  public BlockPartitioning getBlockPartitioning() {
     Preconditions.checkNotNull(blockPartitioning);
     return blockPartitioning;
   }

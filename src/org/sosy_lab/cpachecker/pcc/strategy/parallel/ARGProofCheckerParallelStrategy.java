@@ -127,7 +127,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       for (int i = 0; i < args.length - 2; i++) {
         bamState = (BAMARGBlockStartState) args[i];
         block =
-            ((BAMCPA) checker).getTransferRelation().getBlockPartitioning()
+            ((BAMCPA) checker)
+                .getBlockPartitioning()
                 .getBlockForCallNode(AbstractStates.extractLocation(bamState));
 
         // traverse

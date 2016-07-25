@@ -101,7 +101,7 @@ public class BAMTransferRelation implements TransferRelation {
   final BAMDataManager data;
 
   protected Block currentBlock;
-  protected BlockPartitioning partitioning;
+  protected final BlockPartitioning partitioning;
   protected int depth = 0;
   protected final List<Triple<AbstractState, Precision, Block>> stack = new ArrayList<>();
 
@@ -122,9 +122,15 @@ public class BAMTransferRelation implements TransferRelation {
 
   boolean breakAnalysis = false;
 
-  public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
-                             ProofChecker wrappedChecker,
-      BAMDataManager pData, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public BAMTransferRelation(
+      Configuration pConfig,
+      LogManager pLogger,
+      BAMCPA bamCpa,
+      ProofChecker wrappedChecker,
+      BAMDataManager pData,
+      ShutdownNotifier pShutdownNotifier,
+      BlockPartitioning pPartitioning)
+      throws InvalidConfigurationException {
     logger = pLogger;
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
     callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
@@ -134,17 +140,9 @@ public class BAMTransferRelation implements TransferRelation {
     bamCPA = bamCpa;
     wrappedProofChecker = wrappedChecker;
     data = pData;
+    partitioning = pPartitioning;
 
     assert wrappedReducer != null;
-  }
-
-  void setBlockPartitioning(BlockPartitioning pManager) {
-    partitioning = pManager;
-  }
-
-  public BlockPartitioning getBlockPartitioning() {
-    assert partitioning != null;
-    return partitioning;
   }
 
   @Override

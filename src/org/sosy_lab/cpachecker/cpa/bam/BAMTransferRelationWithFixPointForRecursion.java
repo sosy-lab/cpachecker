@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -74,10 +75,16 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private boolean targetFound = false;
   final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
 
-  public BAMTransferRelationWithFixPointForRecursion(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
-                             ProofChecker wrappedChecker, BAMDataManager data, ShutdownNotifier pShutdownNotifier)
-                                 throws InvalidConfigurationException {
-    super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier);
+  public BAMTransferRelationWithFixPointForRecursion(
+      Configuration pConfig,
+      LogManager pLogger,
+      BAMCPA bamCpa,
+      ProofChecker wrappedChecker,
+      BAMDataManager data,
+      ShutdownNotifier pShutdownNotifier,
+      BlockPartitioning pPartitioning)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier, pPartitioning);
     pConfig.inject(this);
   }
 

@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.logging.Level;
+import com.google.common.base.Function;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -35,8 +36,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Function;
 import java.util.Optional;
+import java.util.logging.Level;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -44,13 +45,19 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   private final BAMTransferRelation trans;
   private final BAMDataManager data;
   private final LogManager logger;
+  private final BlockPartitioning blockPartitioning;
 
-  public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment,
-      BAMDataManager pData, BAMTransferRelation pTransfer, LogManager pLogger) {
+  public BAMPrecisionAdjustment(
+      PrecisionAdjustment pWrappedPrecisionAdjustment,
+      BAMDataManager pData,
+      BAMTransferRelation pTransfer,
+      LogManager pLogger,
+      BlockPartitioning pBlockPartitioning) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
     this.data = pData;
     this.trans = pTransfer;
     this.logger = pLogger;
+    this.blockPartitioning = pBlockPartitioning;
   }
 
   @Override
@@ -67,7 +74,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     final Precision validPrecision;
     if (data.expandedStateToExpandedPrecision.containsKey(pElement)) {
       assert AbstractStates.isTargetState(pElement)
-          || trans.getBlockPartitioning().isReturnNode(AbstractStates.extractLocation(pElement));
+          || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement));
       validPrecision = data.expandedStateToExpandedPrecision.get(pElement);
     } else {
       validPrecision = pPrecision;
