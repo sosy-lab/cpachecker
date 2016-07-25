@@ -862,6 +862,9 @@ cpa.arg.keepCoveredStatesInReached = false
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
 
+# export final ARG as .dot file
+cpa.arg.reached.file = "reached-arg.txt"
+
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
 
@@ -897,6 +900,7 @@ cpa.arg.witness.exportThreadId = false
 
 # Adjust the automaton transitions
 cpa.automaton.adjustAutomatonTransitions = true
+cpa.automaton.adjustment.variabilityAware = false
 
 # signal the analysis to break in case the given number of error state is
 # reached 
@@ -993,6 +997,12 @@ cpa.bdd.bitsize = 64
 
 # use a smaller bitsize for all vars, that have only intEqual values
 cpa.bdd.compressIntEqual = true
+
+# Store the BDD states as DOT files?
+cpa.bdd.dump.enabled = true
+
+# Target for storing the BDD states as DOT files
+cpa.bdd.dump.file = "BDD_%d.dot"
 
 # declare the bits of a var from 0 to N or from N to 0
 cpa.bdd.initBitsIncreasing = true
@@ -1495,6 +1505,9 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# Identified required precision elements during the analysis.
+cpa.predicate.eagerPrecisionMinining = false
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -1647,6 +1660,10 @@ cpa.predicate.memoryFreeFunctionName = "free"
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
+
+# whitelist regex for variables that will always be tracked by the CPA using
+# this precision
+cpa.predicate.mining.variableWhitelist = ""
 
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added
