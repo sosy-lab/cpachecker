@@ -131,6 +131,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import javax.annotation.Nullable;
+import javax.management.JMException;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -155,12 +158,10 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
-import javax.management.JMException;
-
 @Options(prefix = "tiger")
 public class TigerAlgorithm
-    implements Algorithm, AlgorithmWithResult, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
+    implements Algorithm, AlgorithmWithResult, PrecisionCallback<PredicatePrecision>,
+    StatisticsProvider, Statistics {
 
   private class TigerStatistics extends AbstractStatistics {
 
@@ -189,12 +190,14 @@ public class TigerAlgorithm
       pOut.append("  Time for initializing the reached set " + initializeReachedSetTime + "\n");
       pOut.append("  Time for initializing the algorithm " + initializeAlgorithmTime + "\n");
       pOut.append("  Time for running the CPA algorithm " + runAlgorithmTime + "\n");
-      pOut.append("    Time for running the CPA algorithm with limit " + runAlgorithmWithLimitTime + "\n");
+      pOut.append(
+          "    Time for running the CPA algorithm with limit " + runAlgorithmWithLimitTime + "\n");
       pOut.append("    Time for handling infeasible goals " + handleInfeasibleTestGoalTime + "\n");
       pOut.append("    Time for restricting the BDD " + restrictBddTime + "\n");
       pOut.append("    Time for adding a test to the suite " + addTestToSuiteTime + "\n");
       pOut.append("      Time for creating a test case " + createTestcaseTime + "\n");
-      pOut.append("      Time for updating the test coverage " + updateTestsuiteByCoverageOfTime + "\n");
+      pOut.append(
+          "      Time for updating the test coverage " + updateTestsuiteByCoverageOfTime + "\n");
       pOut.append("        Time for checking acceptance " + acceptsTime + "\n");
     }
 
@@ -204,19 +207,31 @@ public class TigerAlgorithm
 
   public static String originalMainFunction = null;
 
-  @Option(secure = true, name = "fqlQuery", description = "Coverage criterion given as an FQL query")
+  @Option(
+      secure = true,
+      name = "fqlQuery",
+      description = "Coverage criterion given as an FQL query")
   private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
 
-  @Option(secure = true, name = "optimizeGoalAutomata", description = "Optimize the test goal automata")
+  @Option(
+      secure = true,
+      name = "optimizeGoalAutomata",
+      description = "Optimize the test goal automata")
   private boolean optimizeGoalAutomata = true;
 
   @Option(secure = true, name = "printARGperGoal", description = "Print the ARG for each test goal")
   private boolean dumpARGperPartition = false;
 
-  @Option(secure = true, name = "useAutomataCrossProduct", description = "Compute the cross product of the goal automata?")
+  @Option(
+      secure = true,
+      name = "useAutomataCrossProduct",
+      description = "Compute the cross product of the goal automata?")
   private boolean useAutomataCrossProduct = false;
 
-  @Option(secure = true, name = "useMarkingAutomata", description = "Compute the cross product of the goal automata?")
+  @Option(
+      secure = true,
+      name = "useMarkingAutomata",
+      description = "Compute the cross product of the goal automata?")
   private boolean useMarkingAutomata = false;
 
   @Option(
@@ -225,13 +240,22 @@ public class TigerAlgorithm
       description = "Checks whether a test case for one goal covers another test goal")
   private boolean checkCoverage = true;
 
-  @Option(secure = true, name = "usePowerset", description = "Construct the powerset of automata states.")
+  @Option(
+      secure = true,
+      name = "usePowerset",
+      description = "Construct the powerset of automata states.")
   private boolean usePowerset = false;
 
-  @Option(secure = true, name = "useComposite", description = "Handle all automata CPAs as one composite CPA.")
+  @Option(
+      secure = true,
+      name = "useComposite",
+      description = "Handle all automata CPAs as one composite CPA.")
   private boolean useComposite = false;
 
-  @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
+  @Option(
+      secure = true,
+      name = "testsuiteFile",
+      description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
 
@@ -310,6 +334,12 @@ public class TigerAlgorithm
 
   @Option(
       secure = true,
+      name = "useBddForPresenceCondtion",
+      description = "Use BDDCPA to model product line presence conditions.")
+  public boolean useBddForPresenceCondtion = false;
+
+  @Option(
+      secure = true,
       name = "useOmegaLabel",
       description = "Inserts the omega label at the end of each test goal automaton to enforce the tiger algorithm to generate only test cases from counterexamples that reach the end of the program.")
   public boolean useOmegaLabel = true;
@@ -350,7 +380,10 @@ public class TigerAlgorithm
       description = "Writes all target state path formulas for a goal in a file.")
   private boolean printPathFormulasPerGoal = false;
 
-  @Option(secure = true, name = "pathFormulasFile", description = "Filename for output of path formulas")
+  @Option(
+      secure = true,
+      name = "pathFormulasFile",
+      description = "Filename for output of path formulas")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pathFormulaFile = Paths.get("pathFormulas.txt");
 
@@ -400,7 +433,7 @@ public class TigerAlgorithm
       Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
       ShutdownManager pShutdownManager, CFA pCfa, Configuration pConfig, LogManager pLogger,
       String pProgramDenotation, ReachedSetFactory pReachedSetFactory, MainCPAStatistics pMainStats)
-          throws InvalidConfigurationException {
+      throws InvalidConfigurationException {
 
     reachedSetFactory = pReachedSetFactory;
     programDenotation = pProgramDenotation;
@@ -430,7 +463,8 @@ public class TigerAlgorithm
 
     assert TigerAlgorithm.originalMainFunction != null;
     mCoverageSpecificationTranslator =
-        new CoverageSpecificationTranslator(pCfa.getFunctionHead(TigerAlgorithm.originalMainFunction));
+        new CoverageSpecificationTranslator(
+            pCfa.getFunctionHead(TigerAlgorithm.originalMainFunction));
 
     wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
 
@@ -438,10 +472,10 @@ public class TigerAlgorithm
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
     mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
-   edgeToTgaMapping = new HashMap<>();
-   targetStateFormulas = new HashMap<>();
+    edgeToTgaMapping = new HashMap<>();
+    targetStateFormulas = new HashMap<>();
 
-   testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, mAlphaLabel,
+    testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, mAlphaLabel,
         mInverseAlphaLabel, mOmegaLabel);
 
     // get internal representation of FQL query
@@ -491,7 +525,8 @@ public class TigerAlgorithm
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // we empty pReachedSet to stop complaints of an incomplete analysis
     // Problem: pReachedSet does not match the internal CPA structure!
-    logger.logf(Level.INFO, "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
+    logger.logf(Level.INFO,
+        "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
     outsideReachedSet = pReachedSet;
@@ -501,10 +536,13 @@ public class TigerAlgorithm
     testsuite.setGenerationStartTime(getCpuTime());
 
     // Optimization: Infeasibility propagation
-    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation =
+        initializeInfisabilityPropagation();
 
-    Set<Goal> goalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
-        lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata, useOmegaLabel, useTigerAlgorithm_with_pc);
+    Set<Goal> goalsToCover =
+        testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
+            lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata,
+            useOmegaLabel, useTigerAlgorithm_with_pc);
     fillEdgeToTgaMapping(goalsToCover);
 
     statistics_numberOfTestGoals = goalsToCover.size();
@@ -523,7 +561,7 @@ public class TigerAlgorithm
     }
 
     // TODO: change testGeneration() such that it returns timedout if there was a timeout
-//    assert (!testsuite.getTimedOutGoals().isEmpty() ? goalsToCover.isEmpty() : true);
+    //    assert (!testsuite.getTimedOutGoals().isEmpty() ? goalsToCover.isEmpty() : true);
 
     // Write generated test suite and mapping to file system
     dumpTestSuite();
@@ -573,7 +611,8 @@ public class TigerAlgorithm
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
 
     if (useInfeasibilityPropagation) {
-      lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
+      lInfeasibilityPropagation =
+          InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
     } else {
       lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
     }
@@ -584,7 +623,8 @@ public class TigerAlgorithm
   private ImmutableSet<Goal> nextTestGoalSet(Set<Goal> pGoalsToCover, TestSuite pSuite) {
     final int testGoalSetSize = (numberOfTestGoalsPerRun <= 0)
         ? pGoalsToCover.size()
-        : (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
+        : (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun
+            : pGoalsToCover.size();
 
     Builder<Goal> builder = ImmutableSet.<Goal> builder();
 
@@ -602,7 +642,7 @@ public class TigerAlgorithm
 
   private boolean testGeneration(Set<Goal> pGoalsToCover,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
-          throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
 
     try (StatCpuTimer t = tigerStats.testGenerationTime.start()) {
       boolean wasSound = true;
@@ -620,7 +660,8 @@ public class TigerAlgorithm
           if (timeoutIncrement > 0) {
             long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
             cpuTimelimitPerGoal += timeoutIncrement;
-            logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.", oldCPUTimeLimitPerGoal,
+            logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.",
+                oldCPUTimeLimitPerGoal,
                 cpuTimelimitPerGoal);
             Collection<Entry<Integer, Pair<Goal, PresenceCondition>>> set;
             if (useOrder) {
@@ -673,8 +714,8 @@ public class TigerAlgorithm
           logString = logString.substring(0, logString.length() - 2);
 
           if (useTigerAlgorithm_with_pc) {
-//            Region remainingPresenceCondition =
-//                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
+            //            Region remainingPresenceCondition =
+            //                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
             logger.logf(Level.INFO, "%s of %d for a PC.", logString, numberOfTestGoals);
           } else {
             logger.logf(Level.INFO, "%s of %d.", logString, numberOfTestGoals);
@@ -721,7 +762,8 @@ public class TigerAlgorithm
 
           // goal is uncovered so far; run CPAchecker to cover it
           ReachabilityAnalysisResult result =
-              runReachabilityAnalysis(pGoalsToCover, goalsToBeProcessed, previousAutomaton, pInfeasibilityPropagation);
+              runReachabilityAnalysis(pGoalsToCover, goalsToBeProcessed, previousAutomaton,
+                  pInfeasibilityPropagation);
           if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
             logger.logf(Level.WARNING, "Analysis run was unsound!");
             wasSound = false;
@@ -736,7 +778,8 @@ public class TigerAlgorithm
           retry = false;
         } else {
           if (!timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
-            logger.logf(Level.INFO, "There were timed out goals but retry after timeout strategy is disabled.");
+            logger.logf(Level.INFO,
+                "There were timed out goals but retry after timeout strategy is disabled.");
           } else {
             retry = true;
           }
@@ -747,7 +790,8 @@ public class TigerAlgorithm
     }
   }
 
-  @Nullable private ARGState findStateAfterCriticalEdge(Goal pCriticalForGoal, ARGPath pPath) {
+  @Nullable
+  private ARGState findStateAfterCriticalEdge(Goal pCriticalForGoal, ARGPath pPath) {
     PathIterator it = pPath.pathIterator();
 
     final CFAEdge criticalEdge = pCriticalForGoal.getCriticalEdge();
@@ -755,7 +799,8 @@ public class TigerAlgorithm
     while (it.hasNext()) {
       if (it.getOutgoingEdge().equals(criticalEdge)) {
         ARGState afterCritical = it.getNextAbstractState();
-        while (it.hasNext() && AbstractStates.extractLocation(it.getNextAbstractState()) instanceof WeavingLocation) {
+        while (it.hasNext() && AbstractStates
+            .extractLocation(it.getNextAbstractState()) instanceof WeavingLocation) {
           it.advance();
           afterCritical = it.getNextAbstractState();
           Preconditions.checkState(afterCritical != null);
@@ -797,8 +842,7 @@ public class TigerAlgorithm
 
             f.add(formulas);
           }
-        } catch (CPAException | InterruptedException e) {
-        }
+        } catch (CPAException | InterruptedException e) {}
 
         return new HashSet<>();
       }
@@ -832,7 +876,8 @@ public class TigerAlgorithm
         Goal goal = acceptStatus.goal;
 
         if (acceptStatus.answer.equals(ThreeValuedAnswer.UNKNOWN)) {
-          logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!",
+          logger.logf(Level.WARNING,
+              "Coverage check for goal %d could not be performed in a precise way!",
               goal.getIndex());
           continue;
         } else if (acceptStatus.answer.equals(ThreeValuedAnswer.REJECT)) {
@@ -862,20 +907,23 @@ public class TigerAlgorithm
 
             throw new RuntimeException(String.format(
                 "Each ARG path of a counterexample must be along a critical edge! Goal %d has "
-                    + "none for edge '%s'", goal.getIndex(), goal.getCriticalEdge().toString()));
+                    + "none for edge '%s'",
+                goal.getIndex(), goal.getCriticalEdge().toString()));
           }
 
           Preconditions.checkState(criticalState != null,
               "Each ARG path of a counterexample must be along a critical edge!");
 
-          PresenceCondition statePresenceCondition = PresenceConditions.extractPresenceCondition(criticalState);
+          PresenceCondition statePresenceCondition =
+              PresenceConditions.extractPresenceCondition(criticalState);
           statePresenceCondition = pcm().removeMarkerVariables(statePresenceCondition);
 
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
 
           if (allCoveredGoalsPerTestCase
-              || pcm().checkConjunction(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition)) {
+              || pcm().checkConjunction(testsuite.getRemainingPresenceCondition(goal),
+                  statePresenceCondition)) {
 
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
 
@@ -904,14 +952,17 @@ public class TigerAlgorithm
     }
   }
 
-  private List<BooleanFormula> getPathFormula(ARGPath pPath) throws CPAException, InterruptedException {
+  private List<BooleanFormula> getPathFormula(ARGPath pPath)
+      throws CPAException, InterruptedException {
     List<BooleanFormula> formulas = null;
 
     Refiner refiner = this.refiner;
 
     if (refiner instanceof PredicateCPARefiner) {
-      final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(pPath);
-      formulas = ((PredicateCPARefiner) refiner).createFormulasOnPath(pPath, abstractionStatesTrace);
+      final List<ARGState> abstractionStatesTrace =
+          PredicateCPARefiner.filterAbstractionStates(pPath);
+      formulas =
+          ((PredicateCPARefiner) refiner).createFormulasOnPath(pPath, abstractionStatesTrace);
     }
 
     return formulas;
@@ -953,14 +1004,16 @@ public class TigerAlgorithm
       for (Goal goal : pGoals) {
         AcceptStatus acceptStatus = new AcceptStatus(goal);
         map.put(goal.getAutomaton(), acceptStatus);
-        if (acceptStatus.automaton.getFinalStates().contains(acceptStatus.automaton.getInitialState())) {
+        if (acceptStatus.automaton.getFinalStates()
+            .contains(acceptStatus.automaton.getInitialState())) {
           acceptStatus.answer = ThreeValuedAnswer.ACCEPT;
           automataWithResult.add(acceptStatus.automaton);
         }
       }
 
       for (CFAEdge lCFAEdge : pErrorPath) {
-        List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automata = edgeToTgaMapping.get(lCFAEdge);
+        List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automata =
+            edgeToTgaMapping.get(lCFAEdge);
         if (automata == null) {
           continue;
         }
@@ -984,7 +1037,8 @@ public class TigerAlgorithm
               } else {
                 if (lLabel.contains(lCFAEdge)) {
                   lNextStates.add(lOutgoingEdge.getTarget());
-                  lNextStates.addAll(getSuccsessorsOfEmptyTransitions(automaton, lOutgoingEdge.getTarget()));
+                  lNextStates.addAll(
+                      getSuccsessorsOfEmptyTransitions(automaton, lOutgoingEdge.getTarget()));
 
                   for (State nextState : lNextStates) {
                     // Automaton accepts as soon as it sees a final state (implicit self-loop)
@@ -1020,9 +1074,11 @@ public class TigerAlgorithm
     }
   }
 
-  private static Collection<? extends State> getSuccsessorsOfEmptyTransitions(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, State pState) {
+  private static Collection<? extends State> getSuccsessorsOfEmptyTransitions(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, State pState) {
     Set<State> states = new HashSet<>();
-    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getOutgoingEdges(pState)) {
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton
+        .getOutgoingEdges(pState)) {
       GuardedEdgeLabel label = edge.getLabel();
       if (Pattern.matches("E\\d+ \\[\\]", label.toString())) {
         states.add(edge.getTarget());
@@ -1037,8 +1093,9 @@ public class TigerAlgorithm
     TIMEOUT
   }
 
-  private PresenceConditionManager createPresenceConditionManager (ConfigurableProgramAnalysis pCpa) {
-    if (useTigerAlgorithm_with_pc) {
+  private PresenceConditionManager createPresenceConditionManager(
+      ConfigurableProgramAnalysis pCpa) {
+    if (useTigerAlgorithm_with_pc && useBddForPresenceCondtion) {
       BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
       if (bddCpa != null) {
         return new RegionPresenceConditionManager(bddCpa.getManager());
@@ -1059,8 +1116,8 @@ public class TigerAlgorithm
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    ARGCPA cpa = composeCPA(pTestGoalsToBeProcessed);
-    PresenceConditionManager pcm =  createPresenceConditionManager(cpa);
+    ARGCPA cpa = composeCPA(pTestGoalsToBeProcessed, false);
+    PresenceConditionManager pcm = createPresenceConditionManager(cpa);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa, pcm);
 
     Preconditions.checkState(cpa.getWrappedCPAs().get(0) instanceof CompositeCPA,
@@ -1073,8 +1130,9 @@ public class TigerAlgorithm
     initializeReachedSet(cpa);
     //    }
 
-    PresenceCondition presenceConditionToCover = PresenceConditions.composeRemainingPresenceConditions(
-        pTestGoalsToBeProcessed, testsuite);
+    PresenceCondition presenceConditionToCover =
+        PresenceConditions.composeRemainingPresenceConditions(
+            pTestGoalsToBeProcessed, testsuite);
 
     ShutdownManager shutdownManager =
         ShutdownManager.createWithParent(mainShutdownManager.getNotifier());
@@ -1094,7 +1152,7 @@ public class TigerAlgorithm
       final PresenceCondition pRemainingPresenceCondition,
       final ShutdownManager pShutdownNotifier,
       final Algorithm pAlgorithm)
-          throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     try (StatCpuTimer t = tigerStats.runAlgorithmTime.start()) {
 
       ReachabilityAnalysisResult algorithmStatus;
@@ -1139,12 +1197,15 @@ public class TigerAlgorithm
 
               Set<Goal> fullyCoveredGoals = null;
               if (allCoveredGoalsPerTestCase) {
-                fullyCoveredGoals = addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
+                fullyCoveredGoals =
+                    addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
               } else if (checkCoverage) {
                 fullyCoveredGoals =
-                    addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi, pInfeasibilityPropagation);
+                    addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi,
+                        pInfeasibilityPropagation);
               } else {
-                fullyCoveredGoals = addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
+                fullyCoveredGoals =
+                    addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
               }
               pUncoveredGoals.removeAll(fullyCoveredGoals);
             }
@@ -1154,7 +1215,8 @@ public class TigerAlgorithm
 
             if (useTigerAlgorithm_with_pc) {
               PresenceCondition remainingPC =
-                  PresenceConditions.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, testsuite);
+                  PresenceConditions.composeRemainingPresenceConditions(pTestGoalsToBeProcessed,
+                      testsuite);
               restrictBdd(remainingPC);
             }
             // Exclude covered goals from further exploration
@@ -1196,24 +1258,24 @@ public class TigerAlgorithm
   }
 
   private void dumpArgForCex(CounterexampleInfo cexi) {
-//    Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId)  + ".dot");
-//    try (Writer w = Files.openOutputFile(argFile)) {
-//      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
-//      allTargetPathEdges.addAll(cexi.getTargetPath().getStatePairs());
-//
-//      ARGToDotWriter.write(w, AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class),
-//          ARGUtils.CHILDREN_OF_STATE,
-//          Predicates.alwaysTrue(),
-//          Predicates.in(allTargetPathEdges));
-//    } catch (IOException e) {
-//      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-//    }
+    //    Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId)  + ".dot");
+    //    try (Writer w = Files.openOutputFile(argFile)) {
+    //      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+    //      allTargetPathEdges.addAll(cexi.getTargetPath().getStatePairs());
+    //
+    //      ARGToDotWriter.write(w, AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class),
+    //          ARGUtils.CHILDREN_OF_STATE,
+    //          Predicates.alwaysTrue(),
+    //          Predicates.in(allTargetPathEdges));
+    //    } catch (IOException e) {
+    //      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+    //    }
   }
 
   private ReachabilityAnalysisResult runAlgorithmWithLimit(
       final ShutdownManager algNotifier,
       final Algorithm algorithm)
-          throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     try (StatCpuTimer t = tigerStats.runAlgorithmWithLimitTime.start()) {
 
       ReachabilityAnalysisResult algorithmStatus;
@@ -1226,7 +1288,8 @@ public class TigerAlgorithm
         }
       } else {
         // run algorithm with time limit
-        WorkerRunnable workerRunnable = new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
+        WorkerRunnable workerRunnable =
+            new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
 
         Thread workerThread = new Thread(workerRunnable);
 
@@ -1257,15 +1320,18 @@ public class TigerAlgorithm
     logger.logf(Level.INFO, "Restrict global BDD. FIXME!!!");
   }
 
-  private Algorithm initializeAlgorithm(PresenceCondition pRemainingPresenceCondition, ARGCPA lARTCPA,
+  private Algorithm initializeAlgorithm(PresenceCondition pRemainingPresenceCondition,
+      ARGCPA lARTCPA,
       ShutdownManager algNotifier) throws CPAException {
     try (StatCpuTimer t = tigerStats.initializeAlgorithmTime.start()) {
 
       Algorithm algorithm;
       try {
-        Configuration internalConfiguration = Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
+        Configuration internalConfiguration =
+            Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
 
-        CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier.getNotifier());
+        CoreComponentsFactory coreFactory =
+            new CoreComponentsFactory(internalConfiguration, logger, algNotifier.getNotifier());
 
         algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, mainStats);
 
@@ -1305,8 +1371,10 @@ public class TigerAlgorithm
       }
       reachedSet = reachedSetFactory.create();
 
-      AbstractState initialState = pArgCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      Precision initialPrec = pArgCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      AbstractState initialState =
+          pArgCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      Precision initialPrec = pArgCPA.getInitialPrecision(cfa.getMainFunction(),
+          StateSpacePartition.getDefaultPartition());
 
       reachedSet.add(initialState, initialPrec);
       outsideReachedSet.add(initialState, initialPrec);
@@ -1330,7 +1398,7 @@ public class TigerAlgorithm
    */
   private Set<Goal> addTestToSuite(Set<Goal> pRemainingGoals,
       CounterexampleInfo pCex, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
-          throws InterruptedException {
+      throws InterruptedException {
     try (StatCpuTimer t = tigerStats.addTestToSuiteTime.start()) {
 
       Preconditions.checkNotNull(pInfeasibilityPropagation);
@@ -1343,8 +1411,12 @@ public class TigerAlgorithm
 
       PresenceCondition testCasePresenceCondition = null;
       if (useTigerAlgorithm_with_pc) {
-        testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
-        testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
+        if (useBddForPresenceCondtion) {
+          testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
+          testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
+        } else {
+          // TODO handle path without PresenceConditionManager
+        }
       }
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
@@ -1357,7 +1429,19 @@ public class TigerAlgorithm
     }
   }
 
-  private TestCase createTestcase(final CounterexampleInfo pCex, final PresenceCondition pPresenceCondition) {
+  private PresenceCondition parseCounterexampleWithBDD(Set<Goal> goals, CounterexampleInfo pCex) {
+    try {
+      ARGCPA cpa = composeCPA(goals, true);
+    } catch (CPAException | InvalidConfigurationException e) {
+      logger.logf(Level.WARNING, "CPA for handling features could not be created.");
+    }
+
+
+    return null;
+  }
+
+  private TestCase createTestcase(final CounterexampleInfo pCex,
+      final PresenceCondition pPresenceCondition) {
     try (StatCpuTimer t = tigerStats.createTestcaseTime.start()) {
 
       CFAPathWithAssumptions model = pCex.getCFAPathWithAssignments();
@@ -1372,7 +1456,8 @@ public class TigerAlgorithm
           getCpuTime());
 
       if (useTigerAlgorithm_with_pc) {
-        logger.logf(Level.INFO, "Generated new test case %d with a PC in the last state.", testcase.getId());
+        logger.logf(Level.INFO, "Generated new test case %d with a PC in the last state.",
+            testcase.getId());
       } else {
         logger.logf(Level.INFO, "Generated new test case %d.", testcase.getId());
       }
@@ -1403,7 +1488,8 @@ public class TigerAlgorithm
 
             String variableName = exp.getOperand1().toString();
             BigInteger value = new BigInteger(exp.getOperand2().toString());
-            VariableAssignment input = new VariableAssignment(variableName, value, AssignmentType.INPUT);
+            VariableAssignment input =
+                new VariableAssignment(variableName, value, AssignmentType.INPUT);
             curStep.addAssignment(input);
 
             lastValueWasOuput = false;
@@ -1414,7 +1500,8 @@ public class TigerAlgorithm
 
             String variableName = exp.getOperand1().toString();
             BigInteger value = new BigInteger(exp.getOperand2().toString());
-            VariableAssignment input = new VariableAssignment(variableName, value, AssignmentType.OUTPUT);
+            VariableAssignment input =
+                new VariableAssignment(variableName, value, AssignmentType.OUTPUT);
             curStep.addAssignment(input);
 
             lastValueWasOuput = true;
@@ -1430,14 +1517,16 @@ public class TigerAlgorithm
     return testSteps;
   }
 
-  private void handleInfeasibleTestGoal(Goal pGoal, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+  private void handleInfeasibleTestGoal(Goal pGoal,
+      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
     try (StatCpuTimer t = tigerStats.handleInfeasibleTestGoalTime.start()) {
       if (lGoalPrediction != null) {
         lGoalPrediction[pGoal.getIndex() - 1] = Prediction.INFEASIBLE;
       }
 
       if (useTigerAlgorithm_with_pc) {
-        testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal), lGoalPrediction);
+        testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal),
+            lGoalPrediction);
         logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
       } else {
         logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
@@ -1484,11 +1573,10 @@ public class TigerAlgorithm
   }
 
   private void dumpAutomaton(Automaton pA) {
-    if (dumpGoalAutomataTo == null) {
-      return;
-    }
+    if (dumpGoalAutomataTo == null) { return; }
 
-    try (Writer w = MoreFiles.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()), Charset.defaultCharset())) {
+    try (Writer w = MoreFiles.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()),
+        Charset.defaultCharset())) {
 
       pA.writeDotFile(w);
 
@@ -1497,7 +1585,8 @@ public class TigerAlgorithm
     }
   }
 
-  private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed) throws CPAException, InvalidConfigurationException {
+  private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed, boolean addBDDToHandleFeatures)
+      throws CPAException, InvalidConfigurationException {
     try (StatCpuTimer t = tigerStats.composeCPATime.start()) {
 
       Preconditions.checkArgument(cpa instanceof ARGCPA,
@@ -1521,9 +1610,11 @@ public class TigerAlgorithm
         if (useAutomataCrossProduct) {
           final Automaton productAutomaton;
           try {
-            logger.logf(Level.INFO, "Computing the cross product of %d automata.", pGoalsToBeProcessed.size());
+            logger.logf(Level.INFO, "Computing the cross product of %d automata.",
+                pGoalsToBeProcessed.size());
             productAutomaton = ReducedAutomatonProduct.productOf(goalAutomata, "GOAL_PRODUCT");
-            logger.logf(Level.INFO, "Cross product with %d states.", productAutomaton.getStates().size());
+            logger.logf(Level.INFO, "Cross product with %d states.",
+                productAutomaton.getStates().size());
           } catch (InvalidAutomatonException e) {
             throw new CPAException("One of the automata is invalid!", e);
           }
@@ -1535,7 +1626,8 @@ public class TigerAlgorithm
         }
       }
 
-      logger.logf(Level.INFO, "Analyzing %d test goals with %d observer automata.", pGoalsToBeProcessed.size(),
+      logger.logf(Level.INFO, "Analyzing %d test goals with %d observer automata.",
+          pGoalsToBeProcessed.size(),
           componentAutomata.size());
 
       List<ConfigurableProgramAnalysis> automataCPAs = Lists.newArrayList();
@@ -1546,7 +1638,8 @@ public class TigerAlgorithm
             ? PowersetAutomatonCPA.factory()
             : ControlAutomatonCPA.factory();
 
-        automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, componentAutomaton.getName()));
+        automataFactory.setConfiguration(
+            Configuration.copyWithNewPrefix(config, componentAutomaton.getName()));
         automataFactory.setLogger(logger.withComponentName(componentAutomaton.getName()));
         automataFactory.set(cfa, CFA.class);
         automataFactory.set(componentAutomaton, Automaton.class);
@@ -1574,9 +1667,23 @@ public class TigerAlgorithm
       }
 
       // Add the old composite components
-      Preconditions.checkState(oldArgCPA.getWrappedCPAs().iterator().next() instanceof CompositeCPA);
+      Preconditions
+          .checkState(oldArgCPA.getWrappedCPAs().iterator().next() instanceof CompositeCPA);
       CompositeCPA argCompositeCpa = (CompositeCPA) oldArgCPA.getWrappedCPAs().iterator().next();
       lComponentAnalyses.addAll(argCompositeCpa.getWrappedCPAs());
+
+      // create BBD CPA for handling features
+      if (useBddForPresenceCondtion) {
+        final CPAFactory automataFactory = BDDCPA.factory();
+
+        automataFactory.setConfiguration(config);
+        automataFactory.setLogger(logger.withComponentName(BDDCPA.class.toString()));
+        automataFactory.set(cfa, CFA.class);
+
+        ConfigurableProgramAnalysis bddCpa = automataFactory.createInstance();
+
+        lComponentAnalyses.add(bddCpa);
+      }
 
       final ARGCPA result;
 
@@ -1615,25 +1722,38 @@ public class TigerAlgorithm
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
-    pOut.println("Number of test cases:                              " + testsuite.getNumberOfTestCases());
-    pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
-    pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
+    pOut.println(
+        "Number of test cases:                              " + testsuite.getNumberOfTestCases());
+    pOut.println(
+        "Number of test goals:                              " + statistics_numberOfTestGoals);
+    pOut.println("Number of processed test goals:                    "
+        + statistics_numberOfProcessedTestGoals);
 
-   if (useTigerAlgorithm_with_pc) {
-      pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
-      pOut.println("Number of partially feasible test goals:           " + testsuite.getNumberOfPartiallyFeasibleTestGoals());
-      pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
-      pOut.println("Number of partially infeasible test goals:         " + testsuite.getNumberOfPartiallyInfeasibleTestGoals());
-      pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
-      pOut.println("Number of partially timedout test goals:           " + testsuite.getNumberOfPartiallyTimedOutTestGoals());
+    if (useTigerAlgorithm_with_pc) {
+      pOut.println("Number of feasible test goals:                     "
+          + testsuite.getNumberOfFeasibleTestGoals());
+      pOut.println("Number of partially feasible test goals:           "
+          + testsuite.getNumberOfPartiallyFeasibleTestGoals());
+      pOut.println("Number of infeasible test goals:                   "
+          + testsuite.getNumberOfInfeasibleTestGoals());
+      pOut.println("Number of partially infeasible test goals:         "
+          + testsuite.getNumberOfPartiallyInfeasibleTestGoals());
+      pOut.println("Number of timedout test goals:                     "
+          + testsuite.getNumberOfTimedoutTestGoals());
+      pOut.println("Number of partially timedout test goals:           "
+          + testsuite.getNumberOfPartiallyTimedOutTestGoals());
 
-      if (testsuite.getNumberOfTimedoutTestGoals() > 0 || testsuite.getNumberOfPartiallyTimedOutTestGoals() > 0) {
+      if (testsuite.getNumberOfTimedoutTestGoals() > 0
+          || testsuite.getNumberOfPartiallyTimedOutTestGoals() > 0) {
         pOut.println("Timeout occured during processing of a test goal!");
       }
     } else {
-      pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
-      pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
-      pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+      pOut.println("Number of feasible test goals:                     "
+          + testsuite.getNumberOfFeasibleTestGoals());
+      pOut.println("Number of infeasible test goals:                   "
+          + testsuite.getNumberOfInfeasibleTestGoals());
+      pOut.println("Number of timedout test goals:                     "
+          + testsuite.getNumberOfTimedoutTestGoals());
 
       if (testsuite.getNumberOfTimedoutTestGoals() > 0) {
         pOut.println("Timeout occured during processing of a test goal!");
@@ -1650,7 +1770,8 @@ public class TigerAlgorithm
 
     // write test case generation times to file system
     if (testcaseGenerationTimesFile != null) {
-      try (Writer writer = MoreFiles.openOutputFile(testcaseGenerationTimesFile, Charset.defaultCharset())) {
+      try (Writer writer =
+          MoreFiles.openOutputFile(testcaseGenerationTimesFile, Charset.defaultCharset())) {
 
         List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
         Collections.sort(testcases, new Comparator<TestCase>() {
@@ -1659,7 +1780,8 @@ public class TigerAlgorithm
           public int compare(TestCase pTestCase1, TestCase pTestCase2) {
             if (pTestCase1.getGenerationTime() > pTestCase2.getGenerationTime()) {
               return 1;
-            } else if (pTestCase1.getGenerationTime() < pTestCase2.getGenerationTime()) { return -1; }
+            } else if (pTestCase1.getGenerationTime() < pTestCase2
+                .getGenerationTime()) { return -1; }
             return 0;
           }
         });
@@ -1695,7 +1817,8 @@ public class TigerAlgorithm
             partiallyCoveredGoals += newPartiallyCoveredGoals;
 
             writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
-                + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals + ";"
+                + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals
+                + ";"
                 + partiallyCoveredGoals + "\n");
           }
         } else {
@@ -1703,7 +1826,8 @@ public class TigerAlgorithm
           writer.write("Test Case;Generation Time;Covered Goals After Generation\n");
           for (TestCase testCase : testcases) {
             coveredGoals.addAll(testsuite.getTestGoalsCoveredByTestCase(testCase));
-            writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";" + coveredGoals.size() + "\n");
+            writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
+                + coveredGoals.size() + "\n");
           }
         }
       } catch (IOException e) {
