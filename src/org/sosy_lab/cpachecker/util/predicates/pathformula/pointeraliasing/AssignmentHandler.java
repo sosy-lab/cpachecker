@@ -361,12 +361,12 @@ class AssignmentHandler {
       final List<CExpressionAssignmentStatement> pAssignments,
       final CExpressionVisitorWithPointerAliasing pRhsVisitor)
       throws UnrecognizedCCodeException {
-    Value tmp = null;
+    Expression tmp = null;
     for (CExpressionAssignmentStatement assignment : pAssignments) {
       if (tmp == null) {
-        tmp = assignment.getRightHandSide().accept(pRhsVisitor).asValue();
+        tmp = assignment.getRightHandSide().accept(pRhsVisitor);
       }
-      if (!tmp.equals(assignment.getRightHandSide().accept(pRhsVisitor).asValue())) {
+      if (!tmp.equals(assignment.getRightHandSide().accept(pRhsVisitor))) {
         return false;
       }
     }
