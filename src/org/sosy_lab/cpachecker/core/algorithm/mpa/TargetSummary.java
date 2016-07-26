@@ -69,11 +69,13 @@ public class TargetSummary {
       stateSummary.violatedProperties = AbstractStates.extractViolatedProperties(e, Property.class);
       stateSummary.presenceCondition = getPresenceCondition(e);
 
-      String presenceConditionText = stateSummary.presenceCondition.toString();
+      final String presenceConditionText;
 
-      PresenceConditionManager pcMgr = GlobalInfo.getInstance().getPresenceConditionManager();
       if (stateSummary.presenceCondition.isPresent()) {
+        PresenceConditionManager pcMgr = GlobalInfo.getInstance().getPresenceConditionManager();
         presenceConditionText = pcMgr.dump(stateSummary.presenceCondition.get()).toString();
+      } else {
+        presenceConditionText = "ANY";
       }
 
       result.targetStateSummaries.add(stateSummary);
