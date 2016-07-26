@@ -35,14 +35,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -73,6 +65,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+
+import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
+import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /**
  * Creates {@link Lasso}s from {@link CounterexampleInfo}.
@@ -207,23 +207,24 @@ public class LassoBuilder {
 
     ImmutableList.Builder<Lasso> lassos = ImmutableList.builder();
     for (BooleanFormula stem : stemDnf) {
-      for (BooleanFormula loop : loopDnf) {
-        shutdownNotifier.shutdownIfNecessary();
+      if (!isUnsat(stem)) {
 
-        BooleanFormula path = formulaManagerView.makeAnd(stem, loop);
-        if (!isUnsat(path)) {
+        for (BooleanFormula loop : loopDnf) {
+          shutdownNotifier.shutdownIfNecessary();
+          if (!isUnsat(loop)) {
 
-          LinearTransition stemTransition =
-              createLinearTransition(
-                  stem,
-                  stemRankVars);
-          LinearTransition loopTransition =
-              createLinearTransition(
-                  loop,
-                  loopRankVars);
+            LinearTransition stemTransition =
+                createLinearTransition(
+                    stem,
+                    stemRankVars);
+            LinearTransition loopTransition =
+                createLinearTransition(
+                    loop,
+                    loopRankVars);
 
-          Lasso lasso = new Lasso(stemTransition, loopTransition);
-          lassos.add(lasso);
+            Lasso lasso = new Lasso(stemTransition, loopTransition);
+            lassos.add(lasso);
+          }
         }
       }
     }
