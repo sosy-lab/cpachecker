@@ -2996,6 +2996,9 @@ tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
 # Compute the cross product of the goal automata?
 tiger.useAutomataCrossProduct = false
 
+# Use BDDCPA to model product line presence conditions.
+tiger.useBddForPresenceCondtion = false
+
 # Handle all automata CPAs as one composite CPA.
 tiger.useComposite = false
 
