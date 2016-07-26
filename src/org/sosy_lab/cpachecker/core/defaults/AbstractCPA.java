@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   private final AbstractDomain abstractDomain;
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
+  private final String mergeType;
+  private final String stopType;
   private final TransferRelation transferRelation;
 
   protected AbstractCPA(String mergeType, String stopType, TransferRelation transfer) {
@@ -52,15 +52,8 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
 
-    if (mergeType.equalsIgnoreCase("join")) {
-      mergeOperator = new MergeJoinOperator(abstractDomain);
-    } else {
-      assert mergeType.equalsIgnoreCase("sep");
-      mergeOperator = MergeSepOperator.getInstance();
-    }
-
-    assert stopType.equalsIgnoreCase("sep");
-    stopOperator = new StopSepOperator(abstractDomain);
+    this.mergeType = mergeType.toUpperCase();
+    this.stopType = stopType.toUpperCase();
 
     this.transferRelation = transfer;
   }
@@ -77,7 +70,20 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return buildMergeOperator(mergeType);
+  }
+
+  private MergeOperator buildMergeOperator(String pMergeType) {
+    switch (pMergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+
+      case "JOIN":
+        return new MergeJoinOperator(abstractDomain);
+
+      default:
+        throw new AssertionError("unknown merge operator");
+    }
   }
 
   @Override
@@ -87,7 +93,23 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return buildStopOperator(stopType);
+  }
+
+  private StopOperator buildStopOperator(String pStopType) throws AssertionError {
+    switch (pStopType) {
+      case "SEP":
+        return new StopSepOperator(abstractDomain);
+
+      case "JOIN":
+        return new StopJoinOperator(abstractDomain);
+
+      case "NEVER":
+        return new StopNeverOperator();
+
+      default:
+        throw new AssertionError("unknown stop operator");
+    }
   }
 
   @Override
