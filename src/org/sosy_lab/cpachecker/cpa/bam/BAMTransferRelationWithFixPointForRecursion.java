@@ -202,7 +202,14 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       final Triple<AbstractState, Precision, Block> currentLevel)
     throws CPAException, InterruptedException {
 
+    int i = 0;
     for (Triple<AbstractState, Precision, Block> level : stack) {
+
+      // Iterate from the beginning to the second last element of the stack.
+      if (i == stack.size() - 1) {
+        break;
+      }
+
       if (level.getThird() == currentLevel.getThird()
               // && level.getSecond().equals(currentLevel.getSecond())
               && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
@@ -213,6 +220,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         // TODO how to compare precisions? equality would be enough
         return level;
       }
+      i++;
     }
     return null;
   }

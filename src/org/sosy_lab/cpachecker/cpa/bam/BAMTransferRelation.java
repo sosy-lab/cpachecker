@@ -291,7 +291,7 @@ public class BAMTransferRelation implements TransferRelation {
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
     final Triple<AbstractState, Precision, Block> currentLevel = Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
-    stack.add(currentLevel);
+    stack.push(currentLevel);
     logger.log(Level.FINEST, "current Stack:", stack);
 
     final Collection<? extends AbstractState> resultStates = analyseBlockAndExpand(
@@ -447,7 +447,13 @@ public class BAMTransferRelation implements TransferRelation {
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
-    data.bamCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, reducedResult, rootOfBlock);
+    data.bamCache.put(
+        reducedInitialState,
+        reached.getPrecision(reached.getFirstState()),
+        currentBlock,
+        reducedResult,
+        rootOfBlock
+    );
 
     return imbueAbstractStatesWithPrecision(reached, statesForFurtherAnalysis);
   }
