@@ -25,30 +25,12 @@ package org.sosy_lab.cpachecker.cpa.cfapath;
 
 import org.sosy_lab.common.annotations.Unmaintained;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Unmaintained
-public class CFAPathCPA implements ConfigurableProgramAnalysis {
-
-  private final CFAPathDomain mDomain;
-  private final CFAPathTransferRelation mTransferRelation;
-  private final PrecisionAdjustment mPrecisionAdjustment;
-  private final Precision mPrecision;
-  private final CFAPathStandardState mInitialState;
-  private final StopOperator mStopOperator;
-  private final MergeOperator mMergeOperator;
+public class CFAPathCPA extends AbstractCPA {
 
   private static final CFAPathCPA sInstance = new CFAPathCPA();
 
@@ -57,48 +39,11 @@ public class CFAPathCPA implements ConfigurableProgramAnalysis {
   }
 
   public CFAPathCPA() {
-    mDomain = CFAPathDomain.getInstance();
-    mTransferRelation = new CFAPathTransferRelation();
-    mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    mPrecision = SingletonPrecision.getInstance();
-    mInitialState = CFAPathStandardState.getEmptyPath();
-    mStopOperator = StopNeverOperator.getInstance();
-    mMergeOperator = MergeSepOperator.getInstance();
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return mDomain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return mTransferRelation;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return mMergeOperator;
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return mStopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return mPrecisionAdjustment;
+    super("SEP", "NEVER", CFAPathDomain.getInstance(), new CFAPathTransferRelation());
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return mInitialState;
+    return CFAPathStandardState.getEmptyPath();
   }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return mPrecision;
-  }
-
 }
