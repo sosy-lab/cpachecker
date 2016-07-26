@@ -35,7 +35,6 @@ import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import java.io.IOException;
@@ -338,14 +337,10 @@ public class Automaton {
 
       if (followState.isTarget()) { // add the safety properties of a target state
         if (!transition.getViolatedWhenAssertionFailed().isEmpty()) {
-          for (SafetyProperty property : transition.getViolatedWhenAssertionFailed()) {
-            foundProperties.add(property);
-          }
+          foundProperties.addAll(transition.getViolatedWhenAssertionFailed());
         }
         if (!transition.getViolatedWhenEnteringTarget().isEmpty()) {
-          for (SafetyProperty property : transition.getViolatedWhenEnteringTarget()) {
-            foundProperties.add(property);
-          }
+          foundProperties.addAll(transition.getViolatedWhenEnteringTarget());
         }
       }
 
