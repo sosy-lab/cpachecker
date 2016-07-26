@@ -124,10 +124,14 @@ public class BAMCache {
     blockARGCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
-  /** This function returns a Pair of the reached-set and the returnStates for the given keys.
+  /**
+   * This function returns a Pair of the reached-set and the returnStates for the given keys.
    * Both members of the returned Pair are NULL, if there is a cache miss.
    * For a partial cache hit we return the partly computed reached-set and NULL as returnStates. */
-  public Pair<ReachedSet, Collection<AbstractState>> get(final AbstractState stateKey, final Precision precisionKey, final Block context) {
+  public Pair<ReachedSet, Collection<AbstractState>> get(
+      final AbstractState stateKey,
+      final Precision precisionKey,
+      final Block context) {
 
     final Pair<ReachedSet, Collection<AbstractState>> pair = get0(stateKey, precisionKey, context);
     Preconditions.checkNotNull(pair);
@@ -153,9 +157,12 @@ public class BAMCache {
     return pair;
   }
 
-  private Pair<ReachedSet, Collection<AbstractState>> get0(final AbstractState stateKey, final Precision precisionKey, final Block context) {
-    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
+  private Pair<ReachedSet, Collection<AbstractState>> get0(
+      final AbstractState stateKey,
+      final Precision precisionKey,
+      final Block context) {
 
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     ReachedSet result = preciseReachedCache.get(hash);
     if (result != null) {
       setLastAnalyzedBlock(hash);
@@ -166,19 +173,29 @@ public class BAMCache {
     if (aggressiveCaching) {
       result = unpreciseReachedCache.get(hash);
       if (result != null) {
-        AbstractStateHash unpreciseHash = getHashCode(stateKey, result.getPrecision(result.getFirstState()), context);
+        AbstractStateHash unpreciseHash = getHashCode(
+            stateKey,
+            result.getPrecision(result.getFirstState()),
+            context);
+
         setLastAnalyzedBlock(unpreciseHash);
         logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, directly from cache");
         return Pair.of(result, returnCache.get(unpreciseHash));
       }
 
-      //search for similar entry
-      Pair<ReachedSet, Collection<AbstractState>> pair = lookForSimilarState(stateKey, precisionKey, context);
+      // Search for similar entry.
+      Pair<ReachedSet, Collection<AbstractState>> pair = lookForSimilarState(
+          stateKey, precisionKey, context);
+
       if (pair != null) {
         //found similar element, use this
         unpreciseReachedCache.put(hash, pair.getFirst());
-        setLastAnalyzedBlock(getHashCode(stateKey, pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
-                context));
+        setLastAnalyzedBlock(
+            getHashCode(
+                stateKey,
+                pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
+                context)
+        );
         logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, searched in cache");
         return pair;
       }
@@ -199,8 +216,10 @@ public class BAMCache {
     return lastAnalyzedBlock;
   }
 
-  private Pair<ReachedSet, Collection<AbstractState>> lookForSimilarState(AbstractState pStateKey,
-                                                                          Precision pPrecisionKey, Block pContext) {
+  private Pair<ReachedSet, Collection<AbstractState>> lookForSimilarState(
+      AbstractState pStateKey,
+      Precision pPrecisionKey,
+      Block pContext) {
     searchingTimer.start();
     try {
       int min = Integer.MAX_VALUE;

@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -66,8 +65,10 @@ import org.sosy_lab.cpachecker.util.Triple;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,7 +104,7 @@ public class BAMTransferRelation implements TransferRelation {
   protected Block currentBlock;
   protected final BlockPartitioning partitioning;
   protected int depth = 0;
-  protected final List<Triple<AbstractState, Precision, Block>> stack = new ArrayList<>();
+  protected final Deque<Triple<AbstractState, Precision, Block>> stack = new LinkedList<>();
 
   protected final LogManager logger;
   private final CPAAlgorithmFactory algorithmFactory;
@@ -147,16 +148,19 @@ public class BAMTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-          final AbstractState pState, final Precision pPrecision)
-          throws CPATransferException, InterruptedException {
+      final AbstractState pState, final Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     try {
 
-    final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+      final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
 
-    assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1 :
-            "target-state should be returned as single-element-collection";
+      assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1 :
+          "target-state should be returned as single-element-collection";
 
-    return attachAdditionalInfoToCallNodes(successors);
+      if (PCCInformation.isPCCEnabled()) {
+        return attachAdditionalInfoToCallNodes(successors);
+      }
+      return successors;
 
     } catch (CPAException e) {
       throw new RecursiveAnalysisFailedException(e);
@@ -174,13 +178,14 @@ public class BAMTransferRelation implements TransferRelation {
     // we are at some location inside the program,
     // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
     // (except we have a full cache-hit).
-
     if (exitBlockAnalysis(pState, node)) {
-      // we are leaving the block, do not perform analysis beyond the current block.
+
+      // We are leaving the block, do not perform analysis beyond the current block.
       return Collections.emptySet();
     }
 
     if (startNewBlockAnalysis(pState, node)) {
+
       // we are at the entryNode of a new block and we are in a new context,
       // so we have to start a recursive analysis
       logger.log(Level.FINEST, "Starting recursive analysis of depth", ++depth);
@@ -243,7 +248,8 @@ public class BAMTransferRelation implements TransferRelation {
       // If only LoopBlocks are used, we can have recursive Loops, too.
 
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
-        for (Block block : Lists.transform(stack, Triple::getThird)) {
+        for (Triple<AbstractState, Precision, Block> triple : stack) {
+          Block block  = triple.getThird();
           if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;
           }
@@ -253,9 +259,18 @@ public class BAMTransferRelation implements TransferRelation {
     return false;
   }
 
-  /** Enters a new block and performs a new analysis or returns result from cache. */
+  /**
+   * Enters a new block and performs a new analysis or returns result from cache.
+   *
+   * <p>Postcondition: sets the {@code currentBlock} variable to the currently
+   * processed block.
+   *
+   * <p>Postcondition: pushes the current recursive level on the {@code stack}.
+   **/
   protected Collection<? extends AbstractState> doRecursiveAnalysis(
-          final AbstractState initialState, final Precision pPrecision, final CFANode node)
+          final AbstractState initialState,
+          final Precision pPrecision,
+          final CFANode node)
           throws CPAException, InterruptedException  {
 
     //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
@@ -282,7 +297,7 @@ public class BAMTransferRelation implements TransferRelation {
     final Collection<? extends AbstractState> resultStates = analyseBlockAndExpand(
         initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
-    final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
+    final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
     assert lastLevel.equals(currentLevel);
     currentBlock = outerSubtree;
 
@@ -297,7 +312,11 @@ public class BAMTransferRelation implements TransferRelation {
     return block.getCallNodes().size() == 1 && block.getCallNode() instanceof FunctionEntryNode;
   }
 
-  /** Analyse block, return expanded exit-states. */
+  /**
+   * Analyse block, return expanded exit-states.
+   *
+   * <p>Breaks if {@code breakAnalysis} was set by the callees.
+   * */
   protected Collection<AbstractState> analyseBlockAndExpand(
           final AbstractState entryState, final Precision precision, final Block outerSubtree,
           final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
@@ -306,7 +325,9 @@ public class BAMTransferRelation implements TransferRelation {
     final Collection<Pair<AbstractState, Precision>> reducedResult =
             getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
 
-    addBlockAnalysisInfo(reducedInitialState);
+    if (PCCInformation.isPCCEnabled()) {
+      addBlockAnalysisInfo(reducedInitialState);
+    }
 
     if (breakAnalysis) {
       // analysis aborted, so lets abort here too
@@ -318,7 +339,10 @@ public class BAMTransferRelation implements TransferRelation {
     return expandResultStates(reducedResult, outerSubtree, entryState, precision);
   }
 
-  /** This function returns expanded states for all reduced states and updates the caches. */
+  /**
+   * This function returns expanded states for all reduced states and updates
+   * the caches.
+   * */
   protected List<AbstractState> expandResultStates(
           final Collection<Pair<AbstractState, Precision>> reducedResult,
           final Block outerSubtree, final AbstractState state, final Precision precision)
@@ -350,19 +374,24 @@ public class BAMTransferRelation implements TransferRelation {
     return expandedResult;
   }
 
-  /** Analyse the block starting at node with initialState.
-   * If there is a result in the cache, it is used,
-   * otherwise a recursive CPAAlgorithm is started. */
+  /**
+   * Analyse the block starting at the node with {@code initialState}.
+   * If there is a result in the cache ({@code data.bamCache}), it is used,
+   * otherwise a recursive {@link CPAAlgorithm} is started.
+   **/
   private Collection<Pair<AbstractState, Precision>> getReducedResult(
           final AbstractState initialState,
-          final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+          final AbstractState reducedInitialState,
+          final Precision reducedInitialPrecision)
           throws InterruptedException, CPAException {
 
-    final Collection<AbstractState> reducedResult;
-    // statesForFurtherAnalysis is always equal to reducedResult, except one special case (aka re-visiting recursion)
+    // statesForFurtherAnalysis is always equal to reducedResult,
+    // except for one special case (on revisiting recursion).
     final Collection<AbstractState> statesForFurtherAnalysis;
 
-    // try to get previously computed element from cache
+    // Try to get an element from cache.
+    // A previously computed element consists of a reached set associated
+    // with the recursive call, and
     final Pair<ReachedSet, Collection<AbstractState>> pair =
             data.bamCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
     ReachedSet reached = pair.getFirst();
@@ -370,6 +399,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     assert cachedReturnStates == null || reached != null : "there cannot be result-states without reached-states";
 
+    final Collection<AbstractState> reducedResult;
     if (cachedReturnStates != null && !reached.hasWaitingState()) {
 
       // cache hit, return element from cache
@@ -484,21 +514,21 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * Attach PCC-specific information to successors.
+   */
   private Collection<? extends AbstractState> attachAdditionalInfoToCallNodes(
       Collection<? extends AbstractState> pSuccessors) {
-    if (PCCInformation.isPCCEnabled()) {
-      List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
-      for (AbstractState elem : pSuccessors) {
-        if (!(elem instanceof ARGState)) { return pSuccessors; }
-        if (!(elem instanceof BAMARGBlockStartState)) {
-          successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
-        } else {
-          successorsWithExtendedInfo.add(elem);
-        }
+    List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
+    for (AbstractState elem : pSuccessors) {
+      if (!(elem instanceof ARGState)) { return pSuccessors; }
+      if (!(elem instanceof BAMARGBlockStartState)) {
+        successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
+      } else {
+        successorsWithExtendedInfo.add(elem);
       }
-      return successorsWithExtendedInfo;
     }
-    return pSuccessors;
+    return successorsWithExtendedInfo;
   }
 
   protected AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
@@ -525,13 +555,14 @@ public class BAMTransferRelation implements TransferRelation {
     toReplace.replaceInARGWith(replaceWith);
   }
 
+  /**
+   * Attach PCC-specific information to input.
+   */
   protected void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
-    if (PCCInformation.isPCCEnabled()) {
-      if (data.bamCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
-        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
-      }
-      ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.bamCache.getLastAnalyzedBlock());
+    if (data.bamCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
+      throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
     }
+    ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.bamCache.getLastAnalyzedBlock());
   }
 
   @Override
@@ -539,7 +570,13 @@ public class BAMTransferRelation implements TransferRelation {
       AbstractState pElement, List<AbstractState> pOtherElements,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException,
       InterruptedException {
-    return attachAdditionalInfoToCallNodes(wrappedTransfer.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision));
+    Collection<? extends AbstractState> out =
+        wrappedTransfer.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
+    if (PCCInformation.isPCCEnabled()) {
+      return attachAdditionalInfoToCallNodes(out);
+    } else {
+      return out;
+    }
   }
 
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,

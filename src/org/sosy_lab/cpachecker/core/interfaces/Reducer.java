@@ -28,6 +28,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 
+/**
+ * An interface which is provided by a configurable program analysis using
+ * {@link ConfigurableProgramAnalysisWithBAM} which allows it to use BAM
+ * memoization framework.
+ */
 public interface Reducer {
 
   /**
@@ -39,11 +44,14 @@ public interface Reducer {
    * @param context Block with respect to which the reduction is performed.
    * @param callNode Function call node for the block.
    */
-  AbstractState getVariableReducedState(AbstractState expandedState, Block context, CFANode callNode)
+  AbstractState getVariableReducedState(
+      AbstractState expandedState,
+      Block context,
+      CFANode callNode)
       throws InterruptedException;
 
   /**
-   * Perform the oppose of the reduction: return an under-approximation of
+   * Perform the opposite of the reduction: return an under-approximation of
    * the state {@code reducedState} which includes constraints from
    * {@code rootState}, where all of the added constraints are irrelevant to
    * {@code reducedContext}.

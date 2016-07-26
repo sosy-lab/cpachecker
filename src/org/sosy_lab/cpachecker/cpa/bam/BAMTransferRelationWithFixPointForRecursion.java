@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.util.Triple;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -198,10 +198,11 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   /** returns a covering level or Null, if no such level is found. */
   private Triple<AbstractState, Precision, Block> getCoveringLevel(
-      final List<Triple<AbstractState, Precision, Block>> stack,
+      final Deque<Triple<AbstractState, Precision, Block>> stack,
       final Triple<AbstractState, Precision, Block> currentLevel)
     throws CPAException, InterruptedException {
-    for (Triple<AbstractState, Precision, Block> level : stack.subList(0, stack.size() - 1)) {
+
+    for (Triple<AbstractState, Precision, Block> level : stack) {
       if (level.getThird() == currentLevel.getThird()
               // && level.getSecond().equals(currentLevel.getSecond())
               && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
@@ -253,8 +254,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   @Override
   protected Collection<AbstractState> analyseBlockAndExpand(final AbstractState initialState,
       final Precision pPrecision, final Block outerSubtree,
-      final AbstractState reducedInitialState, final Precision reducedInitialPrecision) throws CPAException, InterruptedException,
-      CPATransferException {
+      final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+      throws CPAException, InterruptedException {
 
     final CFANode node = currentBlock.getCallNode();
     final Collection<AbstractState> resultStates;
@@ -286,8 +287,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   private Collection<AbstractState> analyseBlockAndExpandForRecursion(final AbstractState initialState,
       final Precision pPrecision, final CFANode node, final Block outerSubtree,
-      final AbstractState reducedInitialState, final Precision reducedInitialPrecision) throws CPAException, InterruptedException,
-      CPATransferException {
+      final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+        throws CPAException, InterruptedException {
 
     final Collection<AbstractState> expandedFunctionReturnStates;
     final Triple<AbstractState, Precision, Block> coveringLevel = getCoveringLevel(stack, Iterables.getLast(stack));
