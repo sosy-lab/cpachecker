@@ -218,7 +218,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       pOut.println("  Time for preparing proof construction:          " + constructTimer);
-      pOut.println(" Proof Size" + proofSize);
+      pOut.println(" Proof Size:         " + proofSize);
     }
 
     @Override
