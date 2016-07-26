@@ -73,7 +73,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
     return buildMergeOperator(mergeType);
   }
 
-  private MergeOperator buildMergeOperator(String pMergeType) {
+  protected MergeOperator buildMergeOperator(String pMergeType) {
     switch (pMergeType) {
       case "SEP":
         return MergeSepOperator.getInstance();
@@ -96,7 +96,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
     return buildStopOperator(stopType);
   }
 
-  private StopOperator buildStopOperator(String pStopType) throws AssertionError {
+  protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
     switch (pStopType) {
       case "SEP":
         return new StopSepOperator(abstractDomain);
