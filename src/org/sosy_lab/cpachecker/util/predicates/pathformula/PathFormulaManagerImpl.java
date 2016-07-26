@@ -29,6 +29,7 @@ import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -87,6 +89,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -639,7 +643,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       boolean isValidBranching = false;
 
       for (ARGState child: e.getChildren()) {
-        CFAEdge t = e.getEdgeToChild(child);
+        final CFANode locOfE = AbstractStates.extractLocationMaybeWeaved(child);
+        Preconditions.checkNotNull(locOfE, "Each abstract state must be mapped to a location.");
+        @Nullable final CFAEdge edgeToChid = e.getEdgeToChild(child);
 
         final PredicateAbstractState childPe = AbstractStates.extractStateByType(child, PredicateAbstractState.class);
 
@@ -651,8 +657,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         PathFormula pf = pe.getPathFormula();
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
 
-        if (t instanceof AssumeEdge) {
-          pf = this.makeAnd(pf, t); // conjunct with edge
+        if (edgeToChid instanceof AssumeEdge) {
+          pf = this.makeAnd(pf, edgeToChid); // conjunct with edge
           isValidBranching = true;
         }
 
@@ -669,11 +675,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
         }
 
-        Collection<AbstractStateWithAssumptions> assumtionStates = AbstractStates.extractStatesByType(
-            child, AbstractStateWithAssumptions.class);
+        FluentIterable<AbstractStateWithAssumptions> assumtionStates =
+            AbstractStates.asIterable(child).filter(AbstractStateWithAssumptions.class);
 
         for (AbstractStateWithAssumptions stateWithAssumes: assumtionStates) {
-          List<AssumeEdge> assumes = stateWithAssumes.getAsAssumeEdges(t.getPredecessor().getFunctionName());
+          List<AssumeEdge> assumes = stateWithAssumes.getAsAssumeEdges(locOfE.getFunctionName());
           for (AssumeEdge a: assumes) {
             pf = this.makeAnd(pf, a);
             isValidBranching = true;
