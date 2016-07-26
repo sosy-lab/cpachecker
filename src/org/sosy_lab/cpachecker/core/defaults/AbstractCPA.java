@@ -52,8 +52,8 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
 
-    this.mergeType = mergeType.toUpperCase();
-    this.stopType = stopType.toUpperCase();
+    this.mergeType = mergeType;
+    this.stopType = stopType;
 
     this.transferRelation = transfer;
   }
@@ -74,7 +74,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   protected MergeOperator buildMergeOperator(String pMergeType) {
-    switch (pMergeType) {
+    switch (pMergeType.toUpperCase()) {
       case "SEP":
         return MergeSepOperator.getInstance();
 
@@ -97,7 +97,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
-    switch (pStopType) {
+    switch (pStopType.toUpperCase()) {
       case "SEP":
         return new StopSepOperator(abstractDomain);
 
