@@ -138,6 +138,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
     }
 
+    try {
+      genStats.proofSize=file.asByteSource().size();
+    } catch (IOException e) {
+    }
     logger.log(Level.INFO, proofInfo.getInfoAsString());
   }
 
@@ -209,10 +213,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   public static class PCGenerationStatistics implements Statistics {
 
     public final Timer constructTimer = new Timer();
+    private long proofSize = 0;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       pOut.println("  Time for preparing proof construction:          " + constructTimer);
+      pOut.println(" Proof Size" + proofSize);
     }
 
     @Override
