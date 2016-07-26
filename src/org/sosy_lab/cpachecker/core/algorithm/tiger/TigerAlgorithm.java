@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.CounterExampleReplayEngine;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
@@ -113,7 +113,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -1441,38 +1440,8 @@ public class TigerAlgorithm
       return null;
     }
 
-    CFAPathWithAssumptions cfaPath = pCex.getCFAPathWithAssignments();
-
-    assert (cfaPath.size() > 0);
-
-    CFANode initialNode = cfaPath.get(0).getCFAEdge().getPredecessor();
-    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-
-    AbstractState currentState = cpa.getInitialState(initialNode, partition);
-    Precision currentPrecision = cpa.getInitialPrecision(initialNode, partition);
-
-    for (int i = 0; i < cfaPath.size(); i++) {
-      CFAEdgeWithAssumptions edgeWithAssumptions = cfaPath.get(i);
-      try {
-        Collection<? extends AbstractState> successors =
-            cpa.getTransferRelation().getAbstractSuccessorsForEdge(currentState, currentPrecision,
-                edgeWithAssumptions.getCFAEdge());
-
-        assert (successors.size() == 1);
-
-        currentState = successors.iterator().next();
-      } catch (CPATransferException e) {
-        logger.logf(Level.WARNING,
-            "Failed to get next abstract state when calculating presence conditions for test cases.");
-
-        return null;
-      } catch (InterruptedException e) {
-        logger.logf(Level.WARNING,
-            "Failed to get next abstract state when calculating presence conditions for test cases.");
-
-        return null;
-      }
-    }
+    CounterExampleReplayEngine replayer = new CounterExampleReplayEngine(cpa, logger);
+    ARGPath path = replayer.replayCounterExample(pCex);
 
     return null;
   }
