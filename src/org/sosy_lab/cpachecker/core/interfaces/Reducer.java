@@ -75,13 +75,18 @@ public interface Reducer {
    * <code> BAMCache.AbstractStateHash </code>. */
   Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
-  /** Returns a (non-negative) value for the difference between two precisions.
-   * This function is used only when {@code cpa.bam.aggressiveCaching} is
+  /**
+   * @param pPrecision Precision object.
+   * @param pOtherPrecision Other precision object.
+   *
+   * @return value (non-negative) for the difference between two
+   * precisions.
+   *
+   * <p>This function is used only when {@code cpa.bam.aggressiveCaching} is
    * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
    *
    * <p>A greater value indicates a bigger difference in the precision.
    * If the implementation of this function is not important, return zero. */
-  @SuppressWarnings("unused")
   default int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return 0;
   }
@@ -108,6 +113,7 @@ public interface Reducer {
    *                     must be the location of rebuildState,
    *                     TODO should be instance of FunctionExitNode?
    *
+   * <pre>
    *                                             +---------- BLOCK ----------+
    *                                             |                           |
    * rootState ---------------> entryState - - - - - -> reducedEntryState    |
@@ -121,6 +127,7 @@ public interface Reducer {
    *     |                         | | |         |                           |
    *     V     functionReturnEdge  V V V         +---------------------------+
    * returnState <------------  rebuildState
+   * </pre>
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation);
