@@ -240,7 +240,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
             predicateProvider);
 
     if (eagerPrecisionMinining) {
-      PrecisionAdjustment miningPrec = new PrecisionMiningPrecisionAdjustment(logger, config, pfMgr, predicateManager);
+      PrecisionAdjustment miningPrec = new PrecisionMiningPrecisionAdjustment(logger, config, pfMgr, predicateManager, pCfa);
       prec = WrappingPrecisionAdjustment.wrap(predPrec, miningPrec);
     } else {
       prec = predPrec;
