@@ -418,6 +418,8 @@ public class TigerAlgorithm
   private int statistics_numberOfProcessedTestGoals = 0;
   private StatCpuTime statCpuTime = null;
 
+  private Map<Automaton, Automaton> markingAutomataInstances = Maps.newHashMap();
+
   private Prediction[] lGoalPrediction;
 
   private String programDenotation;
@@ -1406,18 +1408,15 @@ public class TigerAlgorithm
       Preconditions.checkNotNull(pRemainingGoals);
       Preconditions.checkNotNull(pCex);
 
-      ARGState lastState = pCex.getTargetPath().getLastState();
+      ARGPath argPath = computePathWithPresenceConditions(pRemainingGoals, pCex);
+      ARGState lastState = argPath.getLastState();
 
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
 
       PresenceCondition testCasePresenceCondition = null;
       if (useTigerAlgorithm_with_pc) {
-        if (useBddForPresenceCondtion) {
-          testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
-          testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
-        } else {
-          parseCounterexampleWithBDD(pRemainingGoals, pCex);
-        }
+        testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
+        testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
       }
 
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
@@ -1430,20 +1429,21 @@ public class TigerAlgorithm
     }
   }
 
-  private PresenceCondition parseCounterexampleWithBDD(Set<Goal> goals, CounterexampleInfo pCex) {
-    ARGCPA cpa = null;
-    try {
-      cpa = composeCPA(goals, true);
-    } catch (CPAException | InvalidConfigurationException e) {
-      logger.logf(Level.WARNING, "CPA for handling features could not be created.");
+  private ARGPath computePathWithPresenceConditions(Set<Goal> goals, CounterexampleInfo pCex)
+      throws InterruptedException {
 
-      return null;
+    if (useBddForPresenceCondtion) {
+      return  pCex.getTargetPath();
+    } else {
+      try {
+        ARGCPA cpa = composeCPA(goals, true);
+        CounterExampleReplayEngine replayer = new CounterExampleReplayEngine(cpa, logger);
+        return replayer.replayCounterExample(pCex);
+
+      } catch (CPAException | InvalidConfigurationException e) {
+        throw new RuntimeException("CPA for handling features could not be created.");
+      }
     }
-
-    CounterExampleReplayEngine replayer = new CounterExampleReplayEngine(cpa, logger);
-    ARGPath path = replayer.replayCounterExample(pCex);
-
-    return null;
   }
 
   private TestCase createTestcase(final CounterexampleInfo pCex,
@@ -1606,7 +1606,14 @@ public class TigerAlgorithm
         for (Goal goal : pGoalsToBeProcessed) {
           Automaton a = goal.createControlAutomaton();
           if (useMarkingAutomata) {
-            a = MarkingAutomatonBuilder.build(a);
+            final Automaton markingAutomata;
+            if (markingAutomataInstances.containsKey(a)) {
+              markingAutomata = markingAutomataInstances.get(a);
+            } else {
+              markingAutomata = MarkingAutomatonBuilder.build(a);
+              markingAutomataInstances.put(a, markingAutomata);
+            }
+            a = markingAutomata;
           }
 
           goalAutomata.add(a);

@@ -172,7 +172,7 @@ public class AutomatonInternalState {
 
   @Override
   public String toString() {
-    return this.name;
+    return Integer.toString(this.stateId);
   }
 
   @Override

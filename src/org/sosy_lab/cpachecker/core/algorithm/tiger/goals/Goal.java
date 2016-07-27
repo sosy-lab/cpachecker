@@ -330,6 +330,10 @@ public class Goal implements SafetyProperty {
   public Automaton createControlAutomaton() {
      Preconditions.checkNotNull(mAutomaton);
 
+    if (mCheckedWithAutomaton != null) {
+      return mCheckedWithAutomaton;
+    }
+
     // TODO: add/handle alpha, and omega edges!!
 
     final String automatonName = getName();
@@ -407,9 +411,12 @@ public class Goal implements SafetyProperty {
     }
 
     try {
-      return new Automaton(new AutomatonSafetyPropertyFactory(Configuration.defaultConfiguration(), ""),
+      mCheckedWithAutomaton = new Automaton(new AutomatonSafetyPropertyFactory(Configuration
+          .defaultConfiguration(), ""),
           automatonName, Maps.<String, AutomatonVariable> newHashMap(),
           automatonStates, initialStateName);
+
+      return mCheckedWithAutomaton;
 
     } catch (InvalidConfigurationException| InvalidAutomatonException e) {
       throw new RuntimeException("Conversion failed!", e);
@@ -513,7 +520,7 @@ public class Goal implements SafetyProperty {
 
   @Override
   public void setAutomaton(Automaton pAutomaton) {
-    mCheckedWithAutomaton = pAutomaton;
+    // Do nothing here!!
   }
 
   @Override

@@ -212,7 +212,7 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
 
     for (PresenceCondition region : predicates) {
       String regionStr = dump(region).toString();
-      if (regionStr.contains("_MARKER_")) {
+      if (!regionStr.contains("_FEATURE_")) {
         markers.add(region);
       }
     }
