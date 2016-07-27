@@ -35,7 +35,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
@@ -55,7 +54,7 @@ import java.io.Serializable;
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
 public abstract class PredicateAbstractState
-    implements AbstractState, Partitionable, Serializable, AbstractStateWithPresenceCondition {
+    implements AbstractState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -273,8 +272,4 @@ public abstract class PredicateAbstractState
         PathCopyingPersistentTreeMap.<CFANode, Integer>of());
   }
 
-  @Override
-  public Optional<PresenceCondition> getPresenceCondition() {
-    return Optional.<PresenceCondition>of(new RegionPresenceCondition(abstractionFormula.asRegion()));
-  }
 }
