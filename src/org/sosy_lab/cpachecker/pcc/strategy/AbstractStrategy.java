@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Options(prefix="pcc")
+@Options(prefix = "pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
   protected LogManager logger;
@@ -69,23 +69,28 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   protected PCGenerationStatistics genStats;
   private Collection<Statistics> pccStats = new ArrayList<>();
 
-  @Option(secure=true,
+  @Option(secure = true,
       name = "proofFile",
       description = "file in which proof representation will be stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   protected Path file = Paths.get("arg.obj");
 
-  @Option(secure=true,
+  @Option(secure = true,
       name = "proof",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   protected Path proofFile = Paths.get("arg.obj");
 
-  @Option(secure=true,
+  @Option(secure = true,
       name = "useCores",
       description = "number of cpus/cores which should be used in parallel for proof checking")
-  @IntegerOption(min=1)
+  @IntegerOption(min = 1)
   protected int numThreads = 1;
+
+  @Option(secure = true,
+      name = "testProofGeneration",
+      description = "Only test proof generation, delete written proof at the end")
+  private boolean testGenMode = false;
 
   public AbstractStrategy(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this, AbstractStrategy.class);
@@ -99,7 +104,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   @Override
-  @SuppressFBWarnings(value="OS_OPEN_STREAM", justification="Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
+  @SuppressFBWarnings(
+      value = "OS_OPEN_STREAM",
+      justification = "Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
   public void writeProof(UnmodifiableReachedSet pReached) {
 
     try (final OutputStream fos = file.asByteSink().openStream();
@@ -115,21 +122,22 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       o.flush();
       zos.closeEntry();
 
-   // write additional proof information
+      // write additional proof information
       int index = 0;
       boolean continueWriting;
-      do{
-        ze = new ZipEntry("Additional "+index);
+      do {
+        ze = new ZipEntry("Additional " + index);
         zos.putNextEntry(ze);
         o = new ObjectOutputStream(zos);
         continueWriting = writeAdditionalProofStream(o);
         o.flush();
         zos.closeEntry();
         index++;
-      }while (continueWriting);
+      } while (continueWriting);
 
     } catch (NotSerializableException eS) {
-      logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
+      logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
+          + " does not implement Serializable interface");
     } catch (IOException e) {
       throw new RuntimeException(e);
     } catch (InvalidConfigurationException e) {
@@ -139,7 +147,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
 
     try {
-      genStats.proofSize=file.asByteSource().size();
+      genStats.proofSize = file.asByteSource().size();
+      if (testGenMode) {
+        try (OutputStream stream = file.asByteSink().openStream()) {
+          stream.write(0);
+        }
+      }
     } catch (IOException e) {
     }
     logger.log(Level.INFO, proofInfo.getInfoAsString());
@@ -188,7 +201,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
-  protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
+  protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException,
+      InvalidConfigurationException, IOException;
 
   protected void addPCCStatistic(final Statistics pPCCStatistic) {
     pccStats.add(pPCCStatistic);
@@ -200,13 +214,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   @Override
-  public Collection<Statistics> getAdditionalProofGenerationStatistics(){
+  public Collection<Statistics> getAdditionalProofGenerationStatistics() {
     Collection<Statistics> stats = new ArrayList<>();
     stats.add(genStats);
-    if(proofInfo != null) {
+    if (proofInfo != null) {
       stats.add(proofInfo);
     }
-    stats.add(genStats);
     return stats;
   }
 
@@ -218,7 +231,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       pOut.println("  Time for preparing proof construction:          " + constructTimer);
-      pOut.println(" Proof Size:         " + proofSize);
+      pOut.println("  Proof Size:         " + proofSize);
     }
 
     @Override
@@ -290,12 +303,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       out.println("  Time for covering checks:               " + stopTimer + " (Calls: "
           + stopTimer.getNumberOfIntervals()
           + ")");
-      out.println(" Time for checking property:          "   + propertyCheckingTimer);
-      out.println("Proof file size (bytes):                      "  + fileProofSize);
+      out.println(" Time for checking property:          " + propertyCheckingTimer);
+      out.println("Proof file size (bytes):                      " + fileProofSize);
     }
 
     public void increaseProofSize(int pIncrement) {
-      proofSize+=pIncrement;
+      proofSize += pIncrement;
     }
 
   }
