@@ -64,8 +64,11 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, Function<AbstractState, AbstractState> projection,
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pElement,
+      Precision pPrecision,
+      UnmodifiableReachedSet pElements,
+      Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
     if (trans.breakAnalysis) {
       return Optional.of(
@@ -95,7 +98,9 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
     PrecisionAdjustmentResult updatedResult;
     if (bamPccManager.isPCCEnabled()) {
-      updatedResult = result.get().withAbstractState(bamPccManager
+      updatedResult = result
+          .get()
+          .withAbstractState(bamPccManager
           .attachAdditionalInfoToCallNode(
             result.get().abstractState(), trans.getCurrentBlock()));
     } else {
