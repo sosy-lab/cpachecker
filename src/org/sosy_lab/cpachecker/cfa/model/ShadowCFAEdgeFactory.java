@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -35,15 +36,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * An auxiliary class for creating CFA edges from {@code AAstNode}s.
  */
 public enum ShadowCFAEdgeFactory {
   INSTANCE;
+
+  private Map<Pair<List<AAstNode>,CFANode >, List<CFAEdge>> shadowCodeInstances = Maps.newHashMap();
 
   public static class ShadowCFANode extends CFANode {
 
@@ -92,7 +97,13 @@ public enum ShadowCFAEdgeFactory {
     Preconditions.checkArgument(pCode.size() > 0);
     Preconditions.checkNotNull(pSuccessorInCfa);
 
-    LinkedList<CFAEdge> result = Lists.newLinkedList();
+    Pair<List<AAstNode>, CFANode> cacheKey = Pair.of(pCode, pSuccessorInCfa);
+    List<CFAEdge> cached = shadowCodeInstances.get(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    final List<CFAEdge> result = Lists.newLinkedList();
     Iterator<AAstNode> it = pCode.iterator();
 
     CFANode predLoc = null;
@@ -140,6 +151,7 @@ public enum ShadowCFAEdgeFactory {
       result.add(edge);
     }
 
+    shadowCodeInstances.put(cacheKey, result);
     return result;
   }
 
