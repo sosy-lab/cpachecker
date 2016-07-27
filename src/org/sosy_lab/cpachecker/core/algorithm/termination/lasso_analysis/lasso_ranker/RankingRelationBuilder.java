@@ -147,7 +147,7 @@ class RankingRelationBuilder {
     CExpression unprimedFunction = components.getUnprimedExpression();
     CExpression primedFunction = components.getPrimedExpression();
     CExpression unprimedGreatorThanZero =
-        binaryExpressionBuilder.buildBinaryExpression(unprimedFunction, ZERO, GREATER_EQUAL);
+        binaryExpressionBuilder.buildBinaryExpression(primedFunction, ZERO, GREATER_EQUAL);
     CExpression primedLessThanUnprimed =
         binaryExpressionBuilder.buildBinaryExpression(unprimedFunction, primedFunction, LESS_THAN);
 
@@ -268,7 +268,7 @@ class RankingRelationBuilder {
 
     IntegerFormula zero = integerFormulaManager.makeNumber(0);
     BooleanFormula unprimedGreatorThanZeroFormula =
-        formulaManagerView.makeGreaterOrEqual(unprimedFormula, zero, true);
+        formulaManagerView.makeGreaterOrEqual(primedFormula, zero, true);
     BooleanFormula primedLessThanUnprimedFormula =
         formulaManagerView.makeLessThan(unprimedFormula, primedFormula, true);
 
