@@ -501,6 +501,9 @@ cfa.initializeAllVariables = false
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
 
+# Sum up sizes of all analyzed files and display their sum in the statistics.
+cfa.printProgramSize = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
@@ -2525,6 +2528,9 @@ pcc.partitioning.partitioningStrategy = RANDOM
 pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
 # file in which proof representation needed for proof checking is stored
+pcc.proof = "arg.obj"
+
+# file in which proof representation will be stored
 pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
@@ -2546,6 +2552,9 @@ pcc.sliceProof = false
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
+
+# Only test proof generation, delete written proof at the end
+pcc.testProofGeneration = false
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
