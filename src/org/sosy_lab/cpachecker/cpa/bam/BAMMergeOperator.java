@@ -30,17 +30,35 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BAMMergeOperator implements MergeOperator {
 
-  private MergeOperator wrappedMergeOp;
-  private BAMTransferRelation trans;
+  private final MergeOperator wrappedMergeOp;
+  private final BAMPCCManager bamPccManager;
+  private final BAMTransferRelation bamTransferRelation;
 
-  public BAMMergeOperator(MergeOperator pWrappedMerge, BAMTransferRelation pTrans) {
+  public BAMMergeOperator(
+      MergeOperator pWrappedMerge,
+      BAMPCCManager pBAMPCCManager,
+      BAMTransferRelation pBamTransferRelation) {
     wrappedMergeOp = pWrappedMerge;
-    trans = pTrans;
+    bamPccManager = pBAMPCCManager;
+    bamTransferRelation = pBamTransferRelation;
   }
 
   @Override
-  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException, InterruptedException {
-      return trans.attachAdditionalInfoToCallNode(wrappedMergeOp.merge(pState1, pState2, pPrecision));
+  public AbstractState merge(
+      AbstractState pState1,
+      AbstractState pState2,
+      Precision pPrecision) throws CPAException, InterruptedException {
+    AbstractState out = wrappedMergeOp.merge(
+        pState1,
+        pState2,
+        pPrecision
+    );
+    if (bamPccManager.isPCCEnabled()) {
+      return bamPccManager.attachAdditionalInfoToCallNode(
+          out, bamTransferRelation.getCurrentBlock()
+      );
+    }
+    return out;
   }
 
 }

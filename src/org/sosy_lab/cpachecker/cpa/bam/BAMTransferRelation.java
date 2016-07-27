@@ -27,16 +27,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -66,38 +62,10 @@ import org.sosy_lab.cpachecker.util.Triple;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
 
 public class BAMTransferRelation implements TransferRelation {
-
-  @Options
-  static class PCCInformation {
-
-    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
-    private boolean doPCC = false;
-
-    private static PCCInformation instance = null;
-
-    private PCCInformation(Configuration pConfig) throws InvalidConfigurationException {
-      pConfig.inject(this);
-    }
-
-    public static void instantiate(Configuration pConfig) throws InvalidConfigurationException {
-      instance = new PCCInformation(pConfig);
-    }
-
-    public static boolean isPCCEnabled() {
-      return instance.doPCC;
-    }
-
-  }
-
   final BAMDataManager data;
 
   protected Block currentBlock;
@@ -111,12 +79,10 @@ public class BAMTransferRelation implements TransferRelation {
   private final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
   protected final BAMCPA bamCPA;
-  private final ProofChecker wrappedProofChecker;
+  protected final BAMPCCManager bamPccManager;
 
   // Callstack-CPA is used for additional recursion handling
   private final CallstackTransferRelation callstackTransfer;
-
-  private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
 
   //Stats
   int maxRecursiveDepth = 0;
@@ -137,13 +103,13 @@ public class BAMTransferRelation implements TransferRelation {
     callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
-    PCCInformation.instantiate(pConfig);
     bamCPA = bamCpa;
-    wrappedProofChecker = wrappedChecker;
     data = pData;
     partitioning = pPartitioning;
 
     assert wrappedReducer != null;
+    bamPccManager = new BAMPCCManager(
+        wrappedChecker, pConfig, pPartitioning, wrappedReducer, bamCpa, pData);
   }
 
   @Override
@@ -152,13 +118,14 @@ public class BAMTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     try {
 
-      final Collection<? extends AbstractState> successors = getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+      final Collection<? extends AbstractState> successors =
+          getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
 
       assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1 :
           "target-state should be returned as single-element-collection";
 
-      if (PCCInformation.isPCCEnabled()) {
-        return attachAdditionalInfoToCallNodes(successors);
+      if (bamPccManager.isPCCEnabled()) {
+        return bamPccManager.attachAdditionalInfoToCallNodes(successors, currentBlock);
       }
       return successors;
 
@@ -259,12 +226,19 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   /**
-   * Enters a new block and performs a new analysis or returns result from cache.
+   * Enters a new block and performs a new analysis by recursively initiating
+   * {@link CPAAlgorithm}, or returns a cached result from {@link BAMCache}.
    *
    * <p>Postcondition: sets the {@code currentBlock} variable to the currently
    * processed block.
    *
    * <p>Postcondition: pushes the current recursive level on the {@code stack}.
+   *
+   * @param initialState Initial state of the analyzed block.
+   * @param pPrecision Initial precision associated with the block start.
+   * @param node Node corresponding to the block start.
+   *
+   * @return Set of states associated with the block exit.
    **/
   protected Collection<? extends AbstractState> doRecursiveAnalysis(
           final AbstractState initialState,
@@ -315,17 +289,28 @@ public class BAMTransferRelation implements TransferRelation {
    * Analyse block, return expanded exit-states.
    *
    * <p>Breaks if {@code breakAnalysis} was set by the callees.
+   *
+   * @param entryState State associated with the block entry.
+   * @param precision Precision associated with the block entry.
+   * @param outerSubtree Outer block.
+   * @param reducedInitialState  {@code entryState} after reduction.
+   * @param reducedInitialPrecision {@code precision} after reduction.
+   *
+   * @return Set of states associated with the block exit.
    * */
   protected Collection<AbstractState> analyseBlockAndExpand(
-          final AbstractState entryState, final Precision precision, final Block outerSubtree,
-          final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+          final AbstractState entryState,
+          final Precision precision,
+          final Block outerSubtree,
+          final AbstractState reducedInitialState,
+          final Precision reducedInitialPrecision)
           throws CPAException, InterruptedException {
 
     final Collection<Pair<AbstractState, Precision>> reducedResult =
             getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
 
-    if (PCCInformation.isPCCEnabled()) {
-      addBlockAnalysisInfo(reducedInitialState);
+    if (bamPccManager.isPCCEnabled()) {
+      bamPccManager.addBlockAnalysisInfo(reducedInitialState);
     }
 
     if (breakAnalysis) {
@@ -339,12 +324,20 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   /**
-   * This function returns expanded states for all reduced states and updates
+   * @param reducedResult pairs of reduced sets associated with the block exit.
+   * @param outerSubtree block above the one associated with
+   * {@code reducedResult}.
+   * @param state state associated with the block entry.
+   * @param precision precision associated with the block entry.
+   *
+   * @return expanded states for all reduced states and updates
    * the caches.
    * */
   protected List<AbstractState> expandResultStates(
           final Collection<Pair<AbstractState, Precision>> reducedResult,
-          final Block outerSubtree, final AbstractState state, final Precision precision)
+          final Block outerSubtree,
+          final AbstractState state,
+          final Precision precision)
       throws InterruptedException {
 
     logger.log(Level.FINEST, "Expanding states with initial state", state);
@@ -352,8 +345,8 @@ public class BAMTransferRelation implements TransferRelation {
 
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
     for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
-      AbstractState reducedState = reducedPair.getFirst();
-      Precision reducedPrecision = reducedPair.getSecond();
+      AbstractState reducedState = reducedPair.getFirstNotNull();
+      Precision reducedPrecision = reducedPair.getSecondNotNull();
 
       AbstractState expandedState =
               wrappedReducer.getVariableExpandedState(state, currentBlock, reducedState);
@@ -377,6 +370,14 @@ public class BAMTransferRelation implements TransferRelation {
    * Analyse the block starting at the node with {@code initialState}.
    * If there is a result in the cache ({@code data.bamCache}), it is used,
    * otherwise a recursive {@link CPAAlgorithm} is started.
+   *
+   * @param initialState State associated with the block entry.
+   * @param reducedInitialState Reduced {@code initialState}.
+   * @param reducedInitialPrecision Reduced precision associated with the
+   *                                block entry.
+   *
+   * @return Set of reduced pairs of abstract states and paired precisions
+   * associated with the exit of the block.
    **/
   private Collection<Pair<AbstractState, Precision>> getReducedResult(
           final AbstractState initialState,
@@ -437,7 +438,7 @@ public class BAMTransferRelation implements TransferRelation {
     data.initialStateToReachedSet.put(initialState, reached);
 
     ARGState rootOfBlock = null;
-    if (PCCInformation.isPCCEnabled()) {
+    if (bamPccManager.isPCCEnabled()) {
       if (!(reached.getFirstState() instanceof ARGState)) {
         throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
       }
@@ -466,13 +467,18 @@ public class BAMTransferRelation implements TransferRelation {
    * @throws InterruptedException may be thrown in subclass
    */
   protected Collection<AbstractState> filterResultStatesForFurtherAnalysis(
-      final Collection<AbstractState> reducedResult, final Collection<AbstractState> cachedReturnStates)
-          throws CPAException, InterruptedException {
+      final Collection<AbstractState> reducedResult,
+      final Collection<AbstractState> cachedReturnStates)
+      throws CPAException, InterruptedException {
     return reducedResult; // dummy implementation, overridden in sub-class
   }
 
-  /** Analyse the block with a 'recursive' call to the CPAAlgorithm.
-   * Then analyse the result and get the returnStates. */
+  /**
+   * Analyse the block with a recursive call to the {@link CPAAlgorithm} on
+   * {@code reached}.
+   *
+   * @return return states associated with the analysis.
+   **/
   private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
           final ReachedSet reached)
           throws InterruptedException, CPAException {
@@ -519,57 +525,6 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
-  /**
-   * Attach PCC-specific information to successors.
-   */
-  private Collection<? extends AbstractState> attachAdditionalInfoToCallNodes(
-      Collection<? extends AbstractState> pSuccessors) {
-    List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
-    for (AbstractState elem : pSuccessors) {
-      if (!(elem instanceof ARGState)) { return pSuccessors; }
-      if (!(elem instanceof BAMARGBlockStartState)) {
-        successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
-      } else {
-        successorsWithExtendedInfo.add(elem);
-      }
-    }
-    return successorsWithExtendedInfo;
-  }
-
-  protected AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
-    if (!(pElem instanceof BAMARGBlockStartState) && PCCInformation.isPCCEnabled() && pElem instanceof ARGState) { return createAdditionalInfo((ARGState) pElem); }
-    return pElem;
-  }
-
-  private ARGState createAdditionalInfo(ARGState pElem) {
-    CFANode node = AbstractStates.extractLocation(pElem);
-    if (partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-      BAMARGBlockStartState replaceWith = new BAMARGBlockStartState(pElem.getWrappedState(), null);
-      replaceInARG(pElem, replaceWith);
-      return replaceWith;
-    }
-    return pElem;
-  }
-
-  private void replaceInARG(ARGState toReplace, ARGState replaceWith) {
-    if (toReplace.isCovered()) {
-      replaceWith.setCovered(toReplace.getCoveringState());
-    }
-    toReplace.uncover();
-
-    toReplace.replaceInARGWith(replaceWith);
-  }
-
-  /**
-   * Attach PCC-specific information to input.
-   */
-  protected void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
-    if (data.bamCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
-      throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
-    }
-    ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.bamCache.getLastAnalyzedBlock());
-  }
-
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement, List<AbstractState> pOtherElements,
@@ -577,220 +532,24 @@ public class BAMTransferRelation implements TransferRelation {
       InterruptedException {
     Collection<? extends AbstractState> out =
         wrappedTransfer.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
-    if (PCCInformation.isPCCEnabled()) {
-      return attachAdditionalInfoToCallNodes(out);
+    if (bamPccManager.isPCCEnabled()) {
+      return bamPccManager.attachAdditionalInfoToCallNodes(out, currentBlock);
     } else {
       return out;
     }
   }
 
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException,
-      InterruptedException {
-    if (pCfaEdge != null) { return wrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors); }
-    return areAbstractSuccessors0(pState, pSuccessors, partitioning.getMainBlock());
-  }
-
-  private boolean areAbstractSuccessors0(AbstractState pState,
-      Collection<? extends AbstractState> pSuccessors, final Block currentBlock)
-      throws CPATransferException,
-      InterruptedException {
-    // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
-    boolean successorExists;
-
-    CFANode node = extractLocation(pState);
-
-    if (partitioning.isCallNode(node)
-        && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
-      // do not support nodes which are call nodes of multiple blocks
-      Block analyzedBlock = partitioning.getBlockForCallNode(node);
-      try {
-        if (!(pState instanceof BAMARGBlockStartState)
-            || ((BAMARGBlockStartState) pState).getAnalyzedBlock() == null
-            || !bamCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
-                ((BAMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
-      } catch (CPAException e) {
-        throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
-            + pState);
-      }
-      try {
-        Collection<ARGState> endOfBlock;
-        Pair<ARGState, Block> key = Pair.of(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
-        if (correctARGsForBlocks != null && correctARGsForBlocks.containsKey(key)) {
-          endOfBlock = correctARGsForBlocks.get(key);
-        } else {
-          Pair<Boolean, Collection<ARGState>> result =
-              checkARGBlock(((BAMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
-          if (!result.getFirst()) { return false; }
-          endOfBlock = result.getSecond();
-          setCorrectARG(key, endOfBlock);
-        }
-
-        HashSet<AbstractState> notFoundSuccessors = new HashSet<>(pSuccessors);
-        AbstractState expandedState;
-
-        Multimap<CFANode, AbstractState> blockSuccessors = HashMultimap.create();
-        for (AbstractState absElement : pSuccessors) {
-          ARGState successorElem = (ARGState) absElement;
-          blockSuccessors.put(extractLocation(absElement), successorElem);
-        }
-
-
-        for (ARGState leaveB : endOfBlock) {
-          successorExists = false;
-          expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, analyzedBlock, leaveB);
-          for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
-            if (bamCPA.isCoveredBy(expandedState, next)) {
-              successorExists = true;
-              notFoundSuccessors.remove(next);
-            }
-          }
-          if (!successorExists) { return false; }
-        }
-
-        if (!notFoundSuccessors.isEmpty()) { return false; }
-
-      } catch (CPAException e) {
-        throw new CPATransferException("Checking ARG with root " + ((BAMARGBlockStartState) pState).getAnalyzedBlock()
-            + " for block " + currentBlock + "failed.");
-      }
-    } else {
-      HashSet<CFAEdge> usedEdges = new HashSet<>();
-      for (AbstractState absElement : pSuccessors) {
-        ARGState successorElem = (ARGState) absElement;
-        usedEdges.add(((ARGState) pState).getEdgeToChild(successorElem));
-      }
-
-      //no call node, check if successors can be constructed with help of CFA edges
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
-        // edge leads to node in inner block
-        Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
-        if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
-            && currentNodeBlock.getNodes().contains(leavingEdge.getSuccessor())) {
-          if (usedEdges.contains(leavingEdge)) { return false; }
-          continue;
-        }
-        // edge leaves block, do not analyze, check for call node since if call node is also return node analysis will go beyond current block
-        if (!currentBlock.isCallNode(node) && currentBlock.isReturnNode(node)
-            && !currentBlock.getNodes().contains(leavingEdge.getSuccessor())) {
-          if (usedEdges.contains(leavingEdge)) { return false; }
-          continue;
-        }
-        if (!wrappedProofChecker.areAbstractSuccessors(pState, leavingEdge, pSuccessors)) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode,
-      final Block currentBlock)
-      throws CPAException, InterruptedException {
-    Collection<ARGState> returnNodes = new ArrayList<>();
-    Set<ARGState> waitingForUnexploredParents = new HashSet<>();
-    boolean unexploredParent;
-    Stack<ARGState> waitlist = new Stack<>();
-    HashSet<ARGState> visited = new HashSet<>();
-    HashSet<ARGState> coveredNodes = new HashSet<>();
-    ARGState current;
-
-    waitlist.add(rootNode);
-    visited.add(rootNode);
-
-    while (!waitlist.isEmpty()) {
-      current = waitlist.pop();
-
-      if (current.isTarget()) {
-        returnNodes.add(current);
-      }
-
-      if (current.isCovered()) {
-        coveredNodes.clear();
-        coveredNodes.add(current);
-        do {
-          if (!bamCPA.isCoveredBy(current, current.getCoveringState())) {
-            returnNodes = Collections.emptyList();
-            return Pair.of(false, returnNodes);
-          }
-          coveredNodes.add(current);
-          if (coveredNodes.contains(current.getCoveringState())) {
-            returnNodes = Collections.emptyList();
-            return Pair.of(false, returnNodes);
-          }
-          current = current.getCoveringState();
-        } while (current.isCovered());
-
-        if (!visited.contains(current)) {
-          unexploredParent = false;
-          for (ARGState p : current.getParents()) {
-            if (!visited.contains(p) || waitlist.contains(p)) {
-              waitingForUnexploredParents.add(current);
-              unexploredParent = true;
-              break;
-            }
-          }
-          if (!unexploredParent) {
-            visited.add(current);
-            waitlist.add(current);
-          }
-        }
-        continue;
-      }
-
-      CFANode node = extractLocation(current);
-      if (currentBlock.isReturnNode(node)) {
-        returnNodes.add(current);
-      }
-
-      if (!areAbstractSuccessors0(current, current.getChildren(), currentBlock)) {
-        returnNodes = Collections.emptyList();
-        return Pair.of(false, returnNodes);
-      }
-
-      for (ARGState child : current.getChildren()) {
-        unexploredParent = false;
-        for (ARGState p : child.getParents()) {
-          if (!visited.contains(p) || waitlist.contains(p)) {
-            waitingForUnexploredParents.add(child);
-            unexploredParent = true;
-            break;
-          }
-        }
-        if (unexploredParent) {
-          continue;
-        }
-        if (visited.contains(child)) {
-          returnNodes = Collections.emptyList();
-          return Pair.of(false, returnNodes);
-        } else {
-          waitingForUnexploredParents.remove(child);
-          visited.add(child);
-          waitlist.add(child);
-        }
-      }
-
-    }
-    if (!waitingForUnexploredParents.isEmpty()) {
-      returnNodes = Collections.emptyList();
-      return Pair.of(false, returnNodes);
-    }
-    return Pair.of(true, returnNodes);
-  }
-
-  public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock) {
-    if (correctARGsForBlocks == null) {
-      correctARGsForBlocks = new HashMap<>();
-    }
-    correctARGsForBlocks.put(pKey, pEndOfBlock);
-  }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
 
     throw new UnsupportedOperationException(
-        "BAMCPA needs to be used as the outer-most CPA,"
+        "BAMCPA needs to be used as the outermost CPA,"
         + " thus it does not support returning successors for a single edge.");
+  }
+
+  public Block getCurrentBlock() {
+    return currentBlock;
   }
 }

@@ -86,9 +86,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final BAMStopOperator stop;
   private final BAMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
-  private final CFA cfa;
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
+  private final BAMPCCManager bamPccManager;
 
   @Option(
     secure = true,
@@ -125,10 +125,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     config.inject(this);
 
     logger = pLogger;
-    cfa = pCfa;
 
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) { throw new InvalidConfigurationException(
-        "BAM needs CPAs that are capable for BAM"); }
+    if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) {
+      throw new InvalidConfigurationException("BAM needs CPAs that are capable for BAM");
+    }
 
     if (pCpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker) pCpa;
@@ -144,12 +144,20 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
     heuristic = blockHeuristic.create(pLogger, pCfa);
     blockPartitioning = buildBlockPartitioning(pCfa);
+    bamPccManager = new BAMPCCManager(
+        wrappedProofChecker,
+        config,
+        blockPartitioning,
+        wrappedReducer,
+        this,
+        data);
 
     if (handleRecursiveProcedures) {
 
-      if (cfa.getVarClassification().isPresent() && !cfa.getVarClassification().get().getRelevantFields().isEmpty()) {
+      if (pCfa.getVarClassification().isPresent() && !pCfa.getVarClassification().get().getRelevantFields().isEmpty()) {
         // TODO remove this ugly hack as soon as possible :-)
-        throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.", cfa.getMainFunction().getLeavingEdge(0));
+        throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.", pCfa
+            .getMainFunction().getLeavingEdge(0));
       }
 
       transfer =
@@ -177,8 +185,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
     prec =
         new BAMPrecisionAdjustment(
-            pCpa.getPrecisionAdjustment(), data, transfer, logger, blockPartitioning);
-    merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
+            pCpa.getPrecisionAdjustment(), data, transfer, bamPccManager,
+            logger, blockPartitioning);
+    merge = new BAMMergeOperator(
+        pCpa.getMergeOperator(), bamPccManager, transfer);
 
     stats = new BAMCPAStatistics(this, data, config, logger);
   }
@@ -263,6 +273,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return data;
   }
 
+  public BAMPCCManager getBamPccManager() {
+    return bamPccManager;
+  }
+
   LogManager getLogger() {
     return logger;
   }
@@ -281,7 +295,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
-    return transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
+    return bamPccManager.areAbstractSuccessors(pState, pCfaEdge, pSuccessors);
   }
 
   @Override

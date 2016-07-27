@@ -43,6 +43,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
   private final BAMTransferRelation trans;
+  private final BAMPCCManager bamPccManager;
   private final BAMDataManager data;
   private final LogManager logger;
   private final BlockPartitioning blockPartitioning;
@@ -51,11 +52,13 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       BAMDataManager pData,
       BAMTransferRelation pTransfer,
+      BAMPCCManager pBamPccManager,
       LogManager pLogger,
       BlockPartitioning pBlockPartitioning) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
     this.data = pData;
     this.trans = pTransfer;
+    bamPccManager = pBamPccManager;
     this.logger = pLogger;
     this.blockPartitioning = pBlockPartitioning;
   }
@@ -90,8 +93,14 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       return result;
     }
 
-    PrecisionAdjustmentResult updatedResult = result.get().withAbstractState(
-        trans.attachAdditionalInfoToCallNode(result.get().abstractState()));
+    PrecisionAdjustmentResult updatedResult;
+    if (bamPccManager.isPCCEnabled()) {
+      updatedResult = result.get().withAbstractState(bamPccManager
+          .attachAdditionalInfoToCallNode(
+            result.get().abstractState(), trans.getCurrentBlock()));
+    } else {
+      updatedResult = result.get();
+    }
 
     if (pElement != updatedResult.abstractState()) {
       logger.log(Level.ALL, "before PREC:", pElement);

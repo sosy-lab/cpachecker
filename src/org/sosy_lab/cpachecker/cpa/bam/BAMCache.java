@@ -74,12 +74,15 @@ public class BAMCache {
   private final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
   private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();
 
-  private ARGState lastAnalyzedBlock = null;
+  private AbstractStateHash lastAnalyzedBlockCache = null;
   private final Reducer reducer;
 
   private final LogManager logger;
 
-  public BAMCache(Configuration config, Reducer reducer, LogManager logger) throws InvalidConfigurationException {
+  public BAMCache(
+      Configuration config,
+      Reducer reducer,
+      LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     this.reducer = reducer;
     this.logger = logger;
@@ -106,7 +109,7 @@ public class BAMCache {
     assert allStatesContainedInReachedSet(item, preciseReachedCache.get(hash)) : "output-states must be in reached-set";
     returnCache.put(hash, item);
     blockARGCache.put(hash, rootOfBlock);
-    setLastAnalyzedBlock(hash);
+    lastAnalyzedBlockCache = hash;
   }
 
   private boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
@@ -165,7 +168,7 @@ public class BAMCache {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     ReachedSet result = preciseReachedCache.get(hash);
     if (result != null) {
-      setLastAnalyzedBlock(hash);
+      lastAnalyzedBlockCache = hash;
       logger.log(Level.FINEST, "CACHE_ACCESS: precise entry");
       return Pair.of(result, returnCache.get(hash));
     }
@@ -178,7 +181,7 @@ public class BAMCache {
             result.getPrecision(result.getFirstState()),
             context);
 
-        setLastAnalyzedBlock(unpreciseHash);
+        lastAnalyzedBlockCache = unpreciseHash;
         logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, directly from cache");
         return Pair.of(result, returnCache.get(unpreciseHash));
       }
@@ -190,30 +193,22 @@ public class BAMCache {
       if (pair != null) {
         //found similar element, use this
         unpreciseReachedCache.put(hash, pair.getFirst());
-        setLastAnalyzedBlock(
-            getHashCode(
+        lastAnalyzedBlockCache = getHashCode(
                 stateKey,
                 pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
-                context)
-        );
+                context);
         logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, searched in cache");
         return pair;
       }
     }
 
-    lastAnalyzedBlock = null;
+    lastAnalyzedBlockCache = null;
     logger.log(Level.FINEST, "CACHE_ACCESS: entry not available");
     return Pair.of(null, null);
   }
 
-  private void setLastAnalyzedBlock(AbstractStateHash pHash) {
-    if (BAMTransferRelation.PCCInformation.isPCCEnabled()) {
-      lastAnalyzedBlock = blockARGCache.get(pHash);
-    }
-  }
-
   public ARGState getLastAnalyzedBlock() {
-    return lastAnalyzedBlock;
+    return blockARGCache.get(lastAnalyzedBlockCache);
   }
 
   private Pair<ReachedSet, Collection<AbstractState>> lookForSimilarState(

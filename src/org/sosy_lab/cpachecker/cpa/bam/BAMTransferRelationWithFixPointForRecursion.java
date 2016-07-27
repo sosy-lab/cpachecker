@@ -358,8 +358,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
     data.initialStateToReachedSet.put(initialState, reached);
 
-    if (PCCInformation.isPCCEnabled()) {
-      addBlockAnalysisInfo(pReducedInitialState);
+    if (bamPccManager.isPCCEnabled()) {
+      bamPccManager.addBlockAnalysisInfo(pReducedInitialState);
     }
 
     return expandResultStates(reducedResult, pOuterSubtree, initialState, pPrecision);
