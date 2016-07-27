@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.util.Triple;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -198,17 +198,13 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   /** returns a covering level or Null, if no such level is found. */
   private Triple<AbstractState, Precision, Block> getCoveringLevel(
-      final Deque<Triple<AbstractState, Precision, Block>> stack,
+      final List<Triple<AbstractState, Precision, Block>> stack,
       final Triple<AbstractState, Precision, Block> currentLevel)
     throws CPAException, InterruptedException {
 
-    int i = 0;
-    for (Triple<AbstractState, Precision, Block> level : stack) {
-
-      // Iterate from the beginning to the second last element of the stack.
-      if (i == stack.size() - 1) {
-        break;
-      }
+    // Iterate from the beginning to the second last element of the stack.
+    for (Triple<AbstractState, Precision, Block> level :
+          stack.subList(0, stack.size() - 1)) {
 
       if (level.getThird() == currentLevel.getThird()
               // && level.getSecond().equals(currentLevel.getSecond())
@@ -220,7 +216,6 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         // TODO how to compare precisions? equality would be enough
         return level;
       }
-      i++;
     }
     return null;
   }
@@ -363,7 +358,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
     data.initialStateToReachedSet.put(initialState, reached);
 
-    addBlockAnalysisInfo(pReducedInitialState);
+    if (PCCInformation.isPCCEnabled()) {
+      addBlockAnalysisInfo(pReducedInitialState);
+    }
 
     return expandResultStates(reducedResult, pOuterSubtree, initialState, pPrecision);
   }

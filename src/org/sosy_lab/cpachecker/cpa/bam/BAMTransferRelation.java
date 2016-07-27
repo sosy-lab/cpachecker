@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -65,10 +66,8 @@ import org.sosy_lab.cpachecker.util.Triple;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +103,8 @@ public class BAMTransferRelation implements TransferRelation {
   protected Block currentBlock;
   protected final BlockPartitioning partitioning;
   protected int depth = 0;
-  protected final Deque<Triple<AbstractState, Precision, Block>> stack = new LinkedList<>();
+  protected final List<Triple<AbstractState, Precision, Block>> stack =
+      new ArrayList<>();
 
   protected final LogManager logger;
   private final CPAAlgorithmFactory algorithmFactory;
@@ -248,8 +248,7 @@ public class BAMTransferRelation implements TransferRelation {
       // If only LoopBlocks are used, we can have recursive Loops, too.
 
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
-        for (Triple<AbstractState, Precision, Block> triple : stack) {
-          Block block  = triple.getThird();
+        for (Block block : Lists.transform(stack, Triple::getThird)) {
           if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;
           }
@@ -291,13 +290,13 @@ public class BAMTransferRelation implements TransferRelation {
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
     final Triple<AbstractState, Precision, Block> currentLevel = Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
-    stack.push(currentLevel);
+    stack.add(currentLevel);
     logger.log(Level.FINEST, "current Stack:", stack);
 
     final Collection<? extends AbstractState> resultStates = analyseBlockAndExpand(
         initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
-    final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
+    final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
     assert lastLevel.equals(currentLevel);
     currentBlock = outerSubtree;
 
