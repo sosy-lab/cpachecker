@@ -157,7 +157,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         }
 
         // add ARG as checked
-        ((BAMCPA) checker).getTransferRelation().setCorrectARG(Pair.of(args[i], block), returnNodes);
+        ((BAMCPA) checker).getBamPccManager().setCorrectARG(Pair.of(args[i], block),
+            returnNodes);
       }
 
       // check main block
