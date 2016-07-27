@@ -342,7 +342,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
             data.bamCache.get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
     final ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> previousResult = pair.getSecond();
-    final Collection<Pair<AbstractState, Precision>> reducedResult;
+    final Collection<AbstractState> reducedResult;
 
     assert reached != null : "cached entry has no reached set";
     if (previousResult == null) {
@@ -352,7 +352,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     } else {
       // use previously computed outer block as inner block,
       // this is equal to 'add one recursive step' in the recursion
-      reducedResult = imbueAbstractStatesWithPrecision(reached, previousResult);
+      reducedResult = previousResult;
       logger.logf(Level.FINEST, "skipping recursive call with cached result (root is %s)", reached.getFirstState());
     }
 
@@ -362,7 +362,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       bamPccManager.addBlockAnalysisInfo(pReducedInitialState);
     }
 
-    return expandResultStates(reducedResult, pOuterSubtree, initialState, pPrecision);
+    return expandResultStates(reducedResult, reached, pOuterSubtree, initialState, pPrecision);
   }
 
   /** We try to get a smaller set of states for further analysis.

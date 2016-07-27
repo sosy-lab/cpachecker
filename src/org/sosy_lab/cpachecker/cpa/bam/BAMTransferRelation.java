@@ -306,8 +306,8 @@ public class BAMTransferRelation implements TransferRelation {
           final Precision reducedInitialPrecision)
           throws CPAException, InterruptedException {
 
-    final Collection<Pair<AbstractState, Precision>> reducedResult =
-            getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
+    final Pair<Collection<AbstractState>, ReachedSet> reducedResult =
+        getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
 
     if (bamPccManager.isPCCEnabled()) {
       bamPccManager.addBlockAnalysisInfo(reducedInitialState);
@@ -316,11 +316,12 @@ public class BAMTransferRelation implements TransferRelation {
     if (breakAnalysis) {
       // analysis aborted, so lets abort here too
       // TODO why return element?
-      assert reducedResult.size() == 1;
-      return Collections.singleton(Iterables.getOnlyElement(reducedResult).getFirst());
+      assert reducedResult.getFirst().size() == 1;
+      return Collections.singleton(Iterables.getOnlyElement(reducedResult.getFirst()));
     }
 
-    return expandResultStates(reducedResult, outerSubtree, entryState, precision);
+    return expandResultStates(
+        reducedResult.getFirst(), reducedResult.getSecond(), outerSubtree, entryState, precision);
   }
 
   /**
@@ -334,19 +335,19 @@ public class BAMTransferRelation implements TransferRelation {
    * the caches.
    * */
   protected List<AbstractState> expandResultStates(
-          final Collection<Pair<AbstractState, Precision>> reducedResult,
-          final Block outerSubtree,
-          final AbstractState state,
-          final Precision precision)
+      final Collection<AbstractState> reducedResult,
+      final ReachedSet reached,
+      final Block outerSubtree,
+      final AbstractState state,
+      final Precision precision)
       throws InterruptedException {
 
     logger.log(Level.FINEST, "Expanding states with initial state", state);
     logger.log(Level.FINEST, "Expanding states", reducedResult);
 
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
-    for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
-      AbstractState reducedState = reducedPair.getFirstNotNull();
-      Precision reducedPrecision = reducedPair.getSecondNotNull();
+    for (AbstractState reducedState : reducedResult) {
+      Precision reducedPrecision = reached.getPrecision(reducedState);
 
       AbstractState expandedState =
               wrappedReducer.getVariableExpandedState(state, currentBlock, reducedState);
@@ -376,14 +377,14 @@ public class BAMTransferRelation implements TransferRelation {
    * @param reducedInitialPrecision Reduced precision associated with the
    *                                block entry.
    *
-   * @return Set of reduced pairs of abstract states and paired precisions
-   * associated with the exit of the block.
+   * @return Set of reduced pairs of abstract states associated with the exit of the block
+   * and the reached-set they belong to.
    **/
-  private Collection<Pair<AbstractState, Precision>> getReducedResult(
-          final AbstractState initialState,
-          final AbstractState reducedInitialState,
-          final Precision reducedInitialPrecision)
-          throws InterruptedException, CPAException {
+  private Pair<Collection<AbstractState>, ReachedSet> getReducedResult(
+      final AbstractState initialState,
+      final AbstractState reducedInitialState,
+      final Precision reducedInitialPrecision)
+      throws InterruptedException, CPAException {
 
     // statesForFurtherAnalysis is always equal to reducedResult,
     // except for one special case (on revisiting recursion).
@@ -455,7 +456,7 @@ public class BAMTransferRelation implements TransferRelation {
         rootOfBlock
     );
 
-    return imbueAbstractStatesWithPrecision(reached, statesForFurtherAnalysis);
+    return Pair.of(statesForFurtherAnalysis, reached);
   }
 
   /**
@@ -514,15 +515,6 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     return returnStates;
-  }
-
-  protected List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
-      ReachedSet pReached, Collection<AbstractState> pElements) {
-    List<Pair<AbstractState, Precision>> result = new ArrayList<>();
-    for (AbstractState ele : pElements) {
-      result.add(Pair.of(ele, pReached.getPrecision(ele)));
-    }
-    return result;
   }
 
   @Override
