@@ -81,6 +81,7 @@ public interface Reducer {
    *
    * <p>A greater value indicates a bigger difference in the precision.
    * If the implementation of this function is not important, return zero. */
+  @SuppressWarnings("unused")
   default int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return 0;
   }
