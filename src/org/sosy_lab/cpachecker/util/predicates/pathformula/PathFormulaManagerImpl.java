@@ -84,7 +84,6 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -643,7 +642,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       boolean isValidBranching = false;
 
       for (ARGState child: e.getChildren()) {
-        final CFANode locOfE = AbstractStates.extractLocationMaybeWeaved(child);
+        final CFANode locOfE = AbstractStates.extractLocationMaybeWeavedOn(child);
         Preconditions.checkNotNull(locOfE, "Each abstract state must be mapped to a location.");
         @Nullable final CFAEdge edgeToChid = e.getEdgeToChild(child);
 

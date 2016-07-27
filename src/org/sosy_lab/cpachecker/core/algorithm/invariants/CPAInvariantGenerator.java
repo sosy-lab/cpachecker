@@ -463,7 +463,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       this.reachedSet = Objects.requireNonNull(pReachedSet);
     }
 
-    public Iterable<AbstractState> get(CFANode pLocation) {
+    public Iterable<? extends AbstractState> get(CFANode pLocation) {
       if (reachedSet instanceof LocationMappedReachedSet) {
         return AbstractStates.filterLocation(reachedSet, pLocation);
       }

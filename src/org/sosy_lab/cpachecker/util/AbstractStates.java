@@ -200,7 +200,8 @@ public final class AbstractStates {
    * @return an <code>Iterable</code> over all the returned states
    *         without <code>null</code> values
    */
-  public static <T extends AbstractState> FluentIterable<T> projectToType(Iterable<AbstractState> states, Class<T> pType) {
+  public static <T extends AbstractState> FluentIterable<T> projectToType (Iterable<? extends
+      AbstractState> states, Class<T> pType) {
     return from(states).transform(toState(pType))
                         .filter(notNull());
   }
@@ -220,7 +221,7 @@ public final class AbstractStates {
 
   }
 
-  public static CFANode extractLocationMaybeWeaved(AbstractState pState) {
+  public static CFANode extractLocationMaybeWeavedOn(AbstractState pState) {
     Iterator<CFANode> locs = extractWeavedOnLocations(pState).iterator();
     if (!locs.hasNext()) {
       return null;
@@ -250,7 +251,7 @@ public final class AbstractStates {
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
       AbstractStates::extractLocation;
 
-  public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
+  public static Iterable<? extends AbstractState> filterLocation(Iterable<? extends AbstractState> pStates, CFANode pLoc) {
     if (pStates instanceof LocationMappedReachedSet) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
@@ -259,6 +260,18 @@ public final class AbstractStates {
 
     Predicate<AbstractState> statesWithRightLocation =
         Predicates.compose(equalTo(pLoc), AbstractStates::extractLocation);
+    return FluentIterable.from(pStates).filter(statesWithRightLocation);
+  }
+
+  public static Iterable<? extends AbstractState> filterLocationMaybeWeavedOn(Iterable<? extends AbstractState> pStates, CFANode pLoc) {
+    if (pStates instanceof LocationMappedReachedSet) {
+      // only do this for LocationMappedReachedSet, not for all ReachedSet,
+      // because this method is imprecise for the rest
+      return ((LocationMappedReachedSet)pStates).getReached(pLoc);
+    }
+
+    Predicate<AbstractState> statesWithRightLocation =
+        Predicates.compose(equalTo(pLoc), AbstractStates::extractLocationMaybeWeavedOn);
     return FluentIterable.from(pStates).filter(statesWithRightLocation);
   }
 

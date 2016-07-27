@@ -102,7 +102,8 @@ public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     if (locations.contains(edge.getPredecessor())) {
-      Iterable<AbstractState> infeasibleStates = from(AbstractStates.filterLocation(pReachedSet, edge.getSuccessor())).toList();
+      Iterable<? extends AbstractState> infeasibleStates = from(AbstractStates.filterLocation
+          (pReachedSet, edge.getSuccessor())).toList();
       pReachedSet.removeAll(infeasibleStates);
       for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
         s.removeFromARG();
