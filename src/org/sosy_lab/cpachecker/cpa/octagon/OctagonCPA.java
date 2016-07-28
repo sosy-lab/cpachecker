@@ -70,7 +70,6 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
   private final Precision precision;
   private final Configuration config;
@@ -95,15 +94,9 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
     }
 
     this.transferRelation = new OctagonTransferRelation(logger, cfa.getLoopStructure().get());
-
-    MergeOperator octagonMergeOp = OctagonMergeOperator.getInstance(octagonDomain, config);
-
-    StopOperator octagonStopOp = new StopSepOperator(octagonDomain);
-
     this.abstractDomain = octagonDomain;
-    this.mergeOperator = octagonMergeOp;
-    this.stopOperator = octagonStopOp;
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.mergeOperator = OctagonMergeOperator.getInstance(octagonDomain, config);
+    this.stopOperator = new StopSepOperator(octagonDomain);
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
@@ -145,7 +138,7 @@ public final class OctagonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
