@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeMap;
 
 
 public class SMGTest {
@@ -91,11 +91,13 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 4, obj1, smg.getNullValue());
     smg.addHasValueEdge(hv);
 
-    BitSet bs = smg.getNullBytesForObject(obj1);
-    Assert.assertFalse(bs.get(0));
-    Assert.assertFalse(bs.get(3));
-    Assert.assertTrue(bs.get(4));
-    Assert.assertTrue(bs.get(7));
+    TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
+    Assert.assertTrue(nullEdges.floorKey(0) == null);
+    Assert.assertTrue(nullEdges.floorKey(3) == null);
+    Assert.assertTrue(nullEdges.floorEntry(4).getValue() == 4);
+    Assert.assertTrue(nullEdges.floorEntry(4).getKey() == 4);
+    Assert.assertTrue(nullEdges.floorEntry(7).getValue() == 4);
+    Assert.assertTrue(nullEdges.floorEntry(7).getKey() == 4);
   }
 
   @Test

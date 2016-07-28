@@ -546,27 +546,6 @@ public class SMG {
   }
 
   /**
-   * Obtains a bitset signifying where the object bytes are nullified.
-   *
-   * Constant.
-   *
-   * @param pObj SMGObject for which the information is to be obtained
-   * @return A bitset. A bit has 1 value if the appropriate byte is guaranteed
-   * to be NULL (is covered by a HasValue edge leading from an object to null value,
-   * 0 otherwise.
-   */
-  public BitSet getNullBytesForObject(SMGObject pObj) {
-    BitSet bs = new BitSet(pObj.getSize());
-    bs.clear();
-    SMGEdgeHasValueFilter objectFilter = SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(getNullValue());
-
-    for (SMGEdgeHasValue edge : getHVEdges(objectFilter)) {
-      bs.set(edge.getOffset(), edge.getOffset() + edge.getSizeInBytes(machine_model));
-    }
-    return bs;
-  }
-
-  /**
    * Obtains a TreeMap offset to size signifying where the object bytes are nullified.
    *
    * Constant.
@@ -639,18 +618,11 @@ public class SMG {
   }
 
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {
-    BitSet objectNullBytes = getNullBytesForObject(pObject);
     int expectedMinClear = pOffset + size;
 
     TreeMap<Integer, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
     Entry<Integer, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
-    if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear ) {
-      assert (objectNullBytes.nextClearBit(pOffset) >= expectedMinClear);
-      return true;
-    } else {
-      assert (! (objectNullBytes.nextClearBit(pOffset) >= expectedMinClear));
-      return false;
-    }
+    return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
   public void mergeValues(int pV1, int pV2) {

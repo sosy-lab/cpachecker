@@ -108,30 +108,15 @@ class SMGJoinFields {
 
   public static SMGJoinStatus joinFieldsRelaxStatus(SMG pOrigSMG, SMG pNewSMG,
       SMGJoinStatus pCurStatus, SMGJoinStatus pNewStatus, SMGObject pObject) {
-    BitSet origNull = pOrigSMG.getNullBytesForObject(pObject);
-    BitSet newNull = pNewSMG.getNullBytesForObject(pObject);
-
-    boolean pFlag = false;
-    boolean nFlag = false;
-    for (int i = 0; i < origNull.length(); i++) {
-      if (origNull.get(i) && (! newNull.get(i))) {
-        pFlag = true;
-      }
-    }
-
     TreeMap<Integer, Integer> origNullEdges = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
     TreeMap<Integer, Integer> newNullEdges = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
     for (Entry<Integer, Integer> origEdge : origNullEdges.entrySet()) {
       Entry<Integer, Integer> newFloorEntry = newNullEdges.floorEntry(origEdge.getKey());
       if (newFloorEntry == null || newFloorEntry.getValue() + newFloorEntry.getKey() <
                                     origEdge.getValue() + origEdge.getKey()) {
-        nFlag = true;
-        assert (pFlag == nFlag);
         return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
       }
     }
-
-    assert (pFlag == nFlag);
     return pCurStatus;
   }
 
@@ -161,7 +146,6 @@ class SMGJoinFields {
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
       if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
-        BitSet newNullBytes = pSMG1.getNullBytesForObject(pObj1);
 
         TreeMap <Integer, Integer> newNullEdgesOffsetToSize =
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
@@ -171,12 +155,7 @@ class SMGJoinFields {
 
         Entry<Integer, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
-          assert (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max );
           retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, pSMG1.getNullValue()));
-        }
-
-        if (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max ) {
-          assert (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max );
         }
       }
     }
@@ -192,42 +171,23 @@ class SMGJoinFields {
 
   static public Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
-    BitSet nullBytes = pSMG1.getNullBytesForObject(pObj1);
-
-    nullBytes.and(pSMG2.getNullBytesForObject(pObj2));
-
-    int size=0;
-    for (int i = nullBytes.nextSetBit(0); i >= 0; i = nullBytes.nextSetBit(i+1)) {
-      size++;
-
-      if (size > 0 && ( (i+1 == nullBytes.length()) || (nullBytes.get(i+1) == false))) {
-        SMGEdgeHasValue newHV = new SMGEdgeHasValue(size, (i-size)+1, pObj1, pSMG1.getNullValue());
-        retset.add(newHV);
-        size = 0;
-      }
-    }
-
-    Set<SMGEdgeHasValue> retset1 = new HashSet<>();
     TreeMap<Integer, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Integer, Integer> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
     for (Entry<Integer, Integer> entry1 : map1.entrySet()) {
       NavigableMap<Integer, Integer> subMap =
           map2.subMap(entry1.getKey(), true, entry1.getKey() + entry1.getValue(), false);
       for (Entry<Integer, Integer> entry2 : subMap.entrySet()) {
-        retset1.add(getNullEdgesIntersection(entry1, entry2, pObj1, pSMG1));
+        retset.add(getNullEdgesIntersection(entry1, entry2, pObj1, pSMG1));
       }
     }
     for (Entry<Integer, Integer> entry2 : map2.entrySet()) {
       NavigableMap<Integer, Integer> subMap =
           map1.subMap(entry2.getKey(), false, entry2.getKey() + entry2.getValue(), false);
       for (Entry<Integer, Integer> entry1 : subMap.entrySet()) {
-        retset1.add(getNullEdgesIntersection(entry2, entry1, pObj1, pSMG1));
+        retset.add(getNullEdgesIntersection(entry2, entry1, pObj1, pSMG1));
       }
     }
 
-
-    assert (retset.size() == retset1.size());
-    assert (retset.containsAll(retset1));
     return Collections.unmodifiableSet(retset);
   }
 
