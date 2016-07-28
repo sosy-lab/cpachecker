@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Comparator.comparingInt;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
@@ -34,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
@@ -254,7 +256,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
 
-    Collection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
+    List<Loop> allLoops = Lists.newArrayList(cfa.getLoopStructure().get().getAllLoops());
+    Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.analysisOfLoopStarted();
