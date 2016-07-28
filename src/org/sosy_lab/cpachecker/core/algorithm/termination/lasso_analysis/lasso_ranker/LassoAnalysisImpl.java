@@ -432,7 +432,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       throws IOException {
     return new NonTerminationArgumentSynthesizer(
         lasso,
-        linearLassoRankerPreferences,
+        nonlinearLassoRankerPreferences,
         nonTerminationAnalysisSettings,
         toolchainStorage,
         toolchainStorage);
