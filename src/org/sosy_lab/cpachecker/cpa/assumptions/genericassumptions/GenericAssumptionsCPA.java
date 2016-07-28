@@ -30,75 +30,32 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
+public class GenericAssumptionsCPA extends AbstractCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(GenericAssumptionsCPA.class);
   }
 
-  private final AbstractState topState;
-  private final AbstractDomain abstractDomain;
-  private final TransferRelation transferRelation;
-
   private GenericAssumptionsCPA(CFA pCFA,
                                 LogManager pLogManager,
                                 Configuration pConfiguration)
       throws InvalidConfigurationException {
-    transferRelation = new GenericAssumptionsTransferRelation(
-        pCFA, pLogManager, pConfiguration);
-    topState = new GenericAssumptionsState(ImmutableList.of());
-    abstractDomain = new GenericAssumptionsDomain(topState);
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    super(
+        "sep",
+        "always",
+        new GenericAssumptionsDomain(new GenericAssumptionsState(ImmutableList.of())),
+        new GenericAssumptionsTransferRelation(pCFA, pLogManager, pConfiguration));
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return topState;
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return StopAlwaysOperator.getInstance();
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return new GenericAssumptionsState(ImmutableList.of());
   }
 
 }
