@@ -35,7 +35,10 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 
 class SMGJoinFields {
   private final SMG newSMG1;
@@ -144,15 +147,32 @@ class SMGJoinFields {
 
       if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
         BitSet newNullBytes = pSMG1.getNullBytesForObject(pObj1);
+
+        TreeMap <Integer, Integer> newNullEdgesOffsetToSize =
+            pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
+
         int min = edge.getOffset();
         int max = edge.getOffset() + edge.getSizeInBytes(pSMG1.getMachineModel());
 
-        if (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max ) {
+        Entry<Integer, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
+        if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
+          assert (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max );
           retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, pSMG1.getNullValue()));
+        }
+
+        if (newNullBytes.get(min) && newNullBytes.nextClearBit(min) >= max ) {
+          assert (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max );
         }
       }
     }
     return retset;
+  }
+
+  static private SMGEdgeHasValue getNullEdgesIntersection(Entry<Integer, Integer> first, Entry<Integer,
+      Integer> next, SMGObject pObj1, SMG pSMG1) {
+    int resultOffset = Integer.max(first.getKey(), next.getKey());
+    int resultSize = Integer.min(first.getValue() + first.getKey(), next.getValue() + next.getKey()) - resultOffset;
+    return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, pSMG1.getNullValue());
   }
 
   static public Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
@@ -172,6 +192,59 @@ class SMGJoinFields {
       }
     }
 
+//    Set<SMGEdgeHasValue> retset1 = new HashSet<>();
+//    TreeMap<Integer, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
+//    TreeMap<Integer, Integer> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
+//
+//    for (Entry<Integer, Integer> entry : map2.entrySet()) {
+//      Integer offset2 = entry.getKey();
+//      Integer size2 = entry.getValue();
+//      Integer size1 = map1.getOrDefault(offset2, size2);
+//      map1.put(offset2, Integer.max(size1, size2));
+//    }
+//
+//    // merge intervals
+//    if (!map1.isEmpty()) {
+//      Iterator<Entry<Integer, Integer>> iterator = map1.entrySet().iterator();
+//      Entry<Integer, Integer> next = iterator.next();
+//      Integer resultOffset = next.getKey();
+//      Integer resultSize = next.getValue();
+//      while (iterator.hasNext()) {
+//        next = iterator.next();
+//        if (next.getKey() <= resultOffset + resultSize) {
+//          resultSize = next.getKey() + next.getValue() - resultOffset;
+//        } else {
+//          SMGEdgeHasValue newHV = new SMGEdgeHasValue(resultSize, resultOffset, pObj1, pSMG1.getNullValue());
+//          retset1.add(newHV);
+//          resultOffset = next.getKey();
+//          resultSize = next.getValue();
+//        }
+//      }
+//      SMGEdgeHasValue newHV = new SMGEdgeHasValue(resultSize, resultOffset, pObj1, pSMG1.getNullValue());
+//      retset1.add(newHV);
+//    }
+
+    Set<SMGEdgeHasValue> retset1 = new HashSet<>();
+    TreeMap<Integer, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
+    TreeMap<Integer, Integer> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
+    for (Entry<Integer, Integer> entry1 : map1.entrySet()) {
+      NavigableMap<Integer, Integer> subMap =
+          map2.subMap(entry1.getKey(), true, entry1.getKey() + entry1.getValue(), false);
+      for (Entry<Integer, Integer> entry2 : subMap.entrySet()) {
+        retset1.add(getNullEdgesIntersection(entry1, entry2, pObj1, pSMG1));
+      }
+    }
+    for (Entry<Integer, Integer> entry2 : map2.entrySet()) {
+      NavigableMap<Integer, Integer> subMap =
+          map1.subMap(entry2.getKey(), false, entry2.getKey() + entry2.getValue(), false);
+      for (Entry<Integer, Integer> entry1 : subMap.entrySet()) {
+        retset1.add(getNullEdgesIntersection(entry2, entry1, pObj1, pSMG1));
+      }
+    }
+
+
+    assert (retset.size() == retset1.size());
+    assert (retset.containsAll(retset1));
     return Collections.unmodifiableSet(retset);
   }
 
