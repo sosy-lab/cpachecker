@@ -29,6 +29,7 @@ import static java.util.logging.Level.FINE;
 import static java.util.stream.Collectors.toSet;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -143,17 +144,25 @@ public class LassoBuilder {
 
     while (path.advanceIfPossible()) {
       if (!loopStarted) {
-        ARGState nextState = path.getNextAbstractState();
-        TerminationState nextTerminationState =
-            extractStateByType(nextState, TerminationState.class);
+        if (path.hasNext()) {
+          ARGState nextState = path.getNextAbstractState();
+          TerminationState nextTerminationState =
+              extractStateByType(nextState, TerminationState.class);
 
-        if (path.isPositionWithState()) {
-          ARGState state = path.getAbstractState();
-          TerminationState terminationState = extractStateByType(state, TerminationState.class);
-          loopStarted = nextTerminationState.isPartOfLoop() && !terminationState.isPartOfStem();
+          if (path.isPositionWithState()) {
+            ARGState state = path.getAbstractState();
+            TerminationState terminationState = extractStateByType(state, TerminationState.class);
+            loopStarted = nextTerminationState.isPartOfLoop() && !terminationState.isPartOfStem();
 
-        } else {
-          loopStarted = nextTerminationState.isPartOfLoop();
+          } else {
+            loopStarted = nextTerminationState.isPartOfLoop();
+          }
+
+        } else { // last state of the lasso has to be a loop state
+          TerminationState state =
+              extractStateByType(path.getAbstractState(), TerminationState.class);
+          Verify.verify(state.isPartOfLoop());
+          loopStarted = true;
         }
       }
 
