@@ -186,6 +186,7 @@ public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdge
     map.clear();
   }
 
+  @Override
   public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
     return map.get(pObject);
   }
