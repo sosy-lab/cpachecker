@@ -111,12 +111,27 @@ class SMGJoinFields {
     BitSet origNull = pOrigSMG.getNullBytesForObject(pObject);
     BitSet newNull = pNewSMG.getNullBytesForObject(pObject);
 
+    boolean pFlag = false;
+    boolean nFlag = false;
     for (int i = 0; i < origNull.length(); i++) {
       if (origNull.get(i) && (! newNull.get(i))) {
+        pFlag = true;
+      }
+    }
+
+    TreeMap<Integer, Integer> origNullEdges = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+    TreeMap<Integer, Integer> newNullEdges = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+    for (Entry<Integer, Integer> origEdge : origNullEdges.entrySet()) {
+      Entry<Integer, Integer> newFloorEntry = newNullEdges.floorEntry(origEdge.getKey());
+      if (newFloorEntry == null || newFloorEntry.getValue() + newFloorEntry.getKey() <
+                                    origEdge.getValue() + origEdge.getKey()) {
+        nFlag = true;
+        assert (pFlag == nFlag);
         return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
       }
     }
 
+    assert (pFlag == nFlag);
     return pCurStatus;
   }
 
