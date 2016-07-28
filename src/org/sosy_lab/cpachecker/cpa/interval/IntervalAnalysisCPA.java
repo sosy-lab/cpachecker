@@ -31,33 +31,24 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import java.util.Collection;
 
 @Options(prefix = "cpa.interval")
-public class IntervalAnalysisCPA
+public class IntervalAnalysisCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA {
 
   /**
@@ -76,31 +67,6 @@ public class IntervalAnalysisCPA
    */
   private String mergeType = "SEP";
 
-  /**
-   * the abstract domain of the interval analysis
-   */
-  private AbstractDomain abstractDomain;
-
-  /**
-   * the merge operator of the interval analysis
-   */
-  private MergeOperator mergeOperator;
-
-  /**
-   * the stop operator of the interval analysis
-   */
-  private StopOperator stopOperator;
-
-  /**
-   * the transfer relation of the interval analysis
-   */
-  private TransferRelation transferRelation;
-
-  /**
-   * the precision adjustment of the interval analysis
-   */
-  private PrecisionAdjustment precisionAdjustment;
-
   private final StateToFormulaWriter writer;
 
   /**
@@ -111,28 +77,13 @@ public class IntervalAnalysisCPA
   private IntervalAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier, CFA cfa)
           throws InvalidConfigurationException {
+    super(
+        "irrelevant",
+        "sep",
+        DelegateAbstractDomain.<IntervalAnalysisState>getInstance(),
+        new IntervalAnalysisTransferRelation(config, logger));
     config.inject(this);
-
-    abstractDomain      = DelegateAbstractDomain.<IntervalAnalysisState>getInstance();
-
-    mergeOperator       = mergeType.equals("SEP") ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
-
-    stopOperator        = new StopSepOperator(abstractDomain);
-
-    transferRelation    = new IntervalAnalysisTransferRelation(config, logger);
-
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
-
-  }
-
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getAbstractDomain()
-   */
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
   }
 
   /* (non-Javadoc)
@@ -140,23 +91,7 @@ public class IntervalAnalysisCPA
    */
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getStopOperator()
-   */
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
-
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getTransferRelation()
-   */
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return buildMergeOperator(mergeType);
   }
 
   @Override
@@ -170,22 +105,6 @@ public class IntervalAnalysisCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new IntervalAnalysisState();
-  }
-
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialPrecision(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
-   */
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getPrecisionAdjustment()
-   */
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
   }
 
   @Override
