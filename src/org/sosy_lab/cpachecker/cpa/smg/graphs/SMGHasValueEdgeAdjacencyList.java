@@ -221,4 +221,12 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
 
     return pFilter.filterSet(getHvEdges());
   }
+
+  public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
+    Map<Integer, SMGEdgeHasValue> offsetToHveMap = objectToHveEdgeMap.get(pObject);
+    if (offsetToHveMap != null) {
+      return ImmutableSet.copyOf(offsetToHveMap.values());
+    }
+    return ImmutableSet.of();
+  }
 }

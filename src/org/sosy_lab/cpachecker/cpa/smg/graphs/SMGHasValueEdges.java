@@ -47,4 +47,5 @@ public interface SMGHasValueEdges {
 
   public Set<SMGEdgeHasValue> filter(SMGEdgeHasValueFilter pFilter);
 
+  public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
 }

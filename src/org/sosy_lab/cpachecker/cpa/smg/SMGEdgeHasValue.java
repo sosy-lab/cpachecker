@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
+import java.util.Comparator;
 import java.util.Objects;
 
 public class SMGEdgeHasValue extends SMGEdge {
@@ -129,4 +130,21 @@ public class SMGEdgeHasValue extends SMGEdge {
         && offset == other.offset
         && type.getCanonicalType().equals(other.type.getCanonicalType());
   }
+
+  static public class SMGEdgeHasValueComparator implements Comparator<SMGEdgeHasValue> {
+      @Override
+      public int compare(SMGEdgeHasValue o1, SMGEdgeHasValue o2) {
+        int result = Integer.compare(o1.getObject().getId(), o2.getObject().getId());
+        if (result == 0) {
+          result = Integer.compare(o1.offset, o2.offset);
+          if (result == 0) {
+            result = Integer.compare(o1.getValue(), o2.getValue());
+            if (result == 0) {
+              result = o1.type.getCanonicalType().toString().compareTo(o2.type.getCanonicalType().toString());
+            }
+          }
+        }
+        return result;
+      }
+    }
 }
