@@ -28,25 +28,19 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 
 @Options(prefix = "cpa.sign")
-public class SignCPA extends AbstractCPA implements ProofChecker {
+public class SignCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for SignCPA")
@@ -83,36 +77,4 @@ public class SignCPA extends AbstractCPA implements ProofChecker {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return SignState.TOP;
   }
-
-  @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    try {
-      Collection<? extends AbstractState> computedSuccessors =
-          getTransferRelation()
-              .getAbstractSuccessorsForEdge(pState, SingletonPrecision.getInstance(), pCfaEdge);
-      boolean found;
-      for (AbstractState comp:computedSuccessors) {
-        found = false;
-        for (AbstractState e:pSuccessors) {
-          if (isCoveredBy(comp, e)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          return false;
-        }
-      }
-    } catch (CPAException e) {
-      throw new CPATransferException("Cannot compare abstract successors", e);
-    }
-    return true;
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return getAbstractDomain().isLessOrEqual(pState, pOtherState);
-  }
-
 }
