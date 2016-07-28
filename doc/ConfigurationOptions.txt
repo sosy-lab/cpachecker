@@ -2775,23 +2775,36 @@ termination.check = false
 # instead of the current one.
 termination.config = no default value
 
-# Analysis type used for synthesis of termination arguments.
-termination.lassoAnalysis.analysisType = LINEAR_WITH_GUESSES
-  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
-
-# If true, an external tool is used as SMT solver instead of SMTInterpol.
-termination.lassoAnalysis.externalSolver = false
-
 # Shell command used to call the external SMT solver.
 termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
+
+# Analysis type used for synthesis of linear termination arguments.
+termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
+
+# If true, an external tool is used as SMT solver instead of SMTInterpol.This
+# affects only synthesis of non-termination arguments and linear termination
+# arguments.
+termination.lassoAnalysis.linear.externalSolver = false
 
 # Number of non-strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
 termination.lassoAnalysis.nonStrictInvariants = 3
 
+# Analysis type used for synthesis of non-linear termination arguments.
+termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
+
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+# This affects only synthesis of non-linear termination arguments.
+termination.lassoAnalysis.nonlinear.externalSolver = false
+
 # Number of strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
 termination.lassoAnalysis.strictInvariants = 2
+
+# Simplifies loop and stem formulas.
+termination.lassoBuilder.simplify = false
 
 # maximal number of repeated ranking functions per loop before stopping
 # analysis

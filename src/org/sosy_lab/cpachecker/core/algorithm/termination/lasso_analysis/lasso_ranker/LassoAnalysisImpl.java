@@ -126,9 +126,11 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final LassoBuilder lassoBuilder;
   private final RankingRelationBuilder rankingRelationBuilder;
 
-  private final LassoRankerPreferences lassoRankerPreferences;
+  private final LassoRankerPreferences linearLassoRankerPreferences;
+  private final LassoRankerPreferences nonlinearLassoRankerPreferences;
   private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
-  private final TerminationAnalysisSettings terminationAnalysisSettings;
+  private final TerminationAnalysisSettings linearTerminationAnalysisSettings;
+  private final TerminationAnalysisSettings nonlinearTerminationAnalysisSettings;
 
   private final LassoRankerToolchainStorage toolchainStorage;
 
@@ -152,14 +154,38 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   @IntegerOption(min = 0)
   private int strictInvariants = 2;
 
-  @Option(secure = true, description = "Analysis type used for synthesis of termination arguments.")
-  private LassoAnalysisType analysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
+  @Option(
+    name = "linear.analysisType",
+    secure = true,
+    description = "Analysis type used for synthesis of linear termination arguments."
+  )
+  private LassoAnalysisType linearAnalysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
+
+  @Option(
+    name = "linear.externalSolver",
+    secure = true,
+    description =
+        "If true, an external tool is used as SMT solver instead of SMTInterpol."
+            + "This affects only synthesis of non-termination arguments and "
+            + "linear termination arguments."
+  )
+  private boolean linearExternalSolver = false;
 
   @Option(
     secure = true,
-    description = "If true, an external tool is used as SMT solver instead of SMTInterpol."
+    name = "nonlinear.analysisType",
+    description = "Analysis type used for synthesis of non-linear termination arguments."
   )
-  private boolean externalSolver = false;
+  private LassoAnalysisType nonlinearAnalysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
+
+  @Option(
+    name = "nonlinear.externalSolver",
+    secure = true,
+    description =
+        "If true, an external tool is used as SMT solver instead of SMTInterpol. "
+            + "This affects only synthesis of non-linear termination arguments."
+  )
+  private boolean nonlinearExternalSolver = false;
 
   @Option(secure = true, description = "Shell command used to call the external SMT solver.")
   private String externalSolverCommand =
@@ -193,6 +219,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     lassoBuilder =
         new LassoBuilder(
+            pConfig,
             pLogger,
             shutdownNotifier,
             formulaManager,
@@ -202,15 +229,26 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     rankingRelationBuilder =
         new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
 
-    lassoRankerPreferences = new LassoRankerPreferences();
-    lassoRankerPreferences.smt_solver_command = externalSolverCommand;
-    lassoRankerPreferences.externalSolver = externalSolver;
+    linearLassoRankerPreferences = new LassoRankerPreferences();
+    linearLassoRankerPreferences.smt_solver_command = externalSolverCommand;
+    linearLassoRankerPreferences.externalSolver = linearExternalSolver;
+
+    nonlinearLassoRankerPreferences = new LassoRankerPreferences();
+    nonlinearLassoRankerPreferences.smt_solver_command = externalSolverCommand;
+    nonlinearLassoRankerPreferences.externalSolver = nonlinearExternalSolver;
 
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
-    terminationAnalysisSettings = new TerminationAnalysisSettings();
-    terminationAnalysisSettings.analysis = analysisType.toAnalysisType();
-    terminationAnalysisSettings.numnon_strict_invariants = nonStrictInvariants;
-    terminationAnalysisSettings.numstrict_invariants = strictInvariants;
+
+    linearTerminationAnalysisSettings = new TerminationAnalysisSettings();
+    linearTerminationAnalysisSettings.analysis = linearAnalysisType.toAnalysisType();
+    linearTerminationAnalysisSettings.numnon_strict_invariants = nonStrictInvariants;
+    linearTerminationAnalysisSettings.numstrict_invariants = strictInvariants;
+
+    nonlinearTerminationAnalysisSettings = new TerminationAnalysisSettings();
+    nonlinearTerminationAnalysisSettings.analysis = nonlinearAnalysisType.toAnalysisType();
+    nonlinearTerminationAnalysisSettings.numnon_strict_invariants = nonStrictInvariants;
+    nonlinearTerminationAnalysisSettings.numstrict_invariants = strictInvariants;
+
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
 
     rankingTemplates = createTemplates();
@@ -368,6 +406,18 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private TerminationArgumentSynthesizer createTerminationArgumentSynthesizer(
       Lasso lasso, RankingTemplate template) throws IOException {
+    LassoRankerPreferences lassoRankerPreferences;
+    TerminationAnalysisSettings terminationAnalysisSettings;
+
+    if (template.getDegree() == 0) {
+      lassoRankerPreferences = linearLassoRankerPreferences;
+      terminationAnalysisSettings = linearTerminationAnalysisSettings;
+
+    } else {
+      lassoRankerPreferences = nonlinearLassoRankerPreferences;
+      terminationAnalysisSettings = nonlinearTerminationAnalysisSettings;
+    }
+
     return new TerminationArgumentSynthesizer(
         lasso,
         template,
@@ -382,7 +432,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       throws IOException {
     return new NonTerminationArgumentSynthesizer(
         lasso,
-        lassoRankerPreferences,
+        linearLassoRankerPreferences,
         nonTerminationAnalysisSettings,
         toolchainStorage,
         toolchainStorage);

@@ -37,6 +37,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -78,6 +82,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 /**
  * Creates {@link Lasso}s from {@link CounterexampleInfo}.
  */
+@Options(prefix = "termination.lassoBuilder")
 public class LassoBuilder {
 
   private final static Set<String> META_VARIABLES = ImmutableSet.of("__VERIFIER_nondet_int");
@@ -85,6 +90,9 @@ public class LassoBuilder {
   final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
 
   final static String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
+
+  @Option(secure = true, description = "Simplifies loop and stem formulas.")
+  private boolean simplify = false;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -101,12 +109,15 @@ public class LassoBuilder {
   private final DnfTransformation dnfTransformation;
 
   public LassoBuilder(
+      Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       AbstractFormulaManager<Term, ?, ?, ?> pFormulaManager,
       FormulaManagerView pFormulaManagerView,
       Supplier<ProverEnvironment> pProverEnvironmentSupplier,
-      PathFormulaManager pPathFormulaManager) {
+      PathFormulaManager pPathFormulaManager)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     formulaManager = checkNotNull(pFormulaManager);
@@ -268,7 +279,13 @@ public class LassoBuilder {
   }
 
   private Collection<BooleanFormula> toDnf(BooleanFormula path) throws InterruptedException {
-    BooleanFormula simplified = formulaManagerView.simplify(path);
+    BooleanFormula simplified;
+    if (simplify) {
+      simplified = formulaManagerView.simplify(path);
+    } else {
+      simplified = path;
+    }
+
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, simplified);
     BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, withoutIfThenElse);
     BooleanFormula nnf = formulaManagerView.applyTactic(withoutDivAndMod, Tactic.NNF);
