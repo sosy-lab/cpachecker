@@ -1964,10 +1964,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *  which could not be resolved.
    */
   public SMGState setUnknownDereference() {
-    //TODO: This can actually be an invalid read too
-    //      The flagging mechanism should be improved
+    if (isTrackPredicatesEnabled()) {
+      //TODO: accurate define SMG change on unknown dereference with predicate knowledge
+      //doesn't stop analysis on unknown dereference
+      return this;
+    } else {
 
-    return new SMGState(this, Property.INVALID_WRITE);
+      //TODO: This can actually be an invalid read too
+      //      The flagging mechanism should be improved
+      return new SMGState(this, Property.INVALID_WRITE);
+    }
   }
 
   public SMGObject getNullObject() {
