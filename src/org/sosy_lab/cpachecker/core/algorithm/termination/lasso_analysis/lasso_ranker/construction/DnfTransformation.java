@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_
 
 import com.google.common.collect.Lists;
 
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
@@ -37,6 +37,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 class DnfTransformation extends BooleanFormulaTransformationVisitor {
+
+  private final int MAX_CLAUSES = 1_000_000;
 
   private final BooleanFormulaManager fmgr;
 
@@ -56,6 +58,11 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
               .stream()
               .flatMap(c -> childOperators.stream().map(co -> fmgr.and(c, co)))
               .collect(Collectors.toCollection(ArrayList::new));
+
+      // Give up and return original formula.
+      if (clauses.size() > MAX_CLAUSES) {
+        return fmgr.and(pProcessedOperands);
+      }
     }
 
     return fmgr.or(clauses);
