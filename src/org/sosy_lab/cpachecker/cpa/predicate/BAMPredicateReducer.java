@@ -348,6 +348,10 @@ public class BAMPredicateReducer implements Reducer {
     final PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     final PredicateAbstractState entryState = (PredicateAbstractState) pEntryState;
     final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
+    Preconditions.checkState(rootState.isAbstractionState());
+    Preconditions.checkState(entryState.isAbstractionState());
+    Preconditions.checkState(expandedState.isAbstractionState());
+
     final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
 
     // we have:
