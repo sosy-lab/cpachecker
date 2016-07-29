@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 
 class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
-  private final int MAX_CLAUSES = 1_000_000;
+  private final static int MAX_CLAUSES = 1_000_000;
 
   private final BooleanFormulaManager fmgr;
 
