@@ -319,6 +319,12 @@ public class PolicyIterationManager {
       final UnmodifiableReachedSet states,
       final AbstractState pArgState) throws CPAException, InterruptedException {
 
+    if (inputState.isAbstract()) {
+
+      // BAM can pass abstract states to precision adjustment.
+      // No need to re-compute the abstraction.
+      return Optional.of(inputState);
+    }
     Preconditions.checkState(!inputState.isAbstract());
 
     PolicyIntermediateState iState = inputState.asIntermediate();
