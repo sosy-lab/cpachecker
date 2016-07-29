@@ -477,6 +477,8 @@ public class BAMTransferRelation implements TransferRelation {
   /**
    * Analyse the block with a recursive call to the {@link CPAAlgorithm} on
    * {@code reached}.
+   * May set {@code breakAnalysis} to indicate that the recursively forked
+   * analysis is wishing to break.
    *
    * @return return states associated with the analysis.
    **/

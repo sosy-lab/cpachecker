@@ -233,7 +233,7 @@ public class ARGSubtreeRemover {
 
     final Precision reducedPrecision = wrappedReducer.getVariableReducedPrecision(removePrecision, context);
 
-    return Pair.<Precision, Predicate<? super Precision>>of(
+    return Pair.of(
         reducedPrecision, Predicates.instanceOf(reducedPrecision.getClass()));
   }
 

@@ -82,7 +82,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     return new UnmodifiableReachedSet() {
 
       private final Collection<AbstractState> subgraph =
-          Collections.<AbstractState>unmodifiableCollection(rootOfSubgraph.getSubgraph());
+          Collections.unmodifiableCollection(rootOfSubgraph.getSubgraph());
 
       @Override
       public Collection<AbstractState> asCollection() {

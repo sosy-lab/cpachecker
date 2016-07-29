@@ -92,27 +92,28 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
         pElements,
         projection,
         fullState);
+
     if (!result.isPresent()) {
       return result;
     }
 
-    PrecisionAdjustmentResult updatedResult;
     if (bamPccManager.isPCCEnabled()) {
-      updatedResult = result
-          .get()
-          .withAbstractState(bamPccManager
-          .attachAdditionalInfoToCallNode(
-            result.get().abstractState(), trans.getCurrentBlock()));
-    } else {
-      updatedResult = result.get();
+      result = result
+          .map(
+              t -> t.withAbstractState(
+                  bamPccManager.attachAdditionalInfoToCallNode(
+                      t.abstractState(), trans.getCurrentBlock()
+                  )
+              )
+          );
     }
 
-    if (pElement != updatedResult.abstractState()) {
+    if (pElement != result.get().abstractState()) {
       logger.log(Level.ALL, "before PREC:", pElement);
-      logger.log(Level.ALL, "after PREC:", updatedResult.abstractState());
-      data.replaceStateInCaches(pElement, updatedResult.abstractState(), false);
+      logger.log(Level.ALL, "after PREC:", result.get().abstractState());
+      data.replaceStateInCaches(pElement, result.get().abstractState(), false);
     }
 
-    return Optional.of(updatedResult);
+    return result;
   }
 }
