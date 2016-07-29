@@ -222,7 +222,7 @@ class SMGJoinFields {
 
       Entry<Integer, Integer> floorEntry = nullEdgesInSMG2.floorEntry(start);
       int nextNotNullBit = (floorEntry == null) ? start : Integer.max(start, floorEntry.getKey() +
-          floorEntry.getValue() + 1);
+          floorEntry.getValue());
       if (hvInSMG2 == null || ( nextNotNullBit < byte_after_end && ! pSMG2.isPointer(hvInSMG2.getValue()))) {
         throw new SMGInconsistentException("SMGJoinFields output assertions do not hold");
       }
