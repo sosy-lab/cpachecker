@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -77,31 +76,30 @@ public class BAMPredicateReducer implements Reducer {
       CFANode pLocation) throws InterruptedException {
 
     PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
+    Preconditions.checkState(predicateElement.isAbstractionState());
 
-    if (!predicateElement.isAbstractionState()) { return predicateElement; }
+    AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
 
-      AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
+    Region oldRegion = oldAbstraction.asRegion();
 
-      Region oldRegion = oldAbstraction.asRegion();
-
-      Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
+    Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
     Collection<AbstractionPredicate> removePredicates =
         Sets.difference(
             new HashSet<>(predicates),
             new HashSet<>(
                 cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates)));
 
-      PathFormula pathFormula = predicateElement.getPathFormula();
+    PathFormula pathFormula = predicateElement.getPathFormula();
 
-      assert bfmgr.isTrue(pathFormula.getFormula());
+    assert bfmgr.isTrue(pathFormula.getFormula());
 
-      AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
+    AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-      PersistentMap<CFANode, Integer> abstractionLocations = predicateElement.getAbstractionLocationsOnPath()
-                                                                             .empty();
+    PersistentMap<CFANode, Integer> abstractionLocations = predicateElement.getAbstractionLocationsOnPath()
+        .empty();
 
-      return PredicateAbstractState.mkAbstractionState(pathFormula,
-          newAbstraction, abstractionLocations);
+    return PredicateAbstractState.mkAbstractionState(pathFormula,
+        newAbstraction, abstractionLocations);
   }
 
   @Override
@@ -112,43 +110,44 @@ public class BAMPredicateReducer implements Reducer {
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
-    if (!reducedState.isAbstractionState()) { return reducedState; }
+    Preconditions.checkState(reducedState.isAbstractionState());
+    Preconditions.checkState(rootState.isAbstractionState());
+
     //Note: BAM might introduce some additional abstraction if root region is not a cube
+    AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
+    AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-      AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
-      AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
+    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
+    Collection<AbstractionPredicate> relevantRootPredicates =
+        cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
+    //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
-      Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
-      Collection<AbstractionPredicate> relevantRootPredicates =
-          cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
-      //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
+    PathFormula oldPathFormula = reducedState.getPathFormula();
+    assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
+    SSAMap oldSSA = oldPathFormula.getSsa();
 
-      PathFormula oldPathFormula = reducedState.getPathFormula();
-      assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
-      SSAMap oldSSA = oldPathFormula.getSsa();
-
-      //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
-      //there still should be at least _some_ index for each variable of the abstraction formula.
-      SSAMapBuilder builder = oldSSA.builder();
-      SSAMap rootSSA = rootState.getPathFormula().getSsa();
-      for (String var : rootSSA.allVariables()) {
-        //if we do not have the index in the reduced map..
-        if (!oldSSA.containsVariable(var)) {
-          //add an index (with the value of rootSSA)
-          builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
-        }
+    //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
+    //there still should be at least _some_ index for each variable of the abstraction formula.
+    SSAMapBuilder builder = oldSSA.builder();
+    SSAMap rootSSA = rootState.getPathFormula().getSsa();
+    for (String var : rootSSA.allVariables()) {
+      //if we do not have the index in the reduced map..
+      if (!oldSSA.containsVariable(var)) {
+        //add an index (with the value of rootSSA)
+        builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
       }
-      SSAMap newSSA = builder.build();
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
+    }
+    SSAMap newSSA = builder.build();
+    PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
-      AbstractionFormula newAbstractionFormula =
-          pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
-              relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
+    AbstractionFormula newAbstractionFormula =
+        pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+            relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
 
-      PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
+    PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
-      return PredicateAbstractState.mkAbstractionState(newPathFormula,
-          newAbstractionFormula, abstractionLocations);
+    return PredicateAbstractState.mkAbstractionState(newPathFormula,
+        newAbstractionFormula, abstractionLocations);
   }
 
   @Override
@@ -238,7 +237,7 @@ public class BAMPredicateReducer implements Reducer {
 
     return new ReducedPredicatePrecision(
         rootPredicatePrecision,
-        ImmutableSetMultimap.<LocationInstance, AbstractionPredicate>of(),
+        ImmutableSetMultimap.of(),
         localPredicates,
         functionPredicates,
         globalPredicates);
@@ -350,11 +349,6 @@ public class BAMPredicateReducer implements Reducer {
     final PredicateAbstractState entryState = (PredicateAbstractState) pEntryState;
     final PredicateAbstractState expandedState = (PredicateAbstractState) pExpandedState;
     final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
-
-    // TODO why did I copy the next if-statement? when is it used?
-    if (!expandedState.isAbstractionState()) {
-      return expandedState;
-    }
 
     // we have:
     // - abstraction of rootState with ssa                --> use as it is
