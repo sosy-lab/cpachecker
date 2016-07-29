@@ -53,7 +53,7 @@ public class PolicyReducer implements Reducer {
    * relevant to {@code context}.
    */
   @Override
-  public AbstractState getVariableReducedState(
+  public PolicyAbstractedState getVariableReducedState(
       AbstractState expandedState, Block context, CFANode callNode) {
     PolicyState pState = (PolicyState) expandedState;
     Preconditions.checkState(pState.isAbstract());
@@ -71,7 +71,7 @@ public class PolicyReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedState(
+  public PolicyAbstractedState getVariableExpandedState(
       AbstractState rootState,
       Block reducedContext,
       AbstractState reducedState) {
@@ -95,7 +95,7 @@ public class PolicyReducer implements Reducer {
   @Override
   public Precision getVariableReducedPrecision(
       Precision precision, Block context) {
-    // todo?
+    // todo? might wish to remove ite
     return precision;
   }
 
@@ -119,7 +119,7 @@ public class PolicyReducer implements Reducer {
    * add assignment to return function value from expandedState.
    */
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(
+  public PolicyAbstractedState rebuildStateAfterFunctionCall(
       AbstractState rootState,
       AbstractState entryState,
       AbstractState expandedState,
@@ -130,10 +130,6 @@ public class PolicyReducer implements Reducer {
     Preconditions.checkState(pRootState.isAbstract());
     Preconditions.checkState(pEntryState.isAbstract());
     Preconditions.checkState(pExpandedState.isAbstract());
-
-    if (!pExpandedState.isAbstract()) {
-      return pExpandedState;
-    }
 
     // Remove all global values from root state.
     Map<Template, PolicyBound> rootAbstraction

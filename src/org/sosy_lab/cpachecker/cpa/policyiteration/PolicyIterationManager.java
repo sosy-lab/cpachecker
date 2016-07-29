@@ -328,14 +328,16 @@ public class PolicyIterationManager {
     Preconditions.checkState(!inputState.isAbstract());
 
     PolicyIntermediateState iState = inputState.asIntermediate();
-    boolean hasTargetState = !AbstractStates.asIterable(pArgState).filter
-        (AbstractStates::isTargetState).isEmpty();
+    boolean hasTargetState = !AbstractStates.asIterable(pArgState)
+        .filter(AbstractStates::isTargetState)
+        .isEmpty();
 
     // Formulas reported by other CPAs.
     BooleanFormula extraInvariant = extractFormula(pArgState);
 
     CFANode node = iState.getNode();
-    final boolean shouldAbstract = shouldPerformAbstraction(iState, pArgState);
+    final boolean shouldAbstract = shouldPerformAbstraction(
+        iState, pArgState, hasTargetState);
 
     // Perform reachability checking, for property states, or before the abstractions.
     if (((hasTargetState && checkTargetStates) || shouldAbstract)
@@ -1229,9 +1231,15 @@ public class PolicyIterationManager {
    */
   private boolean shouldPerformAbstraction(
       PolicyIntermediateState iState,
-      AbstractState totalState) {
+      AbstractState totalState,
+      boolean hasTargetState
+  ) {
 
     CFANode node = iState.getNode();
+
+    if (hasTargetState) {
+      return true;
+    }
 
     // If BAM is enabled, and we are at the start/end of the partition,
     // abstraction is necessary.
