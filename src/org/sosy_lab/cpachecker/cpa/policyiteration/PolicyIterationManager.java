@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
+import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -23,6 +24,7 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -73,7 +75,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
 
 /**
  * Main logic in a single class.
@@ -165,6 +168,7 @@ public class PolicyIterationManager {
   private final RCNFManager rcnfManager;
   private final TemplatePrecision initialPrecision;
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
+  @Nullable private BlockPartitioning partitioning;
 
   public PolicyIterationManager(
       Configuration pConfig,
@@ -196,7 +200,7 @@ public class PolicyIterationManager {
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
 
-    /** Compute the cache for loops */
+    // Compute the cache for loops.
     Builder<CFANode, Loop> loopStructureBuilder =
         ImmutableMap.builder();
     LoopStructure loopStructure1 = pCfa.getLoopStructure().get();
@@ -242,8 +246,8 @@ public class PolicyIterationManager {
     return initialPrecision;
   }
 
-  public Collection<? extends PolicyState> getAbstractSuccessors(PolicyState oldState,
-      CFAEdge edge) throws CPATransferException, InterruptedException {
+  public Collection<? extends PolicyState> getAbstractSuccessors(
+      PolicyState oldState, CFAEdge edge) throws CPATransferException, InterruptedException {
 
     CFANode node = edge.getSuccessor();
     PolicyIntermediateState iOldState;
@@ -316,18 +320,19 @@ public class PolicyIterationManager {
       final AbstractState pArgState) throws CPAException, InterruptedException {
 
     Preconditions.checkState(!inputState.isAbstract());
-    final PolicyIntermediateState iState = inputState.asIntermediate();
 
-    final boolean hasTargetState = StreamSupport
-        .stream(AbstractStates.asIterable(pArgState).spliterator(), false)
-        .filter(AbstractStates::isTargetState).iterator().hasNext();
+    PolicyIntermediateState iState = inputState.asIntermediate();
+    boolean hasTargetState = !AbstractStates.asIterable(pArgState).filter
+        (AbstractStates::isTargetState).isEmpty();
+
     // Formulas reported by other CPAs.
     BooleanFormula extraInvariant = extractFormula(pArgState);
 
-    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState, pArgState);
+    CFANode node = iState.getNode();
+    final boolean shouldAbstract = shouldPerformAbstraction(iState, pArgState);
 
     // Perform reachability checking, for property states, or before the abstractions.
-    if (((hasTargetState && checkTargetStates) || shouldPerformAbstraction)
+    if (((hasTargetState && checkTargetStates) || shouldAbstract)
         && isUnreachable(iState, extraInvariant)) {
 
       logger.log(Level.INFO, "Returning bottom state");
@@ -335,8 +340,7 @@ public class PolicyIterationManager {
     }
 
     // Perform the abstraction, if necessary.
-    if (shouldPerformAbstraction) {
-      CFANode node = inputState.getNode();
+    if (shouldAbstract) {
       Optional<PolicyAbstractedState> sibling = findSibling(iState, states, pArgState);
 
       PolicyAbstractedState abstraction;
@@ -375,6 +379,11 @@ public class PolicyIterationManager {
     }
   }
 
+  /**
+   * Post-precision-adjustment strengthening.
+   *
+   * <p>Injecting new invariants might force us to re-compute the abstraction.
+   */
   public Optional<AbstractState> strengthen(
       PolicyState pState, TemplatePrecision pPrecision,
       List<AbstractState> pOtherStates)
@@ -1217,6 +1226,14 @@ public class PolicyIterationManager {
       AbstractState totalState) {
 
     CFANode node = iState.getNode();
+
+    // If BAM is enabled, and we are at the start/end of the partition,
+    // abstraction is necessary.
+    if (partitioning != null &&
+        (partitioning.isCallNode(node) || partitioning.isReturnNode(node))) {
+      return true;
+    }
+
     switch (abstractionLocations) {
       case ALL:
         return true;
@@ -1349,11 +1366,19 @@ public class PolicyIterationManager {
 
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
     List<BooleanFormula> constraints = new ArrayList<>();
-    for (AbstractState a : AbstractStates.asIterable(pFormulaState)) {
+    for (AbstractState a : asIterable(pFormulaState)) {
       if (!(a instanceof PolicyAbstractedState) && a instanceof FormulaReportingState) {
         constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr));
       }
     }
     return bfmgr.and(constraints);
+  }
+
+  /**
+   * Ugly hack for communicating with
+   * {@link org.sosy_lab.cpachecker.cpa.bam.BAMCPA}.
+   */
+  void setPartitioning(BlockPartitioning pPartitioning) {
+    partitioning = pPartitioning;
   }
 }

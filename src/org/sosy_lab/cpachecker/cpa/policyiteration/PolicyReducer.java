@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -55,19 +56,11 @@ public class PolicyReducer implements Reducer {
   public AbstractState getVariableReducedState(
       AbstractState expandedState, Block context, CFANode callNode) {
     PolicyState pState = (PolicyState) expandedState;
-
-    if (!pState.isAbstract()) {
-      // Intermediate states stay as-is.
-      return pState;
-    }
+    Preconditions.checkState(pState.isAbstract());
 
     PolicyAbstractedState aState = pState.asAbstracted();
     Set<String> blockVars = getBlockVariables(context);
 
-    // TODO: what about congruence?
-    // Also can't we finally move it to a different CPA?
-    // problem : might require second abstraction, which is somewhat
-    // undesirable.
     Map<Template, PolicyBound> newAbstraction = Maps.filterKeys(
         aState.getAbstraction(),
         template -> !Sets.intersection(
@@ -85,13 +78,8 @@ public class PolicyReducer implements Reducer {
     PolicyState pRootState = (PolicyState) rootState;
     PolicyState pReducedState = (PolicyState) reducedState;
 
-    // TODO: perform the calculation for the congruence as well.
-    // (makes considerably more sense if in a separate CPA).
-    if (!pReducedState.isAbstract()) {
-
-      // Intermediate states stay as-is.
-      return pReducedState;
-    }
+    Preconditions.checkState(pRootState.isAbstract());
+    Preconditions.checkState(pReducedState.isAbstract());
 
     // Enrich the {@code pReducedState} with bounds obtained from {@code
     // pRootState} which were dropped during the reduction.
@@ -114,6 +102,7 @@ public class PolicyReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(
       Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    // todo?
     return rootPrecision;
   }
 
@@ -121,27 +110,6 @@ public class PolicyReducer implements Reducer {
   public Object getHashCodeForState(
       AbstractState stateKey, Precision precisionKey) {
     return Pair.of(stateKey, precisionKey);
-  }
-
-  @Override
-  public int measurePrecisionDifference(
-      Precision pPrecision, Precision pOtherPrecision) {
-    // TODO? seems not strictly necessary.
-    return 0;
-  }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(
-      AbstractState expandedState, Block context, CFANode callNode) {
-    return getVariableReducedState(expandedState, context, callNode);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(
-      AbstractState rootState,
-      Block reducedContext,
-      AbstractState reducedState) {
-    return getVariableExpandedState(rootState, reducedContext, reducedState);
   }
 
   /**
@@ -158,6 +126,10 @@ public class PolicyReducer implements Reducer {
       FunctionExitNode exitLocation) {
     PolicyState pRootState = (PolicyState) rootState;
     PolicyState pExpandedState = (PolicyState) expandedState;
+    PolicyState pEntryState = (PolicyState) entryState;
+    Preconditions.checkState(pRootState.isAbstract());
+    Preconditions.checkState(pEntryState.isAbstract());
+    Preconditions.checkState(pExpandedState.isAbstract());
 
     if (!pExpandedState.isAbstract()) {
       return pExpandedState;
@@ -189,8 +161,9 @@ public class PolicyReducer implements Reducer {
       String retVarName = retName.get();
 
       // Drop all templates which contain the return variable
-      // name (TODO: prob need to call simplex at this point to figure out the
-      // new bounds).
+      // name.
+      // TODO: probably need to call simplex at this point to figure out the
+      // new bounds.
       Map<Template, PolicyBound> noRetVar = Maps.filterKeys(
           noGlobals,
           t -> t.getUsedVars()

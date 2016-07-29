@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -212,6 +213,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa != null) {
       predicateCpa.setPartitioning(partitioning);
+    }
+    PolicyCPA policyCPA = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(PolicyCPA.class);
+    if (policyCPA != null) {
+      policyCPA.setPartitioning(partitioning);
     }
 
     return partitioning;

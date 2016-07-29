@@ -9,6 +9,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -267,6 +268,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public Reducer getReducer() {
     return new PolicyReducer();
+  }
+
+  public void setPartitioning(BlockPartitioning pPartitioning) {
+    policyIterationManager.setPartitioning(pPartitioning);
   }
 }
 
