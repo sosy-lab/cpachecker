@@ -1195,8 +1195,36 @@ public class FormulaManagerView {
    * documentation.
    */
   public List<BooleanFormula> splitNumeralEqualityIfPossible(BooleanFormula formula) {
-    // only exported here for BooleanFormula because otherwise it is not type-safe
-    return manager.splitNumeralEqualityIfPossible(formula);
+    return visit(formula, new DefaultFormulaVisitor<List<BooleanFormula>>() {
+      @Override
+      protected List<BooleanFormula> visitDefault(Formula f) {
+        return ImmutableList.of((BooleanFormula) f);
+      }
+
+      @Override
+      public List<BooleanFormula> visitFunction(
+          Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+        if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
+            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
+
+          Formula arg1 = args.get(0);
+          Formula arg2;
+          if (args.size() == 2) {
+            arg2 = args.get(1);
+          } else {
+
+            // Unary equality operator, equality to zero is implied.
+            arg2 = makeNumber(getFormulaType(arg1), 0);
+          }
+          return ImmutableList.of(
+              makeLessOrEqual(arg1, arg2, true),
+              makeGreaterOrEqual(arg1, arg2, true)
+          );
+        } else {
+          return ImmutableList.of((BooleanFormula) f);
+        }
+      }
+    });
   }
 
   /**

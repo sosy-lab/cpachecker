@@ -163,22 +163,34 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
       throws SolverException, InterruptedException {
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
     BooleanFormula atom1ineq =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), true);
     BooleanFormula atom2 =
-        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
+        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), true);
     BooleanFormula atom3 =
-        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
+        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), true);
     BooleanFormula atom4 =
-        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
+        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), true);
     BooleanFormula atom5 =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), true);
 
     testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
   }
 
   @Test
-  public void testExtractAtoms_SplitEqualities_bv() throws SolverException, InterruptedException {
+  public void testExtractAtoms_SplitEqualities_bv() throws Exception {
     requireBitvectors();
+
+    // Create a FormulaManagerView which does not re-wrap bitvectors.
+    Configuration viewConfig = Configuration.builder()
+        .copyFrom(config)
+        // use only theory supported by all solvers:
+        .setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR")
+        .setOption("cpa.predicate.encodeFloatAs", "FLOAT")
+        .build();
+    mgrv = new FormulaManagerView(context.getFormulaManager(),
+        viewConfig, LogManager.createTestLogManager());
+    bmgrv = mgrv.getBooleanFormulaManager();
+    imgrv = mgrv.getIntegerFormulaManager();
     testExtractAtoms_SplitEqualities_bitvectors(bvmgr);
   }
 
