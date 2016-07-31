@@ -1191,8 +1191,13 @@ public class FormulaManagerView {
   }
 
   /**
-   * @see FormulaManager#splitNumeralEqualityIfPossible(Formula) for
-   * documentation.
+   * For an equality {@code x = y} where {@code x} and {@code y} are
+   * not boolean, return a list {@code x<=y, x>=y}.
+   *
+   * <p>Otherwise, return the list consisting of the input formula.
+   * Note:
+   *  1) Returned list always has one or two elements.
+   *  2) Conjunction over the returned list is equivalent to the input formula.
    */
   public List<BooleanFormula> splitNumeralEqualityIfPossible(BooleanFormula formula) {
     return visit(formula, new DefaultFormulaVisitor<List<BooleanFormula>>() {
@@ -1204,17 +1209,17 @@ public class FormulaManagerView {
       @Override
       public List<BooleanFormula> visitFunction(
           Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
-        if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
+        if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
+            || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
             && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
 
           Formula arg1 = args.get(0);
           Formula arg2;
-          if (args.size() == 2) {
-            arg2 = args.get(1);
-          } else {
 
-            // Unary equality operator, equality to zero is implied.
+          if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO) {
             arg2 = makeNumber(getFormulaType(arg1), 0);
+          } else {
+            arg2 = args.get(1);
           }
           return ImmutableList.of(
               makeLessOrEqual(arg1, arg2, true),
