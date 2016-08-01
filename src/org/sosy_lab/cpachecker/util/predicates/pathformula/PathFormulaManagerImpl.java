@@ -32,7 +32,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -85,6 +87,7 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -614,11 +617,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  public BranchingFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException {
 
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
+    final Map<BooleanFormula, BooleanFormula> predicateVariableMapping = Maps.newHashMap();
 
     for (final ARGState e : pElementsOnPath) {
 
@@ -690,6 +694,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           isValidBranching = true;
         }
 
+        predicateVariableMapping.put(pred, pf.getFormula());
         final BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
         branchingFormula = bfmgr.and(branchingFormula, equiv);
       }
@@ -697,7 +702,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Preconditions.checkState(isValidBranching, "The ARG must perform branchings only with ASSUMES!");
     }
 
-    return branchingFormula;
+    final BooleanFormula finalBranchingFormula = branchingFormula;
+    return new BranchingFormula() {
+      @Override
+      public BooleanFormula getFormula() {
+        return finalBranchingFormula;
+      }
+      @Override
+      public Map<BooleanFormula, BooleanFormula> getBranchingPredicateVariableMapping() {
+        return predicateVariableMapping;
+      }
+    };
   }
 
   /**

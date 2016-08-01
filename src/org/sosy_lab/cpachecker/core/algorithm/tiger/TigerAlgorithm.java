@@ -1195,22 +1195,26 @@ public class TigerAlgorithm
                       + lastState.getViolatedProperties(),
                   lastState.getStateId());
             } else {
-              CounterexampleInfo cexi = lastState.getCounterexampleInformation().get();
-              dumpArgForCex(cexi);
+              CounterexampleInfo allCexi = lastState.getCounterexampleInformation().get();
 
-              Set<Goal> fullyCoveredGoals = null;
-              if (allCoveredGoalsPerTestCase) {
-                fullyCoveredGoals =
-                    addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
-              } else if (checkCoverage) {
-                fullyCoveredGoals =
-                    addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi,
-                        pInfeasibilityPropagation);
-              } else {
-                fullyCoveredGoals =
-                    addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
+              for (CounterexampleInfo cexi: allCexi.getAll()) {
+                dumpArgForCex(cexi);
+
+                Set<Goal> fullyCoveredGoals = null;
+                if (allCoveredGoalsPerTestCase) {
+                  fullyCoveredGoals =
+                      addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
+                } else if (checkCoverage) {
+                  fullyCoveredGoals =
+                      addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi,
+                          pInfeasibilityPropagation);
+                } else {
+                  fullyCoveredGoals =
+                      addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
+                }
+
+                pUncoveredGoals.removeAll(fullyCoveredGoals);
               }
-              pUncoveredGoals.removeAll(fullyCoveredGoals);
             }
           }
 

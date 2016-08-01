@@ -162,7 +162,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  public BranchingFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }

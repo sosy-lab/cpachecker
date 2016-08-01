@@ -29,6 +29,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.Appenders.AbstractAppender;
@@ -61,10 +63,25 @@ public class CounterexampleInfo extends AbstractAppender {
   private final ARGPath targetPath;
   private final CFAPathWithAssumptions assignments;
 
+  private final ImmutableList<CounterexampleInfo> all;
+
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
+
+  public CounterexampleInfo(List<CounterexampleInfo> pAll) {
+    Preconditions.checkState(pAll.size() > 0);
+
+    uniqueId = pAll.get(0).uniqueId;
+    spurious = pAll.get(0).spurious;
+    targetPath = pAll.get(0).targetPath;
+    assignments = pAll.get(0).assignments;
+    isPreciseCounterExample = pAll.get(0).isPreciseCounterExample;
+    furtherInfo = pAll.get(0).furtherInfo;
+
+    all = ImmutableList.copyOf(pAll);
+  }
 
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
@@ -79,6 +96,8 @@ public class CounterexampleInfo extends AbstractAppender {
     } else {
       furtherInfo = null;
     }
+
+    all = ImmutableList.of(this);
   }
 
   public static CounterexampleInfo spurious() {
@@ -240,5 +259,9 @@ public class CounterexampleInfo extends AbstractAppender {
     checkState(!spurious);
 
     return Collections.unmodifiableCollection(furtherInfo);
+  }
+
+  public ImmutableList<CounterexampleInfo> getAll() {
+    return all;
   }
 }

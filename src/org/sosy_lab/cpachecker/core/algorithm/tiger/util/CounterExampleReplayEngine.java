@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,11 +73,15 @@ public class CounterExampleReplayEngine {
     logger = Preconditions.checkNotNull(pLogger);
   }
 
-  public ARGPath replayCounterExample(CounterexampleInfo pCex)
+  public ARGPathWithPresenceConditions replayCounterExample(CounterexampleInfo pCex)
       throws CPATransferException, InterruptedException {
+
+    Preconditions.checkArgument(!pCex.isSpurious(),
+        "The counterexample (path in the ARG) must be feasible!");
 
     List<ARGState> states = Lists.newArrayList();
     List<CFAEdge> edges = Lists.newArrayList();
+    List<PresenceCondition> conditions = Lists.newArrayList();
 
     final PathIterator it = pCex.getTargetPath().fullPathIterator();
     final CFANode rootLocation = it.getLocation();
@@ -110,9 +115,7 @@ public class CounterExampleReplayEngine {
       states.add(currentState);
     }
 
-    ARGPath path = new ARGPath(states, edges);
-
-    return path;
+    return new ARGPathWithPresenceConditions(states, conditions, edges);
   }
 
   private AbstractState filterMatchingState(

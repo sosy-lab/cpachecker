@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,6 +40,11 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 import com.google.common.collect.Multimap;
 
 public interface PathFormulaManager {
+
+  interface BranchingFormula {
+    BooleanFormula getFormula();
+    Map<BooleanFormula, BooleanFormula> getBranchingPredicateVariableMapping();
+  }
 
   PathFormula makeEmptyPathFormula();
 
@@ -77,7 +83,7 @@ public interface PathFormulaManager {
    * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    */
-  BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  BranchingFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException;
 
   /**

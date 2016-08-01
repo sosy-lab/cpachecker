@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -308,7 +310,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         logger.log(Level.FINEST, "Error trace is not spurious");
         errorPathProcessing.start();
         try {
-          return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
+          List<CounterexampleInfo> counterexamples = Lists.newArrayList();
+          for (CounterexampleTraceInfo cex: counterexample.getModels()) {
+            final CounterexampleInfo c = pathChecker.handleFeasibleCounterexample(allStatesTrace, cex, branchingOccurred);
+            counterexamples.add(c);
+          }
+          return new CounterexampleInfo(counterexamples);
         } finally {
           errorPathProcessing.stop();
           invariantsManager.cancelAsyncInvariantGeneration();

@@ -221,7 +221,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         // get the branchingFormula
         // this formula contains predicates for all branches we took
         // this way we can figure out which branches make a feasible path
-        BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
+        BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg).getFormula();
 
         if (bfmgr.isTrue(branchingFormula)) {
           logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
