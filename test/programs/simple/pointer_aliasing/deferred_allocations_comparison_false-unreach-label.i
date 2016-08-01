@@ -1,11 +1,13 @@
 
 void *kzalloc(unsigned long size);
 
-void __VERIFIER_error(void);
+void __VERIFIER_error(void) { ERROR: goto ERROR; }
 
 void *zzzalloc(unsigned long size) {
    return kzalloc(size);
 }
+
+struct mediator { void *val; } med;
 
 
 void *zzalloc(unsigned long size) {
@@ -15,12 +17,13 @@ void *zzalloc(unsigned long size) {
 	if (i < 0) {
 		__VERIFIER_error();
 	}
-	return result;
+	med.val = result;
+	return &med;
 }
 
 void *zalloc(unsigned long size) {
 	void *result = zzalloc(size);
-	return result;
+	return ((struct mediator*)result)->val;
 }
 
 struct arr1 { int arr[30]; };
@@ -28,13 +31,15 @@ struct arr2 { char arr[30]; };
 
 struct wrapper { void *f1, *f2; };
 
-int entry_point() {
+int main() {
 	int i = 0;
         struct wrapper w;
 	w.f1 = zalloc(30);
 	w.f2 = zalloc(10);
-        struct arr1 *arr = w.f1;
-        struct arr2 *arr2 = w.f2; 
+        struct arr1 *arr;
+        if (arr != w.f1) { while(1); };
+        struct arr2 *arr2;
+	if (arr2 != w.f2) { while(1); }; 
 	if (!arr || !arr2) return 0;
 	while (i < 30) {
 		arr->arr[i] = i;

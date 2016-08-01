@@ -1,7 +1,7 @@
 
 void *kzalloc(unsigned long size);
 
-void __VERIFIER_error(void);
+void __VERIFIER_error(void) { ERROR: goto ERROR; }
 
 void *zzzalloc(unsigned long size) {
    return kzalloc(size);
@@ -23,12 +23,18 @@ void *zalloc(unsigned long size) {
 	return result;
 }
 
-struct arr { int arr[30]; };
+struct arr1 { int arr[30]; };
+struct arr2 { char arr[30]; };
 
-int entry_point() {
+struct wrapper { void *f1, *f2; };
+
+int main() {
 	int i = 0;
-        struct arr *arr = zalloc(30);
-        struct arr *arr2 = zalloc(10); 
+        struct wrapper w;
+	w.f1 = zalloc(30);
+	w.f2 = zalloc(10);
+        struct arr1 *arr = w.f1;
+        struct arr2 *arr2 = w.f2; 
 	if (!arr || !arr2) return 0;
 	while (i < 30) {
 		arr->arr[i] = i;
@@ -41,7 +47,7 @@ int entry_point() {
 		i--;
 	}
 	
-	if (arr->arr[0] != 0) {
+	if (arr->arr[0] != 1) {
 		__VERIFIER_error();
 	}
 	return 0;
