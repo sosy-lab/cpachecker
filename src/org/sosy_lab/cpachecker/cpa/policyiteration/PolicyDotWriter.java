@@ -98,6 +98,5 @@ public class PolicyDotWriter {
     }
 
     return b.toString();
-
   }
 }

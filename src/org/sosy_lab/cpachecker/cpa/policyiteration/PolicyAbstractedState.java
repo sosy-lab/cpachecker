@@ -206,7 +206,7 @@ public final class PolicyAbstractedState extends PolicyState
     return String.format(
         "(node=%s, locID=%s)%s%n",
         getNode(), locationID,
-        (new PolicyDotWriter()).toDOTLabel(abstraction)
+        manager.toDOTLabel(abstraction)
     );
   }
 

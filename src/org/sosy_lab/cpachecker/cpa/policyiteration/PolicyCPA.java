@@ -106,7 +106,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         new StateFormulaConversionManager(
             formulaManager,
             pTemplateToFormulaConversionManager, pConfig, cfa,
-            logger, shutdownNotifier);
+            logger, shutdownNotifier, pathFormulaManager, solver);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
             config, formulaManager, pLogger, pathFormulaManager,
