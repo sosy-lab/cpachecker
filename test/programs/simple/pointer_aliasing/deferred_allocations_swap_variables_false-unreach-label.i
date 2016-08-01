@@ -1,7 +1,7 @@
 
 void *kzalloc(unsigned long size);
 
-void __VERIFIER_error(void);
+void __VERIFIER_error(void) { ERROR: goto ERROR; }
 
 void *zzzalloc(unsigned long size) {
    return kzalloc(size);
@@ -9,7 +9,7 @@ void *zzzalloc(unsigned long size) {
 
 struct wrapper { void *f1, *f2; };
 
-void *zzalloc(unsigned long size1, unsigned long size2, int flag) {
+void *zzalloc(unsigned long size1, unsigned long size2) {
 	void * result1 = zzzalloc(size2), *result2 = zzzalloc(size1);
 	unsigned long i;
 	i = (unsigned long)&i + (unsigned long)result1 + (unsigned long)result2;
@@ -17,11 +17,9 @@ void *zzalloc(unsigned long size1, unsigned long size2, int flag) {
 		__VERIFIER_error();
 	}
 	void *tmp;
-	if (flag) {
-		tmp = result1;
-		result1 = result2;
-		result2 = tmp;
-        }
+	tmp = result1;
+	result1 = result2;
+	result2 = tmp;
 	struct wrapper *result = zzzalloc(sizeof(struct wrapper));
 	if (!result) { while (1); }
 	result->f1 = result1;
@@ -30,14 +28,14 @@ void *zzalloc(unsigned long size1, unsigned long size2, int flag) {
 }
 
 void *zalloc(unsigned long size1, unsigned long size2) {
-	void *result = zzalloc(size1, size2, 0);
+	void *result = zzalloc(size1, size2);
 	return result;
 }
 
 struct arr1 { int arr[30]; };
 struct arr2 { char arr[30]; };
 
-int entry_point() {
+int main() {
 	int i = 0;
 	struct wrapper *w = zalloc(30, 10);
         struct arr1 *arr = w->f1;
@@ -54,7 +52,7 @@ int entry_point() {
 		i--;
 	}
 	
-	if (arr->arr[0] != 0) {
+	if (arr->arr[0] != 1) {
 		__VERIFIER_error();
 	}
 	return 0;

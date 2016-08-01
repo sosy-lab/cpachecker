@@ -1,7 +1,7 @@
 
 void *kzalloc(unsigned long size);
 
-void __VERIFIER_error(void);
+void __VERIFIER_error(void) { ERROR: goto ERROR; }
 
 void *zzzalloc(unsigned long size) {
    return kzalloc(size);
@@ -25,7 +25,7 @@ void *zalloc(unsigned long size) {
 
 struct arr { int arr[30]; };
 
-int entry_point() {
+int main() {
 	int i = 0;
         struct arr *arr = zalloc(30);
         struct arr *arr2 = zalloc(10); 
