@@ -395,36 +395,42 @@ public class BAMTransferRelation implements TransferRelation {
     // with the recursive call, and
     final Pair<ReachedSet, Collection<AbstractState>> pair =
             data.bamCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-    ReachedSet reached = pair.getFirst();
+    final ReachedSet cachedReached = pair.getFirst();
     final Collection<AbstractState> cachedReturnStates = pair.getSecond();
 
-    assert cachedReturnStates == null || reached != null : "there cannot be result-states without reached-states";
+    assert cachedReturnStates == null || cachedReached != null : "there cannot be "
+        + "result-states without reached-states";
 
     final Collection<AbstractState> reducedResult;
-    if (cachedReturnStates != null && !reached.hasWaitingState()) {
+    final ReachedSet reached;
+    if (cachedReturnStates != null && !cachedReached.hasWaitingState()) {
 
       // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit with finished reached-set with root", reached.getFirstState());
+      logger.log(Level.FINEST, "Cache hit with finished reached-set with "
+          + "root", cachedReached.getFirstState());
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = reducedResult;
+      reached = cachedReached;
 
     } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 &&
-        reached.getLastState() != null && ((ARGState)reached.getLastState()).isTarget()) {
-      assert Iterables.getOnlyElement(cachedReturnStates) == reached.getLastState() :
+        cachedReached.getLastState() != null && ((ARGState)cachedReached.getLastState()).isTarget()) {
+      assert Iterables.getOnlyElement(cachedReturnStates) == cachedReached.getLastState() :
               "cache hit only allowed for finished reached-sets or target-states";
 
       // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit with target-state in reached-set with root", reached.getFirstState());
+      logger.log(Level.FINEST, "Cache hit with target-state in reached-set with root", cachedReached.getFirstState());
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = cachedReturnStates;
+      reached = cachedReached;
 
     } else {
-      if (reached == null) {
+      if (cachedReached == null) {
         // we have not even cached a partly computed reach-set,
         // so we must compute the subgraph specification from scratch
         reached = data.createAndRegisterNewReachedSet(reducedInitialState, reducedInitialPrecision, currentBlock);
         logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
       } else {
+        reached = cachedReached;
         logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root", reached.getFirstState());
       }
 
@@ -481,6 +487,10 @@ public class BAMTransferRelation implements TransferRelation {
    * analysis is wishing to break.
    *
    * @return return states associated with the analysis.
+   *
+   * <p>NB: return states will be either
+   * {@link org.sosy_lab.cpachecker.core.interfaces.Targetable}, or
+   * associated with the block end.
    **/
   private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
           final ReachedSet reached)
