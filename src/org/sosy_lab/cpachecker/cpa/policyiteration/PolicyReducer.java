@@ -71,13 +71,18 @@ public class PolicyReducer implements Reducer {
   }
 
   @Override
-  public PolicyAbstractedState getVariableExpandedState(
+  public PolicyState getVariableExpandedState(
       AbstractState rootState,
       Block reducedContext,
       AbstractState reducedState) {
     PolicyState pRootState = (PolicyState) rootState;
     PolicyState pReducedState = (PolicyState) reducedState;
 
+    if (!pReducedState.isAbstract()) {
+      // BAM-specific hack: intermediate states come from target states,
+      // but this information can not be expressed by having only a PolicyState.
+      return pReducedState;
+    }
     Preconditions.checkState(pRootState.isAbstract());
     Preconditions.checkState(pReducedState.isAbstract());
 

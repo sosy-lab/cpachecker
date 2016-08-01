@@ -336,8 +336,7 @@ public class PolicyIterationManager {
     BooleanFormula extraInvariant = extractFormula(pArgState);
 
     CFANode node = iState.getNode();
-    final boolean shouldAbstract = shouldPerformAbstraction(
-        iState, pArgState, hasTargetState);
+    final boolean shouldAbstract = shouldPerformAbstraction(iState, pArgState);
 
     // Perform reachability checking, for property states, or before the abstractions.
     if (((hasTargetState && checkTargetStates) || shouldAbstract)
@@ -1231,15 +1230,10 @@ public class PolicyIterationManager {
    */
   private boolean shouldPerformAbstraction(
       PolicyIntermediateState iState,
-      AbstractState totalState,
-      boolean hasTargetState
+      AbstractState totalState
   ) {
 
     CFANode node = iState.getNode();
-
-    if (hasTargetState) {
-      return true;
-    }
 
     // If BAM is enabled, and we are at the start/end of the partition,
     // abstraction is necessary.
