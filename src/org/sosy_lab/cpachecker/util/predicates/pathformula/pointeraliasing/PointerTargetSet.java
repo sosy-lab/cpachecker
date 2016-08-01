@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -32,6 +33,7 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -167,7 +169,7 @@ public final class PointerTargetSet implements Serializable {
       final PersistentSortedMap<String, CType> bases,
       final @Nullable String lastBase,
       final PersistentSortedMap<CompositeField, Boolean> fields,
-      final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations,
+      final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
     this.bases = bases;
     this.lastBase = lastBase;
@@ -202,7 +204,7 @@ public final class PointerTargetSet implements Serializable {
     return fields;
   }
 
-  PersistentSortedMap<String, DeferredAllocationPool> getDeferredAllocations() {
+  PersistentList<Pair<String, DeferredAllocation>> getDeferredAllocations() {
     return deferredAllocations;
   }
 
@@ -219,9 +221,8 @@ public final class PointerTargetSet implements Serializable {
       PathCopyingPersistentTreeMap.<String, CType>of(),
       null,
       PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
-      PathCopyingPersistentTreeMap.<String, DeferredAllocationPool>of(),
-      PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of()
-      );
+      PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
+      PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of());
 
   private static final Joiner joiner = Joiner.on(" ");
 
@@ -239,7 +240,7 @@ public final class PointerTargetSet implements Serializable {
   // so they are represented with UFs instead of as variables.
   private final PersistentSortedMap<CompositeField, Boolean> fields;
 
-  private final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
+  private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -272,28 +273,30 @@ public final class PointerTargetSet implements Serializable {
     private final PersistentSortedMap<String, CType> bases;
     private final String lastBase;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
-    private final PersistentSortedMap<String, DeferredAllocationPool> deferredAllocations;
+    private final List<Pair<String, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
 
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       lastBase = pts.lastBase;
       fields = pts.fields;
-      deferredAllocations = pts.deferredAllocations;
-      Map<String, List<PointerTarget>> map = Maps.newHashMapWithExpectedSize(pts.targets.size());
+      List<Pair<String, DeferredAllocation>> deferredAllocations = Lists.newArrayList(pts.deferredAllocations);
+      this.deferredAllocations = deferredAllocations;
+      Map<String, List<PointerTarget>> targets = Maps.newHashMapWithExpectedSize(pts.targets.size());
       for(Entry<String, PersistentList<PointerTarget>> entry : pts.targets.entrySet()) {
-        map.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        targets.put(entry.getKey(), new ArrayList<>(entry.getValue()));
       }
-      targets = map;
+      this.targets = targets;
     }
 
     private Object readResolve() {
-      Map<String, PersistentList<PointerTarget>> map = Maps.newHashMapWithExpectedSize(targets.size());
-      for (Entry<String, List<PointerTarget>> entry : targets.entrySet()) {
-        map.put(entry.getKey(), PersistentLinkedList.copyOf(entry.getValue()));
+      Map<String, PersistentList<PointerTarget>> targets = Maps.newHashMapWithExpectedSize(this.targets.size());
+      for (Entry<String, List<PointerTarget>> entry : this.targets.entrySet()) {
+        targets.put(entry.getKey(), PersistentLinkedList.copyOf(entry.getValue()));
       }
-      return new PointerTargetSet(bases, lastBase, fields, deferredAllocations,
-          PathCopyingPersistentTreeMap.copyOf(map));
+      return new PointerTargetSet(bases, lastBase, fields,
+          PersistentLinkedList.copyOf(deferredAllocations),
+          PathCopyingPersistentTreeMap.copyOf(targets));
     }
   }
 }

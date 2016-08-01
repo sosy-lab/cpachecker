@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ClassMatcher.match;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.catchAll;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.rethrow;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
@@ -65,6 +69,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 
 /**
@@ -294,9 +299,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
       final String variableName = variable.getName();
-      if (pts.isDeferredAllocationPointer(variableName)) {
-        usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
-      }
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
@@ -318,22 +320,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   /**
-   * Checks, whether a C expression is an unaliased location or not.
-   *
-   * @param e The C expression to check.
-   * @return Whether the expression is an unaliased location or not.
-   */
-  static boolean isUnaliasedLocation(final CExpression e) {
-    if (e instanceof CIdExpression) {
-      return true;
-    } else if (e instanceof CFieldReference && !((CFieldReference) e).isPointerDereference()) {
-      return isUnaliasedLocation(((CFieldReference) e).getFieldOwner());
-    } else {
-      return false;
-    }
-  }
-
-  /**
    * Checks, whether the given type is revealing or not.
    *
    * @param type The type to check.
@@ -342,6 +328,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   static boolean isRevealingType(final CType type) {
     return (type instanceof CPointerType || type instanceof CArrayType) &&
            !type.equals(CPointerType.POINTER_TO_VOID);
+  }
+
+  public PointerApproximatingVisitor getPointerApproximatingVisitor() {
+    return pointerApproximatingVisitorInstance;
   }
 
   /**
@@ -359,14 +349,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final Expression result = operand.accept(this);
 
     // TODO: is the second isUnaliasedLocation() check really needed?
-    if (isRevealingType(resultType) && isUnaliasedLocation(operand) && result.isUnaliasedLocation()) {
-      final String variableName =  result.asUnaliasedLocation().getVariableName();
-      if (pts.isDeferredAllocationPointer(variableName)) {
-        assert usedDeferredAllocationPointers.containsKey(variableName) &&
-               usedDeferredAllocationPointers.get(variableName).equals(CPointerType.POINTER_TO_VOID) :
-              "Wrong assumptions on deferred allocations tracking: unknown pointer encountered";
-        usedDeferredAllocationPointers.put(variableName, resultType);
-      }
+    if (isRevealingType(resultType)) {
+      operand.accept(getPointerApproximatingVisitor()).ifPresent((s) -> learnedPointerTypes.put(s, resultType));
     }
 
     final CType operandType = typeHandler.getSimplifiedType(operand);
@@ -404,9 +388,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       Variable variable = Variable.create(e.getDeclaration().getQualifiedName(), resultType);
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         final String variableName = variable.getName();
-        if (pts.isDeferredAllocationPointer(variableName)) {
-          usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
-        }
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
         return Value.ofValue(conv.makeConstant(variable.getName(), variable.getType()));
@@ -548,6 +529,22 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     final CType t1 = typeHandler.getSimplifiedType(exp.getOperand1());
     final CType t2 = typeHandler.getSimplifiedType(exp.getOperand2());
+
+    if (t1.equals(CPointerType.POINTER_TO_VOID) || t2.equals(CPointerType.POINTER_TO_VOID)) {
+      final Optional<Pair<CExpression, CType>> toHandle;
+      if (isRevealingType(t1)) {
+        toHandle = Optional.of(Pair.of(exp.getOperand2(), t1));
+      } else if (isRevealingType(t2)) {
+        toHandle = Optional.of(Pair.of(exp.getOperand1(), t2));
+      } else {
+        toHandle = Optional.empty();
+      }
+      rethrow(UnrecognizedCCodeException.class, () ->
+        toHandle.ifPresent(catchAll((p) ->
+           p.getFirst().accept(getPointerApproximatingVisitor()).ifPresent((s) ->
+             learnedPointerTypes.put(s, p.getSecond())))));
+    }
+
     final BinaryOperator op = exp.getOperator();
 
     switch (op) {
@@ -651,8 +648,73 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @return A map of the used deferred allocation pointers.
    */
-  Map<String, CType> getUsedDeferredAllocationPointers() {
-    return Collections.unmodifiableMap(usedDeferredAllocationPointers);
+  Map<String, CType> getLearnedPointerTypes() {
+    return Collections.unmodifiableMap(learnedPointerTypes);
+  }
+
+  class PointerApproximatingVisitor
+    extends DefaultCExpressionVisitor<Optional<String>, UnrecognizedCCodeException>
+   implements CRightHandSideVisitor<Optional<String>, UnrecognizedCCodeException>{
+
+    private PointerApproximatingVisitor() {
+
+    }
+
+    @Override
+    public Optional<String> visit(CArraySubscriptExpression e) throws UnrecognizedCCodeException {
+      return e.getArrayExpression().accept(this);
+    }
+
+    @Override
+    public Optional<String> visit(CBinaryExpression e) throws UnrecognizedCCodeException {
+      final CType t = typeHandler.getSimplifiedType(e);
+      if (t instanceof CPointerType ||
+          t instanceof CArrayType) {
+        return e.getOperand1().accept(this);
+      }
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> visit(CCastExpression e) throws UnrecognizedCCodeException {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Optional<String> visit(final CFieldReference e) throws UnrecognizedCCodeException {
+      return
+        match(typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner()))
+         .with(CCompositeType.class, (ct) ->
+               Optional.of(ct.getQualifiedName() + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
+                           e.getFieldName()))
+         .orElseThrow(() -> new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e));
+    }
+
+    @Override
+    public Optional<String> visit(CIdExpression e) throws UnrecognizedCCodeException {
+      return Optional.of(e.getDeclaration().getQualifiedName());
+    }
+
+    @Override
+    public Optional<String> visit(CPointerExpression e) throws UnrecognizedCCodeException {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    public Optional<String> visit(CUnaryExpression e) throws UnrecognizedCCodeException {
+      return e.getOperand().accept(this);
+    }
+
+    @Override
+    protected Optional<String> visitDefault(CExpression pExp) throws RuntimeException {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> visit(CFunctionCallExpression call)
+        throws UnrecognizedCCodeException {
+      return Optional.empty();
+    }
   }
 
   private final CToFormulaConverterWithPointerAliasing conv;
@@ -666,8 +728,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;
 
+  private final PointerApproximatingVisitor pointerApproximatingVisitorInstance = new PointerApproximatingVisitor();
+
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
   private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
-  private final Map<String, CType> usedDeferredAllocationPointers = Maps.newHashMapWithExpectedSize(1);
+  private final Map<String, CType> learnedPointerTypes = Maps.newHashMapWithExpectedSize(1);
 }
