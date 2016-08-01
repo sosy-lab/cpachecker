@@ -1763,6 +1763,10 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# Pattern on variables to consider for retrieving more than one path for a
+# counterexample. The variables are instantiated with an SSA index!
+cpa.predicate.refinement.multilePathBranchingVariablePattern = "(\\w)*__SELECTED_FEATURE_.*"
+
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false

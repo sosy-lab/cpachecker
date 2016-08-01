@@ -32,12 +32,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.MapsDifference.Entry;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,6 +57,8 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring;
+import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.FormulaMeasures;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
@@ -85,6 +89,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -94,6 +99,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -122,7 +128,6 @@ public final class InterpolationManager {
     }
   }
 
-
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fmgr;
@@ -143,6 +148,10 @@ public final class InterpolationManager {
 
   @Option(secure=true, description="Max. paths per counterexample")
   private int maxPathsPerCounterexample = 1;
+
+  @Option(secure=true, description="Pattern on variables to consider for retrieving more than one"
+      + " path for a counterexample. The variables are instantiated with an SSA index!")
+  private Pattern multilePathBranchingVariablePattern = Pattern.compile("(\\w)*__SELECTED_FEATURE_.*");
 
   @Option(secure=true, name="cexTraceCheckDirection",
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
@@ -428,6 +437,25 @@ public final class InterpolationManager {
     }
   }
 
+  private boolean isFeatureVar(String pVarName) {
+    return multilePathBranchingVariablePattern.matcher(pVarName).matches();
+  }
+
+  private List<BooleanFormula> filterAllPathsBranchingPredicates(BranchingFormula pBranchingFormula) {
+    List<BooleanFormula> result = Lists.newArrayList();
+    for (Map.Entry<BooleanFormula, BooleanFormula> entry: pBranchingFormula.getBranchingPredicateVariableMapping().entrySet()) {
+      // Example of an entry:
+      //    key:     __ART___93_141@0
+      //    value:   (and true (= __SELECTED_FEATURE_COMP@3 0) true)
+      Set<String> variableNames = fmgr.extractVariableNames(entry.getValue());
+
+      if (Iterables.tryFind(variableNames, this::isFeatureVar).isPresent()) {
+        result.add(entry.getKey());
+      }
+    }
+    return result;
+  }
+
   private CounterexampleTraceInfo getMultipleErrorPaths(
       List<BooleanFormula> pF,
       ProverEnvironment pProver,
@@ -453,7 +481,7 @@ public final class InterpolationManager {
       boolean stillSatisfiable = !pProver.isUnsat();
 
       if (stillSatisfiable) {
-        List<BooleanFormula> consideredBranchingPredicates = Lists.newArrayList(branchingFormula.getBranchingPredicateVariableMapping().keySet());
+        List<BooleanFormula> consideredBranchingPredicates = filterAllPathsBranchingPredicates(branchingFormula);
 
         CounterexampleTraceInfoAllSatCallback callback = new CounterexampleTraceInfoAllSatCallback(pProver, pF, pmgr);
         List<CounterexampleTraceInfo> paths =
