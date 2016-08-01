@@ -139,7 +139,6 @@ public class TemplatePrecision implements Precision {
 
   // Temporary variables created by CPA checker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
-  private static final String RET_VARIABLE = "__retval__";
 
   // todo: do not hardcode, use automaton.
   private static final String ASSERT_FUNC_NAME = "assert";
@@ -321,8 +320,7 @@ public class TemplatePrecision implements Precision {
   private boolean shouldProcessVariable(ASimpleDeclaration var) {
     return !var.getQualifiedName().contains(TMP_VARIABLE)
         && var.getType() instanceof CSimpleType
-        && !var.getType().toString().contains("*")
-        && !var.getQualifiedName().contains(RET_VARIABLE);
+        && !var.getType().toString().contains("*");
   }
 
   /**
