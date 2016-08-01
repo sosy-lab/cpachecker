@@ -1000,7 +1000,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, edge, ssa, pts, constraints, errorConditions);
-      memoryHandler.handleDeferredAllocationsInAssume(e, ev.getUsedDeferredAllocationPointers());
+      memoryHandler.handleDeferredAllocationsInAssume(e, ev.getLearnedPointerTypes());
     }
 
     if (!truthAssumption) {
