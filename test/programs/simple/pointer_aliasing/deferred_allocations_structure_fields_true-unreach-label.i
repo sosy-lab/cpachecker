@@ -23,12 +23,12 @@ int main() {
         struct arr *arr = zalloc(30);
         struct arr *arr2 = zalloc(10); 
 	if (!arr || !arr2) return 0;
-	while (i < 30) {
+	while (i < 2) {
 		arr->arr[i] = i;
 		i++;
 	}
 	
-	i = 9;
+	i = 2;
         while (i >= 0) {
 		arr2->arr[i] = -i;
 		i--;

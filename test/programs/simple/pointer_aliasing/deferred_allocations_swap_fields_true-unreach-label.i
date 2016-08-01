@@ -41,12 +41,12 @@ int main() {
         struct arr1 *arr = w->f1;
         struct arr2 *arr2 = w->f2; 
 	if (!arr || !arr2) return 0;
-	while (i < 30) {
+	while (i < 2) {
 		arr->arr[i] = i;
 		i++;
 	}
 	
-	i = 9;
+	i = 2;
         while (i >= 0) {
 		arr2->arr[i] = -i;
 		i--;
