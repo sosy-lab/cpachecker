@@ -142,7 +142,7 @@ public final class InterpolationManager {
   private boolean incrementalCheck = false;
 
   @Option(secure=true, description="Max. paths per counterexample")
-  private int maxPathsPerCounterexamples = 1000;
+  private int maxPathsPerCounterexample = 1;
 
   @Option(secure=true, name="cexTraceCheckDirection",
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
@@ -332,8 +332,8 @@ public final class InterpolationManager {
         try {
           result = currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, pElementsOnPath, pComputeInterpolants);
 
-          Preconditions.checkState(result == null && maxPathsPerCounterexamples > 1 || result != null && result.isSpurious());
-
+          // result == null, if a real bug, but more than one path requested.
+          //    AllSat required --> not supported by the interpolating prover environment!
           if (result == null) {
             currentInterpolator.close();
             result = getCexTraceInfoWithoutInterpolator(pElementsOnPath, f, null);
@@ -375,8 +375,8 @@ public final class InterpolationManager {
       }
       if (!prover.isUnsat()) {
         try {
-          if (maxPathsPerCounterexamples > 1) {
-            return getMultipleErrorPaths(pF, prover, pElementsOnPath, maxPathsPerCounterexamples);
+          if (maxPathsPerCounterexample > 1) {
+            return getMultipleErrorPaths(pF, prover, pElementsOnPath, maxPathsPerCounterexample);
           } else {
             return getSingleErrorPath(pF, prover, pElementsOnPath);
           }
@@ -456,8 +456,9 @@ public final class InterpolationManager {
         List<BooleanFormula> consideredBranchingPredicates = Lists.newArrayList(branchingFormula.getBranchingPredicateVariableMapping().keySet());
 
         CounterexampleTraceInfoAllSatCallback callback = new CounterexampleTraceInfoAllSatCallback(pProver, pF, pmgr);
-        pProver.allSat(callback, consideredBranchingPredicates);
-        return new CounterexampleTraceInfo(callback.getResult());
+        List<CounterexampleTraceInfo> paths =
+            pProver.allSat(callback, consideredBranchingPredicates);
+        return new CounterexampleTraceInfo(paths);
 
       } else {
         // this should not happen
@@ -872,7 +873,7 @@ public final class InterpolationManager {
 
       } else {
         // this is a real bug
-        if (maxPathsPerCounterexamples <= 1) {
+        if (maxPathsPerCounterexample <= 1) {
           result = getSingleErrorPath(f, itpProver, elementsOnPath);
         } else {
           return null;

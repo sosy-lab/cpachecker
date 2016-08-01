@@ -1661,10 +1661,6 @@ cpa.predicate.memoryFreeFunctionName = "free"
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
 
-# whitelist regex for variables that will always be tracked by the CPA using
-# this precision
-cpa.predicate.mining.variableWhitelist = ""
-
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added
 # automatically to the list, so you need to specify them explicitly if you
@@ -1752,6 +1748,9 @@ cpa.predicate.refinement.incrementalCexTraceCheck = false
 # may still be the same, with this option you can set the maximal amount of
 # invariant generation runs per loop. 0 means no upper limit given.
 cpa.predicate.refinement.maxInvariantGenerationsPerLoop = 2
+
+# Max. paths per counterexample
+cpa.predicate.refinement.maxPathsPerCounterexample = 1
 
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
