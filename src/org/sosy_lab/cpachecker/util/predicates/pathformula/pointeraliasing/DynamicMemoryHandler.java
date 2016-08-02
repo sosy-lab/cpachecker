@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static java.util.stream.Collectors.toCollection;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ClassMatcher.match;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -491,7 +490,10 @@ class DynamicMemoryHandler {
   }
 
   private static CType unwrapPointers(final CType type) {
-    return match(type).with(CPointerType.class, (t) -> unwrapPointers(t.getType())).orElse(type);
+    if (type instanceof CPointerType) {
+      return unwrapPointers(((CPointerType) type).getType());
+    }
+    return type;
   }
 
   /**
@@ -504,15 +506,14 @@ class DynamicMemoryHandler {
    */
   private CType getAllocationType(
       final CType type, final Optional<CIntegerLiteralExpression> sizeLiteral) {
-    return match(type)
-        .with(
-            CPointerType.class,
-            (t) -> {
-              final CType tt = unwrapPointers(t);
-              return sizeLiteral.map((s) -> refineType(tt, s)).orElse(tt);
-            })
-        .or(CArrayType.class, (t) -> sizeLiteral.map((s) -> refineType(t, s)).orElse(t))
-        .orElseThrow(() -> new IllegalArgumentException("Either pointer or array type expected"));
+    if (type instanceof CPointerType) {
+      final CType tt = unwrapPointers(type);
+      return sizeLiteral.map((s) -> refineType(tt, s)).orElse(tt);
+    } else if (type instanceof CArrayType) {
+      return sizeLiteral.map((s) -> refineType(type, s)).orElse(type);
+    } else {
+      throw new IllegalArgumentException("Either pointer or array type expected");
+    }
   }
 
   /**

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ClassMatcher.match;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
@@ -676,17 +674,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     @Override
     public Optional<String> visit(final CFieldReference e) throws UnrecognizedCCodeException {
-      return match(
-              typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner()))
-          .with(
-              CCompositeType.class,
-              (ct) ->
-                  Optional.of(
-                      ct.getQualifiedName()
-                          + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-                          + e.getFieldName()))
-          .orElseThrow(
-              () -> new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e));
+      CType t = typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner());
+      if (t instanceof CCompositeType) {
+        return Optional.of(
+            ((CCompositeType) t).getQualifiedName()
+                + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
+                + e.getFieldName());
+      } else {
+        throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
+      }
     }
 
     @Override
