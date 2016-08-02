@@ -26,15 +26,8 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,10 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -66,12 +62,22 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.loopstack")
-public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
+public class LoopstackCPA extends AbstractCPA implements
+                                              ReachedSetAdjustingCPA,
+                                              StatisticsProvider,
+                                              Statistics,
+                                              ConfigurableProgramAnalysisWithBAM {
 
   private final LogManager logger;
 
@@ -174,16 +180,13 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   @Override
   public void adjustReachedSet(final ReachedSet pReachedSet) {
-    Set<AbstractState> toRemove = from(pReachedSet).filter(new Predicate<AbstractState>() {
-
-      @Override
-      public boolean apply(@Nullable AbstractState pArg0) {
-        if (pArg0 == null) {
-          return false;
-        }
-        LoopstackState loopstackState = extractStateByType(pArg0, LoopstackState.class);
-        return loopstackState != null && loopstackState.mustDumpAssumptionForAvoidance();
-      }}).toSet();
+    Set<AbstractState> toRemove = from(pReachedSet).filter(pArg0 -> {
+      if (pArg0 == null) {
+        return false;
+      }
+      LoopstackState loopstackState = extractStateByType(pArg0, LoopstackState.class);
+      return loopstackState != null && loopstackState.mustDumpAssumptionForAvoidance();
+    }).toSet();
 
     // Never delete the first state
     if (toRemove.contains(pReachedSet.getFirstState())) {
@@ -191,21 +194,17 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
       return;
     }
 
-    List<AbstractState> waitlist = from(toRemove).transformAndConcat(new Function<AbstractState, Iterable<? extends AbstractState>>() {
-
-      @Override
-      public Iterable<? extends AbstractState> apply(@Nullable AbstractState pArg0) {
-        if (pArg0 == null) {
-          return Collections.emptyList();
-        }
-        ARGState argState = extractStateByType(pArg0, ARGState.class);
-        if (argState == null) {
-          return Collections.emptyList();
-        }
-        return argState.getParents();
-      }
-
-    }).toSet().asList();
+    List<AbstractState> waitlist = from(toRemove).transformAndConcat(
+        (Function<AbstractState, Iterable<? extends AbstractState>>) pArg0 -> {
+          if (pArg0 == null) {
+            return Collections.emptyList();
+          }
+          ARGState argState = extractStateByType(pArg0, ARGState.class);
+          if (argState == null) {
+            return Collections.emptyList();
+          }
+          return argState.getParents();
+        }).toSet().asList();
 
     pReachedSet.removeAll(toRemove);
     for (ARGState s : from(toRemove).filter(ARGState.class)) {
@@ -218,7 +217,13 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
     }
   }
 
-  private static interface MaxLoopIterationAdjuster {
+  @Nullable
+  @Override
+  public Reducer getReducer() {
+    return NoOpReducer.getInstance();
+  }
+
+  private interface MaxLoopIterationAdjuster {
 
     int adjust(int currentValue);
 
@@ -226,13 +231,13 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   }
 
-  private static interface MaxLoopIterationAdjusterFactory {
+  private interface MaxLoopIterationAdjusterFactory {
 
     MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopstackCPA pCPA);
 
   }
 
-  private static enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
+  private enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
 
     STATIC {
 
@@ -264,7 +269,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   }
 
-  private static enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
+  private enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
     INSTANCE;
 
