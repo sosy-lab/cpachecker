@@ -130,7 +130,9 @@ public class LassoBuilder {
     equalElimination = new EqualElimination(formulaManagerView);
     notEqualAndNotInequalityElimination =
         new NotEqualAndNotInequalityElimination(formulaManagerView);
-    dnfTransformation = new DnfTransformation(formulaManagerView);
+    dnfTransformation =
+        new DnfTransformation(
+            logger, shutdownNotifier, formulaManagerView, proverEnvironmentSupplier);
   }
 
   public Collection<Lasso> buildLasso(
