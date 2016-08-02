@@ -34,6 +34,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -58,7 +59,7 @@ public class PathFormulaTest {
         PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
         null,
         PathCopyingPersistentTreeMap.of(),
-        PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of(),
         PathCopyingPersistentTreeMap.of()
         );
 
