@@ -79,9 +79,10 @@ public interface PointerTargetSetBuilder {
 
   void addEssentialFields(final List<Pair<CCompositeType, String>> fields);
 
-  void addTemporaryDeferredAllocation(boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
+  void addTemporaryDeferredAllocation(
+      boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
 
-  void addDeferredAllocationPointer(String newPointer,  String originalPointer);
+  void addDeferredAllocationPointer(String newPointer, String originalPointer);
 
   ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(String pointer);
 
@@ -465,7 +466,8 @@ public interface PointerTargetSetBuilder {
         final boolean isZeroed,
         final Optional<CIntegerLiteralExpression> size,
         final String base) {
-      final Pair<String, DeferredAllocation> p = Pair.of(pointer, new DeferredAllocation(base, size, isZeroed));
+      final Pair<String, DeferredAllocation> p =
+          Pair.of(pointer, new DeferredAllocation(base, size, isZeroed));
       if (!deferredAllocations.contains(p)) {
         deferredAllocations = deferredAllocations.with(p);
       }
@@ -483,9 +485,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addTemporaryDeferredAllocation(
-        final boolean isZeroed,
-        final Optional<CIntegerLiteralExpression> size,
-        final String base) {
+        final boolean isZeroed, final Optional<CIntegerLiteralExpression> size, final String base) {
       addDeferredAllocation(base, isZeroed, size, base);
     }
 
@@ -498,16 +498,19 @@ public interface PointerTargetSetBuilder {
      * @param originalPointer The original pointer variable or field.
      */
     @Override
-    public void addDeferredAllocationPointer(final String newPointer,
-                                             final String originalPointer) {
+    public void addDeferredAllocationPointer(
+        final String newPointer, final String originalPointer) {
       final Set<Pair<String, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
-      deferredAllocations.stream()
-        .filter((p) -> p.getFirst().equals(originalPointer))
-        .forEachOrdered((p) -> {
-          final Pair<String, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
-          if (!cache.contains(pp)) {
-            deferredAllocations = deferredAllocations.with(pp);
-          }});
+      deferredAllocations
+          .stream()
+          .filter((p) -> p.getFirst().equals(originalPointer))
+          .forEachOrdered(
+              (p) -> {
+                final Pair<String, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
+                if (!cache.contains(pp)) {
+                  deferredAllocations = deferredAllocations.with(pp);
+                }
+              });
     }
 
     /**
@@ -517,14 +520,20 @@ public interface PointerTargetSetBuilder {
     @Override
     public boolean canRemoveDeferredAllocationPointer(final String pointer) {
       final Set<DeferredAllocation> result =
-          deferredAllocations.stream()
-           .filter((p) -> p.getFirst().equals(pointer))
-           .map(Pair::getSecond)
-           .collect(toCollection(HashSet::new));
+          deferredAllocations
+              .stream()
+              .filter((p) -> p.getFirst().equals(pointer))
+              .map(Pair::getSecond)
+              .collect(toCollection(HashSet::new));
       if (result.isEmpty()) {
         return true;
       }
-      deferredAllocations.forEach((p) -> { if (!p.getFirst().equals(pointer)) { result.remove(p.getSecond()); }});
+      deferredAllocations.forEach(
+          (p) -> {
+            if (!p.getFirst().equals(pointer)) {
+              result.remove(p.getSecond());
+            }
+          });
       return result.isEmpty();
     }
 
@@ -541,14 +550,16 @@ public interface PointerTargetSetBuilder {
     @Override
     public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(final String pointer) {
       final Set<DeferredAllocation> result =
-        deferredAllocations.stream()
-         .filter((p) -> p.getFirst().equals(pointer))
-         .map(Pair::getSecond)
-         .collect(toCollection(HashSet::new));
+          deferredAllocations
+              .stream()
+              .filter((p) -> p.getFirst().equals(pointer))
+              .map(Pair::getSecond)
+              .collect(toCollection(HashSet::new));
       deferredAllocations =
-          deferredAllocations.stream()
-            .filter((p) -> !p.getFirst().equals(pointer))
-            .collect(toPersistentLinkedList());
+          deferredAllocations
+              .stream()
+              .filter((p) -> !p.getFirst().equals(pointer))
+              .collect(toPersistentLinkedList());
       deferredAllocations.forEach((p) -> result.remove(p.getSecond()));
       return ImmutableSet.copyOf(result);
     }
@@ -564,14 +575,16 @@ public interface PointerTargetSetBuilder {
     @Override
     public ImmutableSet<DeferredAllocation> removeDeferredAllocations(final String pointer) {
       final Set<DeferredAllocation> result =
-          deferredAllocations.stream()
-          .filter((p) -> p.getFirst().equals(pointer))
-          .map(Pair::getSecond)
-          .collect(toCollection(HashSet::new));
+          deferredAllocations
+              .stream()
+              .filter((p) -> p.getFirst().equals(pointer))
+              .map(Pair::getSecond)
+              .collect(toCollection(HashSet::new));
       deferredAllocations =
-          deferredAllocations.stream()
-            .filter((p) -> !result.contains(p.getSecond()))
-            .collect(toPersistentLinkedList());
+          deferredAllocations
+              .stream()
+              .filter((p) -> !result.contains(p.getSecond()))
+              .collect(toPersistentLinkedList());
       return ImmutableSet.copyOf(result);
     }
 
@@ -582,10 +595,9 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public ImmutableSet<String> getDeferredAllocationPointers() {
-      return ImmutableSet.copyOf((Collection<String>)
-          deferredAllocations.stream()
-            .map(Pair::getFirst)
-            .collect(toCollection(HashSet::new)));
+      return ImmutableSet.copyOf(
+          (Collection<String>)
+              deferredAllocations.stream().map(Pair::getFirst).collect(toCollection(HashSet::new)));
     }
 
     /**
@@ -596,8 +608,9 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public boolean isTemporaryDeferredAllocationPointer(final String pointer) {
-      return deferredAllocations.stream()
-        .anyMatch((p) -> p.getFirst().equals(pointer) && p.getSecond().getBase().equals(pointer));
+      return deferredAllocations
+          .stream()
+          .anyMatch((p) -> p.getFirst().equals(pointer) && p.getSecond().getBase().equals(pointer));
     }
 
     /**
@@ -608,8 +621,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public boolean isDeferredAllocationPointer(final String pointer) {
-      return deferredAllocations.stream()
-          .anyMatch((p) -> p.getFirst().equals(pointer));
+      return deferredAllocations.stream().anyMatch((p) -> p.getFirst().equals(pointer));
     }
 
     /**
@@ -753,9 +765,7 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed,
-        Optional<CIntegerLiteralExpression> pSize,
-        String pBase) {
+        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, String pBase) {
       throw new UnsupportedOperationException();
     }
 

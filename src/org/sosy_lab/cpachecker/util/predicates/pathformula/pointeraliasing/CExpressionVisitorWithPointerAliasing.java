@@ -350,7 +350,9 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     // TODO: is the second isUnaliasedLocation() check really needed?
     if (isRevealingType(resultType)) {
-      operand.accept(getPointerApproximatingVisitor()).ifPresent((s) -> learnedPointerTypes.put(s, resultType));
+      operand
+          .accept(getPointerApproximatingVisitor())
+          .ifPresent((s) -> learnedPointerTypes.put(s, resultType));
     }
 
     final CType operandType = typeHandler.getSimplifiedType(operand);
@@ -539,10 +541,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       } else {
         toHandle = Optional.empty();
       }
-      rethrow(UnrecognizedCCodeException.class, () ->
-        toHandle.ifPresent(catchAll((p) ->
-           p.getFirst().accept(getPointerApproximatingVisitor()).ifPresent((s) ->
-             learnedPointerTypes.put(s, p.getSecond())))));
+      rethrow(
+          UnrecognizedCCodeException.class,
+          () ->
+              toHandle.ifPresent(
+                  catchAll(
+                      (p) ->
+                          p.getFirst()
+                              .accept(getPointerApproximatingVisitor())
+                              .ifPresent((s) -> learnedPointerTypes.put(s, p.getSecond())))));
     }
 
     final BinaryOperator op = exp.getOperator();
@@ -653,12 +660,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   class PointerApproximatingVisitor
-    extends DefaultCExpressionVisitor<Optional<String>, UnrecognizedCCodeException>
-   implements CRightHandSideVisitor<Optional<String>, UnrecognizedCCodeException>{
+      extends DefaultCExpressionVisitor<Optional<String>, UnrecognizedCCodeException>
+      implements CRightHandSideVisitor<Optional<String>, UnrecognizedCCodeException> {
 
-    private PointerApproximatingVisitor() {
-
-    }
+    private PointerApproximatingVisitor() {}
 
     @Override
     public Optional<String> visit(CArraySubscriptExpression e) throws UnrecognizedCCodeException {
@@ -668,8 +673,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     @Override
     public Optional<String> visit(CBinaryExpression e) throws UnrecognizedCCodeException {
       final CType t = typeHandler.getSimplifiedType(e);
-      if (t instanceof CPointerType ||
-          t instanceof CArrayType) {
+      if (t instanceof CPointerType || t instanceof CArrayType) {
         return e.getOperand1().accept(this);
       }
       return Optional.empty();
@@ -682,12 +686,17 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     @Override
     public Optional<String> visit(final CFieldReference e) throws UnrecognizedCCodeException {
-      return
-        match(typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner()))
-         .with(CCompositeType.class, (ct) ->
-               Optional.of(ct.getQualifiedName() + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
-                           e.getFieldName()))
-         .orElseThrow(() -> new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e));
+      return match(
+              typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner()))
+          .with(
+              CCompositeType.class,
+              (ct) ->
+                  Optional.of(
+                      ct.getQualifiedName()
+                          + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
+                          + e.getFieldName()))
+          .orElseThrow(
+              () -> new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e));
     }
 
     @Override
@@ -711,8 +720,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
 
     @Override
-    public Optional<String> visit(CFunctionCallExpression call)
-        throws UnrecognizedCCodeException {
+    public Optional<String> visit(CFunctionCallExpression call) throws UnrecognizedCCodeException {
       return Optional.empty();
     }
   }
@@ -728,7 +736,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;
 
-  private final PointerApproximatingVisitor pointerApproximatingVisitorInstance = new PointerApproximatingVisitor();
+  private final PointerApproximatingVisitor pointerApproximatingVisitorInstance =
+      new PointerApproximatingVisitor();
 
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
   private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();

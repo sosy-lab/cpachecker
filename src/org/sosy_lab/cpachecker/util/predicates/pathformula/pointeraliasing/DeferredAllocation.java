@@ -34,7 +34,6 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-
 /**
  * This class is used to temporarily keep data specifying an already performed, but deferred
  * memory allocation of unknown type, e.g.
@@ -74,13 +73,15 @@ class DeferredAllocation implements Serializable {
 
   private static final long serialVersionUID = -6882598785306470437L;
 
-  DeferredAllocation(final String base, final Optional<CIntegerLiteralExpression> size, final boolean isZeroed) {
+  DeferredAllocation(
+      final String base, final Optional<CIntegerLiteralExpression> size, final boolean isZeroed) {
     this.isZeroed = isZeroed;
     this.size = size;
     this.base = base;
   }
 
-  DeferredAllocation(final String base, final CIntegerLiteralExpression size, final boolean isZeroed) {
+  DeferredAllocation(
+      final String base, final CIntegerLiteralExpression size, final boolean isZeroed) {
     this(base, Optional.of(size), isZeroed);
   }
 
@@ -115,9 +116,9 @@ class DeferredAllocation implements Serializable {
     final DeferredAllocation otherPool = (DeferredAllocation) other;
     // isZeroed and size can be different in case of merging two paths with different allocations,
     // currently base indices are not globally unique (see #215 for why it should be this way)
-    if (base.equals(otherPool.base) &&
-        isZeroed == otherPool.isZeroed &&
-        size.equals(otherPool.size)) {
+    if (base.equals(otherPool.base)
+        && isZeroed == otherPool.isZeroed
+        && size.equals(otherPool.size)) {
       // pointedBy is not counted as this is a helper field, not a characteristic of the allocation
       return true;
     } else {
@@ -162,7 +163,7 @@ class DeferredAllocation implements Serializable {
       isZeroed = pDeferredAllocationPool.isZeroed;
       base = pDeferredAllocationPool.base;
       if (pDeferredAllocationPool.size.isPresent()) {
-        size =  pDeferredAllocationPool.size.get().asLong();
+        size = pDeferredAllocationPool.size.get().asLong();
         sizeType = pDeferredAllocationPool.size.get().getExpressionType();
       } else {
         size = -1;
@@ -171,11 +172,12 @@ class DeferredAllocation implements Serializable {
     }
 
     private Object readResolve() {
-      return new DeferredAllocation(base,
-                                    sizeType != null ?
-                                        Optional.of(CIntegerLiteralExpression.createDummyLiteral(size, sizeType)) :
-                                        Optional.empty(),
-                                    isZeroed);
+      return new DeferredAllocation(
+          base,
+          sizeType != null
+              ? Optional.of(CIntegerLiteralExpression.createDummyLiteral(size, sizeType))
+              : Optional.empty(),
+          isZeroed);
     }
   }
 }

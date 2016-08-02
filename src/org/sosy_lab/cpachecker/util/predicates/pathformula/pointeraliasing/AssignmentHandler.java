@@ -178,9 +178,14 @@ class AssignmentHandler {
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
-      memoryHandler.handleDeferredAllocationsInAssignment(lhs, rhs,
-                                                          rhsExpression, lhsType, lhsVisitor,
-                                                          lhsLearnedPointerTypes, rhsLearnedPointersTypes);
+      memoryHandler.handleDeferredAllocationsInAssignment(
+          lhs,
+          rhs,
+          rhsExpression,
+          lhsType,
+          lhsVisitor,
+          lhsLearnedPointerTypes,
+          rhsLearnedPointersTypes);
     }
 
     final BooleanFormula result =

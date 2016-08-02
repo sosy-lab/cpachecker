@@ -217,12 +217,13 @@ public final class PointerTargetSet implements Serializable {
     return lastBase;
   }
 
-  private static final PointerTargetSet EMPTY_INSTANCE = new PointerTargetSet(
-      PathCopyingPersistentTreeMap.<String, CType>of(),
-      null,
-      PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
-      PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
-      PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of());
+  private static final PointerTargetSet EMPTY_INSTANCE =
+      new PointerTargetSet(
+          PathCopyingPersistentTreeMap.<String, CType>of(),
+          null,
+          PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
+          PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
+          PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of());
 
   private static final Joiner joiner = Joiner.on(" ");
 
@@ -280,9 +281,11 @@ public final class PointerTargetSet implements Serializable {
       bases = pts.bases;
       lastBase = pts.lastBase;
       fields = pts.fields;
-      List<Pair<String, DeferredAllocation>> deferredAllocations = Lists.newArrayList(pts.deferredAllocations);
+      List<Pair<String, DeferredAllocation>> deferredAllocations =
+          Lists.newArrayList(pts.deferredAllocations);
       this.deferredAllocations = deferredAllocations;
-      Map<String, List<PointerTarget>> targets = Maps.newHashMapWithExpectedSize(pts.targets.size());
+      Map<String, List<PointerTarget>> targets =
+          Maps.newHashMapWithExpectedSize(pts.targets.size());
       for(Entry<String, PersistentList<PointerTarget>> entry : pts.targets.entrySet()) {
         targets.put(entry.getKey(), new ArrayList<>(entry.getValue()));
       }
@@ -290,11 +293,15 @@ public final class PointerTargetSet implements Serializable {
     }
 
     private Object readResolve() {
-      Map<String, PersistentList<PointerTarget>> targets = Maps.newHashMapWithExpectedSize(this.targets.size());
+      Map<String, PersistentList<PointerTarget>> targets =
+          Maps.newHashMapWithExpectedSize(this.targets.size());
       for (Entry<String, List<PointerTarget>> entry : this.targets.entrySet()) {
         targets.put(entry.getKey(), PersistentLinkedList.copyOf(entry.getValue()));
       }
-      return new PointerTargetSet(bases, lastBase, fields,
+      return new PointerTargetSet(
+          bases,
+          lastBase,
+          fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(targets));
     }

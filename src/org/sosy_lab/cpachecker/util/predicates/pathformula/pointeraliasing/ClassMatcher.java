@@ -54,8 +54,8 @@ import javax.annotation.Nullable;
 public class ClassMatcher {
   public static class ClassMatcherWithResult<R> {
     private ClassMatcherWithResult(final Object scrutinee, final R result) {
-        this.scrutinee = scrutinee;
-        this.result = Optional.of(result);
+      this.scrutinee = scrutinee;
+      this.result = Optional.of(result);
     }
 
     private ClassMatcherWithResult(final Object scrutinee) {
@@ -63,7 +63,8 @@ public class ClassMatcher {
       this.result = Optional.empty();
     }
 
-    public <Y> ClassMatcherWithResult<R> or(final Class<Y> targetClass, final Function<? super Y, ? extends R> f) {
+    public <Y> ClassMatcherWithResult<R> or(
+        final Class<Y> targetClass, final Function<? super Y, ? extends R> f) {
       if (result.isPresent()) {
         return this;
       }
@@ -105,8 +106,8 @@ public class ClassMatcher {
 
   public static class ClassMatcherWithoutResult {
     private ClassMatcherWithoutResult(final Object scrutinee, final boolean matched) {
-        this.scrutinee = scrutinee;
-        this.matched = matched;
+      this.scrutinee = scrutinee;
+      this.matched = matched;
     }
 
     private ClassMatcherWithoutResult(final Object scrutinee) {
@@ -114,7 +115,8 @@ public class ClassMatcher {
       this.matched = false;
     }
 
-    public <Y> ClassMatcherWithoutResult or(final Class<Y> targetClass, final Consumer<? super Y> f) {
+    public <Y> ClassMatcherWithoutResult or(
+        final Class<Y> targetClass, final Consumer<? super Y> f) {
       if (matched) {
         return this;
       }
@@ -148,9 +150,7 @@ public class ClassMatcher {
       }
     }
 
-    public void end() {
-
-    }
+    public void end() {}
 
     public boolean matched() {
       return matched;
@@ -168,21 +168,24 @@ public class ClassMatcher {
     return new ClassMatcher(scrutinee);
   }
 
-  public <Y, R> ClassMatcherWithResult<R> with(final Class<Y> targetClass, final Function<? super Y, ? extends R> f) {
+  public <Y, R> ClassMatcherWithResult<R> with(
+      final Class<Y> targetClass, final Function<? super Y, ? extends R> f) {
     if (targetClass.isInstance(scrutinee)) {
       return new ClassMatcherWithResult<>(scrutinee, f.apply(targetClass.cast(scrutinee)));
     }
     return new ClassMatcherWithResult<>(scrutinee);
   }
 
-  public <Y, R> ClassMatcherWithResult<R> with(final Class<Y> targetClass, final Supplier<? extends R> f) {
+  public <Y, R> ClassMatcherWithResult<R> with(
+      final Class<Y> targetClass, final Supplier<? extends R> f) {
     if (targetClass.isInstance(scrutinee)) {
       return new ClassMatcherWithResult<>(scrutinee, f.get());
     }
     return new ClassMatcherWithResult<>(scrutinee);
   }
 
-  public <Y> ClassMatcherWithoutResult with_(final Class<Y> targetClass, final Consumer<? super Y> f) {
+  public <Y> ClassMatcherWithoutResult with_(
+      final Class<Y> targetClass, final Consumer<? super Y> f) {
     if (targetClass.isInstance(scrutinee)) {
       f.accept(targetClass.cast(scrutinee));
       return new ClassMatcherWithoutResult(scrutinee, true);

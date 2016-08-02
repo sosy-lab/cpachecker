@@ -41,12 +41,12 @@ public class ExceptionWrapper {
 
   @FunctionalInterface
   public interface ThrowingConsumer<T> {
-     void accept(T t) throws Exception;
+    void accept(T t) throws Exception;
   }
 
   @FunctionalInterface
   public interface ThrowingBiConsumer<T1, T2> {
-     void accept(T1 t1, T2 t2) throws Exception;
+    void accept(T1 t1, T2 t2) throws Exception;
   }
 
   @FunctionalInterface
@@ -79,11 +79,18 @@ public class ExceptionWrapper {
         c.accept(x);
       } catch (Exception e) {
         throw new WrappedException(e);
-      }};
+      }
+    };
   }
 
   public static <S1, S2> BiConsumer<S1, S2> catchAll(final ThrowingBiConsumer<S1, S2> c) {
-    return (x, y) -> { try { c.accept(x, y); } catch (Exception e) { throw new WrappedException(e);}};
+    return (x, y) -> {
+      try {
+        c.accept(x, y);
+      } catch (Exception e) {
+        throw new WrappedException(e);
+      }
+    };
   }
 
   public static Runnable catchAll(final ThrowingRunnable<? extends Exception> r) {
@@ -92,10 +99,12 @@ public class ExceptionWrapper {
         r.run();
       } catch (Exception e) {
         throw new WrappedException(e);
-      }};
+      }
+    };
   }
 
-  public static <E extends Exception> void rethrow(final Class<E> cl, final ThrowingRunnable<E> a) throws E {
+  public static <E extends Exception> void rethrow(final Class<E> cl, final ThrowingRunnable<E> a)
+      throws E {
     try {
       a.run();
     } catch (WrappedException e) {
@@ -112,10 +121,8 @@ public class ExceptionWrapper {
     }
   }
 
-  public static <E1 extends Exception, E2 extends Exception> void rethrow2(final Class<E1> cl1,
-                                                                           final Class<E2> cl2,
-                                                                           final ThrowingRunnable2<E1, E2> a)
-                                                                               throws E1, E2 {
+  public static <E1 extends Exception, E2 extends Exception> void rethrow2(
+      final Class<E1> cl1, final Class<E2> cl2, final ThrowingRunnable2<E1, E2> a) throws E1, E2 {
     try {
       a.run();
     } catch (WrappedException e) {

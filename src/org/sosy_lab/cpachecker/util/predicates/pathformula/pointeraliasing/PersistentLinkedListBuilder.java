@@ -56,11 +56,14 @@ public class PersistentLinkedListBuilder<T> {
 
       @Override
       public BinaryOperator<PersistentLinkedListBuilder<T>> combiner() {
-        return (_a1, _a2) -> { throw new UnsupportedOperationException("Should be used sequentially"); };
+        return (_a1, _a2) -> {
+          throw new UnsupportedOperationException("Should be used sequentially");
+        };
       }
 
       @Override
-      public java.util.function.Function<PersistentLinkedListBuilder<T>, PersistentLinkedList<T>> finisher() {
+      public java.util.function.Function<PersistentLinkedListBuilder<T>, PersistentLinkedList<T>>
+          finisher() {
         return PersistentLinkedListBuilder::build;
       }
 
