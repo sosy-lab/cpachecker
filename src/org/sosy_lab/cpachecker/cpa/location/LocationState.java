@@ -34,10 +34,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,12 +46,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -63,7 +57,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -78,7 +71,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     private final LocationState[] states;
 
     private final LocationStateType locationType;
-    private final CFA cfa;
 
     enum LocationStateType {FORWARD, BACKWARD}
 
@@ -91,7 +83,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
         throws InvalidConfigurationException {
       config.inject(this);
       locationType = checkNotNull(pLocationType);
-      cfa = checkNotNull(pCfa);
 
       ImmutableSortedSet<CFANode> allNodes;
       Collection<CFANode> tmpNodes = pCfa.getAllNodes();
@@ -127,24 +118,17 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
     private LocationState createLocationState(CFANode node) {
       return locationType == LocationStateType.BACKWARD
-          ? new BackwardsLocationState(node, cfa, followFunctionCalls)
+          ? new BackwardsLocationState(node, followFunctionCalls)
               : new LocationState(node, followFunctionCalls);
     }
   }
 
-  private static class BackwardsLocationState extends LocationState implements Targetable {
+  private static class BackwardsLocationState extends LocationState {
 
     private static final long serialVersionUID = 6825257572921009531L;
 
-    @SuppressFBWarnings(
-      value = "SE_BAD_FIELD",
-      justification = "backwards analysis not serializable"
-    )
-    private final CFA cfa;
-
-    protected BackwardsLocationState(CFANode locationNode, CFA pCfa, boolean pFollowFunctionCalls) {
+    private BackwardsLocationState(CFANode locationNode, boolean pFollowFunctionCalls) {
       super(locationNode, pFollowFunctionCalls);
-      cfa = pCfa;
     }
 
     @Override
@@ -157,15 +141,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       return super.getOutgoingEdges();
     }
 
-    @Override
-    public boolean isTarget() {
-      return cfa.getMainFunction() == getLocationNode();
-    }
-
-    @Override
-    public Set<Property> getViolatedProperties() throws IllegalStateException {
-      return ImmutableSet.<Property>of(NamedProperty.create("Entry node reached backwards."));
-    }
   }
 
   private transient CFANode locationNode;
