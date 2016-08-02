@@ -525,7 +525,7 @@ class DynamicMemoryHandler {
    */
   private void handleDeferredAllocationTypeRevelation(final String pointer, final CType type)
       throws UnrecognizedCCodeException, InterruptedException {
-    for (DeferredAllocation d : pts.removeDeferredAllocationPointer(pointer)) {
+    for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
       makeAllocation(d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase());
     }
   }
