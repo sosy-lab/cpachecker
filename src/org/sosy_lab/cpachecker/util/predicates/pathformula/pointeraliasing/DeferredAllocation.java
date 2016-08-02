@@ -32,6 +32,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -157,7 +158,7 @@ class DeferredAllocation implements Serializable {
     private final boolean isZeroed;
     private final String base;
     private final long size;
-    private final CType sizeType;
+    private final @Nullable CType sizeType;
 
     private SerializationProxy(DeferredAllocation pDeferredAllocationPool) {
       isZeroed = pDeferredAllocationPool.isZeroed;
