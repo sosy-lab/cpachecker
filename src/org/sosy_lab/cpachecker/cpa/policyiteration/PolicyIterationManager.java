@@ -61,6 +61,8 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment.OptStatus;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import java.util.ArrayList;
@@ -338,8 +340,9 @@ public class PolicyIterationManager {
     final boolean shouldAbstract = shouldPerformAbstraction(iState, pArgState);
 
     // Perform reachability checking, for property states, or before the abstractions.
-    if (((hasTargetState && checkTargetStates) || shouldAbstract)
-        && isUnreachable(iState, extraInvariant)) {
+    boolean isTarget = hasTargetState && checkTargetStates;
+    if (((isTarget) || shouldAbstract)
+        && isUnreachable(iState, extraInvariant, isTarget)) {
 
       logger.log(Level.INFO, "Returning bottom state");
       return Optional.empty();
@@ -419,7 +422,7 @@ public class PolicyIterationManager {
       return Optional.of(pState);
     }
 
-    if (isUnreachable(iState, strengthening)) {
+    if (isUnreachable(iState, strengthening, false)) {
 
       logger.log(Level.INFO, "Returning bottom state");
       return Optional.empty();
@@ -734,7 +737,10 @@ public class PolicyIterationManager {
   /**
    * @return Whether the <code>state</code> is unreachable.
    */
-  private boolean isUnreachable(PolicyIntermediateState state, BooleanFormula extraInvariant)
+  private boolean isUnreachable(
+      PolicyIntermediateState state,
+      BooleanFormula extraInvariant,
+      boolean pIsTarget)
       throws CPAException, InterruptedException {
     BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraintsWithExtraInvariant(state);
@@ -748,8 +754,19 @@ public class PolicyIterationManager {
 
     try {
       statistics.checkSATTimer.start();
-      return solver.isUnsat(
+      boolean out = solver.isUnsat(
           bfmgr.toConjunctionArgs(constraint, true), state.getNode());
+      if (!out && pIsTarget) {
+
+        // Set counterexample information for reachable target states.
+        try (ProverEnvironment env = solver.newProverEnvironment
+            (ProverOptions.GENERATE_MODELS)) {
+          env.push(constraint);
+          Preconditions.checkState(!env.isUnsat());
+          state.setCounterexample(env.getModelAssignments());
+        }
+      }
+      return out;
     } catch (SolverException e) {
       throw new CPATransferException("Failed solving", e);
     } finally {
