@@ -67,7 +67,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   @Override
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-  public class MatchProgramExit implements AutomatonBoolExpr {
+  static enum MatchProgramExit implements AutomatonBoolExpr {
+
+    INSTANCE;
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -76,6 +78,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       } else {
         return CONST_FALSE;
       }
+    }
+
+    @Override
+    public String toString() {
+      return "PROGRAM-EXIT";
     }
 
   }
