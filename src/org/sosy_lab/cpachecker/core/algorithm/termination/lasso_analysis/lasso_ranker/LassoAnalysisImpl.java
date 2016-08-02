@@ -165,9 +165,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     name = "linear.externalSolver",
     secure = true,
     description =
-        "If true, an external tool is used as SMT solver instead of SMTInterpol."
-            + "This affects only synthesis of non-termination arguments and "
-            + "linear termination arguments."
+        "If true, an external tool is used as SMT solver instead of SMTInterpol. "
+            + "This affects only synthesis of linear termination arguments."
   )
   private boolean linearExternalSolver = false;
 
@@ -183,13 +182,22 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     secure = true,
     description =
         "If true, an external tool is used as SMT solver instead of SMTInterpol. "
-            + "This affects only synthesis of non-linear termination arguments."
+            + "This affects only synthesis of non-linear termination arguments and "
+            + "non-termination arguments."
   )
   private boolean nonlinearExternalSolver = false;
 
   @Option(secure = true, description = "Shell command used to call the external SMT solver.")
   private String externalSolverCommand =
       "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
+
+  @Option(
+      secure = true,
+      description =
+          "Maximal number of functions used in a ranking function template."
+    )
+    @IntegerOption(min = 1)
+    private int maxTemplateFunctions = 3;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -251,21 +259,21 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
 
-    rankingTemplates = createTemplates();
+    rankingTemplates = createTemplates(maxTemplateFunctions);
   }
 
-  private static Collection<RankingTemplate> createTemplates() {
+  private static Collection<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
     ImmutableList.Builder<RankingTemplate> rankingTemplates = ImmutableList.builder();
 
     rankingTemplates.add(new AffineTemplate());
 
-    rankingTemplates.add(new NestedTemplate(2));
-    rankingTemplates.add(new NestedTemplate(3));
-    rankingTemplates.add(new NestedTemplate(4));
+    for (int i = 2; i <= pMaxTemplateFunctions; i++) {
+      rankingTemplates.add(new NestedTemplate(i));
+    }
 
-    rankingTemplates.add(new LexicographicTemplate(2));
-    rankingTemplates.add(new LexicographicTemplate(3));
-    rankingTemplates.add(new LexicographicTemplate(4));
+    for (int i = 2; i <= pMaxTemplateFunctions; i++) {
+      rankingTemplates.add(new LexicographicTemplate(i));
+    }
 
     return rankingTemplates.build();
   }

@@ -809,7 +809,7 @@ cpa.automaton.prec.topOnFinalSelfLoopingState = false
 # This should be the standard use case.
 cpa.automaton.treatErrorsAsTargets = true
 
-# if enabled, cache queries also consider blocks with non-matching precision
+# If enabled, cache queries also consider blocks with non-matching precision
 # for reuse.
 cpa.bam.aggressiveCaching = true
 
@@ -829,7 +829,7 @@ cpa.bam.doPrecisionRefinementForAllStates = false
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
-# if enabled, the reached set cache is analysed for each cache miss to find
+# If enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
 
@@ -2782,10 +2782,12 @@ termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 
 termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES
   enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
 
-# If true, an external tool is used as SMT solver instead of SMTInterpol.This
-# affects only synthesis of non-termination arguments and linear termination
-# arguments.
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+# This affects only synthesis of linear termination arguments.
 termination.lassoAnalysis.linear.externalSolver = false
+
+# Maximal number of functions used in a ranking function template.
+termination.lassoAnalysis.maxTemplateFunctions = 3
 
 # Number of non-strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
@@ -2796,7 +2798,8 @@ termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
   enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
 
 # If true, an external tool is used as SMT solver instead of SMTInterpol.
-# This affects only synthesis of non-linear termination arguments.
+# This affects only synthesis of non-linear termination arguments and
+# non-termination arguments.
 termination.lassoAnalysis.nonlinear.externalSolver = false
 
 # Number of strict supporting invariants for each Motzkin transformation
