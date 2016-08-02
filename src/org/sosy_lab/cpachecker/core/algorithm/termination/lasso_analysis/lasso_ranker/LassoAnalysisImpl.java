@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 
@@ -198,6 +199,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     )
     @IntegerOption(min = 1)
     private int maxTemplateFunctions = 3;
+  private SolverContext solverContext;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -213,8 +215,9 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
-    Configuration solverConfig = Configuration.defaultConfiguration();
+    solverContext = checkNotNull(pSolverContext);
     formulaManager = (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
+    Configuration solverConfig = Configuration.defaultConfiguration();
     formulaManagerView = new FormulaManagerView(formulaManager, solverConfig, pLogger);
     pathFormulaManager =
         new PathFormulaManagerImpl(
@@ -281,6 +284,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   @Override
   public void close() {
     toolchainStorage.clear();
+    solverContext.close();
   }
 
   @Override
@@ -303,6 +307,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     try {
       lassos = lassoBuilder.buildLasso(pCounterexample, pRelevantVariables);
       statistics.lassosConstructed(lassos.size());
+
     } catch (TermException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
       return LassoAnalysisResult.unknown();
@@ -312,7 +317,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     try {
       return checkTermination(lassos, pRelevantVariables);
-    } catch (IOException | SMTLIBException | TermException e) {
+
+    } catch (IOException | SMTLIBException | TermException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
       return LassoAnalysisResult.unknown();
     } catch (ToolchainCanceledException e) {
@@ -322,7 +328,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private LassoAnalysisResult checkTermination(
       Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
-      throws IOException, SMTLIBException, TermException, InterruptedException {
+      throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
 
     LassoAnalysisResult result = LassoAnalysisResult.unknown();
 
@@ -377,7 +383,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private LassoAnalysisResult synthesizeTerminationArgument(
       Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
-      throws IOException, SMTLIBException, TermException, InterruptedException {
+      throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
 
     RankingRelation rankingRelation = null;
     statistics.terminationAnalysisOfLassoStarted();
@@ -393,11 +399,15 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
             logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
 
-            try {
+            try (ProverEnvironment proover = solverContext.newProverEnvironment()) {
               rankingRelation =
                   rankingRelationBuilder.fromTerminationArgument(
                       terminationArgument, pRelevantVariables);
-              return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
+
+              proover.push(rankingRelation.asFormula());
+              if (!proover.isUnsat()) {
+                return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
+              }
 
             } catch (UnrecognizedCCodeException e) {
               logger.logException(
