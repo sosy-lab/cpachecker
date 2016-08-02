@@ -200,9 +200,13 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
                   + ID_GENERATOR.getFreshId());
 
       /*
-       * (divisor > 0 ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar+1) * divisor)
+       * ((divisor > 0 and dividend >= 0) ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar+1) * divisor)
        * or
-       * (divisor < 0 ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar-1) * divisor)
+       * ((divisor < 0 and dividend >= 0) ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar-1) * divisor)
+       * or
+       * ((divisor > 0 and dividend < 0) ==> quotientAuxVar * divisor => dividend > (quotientAuxVar+1) * divisor)
+       * or
+       * ((divisor < 0 and dividend < 0) ==> quotientAuxVar * divisor => dividend > (quotientAuxVar-1) * divisor)
        */
 
       Formula one = fmgrView.makeNumber(formulaType, 1);
@@ -210,24 +214,58 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
       BooleanFormula divisorIsNegative = fmgrView.makeLessThan(divisor, zero, true);
       BooleanFormula divisorIsPositive = fmgrView.makeGreaterThan(divisor, zero, true);
+      BooleanFormula dividendIsNegative = fmgrView.makeLessThan(dividend, zero, true);
+      BooleanFormula dividendIsPositive = fmgrView.makeGreaterOrEqual(dividend, zero, true);
       Formula quotientMulDivisor = fmgrView.makeMultiply(quotientAuxVar, divisor);
-      BooleanFormula isLowerBound = fmgrView.makeLessOrEqual(quotientMulDivisor, dividend, true);
+      BooleanFormula isLowerBoundPosDivident =
+          fmgrView.makeLessOrEqual(quotientMulDivisor, dividend, true);
+      BooleanFormula isUpperBoundNegDivident =
+          fmgrView.makeGreaterOrEqual(quotientMulDivisor, dividend, true);
 
-      Formula strictUpperBoundPosDivisor =
+      Formula stictBoundPosDivisor =
           fmgrView.makeMultiply(fmgrView.makePlus(quotientAuxVar, one), divisor);
-      Formula strictUpperBoundNegDivisor =
+      Formula strictBoundNegDivisor =
           fmgrView.makeMultiply(fmgrView.makeMinus(quotientAuxVar, one), divisor);
-      BooleanFormula isUpperBoundPosDivisor =
-          fmgrView.makeLessThan(dividend, strictUpperBoundPosDivisor, true);
-      BooleanFormula isUpperBoundNegDivisor =
-          fmgrView.makeLessThan(dividend, strictUpperBoundNegDivisor, true);
+      BooleanFormula isUpperBoundPosDivisorPosDivident =
+          fmgrView.makeLessThan(dividend, stictBoundPosDivisor, true);
+      BooleanFormula isUpperBoundNegDivisorPosDivident =
+          fmgrView.makeLessThan(dividend, strictBoundNegDivisor, true);
+      BooleanFormula isLowerBoundPosDivisorNegDivident =
+          fmgrView.makeGreaterThan(dividend, stictBoundPosDivisor, true);
+      BooleanFormula isLowerBoundNegDivisorNegDivident =
+          fmgrView.makeGreaterThan(dividend, strictBoundNegDivisor, true);
 
-      BooleanFormula divisorIsPositiveFormula =
-          booleanFormulaManager.and(divisorIsPositive, isLowerBound, isUpperBoundPosDivisor);
-      BooleanFormula divisorIsNegativeFormula =
-          booleanFormulaManager.and(divisorIsNegative, isLowerBound, isUpperBoundNegDivisor);
+      BooleanFormula posDivisorPosDividentFormula =
+          booleanFormulaManager.and(
+              divisorIsPositive,
+              dividendIsPositive,
+              isLowerBoundPosDivident,
+              isUpperBoundPosDivisorPosDivident);
+      BooleanFormula negDivisorPosDividentFormula =
+          booleanFormulaManager.and(
+              divisorIsNegative,
+              dividendIsPositive,
+              isLowerBoundPosDivident,
+              isUpperBoundNegDivisorPosDivident);
+      BooleanFormula posDivisorNegDividentFormula =
+          booleanFormulaManager.and(
+              divisorIsPositive,
+              dividendIsNegative,
+              isUpperBoundNegDivident,
+              isLowerBoundPosDivisorNegDivident);
+      BooleanFormula negDivisorNegDividentFormula =
+          booleanFormulaManager.and(
+              divisorIsNegative,
+              dividendIsNegative,
+              isUpperBoundNegDivident,
+              isLowerBoundNegDivisorNegDivident);
 
-      additionalAxioms.add(fmgrView.makeOr(divisorIsPositiveFormula, divisorIsNegativeFormula));
+      additionalAxioms.add(
+          booleanFormulaManager.or(
+              posDivisorPosDividentFormula,
+              negDivisorPosDividentFormula,
+              posDivisorNegDividentFormula,
+              negDivisorNegDividentFormula));
 
       return quotientAuxVar;
     }
