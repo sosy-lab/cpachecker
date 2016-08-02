@@ -10,7 +10,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -390,6 +389,8 @@ public class PolicyIterationManager {
    * Post-precision-adjustment strengthening.
    *
    * <p>Injecting new invariants might force us to re-compute the abstraction.
+   *
+   * <p>TODO: currently non-empty strengthening breaks LPI+BAM.
    */
   public Optional<AbstractState> strengthen(
       PolicyState pState, TemplatePrecision pPrecision,
@@ -406,8 +407,12 @@ public class PolicyIterationManager {
     // We re-perform abstraction and value determination.
     BooleanFormula strengthening =
         bfmgr.and(
-            Lists.transform(
-                pOtherStates, state -> AbstractStates.extractReportedFormulas(fmgr, state)));
+            pOtherStates
+                .stream()
+                .map(state -> AbstractStates.extractReportedFormulas(fmgr, state))
+                .filter(state -> !bfmgr.isTrue(state))
+                .collect(Collectors.toList())
+        );
     if (bfmgr.isTrue(strengthening) && !delayAbstractionUntilStrengthen) {
 
       // No interesting strengthening.
