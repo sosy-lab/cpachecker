@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.ThrowingRunnable2;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -663,7 +664,7 @@ class DynamicMemoryHandler {
     rethrow2(
         UnrecognizedCCodeException.class,
         InterruptedException.class,
-        () -> {
+        (ThrowingRunnable2<UnrecognizedCCodeException, InterruptedException>) () -> {
           // Reveal the type from usages (type casts, comparisons) in both sides
           lhsLearnedPointerTypes.forEach(handleRevelation);
           rhsLearnedPointerTypes.forEach(handleRevelation);
