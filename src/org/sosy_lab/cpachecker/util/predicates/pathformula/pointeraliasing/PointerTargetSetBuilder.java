@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
+import static org.sosy_lab.common.collect.MoreCollectors.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PersistentLinkedListBuilder.toPersistentLinkedList;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
