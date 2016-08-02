@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ClassMatcher.match;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.catchAll;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.rethrow2;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -56,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.ThrowingRunnable2;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -69,7 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.BiConsumer;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -529,16 +525,9 @@ class DynamicMemoryHandler {
    */
   private void handleDeferredAllocationTypeRevelation(final String pointer, final CType type)
       throws UnrecognizedCCodeException, InterruptedException {
-    rethrow2(
-        UnrecognizedCCodeException.class,
-        InterruptedException.class,
-        () ->
-            pts.removeDeferredAllocations(pointer)
-                .forEach(
-                    catchAll(
-                        (d) ->
-                            makeAllocation(
-                                d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase()))));
+    for (DeferredAllocation d : pts.removeDeferredAllocationPointer(pointer)) {
+      makeAllocation(d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase());
+    }
   }
 
   /**
@@ -659,57 +648,44 @@ class DynamicMemoryHandler {
     } else {
       toHandle = Optional.empty();
     }
-    final BiConsumer<String, CType> handleRevelation =
-        catchAll((ptr, typ) -> handleDeferredAllocationTypeRevelation(ptr, typ));
-    rethrow2(
-        UnrecognizedCCodeException.class,
-        InterruptedException.class,
-        (ThrowingRunnable2<UnrecognizedCCodeException, InterruptedException>) () -> {
-          // Reveal the type from usages (type casts, comparisons) in both sides
-          lhsLearnedPointerTypes.forEach(handleRevelation);
-          rhsLearnedPointerTypes.forEach(handleRevelation);
-          // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
-          toHandle.ifPresent(
-              catchAll(
-                  (p) ->
-                      p.getFirst()
-                          .accept(visitor.getPointerApproximatingVisitor())
-                          .ifPresent(
-                              (s) -> {
-                                if (!lhsLearnedPointerTypes.containsKey(s)
-                                    && !rhsLearnedPointerTypes.containsKey(s)) {
-                                  handleRevelation.accept(s, p.getSecond());
-                                }
-                              })));
-          // If LHS is a variable, remove previous points-to bindings containing it
-          // If LHS is not a variable, try to remove bindings and only actually remove if no dangling objects arises
-          match(lhs)
-              .with_(
-                  CIdExpression.class,
-                  (e) ->
-                      pts.removeDeferredAllocationPointer(e.getDeclaration().getQualifiedName())
-                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(lhs, false)))
-              .orElseRun(
-                  catchAll(
-                      () ->
-                          lhs.accept(visitor.getPointerApproximatingVisitor())
-                              .ifPresent(
-                                  (lhsPointer) -> {
-                                    if (pts.canRemoveDeferredAllocationPointer(lhsPointer)) {
-                                      pts.removeDeferredAllocationPointer(lhsPointer);
-                                    }
-                                  })));
-          // And now propagate points-to bindings from the RHS to the LHS
-          lhs.accept(visitor.getPointerApproximatingVisitor())
-              .ifPresent(
-                  catchAll(
-                      (l) -> {
-                        if (rhs != null) {
-                          rhs.accept(visitor.getPointerApproximatingVisitor())
-                              .ifPresent((r) -> pts.addDeferredAllocationPointer(l, r));
-                        }
-                      }));
-        });
+
+    // Reveal the type from usages (type casts, comparisons) in both sides
+    for (Map.Entry<String, CType> entry : lhsLearnedPointerTypes.entrySet()) {
+      handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
+    }
+    for (Map.Entry<String, CType> entry : rhsLearnedPointerTypes.entrySet()) {
+      handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
+    }
+
+    // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
+    if (toHandle.isPresent()) {
+      Optional<String> s =
+          toHandle.get().getFirst().accept(visitor.getPointerApproximatingVisitor());
+      if (s.isPresent()
+          && !lhsLearnedPointerTypes.containsKey(s.get())
+          && !rhsLearnedPointerTypes.containsKey(s.get())) {
+        handleDeferredAllocationTypeRevelation(s.get(), toHandle.get().getSecond());
+      }
+    }
+
+    if (lhs instanceof CIdExpression) {
+      // If LHS is a variable, remove previous points-to bindings containing it
+      pts.removeDeferredAllocationPointer(((CIdExpression) lhs).getDeclaration().getQualifiedName())
+          .forEach(_d -> handleDeferredAllocationPointerRemoval(lhs, false));
+    } else {
+      // Else try to remove bindings and only actually remove if no dangling objects arises
+      Optional<String> lhsPointer = lhs.accept(visitor.getPointerApproximatingVisitor());
+      if (lhsPointer.isPresent() && pts.canRemoveDeferredAllocationPointer(lhsPointer.get())) {
+        pts.removeDeferredAllocationPointer(lhsPointer.get());
+      }
+    }
+
+    // And now propagate points-to bindings from the RHS to the LHS
+    Optional<String> l = lhs.accept(visitor.getPointerApproximatingVisitor());
+    if (l.isPresent() && rhs != null) {
+      rhs.accept(visitor.getPointerApproximatingVisitor())
+          .ifPresent(r -> pts.addDeferredAllocationPointer(l.get(), r));
+    }
   }
 
   /**
@@ -723,12 +699,9 @@ class DynamicMemoryHandler {
   void handleDeferredAllocationsInAssume(
       final CExpression e, final Map<String, CType> learnedPointerTypes)
       throws UnrecognizedCCodeException, InterruptedException {
-    rethrow2(
-        UnrecognizedCCodeException.class,
-        InterruptedException.class,
-        () ->
-            learnedPointerTypes.forEach(
-                catchAll((s, t) -> handleDeferredAllocationTypeRevelation(s, t))));
+    for (Map.Entry<String, CType> entry : learnedPointerTypes.entrySet()) {
+      handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
+    }
   }
 
   /**

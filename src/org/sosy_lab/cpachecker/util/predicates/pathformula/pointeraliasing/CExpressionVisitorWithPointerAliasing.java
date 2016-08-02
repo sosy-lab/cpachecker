@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ClassMatcher.match;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.catchAll;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ExceptionWrapper.rethrow;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -533,23 +531,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final CType t2 = typeHandler.getSimplifiedType(exp.getOperand2());
 
     if (t1.equals(CPointerType.POINTER_TO_VOID) || t2.equals(CPointerType.POINTER_TO_VOID)) {
-      final Optional<Pair<CExpression, CType>> toHandle;
       if (isRevealingType(t1)) {
-        toHandle = Optional.of(Pair.of(exp.getOperand2(), t1));
+        exp.getOperand2()
+            .accept(getPointerApproximatingVisitor())
+            .ifPresent((s) -> learnedPointerTypes.put(s, t1));
       } else if (isRevealingType(t2)) {
-        toHandle = Optional.of(Pair.of(exp.getOperand1(), t2));
-      } else {
-        toHandle = Optional.empty();
+        exp.getOperand1()
+            .accept(getPointerApproximatingVisitor())
+            .ifPresent((s) -> learnedPointerTypes.put(s, t2));
       }
-      rethrow(
-          UnrecognizedCCodeException.class,
-          () ->
-              toHandle.ifPresent(
-                  catchAll(
-                      (p) ->
-                          p.getFirst()
-                              .accept(getPointerApproximatingVisitor())
-                              .ifPresent((s) -> learnedPointerTypes.put(s, p.getSecond())))));
     }
 
     final BinaryOperator op = exp.getOperator();
