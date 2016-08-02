@@ -52,8 +52,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -144,16 +142,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       iState = pState.asIntermediate();
     }
 
-    boolean hasTargetState = StreamSupport
-        .stream(AbstractStates.asIterable(pFullState).spliterator(), false)
-        .filter(AbstractStates.IS_TARGET_STATE::apply)
-        .collect(Collectors.toList()).iterator().hasNext();
-    boolean shouldPerformAbstraction = shouldPerformAbstraction(
-        iState.getNode(), pFullState);
-    if (hasTargetState && checkTargetStates && isUnreachableTarget(iState)) {
+    if (checkTargetStates
+        && AbstractStates.isTargetState(pFullState)
+        && isUnreachableTarget(iState)) {
       return Optional.empty();
     }
 
+    boolean shouldPerformAbstraction = shouldPerformAbstraction(iState.getNode(), pFullState);
     if (shouldPerformAbstraction) {
       Optional<SlicingAbstractedState> oldState = findOldToMerge(
           pStates, pFullState, pState);

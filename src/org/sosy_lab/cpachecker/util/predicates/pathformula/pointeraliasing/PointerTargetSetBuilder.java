@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.collect.MoreCollectors.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
@@ -33,7 +34,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -594,7 +594,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public ImmutableSet<String> getDeferredAllocationPointers() {
-      return ImmutableSet.copyOf(Lists.transform(deferredAllocations, Pair::getFirst));
+      return transformedImmutableSetCopy(deferredAllocations, Pair::getFirst);
     }
 
     /**

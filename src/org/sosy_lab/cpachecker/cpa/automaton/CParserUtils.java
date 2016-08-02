@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -154,6 +155,6 @@ class CParserUtils {
       }
     }
 
-    return ImmutableList.copyOf(Lists.transform(statements, statement -> (CStatement) statement));
+    return transformedImmutableListCopy(statements, statement -> (CStatement) statement);
   }
 }

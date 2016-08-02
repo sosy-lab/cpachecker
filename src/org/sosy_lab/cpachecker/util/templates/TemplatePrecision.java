@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ListMultimap;
@@ -254,26 +258,22 @@ public class TemplatePrecision implements Precision {
 
       // For of every variable: instantiate with every coefficient.
       List<List<LinearExpression<CIdExpression>>> out =
-          variables.stream().map(
-              x -> allowedCoefficients.stream().map(
-                  coeff -> LinearExpression.monomial(x, coeff)
-              ).collect(Collectors.toList())
-          ).collect(Collectors.toList());
+          transformedImmutableListCopy(
+              variables,
+              (CIdExpression x) ->
+                  transformedImmutableListCopy(
+                      allowedCoefficients, coeff -> LinearExpression.monomial(x, coeff)));
 
       // Convert to a list of all possible linear expressions.
       List<LinearExpression<CIdExpression>> linearExpressions =
-          Lists.cartesianProduct(out).stream().map(
-              list -> list.stream().reduce(
-                  LinearExpression.empty(), LinearExpression::add)
-          ).collect(Collectors.toList());
+          transformedImmutableListCopy(
+              Lists.cartesianProduct(out),
+              list -> list.stream().reduce(LinearExpression.empty(), LinearExpression::add));
 
-      Set<Template> generated =
-          filterToSameType(
-              filterRedundantExpressions(linearExpressions)
-          ).stream()
-              .filter(t -> !t.isEmpty())
-              .map(Template::of).collect(Collectors.toSet());
-      returned.addAll(generated);
+      filterToSameType(filterRedundantExpressions(linearExpressions))
+          .filter(t -> !t.isEmpty())
+          .transform(Template::of)
+          .copyInto(returned);
     }
 
     return returned;
@@ -283,34 +283,33 @@ public class TemplatePrecision implements Precision {
    * Filter out the redundant expressions: that is, expressions already
    * contained in the list with a multiplier {@code >= 1}.
    */
-  private List<LinearExpression<CIdExpression>> filterRedundantExpressions(
-      List<LinearExpression<CIdExpression>> pLinearExpressions
-  ) {
+  private FluentIterable<LinearExpression<CIdExpression>> filterRedundantExpressions(
+      List<LinearExpression<CIdExpression>> pLinearExpressions) {
     Predicate<Optional<Rational>> existsAndMoreThanOne =
         (coeff -> coeff.isPresent() && coeff.get().compareTo(Rational.ONE) > 0);
-    return pLinearExpressions.stream().filter(
-            l -> !pLinearExpressions.stream().anyMatch(
-                l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))
-            )
-        ).collect(Collectors.toList());
+    return from(pLinearExpressions)
+        .filter(
+            l ->
+                !pLinearExpressions
+                    .stream()
+                    .anyMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
   /**
    * Filter out the expressions where not all variables inside have the
    * same type.
    */
-  private List<LinearExpression<CIdExpression>> filterToSameType(
-      List<LinearExpression<CIdExpression>> pLinearExpressions
-  ) {
+  private FluentIterable<LinearExpression<CIdExpression>> filterToSameType(
+      FluentIterable<LinearExpression<CIdExpression>> pLinearExpressions) {
     Function<CIdExpression, CBasicType> getType =
         x -> ((CSimpleType)x.getDeclaration().getType()).getType();
-    return pLinearExpressions.stream().filter(
-            expr -> expr.getMap().keySet().stream().allMatch(
-                x -> getType.apply(x).equals(
-                    getType.apply(expr.iterator().next().getKey())
-                )
-            )
-        ).collect(Collectors.toList());
+    return pLinearExpressions.filter(
+        expr ->
+            expr.getMap()
+                .keySet()
+                .stream()
+                .allMatch(
+                    x -> getType.apply(x).equals(getType.apply(expr.iterator().next().getKey()))));
   }
 
 
@@ -402,9 +401,7 @@ public class TemplatePrecision implements Precision {
     Set<Template> out = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
-        out.addAll(
-            extractTemplatesFromEdge(edge).stream().filter(t -> t.size() > 1)
-                .collect(Collectors.toSet()));
+        from(extractTemplatesFromEdge(edge)).filter(t -> t.size() > 1).copyInto(out);
       }
     }
     return out;

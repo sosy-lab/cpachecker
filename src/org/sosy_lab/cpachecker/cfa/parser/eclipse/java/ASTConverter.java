@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -144,9 +144,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -409,7 +409,7 @@ class ASTConverter {
     List<VariableDeclarationFragment> vdfs =
         fd.fragments();
 
-    return vdfs.stream().map(this::handleFieldDeclarationFragment).collect(Collectors.toList());
+    return transformedImmutableListCopy(vdfs, this::handleFieldDeclarationFragment);
   }
 
 

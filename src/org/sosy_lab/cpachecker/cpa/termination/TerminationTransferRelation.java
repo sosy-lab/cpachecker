@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
 import static java.util.logging.Level.FINEST;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
@@ -242,12 +243,10 @@ public class TerminationTransferRelation implements TransferRelation {
       CFAEdge edgeToTargetState =
           terminationInformation.createNegatedRankingRelationAssumeEdgeToTargetNode(loopHead);
       Optional<RankingRelation> rankingRelation = terminationInformation.getRankingRelation();
-      resultingSuccessors.addAll(
-          targetStates
-              .stream()
-              .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
-              .map(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
-              .collect(Collectors.toList()));
+      from(targetStates)
+          .transform(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
+          .transform(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
+          .copyInto(resultingSuccessors);
     }
 
     CFANode node1 = creatCfaNode(functionName);

@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -214,9 +215,8 @@ public class StateFormulaConversionManager {
       Set<Template> others = Sets.filter(nonRedundant, t2 -> t2 != t);
 
       // if others imply the constraint, remove it.
-      BooleanFormula othersConstraint = bfmgr.and(
-          bfmgr.and(others.stream().map(tb -> templatesToConstraints.get(tb))
-              .collect(Collectors.toList())));
+      BooleanFormula othersConstraint =
+          bfmgr.and(Collections2.transform(others, tb -> templatesToConstraints.get(tb)));
 
       try {
         if (solver.implies(othersConstraint, constraint)) {

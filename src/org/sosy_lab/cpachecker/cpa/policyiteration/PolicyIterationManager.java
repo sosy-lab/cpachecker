@@ -10,6 +10,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -406,11 +407,8 @@ public class PolicyIterationManager {
     // We re-perform abstraction and value determination.
     BooleanFormula strengthening =
         bfmgr.and(
-            pOtherStates
-                .stream()
-                .map(state -> AbstractStates.extractReportedFormulas(fmgr, state))
-                .filter(state -> !bfmgr.isTrue(state))
-                .collect(Collectors.toList()));
+            Lists.transform(
+                pOtherStates, state -> AbstractStates.extractReportedFormulas(fmgr, state)));
     if (bfmgr.isTrue(strengthening) && !delayAbstractionUntilStrengthen) {
 
       // No interesting strengthening.

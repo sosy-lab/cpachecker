@@ -41,7 +41,6 @@ import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
 
@@ -93,8 +92,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
     @Override
     public Formula visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-      List<Formula> newArgs =
-          pArgs.stream().map(f -> fmgrView.visit(f, this)).collect(Collectors.toList());
+      List<Formula> newArgs = Lists.transform(pArgs, f -> fmgrView.visit(f, this));
 
       if (pFunctionDeclaration.getKind().equals(ITE)
           || pFunctionDeclaration.getName().equalsIgnoreCase("ite")) {

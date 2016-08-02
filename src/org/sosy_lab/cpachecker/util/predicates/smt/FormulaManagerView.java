@@ -27,6 +27,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -95,7 +96,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -913,7 +913,7 @@ public class FormulaManagerView {
    *  @see #instantiate(Formula, SSAMap)
    */
   public <F extends Formula> List<F> instantiate(Collection<F> pFormulas, final SSAMap pSsa) {
-    return pFormulas.stream().map(f -> instantiate(f, pSsa)).collect(Collectors.toList());
+    return transformedImmutableListCopy(pFormulas, f -> instantiate(f, pSsa));
   }
 
   public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {

@@ -131,6 +131,14 @@ Coding:
   use the interface as type instead of the implementation (e.g., `List` instead of `ArrayList`).
   This is especially true for fields, parameters, and return types.
   Do use the `Immutable*` types from Guava, though, to show that your collection is immutable.
+- Avoid Collectors.toList() and Collectors.toSet().
+  These guarantee neither mutability nor immutability.
+  Use a solution that returns an immutable collection instead,
+  or one that is guaranteed to return a mutable one if you need it.
+  We have utility methods for this in MoreCollectors and Collections3.
+- Do not over-use functional idioms!
+  When an imperative version of the code is shorter and easier to read,
+  it should be preferred.
 - Use `Integer`, `Double`, `Long`, `Boolean` etc. only when necessary (this is, inside generics like in `List<Integer>`).
   In fields, method parameters and return values, and local parameters,
   it is better to use the corresponding primitive types like int.

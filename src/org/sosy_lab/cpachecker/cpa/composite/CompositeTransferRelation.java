@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -61,7 +62,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Options(prefix = "cpa.composite")
 final class CompositeTransferRelation implements TransferRelation {
@@ -440,7 +440,7 @@ final class CompositeTransferRelation implements TransferRelation {
 
 
     Collection<List<AbstractState>> lResultingElements = createCartesianProduct(lStrengthenResults, resultCount);
-    return lResultingElements.stream().map(CompositeState::new).collect(Collectors.toList());
+    return transformedImmutableListCopy(lResultingElements, CompositeState::new);
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {

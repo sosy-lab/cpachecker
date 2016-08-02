@@ -43,7 +43,6 @@ import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
@@ -105,8 +104,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
     public Formula visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
 
-      List<Formula> newArgs =
-          pArgs.stream().map(f -> fmgrView.visit(f, this)).collect(Collectors.toList());
+      List<Formula> newArgs = Lists.transform(pArgs, f -> fmgrView.visit(f, this));
 
       if (pFunctionDeclaration.getKind().equals(DIV)
           || pFunctionDeclaration.getName().equalsIgnoreCase("div")) {
