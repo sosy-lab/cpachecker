@@ -33,6 +33,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -574,18 +574,17 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public ImmutableSet<DeferredAllocation> removeDeferredAllocations(final String pointer) {
-      final Set<DeferredAllocation> result =
-          deferredAllocations
-              .stream()
+      final ImmutableSet<DeferredAllocation> result =
+          from(deferredAllocations)
               .filter((p) -> p.getFirst().equals(pointer))
-              .map(Pair::getSecond)
-              .collect(toCollection(HashSet::new));
+              .transform(Pair::getSecond)
+              .toSet();
       deferredAllocations =
           deferredAllocations
               .stream()
               .filter((p) -> !result.contains(p.getSecond()))
               .collect(toPersistentLinkedList());
-      return ImmutableSet.copyOf(result);
+      return result;
     }
 
     /**
@@ -595,9 +594,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public ImmutableSet<String> getDeferredAllocationPointers() {
-      return ImmutableSet.copyOf(
-          (Collection<String>)
-              deferredAllocations.stream().map(Pair::getFirst).collect(toCollection(HashSet::new)));
+      return ImmutableSet.copyOf(Lists.transform(deferredAllocations, Pair::getFirst));
     }
 
     /**
