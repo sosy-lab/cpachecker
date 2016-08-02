@@ -30,8 +30,6 @@ import static org.sosy_lab.solver.api.FunctionDeclarationKind.MODULO;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
-
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -46,6 +44,8 @@ import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
@@ -201,7 +201,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
       /*
        * (divisor > 0 ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar+1) * divisor)
-       * and
+       * or
        * (divisor < 0 ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar-1) * divisor)
        */
 
