@@ -1442,7 +1442,7 @@ public class TigerAlgorithm
       try {
         ARGCPA cpa = composeCPA(goals, true);
         CounterExampleReplayEngine replayer = new CounterExampleReplayEngine(cpa, logger);
-        return replayer.replayCounterExample(pCex);
+        return replayer.replayCounterexample(pCex);
 
       } catch (CPAException | InvalidConfigurationException e) {
         throw new RuntimeException("CPA for handling features could not be created.");

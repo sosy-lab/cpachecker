@@ -73,7 +73,7 @@ public class CounterExampleReplayEngine {
     logger = Preconditions.checkNotNull(pLogger);
   }
 
-  public ARGPathWithPresenceConditions replayCounterExample(CounterexampleInfo pCex)
+  public ARGPathWithPresenceConditions replayCounterexample(CounterexampleInfo pCex)
       throws CPATransferException, InterruptedException {
 
     Preconditions.checkArgument(!pCex.isSpurious(),
