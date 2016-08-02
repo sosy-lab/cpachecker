@@ -58,8 +58,6 @@ class LocationCPAFactory extends AbstractCPAFactory {
     switch (locationType) {
     case BACKWARD:
       return new LocationCPABackwards(cfa, getConfiguration());
-    case BACKWARDNOTARGET:
-      return new LocationCPABackwardsNoTargets(cfa, getConfiguration());
     default:
       return new LocationCPA(cfa, getConfiguration());
     }

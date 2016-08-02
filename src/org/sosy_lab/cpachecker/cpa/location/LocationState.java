@@ -80,7 +80,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     private final LocationStateType locationType;
     private final CFA cfa;
 
-    enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
+    enum LocationStateType {FORWARD, BACKWARD}
 
     @Option(secure=true, description="With this option enabled, unction calls that occur"
         + " in the CFA are followed. By disabling this option one can traverse a function"
@@ -128,8 +128,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     private LocationState createLocationState(CFANode node) {
       return locationType == LocationStateType.BACKWARD
           ? new BackwardsLocationState(node, cfa, followFunctionCalls)
-          : locationType == LocationStateType.BACKWARDNOTARGET
-              ? new BackwardsLocationStateNoTarget(node, cfa, followFunctionCalls)
               : new LocationState(node, followFunctionCalls);
     }
   }
@@ -167,21 +165,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     @Override
     public Set<Property> getViolatedProperties() throws IllegalStateException {
       return ImmutableSet.<Property>of(NamedProperty.create("Entry node reached backwards."));
-    }
-
-  }
-
-  private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
-
-    private static final long serialVersionUID = -2918748452708606128L;
-
-    protected BackwardsLocationStateNoTarget(CFANode pLocationNode, CFA pCfa, boolean pFollowFunctionCalls) {
-      super(pLocationNode, pCfa, pFollowFunctionCalls);
-    }
-
-    @Override
-    public boolean isTarget() {
-      return false;
     }
   }
 
