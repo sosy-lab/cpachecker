@@ -322,8 +322,7 @@ public class PolicyIterationManager {
 
     if (inputState.isAbstract()) {
 
-      // BAM can pass abstract states to precision adjustment.
-      // No need to re-compute the abstraction.
+      // Expanded states from BAM.
       return Optional.of(inputState);
     }
     Preconditions.checkState(!inputState.isAbstract());

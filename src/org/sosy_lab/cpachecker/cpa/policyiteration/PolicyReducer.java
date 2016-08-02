@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.templates.Template;
 
 import java.util.HashMap;
@@ -63,9 +61,8 @@ public class PolicyReducer implements Reducer {
 
     Map<Template, PolicyBound> newAbstraction = Maps.filterKeys(
         aState.getAbstraction(),
-        template -> !Sets.intersection(
-            template.getUsedVars().collect(Collectors.toSet()), blockVars
-        ).isEmpty()
+        template -> blockVars.containsAll(
+            template.getUsedVars().collect(Collectors.toSet()))
     );
     return aState.withNewAbstraction(newAbstraction);
   }
@@ -90,31 +87,38 @@ public class PolicyReducer implements Reducer {
     // pRootState} which were dropped during the reduction.
     Map<Template, PolicyBound> rootAbstraction =
         pRootState.asAbstracted().getAbstraction();
-    Map<Template, PolicyBound> reducedAbstraction =
+    Map<Template, PolicyBound> fullAbstraction =
         new HashMap<>(pReducedState.asAbstracted().getAbstraction());
-    rootAbstraction.forEach(reducedAbstraction::putIfAbsent);
+    rootAbstraction.forEach(fullAbstraction::putIfAbsent);
 
-    return pReducedState.asAbstracted().withNewAbstraction(reducedAbstraction);
+    return pReducedState.asAbstracted().withNewAbstraction(fullAbstraction);
   }
 
   @Override
   public Precision getVariableReducedPrecision(
       Precision precision, Block context) {
-    // todo? might wish to remove ite
+    // Currently, precision is a singleton.
     return precision;
   }
 
   @Override
   public Precision getVariableExpandedPrecision(
       Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    // todo?
+    // Currently, precision is a singleton.
     return rootPrecision;
   }
 
   @Override
   public Object getHashCodeForState(
       AbstractState stateKey, Precision precisionKey) {
-    return Pair.of(stateKey, precisionKey);
+    PolicyState pState = (PolicyState) stateKey;
+
+    // Discard all the meta-information attached to the bounds.
+    return pState.asAbstracted().getAbstraction().entrySet().stream()
+        .collect(Collectors.toMap(
+            e -> e.getKey(),
+            e -> e.getValue().getBound()
+        ));
   }
 
   /**
@@ -122,6 +126,8 @@ public class PolicyReducer implements Reducer {
    * remove all bounds associated with global variables,
    * add all globals from the expandedState,
    * add assignment to return function value from expandedState.
+   *
+   * TODO: this function was not tested yet.
    */
   @Override
   public PolicyAbstractedState rebuildStateAfterFunctionCall(

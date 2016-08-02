@@ -178,6 +178,14 @@ public class PolicyIterationTest {
     checkWithOverflow("overflow/increment_in_guard_false_assert.c");
   }
 
+  @Test public void many_functions_true_assert() throws Exception {
+    checkWithBAM("bam/many_functions_true_assert.c");
+  }
+
+  @Test public void many_functions_false_assert() throws Exception {
+    checkWithBAM("bam/many_functions_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, ImmutableMap.of());
   }
@@ -191,11 +199,17 @@ public class PolicyIterationTest {
     check(filename, getProperties("policyIteration-with-slicing.properties", extra));
   }
 
-  private void checkWithOverflow(String filename)
-        throws Exception {
+  private void checkWithOverflow(String filename) throws Exception {
     check(
         filename,
         getProperties("policyIteration-with-overflow.properties", ImmutableMap.of())
+    );
+  }
+
+  private void checkWithBAM(String filename) throws Exception {
+    check(
+        filename,
+        getProperties("policyIteration-with-bam.properties", ImmutableMap.of())
     );
   }
 
