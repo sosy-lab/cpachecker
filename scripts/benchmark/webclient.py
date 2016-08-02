@@ -475,6 +475,8 @@ class WebInterface:
         @param svn_revision: overrides the svn revision given in the constructor (optional)
         @param result_files_patterns: list of result_files_pattern (optional)
         @param required_files: list of additional file required to execute the run (optional)
+        @raise WebClientError: if the HTTP request could not be created
+        @raise HTTPError: if the HTTP request was not successful
         """
         if result_files_pattern:
             if result_files_patterns:
