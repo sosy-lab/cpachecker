@@ -197,7 +197,7 @@ public class CPAchecker {
     name = "backwardSpecification",
     description =
         "comma-separated list of files with specifications that should be used "
-            + "\nin a backwards analysis; used if the full analysis consists of a forward AND a backward part!"
+            + "\nin a backwards analysis; used if the analysis starts at the target states!"
             + "\n(see config/specification/ for examples)"
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -301,7 +301,7 @@ public class CPAchecker {
         Specification specification;
         stats.cpaCreationTime.start();
         try {
-          specification = createSpecification(cfa);
+          specification = Specification.fromFiles(specificationFiles, cfa, config, logger);
           cpa = factory.createCPA(cfa, specification);
         } finally {
           stats.cpaCreationTime.stop();
@@ -323,7 +323,7 @@ public class CPAchecker {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
           reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
-          initializeReachedSet(reached, cpa, specification, cfa.getMainFunction(), cfa);
+          initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
         }
       }
 
@@ -424,14 +424,6 @@ public class CPAchecker {
     return cfa;
   }
 
-  private Specification createSpecification(final CFA cfa) throws InvalidConfigurationException {
-    List<Path> specFiles =
-        initialStatesFor.contains(InitialStatesFor.TARGET)
-            ? backwardSpecificationFiles
-            : specificationFiles;
-    return Specification.fromFiles(specFiles, cfa, config, logger);
-  }
-
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();
     if (!unusedProperties.isEmpty()) {
@@ -523,7 +515,6 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet pReached,
       final ConfigurableProgramAnalysis pCpa,
-      final Specification pSpecification,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
@@ -558,7 +549,9 @@ public class CPAchecker {
           TargetLocationProvider tlp =
               new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
           initialLocations =
-              tlp.tryGetAutomatonTargetLocations(pAnalysisEntryFunction, pSpecification);
+              tlp.tryGetAutomatonTargetLocations(
+                  pAnalysisEntryFunction,
+                  Specification.fromFiles(backwardSpecificationFiles, pCfa, config, logger));
           break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);
@@ -569,6 +562,11 @@ public class CPAchecker {
 
     if (!pReached.hasWaitingState()) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
+    } else {
+      logger.logf(
+          Level.FINE,
+          "Initial reached set has a waitlist of %d states.",
+          pReached.getWaitlist().size());
     }
 
   }
