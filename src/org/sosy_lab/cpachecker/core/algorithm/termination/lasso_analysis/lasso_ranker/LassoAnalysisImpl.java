@@ -260,10 +260,11 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     rankingTemplates.add(new AffineTemplate());
 
     rankingTemplates.add(new NestedTemplate(2));
-    rankingTemplates.add(new LexicographicTemplate(2));
     rankingTemplates.add(new NestedTemplate(3));
-    rankingTemplates.add(new LexicographicTemplate(3));
     rankingTemplates.add(new NestedTemplate(4));
+
+    rankingTemplates.add(new LexicographicTemplate(2));
+    rankingTemplates.add(new LexicographicTemplate(3));
     rankingTemplates.add(new LexicographicTemplate(4));
 
     return rankingTemplates.build();
