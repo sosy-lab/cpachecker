@@ -89,7 +89,7 @@ public final class PolicyIntermediateState extends PolicyState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof PolicyIntermediateState)) {
       return false;
     }
     PolicyIntermediateState that = (PolicyIntermediateState) pO;

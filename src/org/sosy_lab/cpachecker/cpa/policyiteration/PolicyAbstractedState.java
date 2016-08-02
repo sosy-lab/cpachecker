@@ -242,7 +242,7 @@ public final class PolicyAbstractedState extends PolicyState
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof PolicyAbstractedState)) {
       return false;
     }
     PolicyAbstractedState entries = (PolicyAbstractedState) pO;
