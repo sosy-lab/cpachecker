@@ -264,4 +264,23 @@ public final class PolicyAbstractedState extends PolicyState
     }
     return hashCache;
   }
+
+  public PolicyAbstractedState withBackpointer(
+      PolicyIntermediateState pPolicyIntermediateState,
+      BooleanFormula pExtraInvariant,
+      int pLocationID,
+      CFANode pNode,
+      Optional<PolicyAbstractedState> pSibling
+      ) {
+    return new PolicyAbstractedState(
+        pNode,
+        abstraction,
+        pLocationID,
+        manager,
+        ssaMap,
+        pointerTargetSet,
+        pExtraInvariant,
+        Optional.of(pPolicyIntermediateState),
+        pSibling);
+  }
 }

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
@@ -48,6 +49,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.templates.Template;
@@ -323,8 +326,9 @@ public class PolicyIterationManager {
 
     if (inputState.isAbstract()) {
 
-      // Expanded states from BAM.
-      return Optional.of(inputState);
+      // Expanded states require resetting the backpointer.
+      return Optional.of(
+          updateBackpointerForExpanded(pArgState, states, inputState.asAbstracted()));
     }
     Preconditions.checkState(!inputState.isAbstract());
 
@@ -389,11 +393,50 @@ public class PolicyIterationManager {
   }
 
   /**
+   * We need to reset the backpointer on the expanded states,
+   * in order to "fake" that control has come down from the summary edge.
+   */
+  private PolicyAbstractedState updateBackpointerForExpanded(
+      AbstractState pFullState,
+      UnmodifiableReachedSet states,
+      PolicyAbstractedState expandedState
+  ) {
+    ARGState state = AbstractStates.extractStateByType(pFullState, ARGState.class);
+    CFANode node = AbstractStates.extractLocation(pFullState);
+    Preconditions.checkState(state.getParents().size() == 1,
+        "Expanded state should have a unique parent.");
+    AbstractState parent = state.getParents().iterator().next();
+    PolicyState parentState = AbstractStates.extractStateByType(
+        parent, PolicyState.class);
+    Preconditions.checkState(parentState.isAbstract(),
+        "ARG Parent of the expanded state should be abstract");
+    PolicyAbstractedState aState = parentState.asAbstracted();
+
+    SSAMap ssa = expandedState.getSSA();
+    PointerTargetSet pointerTargetSet = expandedState.getPointerTargetSet();
+
+    BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
+        .abstractStateToConstraints(fmgr, expandedState, false));
+    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
+    PolicyIntermediateState backpointer = PolicyIntermediateState.of(
+        node, pf, aState);
+    Optional<PolicyAbstractedState> sibling = findSibling(
+        backpointer, states, pFullState);
+    int locationID = getLocationID(sibling, node);
+    return expandedState.withBackpointer(
+        backpointer,
+        bfmgr.makeTrue(),
+        locationID,
+        node,
+        sibling
+    );
+  }
+
+
+  /**
    * Post-precision-adjustment strengthening.
    *
    * <p>Injecting new invariants might force us to re-compute the abstraction.
-   *
-   * <p>TODO: currently non-empty strengthening breaks LPI+BAM.
    */
   public Optional<AbstractState> strengthen(
       PolicyState pState, TemplatePrecision pPrecision,
