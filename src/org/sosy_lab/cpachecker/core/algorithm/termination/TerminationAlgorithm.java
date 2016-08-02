@@ -355,7 +355,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
             totalRepeatedRankingFunctions++;
             repeatedRankingFunctionsSinceSuccessfulIteration++;
             logger.logf(
-                WARNING, "Repeated ranking relation %s for loop %s", rankingRelation, pLoop);
+                WARNING, "Repeated ranking relation %s for %s", rankingRelation, pLoop);
 
             // Do not use the first reached target state again and again
             // if we cannot synthesis new termination arguments from it.
