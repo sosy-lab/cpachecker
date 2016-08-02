@@ -329,7 +329,7 @@ public class LiveVariables {
 
   public static Optional<LiveVariables> createWithAllVariablesAsLive(final List<Pair<ADeclaration, String>> globalsList,
                                                            final MutableCFA pCFA) {
-    return Optional.of((LiveVariables)new AllVariablesAsLiveVariables(pCFA, globalsList));
+    return Optional.of(new AllVariablesAsLiveVariables(pCFA, globalsList));
   }
 
   public static LiveVariables create(
