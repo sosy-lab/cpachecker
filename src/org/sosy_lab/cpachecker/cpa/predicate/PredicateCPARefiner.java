@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -128,7 +129,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   // the previously analyzed counterexample to detect repeated counterexamples
-  private List<CFANode> lastErrorPath = null;
+  private ImmutableList<CFANode> lastErrorPath = null;
 
   private final PathChecker pathChecker;
 
@@ -230,8 +231,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     totalRefinement.start();
 
     try {
-      final List<CFANode> errorPath =
-          Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+      final ImmutableList<CFANode> errorPath =
+          ImmutableList.copyOf(
+              Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
       final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
       lastErrorPath = errorPath;
 
