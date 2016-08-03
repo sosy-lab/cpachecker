@@ -458,10 +458,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       // But here they should be treated as if they are normal arrays and e.g. &a for int a[] should have the
       // same semantics as &a[0] rather than the address of the pointer variable
       // (imagine &a for int *a parameter)
-      if (baseVariable == null
-          || (operand instanceof CIdExpression
-              && typeHandler.simplifyType(operand.getExpressionType()) instanceof CArrayType
-              && ((CIdExpression) operand).getDeclaration() instanceof CParameterDeclaration)) {
+      if (baseVariable == null) {
         AliasedLocation addressExpression = null;
 
         // addressedFields is used to treat structure assignment and field addressing separately:
@@ -508,13 +505,17 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         }
 
         if (addressExpression == null) {
-          addressExpression = dereference(operand, operand.accept(this));
+          addressExpression = operand.accept(this).asAliasedLocation();
         }
 
         addressedFields.addAll(usedFields);
         usedFields.addAll(alreadyUsedFields);
 
         return Value.ofValue(addressExpression.getAddress());
+      } else if (operand instanceof CIdExpression
+          && typeHandler.simplifyType(operand.getExpressionType()) instanceof CArrayType
+          && ((CIdExpression) operand).getDeclaration() instanceof CParameterDeclaration) {
+        return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
         final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
