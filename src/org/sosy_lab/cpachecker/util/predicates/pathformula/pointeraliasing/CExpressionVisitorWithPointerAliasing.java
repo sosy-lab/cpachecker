@@ -257,29 +257,18 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
     final CType type = typeHandler.getSimplifiedType(pE);
-    if (pResult.isUnaliasedLocation() || pResult.isValue()) {
-      // Surely it was the location of the pointer variable (pointed value should always be AliasedLocation),
-      // need to pack its value (address) as the location of the pointed value
+    // Filter out composites and proper (non-funcion-argument) arrays, for them the result
+    // already contains the location of the first field/element.
+    if (pResult.isAliasedLocation()
+        && (type instanceof CCompositeType
+            || (type instanceof CArrayType
+                && (!(pE instanceof CIdExpression)
+                    || !(((CIdExpression) pE).getDeclaration()
+                        instanceof CParameterDeclaration))))) {
+      return pResult.asAliasedLocation();
+    } else {
       return AliasedLocation.ofAddress(
           asValueFormula(pResult, CTypeUtils.implicitCastToPointer(type)));
-    } else {
-      assert pResult.isAliasedLocation() : "Broken invariant: unknown expression kind";
-      // Address of the pointer variable can only happen for CIdExpression, all other expressions
-      // imply the corresponding dereferences
-      if (pE instanceof CIdExpression) {
-        // For CIdExpression the location of the pointed value is returned only for composites
-        // and stand-alone arrays that are not function parameters
-        if (type instanceof CCompositeType
-            || (type instanceof CArrayType
-                && !(((CIdExpression) pE).getDeclaration() instanceof CParameterDeclaration))) {
-          return pResult.asAliasedLocation();
-        } else {
-          return AliasedLocation.ofAddress(
-              asValueFormula(pResult, CTypeUtils.implicitCastToPointer(type)));
-        }
-      } else {
-        return pResult.asAliasedLocation();
-      }
     }
   }
 
