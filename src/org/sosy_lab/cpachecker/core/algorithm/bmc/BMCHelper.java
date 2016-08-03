@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -42,14 +43,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -199,14 +201,15 @@ public final class BMCHelper {
     }
   }
 
-  public static Set<CFANode> getLoopHeads(CFA pCFA) {
+  public static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
     if (pCFA.getLoopStructure().isPresent()
         && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
       return Collections.emptySet();
     }
-    final Set<CFANode> reachableNodes =
-        CFATraversal.dfs().ignoreSummaryEdges().collectNodesReachableFrom(pCFA.getMainFunction());
-    final Set<CFANode> loopHeads = from(reachableNodes).filter(node -> node.isLoopStart()).toSet();
+    final Set<CFANode> loopHeads =
+        pTargetLocationProvider.tryGetAutomatonTargetLocations(
+            pCFA.getMainFunction(),
+            Specification.fromAutomata(Collections.singleton(Automata.getLoopHeadTargetAutomaton())));
     if (!pCFA.getLoopStructure().isPresent()) {
       return loopHeads;
     }

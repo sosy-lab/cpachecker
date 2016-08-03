@@ -516,7 +516,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final TargetLocationCandidateInvariant safetyProperty;
     if (pCFA.getAllLoopHeads().isPresent()) {
-      safetyProperty = new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA));
+      safetyProperty =
+          new TargetLocationCandidateInvariant(BMCHelper.getLoopHeads(pCFA, pTargetLocationProvider));
       candidates.add(safetyProperty);
     } else {
       safetyProperty = null;
