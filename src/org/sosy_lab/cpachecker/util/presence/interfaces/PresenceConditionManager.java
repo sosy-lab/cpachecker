@@ -24,33 +24,36 @@
 package org.sosy_lab.cpachecker.util.presence.interfaces;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.solver.SolverException;
 
 public interface PresenceConditionManager {
 
-  public PresenceCondition makeTrue();
+  PresenceCondition makeTrue();
 
-  public PresenceCondition makeFalse();
+  PresenceCondition makeFalse();
 
-  public PresenceCondition makeNegation(PresenceCondition pNegationOf);
+  PresenceCondition makeNegation(PresenceCondition pNegationOf);
 
-  public PresenceCondition makeOr(PresenceCondition pCond1, PresenceCondition pCond2);
+  PresenceCondition makeOr(PresenceCondition pCond1, PresenceCondition pCond2);
 
-  public PresenceCondition makeAnd(PresenceCondition pCond1, PresenceCondition pCond2);
+  PresenceCondition makeAnd(PresenceCondition pCond1, PresenceCondition pCond2);
 
-  public Appender dump(PresenceCondition pCond);
+  PresenceCondition makeAnd(PresenceCondition pCond1, CFAEdge pEdge) throws CPATransferException, InterruptedException;
 
-  public boolean checkEntails(PresenceCondition pCond1, PresenceCondition pCond2)
-      throws InterruptedException;
+  Appender dump(PresenceCondition pCond);
 
-  public boolean checkConjunction(PresenceCondition pCond1, PresenceCondition pCond2)
-      throws InterruptedException;
+  boolean checkEntails(PresenceCondition pCond1, PresenceCondition pCond2) throws InterruptedException;
 
-  public boolean checkSat(PresenceCondition pCond);
+  boolean checkConjunction(PresenceCondition pCond1, PresenceCondition pCond2) throws InterruptedException;
 
-  public boolean checkEqualsTrue(PresenceCondition pCond);
+  boolean checkSat(PresenceCondition pCond) throws InterruptedException;
 
-  public boolean checkEqualsFalse(PresenceCondition pCond);
+  boolean checkEqualsTrue(PresenceCondition pCond) throws InterruptedException;
 
-  public PresenceCondition removeMarkerVariables(PresenceCondition pCond);
+  boolean checkEqualsFalse(PresenceCondition pCond) throws InterruptedException;
+
+  PresenceCondition removeMarkerVariables(PresenceCondition pCond);
 
 }

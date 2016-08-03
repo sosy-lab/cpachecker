@@ -140,13 +140,13 @@ class InvariantsManager implements StatisticsProvider {
 
   private static enum InvariantGenerationStrategy {
     /**
-     * Applies inductive weakening on the pathformula (which is converted to a CNF like form)
+     * Applies inductive weakening on the formula (which is converted to a CNF like form)
      * to filter out the invariant part.
      */
     PF_INDUCTIVE_WEAKENING,
 
     /**
-     * Converts the pathformula to a CNF like form and checks the conjuncts on
+     * Converts the formula to a CNF like form and checks the conjuncts on
      * invariants with k-Induction.
      */
     PF_CNF_KIND,
@@ -741,7 +741,7 @@ class InvariantsManager implements StatisticsProvider {
   }
 
   /**
-   * This method finds the invariant part of a pathformula and creates a region
+   * This method finds the invariant part of a formula and creates a region
    * out of it.
    *
    * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
@@ -1356,7 +1356,7 @@ class InvariantsManager implements StatisticsProvider {
     private final StatTimer rfInvGenTime =
         new StatTimer("Time for generation invariants with CPAchecker");
     private final StatTimer pfKindTime =
-        new StatTimer("Time for checking pathformula with k-induction");
+        new StatTimer("Time for checking formula with k-induction");
     private final StatTimer pfWeakeningTime = new StatTimer("Time for inductive weakening");
     private final StatCounter totalInvGenTries =
         new StatCounter("Total invariant generation tries");

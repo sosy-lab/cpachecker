@@ -292,6 +292,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeFalsePathFormula() {
+    return new PathFormula(bfmgr.makeBoolean(false),
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        0);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
     return new PathFormula(bfmgr.makeBoolean(true),
                            oldFormula.getSsa(),

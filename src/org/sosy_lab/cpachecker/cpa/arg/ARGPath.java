@@ -876,13 +876,13 @@ public class ARGPath extends AbstractAppender {
    * The implementation of PathIterator that iterates
    * in the direction of the analysis.
    */
-  private static class DefaultPathIterator extends PathIterator {
+  public static class DefaultPathIterator extends PathIterator {
 
-    private DefaultPathIterator(ARGPath pPath, int pPos) {
+    protected DefaultPathIterator(ARGPath pPath, int pPos) {
       super(pPath, pPos);
     }
 
-    private DefaultPathIterator(ARGPath pPath) {
+    protected DefaultPathIterator(ARGPath pPath) {
       super(pPath, 0);
     }
 

@@ -29,10 +29,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.solver.SolverException;
 
 import java.util.Map;
 import java.util.Map.Entry;

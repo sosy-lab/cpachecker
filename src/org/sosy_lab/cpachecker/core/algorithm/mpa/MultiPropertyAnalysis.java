@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
+import org.sosy_lab.solver.SolverException;
 
 import java.util.Collection;
 import java.util.List;
@@ -555,15 +556,19 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
         Builder<Property, PresenceCondition> builder = ImmutableMap.<Property, PresenceCondition>builder();
         for (final Entry<Property, Optional<PresenceCondition>> e: pTargetSummary.getViolationConditions().entrySet()) {
           if (e.getValue().isPresent()) {
-            if (!pcMgr.checkEqualsTrue(e.getValue().get())) {
-              builder.put(e.getKey(), new PresenceCondition() {
-                private final PresenceCondition pc = e.getValue().get();
+            try {
+              if (!pcMgr.checkEqualsTrue(e.getValue().get())) {
+                builder.put(e.getKey(), new PresenceCondition() {
+                  private final PresenceCondition pc = e.getValue().get();
 
-                @Override
-                public String toString() {
-                  return pc.toString();
-                }
-              });
+                  @Override
+                  public String toString() {
+                    return pc.toString();
+                  }
+                });
+              }
+            } catch (InterruptedException pE) {
+              throw new RuntimeException(pE);
             }
           }
         }

@@ -1,5 +1,5 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2016  Dirk Beyer
@@ -21,76 +21,56 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
+package org.sosy_lab.cpachecker.util.presence;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import org.junit.Assume;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
-/**
- * Replays a counter example (ARG path) and adds a presence condition
- * over features to every state based on the BDD CPA.
- */
-public class CounterExampleReplayEngine {
+public class PathReplayEngine implements VariabilityAwarePathReplay {
 
   private final LogManager logger;
-  private final ARGCPA cpa;
 
-  public CounterExampleReplayEngine(ARGCPA pCpaForReplay, LogManager pLogger) {
-    cpa = Preconditions.checkNotNull(pCpaForReplay);
+  public PathReplayEngine(LogManager pLogger) {
     logger = Preconditions.checkNotNull(pLogger);
   }
 
-  public ARGPathWithPresenceConditions replayCounterexample(CounterexampleInfo pCex)
+  public ARGPathWithPresenceConditions replayPath(ARGPath pARGPath)
       throws CPATransferException, InterruptedException {
 
-    Preconditions.checkArgument(!pCex.isSpurious(),
-        "The counterexample (path in the ARG) must be feasible!");
+    Preconditions.checkNotNull(pARGPath);
+
+    // We assume that the path is FEASIBLE!!!!
 
     List<ARGState> states = Lists.newArrayList();
     List<CFAEdge> edges = Lists.newArrayList();
     List<PresenceCondition> conditions = Lists.newArrayList();
 
-    final PathIterator it = pCex.getTargetPath().fullPathIterator();
-    final CFANode rootLocation = it.getLocation();
-    final StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    final PathIterator it = pARGPath.fullPathIterator();
 
-    ARGState currentState = (ARGState) cpa.getInitialState(rootLocation, partition);
-    Precision currentPrecision = cpa.getInitialPrecision(rootLocation, partition);
+    PresenceCondition lastPc = PresenceConditions.manager().makeTrue();
 
-    states.add(currentState);
+    states.add(it.getAbstractState());
+    conditions.add(lastPc);
 
     while (it.hasNext()) {
       final CFAEdge edge = it.getOutgoingEdge();
@@ -100,22 +80,27 @@ public class CounterExampleReplayEngine {
 
       Preconditions.checkState(inputPathSuccessor != null, "We require a path without leaks!");
 
-      final CFANode expectedSuccessorLocation = AbstractStates.extractLocationMaybeWeavedOn(it.getAbstractState());
+      if (encodesPresenceCondition(edge)) {
+        lastPc = PresenceConditions.manager().makeAnd(lastPc, edge);
+      }
 
-      Collection<? extends AbstractState> successors =
-          cpa.getTransferRelation().getAbstractSuccessors(currentState, currentPrecision);
-      Preconditions.checkState(successors.size() > 0, "There should be always a successor! (For: " + edge.toString());
-
-      Collection<? extends AbstractState> successorsOnPath = Lists.newArrayList(AbstractStates
-          .filterLocationMaybeWeavedOn(successors, expectedSuccessorLocation));
-      Preconditions.checkState(successorsOnPath.iterator().hasNext(), "Filtering resulted in no successor candidates: " + edge.toString());
-
-      currentState = (ARGState) filterMatchingState(successorsOnPath, inputPathSuccessor);
-      Preconditions.checkState(currentState != null, "No matching successor along path!");
-      states.add(currentState);
+      conditions.add(lastPc);
+      states.add(it.getAbstractState());
     }
 
     return new ARGPathWithPresenceConditions(states, conditions, edges);
+  }
+
+  private boolean encodesPresenceCondition(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+
+    if (!pEdge.getCode().contains("FEATURE")) {
+      return false;
+    }
+
+    return true;
   }
 
   private AbstractState filterMatchingState(
@@ -134,8 +119,7 @@ public class CounterExampleReplayEngine {
         //
         //  Typical example:
         //    The automaton CPA decides to provide two or more successors.
-        Set<AutomatonInternalState> candidateAutomatonStates =
-            extractInternalStates(candidate);
+        Set<AutomatonInternalState> candidateAutomatonStates = extractInternalStates(candidate);
 
         if (inputAutomatonStates.containsAll(candidateAutomatonStates)) {
           return candidate;

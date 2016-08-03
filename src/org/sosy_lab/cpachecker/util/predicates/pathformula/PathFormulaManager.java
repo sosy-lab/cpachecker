@@ -48,6 +48,8 @@ public interface PathFormulaManager {
 
   PathFormula makeEmptyPathFormula();
 
+  PathFormula makeFalsePathFormula();
+
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
 
   /**

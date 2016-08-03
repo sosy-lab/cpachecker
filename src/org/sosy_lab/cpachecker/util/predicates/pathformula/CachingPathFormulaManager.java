@@ -63,10 +63,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
             = new HashMap<>();
 
   private final PathFormula emptyFormula;
+  private final PathFormula falseFormula;
 
   public CachingPathFormulaManager(PathFormulaManager pDelegate) {
     delegate = pDelegate;
     emptyFormula = delegate.makeEmptyPathFormula();
+    falseFormula = delegate.makeFalsePathFormula();
   }
 
   @Override
@@ -129,6 +131,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeEmptyPathFormula() {
     return emptyFormula;
+  }
+
+  @Override
+  public PathFormula makeFalsePathFormula() {
+    return null;
   }
 
   @Override

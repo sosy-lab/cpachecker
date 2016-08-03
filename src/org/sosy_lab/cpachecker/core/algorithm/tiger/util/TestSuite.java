@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.VariableAssignment;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
@@ -196,7 +197,8 @@ public class TestSuite extends AlgorithmResult {
     return PresenceConditions.orFalse(infeasiblePresenceConditions.get(pGoal));
   }
 
-  public boolean addTestCase(TestCase testcase, Goal goal, PresenceCondition pPresenceCondition) {
+  public boolean addTestCase(TestCase testcase, Goal goal, PresenceCondition pPresenceCondition)
+      throws InterruptedException {
     if (contains(testcase, goal)) { return true; }
 
     boolean testcaseExisted = true;
@@ -359,7 +361,7 @@ public class TestSuite extends AlgorithmResult {
     return infeasibleGoals.contains(goal);
   }
 
-  public boolean isGoalCovered(Goal pGoal) {
+  public boolean isGoalCovered(Goal pGoal) throws InterruptedException {
     if (isVariabilityAware()) {
       return pcm().checkEqualsFalse(getRemainingPresenceCondition(pGoal));
     } else {
@@ -368,7 +370,7 @@ public class TestSuite extends AlgorithmResult {
     }
   }
 
-  public boolean areGoalsCovered(Set<Goal> pTestGoalsToBeProcessed) {
+  public boolean areGoalsCovered(Set<Goal> pTestGoalsToBeProcessed) throws InterruptedException {
     for (Goal goal : pTestGoalsToBeProcessed) {
       if (!isGoalCovered(goal)) {
         return false;
@@ -387,7 +389,7 @@ public class TestSuite extends AlgorithmResult {
     return true;
   }
 
-  public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) {
+  public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) throws InterruptedException {
     for (Goal goal : pGoals) {
       if (!(isGoalCovered(goal) || isGoalInfeasible(goal))) {
         return false;
@@ -396,7 +398,7 @@ public class TestSuite extends AlgorithmResult {
     return true;
   }
 
-  public boolean isGoalCoveredOrInfeasible(Goal pGoal) {
+  public boolean isGoalCoveredOrInfeasible(Goal pGoal) throws InterruptedException {
     return isGoalCovered(pGoal) || isGoalInfeasible(pGoal);
   }
 

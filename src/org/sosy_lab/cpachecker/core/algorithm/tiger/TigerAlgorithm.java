@@ -67,9 +67,11 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.CounterExampleReplayEngine;
+import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions.ForwardPathIteratorWithPresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PathReplayEngine;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep;
@@ -96,7 +98,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -121,6 +122,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceConditionManager;
+import org.sosy_lab.cpachecker.util.presence.formula.FormulaPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceConditionManager;
@@ -137,6 +139,7 @@ import javax.management.JMException;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -794,21 +797,23 @@ public class TigerAlgorithm
   }
 
   @Nullable
-  private ARGState findStateAfterCriticalEdge(Goal pCriticalForGoal, ARGPath pPath) {
-    PathIterator it = pPath.pathIterator();
+  private Pair<ARGState, PresenceCondition> findStateAfterCriticalEdge(Goal pCriticalForGoal, ARGPathWithPresenceConditions pPath) {
+    ForwardPathIteratorWithPresenceConditions it = pPath.iteratorWithPresenceConditions();
 
     final CFAEdge criticalEdge = pCriticalForGoal.getCriticalEdge();
 
     while (it.hasNext()) {
       if (it.getOutgoingEdge().equals(criticalEdge)) {
         ARGState afterCritical = it.getNextAbstractState();
+        PresenceCondition afterCriticalPc = it.getPresenceCondition();
         while (it.hasNext() && AbstractStates
             .extractLocation(it.getNextAbstractState()) instanceof WeavingLocation) {
           it.advance();
           afterCritical = it.getNextAbstractState();
+          afterCriticalPc = it.getPresenceCondition();
           Preconditions.checkState(afterCritical != null);
         }
-        return afterCritical;
+        return Pair.of(afterCritical, afterCriticalPc);
       }
       it.advance();
     }
@@ -816,7 +821,10 @@ public class TigerAlgorithm
     return null;
   }
 
-  private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Set<Goal> pCheckCoverageOf)
+  private Set<Goal> updateTestsuiteByCoverageOf(
+      TestCase pTestcase,
+      ARGPathWithPresenceConditions pArgPath,
+      Set<Goal> pCheckCoverageOf)
       throws InterruptedException {
 
     try (StatCpuTimer t = tigerStats.updateTestsuiteByCoverageOfTime.start()) {
@@ -890,9 +898,9 @@ public class TigerAlgorithm
         // test goal is already covered by an existing test case
         if (useTigerAlgorithm_with_pc) {
 
-          final ARGState criticalState = findStateAfterCriticalEdge(goal, pTestcase.getArgPath());
+          Pair<ARGState, PresenceCondition> critical = findStateAfterCriticalEdge(goal, pArgPath);
 
-          if (criticalState == null) {
+          if (critical == null) {
             Path argFile = Paths.get("output",
                 "ARG_goal_criticalIsNull_" + Integer.toString(goal.getIndex()) + ".dot");
 
@@ -914,12 +922,10 @@ public class TigerAlgorithm
                 goal.getIndex(), goal.getCriticalEdge().toString()));
           }
 
-          Preconditions.checkState(criticalState != null,
+          Preconditions.checkState(critical.getFirst() != null,
               "Each ARG path of a counterexample must be along a critical edge!");
 
-          PresenceCondition statePresenceCondition =
-              PresenceConditions.extractPresenceCondition(criticalState);
-          statePresenceCondition = pcm().removeMarkerVariables(statePresenceCondition);
+          PresenceCondition statePresenceCondition = critical.getSecond();
 
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
@@ -929,12 +935,11 @@ public class TigerAlgorithm
                   statePresenceCondition)) {
 
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
-
             testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
 
             logger.logf(Level.WARNING,
-                "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
-                goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
+                "Covered some PCs for Goal %d (%s) for a PC %s by test case %d!",
+                goal.getIndex(), testsuite.getTestGoalLabel(goal), PresenceConditions.dump(statePresenceCondition), pTestcase.getId());
 
             if (pcm().checkEqualsFalse(testsuite.getRemainingPresenceCondition(goal))) {
               coveredGoals.add(goal);
@@ -1096,17 +1101,15 @@ public class TigerAlgorithm
     TIMEOUT
   }
 
-  private PresenceConditionManager createPresenceConditionManager(
-      ConfigurableProgramAnalysis pCpa) {
-    if (useTigerAlgorithm_with_pc && useBddForPresenceCondtion) {
-      BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
-      if (bddCpa != null) {
-        return new RegionPresenceConditionManager(bddCpa.getManager());
-      } else {
-        PredicateCPA predCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-        Preconditions.checkNotNull(predCpa);
-        return new RegionPresenceConditionManager(predCpa.getRegionManager());
-      }
+  private PresenceConditionManager createPresenceConditionManager(ConfigurableProgramAnalysis pCpa) {
+
+    PredicateCPA predCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
+
+    if (predCpa != null) {
+      return new FormulaPresenceConditionManager(predCpa.getPathFormulaManager(), predCpa.getSolver());
+    } else if (bddCpa != null) {
+      return new RegionPresenceConditionManager(bddCpa.getManager());
     } else {
       return new BinaryPresenceConditionManager();
     }
@@ -1412,41 +1415,27 @@ public class TigerAlgorithm
       Preconditions.checkNotNull(pRemainingGoals);
       Preconditions.checkNotNull(pCex);
 
-      ARGPath argPath = computePathWithPresenceConditions(pRemainingGoals, pCex);
-      ARGState lastState = argPath.getLastState();
+      ARGPathWithPresenceConditions argPath = computePathWithPresenceConditions(pRemainingGoals, pCex);
 
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
 
-      PresenceCondition testCasePresenceCondition = null;
-      if (useTigerAlgorithm_with_pc) {
-        testCasePresenceCondition = PresenceConditions.extractPresenceCondition(lastState);
-        testCasePresenceCondition = pcm().removeMarkerVariables(testCasePresenceCondition);
-      }
-
+      PresenceCondition testCasePresenceCondition = argPath.getLastPresenceCondition();
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
-      Set<Goal> fullyCoveredGoals = updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
 
-      //        if (lGoalPrediction != null) {
-      //          lGoalPrediction[pGoal.getIndex() - 1] = Prediction.FEASIBLE;
-      //        }
+      Set<Goal> fullyCoveredGoals = updateTestsuiteByCoverageOf(testcase, argPath, pRemainingGoals);
+
       return fullyCoveredGoals;
     }
   }
 
-  private ARGPath computePathWithPresenceConditions(Set<Goal> goals, CounterexampleInfo pCex)
+  private ARGPathWithPresenceConditions computePathWithPresenceConditions(Set<Goal> goals, CounterexampleInfo pCex)
       throws InterruptedException {
 
-    if (useBddForPresenceCondtion) {
-      return  pCex.getTargetPath();
-    } else {
-      try {
-        ARGCPA cpa = composeCPA(goals, true);
-        CounterExampleReplayEngine replayer = new CounterExampleReplayEngine(cpa, logger);
-        return replayer.replayCounterexample(pCex);
-
-      } catch (CPAException | InvalidConfigurationException e) {
-        throw new RuntimeException("CPA for handling features could not be created.");
-      }
+    try {
+      PathReplayEngine replayer = new PathReplayEngine(logger);
+      return replayer.replayPath(pCex.getTargetPath());
+    } catch (CPAException e) {
+      throw new RuntimeException("CPA for handling features could not be created.");
     }
   }
 
@@ -1466,8 +1455,8 @@ public class TigerAlgorithm
           getCpuTime());
 
       if (useTigerAlgorithm_with_pc) {
-        logger.logf(Level.INFO, "Generated new test case %d with a PC in the last state.",
-            testcase.getId());
+        logger.logf(Level.INFO, "Generated new test case %d with a PC %s in the last state.",
+            testcase.getId(), PresenceConditions.dump(pPresenceCondition));
       } else {
         logger.logf(Level.INFO, "Generated new test case %d.", testcase.getId());
       }

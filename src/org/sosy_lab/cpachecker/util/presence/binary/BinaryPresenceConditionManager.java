@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.presence.binary;
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
@@ -95,6 +96,11 @@ public class BinaryPresenceConditionManager implements PresenceConditionManager 
     BinaryPresenceCondition cond2 = (BinaryPresenceCondition) pCond2;
 
     return new BinaryPresenceCondition(cond1.getValue() && cond2.getValue());
+  }
+
+  @Override
+  public PresenceCondition makeAnd(PresenceCondition pCond1, CFAEdge pEdge) {
+    return pCond1;
   }
 
   @Override

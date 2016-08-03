@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+import org.sosy_lab.solver.SolverException;
 
 import java.util.Map;
 import java.util.Set;
@@ -219,7 +220,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
   private boolean areBlacklisted(final AutomatonPrecision pPrecision,
       final Set<SafetyProperty> pProperties, final PresenceCondition pForRegion)
-          throws InterruptedException, CPAException {
+      throws InterruptedException, CPAException {
 
     boolean result = pPrecision.areBlackListed(pProperties, pForRegion);
     if (!result) {

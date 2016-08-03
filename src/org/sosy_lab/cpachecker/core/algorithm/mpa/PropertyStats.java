@@ -32,7 +32,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.solver.SolverException;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -316,9 +317,10 @@ public enum PropertyStats implements Statistics {
   }
 
   public boolean checkAllBlacklisted(Set<SafetyProperty> pProperties, PresenceCondition pForRegion)
-          throws InterruptedException {
+      throws InterruptedException {
 
-    final PresenceConditionManager regionMgr = GlobalInfo.getInstance().getPresenceConditionManager();
+    final PresenceConditionManager pcManager = GlobalInfo.getInstance()
+        .getPresenceConditionManager();
 
     Preconditions.checkNotNull(pProperties);
     Preconditions.checkNotNull(pForRegion);
@@ -327,7 +329,7 @@ public enum PropertyStats implements Statistics {
 
     for (Property p: pProperties) {
       final PresenceCondition finishedForRegion = PresenceConditions.orFalse(propertyFinishedFor.get(p));
-      if (!regionMgr.checkEntails(forRegion, finishedForRegion)) {
+      if (!pcManager.checkEntails(forRegion, finishedForRegion)) {
         return false;
       }
     }

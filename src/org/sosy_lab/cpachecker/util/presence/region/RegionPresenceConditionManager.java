@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -125,6 +126,11 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     RegionPresenceCondition cond2 = (RegionPresenceCondition) pCond2;
 
     return new RegionPresenceCondition(mgr.makeAnd(cond1.getRegion(), cond2.getRegion()));
+  }
+
+  @Override
+  public PresenceCondition makeAnd(PresenceCondition pCond1, CFAEdge pEdge) {
+    throw new RuntimeException("Implement me");
   }
 
   @Override

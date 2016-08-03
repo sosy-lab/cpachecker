@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,12 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
+package org.sosy_lab.cpachecker.util.presence;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
+import java.io.IOException;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -44,23 +47,6 @@ public class PresenceConditions {
 
   public static PresenceConditionManager manager() {
     return GlobalInfo.getInstance().getPresenceConditionManager();
-  }
-
-  public static PresenceCondition extractPresenceCondition(AbstractState pAbstractState) {
-    AbstractStateWithPresenceCondition e = AbstractStates.extractStateByType(pAbstractState, AbstractStateWithPresenceCondition.class);
-    if (e != null) {
-      Optional<PresenceCondition> p = e.getPresenceCondition();
-
-      if (e instanceof PredicateAbstractState) {
-        Preconditions.checkState(((PredicateAbstractState) e).isAbstractionState());
-      }
-
-      if (p.isPresent()) {
-        return p.get();
-      }
-    }
-
-    return manager().makeTrue();
   }
 
   public static PresenceCondition composeRemainingPresenceConditions(Set<Goal> pTestGoalsToBeProcessed,
@@ -100,6 +86,26 @@ public class PresenceConditions {
       return manager().makeFalse();
     }
     return pPc;
+  }
+
+  public static Appender dump(final PresenceCondition pPc) {
+    return new Appender() {
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        manager().dump(pPc).appendTo(pAppendable);
+      }
+
+      @Override
+      public String toString() {
+        StringBuilder result = new StringBuilder();
+        try {
+          manager().dump(pPc).appendTo(result);
+        } catch (IOException pE) {
+          return "EXCEPTION";
+        }
+        return result.toString();
+      }
+    };
   }
 
 }

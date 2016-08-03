@@ -78,7 +78,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
 
   /** This function implements the paper "Nested Interpolants" with a small modification:
-   * instead of a return-edge, we use dummy-edges with simple pathformula "true".
+   * instead of a return-edge, we use dummy-edges with simple formula "true".
    * Actually the implementation does not use "true", but omits it completely and
    * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge).
    * TODO simplify this algorithm, it is soo ugly! Maybe it is 'equal' with the normal tree-interpolation. */

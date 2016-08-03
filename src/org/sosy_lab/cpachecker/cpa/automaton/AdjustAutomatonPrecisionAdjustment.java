@@ -35,7 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -77,12 +77,8 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final Automaton a = state.getOwningAutomaton();
 
-    final PresenceCondition pc;
-    if (variabilityAware) {
-      pc = PresenceConditions.extractPresenceCondition(pFullState);
-    } else {
-      pc = PresenceConditions.manager().makeTrue();
-    }
+    final PresenceCondition pc = PresenceConditions.manager().makeTrue();
+    // TODO: Not yet variability aware
 
     final Pair<AutomatonInternalState, PresenceCondition> cacheKey = Pair.of(state.getInternalState(), pc);
 
