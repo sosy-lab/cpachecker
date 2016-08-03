@@ -410,7 +410,7 @@ public class PolicyIterationManager {
         parent, PolicyState.class);
     Preconditions.checkState(parentState.isAbstract(),
         "ARG Parent of the expanded state should be abstract");
-    PolicyAbstractedState aState = parentState.asAbstracted();
+    PolicyAbstractedState aParentState = parentState.asAbstracted();
 
     SSAMap ssa = expandedState.getSSA();
     PointerTargetSet pointerTargetSet = expandedState.getPointerTargetSet();
@@ -418,20 +418,59 @@ public class PolicyIterationManager {
     BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
         .abstractStateToConstraints(fmgr, expandedState, false));
     PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
-    PolicyIntermediateState backpointer = PolicyIntermediateState.of(
-        node, pf, aState);
+    PolicyIntermediateState generator = PolicyIntermediateState.of(
+        node, pf, aParentState);
     Optional<PolicyAbstractedState> sibling = findSibling(
-        backpointer, states, pFullState);
+        generator, states, pFullState);
     int locationID = getLocationID(sibling, node);
-    return expandedState.withBackpointer(
-        backpointer,
-        bfmgr.makeTrue(),
-        locationID,
+    Map<Template, PolicyBound> newAbstraction = updateAbstractionForExpanded(
+        expandedState.getAbstraction(), pf, aParentState
+    );
+
+    return PolicyAbstractedState.of(
+        newAbstraction,
         node,
+        locationID,
+        stateFormulaConversionManager,
+        ssa,
+        pointerTargetSet,
+        bfmgr.makeTrue(),
+        generator,
         sibling
     );
   }
 
+  /**
+   * Update the meta-information for policies coming from the summary edge.
+   */
+  Map<Template, PolicyBound> updateAbstractionForExpanded(
+      Map<Template, PolicyBound> pAbstraction,
+      PathFormula inputPath,
+      PolicyAbstractedState pParent
+  ) {
+    ImmutableMap.Builder<Template, PolicyBound> newAbstraction =
+        ImmutableMap.builder();
+    for (Entry<Template, PolicyBound> e : pAbstraction.entrySet()) {
+      Template template = e.getKey();
+      PolicyBound bound = e.getValue();
+
+      BooleanFormula policyFormula = stateFormulaConversionManager
+          .templateToConstraint(template, bound, pfmgr, fmgr, inputPath);
+      PathFormula policy = inputPath.updateFormula(policyFormula);
+
+      PolicyBound policyBound = PolicyBound.of(
+          policy,
+          bound.getBound(),
+          pParent,
+
+          // TODO: filter the set of dependent templates, at least
+          // syntactically.
+          pParent.getAbstraction().keySet()
+      );
+      newAbstraction.put(template, policyBound);
+    }
+    return newAbstraction.build();
+  }
 
   /**
    * Post-precision-adjustment strengthening.

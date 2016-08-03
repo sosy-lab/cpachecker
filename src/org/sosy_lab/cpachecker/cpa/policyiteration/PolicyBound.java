@@ -55,7 +55,8 @@ public class PolicyBound {
   private PolicyBound(
       PathFormula pFormula, Rational pBound,
       PolicyAbstractedState pPredecessor,
-      Collection<Template> pDependencies, boolean pComputedByValueDetermination) {
+      Collection<Template> pDependencies,
+      boolean pComputedByValueDetermination) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
@@ -67,7 +68,9 @@ public class PolicyBound {
     return computedByValueDetermination;
   }
 
-  public static PolicyBound of(PathFormula pFormula, Rational bound,
+  public static PolicyBound of(
+      PathFormula pFormula,
+      Rational bound,
       PolicyAbstractedState pUpdatedFrom,
       Collection<Template> pDependencies
   ) {
@@ -114,6 +117,7 @@ public class PolicyBound {
   public ImmutableSet<Template> getDependencies() {
     return dependencies;
   }
+
 
   @Override
   public int hashCode() {

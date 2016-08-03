@@ -40,9 +40,10 @@ public final class PolicyAbstractedState extends PolicyState
   private final BooleanFormula extraInvariant;
 
   /**
-   * Predecessor intermediate state, empty only for the initial state.
+   * Intermediate state used to generate this abstraction,
+   * empty only for the initial state.
    */
-  private final Optional<PolicyIntermediateState> predecessor;
+  private final Optional<PolicyIntermediateState> generator;
 
   /**
    * If state A and state B can potentially get merged, they share the same
@@ -66,13 +67,13 @@ public final class PolicyAbstractedState extends PolicyState
       SSAMap pSsaMap,
       PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
-      Optional<PolicyIntermediateState> pPredecessor,
+      Optional<PolicyIntermediateState> pGenerator,
       Optional<PolicyAbstractedState> pSibling) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
     extraInvariant = pPredicate;
-    predecessor = pPredecessor;
+    generator = pGenerator;
     abstraction = ImmutableMap.copyOf(pAbstraction);
     locationID = pLocationID;
     manager = pManager;
@@ -122,7 +123,7 @@ public final class PolicyAbstractedState extends PolicyState
         ssaMap,
         pointerTargetSet,
         extraInvariant,
-        predecessor,
+        generator,
         sibling);
   }
 
@@ -227,7 +228,7 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public Optional<PolicyIntermediateState> getGeneratingState() {
-    return predecessor;
+    return generator;
   }
 
   @Override
@@ -263,24 +264,5 @@ public final class PolicyAbstractedState extends PolicyState
               extraInvariant);
     }
     return hashCache;
-  }
-
-  public PolicyAbstractedState withBackpointer(
-      PolicyIntermediateState pPolicyIntermediateState,
-      BooleanFormula pExtraInvariant,
-      int pLocationID,
-      CFANode pNode,
-      Optional<PolicyAbstractedState> pSibling
-      ) {
-    return new PolicyAbstractedState(
-        pNode,
-        abstraction,
-        pLocationID,
-        manager,
-        ssaMap,
-        pointerTargetSet,
-        pExtraInvariant,
-        Optional.of(pPolicyIntermediateState),
-        pSibling);
   }
 }
