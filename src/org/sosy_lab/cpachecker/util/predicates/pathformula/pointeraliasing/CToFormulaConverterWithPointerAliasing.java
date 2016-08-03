@@ -746,7 +746,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CVariableDeclaration returnVariableDeclaraton =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
       final boolean containsArray =
-          CTypeUtils.containsArray(typeHandler.getSimplifiedType(returnVariableDeclaraton));
+          CTypeUtils.containsArray(
+              typeHandler.getSimplifiedType(returnVariableDeclaraton), returnVariableDeclaraton);
 
       declareSharedBase(
           returnVariableDeclaraton, returnVariableDeclaraton, containsArray, constraints, pts);
@@ -781,12 +782,31 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, InterruptedException {
 
+    // This corresponds to an argument passed as function parameter of array type
+    // (this is the only case when arrays can be "assigned" explicitly, not as structure members)
+    // In this case the parameter is treated as pointer
+    // In other places this case should be distinguished by calling containsArray with the
+    // second CDeclaration parameter, but makeAssignment (in AssignmentHandler) only considers
+    // types (not declarations),  so we make an explicit conversion to
+    // a pointer here to avoid complicating the (already non-trivial) logic in makeAssignment.
+    // Note that makeCastFromArrayToPointerIfNecessary won't initially handle this because it only
+    // converts the RHS to make it compatible with the LHS, but in this case *both* sides should
+    // be converted to pointers
+    CType lhsType = typeHandler.getSimplifiedType(lhs);
+    if (lhs instanceof CIdExpression
+        && ((CIdExpression) lhs).getDeclaration() instanceof CParameterDeclaration
+        && lhsType instanceof CArrayType) {
+      lhsType =
+          new CPointerType(
+              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
+    }
+
     if (rhs instanceof CExpression) {
-      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+      rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, rhs, false, null);
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false, null);
   }
 
   /**
@@ -907,7 +927,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     declareSharedBase(declaration, declaration, false, constraints, pts);
-    if (CTypeUtils.containsArray(declarationType)) {
+    if (CTypeUtils.containsArray(declarationType, declaration)) {
       addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
     }
 
@@ -1192,7 +1212,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   protected Expression makeFormulaForVariable(String pVarName, CType pType, PointerTargetSet pts) {
-    if (!pts.isActualBase(pVarName) && !CTypeUtils.containsArray(pType)) {
+    if (!pts.isActualBase(pVarName) && !CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
       Variable variable = Variable.create(pVarName, pType);
 
       final String variableName = variable.getName();

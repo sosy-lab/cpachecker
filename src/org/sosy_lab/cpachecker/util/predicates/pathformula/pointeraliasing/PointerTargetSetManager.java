@@ -525,8 +525,8 @@ class PointerTargetSetManager {
       final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa) {
     BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
-      if (!options.isDynamicAllocVariableName(base.getKey()) &&
-          !CTypeUtils.containsArray(base.getValue())) {
+      if (!options.isDynamicAllocVariableName(base.getKey())
+          && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
         final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
                                                    CTypeUtils.getBaseType(base.getValue()));
         mergeFormula = bfmgr.and(mergeFormula, makeValueImportConstraints(formulaManager.makeVariable(baseFormulaType,
@@ -558,7 +558,8 @@ class PointerTargetSetManager {
       final List<Pair<CCompositeType, String>> sharedFields,
       final SSAMapBuilder ssa) {
 
-    assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a variable";
+    assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
+        : "Array access can't be encoded as a variable";
 
     BooleanFormula result = bfmgr.makeBoolean(true);
 

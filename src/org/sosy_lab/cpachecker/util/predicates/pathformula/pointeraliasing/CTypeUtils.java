@@ -71,12 +71,6 @@ class CTypeUtils {
         : options.defaultArrayLength();
   }
 
-  /** Same as {@link #containsArray(CType)}, but returns {@code true} upon seeing any array,
-   *  even an unsized one, this corresponds to flexible array members in structures.
-   *
-   * @param pType a composite type to check
-   * @return whether the {@code type} contains an array member
-   */
   private static boolean containsArrayInComposite(final CType pType) {
     checkIsSimplified(pType);
     if (pType instanceof CArrayType) {
@@ -104,14 +98,14 @@ class CTypeUtils {
    * They can also be "assigned" somewhat similar to structures by initialization or zeroing allocation function.
    * So usually stand-alone arrays are treated together with structure array members.
    * However, this is not the case for
-   * function parameters (see § 6.7.5.3 (7)), those are actually pointers rather than arrays as their starting
+   * function parameters (see § 6.7.5.3 (7) of the C99 standard), those are actually pointers rather than arrays as their starting
    * address can change (upon a function call since they are inlined) and the corresponding assignment has the same
    * semantics as pointer assignment.
    * So the static method {@link #containsArrayInFunctionParameter(CType)} should be used for function parameters.
    * @param pType any type to check, but normally a composite type
    * @return whether the {@code type} contains array
    */
-  static boolean containsArray(final CType pType) {
+  static boolean containsArrayOutsideFunctionParameter(final CType pType) {
     checkIsSimplified(pType);
     if (pType instanceof CArrayType) {
       return true;
@@ -123,8 +117,8 @@ class CTypeUtils {
   }
 
   /**
-   * Same as {{@link #containsArray(CType)}, but returns {@code false} on stand-alone arrays. This corresponds to the
-   * fact that arrays in function parameters are to be treated as pointers.
+   * Same as {{@link #containsArrayOutsideFunctionParameter(CType)}, but returns {@code false} on stand-alone arrays.
+   * This corresponds to the fact that arrays in function parameters are to be treated as pointers.
    * @param pType type any type to check, normally a composite type
    * @return whether the {@code type} contains array
    */
@@ -137,7 +131,7 @@ class CTypeUtils {
     }
   }
 
-  /** A generalization of {@link #containsArray(CType)} and {@link #containsArrayInFunctionParameter(CType)} for a
+  /** A generalization of {@link #containsArrayOutsideFunctionParameter(CType)} and {@link #containsArrayInFunctionParameter(CType)} for a
    * known declaration.
    *
    * @param pType pType type any type to check
@@ -149,7 +143,7 @@ class CTypeUtils {
     if (pDeclaration instanceof CParameterDeclaration) {
       return containsArrayInFunctionParameter(pType);
     } else {
-      return containsArray(pType);
+      return containsArrayOutsideFunctionParameter(pType);
     }
   }
 

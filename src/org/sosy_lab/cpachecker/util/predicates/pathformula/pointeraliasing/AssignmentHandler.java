@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -132,18 +131,19 @@ class AssignmentHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  BooleanFormula handleAssignment(final CLeftHandSide lhs,
-                                  final CLeftHandSide lhsForChecking,
-                                  final @Nullable CRightHandSide rhs,
-                                  final boolean batchMode,
-                                  final @Nullable Set<CType> destroyedTypes)
-  throws UnrecognizedCCodeException, InterruptedException {
+  BooleanFormula handleAssignment(
+      final CLeftHandSide lhs,
+      final CLeftHandSide lhsForChecking,
+      final CType lhsType,
+      final @Nullable CRightHandSide rhs,
+      final boolean batchMode,
+      final @Nullable Set<CType> destroyedTypes)
+      throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeBoolean(true);
     }
 
-    CType lhsType = typeHandler.getSimplifiedType(lhs);
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
@@ -159,18 +159,6 @@ class AssignmentHandler {
         r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
       }
       rhsExpression = r.accept(rhsVisitor);
-    }
-
-    // This corresponds to an argument passed as function parameter of array type
-    // In this case the parameter is treated as pointer
-    // In other places this case should be distinguished by calling containsArray with the
-    // second CDeclaration parameter, but makeAssignment only considers types (not declarations),
-    // so we make an explicit conversion to
-    // a pointer here to avoid complicating the (already non-trivial) logic in makeAssignment.
-    if (lhsType instanceof CArrayType && !rhsExpression.isValue()) {
-      lhsType =
-          new CPointerType(
-              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
     }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
@@ -214,6 +202,17 @@ class AssignmentHandler {
       pts.addField(field.getFirst(), field.getSecond());
     }
     return result;
+  }
+
+  BooleanFormula handleAssignment(
+      final CLeftHandSide lhs,
+      final CLeftHandSide lhsForChecking,
+      final @Nullable CRightHandSide rhs,
+      final boolean batchMode,
+      final @Nullable Set<CType> destroyedTypes)
+      throws UnrecognizedCCodeException, InterruptedException {
+    return handleAssignment(
+        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, batchMode, destroyedTypes);
   }
 
   /**

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -240,6 +241,49 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   /**
+   * Should be used whenever a location corresponding to a pointer dereference is required.
+   * This function properly handles the ambiguity arising from arrays vs. pointers.
+   * Consider {@code int *pa, a[]; int **ppa = &pa; *pa = 5; *a = 5;}.
+   * Here {@code *pa} should be encoded as <i>int (int*(ADDRESS_OF_pa))</i>, but
+   * {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while both {@code pa} and {@code a}
+   * will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and <i>ADDRESS_OF_a</i> respectively.
+   * So this function will add the additional dereference if necessary.
+   * @param pE the source C expression form which the resulting {@code Expression} was obtained
+   * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
+   *        should normally be a Location, but in case of a value the corresponding location is
+   *        returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
+   *        debugging in some cases)
+   * @return the result AliasedLocation of the pointed value
+   */
+  private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
+    final CType type = typeHandler.getSimplifiedType(pE);
+    if (pResult.isUnaliasedLocation() || pResult.isValue()) {
+      // Surely it was the location of the pointer variable (pointed value should always be AliasedLocation),
+      // need to pack its value (address) as the location of the pointed value
+      return AliasedLocation.ofAddress(
+          asValueFormula(pResult, CTypeUtils.implicitCastToPointer(type)));
+    } else {
+      assert pResult.isAliasedLocation() : "Broken invariant: unknown expression kind";
+      // Address of the pointer variable can only happen for CIdExpression, all other expressions
+      // imply the corresponding dereferences
+      if (pE instanceof CIdExpression) {
+        // For CIdExpression the location of the pointed value is returned only for composites
+        // and stand-alone arrays that are not function parameters
+        if (type instanceof CCompositeType
+            || (type instanceof CArrayType
+                && !(((CIdExpression) pE).getDeclaration() instanceof CParameterDeclaration))) {
+          return pResult.asAliasedLocation();
+        } else {
+          return AliasedLocation.ofAddress(
+              asValueFormula(pResult, CTypeUtils.implicitCastToPointer(type)));
+        }
+      } else {
+        return pResult.asAliasedLocation();
+      }
+    }
+  }
+
+  /**
    * Evaluates the aliased location of an array subscript expression.
    *
    * @param e The array expression.
@@ -247,23 +291,18 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   @Override
-  public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCCodeException {
-    Expression base = e.getArrayExpression().accept(this);
+  public AliasedLocation visit(final CArraySubscriptExpression e)
+      throws UnrecognizedCCodeException {
     // There are two distinct kinds of arrays in C:
     // -- fixed-length arrays for which the aliased location of the first element is returned here
     // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
-    //    is returned
-    final CType baseType = typeHandler.getSimplifiedType(e.getArrayExpression());
-    // Fixed-length arrays
-    // TODO: Check if fixed-sized arrays and pointers can be clearly distinguished this way
-    if (baseType instanceof CArrayType && ((CArrayType) baseType).getLength() != null) {
-      assert base.isAliasedLocation();
-    } else {
-      // The address of the first element is needed i.e. the value of the pointer in the array expression
-      base = AliasedLocation.ofAddress(asValueFormula(base, CTypeUtils.implicitCastToPointer(baseType)));
-    }
+    //    is returned (arrays as function parameters also fall into this category)
+    // So we use #dereference() to resolve the ambiguity
+    final CExpression arrayExpression = e.getArrayExpression();
+    final Expression base = dereference(arrayExpression, arrayExpression.accept(this));
+
     // Now we should always have the aliased location of the first array element
-    assert base.isAliasedLocation();
+    assert base.isAliasedLocation() : "Not the location of the first array element";
 
     final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
@@ -344,7 +383,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     final Expression result = operand.accept(this);
 
-    // TODO: is the second isUnaliasedLocation() check really needed?
     if (isRevealingType(resultType)) {
       operand
           .accept(getPointerApproximatingVisitor())
@@ -410,7 +448,20 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       final CExpression operand = e.getOperand();
 
       final Variable baseVariable = operand.accept(baseVisitor);
-      if (baseVariable == null) {
+      // Whether the addressed location was previously aliased (tracked with UFs)
+      // If it was, there was no base variable/prefix used to hold its value and we simply return the
+      // aliased location
+      // Otherwise, we should make it aliased by importing the value into the UF
+      // There is an exception, though: arrays in function parameters are tracked as variables (unaliased locations),
+      // because they are actually pointers and can be assigned (in function calls)
+      // See also see § 6.7.5.3 (7) of the C99 standard
+      // But here they should be treated as if they are normal arrays and e.g. &a for int a[] should have the
+      // same semantics as &a[0] rather than the address of the pointer variable
+      // (imagine &a for int *a parameter)
+      if (baseVariable == null
+          || (operand instanceof CIdExpression
+              && typeHandler.simplifyType(operand.getExpressionType()) instanceof CArrayType
+              && ((CIdExpression) operand).getDeclaration() instanceof CParameterDeclaration)) {
         AliasedLocation addressExpression = null;
 
         // addressedFields is used to treat structure assignment and field addressing separately:
@@ -457,7 +508,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         }
 
         if (addressExpression == null) {
-          addressExpression = operand.accept(this).asAliasedLocation();
+          addressExpression = dereference(operand, operand.accept(this));
         }
 
         addressedFields.addAll(usedFields);
@@ -499,14 +550,11 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   @Override
   public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+    // Dereferencing a stand-alone array leaves the result of visiting the operand unchanged
+    // Other cases should trigger additional dereference, so we use
+    // #dereference() to resolve the ambiguity
     final CExpression operand = e.getOperand();
-    final CType operandType = typeHandler.getSimplifiedType(operand);
-    final Expression operandExpression = operand.accept(this);
-    if (operandType instanceof CArrayType && ((CArrayType) operandType).getLength() != null) {
-      return operandExpression.asAliasedLocation();
-    } else {
-      return AliasedLocation.ofAddress(asValueFormula(operandExpression, operandType));
-    }
+    return dereference(operand, operand.accept(this));
   }
 
   /**
@@ -600,8 +648,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     // Pure functions returning composites are unsupported, return a nondet value
     final CType resultType = conv.getReturnType(e, edge);
-    if (resultType instanceof CCompositeType ||
-        CTypeUtils.containsArray(resultType)) {
+    if (resultType instanceof CCompositeType
+        || CTypeUtils.containsArrayOutsideFunctionParameter(resultType)) {
       conv.logger.logfOnce(Level.WARNING,
                            "Extern function %s returning a composite is treated as nondet.", e);
       return Value.nondetValue();
