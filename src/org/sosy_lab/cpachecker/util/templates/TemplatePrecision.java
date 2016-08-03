@@ -423,7 +423,7 @@ public class TemplatePrecision implements Precision {
 
           // Enforce inclusion of function parameters.
           && !functionParameters.getOrDefault(node.getFunctionName(), ImmutableSet.of())
-            .contains(id.getDeclaration().getQualifiedName())) {
+            .contains(id.getDeclaration())) {
         return false;
       }
     }
