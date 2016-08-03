@@ -2586,6 +2586,10 @@ precision.template.generateFromAsserts = true
 # Generate templates from all program statements
 precision.template.generateFromStatements = true
 
+# Force the inclusion of function parameters into the generated templates.
+# Required for summaries computation.
+precision.template.includeFunctionParameters = false
+
 # Maximum size for the generated template
 precision.template.maxExpressionSize = 1
 
