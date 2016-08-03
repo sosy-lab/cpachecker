@@ -127,7 +127,7 @@ public class StateFormulaConversionManager {
     return constraints;
   }
 
-  private BooleanFormula templateToConstraint(
+  BooleanFormula templateToConstraint(
       Template template,
       PolicyBound bound,
       PathFormulaManager pfmgrv,
