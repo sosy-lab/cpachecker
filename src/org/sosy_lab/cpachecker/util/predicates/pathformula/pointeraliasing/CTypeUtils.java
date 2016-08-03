@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -69,27 +71,85 @@ class CTypeUtils {
         : options.defaultArrayLength();
   }
 
-  /**
-   * The method is used to check if a composite type contains array as this means it can't be encoded as a bunch of
-   * variables.
-   * @param type any type to check, but normally a composite type
-   * @return whether the {@code type} contains array
+  /** Same as {@link #containsArray(CType)}, but returns {@code true} upon seeing any array,
+   *  even an unsized one, this corresponds to flexible array members in structures.
+   *
+   * @param pType a composite type to check
+   * @return whether the {@code type} contains an array member
    */
-  static boolean containsArray(CType type) {
-    checkIsSimplified(type);
-    if (type instanceof CArrayType) {
+  private static boolean containsArrayInComposite(final CType pType) {
+    checkIsSimplified(pType);
+    if (pType instanceof CArrayType) {
       return true;
-    } else if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    } else if (pType instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) pType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite!";
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (containsArray(memberDeclaration.getType())) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (containsArrayInComposite(memberDeclaration.getType())) {
           return true;
         }
       }
       return false;
     } else {
       return false;
+    }
+  }
+
+  /**
+   * The method is used to check if a composite type contains array as this means it can't be encoded as a bunch of
+   * variables. It also returns {@code true} on stand-alone arrays assuming they are not function
+   * parameters. Normally stand-alone arrays are different from pointers as their address
+   * cannot change, unlike the value of a pointer. Thus arrays are usually encoded as uninterpreted
+   * constants corresponding to their starting addresses, just as variables of structure types.
+   * They can also be "assigned" somewhat similar to structures by initialization or zeroing allocation function.
+   * So usually stand-alone arrays are treated together with structure array members.
+   * However, this is not the case for
+   * function parameters (see § 6.7.5.3 (7)), those are actually pointers rather than arrays as their starting
+   * address can change (upon a function call since they are inlined) and the corresponding assignment has the same
+   * semantics as pointer assignment.
+   * So the static method {@link #containsArrayInFunctionParameter(CType)} should be used for function parameters.
+   * @param pType any type to check, but normally a composite type
+   * @return whether the {@code type} contains array
+   */
+  static boolean containsArray(final CType pType) {
+    checkIsSimplified(pType);
+    if (pType instanceof CArrayType) {
+      return true;
+    } else if (pType instanceof CCompositeType) {
+      return containsArrayInComposite(pType);
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Same as {{@link #containsArray(CType)}, but returns {@code false} on stand-alone arrays. This corresponds to the
+   * fact that arrays in function parameters are to be treated as pointers.
+   * @param pType type any type to check, normally a composite type
+   * @return whether the {@code type} contains array
+   */
+  static boolean containsArrayInFunctionParameter(final CType pType) {
+    checkIsSimplified(pType);
+    if (pType instanceof CCompositeType) {
+      return containsArrayInComposite(pType);
+    } else {
+      return false;
+    }
+  }
+
+  /** A generalization of {@link #containsArray(CType)} and {@link #containsArrayInFunctionParameter(CType)} for a
+   * known declaration.
+   *
+   * @param pType pType type any type to check
+   * @param pDeclaration declaration of a variable for which the type is checked
+   * @return whether the {@code type} contains array
+   */
+  static boolean containsArray(final CType pType, final CSimpleDeclaration pDeclaration) {
+    checkIsSimplified(pType);
+    if (pDeclaration instanceof CParameterDeclaration) {
+      return containsArrayInFunctionParameter(pType);
+    } else {
+      return containsArray(pType);
     }
   }
 

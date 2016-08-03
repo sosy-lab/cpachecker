@@ -91,8 +91,8 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeE
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCCodeException {
     CType type = typeHandler.getSimplifiedType(e);
-    if (!pts.isActualBase(e.getDeclaration().getQualifiedName()) &&
-        !CTypeUtils.containsArray(type)) {
+    if (!pts.isActualBase(e.getDeclaration().getQualifiedName())
+        && !CTypeUtils.containsArray(type, e.getDeclaration())) {
       lastBase = Variable.create(e.getDeclaration().getQualifiedName(), type);
       return lastBase;
     } else {

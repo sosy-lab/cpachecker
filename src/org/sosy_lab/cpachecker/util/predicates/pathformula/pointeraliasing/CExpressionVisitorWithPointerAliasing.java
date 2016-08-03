@@ -382,7 +382,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     if (!pts.isActualBase(e.getDeclaration().getQualifiedName())
-        && !CTypeUtils.containsArray(resultType)) {
+        && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
       Variable variable = Variable.create(e.getDeclaration().getQualifiedName(), resultType);
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
         final String variableName = variable.getName();

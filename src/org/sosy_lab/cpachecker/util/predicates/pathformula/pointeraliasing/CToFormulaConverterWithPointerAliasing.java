@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -424,16 +425,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * Declares a shared base on a declaration.
    *
    * @param declaration The declaration.
+   * @param originalDeclaration the declaration used to determine if the base corresponds to a function parameter
+   *        (needed to distinguish real (non-moving) arrays from pointers)
    * @param shareImmediately A flag that indicates, if the base is shared immediately.
    * @param constraints Additional constraints.
    * @param pts The underlying pointer target set.
    */
-  private void declareSharedBase(final CDeclaration declaration, final boolean shareImmediately,
-      final Constraints constraints, final PointerTargetSetBuilder pts) {
+  private void declareSharedBase(
+      final CDeclaration declaration,
+      final CSimpleDeclaration originalDeclaration,
+      final boolean shareImmediately,
+      final Constraints constraints,
+      final PointerTargetSetBuilder pts) {
     CType type = typeHandler.getSimplifiedType(declaration);
     if (shareImmediately) {
       addPreFilledBase(declaration.getQualifiedName(), type, false, false, constraints, pts);
-    } else if (isAddressedVariable(declaration) || CTypeUtils.containsArray(type)) {
+    } else if (isAddressedVariable(declaration)
+        || CTypeUtils.containsArray(type, originalDeclaration)) {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), type));
     }
   }
@@ -740,7 +748,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final boolean containsArray =
           CTypeUtils.containsArray(typeHandler.getSimplifiedType(returnVariableDeclaraton));
 
-      declareSharedBase(returnVariableDeclaraton, containsArray, constraints, pts);
+      declareSharedBase(
+          returnVariableDeclaraton, returnVariableDeclaraton, containsArray, constraints, pts);
     }
     return result;
   }
@@ -897,7 +906,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    declareSharedBase(declaration, false, constraints, pts);
+    declareSharedBase(declaration, declaration, false, constraints, pts);
     if (CTypeUtils.containsArray(declarationType)) {
       addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
     }
@@ -1047,7 +1056,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       } else {
         declaration = formalDeclaration;
       }
-      declareSharedBase(declaration, CTypeUtils.containsArray(parameterType), constraints, pts);
+      declareSharedBase(
+          declaration,
+          formalParameter,
+          CTypeUtils.containsArray(parameterType, formalParameter),
+          constraints,
+          pts);
     }
 
     return result;

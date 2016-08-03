@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -142,7 +143,7 @@ class AssignmentHandler {
       return conv.bfmgr.makeBoolean(true);
     }
 
-    final CType lhsType = typeHandler.getSimplifiedType(lhs);
+    CType lhsType = typeHandler.getSimplifiedType(lhs);
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
@@ -158,6 +159,18 @@ class AssignmentHandler {
         r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
       }
       rhsExpression = r.accept(rhsVisitor);
+    }
+
+    // This corresponds to an argument passed as function parameter of array type
+    // In this case the parameter is treated as pointer
+    // In other places this case should be distinguished by calling containsArray with the
+    // second CDeclaration parameter, but makeAssignment only considers types (not declarations),
+    // so we make an explicit conversion to
+    // a pointer here to avoid complicating the (already non-trivial) logic in makeAssignment.
+    if (lhsType instanceof CArrayType && !rhsExpression.isValue()) {
+      lhsType =
+          new CPointerType(
+              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
     }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
