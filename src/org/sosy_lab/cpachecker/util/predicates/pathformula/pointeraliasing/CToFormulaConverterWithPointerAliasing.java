@@ -1196,11 +1196,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       Variable variable = Variable.create(pVarName, pType);
 
       final String variableName = variable.getName();
-      // TODO are we allowed to just ignore the deferred allocatoin pointers here?
-      // they are handled in CExpressionVisitiorWithPointerAliasing
-      //      if (pts.isDeferredAllocationPointer(variableName)) {
-      //        usedDeferredAllocationPointers.put(variableName, CPointerType.POINTER_TO_VOID);
-      //      }
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
       final Formula address =
