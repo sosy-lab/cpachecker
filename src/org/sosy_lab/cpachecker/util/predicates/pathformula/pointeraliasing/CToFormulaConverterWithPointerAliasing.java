@@ -1059,7 +1059,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       declareSharedBase(
           declaration,
           formalParameter,
-          CTypeUtils.containsArray(parameterType, formalParameter),
+          CTypeUtils.containsArrayInFunctionParameter(parameterType),
           constraints,
           pts);
     }
