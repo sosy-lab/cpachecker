@@ -1243,13 +1243,9 @@ public class TigerAlgorithm
                 toBlacklist.put(goal, Optional.of(coveredFor));
               }
             }
-
-            // PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcm());
-            // Precisions.disablePropertiesForWaitlist(reachedSet, toBlacklist);
+            
             AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
                 .cloneAndAddBlacklisted(toBlacklist));
-
-            logger.log(Level.INFO, "Blacklisting is disabled!");
           }
         }
 
