@@ -86,14 +86,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     this.options = options;
   }
 
-  private AExpression unwrap(AExpression expression) {
+  private static AExpression unwrap(AExpression expression) {
     // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
 
-    if (expression instanceof CCastExpression) {
-      CCastExpression exp = (CCastExpression) expression;
-      expression = exp.getOperand();
-
-      expression = unwrap(expression);
+    while (expression instanceof CCastExpression) {
+      expression = ((CCastExpression) expression).getOperand();
     }
 
     return expression;
@@ -181,7 +178,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
 
-  private boolean assumingUnknownToBeZero(Value value1, Value value2) {
+  private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
     return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
   }
 
@@ -270,33 +267,30 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     }
   }
 
-  protected MemoryLocation getMemoryLocation(CExpression pLValue)
-      throws UnrecognizedCCodeException {
+  private MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
     ExpressionValueVisitor v = getVisitor();
     assert pLValue instanceof CLeftHandSide;
     return checkNotNull(v.evaluateMemoryLocation(pLValue));
   }
 
-  protected boolean isAssignableVariable(JExpression expression) {
-
-    boolean result = false;
+  private static boolean isAssignableVariable(JExpression expression) {
 
     if (expression instanceof JIdExpression) {
       JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
 
       if (decl == null) {
-        result = false;
+        return false;
       } else if (decl instanceof JFieldDeclaration) {
-        result = ((JFieldDeclaration) decl).isStatic();
+        return ((JFieldDeclaration) decl).isStatic();
       } else {
-        result = true;
+        return true;
       }
     }
 
-    return result;
+    return false;
   }
 
-  protected boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException {
+  private boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException {
 
     if (expression instanceof CIdExpression) {
       return true;
