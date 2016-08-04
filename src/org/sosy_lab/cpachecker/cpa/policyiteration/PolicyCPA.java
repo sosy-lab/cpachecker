@@ -89,7 +89,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     logger = pLogger;
     config = pConfig;
 
-    Solver solver = pSolverFactory.getSolverCached(pConfig, pLogger, shutdownNotifier);
+    Solver solver = pSolverFactory.getOrCreate(pConfig, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,

@@ -62,7 +62,8 @@ import java.util.Collection;
  */
 @Options(prefix="cpa.congruence")
 public class CongruenceCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider {
+    implements ConfigurableProgramAnalysis,
+               StatisticsProvider {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
@@ -78,7 +79,7 @@ public class CongruenceCPA
                        SolverFactory pSolverFactory)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    Solver solver = pSolverFactory.getSolverCached(pConfiguration, pLogger, pShutdownNotifier);
+    Solver solver = pSolverFactory.getOrCreate(pConfiguration, pLogger, pShutdownNotifier);
 
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
