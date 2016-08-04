@@ -159,7 +159,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-@Options(prefix="cpa.value")
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
     implements StatisticsProvider {
@@ -168,23 +167,48 @@ public class ValueAnalysisTransferRelation
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of();
 
-  @Option(secure=true, description = "if there is an assumption like (x!=0), "
-      + "this option sets unknown (uninitialized) variables to 1L, "
-      + "when the true-branch is handled.")
-  private boolean initAssumptionVars = false;
+  @Options(prefix = "cpa.value")
+  private static class ValueTransferOptions {
 
-  @Option(secure=true, description = "Whether to replace symbolic values with a concrete value"
-      + " when only one value is possible for an assumption to be true"
-      + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression).")
-  private boolean assignSymbolicAssumptionVars = false;
+    @Option(
+      secure = true,
+      description =
+          "if there is an assumption like (x!=0), "
+              + "this option sets unknown (uninitialized) variables to 1L, "
+              + "when the true-branch is handled."
+    )
+    private boolean initAssumptionVars = false;
 
-  @Option(secure=true, description = "Assume that variables used only in a boolean context are either zero or one.")
-  private boolean optimizeBooleanVariables = true;
+    @Option(
+      secure = true,
+      description =
+          "Whether to replace symbolic values with a concrete value"
+              + " when only one value is possible for an assumption to be true"
+              + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression)."
+    )
+    private boolean assignSymbolicAssumptionVars = false;
 
-  @Option(secure=true, description = "Track Java array values in explicit value analysis. " +
-      "This may be costly if the verified program uses big or lots of arrays. " +
-      "Arrays in C programs will always be tracked, even if this value is false.")
-  private boolean trackJavaArrayValues = true;
+    @Option(
+      secure = true,
+      description = "Assume that variables used only in a boolean context are either zero or one."
+    )
+    private boolean optimizeBooleanVariables = true;
+
+    @Option(
+      secure = true,
+      description =
+          "Track Java array values in explicit value analysis. "
+              + "This may be costly if the verified program uses big or lots of arrays. "
+              + "Arrays in C programs will always be tracked, even if this value is false."
+    )
+    private boolean trackJavaArrayValues = true;
+
+    ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+  }
+
+  private final ValueTransferOptions options;
 
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
@@ -249,7 +273,7 @@ public class ValueAnalysisTransferRelation
   };
 
   public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    config.inject(this);
+    options = new ValueTransferOptions(config);
     machineModel = pCfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
 
@@ -951,7 +975,9 @@ public class ValueAnalysisTransferRelation
   }
 
   private boolean isTrackedType(Type pType) {
-    return !(pType instanceof JType) || trackJavaArrayValues || !(pType instanceof JArrayType);
+    return !(pType instanceof JType)
+        || options.trackJavaArrayValues
+        || !(pType instanceof JArrayType);
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
@@ -1246,15 +1272,18 @@ public class ValueAnalysisTransferRelation
         if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
-          if (optimizeBooleanVariables && (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars)) {
+          if (options.optimizeBooleanVariables
+              && (booleans.contains(leftMemLoc.getAsSimpleString())
+                  || options.initAssumptionVars)) {
             assignableState.assignConstant(
                 leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
           }
 
-        } else if (optimizeBooleanVariables && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
+        } else if (options.optimizeBooleanVariables
+            && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
-          if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
+          if (booleans.contains(rightMemLoc.getAsSimpleString()) || options.initAssumptionVars) {
             assignableState.assignConstant(
                 rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
           }
@@ -1265,7 +1294,8 @@ public class ValueAnalysisTransferRelation
     }
 
     private boolean isEligibleForAssignment(final Value pValue) {
-      return pValue.isUnknown() || (!pValue.isExplicitlyKnown() && assignSymbolicAssumptionVars);
+      return pValue.isUnknown()
+          || (!pValue.isExplicitlyKnown() && options.assignSymbolicAssumptionVars);
     }
 
     private void assignConcreteValue(
@@ -1336,7 +1366,7 @@ public class ValueAnalysisTransferRelation
         }
       }
 
-      if (initAssumptionVars) {
+      if (options.initAssumptionVars) {
         // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
         // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
         if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
