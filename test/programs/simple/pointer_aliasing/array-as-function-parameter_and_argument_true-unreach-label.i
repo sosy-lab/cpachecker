@@ -37,6 +37,9 @@ int main() {
   if (array_size < 1) {
      array_size = 1;
   }
+  if (array_size > 3) {
+    while (1);
+  }
   int* numbers = (int*) malloc (array_size * sizeof(int));
   if (!numbers) { while(1); }
   numbers[0] = 0;

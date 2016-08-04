@@ -1,6 +1,6 @@
 int __VERIFIER_nondet_int(void);
 
-void *malloc(unsigned long size);
+void *__builtin_alloca(unsigned long size);
 
 int test_fun(int a[], int N) {
     int i;
@@ -20,6 +20,9 @@ int main() {
   int array_size = __VERIFIER_nondet_int();
   if (array_size < 1) {
      array_size = 1;
+  }
+  if (array_size > 3) {
+    while (1);
   }
   int* numbers = (int*) __builtin_alloca (array_size * sizeof(int));
   numbers[0] = 1;
