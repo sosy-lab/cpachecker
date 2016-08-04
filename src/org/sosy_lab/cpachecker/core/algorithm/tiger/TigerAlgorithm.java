@@ -937,9 +937,13 @@ public class TigerAlgorithm
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
             testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
 
+//            logger.logf(Level.WARNING,
+//                "Covered some PCs for Goal %d (%s) for a PC %s by test case %d!",
+//                goal.getIndex(), testsuite.getTestGoalLabel(goal), PresenceConditions.dump(statePresenceCondition), pTestcase.getId());
+
             logger.logf(Level.WARNING,
-                "Covered some PCs for Goal %d (%s) for a PC %s by test case %d!",
-                goal.getIndex(), testsuite.getTestGoalLabel(goal), PresenceConditions.dump(statePresenceCondition), pTestcase.getId());
+                "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
+                goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
             if (pcm().checkEqualsFalse(testsuite.getRemainingPresenceCondition(goal))) {
               coveredGoals.add(goal);
@@ -1445,8 +1449,8 @@ public class TigerAlgorithm
       Set<Property> props = pCex.getTargetPath().getLastState().getViolatedProperties();
 
       if (useTigerAlgorithm_with_pc) {
-        logger.logf(Level.INFO, "Generated new test case %d for %s with a PC %s in the last state.",
-            testcase.getId(), props, PresenceConditions.dump(pPresenceCondition));
+        logger.logf(Level.INFO, "Generated new test case %d for %s with a PC in the last state.",
+            testcase.getId(), props);
       } else {
         logger.logf(Level.INFO, "Generated new test case %d for %s.", testcase.getId(), props);
       }
