@@ -175,7 +175,6 @@ public class TigerAlgorithm
     StatCpuTime updateTestsuiteByCoverageOfTime = new StatCpuTime();
     StatCpuTime createTestcaseTime = new StatCpuTime();
     StatCpuTime addTestToSuiteTime = new StatCpuTime();
-    StatCpuTime restrictBddTime = new StatCpuTime();
     StatCpuTime handleInfeasibleTestGoalTime = new StatCpuTime();
     StatCpuTime runAlgorithmWithLimitTime = new StatCpuTime();
     StatCpuTime runAlgorithmTime = new StatCpuTime();
@@ -199,7 +198,6 @@ public class TigerAlgorithm
       pOut.append(
           "    Time for running the CPA algorithm with limit " + runAlgorithmWithLimitTime + "\n");
       pOut.append("    Time for handling infeasible goals " + handleInfeasibleTestGoalTime + "\n");
-      pOut.append("    Time for restricting the BDD " + restrictBddTime + "\n");
       pOut.append("    Time for adding a test to the suite " + addTestToSuiteTime + "\n");
       pOut.append("      Time for creating a test case " + createTestcaseTime + "\n");
       pOut.append(
@@ -1225,12 +1223,6 @@ public class TigerAlgorithm
 
           if (reachedSet.hasWaitingState()) {
 
-            if (useTigerAlgorithm_with_pc) {
-              PresenceCondition remainingPC =
-                  PresenceConditions.composeRemainingPresenceConditions(pTestGoalsToBeProcessed,
-                      testsuite);
-              restrictBdd(remainingPC);
-            }
             // Exclude covered goals from further exploration
             Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
             for (Goal goal : pTestGoalsToBeProcessed) {
@@ -1243,7 +1235,7 @@ public class TigerAlgorithm
                 toBlacklist.put(goal, Optional.of(coveredFor));
               }
             }
-            
+
             AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
                 .cloneAndAddBlacklisted(toBlacklist));
           }
@@ -1328,10 +1320,6 @@ public class TigerAlgorithm
     }
   }
 
-  private void restrictBdd(PresenceCondition pRemainingPresenceCondition) {
-    logger.logf(Level.INFO, "Restrict global BDD. FIXME!!!");
-  }
-
   private Algorithm initializeAlgorithm(PresenceCondition pRemainingPresenceCondition,
       ARGCPA lARTCPA,
       ShutdownManager algNotifier) throws CPAException {
@@ -1365,9 +1353,6 @@ public class TigerAlgorithm
           cegarAlg.collectStatistics(lStatistics);
         }
 
-        if (useTigerAlgorithm_with_pc) {
-          restrictBdd(pRemainingPresenceCondition);
-        }
       } catch (IOException | InvalidConfigurationException e) {
         throw new RuntimeException(e);
       }
