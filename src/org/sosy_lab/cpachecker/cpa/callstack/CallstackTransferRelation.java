@@ -94,7 +94,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   protected final LogManagerWithoutDuplicates logger;
 
   public CallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, CallstackTransferRelation.class);
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
