@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurr
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 
 
 /**
@@ -77,9 +78,11 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      SolverFactory pSolverFactory)
       throws InvalidConfigurationException, CPAException {
-    super(config, logger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
+    super(config, logger, pBlk, pCfa, pShutdownNotifier, pSpecification,
+        pAggregatedReachedSets, pSolverFactory);
 
     config.inject(this, BAMPredicateCPA.class);
 

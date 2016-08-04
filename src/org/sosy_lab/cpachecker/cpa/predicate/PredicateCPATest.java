@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.test.LoggingClassLoader;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -79,6 +80,7 @@ public class PredicateCPATest {
     assertThat(loadedClasses.filter(Predicates.contains(BDD_CLASS_PATTERN))).isNotEmpty();
   }
 
+  @SuppressWarnings("unchecked")
   private FluentIterable<String> loadPredicateCPA(Configuration config) throws Exception {
     ClassLoader myClassLoader = PredicateCPATest.class.getClassLoader();
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);
@@ -87,10 +89,13 @@ public class PredicateCPATest {
     try (LoggingClassLoader cl =
         new LoggingClassLoader(
             Pattern.compile(
-                "(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState|InvariantSupplier).*)|(org\\.sosy_lab\\.solver\\..*)"),
+                "(org\\.sosy_lab\\.cpachecker\\..*"
+                    + "(predicate|bdd|BDD|formulaslicing|FormulaReportingState|InvariantSupplier).*)|(org\\.sosy_lab\\.solver\\..*)"),
             ((URLClassLoader) myClassLoader).getURLs(),
             myClassLoader)) {
       Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
+      Class<?> solverFactoryClass = cl.loadClass(
+          SolverFactory.class.getPackage().getName() + ".SolverFactory");
       Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
 
@@ -101,6 +106,7 @@ public class PredicateCPATest {
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);
+      factory.set(solverFactoryClass.newInstance(), (Class<Object>) solverFactoryClass);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
       if (cpa instanceof AutoCloseable) {

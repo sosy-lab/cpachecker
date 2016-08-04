@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 
@@ -135,7 +136,8 @@ public class PredicateCPA
       CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
       Specification specification,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      SolverFactory pSolverFactory)
       throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
@@ -152,7 +154,7 @@ public class PredicateCPA
     }
     blk.setCFA(cfa);
 
-    solver = Solver.create(config, logger, pShutdownNotifier);
+    solver = pSolverFactory.getOrCreate(config, logger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
