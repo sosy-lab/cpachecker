@@ -1,3 +1,7 @@
+int __VERIFIER_nondet_int(void);
+
+void *malloc(unsigned long size);
+
 int test_fun(int a[], int N) {
     int i;
     int res = 0;

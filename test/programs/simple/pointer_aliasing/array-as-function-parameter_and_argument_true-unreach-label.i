@@ -1,3 +1,7 @@
+int __VERIFIER_nondet_int(void);
+
+void *malloc(unsigned long size);
+
 int global_array[2];
 
 struct s { int value; int struct_array[2]; };
