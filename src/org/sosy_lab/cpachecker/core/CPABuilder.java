@@ -85,7 +85,7 @@ public class CPABuilder {
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.reachedSetFactory = pReachedSetFactory;
-    solverFactory = new SolverFactory();
+    solverFactory = SolverFactory.getInstance();
   }
 
   public ConfigurableProgramAnalysis buildCPAs(

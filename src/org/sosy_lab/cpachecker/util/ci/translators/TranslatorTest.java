@@ -298,7 +298,7 @@ public class TranslatorTest {
                 .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
                 .set(new ReachedSetFactory(config), ReachedSetFactory.class)
                 .set(Specification.alwaysSatisfied(), Specification.class)
-                .set(new SolverFactory(), SolverFactory.class)
+                .set(SolverFactory.getInstance(), SolverFactory.class)
                 .createInstance();
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 
