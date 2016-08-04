@@ -67,6 +67,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions.ForwardPathIteratorWithPresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.PathReplayEngine;
@@ -1230,7 +1232,7 @@ public class TigerAlgorithm
               restrictBdd(remainingPC);
             }
             // Exclude covered goals from further exploration
-            Map<Property, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
+            Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
             for (Goal goal : pTestGoalsToBeProcessed) {
 
               if (testsuite.isGoalCoveredOrInfeasible(goal)) {
@@ -1242,8 +1244,12 @@ public class TigerAlgorithm
               }
             }
 
-            PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcm());
-            Precisions.disablePropertiesForWaitlist(reachedSet, toBlacklist);
+            // PropertyStats.INSTANCE.singnalPropertyFinishedFor(toBlacklist, pcm());
+            // Precisions.disablePropertiesForWaitlist(reachedSet, toBlacklist);
+            AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
+                .cloneAndAddBlacklisted(toBlacklist));
+
+            logger.log(Level.INFO, "Blacklisting is disabled!");
           }
         }
 
@@ -1446,6 +1452,7 @@ public class TigerAlgorithm
       CFAPathWithAssumptions model = pCex.getCFAPathWithAssignments();
       final List<TestStep> testSteps = calculateTestSteps(model);
 
+
       TestCase testcase = new TestCase(testCaseId++,
           testSteps,
           pCex.getTargetPath(),
@@ -1454,11 +1461,13 @@ public class TigerAlgorithm
           pcm(),
           getCpuTime());
 
+      Set<Property> props = pCex.getTargetPath().getLastState().getViolatedProperties();
+
       if (useTigerAlgorithm_with_pc) {
-        logger.logf(Level.INFO, "Generated new test case %d with a PC %s in the last state.",
-            testcase.getId(), PresenceConditions.dump(pPresenceCondition));
+        logger.logf(Level.INFO, "Generated new test case %d for %s with a PC %s in the last state.",
+            testcase.getId(), props, PresenceConditions.dump(pPresenceCondition));
       } else {
-        logger.logf(Level.INFO, "Generated new test case %d.", testcase.getId());
+        logger.logf(Level.INFO, "Generated new test case %d for %s.", testcase.getId(), props);
       }
 
       return testcase;

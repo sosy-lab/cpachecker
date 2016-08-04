@@ -27,6 +27,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -47,8 +48,10 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.ConditionalTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -58,9 +61,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.presence.formula.FormulaPresenceCondition;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.lang.annotation.Target;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -94,6 +100,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
+
+  @Option(secure = true, description = "Use the the condition of target states for the strengthening.")
+  private boolean strengthenWithTargetConditions = true;
 
   // statistics
   final Timer postTimer = new Timer();
@@ -347,6 +356,18 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
         if (AbstractStates.isTargetState(lElement)) {
           targetStateFound = true;
+
+          if (strengthenWithTargetConditions) {
+            if (lElement instanceof ConditionalTargetable) {
+              ConditionalTargetable ct = (ConditionalTargetable) lElement;
+              element = strengthen(element, lElement, ct.getIsTargetCondition());
+            }
+          }
+        }
+
+        if (element == null) {
+          // successor not reachable
+          return Collections.emptySet();
         }
 
       }
@@ -368,6 +389,36 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     } finally {
       strengthenTimer.stop();
     }
+  }
+
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pStateToStrengthen,
+      AbstractState pSourceOfStrengthening,
+      PresenceCondition pStrengthenWithCondition) {
+
+    Preconditions.checkArgument(pSourceOfStrengthening instanceof Targetable);
+    Preconditions.checkArgument(((Targetable)pSourceOfStrengthening).isTarget());
+    Preconditions.checkArgument(pStrengthenWithCondition instanceof FormulaPresenceCondition);
+
+    FormulaPresenceCondition condition = (FormulaPresenceCondition) pStrengthenWithCondition;
+
+    if (!fmgr.getBooleanFormulaManager().isTrue(condition.getFormula())) {
+
+      if (fmgr.getBooleanFormulaManager().isFalse(condition.getFormula())) {
+        return null; // not reachable
+      }
+
+      PathFormula strengthened = pathFormulaManager.makeAnd(pStateToStrengthen
+          .getPathFormula(), condition.getFormula());
+
+      if (strengthened != pStateToStrengthen.getPathFormula()) {
+        return replacePathFormula(pStateToStrengthen, strengthened);
+      } else {
+        return pStateToStrengthen;
+      }
+    }
+
+    return pStateToStrengthen;
   }
 
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,

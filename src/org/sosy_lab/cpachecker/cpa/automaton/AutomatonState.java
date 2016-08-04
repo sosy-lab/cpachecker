@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.*;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowCode;
+import org.sosy_lab.cpachecker.core.interfaces.ConditionalTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -56,6 +58,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -70,8 +74,8 @@ import java.util.Set;
  * Instances of this class are passed to the CPAchecker as AbstractState.
  */
 public class AutomatonState
-    implements AbstractQueryableState, Targetable, IntermediateTargetable, Serializable,
-    AbstractStateWithAssumptions, AbstractStateWithShadowCode, Graphable {
+    implements AbstractQueryableState, ConditionalTargetable, IntermediateTargetable, Serializable,
+               AbstractStateWithAssumptions, AbstractStateWithShadowCode, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -289,6 +293,19 @@ public class AutomatonState
   @Override
   public boolean isTarget() {
     return this.automatonCPA.isTreatingErrorsAsTargets() && internalState.isTarget();
+  }
+
+  @Override
+  public PresenceCondition getIsTargetCondition() {
+    PresenceCondition result = PresenceConditions.manager().makeFalse();
+    Preconditions.checkState(getViolatedProperties().size() == 1);
+    for (Property prop: getViolatedProperties()) {
+      Preconditions.checkState(prop instanceof SafetyProperty);
+      SafetyProperty sp = (SafetyProperty) prop;
+      PresenceCondition propCond = AutomatonPrecision.getGlobalPrecision().getBlacklistedFor(sp);
+      result = PresenceConditions.manager().makeOr(result, propCond);
+    }
+    return PresenceConditions.manager().makeNegation(result);
   }
 
   @Override

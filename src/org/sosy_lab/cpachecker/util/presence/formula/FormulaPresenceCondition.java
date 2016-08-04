@@ -13,7 +13,7 @@ public class FormulaPresenceCondition implements PresenceCondition {
     f = Preconditions.checkNotNull(pF);
   }
 
-  BooleanFormula getFormula() {
+  public BooleanFormula getFormula() {
     return f;
   }
 

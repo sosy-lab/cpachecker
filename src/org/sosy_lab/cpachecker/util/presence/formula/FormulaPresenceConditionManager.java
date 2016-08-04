@@ -68,6 +68,12 @@ public class FormulaPresenceConditionManager implements PresenceConditionManager
     FormulaPresenceCondition cond1 = (FormulaPresenceCondition) pCond1;
     FormulaPresenceCondition cond2 = (FormulaPresenceCondition) pCond2;
 
+    if (cond1.equals(falsePresenceCondition)) {
+      return pCond2;
+    } else if (cond2.equals(falsePresenceCondition)) {
+      return pCond1;
+    }
+
     return new FormulaPresenceCondition(bfmgr.or(cond1.getFormula(), cond2.getFormula()));
   }
 

@@ -41,6 +41,17 @@ import java.util.Set;
 
 public class AutomatonPrecision implements Precision {
 
+  private static AutomatonPrecision GLOBAL_PRECISION = AutomatonPrecision.emptyBlacklist();
+
+  public static synchronized void updateGlobalPrecision(AutomatonPrecision pAutomatonPrecision) {
+    Preconditions.checkNotNull(pAutomatonPrecision);
+    GLOBAL_PRECISION = pAutomatonPrecision;
+  }
+
+  public static synchronized AutomatonPrecision getGlobalPrecision() {
+    return GLOBAL_PRECISION;
+  }
+
   private ImmutableMap<SafetyProperty, Optional<PresenceCondition>> blacklist = ImmutableMap.of();
 
   private AutomatonPrecision(ImmutableMap<SafetyProperty, Optional<PresenceCondition>> pBlacklist) {
@@ -178,6 +189,11 @@ public class AutomatonPrecision implements Precision {
 
   public Map<SafetyProperty, Optional<PresenceCondition>> getBlacklist() {
     return blacklist;
+  }
+
+  public PresenceCondition getBlacklistedFor(SafetyProperty pSafetyProperty) {
+    Optional<PresenceCondition> forCond = blacklist.get(pSafetyProperty);
+    return PresenceConditions.orFalse(forCond);
   }
 
   @Override
