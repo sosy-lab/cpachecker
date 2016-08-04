@@ -105,14 +105,6 @@ public interface PointerTargetSetBuilder {
 
   SortedSet<String> getAllBases();
 
-  PersistentList<PointerTarget> getAllTargets(CType type);
-
-  Iterable<PointerTarget> getMatchingTargets(CType type,
-      PointerTargetPattern pattern);
-
-  Iterable<PointerTarget> getSpuriousTargets(CType type,
-      PointerTargetPattern pattern);
-
   PersistentList<PointerTarget> getAllTargets(String uf);
 
   Iterable<PointerTarget> getMatchingTargets(String uf,
@@ -526,24 +518,6 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public PersistentList<PointerTarget> getAllTargets(final CType type) {
-      return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                          PersistentLinkedList.<PointerTarget>of());
-    }
-
-    @Override
-    public Iterable<PointerTarget> getMatchingTargets(final CType type,
-        final PointerTargetPattern pattern) {
-      return from(getAllTargets(type)).filter(pattern);
-    }
-
-    @Override
-    public Iterable<PointerTarget> getSpuriousTargets(final CType type,
-        final PointerTargetPattern pattern) {
-      return from(getAllTargets(type)).filter(not(pattern));
-    }
-
-    @Override
     public PersistentList<PointerTarget> getAllTargets(final String uf) {
       return firstNonNull(targets.get(uf),
                           PersistentLinkedList.<PointerTarget>of());
@@ -586,17 +560,19 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public PersistentList<PointerTarget> getAllTargets(String uf) {
+    public PersistentList<PointerTarget> getAllTargets(final String uf) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Iterable<PointerTarget> getMatchingTargets(String uf, PointerTargetPattern pattern) {
+    public Iterable<PointerTarget> getMatchingTargets(final String uf,
+                                                      PointerTargetPattern pattern) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Iterable<PointerTarget> getSpuriousTargets(String uf, PointerTargetPattern pattern) {
+    public Iterable<PointerTarget> getSpuriousTargets(final String uf,
+                                                      PointerTargetPattern pattern) {
       throw new UnsupportedOperationException();
     }
 
@@ -680,21 +656,6 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public SortedSet<String> getAllBases() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PersistentList<PointerTarget> getAllTargets(CType pType) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterable<PointerTarget> getMatchingTargets(CType pType, PointerTargetPattern pPattern) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterable<PointerTarget> getSpuriousTargets(CType pType, PointerTargetPattern pPattern) {
       throw new UnsupportedOperationException();
     }
 

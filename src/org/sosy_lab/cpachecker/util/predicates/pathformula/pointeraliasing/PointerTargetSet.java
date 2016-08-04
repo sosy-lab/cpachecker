@@ -128,11 +128,6 @@ public final class PointerTargetSet implements Serializable {
     return baseName.replaceFirst(BASE_PREFIX, "");
   }
 
-  public PersistentList<PointerTarget> getAllTargets(final CType type) {
-    return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
-                        PersistentLinkedList.<PointerTarget>of());
-  }
-
   public PersistentList<PointerTarget> getAllTargets(final String ufName) {
     return firstNonNull(targets.get(ufName), PersistentLinkedList.<PointerTarget>of());
   }

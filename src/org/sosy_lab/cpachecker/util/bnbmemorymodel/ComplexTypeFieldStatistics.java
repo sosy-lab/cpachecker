@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.bnbmemorymodel;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 public class ComplexTypeFieldStatistics {
 
@@ -57,10 +56,10 @@ public class ComplexTypeFieldStatistics {
   private final BnBExpressionVisitor expressionVisitor = new BnBExpressionVisitor();
   private final BnBMapMerger merger = new BnBMapMerger();
   private final LogManager logger;
-  private final Timer creationTime = new Timer();
+  private final Timer searchTime = new Timer();
 
-  public Timer getCreationTime(){
-    return creationTime;
+  public Timer getSearchTime(){
+    return searchTime;
   }
 
   public ComplexTypeFieldStatistics(LogManager logger) {
@@ -70,75 +69,69 @@ public class ComplexTypeFieldStatistics {
   /**
    * Finds information about field usages and taking fields' addresses
    * @param cfa - program CFA
-   * @throws BnBException
    */
-  public void findFieldsInCFA(CFA cfa) throws BnBException {
-    creationTime.start();
+  public void findFieldsInCFA(CFA cfa) throws UnrecognizedCCodeException {
+    searchTime.start();
     for (CFANode node : cfa.getAllNodes()){
       for (int i = 0; i < node.getNumEnteringEdges(); ++i){
         visitEdge(node.getEnteringEdge(i));
       }
     }
-    creationTime.stop();
+    searchTime.stop();
   }
 
   /**
    * Finds the required information in current CFA edge
    * @param edge - current edge
-   * @throws BnBException
    */
-  private void visitEdge(CFAEdge edge) throws BnBException {
+  private void visitEdge(CFAEdge edge) throws UnrecognizedCCodeException {
     CFAEdgeType edgeType;
     edgeType = edge.getEdgeType();
     Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result;
 
-    try {
-      switch (edgeType){
-        case StatementEdge:
-          statementVisitor.clearVisitResult();
-          (((CStatementEdge) edge).getStatement()).accept(statementVisitor);
-          result = statementVisitor.getVisitResult();
+    switch (edgeType){
+      case StatementEdge:
+        statementVisitor.clearVisitResult();
+        (((CStatementEdge) edge).getStatement()).accept(statementVisitor);
+        result = statementVisitor.getVisitResult();
 
-          if (result != null) {
-            usedFields = merger.mergeMaps(usedFields, result.get(false));
-            refdFields = merger.mergeMaps(refdFields, result.get(true));
-          }
-          break;
+        if (result != null) {
+          merger.mergeMaps(usedFields, result.get(false));
+          merger.mergeMaps(refdFields, result.get(true));
+        }
+        break;
 
-        case FunctionCallEdge:
-          for (CExpression param : ((CFunctionCallEdge) edge).getArguments()) {
+      case FunctionCallEdge:
+        for (CExpression param : ((CFunctionCallEdge) edge).getArguments()) {
+            expressionVisitor.clearVisitResult();
+            param.accept(expressionVisitor);
+            result = expressionVisitor.getVisitResult();
+
+            if (result != null) {
+              merger.mergeMaps(usedFields, result.get(false));
+              merger.mergeMaps(refdFields, result.get(true));
+            }
+        }
+        break;
+
+      case DeclarationEdge:
+        CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+        if (decl instanceof CVariableDeclaration) {
+          CInitializer init = ((CVariableDeclaration) decl).getInitializer();
+          if (init != null && init instanceof CInitializerExpression) {
               expressionVisitor.clearVisitResult();
-              param.accept(expressionVisitor);
+              ((CInitializerExpression) init).getExpression().accept(expressionVisitor);
               result = expressionVisitor.getVisitResult();
 
               if (result != null) {
-                usedFields = merger.mergeMaps(usedFields, result.get(false));
-                refdFields = merger.mergeMaps(refdFields, result.get(true));
+                merger.mergeMaps(usedFields, result.get(false));
+                merger.mergeMaps(refdFields, result.get(true));
               }
           }
-          break;
-
-        case DeclarationEdge:
-          CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            CInitializer init = ((CVariableDeclaration) decl).getInitializer();
-            if (init != null && init instanceof CInitializerExpression) {
-                expressionVisitor.clearVisitResult();
-                ((CInitializerExpression) init).getExpression().accept(expressionVisitor);
-                result = expressionVisitor.getVisitResult();
-
-                if (result != null) {
-                  usedFields = merger.mergeMaps(usedFields, result.get(false));
-                  refdFields = merger.mergeMaps(refdFields, result.get(true));
-                }
-            }
-          }
-          break;
-      }
-    } catch (BnBException e) {
-      logger.logException(Level.WARNING, e, "Exception while gathering information about struct type field usage");
-      throw e;
+        }
+        break;
     }
+
   }
 
   @Override
@@ -148,7 +141,7 @@ public class ComplexTypeFieldStatistics {
     String sub_output;
     int used;
 
-    output += "Time for searching field references in CFA:    " + creationTime + "\n\n";
+    output += "Time for searching field references in CFA:    " + searchTime + "\n\n";
 
     output += "USED_FIELDS:\n";
     for (CType type : usedFields.keySet()){

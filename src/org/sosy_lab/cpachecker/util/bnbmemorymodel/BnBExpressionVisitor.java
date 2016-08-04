@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.bnbmemorymodel;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,8 +50,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBException> {
+public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, UnrecognizedCCodeException> {
 
   private Boolean refd = false;
 
@@ -67,7 +67,7 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBExce
   }
 
   @Override
-  public Void visit(CFunctionCallExpression pIastFunctionCallExpression) throws BnBException{
+  public Void visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException{
 
     for(CExpression param : pIastFunctionCallExpression.getParameterExpressions()){
       param.accept(this);
@@ -77,7 +77,7 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBExce
   }
 
   @Override
-  public Void visit(CUnaryExpression pIastUnaryExpression) throws BnBException {
+  public Void visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
     CExpression operand = pIastUnaryExpression.getOperand();
     if (pIastUnaryExpression.getOperator() == UnaryOperator.AMPER &&
         operand instanceof CFieldReference) {
@@ -93,7 +93,7 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBExce
   }
 
   @Override
-  public Void visit(CBinaryExpression pIastBinaryExpression) throws BnBException {
+  public Void visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
     pIastBinaryExpression.getOperand1().accept(this);
     pIastBinaryExpression.getOperand2().accept(this);
     return null;
@@ -101,39 +101,33 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBExce
 
   @Override
   public Void visit(
-      CCastExpression pIastCastExpression) throws BnBException {
+      CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
     pIastCastExpression.getOperand().accept(this);
     return null;
   }
 
   @Override
   public Void visit(
-      CPointerExpression pointerExpression) throws BnBException {
+      CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
     pointerExpression.getOperand().accept(this);
     return null;
   }
 
   @Override
   public Void visit(
-      CComplexCastExpression complexCastExpression) throws BnBException {
+      CComplexCastExpression complexCastExpression) throws UnrecognizedCCodeException {
     complexCastExpression.getOperand().accept(this);
     return null;
   }
 
   @Override
-  public Void visit(CFieldReference pIastFieldReference) throws BnBException {
+  public Void visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
     CExpression parent = pIastFieldReference.getFieldOwner();
     CType parentType = parent.getExpressionType();
 
-    while (parentType instanceof CPointerType) {
-      parentType = ((CPointerType)parentType).getType();
-    }
-    while (parentType instanceof CTypedefType) {
-      parentType = ((CTypedefType)parentType).getRealType();
-    }
-    while (parentType instanceof CElaboratedType) {
-      parentType = ((CElaboratedType)parentType).getRealType();
-    }
+    parentType = getTypeWithoutPointers(parentType);
+    parentType = getNonTypedefType(parentType);
+    parentType = getNonElaboratedType(parentType);
 
     CType fieldType = pIastFieldReference.getExpressionType();
 
@@ -157,49 +151,70 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, BnBExce
     return null;
   }
 
+  private CType getNonElaboratedType(CType elaboratedType) {
+    while (elaboratedType instanceof CElaboratedType) {
+      elaboratedType = ((CElaboratedType) elaboratedType).getRealType();
+    }
+    return elaboratedType;
+  }
+
+  private CType getNonTypedefType(CType typedefType) {
+    while (typedefType instanceof CTypedefType) {
+      typedefType = ((CTypedefType) typedefType).getRealType();
+    }
+    return typedefType;
+  }
+
+  private CType getTypeWithoutPointers(CType pointerType) {
+    while (pointerType instanceof CPointerType) {
+      pointerType = ((CPointerType)pointerType).getType();
+    }
+    return pointerType;
+  }
+
   //Don't think we even need this
   @Override
-  public Void visit(CIdExpression pIastIdExpression) throws BnBException {
+  public Void visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CCharLiteralExpression pIastCharLiteralExpression) throws BnBException {
+  public Void visit(CCharLiteralExpression pIastCharLiteralExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws BnBException {
+  public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws BnBException {
+  public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CStringLiteralExpression pIastStringLiteralExpression) throws BnBException {
+  public Void visit(CStringLiteralExpression pIastStringLiteralExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CTypeIdExpression pIastTypeIdExpression) throws BnBException {
+  public Void visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CImaginaryLiteralExpression pIastLiteralExpression) throws BnBException {
+  public Void visit(CImaginaryLiteralExpression pIastLiteralExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws BnBException {
+  public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCCodeException {
     return null;
   }
 
   @Override
-  public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws BnBException {
+  public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnrecognizedCCodeException {
     return null;
   }
 

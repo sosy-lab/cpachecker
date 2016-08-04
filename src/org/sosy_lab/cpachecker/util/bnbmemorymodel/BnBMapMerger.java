@@ -30,73 +30,90 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import javax.annotation.Nonnull;
+
 public class BnBMapMerger {
 
-  public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> mergeMaps(
-          Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> target,
-          Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> source) {
+  /**
+   * This method is used to merge specific types of maps
+   ** @param first of two maps to be merged, contains merge result, must not be null
+   * @param second map
+   * @return map with the elements of both input maps
+   */
+  public void mergeMaps(
+          @Nonnull Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> first,
+          Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> second) {
 
-    if (source == null || source.isEmpty()){
-      return target;
-    } else if (target == null || target.isEmpty()) {
-      return source;
+    assert(first != null);
+
+    if (second == null || second.isEmpty()){
+      return;
+    } else if (first.isEmpty()) {
+      first.putAll(second);
     } else {
-      Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result = target;
-      for (Boolean refd : source.keySet()) {
-        if (!target.containsKey(refd)) {
-          result.put(refd, source.get(refd));
+      Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> result = first;
+      for (Boolean refd : second.keySet()) {
+        if (!first.containsKey(refd)) {
+          first.put(refd, second.get(refd));
         } else {
-          result.put(refd, mergeMaps(target.get(refd), source.get(refd)));
+          mergeMaps(first.get(refd), second.get(refd));
         }
       }
-      return result;
+      return;
     }
   }
 
-  public HashMap<CType, HashMap<CType, HashSet<String>>> mergeMaps(
-          HashMap<CType, HashMap<CType, HashSet<String>>> target,
-          HashMap<CType, HashMap<CType, HashSet<String>>> source) {
+  /**
+   * This method is used to merge specific types of maps
+   * @param first of two maps to be merged, contains merge result, must not be null
+   * @param second map
+   * @return map with the elements of both input maps
+   */
+  public void mergeMaps(
+          @Nonnull HashMap<CType, HashMap<CType, HashSet<String>>> first,
+          HashMap<CType, HashMap<CType, HashSet<String>>> second) {
 
-    if (source == null || source.isEmpty()){
-      return target;
-    } else if (target == null || target.isEmpty()) {
-      return source;
+    assert(first != null);
+
+    if (second == null || second.isEmpty()){
+      return;
+    } else if (first.isEmpty()) {
+      first.putAll(second);
     } else {
-      Set<CType> targetTypeSet = target.keySet();
-      Set<CType> sourceTypeSet = source.keySet();
+      Set<CType> sourceTypeSet = second.keySet();
 
-      //add all new keys with values to target
+      //add all new keys with values to first map
       Set<CType> notPresent = new HashSet<>(sourceTypeSet);
-      notPresent.removeAll(targetTypeSet);
+      notPresent.removeAll(first.keySet());
 
       for (CType type : notPresent) {
-        target.put(type, source.get(type));
+        first.put(type, second.get(type));
       }
 
-      //from now on all of the keys are present in target
+      //from now on all of the keys are present in first map
       Set<CType> present = new HashSet<>(sourceTypeSet);
       present.removeAll( notPresent );
 
       for (CType type : present) {
         //same idea
-        Set<CType> keySet = target.get(type).keySet();
-        Map<CType, HashSet<String>> map = source.get(type);
+        Set<CType> keySet = first.get(type).keySet();
+        Map<CType, HashSet<String>> map = second.get(type);
 
         Set<CType> nextNotPresent = new HashSet<>(map.keySet());
         nextNotPresent.removeAll(keySet);
 
         for (CType npType : nextNotPresent) {
-          target.get(type).put(npType, map.get(npType));
+          first.get(type).put(npType, map.get(npType));
         }
 
         Set<CType> nextPresent = new HashSet<>(map.keySet());
         nextPresent.removeAll(nextNotPresent);
 
         for (CType pType : nextPresent) {
-          target.get(type).get(pType).addAll(map.get(pType));
+          first.get(type).get(pType).addAll(map.get(pType));
         }
       }
-      return target;
+      return;
     }
   }
 }

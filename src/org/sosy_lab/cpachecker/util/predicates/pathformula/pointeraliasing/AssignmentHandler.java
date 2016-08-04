@@ -513,7 +513,8 @@ class AssignmentHandler {
                                                                     memberDeclaration.getType(),
                                                                     memberDeclaration.getName())) {
           ufToPass = BnBRegionsMaker.getNewUfName(CToFormulaConverterWithPointerAliasing.getUFName(lvalueType),
-                                                  lvalueType.toString() + ' ' + memberDeclaration.getName());
+                                                  BnBRegionsMaker.makeRegionName(lvalueType,
+                                                                                  memberDeclaration.getName()));
         } else {
           ufToPass = BnBRegionsMaker.getNewUfName(CToFormulaConverterWithPointerAliasing.getUFName(lvalueType), null);
         }

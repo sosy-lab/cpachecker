@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -200,7 +199,7 @@ public class TestDataTools {
     return makeAssume(pAssumeExr, newDummyNode(), newDummyNode());
   }
 
-  public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException, BnBException {
+  public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException {
     try {
       return makeCFA(cProgram, configurationForTest().build());
     } catch (InvalidConfigurationException e) {
@@ -209,7 +208,7 @@ public class TestDataTools {
   }
 
   public static CFA makeCFA(String cProgram, Configuration config) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException, BnBException {
+      ParserException, InterruptedException {
 
     CFACreator creator =
         new CFACreator(config, TestLogManager.getInstance(), ShutdownNotifier.createDummy());

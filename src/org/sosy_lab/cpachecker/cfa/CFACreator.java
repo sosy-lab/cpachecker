@@ -97,7 +97,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -331,7 +330,7 @@ private boolean classifyNodes = false;
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseFileAndCreateCFA(String program)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException, BnBException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     stats.totalTime.start();
     try {
@@ -356,7 +355,7 @@ private boolean classifyNodes = false;
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException, BnBException {
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
 
@@ -389,7 +388,7 @@ private boolean classifyNodes = false;
     }
   }
 
-  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException, BnBException {
+  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
 

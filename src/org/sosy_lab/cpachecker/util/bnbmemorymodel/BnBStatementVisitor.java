@@ -34,8 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-public class BnBStatementVisitor implements CStatementVisitor<Void, BnBException> {
+public class BnBStatementVisitor implements CStatementVisitor<Void, UnrecognizedCCodeException> {
   private final BnBExpressionVisitor visitor = new BnBExpressionVisitor();
   private final BnBMapMerger merger = new BnBMapMerger();
 
@@ -50,28 +51,28 @@ public class BnBStatementVisitor implements CStatementVisitor<Void, BnBException
   }
 
   @Override
-  public Void visit(CExpressionStatement pIastExpressionStatement) throws BnBException {
+  public Void visit(CExpressionStatement pIastExpressionStatement) throws UnrecognizedCCodeException {
     visitor.clearVisitResult();
 
     pIastExpressionStatement.getExpression().accept(visitor);
 
-    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    merger.mergeMaps(visitResult, visitor.getVisitResult());
     return null;
   }
 
   @Override
-  public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws BnBException {
+  public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
     visitor.clearVisitResult();
 
     pIastExpressionAssignmentStatement.getLeftHandSide().accept(visitor);
     pIastExpressionAssignmentStatement.getRightHandSide().accept(visitor);
 
-    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    merger.mergeMaps(visitResult, visitor.getVisitResult());
     return null;
   }
 
   @Override
-  public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws BnBException {
+  public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
     visitor.clearVisitResult();
 
     pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(visitor);
@@ -79,19 +80,19 @@ public class BnBStatementVisitor implements CStatementVisitor<Void, BnBException
       param.accept(visitor);
     }
 
-    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    merger.mergeMaps(visitResult, visitor.getVisitResult());
     return null;
   }
 
   @Override
-  public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws BnBException {
+  public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws UnrecognizedCCodeException {
     visitor.clearVisitResult();
 
     for (CExpression param : pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()){
       param.accept(visitor);
     }
 
-    visitResult = merger.mergeMaps(visitResult, visitor.getVisitResult());
+    merger.mergeMaps(visitResult, visitor.getVisitResult());
     return null;
   }
 }

@@ -568,7 +568,7 @@ public class PointerTargetSetManager {
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
           if (regionsMaker != null && regionsMaker.notInGlobalRegion(compositeType, memberDeclaration.getType(),
                                                                       memberDeclaration.getName())){
-            region = compositeType.toString() + ' ' + memberDeclaration.getName();
+            region = BnBRegionsMaker.makeRegionName(compositeType, memberDeclaration.getName());
           } else {
             region = null;
           }

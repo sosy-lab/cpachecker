@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -64,7 +63,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException, BnBException {
+  public void init() throws IOException, ParserException, InterruptedException {
     String testProgram = ""
           + "extern int test3(int);"
           + "int test(int p) {"
@@ -218,7 +217,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException, BnBException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException {
     String testProgram = ""
         + "void main() {"
           + "int x;"

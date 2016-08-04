@@ -23,23 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.bnbmemorymodel;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
 import java.util.*;
-import java.util.logging.Level;
 
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.*;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 
 
@@ -77,7 +67,7 @@ public class BnBRegionsMaker {
    * Constructs regions using information about field usages in CFA
    * @param cfa - program CFA
    */
-  public void makeRegions(final CFA cfa) throws BnBException{
+  public void makeRegions(final CFA cfa) throws UnrecognizedCCodeException {
     ctfs = new ComplexTypeFieldStatistics(logger);
     ctfs.findFieldsInCFA(cfa);
 
@@ -157,7 +147,7 @@ public class BnBRegionsMaker {
     String result = "Regions information\n\n";
     result += "Time for region creation:                      " + regionCreationTime + '\n';
     result += "Total number of regions:                           " + regions.size() + '\n';
-    result += "Time for searching field references in CFA:    " + ctfs.getCreationTime();
+    result += "Time for searching field references in CFA:    " + ctfs.getSearchTime();
     return result;
   }
 
@@ -175,6 +165,10 @@ public class BnBRegionsMaker {
       result += GLOBAL;
     }
     return result;
+  }
+
+  public static String makeRegionName(final CType parentType, final String fieldName) {
+    return parentType.toString() + ' ' + fieldName;
   }
 
 }

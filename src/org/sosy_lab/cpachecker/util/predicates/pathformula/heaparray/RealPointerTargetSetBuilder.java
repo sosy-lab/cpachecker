@@ -609,45 +609,6 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * @return A list of all targets of a pointer type.
    */
   @Override
-  public PersistentList<PointerTarget> getAllTargets(final CType pType) {
-    return firstNonNull(targets.get(CTypeUtils.typeToString(pType)), PersistentLinkedList.<PointerTarget>of());
-  }
-
-  /**
-   * Gets all matching targets of a pointer target pattern.
-   *
-   * @param pType          The type of the pointer variable.
-   * @param pTargetPattern The pointer target pattern.
-   * @return A list of matching pointer targets.
-   */
-  @Override
-  public Iterable<PointerTarget> getMatchingTargets(
-      final CType pType,
-      final PointerTargetPattern pTargetPattern) {
-    return from(getAllTargets(pType)).filter(pTargetPattern);
-  }
-
-  /**
-   * Gets all spurious targets of a pointer target pattern.
-   *
-   * @param pType          The type of the pointer variable.
-   * @param pTargetPattern The pointer target pattern.
-   * @return A list of spurious pointer targets.
-   */
-  @Override
-  public Iterable<PointerTarget> getSpuriousTargets(
-      final CType pType,
-      final PointerTargetPattern pTargetPattern) {
-    return from(getAllTargets(pType)).filter(not(pTargetPattern));
-  }
-
-  /**
-   * Gets a list of all targets of a pointer type.
-   *
-   * @param pType The type of the pointer variable.
-   * @return A list of all targets of a pointer type.
-   */
-  @Override
   public PersistentList<PointerTarget> getAllTargets(final String pType) {
     return firstNonNull(targets.get(pType), PersistentLinkedList.<PointerTarget>of());
   }

@@ -134,7 +134,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
-    regionsMaker = pVariableClassification.isPresent() ? pVariableClassification.get().getRegionsMaker() : null;
+    if (pVariableClassification.isPresent()){
+      regionsMaker = pVariableClassification.get().getRegionsMaker();
+    } else {
+      regionsMaker = null;
+    }
     ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler, shutdownNotifier, regionsMaker);
 
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
