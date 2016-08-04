@@ -1665,6 +1665,14 @@ public abstract class AbstractExpressionValueVisitor
     return machineModel.getSizeof(pType);
   }
 
+  protected MachineModel getMachineModel() {
+    return machineModel;
+  }
+
+  protected LogManagerWithoutDuplicates getLogger() {
+    return logger;
+  }
+
   /**
    * This method returns the value of an expression, reduced to match the type.
    * This method handles overflows and casts.

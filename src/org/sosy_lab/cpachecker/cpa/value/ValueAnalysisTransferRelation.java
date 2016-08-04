@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.collect.ImmutableMap;
@@ -51,14 +50,10 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -125,9 +120,6 @@ import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -145,7 +137,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import java.io.PrintStream;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -168,7 +159,7 @@ public class ValueAnalysisTransferRelation
       = ImmutableMap.of();
 
   @Options(prefix = "cpa.value")
-  private static class ValueTransferOptions {
+  static class ValueTransferOptions {
 
     @Option(
       secure = true,
@@ -205,6 +196,18 @@ public class ValueAnalysisTransferRelation
 
     ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
+    }
+
+    boolean isInitAssumptionVars() {
+      return initAssumptionVars;
+    }
+
+    boolean isAssignSymbolicAssumptionVars() {
+      return assignSymbolicAssumptionVars;
+    }
+
+    boolean isOptimizeBooleanVariables() {
+      return optimizeBooleanVariables;
     }
   }
 
@@ -619,7 +622,16 @@ public class ValueAnalysisTransferRelation
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
-      AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue, booleanVariables);
+      AssigningValueVisitor avv =
+          new AssigningValueVisitor(
+              element,
+              truthValue,
+              booleanVariables,
+              functionName,
+              state,
+              machineModel,
+              logger,
+              options);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
 
@@ -1215,242 +1227,6 @@ public class ValueAnalysisTransferRelation
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(transferStatistics);
     statsCollection.add(constraintsStrengthenOperator);
-  }
-
-  /**
-   * Visitor that derives further information from an assume edge
-   */
-  private class AssigningValueVisitor extends ExpressionValueVisitor {
-
-    private ValueAnalysisState assignableState;
-
-    private Collection<String> booleans;
-
-    protected boolean truthValue = false;
-
-    public AssigningValueVisitor(ValueAnalysisState assignableState, boolean truthValue, Collection<String> booleanVariables) {
-      super(state, functionName, machineModel, logger);
-      this.assignableState  = assignableState;
-      this.booleans         = booleanVariables;
-      this.truthValue       = truthValue;
-    }
-
-    private AExpression unwrap(AExpression expression) {
-      // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
-
-      if (expression instanceof CCastExpression) {
-        CCastExpression exp = (CCastExpression)expression;
-        expression = exp.getOperand();
-
-        expression = unwrap(expression);
-      }
-
-      return expression;
-    }
-
-    @Override
-    public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      BinaryOperator binaryOperator = pE.getOperator();
-      CExpression lVarInBinaryExp   = (CExpression) unwrap(pE.getOperand1());
-      CExpression rVarInBinaryExp   = pE.getOperand2();
-
-      Value leftValue   = lVarInBinaryExp.accept(this);
-      Value rightValue  = rVarInBinaryExp.accept(this);
-
-      if (isEqualityAssumption(binaryOperator)) {
-        if (isEligibleForAssignment(leftValue) && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
-          assignConcreteValue(
-              lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
-
-        } else if (isEligibleForAssignment(rightValue) && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
-          assignConcreteValue(
-              rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
-        }
-      }
-
-      if (isNonEqualityAssumption(binaryOperator)) {
-        if (assumingUnknownToBeZero(leftValue, rightValue) && isAssignable(lVarInBinaryExp)) {
-          MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
-
-          if (options.optimizeBooleanVariables
-              && (booleans.contains(leftMemLoc.getAsSimpleString())
-                  || options.initAssumptionVars)) {
-            assignableState.assignConstant(
-                leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
-          }
-
-        } else if (options.optimizeBooleanVariables
-            && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
-          MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
-
-          if (booleans.contains(rightMemLoc.getAsSimpleString()) || options.initAssumptionVars) {
-            assignableState.assignConstant(
-                rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
-          }
-        }
-      }
-
-      return super.visit(pE);
-    }
-
-    private boolean isEligibleForAssignment(final Value pValue) {
-      return pValue.isUnknown()
-          || (!pValue.isExplicitlyKnown() && options.assignSymbolicAssumptionVars);
-    }
-
-    private void assignConcreteValue(
-        final CExpression pVarInBinaryExp,
-        final Value pOldValue,
-        final Value pNewValue,
-        final CType pValueType
-    ) throws UnrecognizedCCodeException {
-      if (pOldValue instanceof SymbolicValue) {
-        SymbolicIdentifier id = null;
-
-        if (pOldValue instanceof SymbolicIdentifier) {
-          id = (SymbolicIdentifier) pOldValue;
-        } else if (pOldValue instanceof ConstantSymbolicExpression) {
-          Value innerVal = ((ConstantSymbolicExpression)pOldValue).getValue();
-
-          if (innerVal instanceof SymbolicValue) {
-            assert innerVal instanceof SymbolicIdentifier;
-            id = (SymbolicIdentifier) innerVal;
-          }
-        }
-
-        if (id != null) {
-          assignableState.assignConstant(id, pNewValue);
-        }
-      }
-
-      assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
-    }
-
-    private boolean assumingUnknownToBeZero(Value value1, Value value2) {
-      return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
-    }
-
-    private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
-      return (binaryOperator == BinaryOperator.EQUALS && truthValue)
-          || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue);
-    }
-
-    private boolean isNonEqualityAssumption(BinaryOperator binaryOperator) {
-      return (binaryOperator == BinaryOperator.EQUALS && !truthValue)
-          || (binaryOperator == BinaryOperator.NOT_EQUALS && truthValue);
-    }
-
-    @Override
-    public Value visit(JBinaryExpression pE) {
-      JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
-
-      JExpression lVarInBinaryExp = pE.getOperand1();
-
-      lVarInBinaryExp = (JExpression) unwrap(lVarInBinaryExp);
-
-      JExpression rVarInBinaryExp = pE.getOperand2();
-
-      Value leftValueV = lVarInBinaryExp.accept(this);
-      Value rightValueV = rVarInBinaryExp.accept(this);
-
-      if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)
-          || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
-
-        if (leftValueV.isUnknown() && rightValueV.isExplicitlyKnown()
-            && isAssignableVariable(lVarInBinaryExp)) {
-          assignValueToState((AIdExpression) lVarInBinaryExp, rightValueV);
-
-        } else if (rightValueV.isUnknown() && leftValueV.isExplicitlyKnown()
-            && isAssignableVariable(rVarInBinaryExp)) {
-          assignValueToState((AIdExpression) rVarInBinaryExp, leftValueV);
-        }
-      }
-
-      if (options.initAssumptionVars) {
-        // x is unknown, a binaryOperation (x!=0), true-branch: set x=1L
-        // x is unknown, a binaryOperation (x==0), false-branch: set x=1L
-        if ((binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && truthValue)
-            || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
-
-          if (leftValueV.isUnknown() && rightValueV.isExplicitlyKnown()
-              && isAssignableVariable(lVarInBinaryExp)) {
-
-            // we only want BooleanValue objects for boolean values in the future
-            assert rightValueV instanceof BooleanValue;
-            BooleanValue booleanValueRight = BooleanValue.valueOf(rightValueV).get();
-
-            if (!booleanValueRight.isTrue()) {
-              assignValueToState((AIdExpression) lVarInBinaryExp, BooleanValue.valueOf(true));
-            }
-
-          } else if (rightValueV.isUnknown() && leftValueV.isExplicitlyKnown()
-              && isAssignableVariable(rVarInBinaryExp)) {
-
-            // we only want BooleanValue objects for boolean values in the future
-            assert leftValueV instanceof BooleanValue;
-            BooleanValue booleanValueLeft = BooleanValue.valueOf(leftValueV).get();
-
-            if (!booleanValueLeft.isTrue()) {
-              assignValueToState((AIdExpression) rVarInBinaryExp, BooleanValue.valueOf(true));
-            }
-          }
-        }
-      }
-      return super.visit(pE);
-    }
-
-    // Assign the given value of the given IdExpression to the state of this TransferRelation
-    private void assignValueToState(AIdExpression pIdExpression, Value pValue) {
-      ASimpleDeclaration declaration = pIdExpression.getDeclaration();
-
-      if (declaration != null) {
-        assignableState.assignConstant(declaration.getQualifiedName(), pValue);
-      } else {
-        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
-        assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
-      }
-    }
-
-    protected MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
-      ExpressionValueVisitor v = getVisitor();
-      assert pLValue instanceof CLeftHandSide;
-      return checkNotNull(v.evaluateMemoryLocation(pLValue));
-    }
-
-    protected boolean isAssignableVariable(JExpression expression) {
-
-      boolean result = false;
-
-      if (expression instanceof JIdExpression) {
-        JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
-
-        if (decl == null) {
-          result = false;
-        } else if (decl instanceof JFieldDeclaration) {
-          result = ((JFieldDeclaration) decl).isStatic();
-        } else {
-          result = true;
-        }
-      }
-
-      return result;
-    }
-
-
-
-    protected boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException  {
-
-      if (expression instanceof CIdExpression) {
-        return true;
-      }
-
-      if (expression instanceof CFieldReference || expression instanceof CArraySubscriptExpression) {
-        ExpressionValueVisitor evv = getVisitor();
-        return evv.canBeEvaluated(expression);
-      }
-
-      return false;
-    }
   }
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
