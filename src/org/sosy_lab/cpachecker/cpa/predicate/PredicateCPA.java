@@ -115,6 +115,10 @@ ProofChecker, AutoCloseable, AnalysisCache {
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
+  @Option(secure=true, description="If enabled it collects various metrics about the analysis "
+      + "which may be time consuming.")
+  private boolean collectPropertyScopeStatistics = false;
+
   protected final Configuration config;
   protected final LogManager logger;
   protected ShutdownNotifier shutdownNotifier;
@@ -363,7 +367,9 @@ ProofChecker, AutoCloseable, AnalysisCache {
     pStatsCollection.add(stats);
     precisionBootstraper.collectStatistics(pStatsCollection);
     invariantsManager.collectStatistics(pStatsCollection);
-    pStatsCollection.add(scopeStats);
+    if(collectPropertyScopeStatistics) {
+      pStatsCollection.add(scopeStats);
+    }
   }
 
   @Override

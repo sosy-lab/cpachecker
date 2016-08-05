@@ -1490,6 +1490,10 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
+# If enabled it collects various metrics about the analysis which may be time
+# consuming.
+cpa.predicate.collectPropertyScopeStatistics = false
+
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4

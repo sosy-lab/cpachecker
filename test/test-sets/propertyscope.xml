@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
-  <rundefinition name="propertyscope-func-collector">
+  <rundefinition name="propertyscope">
   </rundefinition>
 
-  <rundefinition name="propertyscope-func-collector-sbe">
+  <rundefinition name="propertyscope-sbe">
     <option name="-setprop">cpa.predicate.blk.threshold=1</option>
   </rundefinition>
 
