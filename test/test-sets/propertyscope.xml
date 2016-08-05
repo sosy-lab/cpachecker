@@ -37,7 +37,7 @@
 
   </rundefinition>
 
-    <rundefinition name="DOMAIN_MIN-PIVOT_MAX-LENGTH_MAX-LOOP_MIN">
+    <rundefinition name="DOMAIN_MIN-PIVOT_MAX-LENGTH_MAX-LOOPS_MIN">
         <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
@@ -45,7 +45,20 @@
         <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
         <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
         <option name="-setprop">analysis.checkCounterexamples=false</option>
-        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,PIVOT_MAX,LENGTH_MAX,LOOP_MIN</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,PIVOT_MAX,LENGTH_MAX,LOOPS_MIN</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+
+    </rundefinition>
+
+    <rundefinition name="WIDTH_MIN">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=WIDTH_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
 
     </rundefinition>
@@ -77,7 +90,7 @@
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
     </rundefinition>
 
-    <rundefinition name="loc_inst_DOMAIN_MIN-PIVOT_MAX-LENGTH_MAX-LOOP_MIN">
+    <rundefinition name="loc_inst_DOMAIN_MIN-PIVOT_MAX-LENGTH_MAX-LOOPS_MIN">
         <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
@@ -85,7 +98,7 @@
         <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
         <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
         <option name="-setprop">analysis.checkCounterexamples=false</option>
-        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,PIVOT_MAX,LENGTH_MAX,LOOP_MIN</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,PIVOT_MAX,LENGTH_MAX,LOOPS_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
         <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
     </rundefinition>
