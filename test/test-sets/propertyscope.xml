@@ -8,6 +8,9 @@
   <rundefinition name="sbe">
     <option name="-setprop">cpa.predicate.blk.threshold=1</option>
   </rundefinition>
+  <rundefinition name="loc_inst">
+    <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
+  </rundefinition>
 
   <option name="-heap">10000M</option>
   <option name="-propertyScope"/>
