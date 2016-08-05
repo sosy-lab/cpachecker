@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter.FormulaSplitter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -70,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -261,7 +263,11 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .count();
   }
 
-  private static void foo(ReachedSet pReached, FormulaManagerView fmgr) {
+  private void handleFormulaAtoms(ReachedSet pReached) {
+    long[] globalAtomSum = {0};
+    long[] globalConstantAtomSum = {0};
+    long[] atomSum = {0};
+
     pReached.asCollection().stream()
         .map(PredicatePropertyScopeUtil::asNonTrueAbstractionState)
         .filter(Optional::isPresent)
@@ -269,37 +275,20 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .forEach(as -> {
           BooleanFormula instform = as.getAbstractionFormula().asInstantiatedFormula();
           FormulaGlobalsInspector insp = new FormulaGlobalsInspector(fmgr, instform);
+          globalAtomSum[0] += insp.globalAtoms.size();
+          globalConstantAtomSum[0] += insp.globalConstantAtoms.size();
+          atomSum[0] += insp.atoms.size();
         });
-  }
 
+    double globalRatAtoms = globalAtomSum[0] / (double) atomSum[0];
+    addKeyValueStatistic("Average ratio of formula atoms with global variable",
+        Double.isNaN(globalRatAtoms) ? "<unknown>" : globalRatAtoms);
 
+    addKeyValueStatistic("Abs. formula atom sum", atomSum[0]);
+    addKeyValueStatistic("Abs. formula atoms with global variable sum", globalAtomSum[0]);
+    addKeyValueStatistic("Abs. formula atoms with global var. and constant sum",
+        globalConstantAtomSum[0]);
 
-
-  private static double avgGlobalRatioInAbsFormulaAtoms(
-      ReachedSet reached,
-      FormulaManagerView fmgr) {
-    long globalAtoms = 0;
-    long atomCount = 0;
-    for (AbstractState st : reached) {
-      Optional<PredicateAbstractState> oPredState =
-          asNonTrueAbstractionState(st);
-      if (oPredState.isPresent()) {
-        AbstractionFormula absFormula = oPredState.get().getAbstractionFormula();
-        ImmutableSet<BooleanFormula> atoms =
-            fmgr.extractAtoms(absFormula.asInstantiatedFormula(), false);
-
-        for (BooleanFormula atom : atoms) {
-          atomCount += 1;
-          boolean globalInAtom = fmgr.extractVariableNames(atom).stream()
-              .map(PredicatePropertyScopeUtil::splitFormulaVariable)
-              .anyMatch(fvar -> fvar.function == null);
-          if (globalInAtom) {
-            globalAtoms += 1;
-          }
-        }
-      }
-    }
-    return globalAtoms / (double) atomCount;
   }
 
   private static Set<String> collectFunctionsWithNonTrueAbsState(ReachedSet pReachedSet) {
@@ -341,10 +330,6 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
       addKeyValueStatistic(highestStackKey, "<unknown>");
     }
 
-    double globalRatAtoms = avgGlobalRatioInAbsFormulaAtoms(pReached, fmgr);
-    addKeyValueStatistic("Average ratio of formula atoms with global variable",
-        Double.isNaN(globalRatAtoms) ? "<unknown>" : globalRatAtoms);
-
     addKeyValueStatistic("Global observer automaton reached target count",
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
@@ -372,16 +357,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(":"));
     addKeyValueStatistic("Global target state line numbers", "[" + globTargetLineNumbers + "]");
 
-    //for (AbstractState r : pReached) {
-    //  ARGState st = extractStateByType(r, ARGState.class);
-    //  Precision precision = pReached.getPrecision(st);
-    //  PredicatePrecision predicatePrecision =
-    //      Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
-    //  predicatePrecision.toString();
-
-    //}
-
-    foo(pReached, fmgr);
+    handleFormulaAtoms(pReached);
 
     super.printStatistics(pOut, pResult, pReached);
   }

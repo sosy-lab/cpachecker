@@ -160,7 +160,8 @@ public class PredicatePropertyScopeUtil {
   public static class FormulaGlobalsInspector {
 
     public final ImmutableSet<BooleanFormula> atoms;
-    public final Set<BooleanFormula> globalConstantAtoms = new LinkedHashSet<>();
+    public final List<BooleanFormula> globalAtoms = new ArrayList<>();
+    public final List<BooleanFormula> globalConstantAtoms = new ArrayList<>();
     private final FormulaManagerView fmgr;
 
     public FormulaGlobalsInspector(FormulaManagerView fmgr, BooleanFormula instform) {
@@ -170,6 +171,10 @@ public class PredicatePropertyScopeUtil {
       for (BooleanFormula atom : atoms) {
         Visitor visitor = new Visitor();
         fmgr.visit(visitor, atom);
+
+        if(visitor.vars.stream().anyMatch(FormulaVariableResult::isGlobal)) {
+          globalAtoms.add(atom);
+        }
 
         if (visitor.vars.stream().allMatch(FormulaVariableResult::isGlobal) &&
             visitor.constants.size() > 0) {
