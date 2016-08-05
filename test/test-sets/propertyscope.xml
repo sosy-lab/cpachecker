@@ -5,15 +5,11 @@
   <rundefinition name="base">
   </rundefinition>
 
-  <rundefinition name="sbe">
-    <option name="-setprop">cpa.predicate.blk.threshold=1</option>
-  </rundefinition>
   <rundefinition name="loc_inst">
     <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
   </rundefinition>
 
   <rundefinition name="DOMAIN_MIN-WIDTH_MIN-LENGTH_MIN">
-      <option name="-setprop">cpa.predicate.blk.threshold=1</option>
       <option name="-setprop">cpa.predicate.blk.useCache=false</option>
       <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
       <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -25,7 +21,6 @@
 
   </rundefinition>
   <rundefinition name="WIDTH_WIDTH_MIN-LOOPS_MIN">
-      <option name="-setprop">cpa.predicate.blk.threshold=1</option>
       <option name="-setprop">cpa.predicate.blk.useCache=false</option>
       <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
       <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -38,7 +33,6 @@
   </rundefinition>
 
     <rundefinition name="DOMAIN_MIN-PIVOT_MAX-LENGTH_MAX-LOOPS_MIN">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -51,7 +45,6 @@
     </rundefinition>
 
     <rundefinition name="WIDTH_MIN">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -64,7 +57,6 @@
     </rundefinition>
 
     <rundefinition name="WIDTH_MAX">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -76,7 +68,6 @@
     </rundefinition>
 
     <rundefinition name="DOMAIN_MIN">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -88,7 +79,6 @@
     </rundefinition>
 
     <rundefinition name="DOMAIN_MAX">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -100,7 +90,6 @@
     </rundefinition>
 
     <rundefinition name="PIVOT_MIN">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -112,7 +101,6 @@
     </rundefinition>
 
     <rundefinition name="PIVOT_MAX">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -124,7 +112,6 @@
     </rundefinition>
 
     <rundefinition name="ASSIGNMENTS_MIN">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -136,7 +123,6 @@
     </rundefinition>
 
     <rundefinition name="ASSIGNMENTS_MAX">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -149,7 +135,6 @@
 
 
     <rundefinition name="ASSUMPTIONS_MAX">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
@@ -161,7 +146,6 @@
     </rundefinition>
 
     <rundefinition name="ASSUMPTIONS_MIN">
-        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
         <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
