@@ -323,14 +323,16 @@ public class Automaton {
    */
   private ImmutableSet<? extends SafetyProperty> findRelevantProperties(
       final @Nonnull AutomatonTransition pTransition) {
-    Set<SafetyProperty> foundProperties = new HashSet<>();
-    Set<AutomatonInternalState> visitedStates = new HashSet<>();
-    Queue<AutomatonTransition> waitList = new LinkedList<>();
+    final Set<SafetyProperty> foundProperties = new HashSet<>();
+    final Set<AutomatonInternalState> visitedStates = new HashSet<>();
+    final Queue<AutomatonTransition> waitList = new LinkedList<>();
+    AutomatonTransition transition;
+    AutomatonInternalState followState;
     waitList.add(pTransition);
 
     while (!waitList.isEmpty()) {
-      AutomatonTransition transition = waitList.poll();
-      AutomatonInternalState followState = transition.getFollowState();
+      transition = waitList.poll();
+      followState = transition.getFollowState();
       if (visitedStates.contains(followState)) { // already visited this state
         continue;
       }
