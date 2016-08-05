@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
 
@@ -74,11 +73,10 @@ public class CongruenceCPA
   public CongruenceCPA(Configuration pConfiguration,
                        LogManager pLogger,
                        ShutdownNotifier pShutdownNotifier,
-                       CFA pCFA,
-                       SolverFactory pSolverFactory)
+                       CFA pCFA)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    Solver solver = pSolverFactory.getSolverCached(pConfiguration, pLogger, pShutdownNotifier);
+    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
 
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(

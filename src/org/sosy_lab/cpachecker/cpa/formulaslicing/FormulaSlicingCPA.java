@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Function;
+import java.util.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,11 +37,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 
 import java.util.Collection;
-import java.util.Optional;
 
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
@@ -60,11 +59,9 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       Configuration pConfiguration,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      CFA cfa,
-      SolverFactory pSolverFactory
+      CFA cfa
   ) throws InvalidConfigurationException {
-    Solver solver = pSolverFactory.getSolverCached(
-        pConfiguration, pLogger, pShutdownNotifier);
+    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
