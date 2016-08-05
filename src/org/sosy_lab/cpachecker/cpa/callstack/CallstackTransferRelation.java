@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -60,6 +61,8 @@ import java.util.logging.Level;
 
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
+
+  private final static CFANode UNDEFINED_CALL_NODE = new CFANode("__undefined__");
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
@@ -213,6 +216,122 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractPredecessorsForEdge(
+      AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {
+
+    final CallstackState result;
+    final CallstackState state = (CallstackState) pElement;
+    final CFANode pred = pEdge.getPredecessor();
+    final CFANode succ = pEdge.getSuccessor();
+    final String predFunction = pred.getFunctionName();
+    final String succFunction = succ.getFunctionName();
+
+    switch (pEdge.getEdgeType()) {
+      case StatementEdge:
+        {
+          AStatementEdge edge = (AStatementEdge) pEdge;
+          if (edge.getStatement() instanceof AFunctionCall) {
+            AExpression functionNameExp =
+                ((AFunctionCall) edge.getStatement())
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression();
+            if (functionNameExp instanceof AIdExpression) {
+              String functionName = ((AIdExpression) functionNameExp).getName();
+              if (unsupportedFunctions.contains(functionName)) {
+                throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
+              }
+            }
+          }
+
+          if (pEdge instanceof CFunctionSummaryStatementEdge) {
+            if (!shouldGoByFunctionSummaryStatement(state, (CFunctionSummaryStatementEdge) pEdge)) {
+              // should go by function call and skip the current edge
+              return Collections.emptySet();
+            }
+          }
+
+          // otherwise use this edge just like a normal edge
+          result = state;
+          break;
+        }
+
+      case FunctionReturnEdge:
+        {
+          // backwards-analysis: use calling node from summary
+          final String calledFunction = predFunction;
+          final CFANode callerNode = succ.getEnteringSummaryEdge().getPredecessor();
+
+          if (hasRecursion(state, calledFunction)) {
+            if (skipRecursiveFunctionCall(state, (FunctionCallEdge) pEdge)) {
+              // skip recursion, don't enter function
+              logger.logOnce(
+                  Level.WARNING,
+                  "Skipping recursive function call from",
+                  pred.getFunctionName(),
+                  "to",
+                  calledFunction);
+              result = null;
+            } else {
+              // recursion is unsupported
+              logger.log(
+                  Level.INFO,
+                  "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
+              throw new UnsupportedCodeException("recursion", pEdge);
+            }
+          } else {
+            // regular function call:
+            //    add the called function to the current stack
+
+            result = new CallstackState(state, calledFunction, callerNode);
+          }
+          break;
+        }
+
+      case FunctionCallEdge:
+        {
+          final String callingFunction = predFunction;
+          final String calledFunction = succFunction;
+          final CFANode callNode = pred;
+          final CallstackState previousStackState = state.getPreviousState();
+
+          assert calledFunction.equals(state.getCurrentFunction()) || isWildcardState(state);
+
+          if (isWildcardState(state)) {
+            throw new UnsupportedCCodeException(
+                "ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
+
+          } else if (previousStackState == null) {
+            // BACKWARDS: The analysis might start somewhere in the call tree
+            // (and we might have not predecessor state)
+            // TODO search call-node. it should be one level towards main-root
+            result = new CallstackState(null, callingFunction, UNDEFINED_CALL_NODE);
+          } else if (!callNode.equals(state.getCallNode())) {
+            // this is not the right return edge
+            result = null;
+          } else if (state.getCallNode().equals(callNode)) {
+            // This if clause is needed to check if the correct FunctionCallEdge is taken.
+            // Consider a method which is called from different other methods, then
+            // there is more than one FunctionCallEdge at this CFANode. To chose the
+            // correct one, we compare the callNode that is saved in the current
+            // CallStackState with the next location of the analysis.
+            result = previousStackState;
+
+          } else {
+            result = null;
+          }
+          break;
+        }
+
+      default:
+        // no change in the callstack-state
+        result = state;
+        break;
+    }
+
+    return result == null ? Collections.emptySet() : Collections.singleton(result);
   }
 
   /**
