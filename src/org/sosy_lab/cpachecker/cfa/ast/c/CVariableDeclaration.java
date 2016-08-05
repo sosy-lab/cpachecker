@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.base.Preconditions.*;
-
-import java.util.Objects;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import java.util.Objects;
 
 /**
  * This class represents variable declarations.
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
   private final CStorageClass    cStorageClass;
+  private int hashNoStorageCache = -1;
 
   public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
@@ -134,9 +136,12 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   public int hashCodeWithOutStorageClass() {
-    final int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+    if (hashNoStorageCache == -1) {
+      final int prime = 31;
+      int result = 7;
+      hashNoStorageCache = prime * result + super.hashCode();
+    }
+    return hashNoStorageCache;
   }
 
   public boolean equalsWithoutStorageClass(Object obj) {
