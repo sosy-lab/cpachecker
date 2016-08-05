@@ -43,7 +43,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
 
   LiveVariablesState(BitSet pLiveVariables) {
     checkNotNull(pLiveVariables);
-    liveVars = (BitSet)pLiveVariables.clone();
+    liveVars = BitSet.valueOf(pLiveVariables.toLongArray());
   }
 
   LiveVariablesState union(LiveVariablesState pState2) {
@@ -71,76 +71,9 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
     return !copy.isEmpty();
   }
 
-  LiveVariablesState addLiveVariables(BitSet pLiveVariables) {
-    checkNotNull(pLiveVariables);
-
-    if (pLiveVariables.isEmpty()) {
-      return this;
-    }
-
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.or(pLiveVariables);
-    if (liveVars.equals(copy)) {
-      return this;
-    }
-   return new LiveVariablesState(copy);
-  }
-
-  LiveVariablesState addLiveVariable(int varPos) {
-
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.set(varPos);
-    return new LiveVariablesState(copy);
-  }
-
   LiveVariablesState removeLiveVariable(int posToRemove) {
     BitSet copy = (BitSet)liveVars.clone();
     copy.clear(posToRemove);
-    return new LiveVariablesState(copy);
-  }
-
-  LiveVariablesState removeLiveVariables(BitSet pNonLiveVariables) {
-    checkNotNull(pNonLiveVariables);
-
-    if (pNonLiveVariables.isEmpty()) {
-      return this;
-    }
-
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.andNot(pNonLiveVariables);
-    return new LiveVariablesState(copy);
-  }
-
-  LiveVariablesState removeAndAddLiveVariables(
-      int deadVarIdx,
-      BitSet pLiveVariables) {
-
-    checkNotNull(pLiveVariables);
-
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.or(pLiveVariables);
-    copy.clear(deadVarIdx);
-    return new LiveVariablesState(copy);
-  }
-
-  LiveVariablesState removeAndAddLiveVariables(
-      BitSet pNonLiveVariables,
-      BitSet pLiveVariables) {
-
-    checkNotNull(pLiveVariables);
-    checkNotNull(pNonLiveVariables);
-
-    if (pLiveVariables.isEmpty()) {
-      return removeLiveVariables(pNonLiveVariables);
-    }
-
-    if (pNonLiveVariables.isEmpty()) {
-      return addLiveVariables(pLiveVariables);
-    }
-
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.or(pLiveVariables);
-    copy.andNot(pNonLiveVariables);
     return new LiveVariablesState(copy);
   }
 
@@ -193,7 +126,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   }
 
   BitSet getData() {
-    return liveVars;
+    return BitSet.valueOf(liveVars.toLongArray());
   }
 
   @Override

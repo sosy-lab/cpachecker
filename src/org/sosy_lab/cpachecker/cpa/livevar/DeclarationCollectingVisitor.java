@@ -62,155 +62,153 @@ import java.util.BitSet;
  * This visitor collects all ASimpleDeclarations from a given expression. This
  * is independent of the programming language of the evaluated expression.
  */
-class DeclarationCollectingVisitor extends AExpressionVisitor<BitSet, RuntimeException> {
+class DeclarationCollectingVisitor extends AExpressionVisitor<Void, RuntimeException> {
 
-  private final int allVarsSize;
   private final Map<Wrapper<? extends ASimpleDeclaration>, Integer> listPos;
+  private final BitSet out;
 
   public DeclarationCollectingVisitor(
-      Map<Wrapper<? extends ASimpleDeclaration>, Integer> pListPos) {
-    allVarsSize = pListPos.size();
+      Map<Wrapper<? extends ASimpleDeclaration>, Integer> pListPos,
+      BitSet writeInto) {
     listPos = pListPos;
+    out = writeInto;
   }
 
   @Override
-  public BitSet visit(CTypeIdExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(CTypeIdExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(CImaginaryLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(CImaginaryLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(CFieldReference exp) {
+  public Void visit(CFieldReference exp) {
     return exp.getFieldOwner().accept(this);
   }
 
   @Override
-  public BitSet visit(CPointerExpression exp) {
+  public Void visit(CPointerExpression exp) {
     return exp.getOperand().accept(this);
   }
 
   @Override
-  public BitSet visit(CComplexCastExpression exp) {
+  public Void visit(CComplexCastExpression exp) {
     return exp.getOperand().accept(this);
   }
 
   @Override
-  public BitSet visit(CAddressOfLabelExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(CAddressOfLabelExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(JBooleanLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(JBooleanLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(JArrayCreationExpression exp) {
+  public Void visit(JArrayCreationExpression exp) {
     if (exp.getInitializer() != null) {
       return exp.getInitializer().accept(this);
     } else {
-      return new BitSet(allVarsSize);
+      return null;
     }
   }
 
   @Override
-  public BitSet visit(JArrayInitializer exp) {
-    BitSet out = new BitSet(allVarsSize);
+  public Void visit(JArrayInitializer exp) {
     for (JExpression innerExp : exp.getInitializerExpressions()) {
-      // Do not remove explicit type inference, otherwise build fails with IntelliJ
-      out.or(innerExp.accept(this));
+      innerExp.accept(this);
     }
-    return out;
+    return null;
   }
 
   @Override
-  public BitSet visit(JArrayLengthExpression exp) {
+  public Void visit(JArrayLengthExpression exp) {
     return exp.getQualifier().accept(this);
   }
 
   @Override
-  public BitSet visit(JVariableRunTimeType exp) {
+  public Void visit(JVariableRunTimeType exp) {
     return exp.getReferencedVariable().accept(this);
   }
 
   @Override
-  public BitSet visit(JRunTimeTypeEqualsType exp) {
+  public Void visit(JRunTimeTypeEqualsType exp) {
     return exp.getRunTimeTypeExpression().accept(this);
   }
 
   @Override
-  public BitSet visit(JNullLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(JNullLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(JEnumConstantExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(JEnumConstantExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(JThisExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(JThisExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(AArraySubscriptExpression exp) {
-    BitSet out = accept0(exp.getArrayExpression());
-    out.or(accept0(exp.getSubscriptExpression()));
-    return out;
+  public Void visit(AArraySubscriptExpression exp) {
+    accept0(exp.getArrayExpression());
+    accept0(exp.getSubscriptExpression());
+    return null;
   }
 
   @Override
-  public BitSet visit(AIdExpression exp) {
-    BitSet out = new BitSet(allVarsSize);
+  public Void visit(AIdExpression exp) {
     int pos = listPos.get(
         LiveVariables.LIVE_DECL_EQUIVALENCE.wrap(exp.getDeclaration()));
     out.set(pos);
-    return out;
+    return null;
   }
 
   @Override
-  public BitSet visit(ABinaryExpression exp) {
-    BitSet out = accept0(exp.getOperand1());
-    out.or(accept0(exp.getOperand2()));
-    return out;
+  public Void visit(ABinaryExpression exp) {
+    accept0(exp.getOperand1());
+    accept0(exp.getOperand2());
+    return null;
   }
 
   @Override
-  public BitSet visit(ACastExpression exp) {
+  public Void visit(ACastExpression exp) {
     return accept0(exp.getOperand());
   }
 
   @Override
-  public BitSet visit(ACharLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(ACharLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(AFloatLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(AFloatLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(AIntegerLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(AIntegerLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(AStringLiteralExpression exp) {
-    return new BitSet(allVarsSize);
+  public Void visit(AStringLiteralExpression exp) {
+    return null;
   }
 
   @Override
-  public BitSet visit(AUnaryExpression exp) {
+  public Void visit(AUnaryExpression exp) {
     return accept0(exp.getOperand());
   }
 
-  private BitSet accept0 (AExpression exp) {
+  private Void accept0 (AExpression exp) {
     return exp.accept_(this);
   }
 }
