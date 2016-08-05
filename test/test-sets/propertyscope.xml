@@ -267,6 +267,8 @@
     <column title="formula_atom_global_const_sum">Abs. formula atoms with global var. and constant sum:</column>
     <column title="formula_atom_global_sum">Abs. formula atoms with global variable sum:</column>
     <column title="formula_atom_sum">Abs. formula atom sum:</column>
+    <column title="formula_atom_global_loop_exit_sum">Abs. formula atoms with global and loopExitCondVars sum:</column>
+    <column title="formula_atom_global_loop_inc_dec_sum">Abs. formula atoms with global and loopIncDecVars sum:</column>
 
 
 

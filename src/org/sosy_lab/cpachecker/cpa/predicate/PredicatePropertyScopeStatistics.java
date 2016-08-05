@@ -266,10 +266,11 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   private void handleFormulaAtoms(ReachedSet pReached) {
     long[] globalAtomSum = {0};
     long[] globalConstantAtomSum = {0};
+    long[] globalloopIncDecAtomSum = {0};
+    long[] globalloopExitCondVarsSum = {0};
     long[] atomSum = {0};
     Set<String> loopIncDecVariables = cfa.getLoopStructure().get().getLoopIncDecVariables();
     Set<String> loopExitCondVars = cfa.getLoopStructure().get().getLoopExitConditionVariables();
-
 
 
     pReached.asCollection().stream()
@@ -283,6 +284,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           globalAtomSum[0] += insp.globalAtoms.size();
           globalConstantAtomSum[0] += insp.globalConstantAtoms.size();
           atomSum[0] += insp.atoms.size();
+          globalloopIncDecAtomSum[0] += insp.globalLoopIncDecAtoms.size();
+          globalloopExitCondVarsSum[0] += insp.globalLoopExitCondAtoms.size();
         });
 
     double globalRatAtoms = globalAtomSum[0] / (double) atomSum[0];
@@ -293,6 +296,13 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Abs. formula atoms with global variable sum", globalAtomSum[0]);
     addKeyValueStatistic("Abs. formula atoms with global var. and constant sum",
         globalConstantAtomSum[0]);
+
+    addKeyValueStatistic("Abs. formula atoms with global and loopExitCondVars sum",
+        globalloopExitCondVarsSum[0]);
+
+    addKeyValueStatistic("Abs. formula atoms with global and loopIncDecVars sum",
+        globalloopIncDecAtomSum[0]);
+
 
   }
 
