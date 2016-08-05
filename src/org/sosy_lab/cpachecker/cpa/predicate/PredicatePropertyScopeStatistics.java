@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
@@ -109,7 +110,37 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     predPrec = pPredPrec;
   }
 
-  private static long findNontrueTrueNontrueSequences(Set<List<Boolean>> tntseqs) {
+  private static long summedLengthOfTailsUntilNontrue(Stream<List<ARGState>> paths) {
+    return paths
+        .map(seq -> {
+          long counter = 0;
+          for (int i = seq.size() - 1; i >= 0 ; i--) {
+            PredicateAbstractState prast =
+                extractStateByType(seq.get(i), PredicateAbstractState.class);
+            if (prast.isAbstractionState() && !prast.getAbstractionFormula().isTrue()) {
+              return counter;
+            }
+            counter += 1;
+          }
+          return counter;
+        }).reduce(Long::sum).orElse(0L);
+  }
+
+  private static int summedLengthOfHeadsUntilNontrue(Stream<List<ARGState>> paths) {
+    return paths
+        .map(seq -> {
+          for (int i = 0; i < seq.size() ; i++) {
+            PredicateAbstractState prast =
+                extractStateByType(seq.get(i), PredicateAbstractState.class);
+            if (prast.isAbstractionState() && !prast.getAbstractionFormula().isTrue()) {
+              return i;
+            }
+          }
+          return 0;
+        }).reduce(Integer::sum).orElse(0);
+  }
+
+  private static long findNontrueTrueNontrueSequences(List<List<Boolean>> tntseqs) {
     long nttntnum = tntseqs.stream().filter(seq -> {
       int ntFstIdx = seq.indexOf(false);
       int ntLstIdx = seq.lastIndexOf(false);
@@ -131,20 +162,20 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
   }
 
-  private static Set<List<Boolean>> computeTNTSeqs(Collection<List<ARGState>> distinctSeqs) {
+  private static List<List<Boolean>> computeTNTSeqs(Collection<List<ARGState>> distinctSeqs) {
     return distinctSeqs.stream()
         .map(seq -> seq.stream()
             .map(state -> extractStateByType(state, PredicateAbstractState.class)
                 .getAbstractionFormula().isTrue()).collect(Collectors.toList()))
-        .collect(Collectors.toSet());
+        .collect(Collectors.toList());
   }
 
-  private static Set<List<ARGState>> extractDistinctAbstractionStateSeqs(ARGState pRoot) {
-    return allPathStream(pRoot)
-        .map(path -> path.stream()
-            .filter(state -> extractStateByType(state, PredicateAbstractState.class).
-                isAbstractionState())
-            .collect(Collectors.toList()))
+  private static Set<List<ARGState>> extractDistinctAbstractionStateSeqs(
+      Stream<List<ARGState>> paths) {
+    return paths.map(path -> path.stream()
+        .filter(state -> extractStateByType(state, PredicateAbstractState.class).
+            isAbstractionState())
+        .collect(Collectors.toList()))
         .collect(Collectors.toSet());
   }
 
@@ -291,12 +322,21 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
     ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
-    Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(root);
-    Set<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
+    List<List<ARGState>> paths = allPathStream(root).collect(Collectors.toList());
+    Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(paths.stream());
+    List<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
 
 
     addKeyValueStatistic("NONTRUE-TRUE-NONTRUE sequences",
         findNontrueTrueNontrueSequences(tntSeqs));
+
+    addKeyValueStatistic("Number of extracted ARG Paths", paths.size());
+
+    addKeyValueStatistic("Sum. length of paths tails until first nontrue abs. st.",
+        summedLengthOfTailsUntilNontrue(paths.stream()));
+
+    addKeyValueStatistic("Sum. length of paths heads until first nontrue abs. st.",
+        summedLengthOfHeadsUntilNontrue(paths.stream()));
 
     super.printStatistics(pOut, pResult, pReached);
   }
