@@ -34,15 +34,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -81,31 +76,6 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements Proo
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PropertyCheckerCPA.class);
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return getWrappedCpa().getAbstractDomain();
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return getWrappedCpa().getTransferRelation();
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return getWrappedCpa().getMergeOperator();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return getWrappedCpa().getStopOperator();
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return getWrappedCpa().getPrecisionAdjustment();
   }
 
   @Override
