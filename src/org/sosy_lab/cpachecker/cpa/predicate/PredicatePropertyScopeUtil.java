@@ -41,21 +41,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
+
 
 
 public class PredicatePropertyScopeUtil {
 
   private static final Pattern formulaVariablePattern =
-      Pattern.compile("(?:(?<function>.+)::)?(?<variable>.+)@(?<ssaindex>[0-9]+)");
+      Pattern.compile("(?:(?<function>[^:]+)::)?(?<variable>[^@]+)(?:@(?<ssaindex>[0-9]+))?");
 
   static Stream<List<ARGState>> allPathStream(ARGState root) {
         Builder<List<ARGState>> reachedsb = Stream.builder();
@@ -98,6 +99,11 @@ public class PredicatePropertyScopeUtil {
       return function == null;
     }
 
+    public boolean equalsIgnoreSSA(FormulaVariableResult other) {
+      return other != null && Objects.equals(this.variable, other.variable) &&
+          Objects.equals(this.function, other.function);
+    }
+
     @Override
     public boolean equals(Object pO) {
       if (this == pO) {
@@ -123,7 +129,11 @@ public class PredicatePropertyScopeUtil {
       if(function != null) {
         sb.append(function).append("::");
       }
-      sb.append(variable).append("@").append(ssaIndex);
+      sb.append(variable);
+
+      if(ssaIndex >= 0) {
+        sb.append("@").append(ssaIndex);
+      }
 
       return sb.toString();
 
@@ -135,8 +145,10 @@ public class PredicatePropertyScopeUtil {
   public static FormulaVariableResult splitFormulaVariable(String variable) {
     Matcher res = formulaVariablePattern.matcher(variable);
     res.matches();
-    return new FormulaVariableResult(res.group("function"), res.group("variable"), Integer
-        .parseInt(res.group("ssaindex")));
+    String ssaidxstr = res.group("ssaindex");
+    int ssaidx = ssaidxstr == null ? -1 : Integer.parseInt(ssaidxstr);
+
+    return new FormulaVariableResult(res.group("function"), res.group("variable"), ssaidx);
 
   };
   public static Stream<FormulaVariableResult> formulaVariableSplitStream(
