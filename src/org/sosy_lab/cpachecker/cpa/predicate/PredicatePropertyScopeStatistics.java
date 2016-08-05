@@ -28,12 +28,14 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.*
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.asNonTrueAbstractionState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -340,6 +342,10 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
     addKeyValueStatistic("Sum. path length",
         paths.stream().map(path -> (long) path.size()).reduce(Long::sum).orElse(0L));
+
+    String globTargetLineNumbers = ControlAutomatonCPA.getGlobalTargetCFAEdges().stream()
+        .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(" "));
+    addKeyValueStatistic("Global target state line numbers", globTargetLineNumbers);
 
     super.printStatistics(pOut, pResult, pReached);
   }
