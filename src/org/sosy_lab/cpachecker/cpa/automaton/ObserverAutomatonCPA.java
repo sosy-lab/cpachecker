@@ -43,4 +43,9 @@ public class ObserverAutomatonCPA extends ControlAutomatonCPA {
     return AutomaticCPAFactory.forType(ObserverAutomatonCPA.class);
   }
 
+    /** @see AutomatonTransferRelation#globalObserverTargetReachCount */
+  public static long getglobalObserverTargetReachCount() {
+    return AutomatonTransferRelation.globalObserverTargetReachCount;
+  }
+
 }

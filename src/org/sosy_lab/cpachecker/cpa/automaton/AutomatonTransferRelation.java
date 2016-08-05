@@ -30,13 +30,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -44,7 +38,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
@@ -57,7 +50,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownStat
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA.ControlAutomatonOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
@@ -69,17 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -106,6 +88,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
+  /**
+   * Counts how often we see a target state of an observer automaton during the whole run of
+   * CPAChecker
+   */
+  static long globalObserverTargetReachCount = 0;
+
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa,
       LogManager pLogger, AutomatonState pIntermediateState, ControlAutomatonOptions pOptions)
           throws InvalidConfigurationException {
@@ -130,6 +118,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       if (q.isTarget()) {
         PropertyStats.INSTANCE.signalRelevancesOfProperties(q.getViolatedProperties());
         targetStates.add(q);
+        globalObserverTargetReachCount += cpa.getAutomaton().getIsObservingOnly() ? 1 : 0;
       } else {
         firstToReturnStates.add(q);
       }
