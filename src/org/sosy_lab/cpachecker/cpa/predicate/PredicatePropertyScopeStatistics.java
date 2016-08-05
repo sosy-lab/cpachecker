@@ -293,7 +293,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     Set<String> functionsInScope = collectFunctionsWithNonTrueAbsState(pReached);
 
 
-    addKeyValueStatistic("Functions with non-true abstraction", String.join(",", functionsInScope));
+    addKeyValueStatistic("Functions with non-true abstraction", String.join(":", functionsInScope));
 
     addKeyValueStatistic("Non-true abstraction function count", functionsInScope.size());
 
@@ -344,7 +344,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         paths.stream().map(path -> (long) path.size()).reduce(Long::sum).orElse(0L));
 
     String globTargetLineNumbers = ControlAutomatonCPA.getGlobalTargetCFAEdges().stream()
-        .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(","));
+        .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(":"));
     addKeyValueStatistic("Global target state line numbers", globTargetLineNumbers);
 
     super.printStatistics(pOut, pResult, pReached);
