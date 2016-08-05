@@ -2,10 +2,10 @@
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="1800 s" hardtimelimit="2000 s" memlimit="15 GB"
            cpuCores="4">
-  <rundefinition name="propertyscope">
+  <rundefinition name="base">
   </rundefinition>
 
-  <rundefinition name="propertyscope-sbe">
+  <rundefinition name="sbe">
     <option name="-setprop">cpa.predicate.blk.threshold=1</option>
   </rundefinition>
 
@@ -48,9 +48,10 @@
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
   </tasks>
-<!--  <tasks name="ECA">
+  <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
   </tasks>
+<!--
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
 -->
