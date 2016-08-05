@@ -218,7 +218,7 @@ final class CompositeTransferRelation implements TransferRelation {
               && cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
             cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
           } else if (direction == AnalysisDirection.BACKWARD
-              && cfaEdge.getSuccessor().getNumEnteringEdges() == 1) {
+              && cfaEdge.getPredecessor().getNumEnteringEdges() == 1) {
             cfaEdge = cfaEdge.getPredecessor().getEnteringEdge(0);
           } else {
             break;
