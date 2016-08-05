@@ -105,4 +105,76 @@ public interface TransferRelation {
       throws CPATransferException, InterruptedException {
     return Collections.singleton(state);
   }
+
+  /**
+   * Get all predecessors of the current abstract state.
+   *
+   * Note that most CPAs do not need this method and should only implement
+   * {@link #getAbstractPredecessorsForEdge(AbstractState, Precision, CFAEdge)}.
+   *
+   * @param state current abstract state
+   * @param precision precision for abstract state
+   * @return collection of all successors of the current state (may be empty)
+   * @throws CPATransferException If operation fails.
+   * @throws InterruptedException If operation is interrupted.
+   */
+  default Collection<? extends AbstractState> getAbstractPredecessors(
+      AbstractState state,
+      Precision precision)
+          throws CPATransferException, InterruptedException {
+    throw new UnsupportedOperationException("optional method is not implemented");
+  }
+
+  /**
+   * Get all predecessors of the current abstract state for a given single CFA edge.
+   *
+   * This is an optimization.
+   * In theory, we could ask all CPAs for all abstract successors
+   * regarding any CFA edge.
+   * One CPA tracks the program counter and would return bottom (no predecessor)
+   * for all edges that cannot be applied at the current location.
+   * By taking the cross product of the returned states of all CPAs,
+   * the states for the invalid edges would be filtered out.
+   * Of course this is inefficient,
+   * thus we pass the edge we are currently interested in to the other CPAs.
+   *
+   * Most CPAs only need this method and can extend
+   * {@link org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation}.
+   *
+   * @param state current abstract state
+   * @param precision precision for abstract state
+   * @param cfaEdge the edge for which the predecessors should be computed
+   * @return collection of all predecessors of the current state (may be empty)
+   * @throws CPATransferException If operation fails.
+   * @throws InterruptedException If operation is interrupted.
+   */
+  default Collection<? extends AbstractState> getAbstractPredecessorsForEdge(
+      AbstractState state,
+      Precision precision,
+      CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
+    throw new UnsupportedOperationException(
+        "optional method is not implemented in " + this.getClass().getSimpleName());
+  }
+
+  /**
+   * Updates an abstract state with information from the abstract states of
+   * other CPAs. An implementation of this method should only modify the
+   * abstract state of the domain it belongs to.
+   * @param state abstract state of the current domain
+   * @param otherStates list of abstract states of all domains
+   * @param cfaEdge null or an edge of the CFA
+   * @param precision the precision to use during strengthening
+   * @return list of all abstract states which should replace the old one, empty list for bottom or.
+   * @throws CPATransferException If operation fails.
+   * @throws InterruptedException If operation is interrupted.
+   */
+  default Collection<? extends AbstractState> strengthenPredecessor(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    return Collections.singleton(state);
+  }
 }
