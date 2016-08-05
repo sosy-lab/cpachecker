@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,9 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
-
-import java.util.Collection;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -77,13 +76,8 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
-  private AssumptionStorageCPA(
-      Configuration config,
-      LogManager logger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA cfa,
-      SolverFactory pSolverFactory) throws InvalidConfigurationException {
-    Solver solver = pSolverFactory.getOrCreate(config, logger, pShutdownNotifier);
+  private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+    Solver solver = Solver.create(config, logger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
