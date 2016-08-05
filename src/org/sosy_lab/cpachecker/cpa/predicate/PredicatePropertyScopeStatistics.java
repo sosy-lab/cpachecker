@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.asNonTrueAbstractionState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
@@ -52,10 +54,12 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
@@ -105,6 +109,44 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     transfer = pTransfer;
     predPrec = pPredPrec;
   }
+
+  private static long findNontrueTrueNontrueSequences(ReachedSet pReachedSet) {
+    ARGState root = extractStateByType(pReachedSet.getFirstState(), ARGState.class);
+
+    Set<List<ARGState>> distinctSeqs = allPathStream(root)
+        .map(path -> path.stream()
+            .filter(state -> extractStateByType(state, PredicateAbstractState.class).
+                isAbstractionState())
+            .collect(Collectors.toList()))
+        .collect(Collectors.toSet());
+
+    Set<List<Boolean>> tfseqs = distinctSeqs.stream()
+        .map(seq -> seq.stream()
+            .map(state -> extractStateByType(state, PredicateAbstractState.class)
+                .getAbstractionFormula().isTrue()).collect(Collectors.toList()))
+        .collect(Collectors.toSet());
+
+    long nttntnum = tfseqs.stream().filter(seq -> {
+      int ntFstIdx = seq.indexOf(false);
+      int ntLstIdx = seq.lastIndexOf(false);
+
+      if (ntFstIdx == -1 || ntLstIdx == -1) {
+        return false;
+      }
+
+      for (int i = ntFstIdx; i < ntLstIdx; i++) {
+        if (seq.get(i) == true) {
+          return true;
+        }
+      }
+
+      return false;
+    }).count();
+
+    return nttntnum;
+
+  }
+
 
   private static Optional<String> computeNewEntryFunction(ReachedSet reached) {
     List<String> longestPrefix = null;
@@ -163,7 +205,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   private static Set<FormulaVariableResult> getGlobalVariablesInAbstractionFormulas(
       ReachedSet reached, FormulaManagerView fmgr) {
     return reached.asCollection().stream()
-        .map(pAS -> PredicatePropertyScopeUtil.formulaVariableSplitStream(pAS, fmgr)
+        .map(pAS -> formulaVariableSplitStream(pAS, fmgr)
             .filter(pResult -> pResult.function == null).map(pResult -> pResult)
         ).flatMap(pStringStream -> pStringStream).distinct().collect(Collectors.toSet());
   }
@@ -210,6 +252,9 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   public void printStatistics(
       PrintStream pOut, Result pResult, ReachedSet pReached) {
 
+
+
+
     Set<String> functionsInScope = collectFunctionsWithNonTrueAbsState(pReached);
     
 
@@ -243,7 +288,10 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Global observer automaton reached target count",
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
-     super.printStatistics(pOut, pResult, pReached);
+    addKeyValueStatistic("NONTRUE-TRUE-NONTRUE seqences",
+        findNontrueTrueNontrueSequences(pReached));
+
+    super.printStatistics(pOut, pResult, pReached);
   }
 
   @Override
