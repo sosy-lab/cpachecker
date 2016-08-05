@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -231,7 +236,29 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
-    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, wrappedProofChecker);
+    ARGState element = (ARGState) pElement;
+
+    assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
+
+    AbstractState wrappedState = element.getWrappedState();
+    Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
+    for (AbstractState absElement : pSuccessors) {
+      ARGState successorElem = (ARGState) absElement;
+      wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedState());
+    }
+
+    if (pCfaEdge != null) {
+      return wrappedProofChecker.areAbstractSuccessors(
+          wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
+    }
+
+    for (CFAEdge edge : getOutgoingEdges(element)) {
+      if (!wrappedProofChecker.areAbstractSuccessors(
+          wrappedState, edge, wrappedSuccessors.get(edge))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
