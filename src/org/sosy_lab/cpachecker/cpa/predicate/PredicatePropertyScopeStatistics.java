@@ -267,6 +267,10 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     long[] globalAtomSum = {0};
     long[] globalConstantAtomSum = {0};
     long[] atomSum = {0};
+    Set<String> loopIncDecVariables = cfa.getLoopStructure().get().getLoopIncDecVariables();
+    Set<String> loopExitCondVars = cfa.getLoopStructure().get().getLoopExitConditionVariables();
+
+
 
     pReached.asCollection().stream()
         .map(PredicatePropertyScopeUtil::asNonTrueAbstractionState)
@@ -274,7 +278,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .map(Optional::get)
         .forEach(as -> {
           BooleanFormula instform = as.getAbstractionFormula().asInstantiatedFormula();
-          FormulaGlobalsInspector insp = new FormulaGlobalsInspector(fmgr, instform);
+          FormulaGlobalsInspector insp = new FormulaGlobalsInspector(fmgr, instform,
+              loopIncDecVariables, loopExitCondVars);
           globalAtomSum[0] += insp.globalAtoms.size();
           globalConstantAtomSum[0] += insp.globalConstantAtoms.size();
           atomSum[0] += insp.atoms.size();

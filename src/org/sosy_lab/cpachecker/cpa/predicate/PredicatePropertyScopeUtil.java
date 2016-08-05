@@ -174,11 +174,21 @@ public class PredicatePropertyScopeUtil {
     public final ImmutableSet<BooleanFormula> atoms;
     public final List<BooleanFormula> globalAtoms = new ArrayList<>();
     public final List<BooleanFormula> globalConstantAtoms = new ArrayList<>();
+    public final List<BooleanFormula> globalLoopIncDecAtoms = new ArrayList<>();
+    public final List<BooleanFormula> globalLoopExitCondAtoms = new ArrayList<>();
+
     private final FormulaManagerView fmgr;
 
-    public FormulaGlobalsInspector(FormulaManagerView fmgr, BooleanFormula instform) {
+    public FormulaGlobalsInspector(
+        FormulaManagerView fmgr, BooleanFormula instform, Set<String>
+        pLoopIncDecVariables, Set<String> pLoopExitCondVars) {
       this.fmgr = fmgr;
       atoms = fmgr.extractAtoms(instform, false);
+
+      Set<FormulaVariableResult> loopIncDecVariablesRes = pLoopIncDecVariables.stream()
+          .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
+      Set<FormulaVariableResult> loopExitCondVarsRes = pLoopExitCondVars.stream()
+          .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
 
       for (BooleanFormula atom : atoms) {
         Visitor visitor = new Visitor();
@@ -192,12 +202,39 @@ public class PredicatePropertyScopeUtil {
             visitor.constants.size() > 0) {
           globalConstantAtoms.add(atom);
         }
+
+        if (isGlobalVariableRelation(visitor, loopIncDecVariablesRes)) {
+          globalLoopIncDecAtoms.add(atom);
+        }
+
+        if (isGlobalVariableRelation(visitor, loopExitCondVarsRes)) {
+          globalLoopExitCondAtoms.add(atom);
+        }
+
       }
     }
 
+    private boolean isGlobalVariableRelation(Visitor visitor,
+                                        Set<FormulaVariableResult> toTestVariables) {
+
+      Set<FormulaVariableResult> testCandidates = visitor.vars.stream()
+          .filter(fvr -> toTestVariables.stream()
+              .anyMatch(fvr2 -> fvr2.equalsIgnoreSSA(fvr)))
+          .collect(Collectors.toSet());
+
+      long globalOrCandidate = visitor.vars.stream()
+          .filter(varRes -> !varRes.isGlobal() && !testCandidates.contains(varRes))
+          .count();
+
+      return globalOrCandidate == 0 && visitor.vars.size() >= 2 && testCandidates.size() > 0;
+
+
+
+    }
+
     private class Visitor extends DefaultFormulaVisitor<Void> {
-      final Set<FormulaVariableResult> vars = new LinkedHashSet<>();
-      final Set<Object> constants = new LinkedHashSet<>();
+      final List<FormulaVariableResult> vars = new ArrayList<>();
+      final List<Object> constants = new ArrayList<>();
 
       @Override
       protected Void visitDefault(Formula f) {
