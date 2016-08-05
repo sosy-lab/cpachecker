@@ -23,17 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.backward;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class BackwardCPA extends AbstractSingleWrapperCPA {
@@ -42,41 +35,12 @@ public class BackwardCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(BackwardCPA.class);
   }
 
-  private final TransferRelation transfer;
-
   public BackwardCPA(ConfigurableProgramAnalysis pCpa) {
     super(pCpa);
-    transfer = new BackwardTransferRelation(pCpa.getTransferRelation());
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return getWrappedCpa().getAbstractDomain();
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transfer;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return getWrappedCpa().getMergeOperator();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return getWrappedCpa().getStopOperator();
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return getWrappedCpa().getPrecisionAdjustment();
-  }
-
-  @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
-      throws InterruptedException {
-    return getWrappedCpa().getInitialState(pNode, pPartition);
+    return new BackwardTransferRelation(getWrappedCpa().getTransferRelation());
   }
 }
