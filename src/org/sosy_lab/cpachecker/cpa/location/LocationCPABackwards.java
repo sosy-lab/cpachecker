@@ -42,8 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory.LocationStateType;
 
 public class LocationCPABackwards implements ConfigurableProgramAnalysis {
 

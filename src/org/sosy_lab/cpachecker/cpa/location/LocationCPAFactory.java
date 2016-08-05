@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory.LocationStateType;
 
 class LocationCPAFactory extends AbstractCPAFactory {
 
