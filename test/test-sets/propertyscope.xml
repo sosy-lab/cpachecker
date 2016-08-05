@@ -192,6 +192,8 @@
     <column title="true_head_sum">Sum. length of paths heads until first nontrue abs. st.:</column>
     <column title="sum_path_length">Sum. path length:</column>
     <column title="glob_target_state_line_numbers">Global target state line numbers:</column>
+    <column title="visited_lines">Visited lines:</column>
+    <column title="total_lines">Total lines:</column>
 
 
 
