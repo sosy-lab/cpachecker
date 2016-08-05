@@ -88,6 +88,7 @@
     <column title="num_abstractions">Number of abstractions:</column>
     <column title="avg_global_var_in_abs_formula_atoms">Average ratio of formula atoms with global variable:</column>
     <column title="highest_callstack_point_non_true_abs">Highest point in callstack with non-true abstraction formula:</column>
+    <column title="global_observer_target_reach_count">Global observer automaton reached target count:</column>
 
 
  </columns>

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.ObserverAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -239,6 +240,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Average ratio of formula atoms with global variable",
         Double.isNaN(globalRatAtoms) ? "<unknown>" : globalRatAtoms);
 
+    addKeyValueStatistic("Global observer automaton reached target count",
+        ObserverAutomatonCPA.getglobalObserverTargetReachCount());
 
      super.printStatistics(pOut, pResult, pReached);
   }
