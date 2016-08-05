@@ -39,11 +39,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.StateToFormulaWriter.FormulaSplitter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -53,11 +56,18 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -251,6 +261,20 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .count();
   }
 
+  private static void foo(ReachedSet pReached, FormulaManagerView fmgr) {
+    pReached.asCollection().stream()
+        .map(PredicatePropertyScopeUtil::asNonTrueAbstractionState)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .forEach(as -> {
+          BooleanFormula instform = as.getAbstractionFormula().asInstantiatedFormula();
+          FormulaGlobalsInspector insp = new FormulaGlobalsInspector(fmgr, instform);
+        });
+  }
+
+
+
+
   private static double avgGlobalRatioInAbsFormulaAtoms(
       ReachedSet reached,
       FormulaManagerView fmgr) {
@@ -348,8 +372,20 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(":"));
     addKeyValueStatistic("Global target state line numbers", "[" + globTargetLineNumbers + "]");
 
+    //for (AbstractState r : pReached) {
+    //  ARGState st = extractStateByType(r, ARGState.class);
+    //  Precision precision = pReached.getPrecision(st);
+    //  PredicatePrecision predicatePrecision =
+    //      Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+    //  predicatePrecision.toString();
+
+    //}
+
+    foo(pReached, fmgr);
+
     super.printStatistics(pOut, pResult, pReached);
   }
+
 
   @Override
   public String getName() {

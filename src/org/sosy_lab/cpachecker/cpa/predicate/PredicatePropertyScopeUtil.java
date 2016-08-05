@@ -25,20 +25,27 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -85,6 +92,10 @@ public class PredicatePropertyScopeUtil {
       function = pFunction;
       variable = pVariable;
       ssaIndex = pSsaIndex;
+    }
+
+    public boolean isGlobal() {
+      return function == null;
     }
 
     @Override
@@ -145,5 +156,57 @@ public class PredicatePropertyScopeUtil {
 
     return Optional.empty();
   }
+
+  public static class FormulaGlobalsInspector {
+
+    public final ImmutableSet<BooleanFormula> atoms;
+    public final Set<BooleanFormula> globalConstantAtoms = new LinkedHashSet<>();
+    private final FormulaManagerView fmgr;
+
+    public FormulaGlobalsInspector(FormulaManagerView fmgr, BooleanFormula instform) {
+      this.fmgr = fmgr;
+      atoms = fmgr.extractAtoms(instform, false);
+
+      for (BooleanFormula atom : atoms) {
+        Visitor visitor = new Visitor();
+        fmgr.visit(visitor, atom);
+
+        if (visitor.vars.stream().allMatch(FormulaVariableResult::isGlobal) &&
+            visitor.constants.size() > 0) {
+          globalConstantAtoms.add(atom);
+        }
+      }
+    }
+
+    private class Visitor extends DefaultFormulaVisitor<Void> {
+      final Set<FormulaVariableResult> vars = new LinkedHashSet<>();
+      final Set<Object> constants = new LinkedHashSet<>();
+
+      @Override
+      protected Void visitDefault(Formula f) {
+        throw new IllegalStateException("Don't know how to handle this here: " + f);
+      }
+
+      @Override
+      public Void visitFreeVariable(Formula f, String name) {
+        vars.add(splitFormulaVariable(name));
+        return null;
+      }
+
+      @Override
+      public Void visitConstant(Formula f, Object value) {
+        constants.add(value);
+        return null;
+      }
+
+      @Override
+      public Void visitFunction(
+          Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+        args.forEach(pFormula -> fmgr.visit(this, pFormula));
+        return null;
+      }
+    }
+  }
+
 
 }
