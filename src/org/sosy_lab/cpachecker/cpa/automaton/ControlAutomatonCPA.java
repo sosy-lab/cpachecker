@@ -72,7 +72,9 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -332,5 +334,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   /** @see AutomatonTransferRelation#globalObserverTargetReachCount */
   public static long getglobalObserverTargetReachCount() {
     return AutomatonTransferRelation.globalObserverTargetReachCount;
+  }
+
+  /** @see AutomatonTransferRelation#globalTargetCFAEdges */
+  public static Set<CFAEdge> getGlobalTargetCFAEdges() {
+    return Collections.unmodifiableSet(AutomatonTransferRelation.globalTargetCFAEdges);
   }
 }

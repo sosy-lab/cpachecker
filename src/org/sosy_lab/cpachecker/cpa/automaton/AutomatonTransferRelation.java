@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -88,8 +89,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  /** Counts how often we see a target state of aautomaton during the whole run of CPAChecker */
+  /** Counts how often we see a target state of an automaton during the whole run of CPAChecker */
   static long globalObserverTargetReachCount = 0;
+
+  /** Globally, stores the #CFAEdge s which lead the automaton into a target state */
+  static Set<CFAEdge> globalTargetCFAEdges = new LinkedHashSet<>();
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa,
       LogManager pLogger, AutomatonState pIntermediateState, ControlAutomatonOptions pOptions)
@@ -116,6 +120,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         PropertyStats.INSTANCE.signalRelevancesOfProperties(q.getViolatedProperties());
         targetStates.add(q);
         globalObserverTargetReachCount += 1;
+        globalTargetCFAEdges.add(pCfaEdge);
       } else {
         firstToReturnStates.add(q);
       }
