@@ -338,6 +338,9 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Sum. length of paths heads until first nontrue abs. st.",
         summedLengthOfHeadsUntilNontrue(paths.stream()));
 
+    addKeyValueStatistic("Sum. path length",
+        paths.stream().map(path -> (long) path.size()).reduce(Long::sum).orElse(0L));
+
     super.printStatistics(pOut, pResult, pReached);
   }
 

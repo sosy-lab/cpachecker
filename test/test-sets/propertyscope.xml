@@ -95,6 +95,7 @@
     <column title="ext_arg_paths">Number of extracted ARG Paths:</column>
     <column title="true_tail_sum">Sum. length of paths tails until first nontrue abs. st.:</column>
     <column title="true_head_sum">Sum. length of paths heads until first nontrue abs. st.:</column>
+    <column title="sum_path_length">Sum. path length:</column>
 
 
 
