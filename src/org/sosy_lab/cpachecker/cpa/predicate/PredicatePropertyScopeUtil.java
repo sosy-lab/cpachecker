@@ -198,8 +198,8 @@ public class PredicatePropertyScopeUtil {
           globalAtoms.add(atom);
         }
 
-        if (visitor.vars.stream().allMatch(FormulaVariableResult::isGlobal) &&
-            visitor.constants.size() > 0) {
+        if (visitor.vars.size() > 0 && visitor.vars.stream().allMatch
+            (FormulaVariableResult::isGlobal) && visitor.constants.size() > 0) {
           globalConstantAtoms.add(atom);
         }
 
