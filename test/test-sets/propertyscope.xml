@@ -80,7 +80,8 @@
 
     <column title="non_true_abs_func">Functions with non-true abstraction: </column>
     <column title="non_true_abs_func_cnt">Non-true abstraction function count:</column>
-    <column title="total_func_cnt">Total function count:</column>
+    <column title="total_func_cnt">Total functions:</column>
+    <column title="visited_func_cnt">Visited functions:</column>
     <column title="entry_func_candidate">New entry Function Candidate:</column>
     <column title="num_global_vars_abs_formula">Number of global variables in abstraction formulas: </column>
     <column title="num_non_true_abs_states">Number of non-true abstraction states:</column>

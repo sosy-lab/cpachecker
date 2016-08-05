@@ -216,8 +216,6 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
     addKeyValueStatistic("Non-true abstraction function count", functionsInScope.size());
 
-    addKeyValueStatistic("Total function count", cfa.getAllFunctionNames().size());
-
     String newEntry = computeNewEntryFunction(pReached).orElse("<unknown>");
     addKeyValueStatistic("New entry Function Candidate", newEntry);
 
