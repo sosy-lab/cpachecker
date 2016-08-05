@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="1800 s" hardtimelimit="2000 s" memlimit="15 GB"
+<benchmark tool="cpachecker" timelimit="1300 s" hardtimelimit="1600 s" memlimit="15 GB"
            cpuCores="4">
   <rundefinition name="base">
   </rundefinition>
@@ -63,9 +63,7 @@
 
     </rundefinition>
 
-
-    <rundefinition name="loc_inst_DOMAIN_MIN-WIDTH_MIN-LENGTH_MIN">
-        <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
+    <rundefinition name="WIDTH_MAX">
         <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
@@ -73,12 +71,11 @@
         <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
         <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
         <option name="-setprop">analysis.checkCounterexamples=false</option>
-        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,WIDTH_MIN,LENGTH_MIN</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=WIDTH_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
-
     </rundefinition>
-    <rundefinition name="loc_inst_WIDTH_MIN-LOOPS_MIN">
-        <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
+
+    <rundefinition name="DOMAIN_MIN">
         <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
@@ -86,11 +83,11 @@
         <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
         <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
         <option name="-setprop">analysis.checkCounterexamples=false</option>
-        <option name="-setprop">cpa.predicate.refinement.prefixPreference=WIDTH_MIN,LOOPS_MIN</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
     </rundefinition>
 
-    <rundefinition name="loc_inst_DOMAIN_MIN-PIVOT_MAX-LENGTH_MAX-LOOPS_MIN">
+    <rundefinition name="DOMAIN_MAX">
         <option name="-setprop">cpa.predicate.blk.threshold=1</option>
         <option name="-setprop">cpa.predicate.blk.useCache=false</option>
         <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
@@ -98,12 +95,85 @@
         <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
         <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
         <option name="-setprop">analysis.checkCounterexamples=false</option>
-        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,PIVOT_MAX,LENGTH_MAX,LOOPS_MIN</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
-        <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
     </rundefinition>
 
-  <option name="-heap">12000M</option>
+    <rundefinition name="PIVOT_MIN">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=PIVOT_MIN</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+    </rundefinition>
+
+    <rundefinition name="PIVOT_MAX">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=PIVOT_MAX</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+    </rundefinition>
+
+    <rundefinition name="ASSIGNMENTS_MIN">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSIGNMENTS_MIN</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+    </rundefinition>
+
+    <rundefinition name="ASSIGNMENTS_MAX">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSIGNMENTS_MAX</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+    </rundefinition>
+
+
+    <rundefinition name="ASSUMPTIONS_MAX">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSUMPTIONS_MAX</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+    </rundefinition>
+
+    <rundefinition name="ASSUMPTIONS_MIN">
+        <option name="-setprop">cpa.predicate.blk.threshold=1</option>
+        <option name="-setprop">cpa.predicate.blk.useCache=false</option>
+        <option name="-setprop">cpa.predicate.abstraction.computation=CARTESIAN</option>
+        <option name="-setprop">cpa.predicate.refinement.performInitialStaticRefinement=false</option>
+        <option name="-setprop">cpa.predicate.refinement.restartAfterRefinements=1</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">analysis.checkCounterexamples=false</option>
+        <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSUMPTIONS_MIN</option>
+        <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+    </rundefinition>
+
+
+    <option name="-heap">12000M</option>
   <option name="-propertyScope"/>
   <option name="-noout"/>
 
