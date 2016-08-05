@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaV
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter.FormulaSplitter;
+import org.sosy_lab.cpachecker.util.holder.Holder;
+import org.sosy_lab.cpachecker.util.holder.HolderLong;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -264,11 +266,11 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   }
 
   private void handleFormulaAtoms(ReachedSet pReached) {
-    long[] globalAtomSum = {0};
-    long[] globalConstantAtomSum = {0};
-    long[] globalloopIncDecAtomSum = {0};
-    long[] globalloopExitCondVarsSum = {0};
-    long[] atomSum = {0};
+    HolderLong globalAtomSum = Holder.of(0L);
+    HolderLong globalConstantAtomSum = Holder.of(0L);
+    HolderLong globalloopIncDecAtomSum = Holder.of(0L);
+    HolderLong globalloopExitCondVarsSum = Holder.of(0L);
+    HolderLong atomSum = HolderLong.of(0);
     Set<String> loopIncDecVariables = cfa.getLoopStructure().get().getLoopIncDecVariables();
     Set<String> loopExitCondVars = cfa.getLoopStructure().get().getLoopExitConditionVariables();
 
@@ -281,27 +283,27 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           BooleanFormula instform = as.getAbstractionFormula().asInstantiatedFormula();
           FormulaGlobalsInspector insp = new FormulaGlobalsInspector(fmgr, instform,
               loopIncDecVariables, loopExitCondVars);
-          globalAtomSum[0] += insp.globalAtoms.size();
-          globalConstantAtomSum[0] += insp.globalConstantAtoms.size();
-          atomSum[0] += insp.atoms.size();
-          globalloopIncDecAtomSum[0] += insp.globalLoopIncDecAtoms.size();
-          globalloopExitCondVarsSum[0] += insp.globalLoopExitCondAtoms.size();
+          globalAtomSum.value += insp.globalAtoms.size();
+          globalConstantAtomSum.value += insp.globalConstantAtoms.size();
+          atomSum.value += insp.atoms.size();
+          globalloopIncDecAtomSum.value += insp.globalLoopIncDecAtoms.size();
+          globalloopExitCondVarsSum.value += insp.globalLoopExitCondAtoms.size();
         });
 
-    double globalRatAtoms = globalAtomSum[0] / (double) atomSum[0];
+    double globalRatAtoms = globalAtomSum.value / (double) atomSum.value;
     addKeyValueStatistic("Average ratio of formula atoms with global variable",
         Double.isNaN(globalRatAtoms) ? "<unknown>" : globalRatAtoms);
 
-    addKeyValueStatistic("Abs. formula atom sum", atomSum[0]);
-    addKeyValueStatistic("Abs. formula atoms with global variable sum", globalAtomSum[0]);
+    addKeyValueStatistic("Abs. formula atom sum", atomSum.value);
+    addKeyValueStatistic("Abs. formula atoms with global variable sum", globalAtomSum.value);
     addKeyValueStatistic("Abs. formula atoms with global var. and constant sum",
-        globalConstantAtomSum[0]);
+        globalConstantAtomSum.value);
 
     addKeyValueStatistic("Abs. formula atoms with global and loopExitCondVars sum",
-        globalloopExitCondVarsSum[0]);
+        globalloopExitCondVarsSum.value);
 
     addKeyValueStatistic("Abs. formula atoms with global and loopIncDecVars sum",
-        globalloopIncDecAtomSum[0]);
+        globalloopIncDecAtomSum.value);
 
 
   }
