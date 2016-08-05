@@ -25,20 +25,56 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.Lists;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.stream.Stream.Builder;
 
 
 public class PredicatePropertyScopeUtil {
 
   private static final Pattern formulaVariablePattern =
       Pattern.compile("(?:(?<function>.+)::)?(?<variable>.+)@(?<ssaindex>[0-9]+)");
+
+  static Stream<List<ARGState>> allPathStream(ARGState root) {
+        Builder<List<ARGState>> reachedsb = Stream.builder();
+
+        Deque<List<ARGState>> waitlist = new ArrayDeque<>();
+        waitlist.add(Lists.newArrayList(root));
+
+        while(!waitlist.isEmpty()) {
+          List<ARGState> currPath = waitlist.removeFirst();
+          ARGState currState = currPath.get(currPath.size() - 1);
+          Collection<ARGState> children = currState.getChildren();
+          if(children.size() == 0) {
+            reachedsb.accept(Collections.unmodifiableList(currPath));
+          } else if(children.size() == 1) {
+            currPath.add(children.stream().findFirst().get());
+            waitlist.addFirst(currPath);
+          } else {
+            children.stream().forEach(child -> {
+              ArrayList<ARGState> newPath = new ArrayList<>(currPath);
+              newPath.add(child);
+              waitlist.addFirst(newPath);
+            });
+          }
+        }
+        return reachedsb.build();
+      }
 
   public static class FormulaVariableResult {
 
