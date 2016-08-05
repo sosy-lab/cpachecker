@@ -129,6 +129,8 @@ ProofChecker, AutoCloseable, AnalysisCache {
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
+  private final PredicatePropertyScopeStatistics scopeStats;
+
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
@@ -269,6 +271,23 @@ ProofChecker, AutoCloseable, AnalysisCache {
             merge,
             transfer,
             predPrec);
+
+    scopeStats =
+        new PredicatePropertyScopeStatistics(
+            config,
+            logger,
+            pCfa,
+            solver,
+            formulaManager,
+            pfMgr,
+            blk,
+            regionManager,
+            abstractionManager,
+            predicateManager,
+            domain,
+            merge,
+            transfer,
+            predPrec);
   }
 
   @Override
@@ -344,6 +363,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
     pStatsCollection.add(stats);
     precisionBootstraper.collectStatistics(pStatsCollection);
     invariantsManager.collectStatistics(pStatsCollection);
+    pStatsCollection.add(scopeStats);
   }
 
   @Override
