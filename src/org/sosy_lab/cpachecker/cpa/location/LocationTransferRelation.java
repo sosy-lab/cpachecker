@@ -62,4 +62,25 @@ public class LocationTransferRelation implements TransferRelation {
     CFANode node = ((LocationState) element).getLocationNode();
     return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
   }
+
+  @Override
+  public Collection<LocationState> getAbstractPredecessorsForEdge(
+      AbstractState element, Precision prec, CFAEdge cfaEdge) {
+
+    CFANode node = ((LocationState) element).getLocationNode();
+
+    if (CFAUtils.allEnteringEdges(node).contains(cfaEdge)) {
+      return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
+    }
+
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Collection<LocationState> getAbstractPredecessors(AbstractState element,
+      Precision prec) throws CPATransferException {
+
+    CFANode node = ((LocationState) element).getLocationNode();
+    return CFAUtils.predecessorsOf(node).transform(n -> factory.getState(n)).toList();
+  }
 }
