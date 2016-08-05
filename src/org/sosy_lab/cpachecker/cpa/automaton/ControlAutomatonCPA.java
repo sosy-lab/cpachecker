@@ -123,31 +123,31 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       Preconditions.checkNotNull(pConfig);
       pConfig.inject(this);
     }
-  }
 
+  }
   private final ControlAutomatonOptions options;
 
   private final Automaton automaton;
+
   private final AutomatonState topState;
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
   private final AutomatonState intermediateTargetBeforeInactiveState;
   private final AbstractDomain automatonDomain;
   private final AutomatonPrecision initPrecision = AutomatonPrecision.emptyBlacklist();
-
   private final StopOperator stopOperator;
+
   private final MergeOperator mergeOperator;
-
   private final AutomatonTransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
 
+  private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
   @Nonnull private PropertyBudgeting budgeting;
 
   private final CFA cfa;
-  private final LogManager logger;
 
+  private final LogManager logger;
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
     throws InvalidConfigurationException {
@@ -327,5 +327,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   public void setBudgeting(PropertyBudgeting pBudgeting) {
     budgeting = pBudgeting;
+  }
+
+  /** @see AutomatonTransferRelation#globalObserverTargetReachCount */
+  public static long getglobalObserverTargetReachCount() {
+    return AutomatonTransferRelation.globalObserverTargetReachCount;
   }
 }

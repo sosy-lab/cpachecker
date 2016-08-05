@@ -88,10 +88,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  /**
-   * Counts how often we see a target state of an observer automaton during the whole run of
-   * CPAChecker
-   */
+  /** Counts how often we see a target state of aautomaton during the whole run of CPAChecker */
   static long globalObserverTargetReachCount = 0;
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa,
@@ -118,7 +115,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       if (q.isTarget()) {
         PropertyStats.INSTANCE.signalRelevancesOfProperties(q.getViolatedProperties());
         targetStates.add(q);
-        globalObserverTargetReachCount += cpa.getAutomaton().getIsObservingOnly() ? 1 : 0;
+        globalObserverTargetReachCount += 1;
       } else {
         firstToReturnStates.add(q);
       }
