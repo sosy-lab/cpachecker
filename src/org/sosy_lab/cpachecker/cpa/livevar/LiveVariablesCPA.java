@@ -80,9 +80,6 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
                            final CFA cfa) throws InvalidConfigurationException {
     pConfig.inject(this, LiveVariablesCPA.class);
 
-    // TODO: how to get information about all variables here?
-    // Would be easiest to construct it, but that would mean duplicating the
-    // effort. Might set it from outside? and then re-construct if nullable?
     logger = pLogger;
     domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
 
