@@ -212,9 +212,9 @@
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
   </tasks>
-  <tasks name="ECA">
+<!--  <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
-  </tasks>
+  </tasks>-->
 <!--
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
