@@ -129,7 +129,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
             Object term = prover.push(formula.getFormula());
             terms.add(term);
 
-            if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
+            CFAEdge outgoingEdge = iterator.getOutgoingEdge();
+            if (outgoingEdge != null && checkUnsat(pPath, outgoingEdge) && prover.isUnsat()) {
 
               logger.log(Level.FINE, "found infeasible prefix, ending with edge ",
                   iterator.getOutgoingEdge(),
