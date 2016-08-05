@@ -100,6 +100,9 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -455,12 +458,12 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (pEdge.getSuccessor().isLoopStart()) {
-        nodeFlags.put(pTo, NodeFlag.ISLOOPSTART);
-      }
-
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
+      }
+
+      if (entersLoop(pEdge)) {
+        result = result.putAndCopy(KeyDef.ENTERLOOPHEAD, "true");
       }
 
       if (exportFunctionCallsAndReturns) {
@@ -525,6 +528,34 @@ public class ARGPathExporter {
       }
 
       return result;
+    }
+
+    private boolean entersLoop(CFAEdge pEdge) {
+      class EnterLoopVisitor implements CFAVisitor {
+
+        private boolean result = false;
+
+        @Override
+        public TraversalProcess visitNode(CFANode pNode) {
+          if (pNode.isLoopStart()) {
+            result = true;
+            return TraversalProcess.ABORT;
+          }
+          if (pNode.getNumLeavingEdges() > 1) {
+            return TraversalProcess.SKIP;
+          }
+          return TraversalProcess.CONTINUE;
+        }
+
+        @Override
+        public TraversalProcess visitEdge(CFAEdge pEdge) {
+          return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge) ? TraversalProcess.CONTINUE : TraversalProcess.SKIP;
+        }
+
+      }
+      EnterLoopVisitor enterLoopVisitor = new EnterLoopVisitor();
+      CFATraversal.dfs().ignoreFunctionCalls().ignoreSummaryEdges().traverse(pEdge.getSuccessor(), enterLoopVisitor);
+      return enterLoopVisitor.result;
     }
 
     private TransitionCondition extractTransitionForStates(
