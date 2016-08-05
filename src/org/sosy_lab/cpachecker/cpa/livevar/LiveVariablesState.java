@@ -68,7 +68,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   boolean containsAny(BitSet data) {
     BitSet copy = (BitSet)liveVars.clone();
     copy.and(data);
-    return copy.isEmpty();
+    return !copy.isEmpty();
   }
 
   LiveVariablesState addLiveVariables(BitSet pLiveVariables) {
