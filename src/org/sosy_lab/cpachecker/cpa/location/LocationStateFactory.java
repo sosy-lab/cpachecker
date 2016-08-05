@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 
 import java.util.Collection;
@@ -43,12 +44,7 @@ public class LocationStateFactory {
 
   private final LocationState[] states;
 
-  private final LocationStateFactory.LocationStateType locationType;
-
-  enum LocationStateType {
-    FORWARD,
-    BACKWARD
-  }
+  private final AnalysisDirection locationType;
 
   @Option(
     secure = true,
@@ -59,8 +55,7 @@ public class LocationStateFactory {
   )
   private boolean followFunctionCalls = true;
 
-  public LocationStateFactory(
-      CFA pCfa, LocationStateFactory.LocationStateType pLocationType, Configuration config)
+  public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
     locationType = checkNotNull(pLocationType);
@@ -98,7 +93,7 @@ public class LocationStateFactory {
   }
 
   private LocationState createLocationState(CFANode node) {
-    return locationType == LocationStateType.BACKWARD
+    return locationType == AnalysisDirection.BACKWARD
         ? new BackwardsLocationState(node, followFunctionCalls)
         : new LocationState(node, followFunctionCalls);
   }

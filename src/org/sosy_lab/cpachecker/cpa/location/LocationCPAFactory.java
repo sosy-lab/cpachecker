@@ -27,17 +27,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory.LocationStateType;
 
 class LocationCPAFactory extends AbstractCPAFactory {
 
-  private final LocationStateType locationType;
+  private final AnalysisDirection locationType;
 
   private CFA cfa;
 
-  public LocationCPAFactory(LocationStateType pLocationType) {
+  public LocationCPAFactory(AnalysisDirection pLocationType) {
     locationType = pLocationType;
   }
 
