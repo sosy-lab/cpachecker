@@ -29,25 +29,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Triple;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Class for creating solvers, useful for sharing the same solver across
  * multiple CPAs.
+ *
  */
 public class SolverFactory {
   private final Map<Triple<Configuration, LogManager, ShutdownNotifier>, Solver>
-      solverCache = Collections.synchronizedMap(new HashMap<>());
-
-  private static final SolverFactory instance = new SolverFactory();
-
-  public static SolverFactory getInstance() {
-    return instance;
-  }
-
-  private SolverFactory() {}
+      solverCache = new HashMap<>();
 
   /**
    * Get-or-create an existing solver object.

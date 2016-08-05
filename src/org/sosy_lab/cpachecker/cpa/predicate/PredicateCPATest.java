@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.test.LoggingClassLoader;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import java.lang.reflect.Constructor;
 import java.net.URLClassLoader;
 import java.util.regex.Pattern;
 
@@ -99,9 +98,7 @@ public class PredicateCPATest {
           SolverFactory.class.getPackage().getName() + ".SolverFactory");
       Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
-      Constructor<?> constructor =
-          solverFactoryClass.getDeclaredConstructor();
-      constructor.setAccessible(true);
+
       factory.setConfiguration(config);
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
@@ -109,8 +106,7 @@ public class PredicateCPATest {
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);
-      factory.set(constructor.newInstance(),
-          (Class<Object>) solverFactoryClass);
+      factory.set(solverFactoryClass.newInstance(), (Class<Object>) solverFactoryClass);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
       if (cpa instanceof AutoCloseable) {

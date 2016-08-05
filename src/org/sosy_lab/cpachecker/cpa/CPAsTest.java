@@ -177,7 +177,7 @@ public class CPAsTest {
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
-              .set(SolverFactory.getInstance(), SolverFactory.class)
+              .set(new SolverFactory(), SolverFactory.class)
               .createInstance();
     } catch (LinkageError e) {
       assume().fail(e.getMessage());
