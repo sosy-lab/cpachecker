@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -46,6 +47,19 @@ public class ARGTransferRelation implements TransferRelation {
   public Collection<ARGState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision)
       throws CPATransferException, InterruptedException {
+    return getAbstractNeighbors(pElement, pPrecision, AnalysisDirection.FORWARD);
+  }
+
+  @Override
+  public Collection<ARGState> getAbstractPredecessors(
+      AbstractState pElement, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    return getAbstractNeighbors(pElement, pPrecision, AnalysisDirection.BACKWARD);
+  }
+
+  private Collection<ARGState> getAbstractNeighbors(
+      AbstractState pElement, Precision pPrecision, AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
     ARGState element = (ARGState)pElement;
 
     // covered elements may be in the reached set, but should always be ignored
@@ -58,7 +72,11 @@ public class ARGTransferRelation implements TransferRelation {
     AbstractState wrappedState = element.getWrappedState();
     Collection<? extends AbstractState> successors;
     try {
-      successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
+      if (direction == AnalysisDirection.FORWARD) {
+        successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
+      } else {
+        successors = transferRelation.getAbstractPredecessors(wrappedState, pPrecision);
+      }
     } catch (UnsupportedCodeException e) {
       // setting parent of this unsupported code part
       e.setParentState(element);
@@ -86,4 +104,14 @@ public class ARGTransferRelation implements TransferRelation {
         "ARGCPA needs to be used as the outer-most CPA,"
         + " thus it does not support returning successors for a single edge.");
   }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractPredecessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+
+    throw new UnsupportedOperationException(
+        "ARGCPA needs to be used as the outer-most CPA,"
+        + " thus it does not support returning predecessors for a single edge.");
+  }
+
 }
