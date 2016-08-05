@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -110,6 +111,22 @@ final class CompositeTransferRelation implements TransferRelation {
   public Collection<CompositeState> getAbstractSuccessors(
       AbstractState element, Precision precision)
         throws CPATransferException, InterruptedException {
+    return getAbstractStates(element, precision, AnalysisDirection.FORWARD);
+  }
+
+  @Override
+  public Collection<CompositeState> getAbstractPredecessors(
+      AbstractState element, Precision precision)
+      throws CPATransferException, InterruptedException {
+    return getAbstractStates(element, precision, AnalysisDirection.BACKWARD);
+  }
+
+  /** As most of the algorithms is identical for FORWARD and BACKWARD-direction,
+   * we merged the methods, use the "shared code" and the flag "direction"
+   * to compute "neighbors" (which are either predecessors or successors). */
+  private Collection<CompositeState> getAbstractStates(
+      AbstractState element, Precision precision, AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeState> results;
@@ -121,8 +138,11 @@ final class CompositeTransferRelation implements TransferRelation {
 
     results = new ArrayList<>(2);
 
-    for (CFAEdge edge : locState.getOutgoingEdges()) {
-      getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+    for (CFAEdge edge :
+        direction == AnalysisDirection.FORWARD
+            ? locState.getOutgoingEdges()
+            : locState.getIngoingEdges()) {
+      getAbstractNeighborsForEdge(compositeState, compositePrecision, edge, results, direction);
     }
 
     return results;
@@ -132,34 +152,55 @@ final class CompositeTransferRelation implements TransferRelation {
   public Collection<CompositeState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge cfaEdge)
         throws CPATransferException, InterruptedException {
+    return getAbstractStatesForEdge(element, precision, cfaEdge, AnalysisDirection.FORWARD);
+  }
+
+  @Override
+  public Collection<CompositeState> getAbstractPredecessorsForEdge(
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    return getAbstractStatesForEdge(element, precision, cfaEdge, AnalysisDirection.BACKWARD);
+  }
+
+  private Collection<CompositeState> getAbstractStatesForEdge(
+      AbstractState element, Precision precision, CFAEdge cfaEdge, AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision)precision;
 
     Collection<CompositeState> results = new ArrayList<>(1);
-    getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, results);
+    getAbstractNeighborsForSimpleEdge(compositeState, compositePrecision, cfaEdge, results, direction);
 
     return results;
   }
 
-
-  private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
+  private void getAbstractNeighborsForEdge(
+      CompositeState compositeState,
+      CompositePrecision compositePrecision,
+      CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors,
+      AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
 
     if (aggregateBasicBlocks) {
-      final CFANode startNode = cfaEdge.getPredecessor();
+      final CFANode startNode =
+          direction == AnalysisDirection.FORWARD
+              ? cfaEdge.getPredecessor()
+              : cfaEdge.getSuccessor();
 
       // dynamic multiEdges may be used if the following conditions apply
-      if (isValidMultiEdgeStart(startNode)
-          && isValidMultiEdgeComponent(cfaEdge)) {
+      if (isValidMultiEdgeStart(startNode, direction)
+          && isValidMultiEdgeComponent(cfaEdge, direction)) {
 
         Collection<CompositeState> currentStates = new ArrayList<>(1);
         currentStates.add(compositeState);
 
-        while (isValidMultiEdgeComponent(cfaEdge)) {
+        while (isValidMultiEdgeComponent(cfaEdge, direction)) {
           Collection<CompositeState> successorStates = new ArrayList<>(currentStates.size());
 
           for (CompositeState currentState : currentStates) {
-            getAbstractSuccessorForSimpleEdge(currentState, compositePrecision, cfaEdge, successorStates);
+            getAbstractNeighborsForSimpleEdge(
+                currentState, compositePrecision, cfaEdge, successorStates, direction);
           }
 
           // if we found a target state in the current successors immediately return
@@ -173,8 +214,12 @@ final class CompositeTransferRelation implements TransferRelation {
 
           // if there is more than one leaving edge we do not create a further
           // multi edge part
-          if (cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
+          if (direction == AnalysisDirection.FORWARD
+              && cfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
             cfaEdge = cfaEdge.getSuccessor().getLeavingEdge(0);
+          } else if (direction == AnalysisDirection.BACKWARD
+              && cfaEdge.getSuccessor().getNumEnteringEdges() == 1) {
+            cfaEdge = cfaEdge.getPredecessor().getEnteringEdge(0);
           } else {
             break;
           }
@@ -185,38 +230,58 @@ final class CompositeTransferRelation implements TransferRelation {
         // no use for dynamic multi edges right now, just compute the successor
         // for the given edge
       } else {
-        getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
+        getAbstractNeighborsForSimpleEdge(
+            compositeState, compositePrecision, cfaEdge, compositeSuccessors, direction);
       }
 
     } else {
-      getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
+      getAbstractNeighborsForSimpleEdge(
+          compositeState, compositePrecision, cfaEdge, compositeSuccessors, direction);
     }
   }
 
-  private boolean isValidMultiEdgeStart(CFANode node) {
-    return node.getNumLeavingEdges() == 1         // linear chain of edges
-        && node.getLeavingSummaryEdge() == null   // without a functioncall
-        && node.getNumEnteringEdges() > 0;        // without a functionstart
+  private boolean isValidMultiEdgeStart(CFANode node, AnalysisDirection direction) {
+    switch (direction) {
+      case FORWARD:
+        return node.getNumLeavingEdges() == 1 // linear chain of edges
+            && node.getLeavingSummaryEdge() == null // without a functioncall
+            && node.getNumEnteringEdges() > 0; // without a functionstart
+      case BACKWARD:
+        return node.getNumEnteringEdges() == 1 // linear chain of edges
+            && node.getEnteringSummaryEdge() == null // without a functionreturn
+            && node.getNumLeavingEdges() > 0; // without a functionexit
+      default:
+        throw new AssertionError("should not happen");
+    }
   }
 
   /**
    * This method checks if the given edge and its successor node are a valid
    * component for a continuing dynamic MultiEdge.
    */
-  private boolean isValidMultiEdgeComponent(CFAEdge edge) {
+  private boolean isValidMultiEdgeComponent(CFAEdge edge, AnalysisDirection direction) {
     boolean result = edge.getEdgeType() == CFAEdgeType.BlankEdge
         || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
         || edge.getEdgeType() == CFAEdgeType.StatementEdge
         || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
 
-    CFANode nodeAfterEdge = edge.getSuccessor();
+    final boolean isValidNode;
+    switch (direction) {
+      case FORWARD:
+        CFANode nodeAfterEdge = edge.getSuccessor();
+        isValidNode =
+            nodeAfterEdge.getNumEnteringEdges() == 1 && nodeAfterEdge.getClass() == CFANode.class;
+        break;
+      case BACKWARD:
+        CFANode nodeBeforeEdge = edge.getPredecessor();
+        isValidNode =
+            nodeBeforeEdge.getNumLeavingEdges() == 1 && nodeBeforeEdge.getClass() == CFANode.class;
+        break;
+      default:
+        throw new AssertionError("should not happen");
+    }
 
-    result =
-        result
-            && nodeAfterEdge.getNumEnteringEdges() == 1
-            && nodeAfterEdge.getClass() == CFANode.class;
-
-    return result && !containsFunctionCall(edge);
+    return result && isValidNode && !containsFunctionCall(edge);
   }
 
   /**
@@ -245,19 +310,24 @@ final class CompositeTransferRelation implements TransferRelation {
     return false;
   }
 
-  private void getAbstractSuccessorForSimpleEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
+  private void getAbstractNeighborsForSimpleEdge(
+      CompositeState compositeState,
+      CompositePrecision compositePrecision,
+      CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors,
+      AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
     // first, call all the post operators
     Collection<List<AbstractState>> allResultingElements =
-        callTransferRelation(compositeState, compositePrecision, cfaEdge);
+        callTransferRelation(compositeState, compositePrecision, cfaEdge, direction);
 
     // second, call strengthen for each result
     for (List<AbstractState> lReachedState : allResultingElements) {
 
       Collection<List<AbstractState>> lResultingElements =
-          callStrengthen(lReachedState, compositePrecision, cfaEdge);
+          callStrengthen(lReachedState, compositePrecision, cfaEdge, direction);
 
       // finally, create a CompositeState for each result of strengthen
       for (List<AbstractState> lList : lResultingElements) {
@@ -268,8 +338,10 @@ final class CompositeTransferRelation implements TransferRelation {
 
   private Collection<List<AbstractState>> callTransferRelation(
       final CompositeState compositeState,
-      final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+      final CompositePrecision compositePrecision,
+      final CFAEdge cfaEdge,
+      AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
     checkArgument(componentElements.size() == size, "State with wrong number of component states given");
@@ -281,8 +353,20 @@ final class CompositeTransferRelation implements TransferRelation {
       Precision lCurrentPrecision = compositePrecision.get(i);
 
       Collection<? extends AbstractState> componentSuccessors;
-      componentSuccessors = lCurrentTransfer.getAbstractSuccessorsForEdge(
-          lCurrentElement, lCurrentPrecision, cfaEdge);
+      switch (direction) {
+        case FORWARD:
+          componentSuccessors =
+              lCurrentTransfer.getAbstractSuccessorsForEdge(
+                  lCurrentElement, lCurrentPrecision, cfaEdge);
+          break;
+        case BACKWARD:
+          componentSuccessors =
+              lCurrentTransfer.getAbstractPredecessorsForEdge(
+                  lCurrentElement, lCurrentPrecision, cfaEdge);
+          break;
+        default:
+          throw new AssertionError("should not happen");
+      }
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {
@@ -299,8 +383,10 @@ final class CompositeTransferRelation implements TransferRelation {
 
   private Collection<List<AbstractState>> callStrengthen(
       final List<AbstractState> reachedState,
-      final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+      final CompositePrecision compositePrecision,
+      final CFAEdge cfaEdge,
+      AnalysisDirection direction)
+      throws CPATransferException, InterruptedException {
     List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
     int resultCount = 1;
 
@@ -310,8 +396,14 @@ final class CompositeTransferRelation implements TransferRelation {
       AbstractState lCurrentElement = reachedState.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
-
+      Collection<? extends AbstractState> lResultsList =
+          callStrengthen0(
+              reachedState,
+              cfaEdge,
+              direction,
+              lCurrentTransfer,
+              lCurrentElement,
+              lCurrentPrecision);
       resultCount *= lResultsList.size();
       if (resultCount == 0) {
         // shortcut
@@ -329,7 +421,14 @@ final class CompositeTransferRelation implements TransferRelation {
       Precision predPrecision = compositePrecision.get(predicatesIndex);
       TransferRelation predTransfer = transferRelations.get(predicatesIndex);
 
-      Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+      Collection<? extends AbstractState> predResult =
+          callStrengthen0(
+              Collections.singletonList(assumptionElement),
+              cfaEdge,
+              direction,
+              predTransfer,
+              predElement,
+              predPrecision);
       resultCount *= predResult.size();
 
       lStrengthenResults.set(predicatesIndex, predResult);
@@ -349,7 +448,8 @@ final class CompositeTransferRelation implements TransferRelation {
 
       for (List<AbstractState> strengthenedState : strengthenedStates) {
         if (any(strengthenedState, IS_TARGET_STATE)) {
-          newStrengthenedStates.addAll(callStrengthen(strengthenedState, compositePrecision, cfaEdge));
+          newStrengthenedStates.addAll(
+              callStrengthen(strengthenedState, compositePrecision, cfaEdge, direction));
         } else {
           newStrengthenedStates.add(strengthenedState);
         }
@@ -358,6 +458,26 @@ final class CompositeTransferRelation implements TransferRelation {
 
     } else {
       return strengthenedStates;
+    }
+  }
+
+  private Collection<? extends AbstractState> callStrengthen0(
+      final List<AbstractState> reachedState,
+      final CFAEdge cfaEdge,
+      AnalysisDirection direction,
+      TransferRelation lCurrentTransfer,
+      AbstractState lCurrentElement,
+      Precision lCurrentPrecision)
+      throws CPATransferException, InterruptedException, AssertionError {
+    switch (direction) {
+      case FORWARD:
+        return lCurrentTransfer.strengthen(
+            lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
+      case BACKWARD:
+        return lCurrentTransfer.strengthenPredecessor(
+            lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
+      default:
+        throw new AssertionError("should not happen");
     }
   }
 
