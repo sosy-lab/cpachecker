@@ -90,7 +90,7 @@
     <column title="highest_callstack_point_non_true_abs">Highest point in callstack with non-true abstraction formula:</column>
     <column title="global_observer_target_reach_count">Global observer automaton reached target count:</column>
     <column title="num_trivialy_used_predicates">Number of trivially used predicates:</column>
-    <column title="nontrue_true_nontrue_seq_num">NONTRUE-TRUE-NONTRUE seqences:</column>
+    <column title="nontrue_true_nontrue_seq_num">NONTRUE-TRUE-NONTRUE sequences:</column>
 
 
  </columns>

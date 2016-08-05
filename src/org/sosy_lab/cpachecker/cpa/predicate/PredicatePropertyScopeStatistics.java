@@ -288,7 +288,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Global observer automaton reached target count",
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
-    addKeyValueStatistic("NONTRUE-TRUE-NONTRUE seqences",
+    addKeyValueStatistic("NONTRUE-TRUE-NONTRUE sequences",
         findNontrueTrueNontrueSequences(pReached));
 
     super.printStatistics(pOut, pResult, pReached);
