@@ -65,7 +65,10 @@ class CoverageReportStdoutSummary {
 
     if (numTotalFunctions > 0) {
       final double functionCoverage = numVisitedFunctions / (double) numTotalFunctions;
+      StatisticsUtils.write(pStdOut, 1, 25, "Visited functions", numVisitedFunctions);
+      StatisticsUtils.write(pStdOut, 1, 25, "Total functions", numTotalFunctions);
       StatisticsUtils.write(pStdOut, 1, 25, "Function coverage", String.format("%.3f", functionCoverage));
+
     }
 
     if (numTotalLines > 0) {
