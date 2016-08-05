@@ -54,6 +54,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -130,18 +131,20 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
   }
 
-  private static Set<List<Boolean>> getTNTSeqs(ARGState pRoot) {
-    Set<List<ARGState>> distinctSeqs = allPathStream(pRoot)
-        .map(path -> path.stream()
-            .filter(state -> extractStateByType(state, PredicateAbstractState.class).
-                isAbstractionState())
-            .collect(Collectors.toList()))
-        .collect(Collectors.toSet());
-
+  private static Set<List<Boolean>> computeTNTSeqs(Collection<List<ARGState>> distinctSeqs) {
     return distinctSeqs.stream()
         .map(seq -> seq.stream()
             .map(state -> extractStateByType(state, PredicateAbstractState.class)
                 .getAbstractionFormula().isTrue()).collect(Collectors.toList()))
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<List<ARGState>> extractDistinctAbstractionStateSeqs(ARGState pRoot) {
+    return allPathStream(pRoot)
+        .map(path -> path.stream()
+            .filter(state -> extractStateByType(state, PredicateAbstractState.class).
+                isAbstractionState())
+            .collect(Collectors.toList()))
         .collect(Collectors.toSet());
   }
 
@@ -163,8 +166,9 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
                                  : Optional.of(longestPrefix.get(longestPrefix.size() - 1));
   }
 
-  private static Optional<Long> computeDepthOfHighestNonTrueAbstractionInCallstack(ReachedSet
-                                                                                       reached) {
+  private static Optional<Long> computeDepthOfHighestNonTrueAbstractionInCallstack(
+      ReachedSet
+          reached) {
     long depth = Long.MAX_VALUE;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
@@ -207,14 +211,16 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
             .filter(pResult -> pResult.function == null).map(pResult -> pResult)
         ).flatMap(pStringStream -> pStringStream).distinct().collect(Collectors.toSet());
   }
+
   private static long countNonTrueAbstractionStates(ReachedSet pReached) {
     return pReached.asCollection().stream()
         .filter(as -> asNonTrueAbstractionState(as).isPresent())
         .count();
   }
 
-  private static double avgGlobalRatioInAbsFormulaAtoms(ReachedSet reached,
-                                                        FormulaManagerView fmgr) {
+  private static double avgGlobalRatioInAbsFormulaAtoms(
+      ReachedSet reached,
+      FormulaManagerView fmgr) {
     long globalAtoms = 0;
     long atomCount = 0;
     for (AbstractState st : reached) {
@@ -252,7 +258,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
 
     Set<String> functionsInScope = collectFunctionsWithNonTrueAbsState(pReached);
-    
+
 
     addKeyValueStatistic("Functions with non-true abstraction", functionsInScope);
 
@@ -285,8 +291,9 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
     ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
+    Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(root);
+    Set<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
 
-    Set<List<Boolean>> tntSeqs = getTNTSeqs(root);
 
     addKeyValueStatistic("NONTRUE-TRUE-NONTRUE sequences",
         findNontrueTrueNontrueSequences(tntSeqs));
