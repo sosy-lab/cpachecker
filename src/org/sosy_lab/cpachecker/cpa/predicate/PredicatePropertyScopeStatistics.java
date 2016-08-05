@@ -54,12 +54,10 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
@@ -110,23 +108,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     predPrec = pPredPrec;
   }
 
-  private static long findNontrueTrueNontrueSequences(ReachedSet pReachedSet) {
-    ARGState root = extractStateByType(pReachedSet.getFirstState(), ARGState.class);
-
-    Set<List<ARGState>> distinctSeqs = allPathStream(root)
-        .map(path -> path.stream()
-            .filter(state -> extractStateByType(state, PredicateAbstractState.class).
-                isAbstractionState())
-            .collect(Collectors.toList()))
-        .collect(Collectors.toSet());
-
-    Set<List<Boolean>> tfseqs = distinctSeqs.stream()
-        .map(seq -> seq.stream()
-            .map(state -> extractStateByType(state, PredicateAbstractState.class)
-                .getAbstractionFormula().isTrue()).collect(Collectors.toList()))
-        .collect(Collectors.toSet());
-
-    long nttntnum = tfseqs.stream().filter(seq -> {
+  private static long findNontrueTrueNontrueSequences(Set<List<Boolean>> tntseqs) {
+    long nttntnum = tntseqs.stream().filter(seq -> {
       int ntFstIdx = seq.indexOf(false);
       int ntLstIdx = seq.lastIndexOf(false);
 
@@ -135,7 +118,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
       }
 
       for (int i = ntFstIdx; i < ntLstIdx; i++) {
-        if (seq.get(i) == true) {
+        if (seq.get(i)) {
           return true;
         }
       }
@@ -145,6 +128,21 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
     return nttntnum;
 
+  }
+
+  private static Set<List<Boolean>> getTNTSeqs(ARGState pRoot) {
+    Set<List<ARGState>> distinctSeqs = allPathStream(pRoot)
+        .map(path -> path.stream()
+            .filter(state -> extractStateByType(state, PredicateAbstractState.class).
+                isAbstractionState())
+            .collect(Collectors.toList()))
+        .collect(Collectors.toSet());
+
+    return distinctSeqs.stream()
+        .map(seq -> seq.stream()
+            .map(state -> extractStateByType(state, PredicateAbstractState.class)
+                .getAbstractionFormula().isTrue()).collect(Collectors.toList()))
+        .collect(Collectors.toSet());
   }
 
 
@@ -253,8 +251,6 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
       PrintStream pOut, Result pResult, ReachedSet pReached) {
 
 
-
-
     Set<String> functionsInScope = collectFunctionsWithNonTrueAbsState(pReached);
     
 
@@ -288,8 +284,12 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Global observer automaton reached target count",
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
+    ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
+
+    Set<List<Boolean>> tntSeqs = getTNTSeqs(root);
+
     addKeyValueStatistic("NONTRUE-TRUE-NONTRUE sequences",
-        findNontrueTrueNontrueSequences(pReached));
+        findNontrueTrueNontrueSequences(tntSeqs));
 
     super.printStatistics(pOut, pResult, pReached);
   }
