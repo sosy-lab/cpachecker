@@ -1879,6 +1879,9 @@ cpa.predicate.strengthenWithReusedAbstractions = false
 # file that consists of old abstractions, to be used during strengthening
 cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 
+# Use the the condition of target states for the strengthening.
+cpa.predicate.strengthenWithTargetConditions = true
+
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
