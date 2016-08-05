@@ -27,47 +27,36 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.Triple;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Class for creating solvers, useful for sharing the same solver across
  * multiple CPAs.
- *
  */
 public class SolverFactory {
-  private final Map<Triple<Configuration, LogManager, ShutdownNotifier>, Solver>
-      solverCache = new HashMap<>();
+  private @Nullable
+  Solver cachedInstance;
 
   /**
    * Get-or-create an existing solver object.
-   *
-   * <p>Guarantees to return the same solver object if same configuration,
-   * log manager, and shutdown notifier is passed.
-   * Creates a new solver object otherwise.
-   **/
-  public Solver getOrCreate(
+   */
+  public Solver getSolverCached(
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier
   ) throws InvalidConfigurationException {
-
-    Triple<Configuration, LogManager, ShutdownNotifier> key =
-        Triple.of(pConfiguration, pLogManager, pShutdownNotifier);
-    Solver out = solverCache.get(key);
-    if (out == null) {
-      out = buildSolver(pConfiguration, pLogManager, pShutdownNotifier);
-      solverCache.put(key, out);
+    if (cachedInstance == null) {
+      cachedInstance = buildSolver(
+          pConfiguration, pLogManager, pShutdownNotifier);
     }
-    return out;
+    return cachedInstance;
   }
 
   /**
    * Create a new solver objects.
    */
-  private Solver buildSolver(
+  public Solver buildSolver(
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {

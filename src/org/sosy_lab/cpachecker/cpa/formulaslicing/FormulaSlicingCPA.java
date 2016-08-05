@@ -63,7 +63,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       CFA cfa,
       SolverFactory pSolverFactory
   ) throws InvalidConfigurationException {
-    Solver solver = pSolverFactory.getOrCreate(
+    Solver solver = pSolverFactory.getSolverCached(
         pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
