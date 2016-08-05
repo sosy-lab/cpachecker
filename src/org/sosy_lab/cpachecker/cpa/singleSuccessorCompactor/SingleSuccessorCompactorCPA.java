@@ -23,17 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA {
@@ -47,33 +40,7 @@ public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return getWrappedCpa().getAbstractDomain();
-  }
-
-  @Override
   public TransferRelation getTransferRelation() {
     return new SingleSuccessorCompactorTransferRelation(getWrappedCpa().getTransferRelation());
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return getWrappedCpa().getMergeOperator();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return getWrappedCpa().getStopOperator();
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return getWrappedCpa().getPrecisionAdjustment();
-  }
-
-  @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    return getWrappedCpa().getInitialState(node, partition);
   }
 }
