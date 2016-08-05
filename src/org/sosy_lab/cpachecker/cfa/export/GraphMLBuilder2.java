@@ -143,7 +143,8 @@ public class GraphMLBuilder2 {
     }
 
     void writeFunctionFile(final String pFunctionName, final Path pOutDir) throws IOException {
-      try (Writer out = MoreFiles.asCharSink(Paths.get("cfa__" +pFunctionName+ ".graphml"), StandardCharsets.UTF_8).openBufferedStream()) {
+      try (Writer out = MoreFiles.asCharSink(pOutDir.resolve("cfa__" +pFunctionName+ ".graphml"),
+          StandardCharsets.UTF_8).openBufferedStream()) {
         out.write(writeXMLHeader());
 
         StringBuilder builder = new StringBuilder();
