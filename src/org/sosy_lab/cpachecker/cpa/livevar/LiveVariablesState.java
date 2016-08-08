@@ -25,9 +25,13 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 
 import java.util.BitSet;
 import java.util.Objects;
@@ -36,14 +40,19 @@ import java.util.Objects;
 class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {
 
   private final BitSet liveVars;
+  private final LiveVariablesTransferRelation manager;
 
-  LiveVariablesState(int totalNoVars) {
+  LiveVariablesState(int totalNoVars, LiveVariablesTransferRelation pManager) {
     liveVars = new BitSet(totalNoVars);
+    manager = pManager;
   }
 
-  LiveVariablesState(BitSet pLiveVariables) {
+  LiveVariablesState(
+      BitSet pLiveVariables,
+      LiveVariablesTransferRelation pManager) {
+    manager = pManager;
     checkNotNull(pLiveVariables);
-    liveVars = BitSet.valueOf(pLiveVariables.toLongArray());
+    liveVars = (BitSet) pLiveVariables.clone();
   }
 
   LiveVariablesState union(LiveVariablesState pState2) {
@@ -52,7 +61,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
     if (copy.equals(pState2.liveVars)) {
       return pState2;
     }
-    return new LiveVariablesState(copy);
+    return new LiveVariablesState(copy, manager);
   }
 
   boolean isSubsetOf(LiveVariablesState pState2) {
@@ -74,14 +83,9 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   LiveVariablesState removeLiveVariable(int posToRemove) {
     BitSet copy = (BitSet)liveVars.clone();
     copy.clear(posToRemove);
-    return new LiveVariablesState(copy);
+    return new LiveVariablesState(copy, manager);
   }
 
-  @Override
-  public String toString() {
-    // TODO
-    return liveVars.toString();
-  }
 
   @Override
   public int hashCode() {
@@ -118,15 +122,24 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    // todo
-    sb.append(liveVars);
+    Joiner.on(", ").appendTo(sb, toStringIterable());
     sb.append("]");
-
     return sb.toString();
   }
 
+  @Override
+  public String toString() {
+    return Joiner.on(", ").join(toStringIterable());
+  }
+
+  private Iterable<String> toStringIterable() {
+    return FluentIterable.from(manager.dataToVars(liveVars)).transform(
+        LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING
+    );
+  }
+
   BitSet getData() {
-    return BitSet.valueOf(liveVars.toLongArray());
+    return (BitSet) liveVars.clone();
   }
 
   @Override
