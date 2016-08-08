@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -32,22 +30,14 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.ContextSwitchEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.ThreadScheduleEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.ControlCodeBuilder;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -56,42 +46,13 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 
 //TODO Copied much code from callstack cpa. Refactor for a generalized implementation
-  @Options(prefix="cpa.callstack")
-  public class MultiCallstackTransferRelation extends SingleEdgeTransferRelation {
+public class MultiCallstackTransferRelation extends CallstackTransferRelation {
 
     static final String THREAD_SIMULATION_FUNCTION_NAME = ControlCodeBuilder.THREAD_SIMULATION_FUNCTION_NAME;
     static final String THREAD_DELIGATOR_NAME = "__THREAD_DELIGATOR";
 
-    @Option(secure=true, name="depth",
-        description = "depth of recursion bound")
-    protected int recursionBoundDepth = 0;
-
-    @Option(secure=true, name="skipRecursion", description = "Skip recursion (this is unsound)." +
-        " Treat function call as a statement (the same as for functions without bodies)")
-    protected boolean skipRecursion = false;
-
-    /**
-     * This flag might be set by external CPAs (e.g. BAM) to indicate
-     * a recursive context that might not be recognized by the CallstackCPA.
-     * (In case of BAM the operator Reduce splits an indirect recursive call f-g-f
-     * into two calls f-g and g-f, which are both non-recursive.)
-     * A function-call in a recursive context will be skipped,
-     * if the Option 'skipRecursion' is enabled.
-     */
-    private boolean isRecursiveContext = false;
-
-    @Option(secure=true, description = "Skip recursion if it happens only by going via a function pointer (this is unsound)." +
-        " Imprecise function pointer tracking often lead to false recursions.")
-    protected boolean skipFunctionPointerRecursion = false;
-
-    @Option(secure=true, description = "Skip recursion if it happens only by going via a void function (this is unsound).")
-    protected boolean skipVoidRecursion = false;
-
-    protected final LogManagerWithoutDuplicates logger;
-
     public MultiCallstackTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-      config.inject(this);
-      logger = new LogManagerWithoutDuplicates(pLogger);
+      super(config, pLogger);
     }
 
     @Override
@@ -126,9 +87,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
       return Collections.singleton(pElement);
     }
-
-
-
 
   private Collection<? extends AbstractState> handleScheduleEdge(
       ThreadScheduleEdge pEdge, MultiCallstackState e) {
@@ -272,121 +230,4 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
       return null;
     }
-
-    protected boolean skipRecursiveFunctionCall(final CallstackState element,
-        final FunctionCallEdge callEdge) {
-      // Cannot skip if there is no edge for skipping
-      // (this would just terminate the path here -> unsound).
-      if (leavingEdges(callEdge.getPredecessor()).filter(CFunctionSummaryStatementEdge.class).isEmpty()) {
-        return false;
-      }
-
-      if (skipRecursion) {
-        return true;
-      }
-      if (skipFunctionPointerRecursion && hasFunctionPointerRecursion(element, callEdge)) {
-        return true;
-      }
-      if (skipVoidRecursion && hasVoidRecursion(element, callEdge)) {
-        return true;
-      }
-      return false;
-    }
-
-    /** check, if the current function-call has already appeared in the call-stack. */
-    protected boolean hasRecursion(final CallstackState pCurrentState, final String pCalledFunction) {
-      if (isRecursiveContext) { // external CPA has seen recursion
-        return true;
-      }
-      // iterate through the current stack and search for an equal name
-      CallstackState e = pCurrentState;
-      int counter = 0;
-
-      while (e != null) {
-        if (e.getCurrentFunction().equals(pCalledFunction)) {
-          counter++;
-          if (counter > recursionBoundDepth) {
-            return true;
-          }
-        }
-        e = e.getPreviousState();
-      }
-      return false;
-    }
-
-    protected boolean hasFunctionPointerRecursion(final CallstackState element,
-        final FunctionCallEdge pCallEdge) {
-      throw new UnsupportedOperationException("not impelemnted yet");
-//      if (pCallEdge.getRawStatement().startsWith("pointer call(")) { // Hack, see CFunctionPointerResolver
-//        return true;
-//      }
-//
-//      final String functionName = pCallEdge.getSuccessor().getFunctionName();
-//      CallstackState e = element;
-//      while (e != null) {
-//        if (e.getCurrentFunction().equals(functionName)) {
-//          // reached the previous stack frame of the same function,
-//          // and no function pointer so far
-//          return false;
-//        }
-//
-//        FunctionCallEdge callEdge = findOutgoingCallEdge(element.getCallNode());
-//        if (callEdge.getRawStatement().startsWith("pointer call(")) {
-//          return true;
-//        }
-//
-//        e = e.getPreviousState();
-//      }
-//      throw new AssertionError();
-    }
-
-    protected boolean hasVoidRecursion(final CallstackState element,
-        final FunctionCallEdge pCallEdge) {
-      if (pCallEdge.getSummaryEdge().getExpression() instanceof AFunctionCallStatement) {
-        return true;
-      }
-
-      final String functionName = pCallEdge.getSuccessor().getFunctionName();
-      CallstackState e = element;
-      while (e != null) {
-        if (e.getCurrentFunction().equals(functionName)) {
-          // reached the previous stack frame of the same function,
-          // and no function pointer so far
-          return false;
-        }
-
-        FunctionSummaryEdge summaryEdge = (FunctionSummaryEdge) element.getCallNode().getLeavingSummaryEdge();
-        if (summaryEdge.getExpression() instanceof AFunctionCallStatement) {
-          return true;
-        }
-
-        e = e.getPreviousState();
-      }
-      throw new AssertionError();
-    }
-
-    protected boolean shouldGoByFunctionSummaryStatement(CallstackState element, CFunctionSummaryStatementEdge sumEdge) {
-      String functionName = sumEdge.getFunctionName();
-      FunctionCallEdge callEdge = findOutgoingCallEdge(sumEdge.getPredecessor());
-      assert functionName.equals(callEdge.getSuccessor().getFunctionName());
-      return hasRecursion(element, functionName) && skipRecursiveFunctionCall(element, callEdge);
-    }
-
-    protected FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
-      for (CFAEdge edge : leavingEdges(predNode)) {
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          return (FunctionCallEdge)edge;
-        }
-      }
-      throw new AssertionError("Missing function call edge for function call summary edge");
-    }
-
-    public void enableRecursiveContext() {
-      isRecursiveContext = true;
-    }
-
-    public void disableRecursiveContext() {
-      isRecursiveContext = false;
-    }
-
 }
