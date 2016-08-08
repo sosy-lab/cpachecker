@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -58,15 +57,12 @@ public class ContextSwitchTransferRelation extends SingleEdgeTransferRelation {
   @Option(description = "Bounds the number of context switches which will be performed for every thread")
   protected int contextSwitchBound = 50;
 
-  private CFA cfa;
-
   static final String THREAD_SIMULATION_FUNCTION_NAME = ControlCodeBuilder.THREAD_SIMULATION_FUNCTION_NAME;
-  private LogManager logger;
+  private final LogManager logger;
 
-  protected ContextSwitchTransferRelation(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+  protected ContextSwitchTransferRelation(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.cfa = cfa;
   }
 
   @Override

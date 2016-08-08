@@ -42,7 +42,7 @@ public class ContextSwitchCPA extends AbstractCPA {
   private AThreadContainer initialThreads;
 
   protected ContextSwitchCPA(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException {
-    super("sep", "sep", new ContextSwitchTransferRelation(config, pLogger, cfa));
+    super("sep", "sep", new ContextSwitchTransferRelation(config, pLogger));
     Preconditions.checkState(
         cfa.getThreads().isPresent(), "ContextSwitchCPA needs information about threads.");
     this.initialThreads = cfa.getThreads().get();

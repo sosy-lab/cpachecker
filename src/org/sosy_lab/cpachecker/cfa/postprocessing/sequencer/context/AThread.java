@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,12 +44,12 @@ import com.google.common.collect.SetMultimap;
 public abstract class AThread {
 
   private FunctionEntryNode threadFunction;
-  private int threadNumber;
-  private String threadName;
-  private Map<CFANode, ContextSwitch> contextSwitchPoints = new HashMap<CFANode, ContextSwitch>();
+  private final int threadNumber;
+  private final String threadName;
+  private final Map<CFANode, ContextSwitch> contextSwitchPoints = new HashMap<CFANode, ContextSwitch>();
   protected SetMultimap<String, ? extends AStatementEdge> usedFunctions;
-  private Optional<? extends AFunctionCall> threadCreationStatement;
-  private Optional<? extends AThread> creator;
+  private final Optional<? extends AFunctionCall> threadCreationStatement;
+  private final Optional<? extends AThread> creator;
 
   public AThread(FunctionEntryNode threadFunction, String threadName,
       int threadNumber, @Nullable AFunctionCall threadCreationStatement,
