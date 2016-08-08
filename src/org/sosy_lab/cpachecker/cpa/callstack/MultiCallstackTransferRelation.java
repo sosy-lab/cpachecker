@@ -91,13 +91,11 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
   private Collection<? extends AbstractState> handleScheduleEdge(
       ThreadScheduleEdge pEdge, MultiCallstackState e) {
 
-    assert e.isContextLess();
     assert e.getThreadName() == null; // The only place where it is null
     ThreadScheduleEdge threadScheduleEdge = pEdge;
     String thread = threadScheduleEdge.getThreadContext().getThreadName();
     MultiCallstackState context = e.setContext(thread);
 
-    context.setContextLess(true);
     return Collections.singleton(context);
   }
 
@@ -111,8 +109,6 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
     if (THREAD_SIMULATION_FUNCTION_NAME.equals(callerFunctionName)) {
       String thread = e.getThreadName();
       MultiCallstackState newTop = new MultiCallstackState(e, thread, calledFunctionName, callerNode);
-      newTop.setContextLess(e.isContextLess());
-
       return enterThread(newTop, thread);
     }
 
@@ -132,7 +128,6 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
       }
     }
 
-    assert !e.isContextLess();
     // regular function call: add the called function to the current stack
 
     return Collections.singleton(new MultiCallstackState(e, e.getThreadName(),
@@ -153,9 +148,7 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
     if (callerFunction.equals(THREAD_SIMULATION_FUNCTION_NAME)) {
       String threadName = e.getThreadName();
       MultiCallstackState stackBottom = e.getPreviousState();
-      assert !stackBottom.hasContext(threadName);
       assert pEdge.getPredecessor().getNumLeavingEdges() == 1;
-      stackBottom.setContextLess(e.isContextLess());
 
       return returnFromThread(stackBottom, callerFunction);
     }
@@ -204,22 +197,18 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
   }
 
   private static Collection<MultiCallstackState> returnFromThread(MultiCallstackState e, String callerFunction) {
-    assert !e.isContextLess();
     assert e.getThreadName() != null;
 
     MultiCallstackState returnElement = e.setContext(null);
-    returnElement.setContextLess(true);
 
     return Collections
         .singleton(returnElement);
   }
 
   private static Collection<MultiCallstackState> enterThread(MultiCallstackState e, String thread) {
-    assert e.isContextLess();
     assert e.getThreadName() != null;
 
     MultiCallstackState returnElement = e.setContext(thread);
-    returnElement.setContextLess(false);
     return Collections.singleton(returnElement);
   }
 

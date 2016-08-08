@@ -44,9 +44,6 @@ public class MultiCallstackState implements AbstractState, Partitionable {
    * This attribute is nullable. This might shrink the abstract state. */
   @Nullable private final String thread;
 
-  // ASSERTION ONLY
-  private boolean contextLess = false;
-
   /**
    * changes context of state
    */
@@ -118,25 +115,6 @@ public class MultiCallstackState implements AbstractState, Partitionable {
     }
     return rep.toString();
   }
-
-
-  // ASSERTION ONLY
-  public boolean hasContext(String thread) {
-    assert thread != null;
-
-    return threadContextCallstacks.containsKey(thread);
-  }
-
-  // ASSERTION ONLY
-  public boolean isContextLess() {
-    return contextLess;
-  }
-
-  // ASSERTION ONLY
-  public void setContextLess(boolean isContextLess) {
-    this.contextLess = isContextLess;
-  }
-
 
 //TODO Thread shouldn't change the
   // state, because every thread has
