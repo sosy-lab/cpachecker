@@ -162,16 +162,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final CFANode callerNode = pred;
 
         if (hasRecursion(e, calledFunction)) {
-          if (skipRecursiveFunctionCall(e, (FunctionCallEdge)pEdge)) {
-            // skip recursion, don't enter function
-            logger.logOnce(Level.WARNING, "Skipping recursive function call from",
-                pred.getFunctionName(), "to", calledFunction);
-            return Collections.emptySet();
-          } else {
-            // recursion is unsupported
-            logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
-            throw new UnsupportedCodeException("recursion", pEdge);
-          }
+            return handleRecursion(pEdge, e, pred, calledFunction);
         } else {
           // regular function call:
           //    add the called function to the current stack
@@ -214,6 +205,28 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  protected Collection<? extends AbstractState> handleRecursion(
+      CFAEdge pEdge, final CallstackState e, final CFANode pred, final String calledFunction)
+      throws UnsupportedCodeException {
+    if (skipRecursiveFunctionCall(e, (FunctionCallEdge) pEdge)) {
+      // skip recursion, don't enter function
+      logger.logOnce(
+          Level.WARNING,
+          "Skipping recursive function call from",
+          pred.getFunctionName(),
+          "to",
+          calledFunction);
+      return Collections.emptySet();
+    } else {
+      // recursion is unsupported
+      logger.log(
+          Level.INFO,
+          "Recursion detected, aborting. To ignore recursion, "
+              + "add -skipRecursion to the command line.");
+      throw new UnsupportedCodeException("recursion", pEdge);
+    }
   }
 
   /**
