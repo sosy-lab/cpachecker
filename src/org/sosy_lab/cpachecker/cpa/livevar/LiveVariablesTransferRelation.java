@@ -156,8 +156,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     if (assumeGlobalVariablesAreAlwaysLive) {
       for (int i=0; i<noVars; i++) {
         ASimpleDeclaration decl = allDeclarations.get(i).get();
-        if (decl instanceof AVariableDeclaration && ((AVariableDeclaration)
-            decl).isGlobal()) {
+        if (decl instanceof AVariableDeclaration &&
+            ((AVariableDeclaration) decl).isGlobal()) {
           globalVars.set(i);
         }
       }
@@ -220,7 +220,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
         }
       }
 
-      for (int i=0; i<node.getNumEnteringEdges(); i++) {
+      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
         CFAEdge e = node.getEnteringEdge(i);
         if (e instanceof ADeclarationEdge) {
           ASimpleDeclaration decl = ((ADeclarationEdge) e).getDeclaration();
@@ -248,20 +248,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return Collections.singleton(successor);
   }
 
-
-  /**
-   * Returns a collection of all variable names which occur in expression
-   */
-  private void handleExpression(AExpression expression, BitSet writeInto) {
-    collectDeclarationsAll(expression, writeInto);
-  }
-
-  /**
-   * Returns a collection of the variable names in the leftHandSide
-   */
-  private void handleLeftHandSide(AExpression pLeftHandSide, BitSet writeInto) {
-    collectDeclarationsLeft(pLeftHandSide, writeInto);
-  }
 
   @Override
   protected  LiveVariablesState handleAssumption(
@@ -306,45 +292,22 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return LiveVariablesState.ofUnique(out, this);
   }
 
-  /**
-   * This method computes the variables that are used for initializing an other
-   * variable from a given initializer.
-   */
-  private void getVariablesUsedForInitialization(
-      AInitializer init, BitSet writeInto)
-      throws CPATransferException {
-    // e.g. .x=b or .p.x.=1  as part of struct initialization
-    if (init instanceof CDesignatedInitializer) {
-      getVariablesUsedForInitialization(((CDesignatedInitializer)
-          init).getRightHandSide(), writeInto);
-
-
-    // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    } else if (init instanceof CInitializerList) {
-      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
-        getVariablesUsedForInitialization(inList, writeInto);
-      }
-    } else if (init instanceof AInitializerExpression) {
-      handleExpression(((AInitializerExpression) init).getExpression(), writeInto);
-
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
-    }
-  }
 
   @Override
   protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
     BitSet out = state.getDataCopy();
     if (statement instanceof AExpressionAssignmentStatement) {
-      return handleAssignments((AAssignment) statement, out);
+      handleAssignment((AAssignment) statement, out);
+      return LiveVariablesState.ofUnique(out, this);
 
       // no changes as there is no assignment, thus we can return the last state
     } else if (statement instanceof AExpressionStatement) {
       return state;
 
     } else if (statement instanceof AFunctionCallAssignmentStatement) {
-      return handleAssignments((AAssignment) statement, out);
+      handleAssignment((AAssignment) statement, out);
+      return LiveVariablesState.ofUnique(out, this);
 
     } else if (statement instanceof AFunctionCallStatement) {
 
@@ -358,116 +321,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
   }
 
-  private LiveVariablesState handleAssignments(AAssignment assignment,
-                                               BitSet writeInto) {
-
-    final ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-
-    final BitSet assignedVariable = new BitSet(noVars);
-
-    // all variables that occur in combination with the leftHandSide additionally
-    // to the needed one (e.g. a[i] i is additionally) are added to the newLiveVariables
-    handleLeftHandSide(leftHandSide, assignedVariable);
-
-    handleExpression(leftHandSide, writeInto);
-
-    // assigned variable gets removed.
-    writeInto.andNot(assignedVariable);
-
-    // check all variables of the rightHandsides, they should be live afterwards
-    // if the leftHandSide is live
-    if (assignment instanceof AExpressionAssignmentStatement) {
-      handleExpression((AExpression) assignment.getRightHandSide(), writeInto);
-
-    } else if (assignment instanceof AFunctionCallAssignmentStatement){
-      AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
-      getVariablesUsedAsParameters(
-          funcStmt.getFunctionCallExpression().getParameterExpressions(), writeInto);
-
-    } else {
-      throw new AssertionError("Unhandled assignment type.");
-    }
-
-    // if the assigned variable is always live we add it to the live variables
-    // additionally to the rightHandSide variables
-    if (isAlwaysLive(leftHandSide)) {
-      writeInto.or(assignedVariable);
-      return LiveVariablesState.ofUnique(writeInto, this);
-
-      // if the lefthandSide is live all variables on the rightHandSide
-      // have to get live, parameters of function calls always have to get live,
-      // because the function needs those for assigning their variables
-    } else if (assignment instanceof AFunctionCallAssignmentStatement
-              || isLeftHandSideLive(leftHandSide)) {
-
-      // for example an array access *(arr + offset) = 2;
-      if (assignedVariable.size() > 1) {
-        writeInto.or(assignedVariable);
-        return LiveVariablesState.ofUnique(writeInto, this);
-
-        // when there is a field reference, an array access or a pointer expression,
-        // and the assigned variable was live before, we need to let it also be
-        // live afterwards
-      } else if (leftHandSide instanceof CFieldReference
-          || leftHandSide instanceof AArraySubscriptExpression
-          || leftHandSide instanceof CPointerExpression) {
-        return LiveVariablesState.ofUnique(writeInto, this);
-
-        // no special case here, the assigned variable is not live anymore
-      } else {
-        return LiveVariablesState.ofUnique(writeInto, this);
-      }
-
-      // if the leftHandSide is not life, but there is a pointer dereference
-      // we need to make the leftHandSide life. Thus afterwards everything from
-      // this statement is life.
-    } else if ((leftHandSide instanceof CFieldReference
-                        && (((CFieldReference)leftHandSide).isPointerDereference()
-                           || ((CFieldReference)leftHandSide).getFieldOwner() instanceof CPointerExpression))
-                || leftHandSide instanceof AArraySubscriptExpression
-                || leftHandSide instanceof CPointerExpression) {
-      writeInto.or(assignedVariable);
-      return LiveVariablesState.ofUnique(writeInto, this);
-
-      // assigned variable is not live, so we do not need to make the
-      // rightHandSideVariables live
-    } else {
-      return state;
-    }
-  }
-
-  /**
-   * This method checks if a leftHandSide variable is always live:
-   * anything on the LHS is addressed or global.
-   */
-  private boolean isAlwaysLive(ALeftHandSide expression) {
-    BitSet lhs = new BitSet(noVars);
-    collectDeclarationsLeft(expression, lhs);
-    lhs.and(addressedOrGlobalVars);
-    return !lhs.isEmpty();
-  }
-
-  /**
-   * This method checks if a leftHandSide variable is live at a given location,
-   * this means it either is always live, or it is live in the current state.
-   */
-  private boolean isLeftHandSideLive(ALeftHandSide expression) {
-    BitSet lhs = new BitSet(noVars);
-    collectDeclarationsLeft(expression, lhs);
-    return isAlwaysLive(expression) || state.containsAny(lhs);
-  }
-
-  /**
-   * This method returns the variables that are used in a given list of CExpressions.
-   */
-  private void getVariablesUsedAsParameters(
-      List<? extends AExpression> parameters,
-      BitSet writeInto) {
-    for (AExpression expression : parameters) {
-      handleExpression(expression, writeInto);
-    }
-  }
-
   @Override
   protected LiveVariablesState handleReturnStatementEdge(AReturnStatementEdge cfaEdge)
       throws CPATransferException {
@@ -476,7 +329,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       return state;
     }
     BitSet data = state.getDataCopy();
-    return handleAssignments(cfaEdge.asAssignment().get(), data);
+    handleAssignment(cfaEdge.asAssignment().get(), data);
+    return LiveVariablesState.ofUnique(data, this);
   }
 
   @Override
@@ -518,7 +372,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
           ((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
       BitSet data = state.getDataCopy();
-      handleAssignments((AAssignment) summaryExpr, data);
+      handleAssignment((AAssignment) summaryExpr, data);
       if (isLeftHandsideLive) {
         data.set(declarationListPos.get(LIVE_DECL_EQUIVALENCE.wrap(retVal)));
       }
@@ -535,7 +389,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     AFunctionCall functionCall = cfaEdge.getExpression();
     BitSet data = state.getDataCopy();
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
-      handleAssignments((AAssignment) functionCall, data);
+      handleAssignment((AAssignment) functionCall, data);
 
     } else if (functionCall instanceof AFunctionCallStatement) {
       AFunctionCallStatement funcStmt = (AFunctionCallStatement) functionCall;
@@ -572,6 +426,180 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return out;
   }
 
+  private void handleAssignment(AAssignment assignment,
+                                              BitSet writeInto) {
+
+
+    final ALeftHandSide lhs = assignment.getLeftHandSide();
+
+    boolean isLhsAlwaysLive = isAlwaysLive(lhs);
+    boolean isLhsLive = isLeftHandSideLive(lhs)
+        || assignment instanceof AFunctionCallAssignmentStatement;
+
+    boolean lhsIsPointerDereference = ((lhs instanceof CFieldReference
+        && (((CFieldReference)lhs).isPointerDereference()
+        || ((CFieldReference)lhs).getFieldOwner() instanceof CPointerExpression))
+        || lhs instanceof AArraySubscriptExpression
+        || lhs instanceof CPointerExpression);
+
+    if (!isLhsAlwaysLive && !isLhsLive && !lhsIsPointerDereference) {
+
+      // Assigned variable is not live, so we do not need to make the
+      // rightHandSideVariables live.
+      return;
+    }
+
+    final BitSet assignedVariable = new BitSet(noVars);
+    final BitSet newLiveVars = new BitSet(noVars);
+
+    // all variables that occur in combination with the leftHandSide additionally
+    // to the needed one (e.g. a[i] i is additionally) are added to the newLiveVariables
+    handleLeftHandSide(lhs, assignedVariable);
+
+    handleExpression(lhs, newLiveVars);
+
+    // assigned variable gets removed.
+    newLiveVars.andNot(assignedVariable);
+
+
+    // check all variables of the right-hand-sides, they should be live
+    // afterwards if the leftHandSide is live
+    if (assignment instanceof AExpressionAssignmentStatement) {
+      handleExpression((AExpression) assignment.getRightHandSide(), newLiveVars);
+
+    } else if (assignment instanceof AFunctionCallAssignmentStatement){
+      AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
+      getVariablesUsedAsParameters(
+          funcStmt.getFunctionCallExpression().getParameterExpressions(),
+          newLiveVars
+      );
+
+    } else {
+      throw new AssertionError("Unhandled assignment type.");
+    }
+
+    // if the assigned variable is always live we add it to the live variables
+    // additionally to the rightHandSide variables
+    if (isLhsAlwaysLive) {
+      writeInto.or(assignedVariable);
+      writeInto.or(newLiveVars);
+
+      // if lhs is live all variables on the rightHandSide
+      // have to get live, parameters of function calls always have to get live,
+      // because the function needs those for assigning their variables
+    } else if (isLhsLive) {
+
+      // for example an array access *(arr + offset) = 2;
+      if (assignedVariable.cardinality() > 1) {
+        newLiveVars.or(assignedVariable);
+        writeInto.or(newLiveVars);
+
+        // when there is a field reference, an array access or a pointer expression,
+        // and the assigned variable was live before, we need to let it also be
+        // live afterwards
+      } else if (lhs instanceof CFieldReference
+          || lhs instanceof AArraySubscriptExpression
+          || lhs instanceof CPointerExpression) {
+        writeInto.or(newLiveVars);
+
+        // no special case here, the assigned variable is not live anymore
+      } else {
+        writeInto.andNot(assignedVariable);
+        writeInto.or(newLiveVars);
+      }
+
+      // if the leftHandSide is not life, but there is a pointer dereference
+      // we need to make the leftHandSide life. Thus afterwards everything from
+      // this statement is life.
+    } else  {
+      assert lhsIsPointerDereference;
+      writeInto.or(assignedVariable);
+      writeInto.or(newLiveVars);
+    }
+  }
+
+
+  /**
+   * This method computes the variables that are used for initializing an other
+   * variable from a given initializer.
+   */
+  private void getVariablesUsedForInitialization(
+      AInitializer init, BitSet writeInto)
+      throws CPATransferException {
+    // e.g. .x=b or .p.x.=1  as part of struct initialization
+    if (init instanceof CDesignatedInitializer) {
+      getVariablesUsedForInitialization(((CDesignatedInitializer)
+          init).getRightHandSide(), writeInto);
+
+
+      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
+    } else if (init instanceof CInitializerList) {
+      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
+        getVariablesUsedForInitialization(inList, writeInto);
+      }
+    } else if (init instanceof AInitializerExpression) {
+      handleExpression(((AInitializerExpression) init).getExpression(), writeInto);
+
+    } else {
+      throw new CPATransferException("Missing case for if-then-else statement.");
+    }
+  }
+
+  /**
+   * Checks if a leftHandSide variable is live at a given location:
+   * this means it either is always live, or it is live in the current state.
+   */
+  private boolean isLeftHandSideLive(ALeftHandSide expression) {
+    BitSet lhs = new BitSet(noVars);
+    collectDeclarationsLeft(expression, lhs);
+    return isAlwaysLive(expression) || state.containsAny(lhs);
+  }
+
+
+  /**
+   * Mark all declarations occurring inside the expression as live.
+   */
+  private void handleExpression(AExpression expression, BitSet writeInto) {
+    collectDeclarationsAll(expression, writeInto);
+  }
+
+  /**
+   * Mark all declarations occurring in {@code pLeftHandSide} as live.
+   */
+  private void handleLeftHandSide(AExpression pLeftHandSide, BitSet writeInto) {
+    collectDeclarationsLeft(pLeftHandSide, writeInto);
+  }
+
+  private void collectDeclarationsLeft(AExpression exp, BitSet writeInto) {
+    exp.accept_(new LeftHandSideIdExpressionVisitor(declarationListPos, writeInto));
+  }
+
+  private void collectDeclarationsAll(AExpression exp, BitSet writeInto) {
+    exp.accept_(new DeclarationCollectingVisitor(declarationListPos, writeInto));
+  }
+
+  /**
+   * @return whether a leftHandSide variable is always live:
+   * anything on the LHS is addressed or global.
+   */
+  private boolean isAlwaysLive(ALeftHandSide expression) {
+    BitSet lhs = new BitSet(noVars);
+    collectDeclarationsLeft(expression, lhs);
+    lhs.and(addressedOrGlobalVars);
+    return !lhs.isEmpty();
+  }
+
+  /**
+   * Mark all declarations occurring inside the parameters as live.
+   */
+  private void getVariablesUsedAsParameters(
+      List<? extends AExpression> parameters,
+      BitSet writeInto) {
+    for (AExpression expression : parameters) {
+      handleExpression(expression, writeInto);
+    }
+  }
+
   /**
    * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptExpressions
    * we do only want the IdExpressions inside the ArrayExpression.
@@ -588,13 +616,5 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     public Void visit(AArraySubscriptExpression pE) {
       return pE.getArrayExpression().accept_(this);
     }
-  }
-
-  private void collectDeclarationsLeft(AExpression exp, BitSet writeInto) {
-    exp.accept_(new LeftHandSideIdExpressionVisitor(declarationListPos, writeInto));
-  }
-
-  private void collectDeclarationsAll(AExpression exp, BitSet writeInto) {
-    exp.accept_(new DeclarationCollectingVisitor(declarationListPos, writeInto));
   }
 }
