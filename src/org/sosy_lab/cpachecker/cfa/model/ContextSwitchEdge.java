@@ -32,7 +32,7 @@ public class ContextSwitchEdge extends AbstractCFAEdge {
 
   @Override
   public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.ContextSwtichEdge;
+    return CFAEdgeType.ContextSwitchEdge;
   }
 
   public boolean isToScheduler() {

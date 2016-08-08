@@ -370,7 +370,7 @@ public abstract class PathTranslator {
 
     case BlankEdge:
     case StatementEdge:
-    case ContextSwtichEdge:
+    case ContextSwitchEdge:
     case ThreadScheduleEdge:
     case ContextSwitchSummaryEdge:
     case ReturnStatementEdge:

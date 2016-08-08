@@ -201,7 +201,7 @@ public final class ErrorPathShrinker {
       case ContextSwitchSummaryEdge:
         throw new AssertionError("function summaries not supported");
 
-      case ContextSwtichEdge:
+      case ContextSwitchEdge:
       case ThreadScheduleEdge:
         break;
       default:

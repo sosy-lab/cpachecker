@@ -585,7 +585,7 @@ public class VariableClassificationBuilder {
 
     case BlankEdge:
     case CallToReturnEdge:
-    case ContextSwtichEdge:
+    case ContextSwitchEdge:
     case ContextSwitchSummaryEdge:
     case ThreadScheduleEdge:
       // other cases are not interesting

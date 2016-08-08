@@ -363,7 +363,7 @@ public class SourceLocationMapper {
         result.add(((CStatementEdge) edge).getStatement());
       break;
       case BlankEdge:
-      case ContextSwtichEdge:
+      case ContextSwitchEdge:
       case ContextSwitchSummaryEdge:
       case ThreadScheduleEdge:
         // do nothing

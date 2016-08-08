@@ -119,7 +119,7 @@ public final class DOTBuilder {
       CFANode predecessor = edge.getPredecessor();
       List<String> graph;
       if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
-          || edge.getEdgeType() == CFAEdgeType.ContextSwtichEdge) {
+          || edge.getEdgeType() == CFAEdgeType.ContextSwitchEdge) {
         graph = edges.get(MAIN_GRAPH);
       } else {
         graph = edges.get(predecessor.getFunctionName());

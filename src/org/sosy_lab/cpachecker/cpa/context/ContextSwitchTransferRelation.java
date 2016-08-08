@@ -95,7 +95,7 @@ public class ContextSwitchTransferRelation extends SingleEdgeTransferRelation {
       handleMutex((AStatementEdge) cfaEdge, threadState);
       handlePThreadCreate((AStatementEdge) cfaEdge, threadState);
       break;
-    case ContextSwtichEdge:
+    case ContextSwitchEdge:
       assert cfaEdge instanceof ContextSwitchEdge;
       return handleContextSwitch((ContextSwitchEdge) cfaEdge, (ThreadState) state);
 

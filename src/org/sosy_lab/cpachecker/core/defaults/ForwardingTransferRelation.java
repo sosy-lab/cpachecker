@@ -261,7 +261,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     case BlankEdge:
       return handleBlankEdge((BlankEdge) cfaEdge);
       
-    case ContextSwtichEdge:
+    case ContextSwitchEdge:
       return handleContextSwitchEdge((ContextSwitchEdge) cfaEdge);
       
     case ThreadScheduleEdge:

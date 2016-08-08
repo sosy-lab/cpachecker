@@ -78,7 +78,7 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
         return handleFunctionCallEdge((FunctionCallEdge) pEdge, e);
       case FunctionReturnEdge:
         return handleFunctionRetrunEdge((FunctionReturnEdge) pEdge, e);
-      case ContextSwtichEdge:
+      case ContextSwitchEdge:
         return handleContextSwitchEdge((ContextSwitchEdge) pEdge, e);
 
       default:

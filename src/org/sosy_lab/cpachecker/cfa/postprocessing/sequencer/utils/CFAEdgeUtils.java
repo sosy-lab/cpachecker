@@ -403,7 +403,7 @@ public class CFAEdgeUtils {
     case StatementEdge:
       newEdge = buildCStatementEdge(edge, predecessor, successor);
       break;
-    case ContextSwtichEdge:
+    case ContextSwitchEdge:
       newEdge = buildAContextSwitchEdge(edge, predecessor, successor);
       break;
     case ThreadScheduleEdge:
