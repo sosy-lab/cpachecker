@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
+
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import java.util.Objects;
 
 
 /**
@@ -40,7 +39,6 @@ import java.util.Objects;
 public final class CParameterDeclaration extends AParameterDeclaration implements CSimpleDeclaration {
 
   private String qualifiedName;
-  private int hashCache = -1;
 
   public CParameterDeclaration(FileLocation pFileLocation,
                                   CType pType,
@@ -70,13 +68,11 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
 
   @Override
   public int hashCode() {
-    if (hashCache == -1) {
-      int prime = 31;
-      int result = 7;
-      result = prime * result + super.hashCode();
-      hashCache = prime * result + Objects.hashCode(qualifiedName);
-    }
-    return hashCache;
+    int prime = 31;
+    int result = 7;
+    result = prime * result + super.hashCode();
+    result = prime * result + Objects.hashCode(qualifiedName);
+    return result;
   }
 
   @Override
