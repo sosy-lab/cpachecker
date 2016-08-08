@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.formula.FormulaPresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.solver.SolverException;
@@ -398,24 +399,30 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     Preconditions.checkArgument(pSourceOfStrengthening instanceof Targetable);
     Preconditions.checkArgument(((Targetable)pSourceOfStrengthening).isTarget());
-    Preconditions.checkArgument(pStrengthenWithCondition instanceof FormulaPresenceCondition);
 
-    FormulaPresenceCondition condition = (FormulaPresenceCondition) pStrengthenWithCondition;
-
-    if (!fmgr.getBooleanFormulaManager().isTrue(condition.getFormula())) {
-
-      if (fmgr.getBooleanFormulaManager().isFalse(condition.getFormula())) {
+    if (pStrengthenWithCondition instanceof BinaryPresenceCondition) {
+      BinaryPresenceCondition binPc = (BinaryPresenceCondition) pStrengthenWithCondition;
+      if (!binPc.getValue()) {
         return null; // not reachable
       }
+    } else if (pStrengthenWithCondition instanceof FormulaPresenceCondition) {
+      FormulaPresenceCondition condition = (FormulaPresenceCondition) pStrengthenWithCondition;
 
-      PathFormula strengthened = pathFormulaManager.makeAnd(pStateToStrengthen
-          .getPathFormula(), condition.getFormula());
+      if (!fmgr.getBooleanFormulaManager().isTrue(condition.getFormula())) {
 
-      if (strengthened != pStateToStrengthen.getPathFormula()) {
-        return replacePathFormula(pStateToStrengthen, strengthened);
-      } else {
-        return pStateToStrengthen;
+        if (fmgr.getBooleanFormulaManager().isFalse(condition.getFormula())) {
+          return null; // not reachable
+        }
+
+        PathFormula strengthened = pathFormulaManager.makeAnd(pStateToStrengthen
+            .getPathFormula(), condition.getFormula());
+
+        if (strengthened != pStateToStrengthen.getPathFormula()) {
+          return replacePathFormula(pStateToStrengthen, strengthened);
+        }
       }
+    } else {
+      throw new RuntimeException("Type of presence condition not supported for strengthening the Predicate CPA!");
     }
 
     return pStateToStrengthen;
