@@ -31,16 +31,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.ContextSwitchSummaryEdge;
 
 
-public class ContextSwitch {
+public class ContextSwitch implements Comparable<ContextSwitch> {
   /**
    * Context switch numbering start at 1. ContextSwitch number 0 is reserved for
    * the function start for every thread
    */
-  private int contextSwitchNumber;
-  private AThread thread;
+  private final int contextSwitchNumber;
+  private final AThread thread;
 
   private CFANode jumpInNode;
-  private Collection<CFAEdge> contextStatementCause = new HashSet<CFAEdge>();
+  private final Collection<CFAEdge> contextStatementCause = new HashSet<>();
 
   public ContextSwitch(int contextSwitchNumber, AThread thread, CFAEdge switchPoint) {
 //    Preconditions.checkArgument(PThreadUtils.isContextSwitchPoint(switchPoint));
@@ -104,8 +104,6 @@ public class ContextSwitch {
     return true;
   }
 
-
-
   @Override
   public String toString() {
     String rep = "(" + thread + " pc=" + contextSwitchNumber + ")";
@@ -113,13 +111,17 @@ public class ContextSwitch {
     return rep;
   }
 
-
   // FIXME find better solution for this
   public void replaceContextSwitchCause(CFAEdge toReplace, CFAEdge replace) {
     assert contextStatementCause.contains(toReplace);
     assert !contextStatementCause.contains(replace);
     contextStatementCause.remove(toReplace);
     contextStatementCause.add(replace);
+  }
+
+  @Override
+  public int compareTo(ContextSwitch other) {
+    return Integer.compare(contextSwitchNumber, other.contextSwitchNumber);
   }
 
 }

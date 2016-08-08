@@ -110,14 +110,8 @@ public abstract class AThread {
   }
 
   public List<ContextSwitch> getContextSwitchPoints() {
-    List<ContextSwitch> sorted = new ArrayList<ContextSwitch>(contextSwitchPoints.values());
-    Collections.sort(sorted,   new Comparator<ContextSwitch>() {
-
-      @Override
-      public int compare(ContextSwitch o1, ContextSwitch o2) {
-        return o1.getContextSwitchNumber() - o2.getContextSwitchNumber();
-      }
-    });
+    List<ContextSwitch> sorted = new ArrayList<>(contextSwitchPoints.values());
+    Collections.sort(sorted);
 
     // context switch points musn't appear twice
     assert sorted.size() == new HashSet<>(sorted).size();
