@@ -30,7 +30,6 @@ import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
 import java.util.BitSet;
@@ -135,7 +134,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   }
 
   @Override
-  public boolean isLessOrEqual(LiveVariablesState pOther) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(LiveVariablesState pOther) {
     return isSubsetOf(pOther);
   }
 
