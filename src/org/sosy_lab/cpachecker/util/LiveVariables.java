@@ -207,6 +207,11 @@ public class LiveVariables {
     public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
       return allVariables;
     }
+
+    @Override
+    public FluentIterable<ASimpleDeclaration> getAllLiveVariables() {
+      return allVariables;
+    }
   }
 
   /**
