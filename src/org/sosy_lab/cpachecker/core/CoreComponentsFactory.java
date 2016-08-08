@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -172,6 +173,7 @@ public class CoreComponentsFactory {
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
+  private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -192,8 +194,16 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
+    if (useTerminationAlgorithm) {
+      aggregatedReachedSetManager = new AggregatedReachedSetManager();
+      aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
+      aggregatedReachedSets = aggregatedReachedSetManager.asView();
+    } else {
+      aggregatedReachedSetManager = null;
+      aggregatedReachedSets = pAggregatedReachedSets;
+    }
+
     reachedSetFactory = new ReachedSetFactory(config);
-    aggregatedReachedSets = pAggregatedReachedSets;
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
 
     if (checkCounterexamplesWithBDDCPARestriction) {
@@ -339,6 +349,7 @@ public class CoreComponentsFactory {
             shutdownNotifier,
             cfa,
             reachedSetFactory,
+            aggregatedReachedSetManager,
             specification,
             algorithm,
             cpa);
