@@ -164,8 +164,7 @@ public class LiveVariables {
    */
   private static class AllVariablesAsLiveVariables extends LiveVariables {
 
-    private FluentIterable<String> allVariables;
-    private FluentIterable<ASimpleDeclaration> allVariableDecls;
+    private FluentIterable<ASimpleDeclaration> allVariables;
 
     private AllVariablesAsLiveVariables(CFA cfa, List<Pair<ADeclaration, String>> globalsList) {
       super();
@@ -190,10 +189,8 @@ public class LiveVariables {
       // we have no information which variable is live at a certain node, so
       // when asked about the variables for a certain node, we return the whole
       // set of all variables of the analysed program
-      allVariableDecls =
+      allVariables =
           edges.<ASimpleDeclaration>transform(ADeclarationEdge::getDeclaration).append(globalVars);
-
-      allVariables = allVariableDecls.transform(ASimpleDeclaration::getQualifiedName);
     }
 
     @Override
@@ -207,13 +204,8 @@ public class LiveVariables {
     }
 
     @Override
-    public FluentIterable<String> getLiveVariableNamesForNode(CFANode pNode) {
-      return allVariables;
-    }
-
-    @Override
     public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
-      return allVariableDecls;
+      return allVariables;
     }
   }
 
@@ -317,14 +309,6 @@ public class LiveVariables {
     return from(ImmutableSet.copyOf(liveVariables.values())).append(globalVariables)
         .transform(FROM_EQUIV_WRAPPER);
 
-  }
-
-  /**
-   * Return an iterable of all names of live variables at a given CFANode
-   * without duplicates and with deterministic iteration order.
-   */
-  public FluentIterable<String> getLiveVariableNamesForNode(CFANode pNode) {
-    return from(liveVariablesStrings.get(pNode)).append(globalVariablesStrings);
   }
 
   public static Optional<LiveVariables> createWithAllVariablesAsLive(final List<Pair<ADeclaration, String>> globalsList,

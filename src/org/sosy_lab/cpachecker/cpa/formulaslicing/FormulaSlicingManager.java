@@ -10,6 +10,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -216,13 +217,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
-      if (filterByLiveness &&
-          Sets.intersection(
-              ImmutableSet.copyOf(
-                  liveVariables.getLiveVariableNamesForNode(node)
-                      .filter(s -> s != null)),
-              fmgr.extractFunctionNames(fmgr.uninstantiate(lemma))).isEmpty()
-          ) {
+      if (filterByLiveness
+          && Sets.intersection(
+                  ImmutableSet.copyOf(
+                      liveVariables
+                          .getLiveVariablesForNode(node)
+                          .transform(ASimpleDeclaration::getQualifiedName)
+                          .filter(s -> s != null)),
+                  fmgr.extractFunctionNames(fmgr.uninstantiate(lemma)))
+              .isEmpty()) {
 
         continue;
       }
