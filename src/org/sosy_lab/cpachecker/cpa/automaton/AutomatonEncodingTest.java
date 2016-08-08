@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -33,7 +34,10 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 public class AutomatonEncodingTest {
 
@@ -64,7 +68,10 @@ public class AutomatonEncodingTest {
     final String programFile = "test/config/automata/encode/ldv_118_test.c";
 
     TestResults results = runWithAutomataEncoding(specFile, programFile);
-    TestResults resultsWithSatCheck = runWithSatCheckAutomataEncoding(specFile, programFile);
+    Map<String, String> additionalOptions = new HashMap<>();
+    additionalOptions.put("cpa.predicate.targetStateSatCheck", "true");
+    TestResults resultsWithSatCheck =
+        runWithAutomataEncoding(specFile, programFile, additionalOptions);
 
     results.assertIsSafe();
     resultsWithSatCheck.assertIsSafe();
@@ -144,43 +151,35 @@ public class AutomatonEncodingTest {
     unmatchProgramResults.assertIsSafe();
   }
 
-  private TestResults runWithAutomataEncoding(final String pSpecFile, final String pProgramFile)
-      throws Exception {
-
-    Map<String, String> prop = ImmutableMap.<String, String>builder()
-        .put("specification", pSpecFile)
-        .put("cpa.predicate.ignoreIrrelevantVariables", "true")
-        .put("cpa.predicate.strengthenWithTargetConditions", "false")
-        .put("cpa.composite.aggregateBasicBlocks", "false")
-        .put("automata.properties.granularity", "BASENAME")
-        .put("analysis.checkCounterexamples", "false")
-        .build();
-
-    Configuration cfg = TestDataTools.configurationForTest()
-        .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties")
-        .setOptions(prop)
-        .build();
-
-    return CPATestRunner.run(cfg, pProgramFile, false);
+  private TestResults runWithAutomataEncoding(
+      final @Nonnull String pSpecFile, final @Nonnull String pProgramFile) throws Exception {
+    return runWithAutomataEncoding(pSpecFile, pProgramFile, new HashMap<>());
   }
 
-  private TestResults runWithSatCheckAutomataEncoding(
-      final String pSpecFile, final String pProgramFile) throws Exception {
-    Map<String, String> prop =
-        ImmutableMap.<String, String>builder()
+  private TestResults runWithAutomataEncoding(
+      final @Nonnull String pSpecFile,
+      final @Nonnull String pProgramFile,
+      final @Nonnull Map<String, String> pAdditionalProperties)
+      throws Exception {
+    Builder<String, String> propertyBuilder = ImmutableMap.builder();
+
+    propertyBuilder =
+        propertyBuilder
             .put("specification", pSpecFile)
             .put("cpa.predicate.ignoreIrrelevantVariables", "true")
             .put("cpa.predicate.strengthenWithTargetConditions", "false")
-            .put("cpa.predicate.targetStateSatCheck", "true")
             .put("cpa.composite.aggregateBasicBlocks", "false")
             .put("automata.properties.granularity", "BASENAME")
-            .put("analysis.checkCounterexamples", "false")
-            .build();
+            .put("analysis.checkCounterexamples", "false");
 
-    Configuration cfg =
+    if (pAdditionalProperties.size() > 0) {
+      propertyBuilder = propertyBuilder.putAll(pAdditionalProperties);
+    }
+
+    final Configuration cfg =
         TestDataTools.configurationForTest()
             .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties")
-            .setOptions(prop)
+            .setOptions(propertyBuilder.build())
             .build();
 
     return CPATestRunner.run(cfg, pProgramFile, false);
