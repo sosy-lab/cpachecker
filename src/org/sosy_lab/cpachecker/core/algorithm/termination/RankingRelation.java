@@ -178,5 +178,10 @@ public class RankingRelation {
     public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
       return pManager.translateFrom(invariant, fmgr);
     }
+
+    @Override
+    public String toString() {
+      return TerminationInvariantSupplierState.class.getSimpleName() + "[" + invariant + "]";
+    }
   }
 }
