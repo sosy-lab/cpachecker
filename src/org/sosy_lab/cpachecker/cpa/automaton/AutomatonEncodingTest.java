@@ -64,14 +64,21 @@ public class AutomatonEncodingTest {
     final String programFile = "test/config/automata/encode/ldv_118_test.c";
 
     TestResults results = runWithAutomataEncoding(specFile, programFile);
+    TestResults resultsWithSatCheck = runWithSatCheckAutomataEncoding(specFile, programFile);
 
     results.assertIsSafe();
+    resultsWithSatCheck.assertIsSafe();
 
     TestRunStatisticsParser stat = new TestRunStatisticsParser();
     results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statWithSatCheck = new TestRunStatisticsParser();
+    resultsWithSatCheck.getCheckerResult().printStatistics(statWithSatCheck.getPrintStream());
 
     stat.assertThatNumber("Number of times merged").isAtLeast(2);
-    stat.assertThatNumber("Number of refinements").isAtMost(3);
+    stat.assertThatNumber("Number of refinements").isAtMost(9);
+
+    statWithSatCheck.assertThatNumber("Number of times merged").isAtLeast(2);
+    statWithSatCheck.assertThatNumber("Number of refinements").isAtMost(3);
   }
 
   @Test
@@ -153,6 +160,28 @@ public class AutomatonEncodingTest {
         .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties")
         .setOptions(prop)
         .build();
+
+    return CPATestRunner.run(cfg, pProgramFile, false);
+  }
+
+  private TestResults runWithSatCheckAutomataEncoding(
+      final String pSpecFile, final String pProgramFile) throws Exception {
+    Map<String, String> prop =
+        ImmutableMap.<String, String>builder()
+            .put("specification", pSpecFile)
+            .put("cpa.predicate.ignoreIrrelevantVariables", "true")
+            .put("cpa.predicate.strengthenWithTargetConditions", "false")
+            .put("cpa.predicate.targetStateSatCheck", "true")
+            .put("cpa.composite.aggregateBasicBlocks", "false")
+            .put("automata.properties.granularity", "BASENAME")
+            .put("analysis.checkCounterexamples", "false")
+            .build();
+
+    Configuration cfg =
+        TestDataTools.configurationForTest()
+            .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties")
+            .setOptions(prop)
+            .build();
 
     return CPATestRunner.run(cfg, pProgramFile, false);
   }
