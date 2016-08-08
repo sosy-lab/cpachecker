@@ -139,13 +139,14 @@ public class AutomatonEncodingTest {
   private TestResults runWithAutomataEncoding(final String pSpecFile, final String pProgramFile)
       throws Exception {
 
-    Map<String, String> prop = ImmutableMap.of(
-        "specification",                    pSpecFile,
-        "cpa.predicate.ignoreIrrelevantVariables", "true",
-        "cpa.composite.aggregateBasicBlocks", "false",
-        "automata.properties.granularity",  "BASENAME",
-        "analysis.checkCounterexamples", "FALSE"
-      );
+    Map<String, String> prop = ImmutableMap.<String, String>builder()
+        .put("specification", pSpecFile)
+        .put("cpa.predicate.ignoreIrrelevantVariables", "true")
+        .put("cpa.predicate.strengthenWithTargetConditions", "false")
+        .put("cpa.composite.aggregateBasicBlocks", "false")
+        .put("automata.properties.granularity", "BASENAME")
+        .put("analysis.checkCounterexamples", "false")
+        .build();
 
     Configuration cfg = TestDataTools.configurationForTest()
         .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl-bitprecise.properties")
