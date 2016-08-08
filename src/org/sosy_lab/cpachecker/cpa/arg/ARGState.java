@@ -161,11 +161,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
         if (currentLoc.getLeavingSummaryEdge() != null
             && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
           return currentLoc.getLeavingSummaryEdge();
-
-        } else if (currentLoc.getEnteringSummaryEdge() != null
-            && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
-          return currentLoc.getEnteringSummaryEdge();
-
         }
       }
     }
