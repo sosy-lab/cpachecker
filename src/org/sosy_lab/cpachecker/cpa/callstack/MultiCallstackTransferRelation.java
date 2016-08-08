@@ -77,7 +77,7 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
       case FunctionCallEdge:
         return handleFunctionCallEdge((FunctionCallEdge) pEdge, e);
       case FunctionReturnEdge:
-        return handleFunctionRetrunEdge((FunctionReturnEdge) pEdge, e);
+        return handleFunctionReturnEdge((FunctionReturnEdge) pEdge, e);
       case ContextSwitchEdge:
         return handleContextSwitchEdge((ContextSwitchEdge) pEdge, e);
 
@@ -135,7 +135,7 @@ public class MultiCallstackTransferRelation extends CallstackTransferRelation {
 
   }
 
-  private Collection<? extends AbstractState> handleFunctionRetrunEdge(
+  private Collection<? extends AbstractState> handleFunctionReturnEdge(
       FunctionReturnEdge pEdge, MultiCallstackState e) {
     final String calledFunction = pEdge.getPredecessor().getFunctionName();
     final String callerFunction = pEdge.getSuccessor().getFunctionName();
