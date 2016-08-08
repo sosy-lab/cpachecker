@@ -161,10 +161,8 @@ public class AutomatonEncodingTest {
       final @Nonnull String pProgramFile,
       final @Nonnull Map<String, String> pAdditionalProperties)
       throws Exception {
-    Builder<String, String> propertyBuilder = ImmutableMap.builder();
-
-    propertyBuilder =
-        propertyBuilder
+    final Builder<String, String> propertyBuilder =
+        ImmutableMap.<String, String>builder()
             .put("specification", pSpecFile)
             .put("cpa.predicate.ignoreIrrelevantVariables", "true")
             .put("cpa.predicate.strengthenWithTargetConditions", "false")
@@ -173,7 +171,7 @@ public class AutomatonEncodingTest {
             .put("analysis.checkCounterexamples", "false");
 
     if (pAdditionalProperties.size() > 0) {
-      propertyBuilder = propertyBuilder.putAll(pAdditionalProperties);
+      propertyBuilder.putAll(pAdditionalProperties);
     }
 
     final Configuration cfg =
