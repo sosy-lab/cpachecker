@@ -217,7 +217,7 @@ public class ConfigurationFilesTest {
     final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
-    logHandler.setLevel(Level.INFO);
+    logHandler.setLevel(Level.ALL);
     final LogManager logger = BasicLogManager.createWithHandler(logHandler);
 
     final CPAchecker cpachecker;
