@@ -192,12 +192,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
         BitSet out = new BitSet(noVars);
         out.set(wrappedVarPos);
-        return new LiveVariablesState(out, this);
+        return LiveVariablesState.ofUnique(out, this);
       }
 
     } else {
       logger.log(Level.FINEST, "No FunctionExitNode given, thus creating initial state without having the return variable.");
-      return new LiveVariablesState(noVars, this);
+      return LiveVariablesState.empty(noVars, this);
     }
   }
 
@@ -244,7 +244,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
 
     // live variables of multiedges were handled separately.
-    liveVariables.get(edge.getPredecessor()).or(successor.getData());
+    liveVariables.get(edge.getPredecessor()).or(successor.getDataCopy());
     return Collections.singleton(successor);
   }
 
@@ -271,9 +271,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       throws CPATransferException {
 
     // all variables in assumption become live
-    BitSet out = state.getData();
+    BitSet out = state.getDataCopy();
     handleExpression(expression, out);
-    return new LiveVariablesState(out, this);
+    return LiveVariablesState.ofUnique(out, this);
   }
 
   @Override
@@ -299,11 +299,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       return state;
     }
 
-    BitSet out = state.getData();
+    BitSet out = state.getDataCopy();
     getVariablesUsedForInitialization(init, out);
     out.clear(varDeclPos);
 
-    return new LiveVariablesState(out, this);
+    return LiveVariablesState.ofUnique(out, this);
   }
 
   /**
@@ -335,7 +335,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   @Override
   protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
-    BitSet out = state.getData();
+    BitSet out = state.getDataCopy();
     if (statement instanceof AExpressionAssignmentStatement) {
       return handleAssignments((AAssignment) statement, out);
 
@@ -351,7 +351,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       AFunctionCallStatement funcStmt = (AFunctionCallStatement) statement;
       getVariablesUsedAsParameters(
           funcStmt.getFunctionCallExpression().getParameterExpressions(), out);
-      return new LiveVariablesState(out, this);
+      return LiveVariablesState.ofUnique(out, this);
 
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
@@ -392,7 +392,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     // additionally to the rightHandSide variables
     if (isAlwaysLive(leftHandSide)) {
       writeInto.or(assignedVariable);
-      return new LiveVariablesState(writeInto, this);
+      return LiveVariablesState.ofUnique(writeInto, this);
 
       // if the lefthandSide is live all variables on the rightHandSide
       // have to get live, parameters of function calls always have to get live,
@@ -403,7 +403,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       // for example an array access *(arr + offset) = 2;
       if (assignedVariable.size() > 1) {
         writeInto.or(assignedVariable);
-        return new LiveVariablesState(writeInto, this);
+        return LiveVariablesState.ofUnique(writeInto, this);
 
         // when there is a field reference, an array access or a pointer expression,
         // and the assigned variable was live before, we need to let it also be
@@ -411,11 +411,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       } else if (leftHandSide instanceof CFieldReference
           || leftHandSide instanceof AArraySubscriptExpression
           || leftHandSide instanceof CPointerExpression) {
-        return new LiveVariablesState(writeInto, this);
+        return LiveVariablesState.ofUnique(writeInto, this);
 
         // no special case here, the assigned variable is not live anymore
       } else {
-        return new LiveVariablesState(writeInto, this);
+        return LiveVariablesState.ofUnique(writeInto, this);
       }
 
       // if the leftHandSide is not life, but there is a pointer dereference
@@ -427,7 +427,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
                 || leftHandSide instanceof AArraySubscriptExpression
                 || leftHandSide instanceof CPointerExpression) {
       writeInto.or(assignedVariable);
-      return new LiveVariablesState(writeInto, this);
+      return LiveVariablesState.ofUnique(writeInto, this);
 
       // assigned variable is not live, so we do not need to make the
       // rightHandSideVariables live
@@ -475,7 +475,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     if (!cfaEdge.asAssignment().isPresent()) {
       return state;
     }
-    BitSet data = state.getData();
+    BitSet data = state.getDataCopy();
     return handleAssignments(cfaEdge.asAssignment().get(), data);
   }
 
@@ -488,7 +488,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
      * for the purpose of having a complete CPA which works on the graph with
      * all functions connected, this method is implemented.
      */
-    BitSet data = state.getData();
+    BitSet data = state.getDataCopy();
 
     for (AExpression arg : arguments) {
       handleExpression(arg, data);
@@ -499,7 +499,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
           declarationListPos.get(LIVE_DECL_EQUIVALENCE.wrap(decl)));
     }
 
-    return new LiveVariablesState(data, this);
+    return LiveVariablesState.ofUnique(data, this);
   }
 
   @Override
@@ -517,12 +517,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       boolean isLeftHandsideLive = isLeftHandSideLive(
           ((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
-      BitSet data = state.getData();
+      BitSet data = state.getDataCopy();
       handleAssignments((AAssignment) summaryExpr, data);
       if (isLeftHandsideLive) {
         data.set(declarationListPos.get(LIVE_DECL_EQUIVALENCE.wrap(retVal)));
       }
-      return new LiveVariablesState(data, this);
+      return LiveVariablesState.ofUnique(data, this);
 
     // no assigned variable -> nothing to change
     } else {
@@ -533,20 +533,20 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   @Override
   protected LiveVariablesState handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
     AFunctionCall functionCall = cfaEdge.getExpression();
-    BitSet data = state.getData();
+    BitSet data = state.getDataCopy();
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
       handleAssignments((AAssignment) functionCall, data);
 
     } else if (functionCall instanceof AFunctionCallStatement) {
       AFunctionCallStatement funcStmt = (AFunctionCallStatement) functionCall;
       getVariablesUsedAsParameters(
-          funcStmt .getFunctionCallExpression().getParameterExpressions(),
+          funcStmt.getFunctionCallExpression().getParameterExpressions(),
           data);
 
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
     }
-    return new LiveVariablesState(data, this);
+    return LiveVariablesState.ofUnique(data, this);
   }
 
   /**

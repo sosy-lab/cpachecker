@@ -42,26 +42,43 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   private final BitSet liveVars;
   private final LiveVariablesTransferRelation manager;
 
-  LiveVariablesState(int totalNoVars, LiveVariablesTransferRelation pManager) {
-    liveVars = new BitSet(totalNoVars);
-    manager = pManager;
-  }
-
-  LiveVariablesState(
+  private LiveVariablesState(
       BitSet pLiveVariables,
       LiveVariablesTransferRelation pManager) {
     manager = pManager;
     checkNotNull(pLiveVariables);
-    liveVars = (BitSet) pLiveVariables.clone();
+    liveVars = pLiveVariables;
   }
 
-  LiveVariablesState union(LiveVariablesState pState2) {
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.or(pState2.liveVars);
-    if (copy.equals(pState2.liveVars)) {
-      return pState2;
-    }
-    return new LiveVariablesState(copy, manager);
+  static LiveVariablesState empty(
+      int totalNoVars,
+      LiveVariablesTransferRelation pManager) {
+    return new LiveVariablesState(new BitSet(totalNoVars), pManager);
+  }
+
+  static LiveVariablesState of(
+      BitSet pLiveVars,
+      LiveVariablesTransferRelation pManager
+  ) {
+    return new LiveVariablesState((BitSet) pLiveVars.clone(), pManager);
+  }
+
+  /**
+   * Create new LiveVariablesState, but do not defensively copy the data:
+   * the caller has to ensure that no other copies of {@code pLiveVars} exist.
+   *
+   * <p>Use at your own risk.
+   */
+  static LiveVariablesState ofUnique(
+      BitSet pLiveVars,
+      LiveVariablesTransferRelation pManager
+  ) {
+    return new LiveVariablesState(pLiveVars, pManager);
+  }
+
+  LiveVariablesState(int totalNoVars, LiveVariablesTransferRelation pManager) {
+    liveVars = new BitSet(totalNoVars);
+    manager = pManager;
   }
 
   boolean isSubsetOf(LiveVariablesState pState2) {
@@ -83,7 +100,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   LiveVariablesState removeLiveVariable(int posToRemove) {
     BitSet copy = (BitSet)liveVars.clone();
     copy.clear(posToRemove);
-    return new LiveVariablesState(copy, manager);
+    return LiveVariablesState.ofUnique(copy, manager);
   }
 
 
@@ -109,7 +126,12 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
 
   @Override
   public LiveVariablesState join(LiveVariablesState pOther) {
-    return union(pOther);
+    BitSet copy = (BitSet)liveVars.clone();
+    copy.or(pOther.liveVars);
+    if (copy.equals(pOther.liveVars)) {
+      return pOther;
+    }
+    return ofUnique(copy, manager);
   }
 
   @Override
@@ -138,7 +160,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
     );
   }
 
-  BitSet getData() {
+  BitSet getDataCopy() {
     return (BitSet) liveVars.clone();
   }
 
