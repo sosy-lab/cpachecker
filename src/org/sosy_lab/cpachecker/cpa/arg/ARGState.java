@@ -29,7 +29,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -49,7 +48,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -151,12 +149,10 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // first try to get a normal edge
     // consider only the actual analysis direction
     Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
-    Iterable<CFAEdge> outgoingEdgesOfParent = currentLocs.getOutgoingEdges();
-    Iterator<CFAEdge> edges =
-        Iterables.filter(outgoingEdgesOfParent, ingoingEdgesOfChild::contains).iterator();
-
-    if (edges.hasNext()) {
-      return edges.next();
+    for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
+      if (ingoingEdgesOfChild.contains(edge)) {
+        return edge;
+      }
     }
 
     // then try to get a special edge, just to have some edge.
