@@ -52,7 +52,6 @@ public class LoopstatsTest {
     results.getCheckerResult().printStatistics(stat.getPrintStream());
 
     stat.assertThatNumber("Number of times merged").isAtLeast(2);
-    stat.assertThatNumber("Number of refinements").isAtMost(3);
     stat.assertThatNumber("Max. unrollings of a loop").isAtMost(2);
   }
 
