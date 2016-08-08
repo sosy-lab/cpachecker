@@ -30,8 +30,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -74,6 +77,7 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -401,7 +405,10 @@ class KInductionProver implements AutoCloseable {
     Map<CandidateInvariant, BooleanFormula> assertions = new HashMap<>();
     ReachedSet predecessorReachedSet = null;
 
-    for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
+    Set<CandidateInvariantConjunction> artificialConjunctions =
+        buildArtificialConjunctions(pCandidateInvariants);
+    Iterable<CandidateInvariant> candidatesToCheck = Iterables.concat(pCandidateInvariants, artificialConjunctions);
+    for (CandidateInvariant candidateInvariant : candidatesToCheck) {
 
       if (!canBeAsserted(candidateInvariant, pImmediateLoopHeads)) {
         assertions.put(candidateInvariant, bfmgr.makeBoolean(true));
@@ -469,7 +476,12 @@ class KInductionProver implements AutoCloseable {
     int numberOfSuccessfulProofs = 0;
     stats.inductionPreparation.stop();
     push(invariants); // Assert the known invariants
-    for (CandidateInvariant candidateInvariant : pCandidateInvariants) {
+
+    for (CandidateInvariant candidateInvariant : candidatesToCheck) {
+      if (artificialConjunctions.contains(candidateInvariant)
+          && isSizeLessThanOrEqualTo(((CandidateInvariantConjunction) candidateInvariant).getElements(), 1)) {
+        continue;
+      }
 
       // Obtain the predecessor assertion created earlier
       BooleanFormula predecessorAssertion = assertions.get(candidateInvariant);
@@ -527,8 +539,15 @@ class KInductionProver implements AutoCloseable {
       // If the proof is successful, move the problem from the set of open
       // problems to the set of solved problems
       if (isInvariant) {
-        ++numberOfSuccessfulProofs;
-        confirmedCandidates.add(candidateInvariant);
+        if (artificialConjunctions.contains(candidateInvariant)) {
+          for (CandidateInvariant element : ((CandidateInvariantConjunction) candidateInvariant).getElements()) {
+            ++numberOfSuccessfulProofs;
+            confirmedCandidates.add(element);
+          }
+        } else {
+          ++numberOfSuccessfulProofs;
+          confirmedCandidates.add(candidateInvariant);
+        }
         violationFormulas.remove(candidateInvariant);
       }
       pop(); // Pop invariant successor violation
@@ -552,6 +571,67 @@ class KInductionProver implements AutoCloseable {
     pop(); // Pop loop head invariants
 
     return numberOfSuccessfulProofs == pCandidateInvariants.size();
+  }
+
+  private static boolean isSizeLessThanOrEqualTo(Iterable<?> pElements, int pLimit) {
+    return Iterables.isEmpty(Iterables.skip(pElements, pLimit));
+  }
+
+  private Set<CandidateInvariantConjunction> buildArtificialConjunctions(
+      final Set<CandidateInvariant> pCandidateInvariants) {
+    FluentIterable<? extends LocationFormulaInvariant> remainingLoopHeadCandidateInvariants = from(pCandidateInvariants)
+        .filter(LocationFormulaInvariant.class)
+        .filter(new Predicate<LocationFormulaInvariant>() {
+
+          @Override
+          public boolean apply(@Nullable LocationFormulaInvariant pLocationFormulaInvariant) {
+            for (CFANode location : pLocationFormulaInvariant.getLocations()) {
+              if (!location.isLoopStart()) {
+                return cfa.getLoopStructure().isPresent() && cfa.getLoopStructure().get().getAllLoopHeads().contains(location);
+              }
+            }
+            return true;
+          }
+
+        })
+        .filter(Predicates.not(Predicates.in(confirmedCandidates)));
+    if (remainingLoopHeadCandidateInvariants.isEmpty()) {
+      return Collections.emptySet();
+    }
+    CandidateInvariantConjunction artificialConjunction = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
+    Set<CandidateInvariantConjunction> artificialConjunctions = Sets.newHashSet();
+
+    Multimap<String, LocationFormulaInvariant> functionInvariants = HashMultimap.create();
+    for (LocationFormulaInvariant locationFormulaInvariant : remainingLoopHeadCandidateInvariants) {
+      for (CFANode location : locationFormulaInvariant.getLocations()) {
+        functionInvariants.put(location.getFunctionName(), locationFormulaInvariant);
+      }
+    }
+    for (Map.Entry<String, Collection<LocationFormulaInvariant>> functionInvariantsEntry : functionInvariants.asMap().entrySet()) {
+      if (functionInvariantsEntry.getValue().size() > 1
+          && functionInvariantsEntry.getValue().size() < remainingLoopHeadCandidateInvariants.size()) {
+        // Use filter instead of computed collection
+        // so that it is updated dynamically if the underlying collection is updated
+        artificialConjunctions.add(CandidateInvariantConjunction.of(
+            remainingLoopHeadCandidateInvariants.filter(new Predicate<LocationFormulaInvariant>() {
+
+              @Override
+              public boolean apply(LocationFormulaInvariant pLocationFormulaInvariant) {
+                for (CFANode location : pLocationFormulaInvariant.getLocations()) {
+                  if (location.getFunctionName().equals(functionInvariantsEntry.getKey())) {
+                    return true;
+                  }
+                }
+                return false;
+              }
+
+            })));
+      }
+    }
+
+    artificialConjunctions.add(artificialConjunction);
+
+    return artificialConjunctions;
   }
 
   /**
