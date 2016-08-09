@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.DeclarationCollectingVisitor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -323,7 +323,8 @@ public class DeterministicVariablesTransferRelation
    * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptexpressions
    * we do only want the IdExpressions inside the ArrayExpression.
    */
-  private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
+  private static final class LeftHandSideIdExpressionVisitor extends
+                                                             DeclarationCollectingVisitor {
     @Override
     public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
       return pE.getArrayExpression().<Set<ASimpleDeclaration>,

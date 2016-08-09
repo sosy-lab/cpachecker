@@ -103,9 +103,10 @@ public class LiveVariables {
   /**
    * Equivalence implementation especially for the use with live variables. We
    * have to use this wrapper, because of the storageType in CVariableDeclarations
-   * which do not always have to be the same for exactly the same variable (e.g.
-   * one declaration is extern, and afterwards the real declaration is following which
-   * then has storageType auto, for live variables we need to consider them as one.
+   * which does not always have to be the same for exactly the same variable
+   * (e.g. one declaration is extern, and afterwards the real declaration is following which
+   * then has storageType auto: for live variables we need to consider them
+   * as one).
    */
   public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<ASimpleDeclaration>() {
 
@@ -316,8 +317,9 @@ public class LiveVariables {
 
   }
 
-  public static Optional<LiveVariables> createWithAllVariablesAsLive(final List<Pair<ADeclaration, String>> globalsList,
-                                                           final MutableCFA pCFA) {
+  public static Optional<LiveVariables> createWithAllVariablesAsLive(
+      final List<Pair<ADeclaration, String>> globalsList,
+      final MutableCFA pCFA) {
     return Optional.of(new AllVariablesAsLiveVariables(pCFA, globalsList));
   }
 
@@ -328,7 +330,10 @@ public class LiveVariables {
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final Configuration config)
-      throws InvalidConfigurationException, IllegalArgumentException, AssertionError, InterruptedException {
+      throws InvalidConfigurationException,
+             IllegalArgumentException,
+             AssertionError,
+             InterruptedException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
@@ -361,7 +366,15 @@ public class LiveVariables {
       limitChecker = null;
     }
 
-    LiveVariables liveVarObject = create0(variableClassification.orElse(null), globalsList, logger, shutdownNotifier, cfa, liveVarConfig);
+    LiveVariables liveVarObject = create0(
+        variableClassification.orElse(null),
+        globalsList,
+        logger,
+        shutdownNotifier,
+        cfa,
+        liveVarConfig
+    );
+
     if (limitChecker != null) {
       limitChecker.cancel();
     }
@@ -377,6 +390,7 @@ public class LiveVariables {
       final CFA cfa,
       final LiveVariablesConfiguration config)
       throws AssertionError, IllegalArgumentException, InterruptedException {
+
     // prerequisites for creating the live variables
     Set<Wrapper<ASimpleDeclaration>> globalVariables;
     switch (config.evaluationStrategy) {
@@ -430,16 +444,23 @@ public class LiveVariables {
     if (liveVariables == null && config.evaluationStrategy != EvaluationStrategy.FUNCTION_WISE) {
       logger.log(Level.INFO, "Global live variables collection failed, fallback to function-wise analysis.");
       config.evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
-      return create0(variableClassification, globalsList, logger, pShutdownNotifier, cfa, config);
+      return create0(
+          variableClassification,
+          globalsList,
+          logger,
+          pShutdownNotifier,
+          cfa,
+          config);
     } else if (liveVariables == null) {
       return new AllVariablesAsLiveVariables(cfa, globalsList);
     }
 
-    return new LiveVariables(liveVariables,
-                             variableClassification,
-                             globalVariables,
-                             config.evaluationStrategy,
-                             cfa.getLanguage());
+    return new LiveVariables(
+        liveVariables,
+        variableClassification,
+        globalVariables,
+        config.evaluationStrategy,
+        cfa.getLanguage());
   }
 
   public final static Function<ASimpleDeclaration, Equivalence.Wrapper<ASimpleDeclaration>>
@@ -452,24 +473,37 @@ public class LiveVariables {
       FROM_EQUIV_WRAPPER_TO_STRING =
           Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
 
-  private static Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(final CFA pCfa, final LogManager logger,
-                                              AnalysisParts analysisParts, EvaluationStrategy evaluationStrategy) throws IllegalArgumentException, InterruptedException {
+  private static Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(
+      final CFA pCfa,
+      final LogManager logger,
+      AnalysisParts analysisParts,
+      EvaluationStrategy evaluationStrategy
+  ) throws IllegalArgumentException, InterruptedException {
 
     Optional<LoopStructure> loopStructure = pCfa.getLoopStructure();
 
     // put all FunctionExitNodes into the waitlist
     final Collection<FunctionEntryNode> functionHeads;
     switch (evaluationStrategy) {
-    case FUNCTION_WISE: functionHeads = pCfa.getAllFunctionHeads(); break;
-    case GLOBAL: functionHeads = Collections.singleton(pCfa.getMainFunction()); break;
-    default: throw new AssertionError("Unhandeld case statement: " + evaluationStrategy);
+      case FUNCTION_WISE:
+        functionHeads = pCfa.getAllFunctionHeads(); break;
+      case GLOBAL:
+        functionHeads = Collections.singleton(pCfa.getMainFunction()); break;
+      default:
+        throw new AssertionError("Unhandled case statement: " +
+            evaluationStrategy);
     }
 
     for (FunctionEntryNode node : functionHeads) {
       FunctionExitNode exitNode = node.getExitNode();
       if (pCfa.getAllNodes().contains(exitNode)) {
-        analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(exitNode, StateSpacePartition.getDefaultPartition()),
-                                     analysisParts.cpa.getInitialPrecision(exitNode, StateSpacePartition.getDefaultPartition()));
+        analysisParts.reachedSet.add(
+            analysisParts.cpa.getInitialState(
+                exitNode,
+                StateSpacePartition.getDefaultPartition()),
+            analysisParts.cpa.getInitialPrecision(
+                exitNode,
+                StateSpacePartition.getDefaultPartition()));
       }
     }
 
@@ -487,8 +521,11 @@ public class LiveVariables {
         // function calls inside have no outgoing edges
         if (from(l.getOutgoingEdges()).filter(not(instanceOf(FunctionCallEdge.class))).isEmpty()) {
           CFANode functionHead = l.getLoopHeads().iterator().next();
-          analysisParts.reachedSet.add(analysisParts.cpa.getInitialState(functionHead, StateSpacePartition.getDefaultPartition()),
-                                       analysisParts.cpa.getInitialPrecision(functionHead, StateSpacePartition.getDefaultPartition()));
+          analysisParts.reachedSet.add(
+              analysisParts.cpa.getInitialState(
+                  functionHead, StateSpacePartition.getDefaultPartition()),
+              analysisParts.cpa.getInitialPrecision(
+                  functionHead, StateSpacePartition.getDefaultPartition()));
         }
       }
     }
@@ -544,7 +581,8 @@ public class LiveVariables {
     } catch (InvalidConfigurationException | CPAException e) {
       // this should never happen, but if it does we continue the
       // analysis without having the live variable analysis
-      logger.logUserException(Level.WARNING, e, "An error occured during the creation"
+      logger.logUserException(Level.WARNING, e, "An error occurred during the"
+          + " creation"
           + " of the necessary CPA parts for the live variables analysis.");
       return Optional.empty();
     }

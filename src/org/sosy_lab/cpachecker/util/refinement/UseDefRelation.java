@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
+import org.sosy_lab.cpachecker.util.DeclarationCollectingVisitor;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.ArrayList;
