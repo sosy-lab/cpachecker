@@ -466,6 +466,7 @@ class ASTConverter {
       CIdExpression tmp = createTemporaryVariable(e);
       assert !(tmp.getExpressionType() instanceof CVoidType);
       sideAssignmentStack.addConditionalExpression(e, tmp);
+      return tmp;
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
