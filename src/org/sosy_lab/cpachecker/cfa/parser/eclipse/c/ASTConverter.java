@@ -452,19 +452,20 @@ class ASTConverter {
     case ALWAYS_FALSE:
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
     case NORMAL:
-      CIdExpression tmp = createTemporaryVariable(e);
 
       // this means the return value (if there could be one) of the conditional
       // expression is not used
-      if (tmp.getExpressionType() instanceof CVoidType) {
+      if (convertType(e) instanceof CVoidType) {
         sideAssignmentStack.addConditionalExpression(e, null);
+
         // TODO we should not return a variable here, however null cannot be returned
-        // perhaps we need a dummyexpression here
+        // perhaps we need a DummyExpression here
         return CIntegerLiteralExpression.ZERO;
-      } else {
-        sideAssignmentStack.addConditionalExpression(e, tmp);
-        return tmp;
       }
+
+      CIdExpression tmp = createTemporaryVariable(e);
+      assert !(tmp.getExpressionType() instanceof CVoidType);
+      sideAssignmentStack.addConditionalExpression(e, tmp);
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
@@ -585,27 +586,31 @@ class ASTConverter {
    * creates temporary variables with increasing numbers
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
+    CType type = convertType(e);
+
+    return createInitializedTemporaryVariable(
+        getLocation(e), type, (CInitializer)null);
+  }
+
+  /**
+   * Convert Eclipse AST type to {@link CType}.
+   */
+  private CType convertType(IASTExpression e) {
     CType type = typeConverter.convert(e.getExpressionType());
     if (type.getCanonicalType() instanceof CVoidType) {
       if (e instanceof IASTFunctionCallExpression) {
         // Void method called and return value used.
         // Possibly this is an undeclared function.
         // Default return type in C for these cases is INT.
-        type = CNumericTypes.INT;
-      } else {
-        // TODO enable if we do not have unnecessary temporary variables of type void anymore
-//        throw new CFAGenerationRuntimeException(
-//            "Cannot create temporary variable for expression with type void",
-//            e, niceFileNameFunction);
+        return CNumericTypes.INT;
       }
 
       // workaround for strange CDT behaviour
     } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
-      type = typeConverter.convert(((IASTConditionalExpression)e).getNegativeResultExpression().getExpressionType());
+      return typeConverter.convert(
+          ((IASTConditionalExpression)e).getNegativeResultExpression() .getExpressionType());
     }
-
-    return createInitializedTemporaryVariable(
-        getLocation(e), type, (CInitializer)null);
+    return type;
   }
 
   private CIdExpression createInitializedTemporaryVariable(
