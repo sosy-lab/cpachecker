@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -67,13 +66,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
-import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
-import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions;
-import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions.ForwardPathIteratorWithPresenceConditions;
-import org.sosy_lab.cpachecker.util.presence.PathReplayEngine;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
-import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep;
@@ -104,11 +97,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.MarkingAutomatonBuilder;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -119,10 +114,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions.ForwardPathIteratorWithPresenceConditions;
+import org.sosy_lab.cpachecker.util.presence.PathReplayEngine;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.formula.FormulaPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
@@ -141,7 +139,6 @@ import javax.management.JMException;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -722,9 +719,9 @@ public class TigerAlgorithm
           if (useTigerAlgorithm_with_pc) {
             //            Region remainingPresenceCondition =
             //                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
-            logger.logf(Level.INFO, "%s of %d for a PC.", logString, numberOfTestGoals);
+            logger.logf(Level.FINE, "%s of %d for a PC.", logString, numberOfTestGoals);
           } else {
-            logger.logf(Level.INFO, "%s of %d.", logString, numberOfTestGoals);
+            logger.logf(Level.FINE, "%s of %d.", logString, numberOfTestGoals);
           }
 
           // TODO: enable tiger techniques for multi-goal generation in one run
@@ -941,7 +938,7 @@ public class TigerAlgorithm
 //                "Covered some PCs for Goal %d (%s) for a PC %s by test case %d!",
 //                goal.getIndex(), testsuite.getTestGoalLabel(goal), PresenceConditions.dump(statePresenceCondition), pTestcase.getId());
 
-            logger.logf(Level.WARNING,
+            logger.logf(Level.FINE,
                 "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
                 goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
 
@@ -952,7 +949,7 @@ public class TigerAlgorithm
 
         } else {
           testsuite.addTestCase(pTestcase, goal, null);
-          logger.logf(Level.WARNING, "Covered Goal %d (%s) by test case %d!",
+          logger.logf(Level.FINE, "Covered Goal %d (%s) by test case %d!",
               goal.getIndex(),
               testsuite.getTestGoalLabel(goal),
               pTestcase.getId());
@@ -1250,7 +1247,7 @@ public class TigerAlgorithm
           && (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT));
 
       if (algorithmStatus == ReachabilityAnalysisResult.TIMEOUT) {
-        logger.logf(Level.INFO, "Test goal timed out!");
+        logger.logf(Level.FINE, "Test goal timed out!");
         testsuite.addTimedOutGoals(pTestGoalsToBeProcessed);
       } else {
         // set test goals infeasible
@@ -1449,10 +1446,10 @@ public class TigerAlgorithm
       Set<Property> props = pCex.getTargetPath().getLastState().getViolatedProperties();
 
       if (useTigerAlgorithm_with_pc) {
-        logger.logf(Level.INFO, "Generated new test case %d for %s with a PC in the last state.",
+        logger.logf(Level.FINE, "Generated new test case %d for %s with a PC in the last state.",
             testcase.getId(), props);
       } else {
-        logger.logf(Level.INFO, "Generated new test case %d for %s.", testcase.getId(), props);
+        logger.logf(Level.FINE, "Generated new test case %d for %s.", testcase.getId(), props);
       }
 
       return testcase;
@@ -1520,9 +1517,9 @@ public class TigerAlgorithm
       if (useTigerAlgorithm_with_pc) {
         testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal),
             lGoalPrediction);
-        logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
+        logger.logf(Level.FINE, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
       } else {
-        logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
+        logger.logf(Level.FINE, "Goal %d is infeasible!", pGoal.getIndex());
         testsuite.addInfeasibleGoal(pGoal, null, lGoalPrediction);
       }
 
