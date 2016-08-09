@@ -310,6 +310,12 @@ public class TigerAlgorithm
 
   @Option(
       secure = true,
+      name = "useDynamicTimeouts",
+      description = "Calculates the timeout for each partition depending on the time limit per goal * partition size.")
+  private boolean useDynamicTimeouts = false;
+
+  @Option(
+      secure = true,
       name = "inverseOrder",
       description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
   private boolean inverseOrder = true;
@@ -550,7 +556,6 @@ public class TigerAlgorithm
 
     statistics_numberOfTestGoals = goalsToCover.size();
     logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
-
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
@@ -1171,7 +1176,7 @@ public class TigerAlgorithm
         Preconditions.checkState(pAlgorithm instanceof CEGARAlgorithm
             || pAlgorithm instanceof CounterexampleCheckAlgorithm);
 
-        algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm);
+        algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
 
         // Cases where runAlgorithm terminates:
         //  A) TIMEOUT
@@ -1279,7 +1284,7 @@ public class TigerAlgorithm
 
   private ReachabilityAnalysisResult runAlgorithmWithLimit(
       final ShutdownManager algNotifier,
-      final Algorithm algorithm)
+      final Algorithm algorithm, int numberOfGoals)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     try (StatCpuTimer t = tigerStats.runAlgorithmWithLimitTime.start()) {
 
@@ -1292,9 +1297,19 @@ public class TigerAlgorithm
           algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
         }
       } else {
+        long timeout = cpuTimelimitPerGoal;
+        // calculate the timeout
+        if (useDynamicTimeouts) {
+          if (numberOfTestGoalsPerRun <= 0) {
+            timeout = statistics_numberOfTestGoals * cpuTimelimitPerGoal;
+          } else {
+            timeout = numberOfGoals * cpuTimelimitPerGoal;
+          }
+        }
+
         // run algorithm with time limit
         WorkerRunnable workerRunnable =
-            new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
+            new WorkerRunnable(algorithm, reachedSet, timeout, algNotifier);
 
         Thread workerThread = new Thread(workerRunnable);
 
