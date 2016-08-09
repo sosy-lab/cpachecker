@@ -452,19 +452,20 @@ class ASTConverter {
     case ALWAYS_FALSE:
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
     case NORMAL:
-      CIdExpression tmp = createTemporaryVariable(e);
 
       // this means the return value (if there could be one) of the conditional
       // expression is not used
-      if (tmp.getExpressionType() instanceof CVoidType) {
+      if (e.getExpressionType() == org.eclipse.cdt.internal.core.dom.parser.c.CBasicType.VOID) {
         sideAssignmentStack.addConditionalExpression(e, null);
+
         // TODO we should not return a variable here, however null cannot be returned
-        // perhaps we need a dummyexpression here
+        // perhaps we need a DummyExpression here
         return CIntegerLiteralExpression.ZERO;
-      } else {
-        sideAssignmentStack.addConditionalExpression(e, tmp);
-        return tmp;
       }
+
+      CIdExpression tmp = createTemporaryVariable(e);
+      assert !(tmp.getExpressionType() instanceof CVoidType);
+      sideAssignmentStack.addConditionalExpression(e, tmp);
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
