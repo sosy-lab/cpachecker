@@ -10,7 +10,7 @@
     <!-- These properties can be overridden from including file. -->
     <property name="ivy.target_version" value="2.4.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
-    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
+    <property name="ivy.repo.url" value="https://www.sosy-lab.org/ivy"/>
     <property name="ivy.lib.dir" value="lib/java"/>
     <property name="ivy.configurations" value="build, runtime, test, findbugs"/>
     <property name="ivy.settings.file" value="ivysettings.xml"/>
