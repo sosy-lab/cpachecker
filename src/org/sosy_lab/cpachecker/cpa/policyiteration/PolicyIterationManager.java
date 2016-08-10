@@ -698,7 +698,7 @@ public class PolicyIterationManager {
             oldState.getNode(),
             newState.getLocationID(),
             stateFormulaConversionManager,
-            newState.getSSA(),
+            mergedSSA,
             newState.getPointerTargetSet(),
             extraInvariant,
             newState.getGeneratingState().get(),
