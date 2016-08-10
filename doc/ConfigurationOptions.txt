@@ -1229,6 +1229,9 @@ cpa.lpi.useCachingOptSolver = false
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
 
+# Use the new SSA after the merge operation.
+cpa.lpi.useNewSSAAfterMerge = false
+
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
 
