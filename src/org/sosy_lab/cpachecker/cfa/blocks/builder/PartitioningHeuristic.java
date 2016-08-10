@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -44,7 +45,7 @@ import java.util.Set;
  */
 public abstract class PartitioningHeuristic {
 
-  public static interface Factory {
+  public interface Factory {
     PartitioningHeuristic create(LogManager logger, CFA cfa) throws CPAException;
   }
 
@@ -74,10 +75,10 @@ public abstract class PartitioningHeuristic {
     while (!stack.isEmpty()) {
       CFANode node = stack.pop();
 
-      if (shouldBeCached(node)) {
+      if (isBlockEntry(node)) {
         Set<CFANode> subtree = getBlockForNode(node);
         if (subtree != null) {
-          builder.addBlock(subtree, mainFunction);
+          builder.addBlock(subtree, mainFunction, node);
         }
       }
 
@@ -94,13 +95,14 @@ public abstract class PartitioningHeuristic {
 
   /**
    * @param pNode the node to be checked
-   * @return <code>true</code>, if for the given node a new <code>Block</code> should be created; <code>false</code> otherwise
+   * @return whether a new {@link Block} should be created for the input node.
    */
-  protected abstract boolean shouldBeCached(CFANode pNode);
+  protected abstract boolean isBlockEntry(CFANode pNode);
 
   /**
-   * @param pNode CFANode that should be cached. We assume {@link #shouldBeCached(CFANode)} for the node.
-   * @return set of nodes that represent a <code>Block</code>.
+   * @param pBlockHead CFANode that should be cached.
+   *                   We assume {@link #isBlockEntry(CFANode)} for the node.
+   * @return set of nodes that represent a {@link Block}.
    */
-  protected abstract Set<CFANode> getBlockForNode(CFANode pNode);
+  protected abstract Set<CFANode> getBlockForNode(CFANode pBlockHead);
 }

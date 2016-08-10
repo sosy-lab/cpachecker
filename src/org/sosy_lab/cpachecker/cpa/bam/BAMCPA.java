@@ -116,8 +116,13 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       description = "Use more fast partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
 
-  public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
-      ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
+  public BAMCPA(
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      LogManager pLogger,
+      ReachedSetFactory pReachedSetFactory,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
@@ -153,8 +158,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
       if (pCfa.getVarClassification().isPresent() && !pCfa.getVarClassification().get().getRelevantFields().isEmpty()) {
         // TODO remove this ugly hack as soon as possible :-)
-        throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.", pCfa
-            .getMainFunction().getLeavingEdge(0));
+        throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.",
+            pCfa.getMainFunction().getLeavingEdge(0));
       }
 
       transfer =

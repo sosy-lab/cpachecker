@@ -47,13 +47,13 @@ public class FunctionPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected boolean shouldBeCached(CFANode pNode) {
+  protected boolean isBlockEntry(CFANode pNode) {
     return pNode instanceof FunctionEntryNode;
   }
 
   @Override
-  protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    Preconditions.checkArgument(shouldBeCached(pNode));
-    return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
+  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+    Preconditions.checkArgument(isBlockEntry(pBlockHead));
+    return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
   }
 }
