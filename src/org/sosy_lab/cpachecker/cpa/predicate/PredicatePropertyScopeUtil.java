@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -93,6 +94,10 @@ public class PredicatePropertyScopeUtil {
       function = pFunction;
       variable = pVariable;
       ssaIndex = pSsaIndex;
+    }
+
+    public FormulaVariableResult withoutSSA() {
+      return new FormulaVariableResult(function, variable, -1);
     }
 
     public boolean isGlobal() {
@@ -175,6 +180,7 @@ public class PredicatePropertyScopeUtil {
   public static class FormulaGlobalsInspector {
 
     public final ImmutableSet<BooleanFormula> atoms;
+    public final Set<FormulaVariableResult> globalVariablesInAtoms = new HashSet<>();
     public final List<BooleanFormula> globalAtoms = new ArrayList<>();
     public final List<BooleanFormula> globalConstantAtoms = new ArrayList<>();
     public final List<BooleanFormula> globalLoopIncDecAtoms = new ArrayList<>();
@@ -205,6 +211,10 @@ public class PredicatePropertyScopeUtil {
         if (visitor.vars.stream().anyMatch(FormulaVariableResult::isGlobal)) {
           globalAtoms.add(atom);
         }
+
+        visitor.vars.stream().filter(FormulaVariableResult::isGlobal).forEach(varres -> {
+          globalVariablesInAtoms.add(varres.withoutSSA());
+        });
 
         if (visitor.vars.size() > 0 && visitor.vars.stream().allMatch
             (FormulaVariableResult::isGlobal) && visitor.constants.size() > 0) {

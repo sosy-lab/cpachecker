@@ -56,6 +56,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -288,7 +289,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     HolderLong atomSum = HolderLong.of(0);
     Set<String> loopIncDecVariables = cfa.getLoopStructure().get().getLoopIncDecVariables();
     Set<String> loopExitCondVars = cfa.getLoopStructure().get().getLoopExitConditionVariables();
-
+    Set<FormulaVariableResult> globalVarInAtoms = new HashSet<>();
 
     pReached.asCollection().stream()
         .map(PredicatePropertyScopeUtil::asNonTrueAbstractionState)
@@ -303,6 +304,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           atomSum.value += insp.atoms.size();
           globalloopIncDecAtomSum.value += insp.globalLoopIncDecAtoms.size();
           globalloopExitCondVarsSum.value += insp.globalLoopExitCondAtoms.size();
+          globalVarInAtoms.addAll(insp.globalVariablesInAtoms);
         });
 
     double globalRatAtoms = globalAtomSum.value / (double) atomSum.value;
@@ -320,7 +322,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Abs. formula atoms with global and loopIncDecVars sum",
         globalloopIncDecAtomSum.value);
 
-
+    addKeyValueStatistic("Global vars occuring in Atoms", "[" + globalVarInAtoms.stream()
+        .map(Object::toString).collect(Collectors.joining(":")) + "]");
   }
 
   private static Set<String> collectFunctionsWithNonTrueAbsState(ReachedSet pReachedSet) {
