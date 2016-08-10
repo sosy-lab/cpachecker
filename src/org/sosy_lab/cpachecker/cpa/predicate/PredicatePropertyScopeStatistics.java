@@ -28,8 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.*
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.asNonTrueAbstractionState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,18 +37,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.StateToFormulaWriter.FormulaSplitter;
 import org.sosy_lab.cpachecker.util.holder.Holder;
 import org.sosy_lab.cpachecker.util.holder.HolderLong;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -59,21 +52,14 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -130,7 +116,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     return paths
         .map(seq -> {
           long counter = 0;
-          for (int i = seq.size() - 1; i >= 0 ; i--) {
+          for (int i = seq.size() - 1; i >= 0; i--) {
             PredicateAbstractState prast =
                 extractStateByType(seq.get(i), PredicateAbstractState.class);
             if (prast.isAbstractionState() && !prast.getAbstractionFormula().isTrue()) {
@@ -145,7 +131,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   private static int summedLengthOfHeadsUntilNontrue(Stream<List<ARGState>> paths) {
     return paths
         .map(seq -> {
-          for (int i = 0; i < seq.size() ; i++) {
+          for (int i = 0; i < seq.size(); i++) {
             PredicateAbstractState prast =
                 extractStateByType(seq.get(i), PredicateAbstractState.class);
             if (prast.isAbstractionState() && !prast.getAbstractionFormula().isTrue()) {
@@ -154,6 +140,35 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           }
           return 0;
         }).reduce(Integer::sum).orElse(0);
+  }
+
+  private List<Integer> depthOfFormulaSwitchAfterFirstGlobalEncounter(
+      Stream<List<ARGState>> paths, boolean mustBeTruefirst) {
+    return paths.map(seq -> {
+      boolean wasTrueSomewhere = !mustBeTruefirst;
+      BooleanFormula firstGlobalFormula = null;
+      for (int i = 0; i < seq.size(); i++) {
+        Optional<PredicateAbstractState> state = asNonTrueAbstractionState(seq.get(i));
+        if (wasTrueSomewhere && state.isPresent() && !state.get().getAbstractionFormula()
+            .isTrue()) {
+
+          BooleanFormula instform = state.get().getAbstractionFormula().asInstantiatedFormula();
+          FormulaGlobalsInspector insp =
+              new FormulaGlobalsInspector(fmgr, instform, Optional.empty(), Optional.empty());
+
+
+          if (firstGlobalFormula == null && !insp.globalAtoms.isEmpty()) {
+            firstGlobalFormula = instform;
+          } else if (firstGlobalFormula != null && !instform.equals(firstGlobalFormula)) {
+            return i + 1;
+          }
+
+        } else if (state.isPresent() && state.get().getAbstractionFormula().isTrue()) {
+          wasTrueSomewhere = true;
+        }
+      }
+      return -1;
+    }).filter(pInteger -> pInteger > 0).collect(Collectors.toList());
   }
 
   private static long findNontrueTrueNontrueSequences(List<List<Boolean>> tntseqs) {
@@ -282,7 +297,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .forEach(as -> {
           BooleanFormula instform = as.getAbstractionFormula().asInstantiatedFormula();
           FormulaGlobalsInspector insp = new FormulaGlobalsInspector(fmgr, instform,
-              loopIncDecVariables, loopExitCondVars);
+              Optional.of(loopIncDecVariables), Optional.of(loopExitCondVars));
           globalAtomSum.value += insp.globalAtoms.size();
           globalConstantAtomSum.value += insp.globalConstantAtoms.size();
           atomSum.value += insp.atoms.size();
@@ -375,6 +390,18 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Global target state line numbers", "[" + globTargetLineNumbers + "]");
 
     handleFormulaAtoms(pReached);
+
+    List<Integer> globalOtherSwitch =
+        depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), false);
+    List<Integer> trueGlobalOtherSwitch =
+        depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), true);
+
+    addKeyValueStatistic("Abs formula glob->other switch:", "[" + globalOtherSwitch.stream().map
+        (Object::toString).collect(Collectors.joining(":")) + "]");
+
+    addKeyValueStatistic("Abs formula TRUE->glob->other switch:", "[" + trueGlobalOtherSwitch
+        .stream()
+        .map(Object::toString).collect(Collectors.joining(":")) + "]");
 
     super.printStatistics(pOut, pResult, pReached);
   }

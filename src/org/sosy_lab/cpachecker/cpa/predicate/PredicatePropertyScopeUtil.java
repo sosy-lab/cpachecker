@@ -52,43 +52,43 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 
-
 public class PredicatePropertyScopeUtil {
 
   private static final Pattern formulaVariablePattern =
       Pattern.compile("(?:(?<function>[^:]+)::)?(?<variable>[^@]+)(?:@(?<ssaindex>[0-9]+))?");
 
   static Stream<List<ARGState>> allPathStream(ARGState root) {
-        Builder<List<ARGState>> reachedsb = Stream.builder();
+    Builder<List<ARGState>> reachedsb = Stream.builder();
 
-        Deque<List<ARGState>> waitlist = new ArrayDeque<>();
-        waitlist.add(Lists.newArrayList(root));
+    Deque<List<ARGState>> waitlist = new ArrayDeque<>();
+    waitlist.add(Lists.newArrayList(root));
 
-        while(!waitlist.isEmpty()) {
-          List<ARGState> currPath = waitlist.removeFirst();
-          ARGState currState = currPath.get(currPath.size() - 1);
-          Collection<ARGState> children = currState.getChildren();
-          if(children.size() == 0) {
-            reachedsb.accept(Collections.unmodifiableList(currPath));
-          } else if(children.size() == 1) {
-            currPath.add(children.stream().findFirst().get());
-            waitlist.addFirst(currPath);
-          } else {
-            children.stream().forEach(child -> {
-              ArrayList<ARGState> newPath = new ArrayList<>(currPath);
-              newPath.add(child);
-              waitlist.addFirst(newPath);
-            });
-          }
-        }
-        return reachedsb.build();
+    while (!waitlist.isEmpty()) {
+      List<ARGState> currPath = waitlist.removeFirst();
+      ARGState currState = currPath.get(currPath.size() - 1);
+      Collection<ARGState> children = currState.getChildren();
+      if (children.size() == 0) {
+        reachedsb.accept(Collections.unmodifiableList(currPath));
+      } else if (children.size() == 1) {
+        currPath.add(children.stream().findFirst().get());
+        waitlist.addFirst(currPath);
+      } else {
+        children.stream().forEach(child -> {
+          ArrayList<ARGState> newPath = new ArrayList<>(currPath);
+          newPath.add(child);
+          waitlist.addFirst(newPath);
+        });
       }
+    }
+    return reachedsb.build();
+  }
 
   public static class FormulaVariableResult {
 
     public final String function;
     public final String variable;
     public final int ssaIndex;
+
     public FormulaVariableResult(String pFunction, String pVariable, int pSsaIndex) {
       function = pFunction;
       variable = pVariable;
@@ -126,12 +126,12 @@ public class PredicatePropertyScopeUtil {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("");
-      if(function != null) {
+      if (function != null) {
         sb.append(function).append("::");
       }
       sb.append(variable);
 
-      if(ssaIndex >= 0) {
+      if (ssaIndex >= 0) {
         sb.append("@").append(ssaIndex);
       }
 
@@ -150,7 +150,10 @@ public class PredicatePropertyScopeUtil {
 
     return new FormulaVariableResult(res.group("function"), res.group("variable"), ssaidx);
 
-  };
+  }
+
+  ;
+
   public static Stream<FormulaVariableResult> formulaVariableSplitStream(
       AbstractState ast, FormulaManagerView fmgr) {
     PredicateAbstractState past = extractStateByType(ast, PredicateAbstractState.class);
@@ -180,21 +183,26 @@ public class PredicatePropertyScopeUtil {
     private final FormulaManagerView fmgr;
 
     public FormulaGlobalsInspector(
-        FormulaManagerView fmgr, BooleanFormula instform, Set<String>
-        pLoopIncDecVariables, Set<String> pLoopExitCondVars) {
+        FormulaManagerView fmgr, BooleanFormula instform, Optional<Set<String>>
+        pLoopIncDecVariables, Optional<Set<String>> pLoopExitCondVars) {
       this.fmgr = fmgr;
       atoms = fmgr.extractAtoms(instform, false);
 
-      Set<FormulaVariableResult> loopIncDecVariablesRes = pLoopIncDecVariables.stream()
-          .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
-      Set<FormulaVariableResult> loopExitCondVarsRes = pLoopExitCondVars.stream()
-          .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
+      Set<FormulaVariableResult> loopIncDecVariablesRes =
+          pLoopIncDecVariables.orElse
+              (Collections.emptySet())
+              .stream()
+              .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
+      Set<FormulaVariableResult> loopExitCondVarsRes =
+          pLoopExitCondVars.orElse(Collections.emptySet())
+              .stream()
+              .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
 
       for (BooleanFormula atom : atoms) {
         Visitor visitor = new Visitor();
         fmgr.visit(visitor, atom);
 
-        if(visitor.vars.stream().anyMatch(FormulaVariableResult::isGlobal)) {
+        if (visitor.vars.stream().anyMatch(FormulaVariableResult::isGlobal)) {
           globalAtoms.add(atom);
         }
 
@@ -214,8 +222,9 @@ public class PredicatePropertyScopeUtil {
       }
     }
 
-    private boolean isGlobalVariableRelation(Visitor visitor,
-                                        Set<FormulaVariableResult> toTestVariables) {
+    private boolean isGlobalVariableRelation(
+        Visitor visitor,
+        Set<FormulaVariableResult> toTestVariables) {
 
       Set<FormulaVariableResult> testCandidates = visitor.vars.stream()
           .filter(fvr -> toTestVariables.stream()
@@ -227,7 +236,6 @@ public class PredicatePropertyScopeUtil {
           .count();
 
       return globalOrCandidate == 0 && visitor.vars.size() >= 2 && testCandidates.size() > 0;
-
 
 
     }
