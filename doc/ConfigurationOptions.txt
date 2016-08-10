@@ -3012,6 +3012,10 @@ tiger.useBddForPresenceCondtion = false
 # Handle all automata CPAs as one composite CPA.
 tiger.useComposite = false
 
+# Calculates the timeout for each partition depending on the time limit per
+# goal * partition size.
+tiger.useDynamicTimeouts = false
+
 # Map information on infeasibility of one test goal to other test goals.
 tiger.useInfeasibilityPropagation = false
 
