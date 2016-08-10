@@ -158,6 +158,9 @@ public class PolicyIterationManager {
       + "let other CPAs use the output of LPI.")
   private boolean delayAbstractionUntilStrengthen = false;
 
+  @Option(secure=true, description="Use the new SSA after the merge operation.")
+  private boolean useNewSSAAfterMerge = false;
+
   private final FormulaManagerView fmgr;
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
@@ -402,12 +405,14 @@ public class PolicyIterationManager {
       PolicyAbstractedState expandedState
   ) {
     ARGState state = AbstractStates.extractStateByType(pFullState, ARGState.class);
+    assert state != null : "ARGCPA is needed for BAM";
     CFANode node = AbstractStates.extractLocation(pFullState);
     Preconditions.checkState(state.getParents().size() == 1,
         "Expanded state should have a unique parent.");
     AbstractState parent = state.getParents().iterator().next();
     PolicyState parentState = AbstractStates.extractStateByType(
         parent, PolicyState.class);
+    assert parentState != null;
     Preconditions.checkState(parentState.isAbstract(),
         "ARG Parent of the expanded state should be abstract");
     PolicyAbstractedState aParentState = parentState.asAbstracted();
@@ -662,8 +667,8 @@ public class PolicyIterationManager {
         TemplateUpdateEvent updateEvent = TemplateUpdateEvent.of(
             newState.getLocationID(), template);
 
-        if (statistics.templateUpdateCounter.count(updateEvent) ==
-            wideningThreshold) {
+        if (statistics.templateUpdateCounter.count(updateEvent) == wideningThreshold) {
+
           // Set the value to infinity if the widening threshold was reached.
           logger.log(Level.FINE, "Widening threshold for template", template,
               "at", newState.getNode(), "was reached, widening to infinity.");
@@ -683,6 +688,9 @@ public class PolicyIterationManager {
       newAbstraction.put(template, mergedBound);
     }
 
+    // Cache coherence for CachingPathFormulaManager is better with oldSSA,
+    // but newSSA is required for LPI+BAM.
+    SSAMap mergedSSA = useNewSSAAfterMerge ? newState.getSSA() : oldState.getSSA();
 
     PolicyAbstractedState merged =
         PolicyAbstractedState.of(
@@ -690,8 +698,7 @@ public class PolicyIterationManager {
             oldState.getNode(),
             newState.getLocationID(),
             stateFormulaConversionManager,
-            oldState.getSSA(), // Very important to use the old SSA so that PathFormulaManager
-            // can use the cached values.
+            newState.getSSA(),
             newState.getPointerTargetSet(),
             extraInvariant,
             newState.getGeneratingState().get(),
