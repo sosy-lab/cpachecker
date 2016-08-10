@@ -27,7 +27,7 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * Meta-information for determining the coverage.
    */
-  private transient PolicyIntermediateState mergedInto;
+  private @Nullable transient PolicyIntermediateState mergedInto = null;
   private transient int hashCache = 0;
 
   private PolicyIntermediateState(

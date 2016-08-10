@@ -16,6 +16,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
                  FormulaReportingState {
@@ -43,7 +45,7 @@ public final class PolicyAbstractedState extends PolicyState
    * Intermediate state used to generate this abstraction,
    * empty only for the initial state.
    */
-  private final Optional<PolicyIntermediateState> generator;
+  private final @Nullable PolicyIntermediateState generator;
 
   /**
    * If state A and state B can potentially get merged, they share the same
@@ -53,9 +55,10 @@ public final class PolicyAbstractedState extends PolicyState
 
   /**
    * A pointer to the sibling state.
+   *
    * <p>Only valid for states on which value determination was just performed.
    */
-  private final transient Optional<PolicyAbstractedState> sibling;
+  private final transient @Nullable PolicyAbstractedState sibling;
 
   private transient int hashCache = 0;
 
@@ -67,8 +70,8 @@ public final class PolicyAbstractedState extends PolicyState
       SSAMap pSsaMap,
       PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
-      Optional<PolicyIntermediateState> pGenerator,
-      Optional<PolicyAbstractedState> pSibling) {
+      PolicyIntermediateState pGenerator,
+      PolicyAbstractedState pSibling) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
@@ -81,7 +84,7 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public Optional<PolicyAbstractedState> getSibling() {
-    return sibling;
+    return Optional.ofNullable(sibling);
   }
 
   public int getLocationID() {
@@ -106,8 +109,8 @@ public final class PolicyAbstractedState extends PolicyState
         pSSAMap,
         pPointerTargetSet,
         pPredicate,
-        Optional.of(pPredecessor),
-        pSibling);
+        pPredecessor,
+        pSibling.orElse(null));
   }
 
   /**
@@ -171,8 +174,8 @@ public final class PolicyAbstractedState extends PolicyState
         pSSAMap,
         pPointerTargetSet,
         pPredicate,
-        Optional.of(pPredecessor),
-        pSibling);
+        pPredecessor,
+        pSibling.orElse(null));
   }
 
   /**
@@ -189,8 +192,8 @@ public final class PolicyAbstractedState extends PolicyState
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pPredicate,
-        Optional.empty(),
-        Optional.empty());
+        null,
+        null);
   }
 
   public int size() {
@@ -205,8 +208,8 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s, locID=%s)%s%n",
-        getNode(), locationID,
+        "(node=%s, locID=%s, SSA=%s)%s%n",
+        getNode(), locationID, ssaMap,
         manager.toDOTLabel(abstraction)
     );
   }
@@ -228,7 +231,7 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public Optional<PolicyIntermediateState> getGeneratingState() {
-    return generator;
+    return Optional.ofNullable(generator);
   }
 
   @Override
@@ -257,11 +260,12 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects
-          .hash(
-              getNode(),
-              abstraction, ssaMap, pointerTargetSet,
-              extraInvariant);
+      hashCache = Objects.hash(
+          getNode(),
+          abstraction,
+          ssaMap,
+          pointerTargetSet,
+          extraInvariant);
     }
     return hashCache;
   }
