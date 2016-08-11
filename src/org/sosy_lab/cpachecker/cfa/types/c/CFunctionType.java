@@ -200,4 +200,14 @@ public class CFunctionType extends AFunctionType implements CType {
         newParameterTypes.build(),
         takesVarArgs());
   }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
 }

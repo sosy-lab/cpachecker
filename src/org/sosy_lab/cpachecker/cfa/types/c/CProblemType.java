@@ -110,4 +110,14 @@ public final class CProblemType implements CType {
   public CProblemType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return this;
   }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
 }

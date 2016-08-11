@@ -329,4 +329,14 @@ public final class CEnumType implements CComplexType {
     }
     return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
   }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
 }

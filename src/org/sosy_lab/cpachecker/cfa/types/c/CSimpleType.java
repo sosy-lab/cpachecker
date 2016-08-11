@@ -49,6 +49,8 @@ public final class CSimpleType implements CType, Serializable {
   private final boolean isLongLong;
   private boolean   isConst;
   private boolean   isVolatile;
+  private Integer bitFieldSize;
+
 
   private int hashCache = 0;
 
@@ -67,6 +69,17 @@ public final class CSimpleType implements CType, Serializable {
     isComplex = pIsComplex;
     isImaginary = pIsImaginary;
     isLongLong = pIsLongLong;
+  }
+
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    bitFieldSize = pBitFieldSize;
+    final int prime = 31;
+    hashCache = prime * hashCode() + Objects.hashCode(bitFieldSize);
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return bitFieldSize == null ? 0 : bitFieldSize;
   }
 
   @Override
@@ -203,6 +216,9 @@ public final class CSimpleType implements CType, Serializable {
       parts.add("_Complex");
     }
 
+    if(isBitField()) {
+      parts.add("BitField : " + getBitFieldSize());
+    }
     parts.add(Strings.emptyToNull(type.toASTString()));
     parts.add(Strings.emptyToNull(pDeclarator));
 
@@ -234,5 +250,10 @@ public final class CSimpleType implements CType, Serializable {
     }
 
     return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
+  }
+
+  @Override
+  public boolean isBitField() {
+    return bitFieldSize != null;
   }
 }

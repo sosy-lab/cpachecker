@@ -160,6 +160,16 @@ public final class CArrayType extends AArrayType implements CType {
         length);
   }
 
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
+
   private Object writeReplace() {
     return new SerializationProxy(this);
   }

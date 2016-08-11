@@ -306,19 +306,51 @@ public class SMGExpressionEvaluator {
     List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
     int offset = 0;
+    boolean previousIsBitField = false;
+    int bitFieldsSize = 0;
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      int padding = machineModel.getPadding(offset, typeMember.getType());
+      if (typeMember.getType().isBitField()) {
+        int padding = 0;
+        if (!previousIsBitField) {
+          padding = machineModel.getPadding(offset, typeMember.getType());
+        }
 
-      if (memberName.equals(fieldName)) {
-        offset += padding;
-        return new SMGField(SMGKnownExpValue.valueOf(offset),
-          getRealExpressionType(typeMember.getType())); }
+        if (memberName.equals(fieldName)) {
+          offset += padding + (bitFieldsSize / 8);
+          if (bitFieldsSize % 8 > 0) {
+            offset++;
+          }
+          return new SMGField(SMGKnownExpValue.valueOf(offset),
+              getRealExpressionType(typeMember.getType()));
+        }
 
-      if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-        offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
-            pState, expression);
+        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
+          bitFieldsSize += typeMember.getType().getBitFieldSize();
+        }
+        previousIsBitField = true;
+      } else {
+        if (bitFieldsSize > 0) {
+          offset += (bitFieldsSize / 8);
+          if (bitFieldsSize % 8 > 0) {
+            offset++;
+          }
+          bitFieldsSize = 0;
+        }
+        previousIsBitField = false;
+        int padding = machineModel.getPadding(offset, typeMember.getType());
+
+        if (memberName.equals(fieldName)) {
+          offset += padding;
+          return new SMGField(SMGKnownExpValue.valueOf(offset),
+            getRealExpressionType(typeMember.getType()));
+        }
+
+        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
+          offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
+              pState, expression);
+        }
       }
     }
 

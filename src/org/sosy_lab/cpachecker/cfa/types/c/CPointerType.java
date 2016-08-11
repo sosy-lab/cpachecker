@@ -142,4 +142,14 @@ public final class CPointerType implements CType, Serializable {
   public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CPointerType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
   }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
 }

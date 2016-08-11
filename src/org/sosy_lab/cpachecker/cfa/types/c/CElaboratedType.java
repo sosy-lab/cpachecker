@@ -227,4 +227,14 @@ public final class CElaboratedType implements CComplexType {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }
   }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
 }

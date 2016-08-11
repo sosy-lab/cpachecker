@@ -323,6 +323,13 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
+    if (type.isBitField()) {
+      int size = type.getBitFieldSize() / mSizeofCharInBits;
+      if (type.getBitFieldSize() % mSizeofCharInBits > 0) {
+        size++;
+      }
+      return size;
+    }
     switch (type.getType()) {
     case BOOL:        return getSizeofBool();
     case CHAR:        return getSizeofChar();
@@ -515,7 +522,9 @@ public enum MachineModel {
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
+      int bitFieldsSize = 0;
       Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
+      boolean previosIsBitField = false;
       while (declIt.hasNext()) {
         CCompositeTypeMemberDeclaration decl = declIt.next();
         if (decl.getType().isIncomplete() && !declIt.hasNext()) {
@@ -530,8 +539,26 @@ public enum MachineModel {
                 "Cannot compute size of incomplete type " + decl.getType());
           }
         } else {
-          size += model.getPadding(size, decl.getType());
-          size += decl.getType().accept(this);
+          if (decl.getType().isBitField()) {
+            if (previosIsBitField) {
+              size += decl.getType().getBitFieldSize();
+            } else {
+              size += model.getPadding(size, decl.getType()); //Should it be char or current type?
+              bitFieldsSize += decl.getType().getBitFieldSize();
+            }
+            previosIsBitField = true;
+          } else {
+            if (bitFieldsSize > 0){
+              size += bitFieldsSize / 8;
+              if (bitFieldsSize % 8 > 0) {
+                size++;
+              }
+            }
+            bitFieldsSize = 0;
+            previosIsBitField = false;
+            size += model.getPadding(size, decl.getType());
+            size += decl.getType().accept(this);
+          }
         }
       }
       size += model.getPadding(size, pCompositeType);
