@@ -35,6 +35,8 @@ public interface ConfigurableProgramAnalysisWithBAM extends
 
   /**
    * Set the block partitioning on the CPA.
+   *
+   * @param pPartitioning Partitioning used for BAM.
    */
   default void setPartitioning(BlockPartitioning pPartitioning) { }
 }
