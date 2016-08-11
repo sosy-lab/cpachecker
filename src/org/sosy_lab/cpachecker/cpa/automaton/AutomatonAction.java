@@ -135,7 +135,7 @@ public abstract class AutomatonAction {
 
     @Override
     public String toString() {
-      return "SetMarkerVariable";
+      return "CouldSetMarker";
     }
 
   }

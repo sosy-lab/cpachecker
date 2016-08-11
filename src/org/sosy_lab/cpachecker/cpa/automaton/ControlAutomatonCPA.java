@@ -150,6 +150,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final CFA cfa;
 
   private final LogManager logger;
+
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
     throws InvalidConfigurationException {

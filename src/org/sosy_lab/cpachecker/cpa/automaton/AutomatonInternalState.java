@@ -47,9 +47,9 @@ public class AutomatonInternalState {
   static final AutomatonInternalState TOP = new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList());
 
   /** State representing INACTIVE: an automata that is not considered any more (removed from the precision). */
-  static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE);
+  public static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE);
 
-  static final AutomatonInternalState INTERMEDIATEINACTIVE = new AutomatonInternalState(
+  public static final AutomatonInternalState INTERMEDIATEINACTIVE = new AutomatonInternalState(
       "_predefinedState_INTERMEDIATEINACTIVE",
       Collections.singletonList(new AutomatonTransition(
                                     AutomatonBoolExpr.TRUE,

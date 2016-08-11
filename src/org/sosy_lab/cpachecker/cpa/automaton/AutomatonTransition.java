@@ -453,6 +453,7 @@ public class AutomatonTransition {
       sb.append(" ");
       sb.append("\n");
     }
+    sb.append(" --> ");
     sb.append(followState);
     sb.append(";\"");
     return sb.toString();

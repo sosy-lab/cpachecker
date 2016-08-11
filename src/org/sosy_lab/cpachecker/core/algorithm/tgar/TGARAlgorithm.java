@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.core.algorithm.tgar;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -45,7 +45,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.DeeperLevelFirstComparator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -160,16 +164,46 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends TargetedRefiner> refiner = null;
 
+  @Option(secure=true, name="comparator", required = true,
+      description = "Which target state comparator to use? "
+          + "(give class name, required for TGAR) If the package name starts with "
+          + "'org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.', this prefix can be omitted.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.tgar.comparator")
+  private Class<? extends Comparator<ARGState>> comparatorClass = DeeperLevelFirstComparator.class;
+  private final Comparator<ARGState> comparator;
+
   private final LogManager logger;
   private final Algorithm algorithm;
   private final TargetedRefiner mRefiner;
 
   private final Set<Integer> feasibleStateIds = Sets.newTreeSet();
-  private Optional<AbstractState> lastTargetState = Optional.absent();
+  private Optional<ARGState> lastTargetState = Optional.absent();
+
+  public TGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+    config.inject(this);
+    this.algorithm = algorithm;
+    this.logger = logger;
+
+    comparator = createComparator();
+    mRefiner = createInstance(pCpa);
+    new TGARMBean(); // don't store it because we wouldn't know when to unregister anyway
+  }
+
+  public TGARAlgorithm(Algorithm algorithm, TargetedRefiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
+    this.algorithm = algorithm;
+    this.logger = logger;
+    mRefiner = Preconditions.checkNotNull(pRefiner);
+    comparator = createComparator();
+  }
+
+  private Comparator<ARGState> createComparator() throws InvalidConfigurationException {
+    return Classes.createInstance(Comparator.class, comparatorClass, new Class[] { }, new Object[] { });
+  }
 
   // TODO Copied from CPABuilder, should be refactored into a generic implementation
   private TargetedRefiner createInstance(ConfigurableProgramAnalysis pCpa) throws CPAException,
-                                                                    InvalidConfigurationException {
+                                                                                  InvalidConfigurationException {
 
     // get factory method
     Method factoryMethod;
@@ -211,25 +245,6 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     return (TargetedRefiner)refinerObj;
   }
 
-  public TGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
-    config.inject(this);
-    this.algorithm = algorithm;
-    this.logger = logger;
-
-    mRefiner = createInstance(pCpa);
-    new TGARMBean(); // don't store it because we wouldn't know when to unregister anyway
-  }
-
-  /**
-   * This constructor gets a Refiner object instead of generating it
-   * from the refiner parameter.
-   */
-  public TGARAlgorithm(Algorithm algorithm, TargetedRefiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
-    this.algorithm = algorithm;
-    this.logger = logger;
-    mRefiner = Preconditions.checkNotNull(pRefiner);
-  }
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
@@ -275,33 +290,21 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     return new CounterexampleInfoResult(info);
   }
 
-  private final Predicate<AbstractState> NOT_YET_HANDLED = new Predicate<AbstractState>() {
+  private final Predicate<ARGState> NOT_YET_HANDLED = new Predicate<ARGState>() {
     @Override
-    public boolean apply(@Nullable AbstractState pAbstractState) {
-      Preconditions.checkArgument(pAbstractState instanceof ARGState);
-      ARGState state = (ARGState) pAbstractState;
-      return !feasibleStateIds.contains(state.getStateId());
+    public boolean apply(@Nullable ARGState pAbstractState) {
+      Preconditions.checkNotNull(pAbstractState);
+      return !feasibleStateIds.contains(pAbstractState.getStateId());
     }
   };
 
-  private Optional<AbstractState> chooseTarget(ReachedSet pReached) {
-    ImmutableList<AbstractState> rankedCandidates =
+  private Optional<ARGState> chooseTarget(ReachedSet pReached) {
+    ImmutableList<ARGState> rankedCandidates =
         from(pReached)
             .filter(IS_TARGET_STATE)
+            .filter(ARGState.class)
             .filter(NOT_YET_HANDLED)
-            .toSortedList(
-              new Comparator<AbstractState>() {
-                @Override
-                public int compare(AbstractState pState1, AbstractState pState2) {
-                  Preconditions.checkArgument(pState1 instanceof ARGState);
-                  Preconditions.checkArgument(pState2 instanceof ARGState);
-
-                  final ARGState e1 = (ARGState) pState1;
-                  final ARGState e2 = (ARGState) pState1;
-
-                  return e1.getStateLevel().compareTo(e2.getStateLevel());
-                }
-              });
+            .toSortedList(comparator);
 
     if (rankedCandidates.isEmpty()) {
       return Optional.absent();
@@ -322,13 +325,15 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     sizeOfReachedSetBeforeRefinement = reached.size();
 
     stats.refinementTimer.start();
-    boolean counterexampleEliminated;
+    final boolean counterexampleEliminated;
     try {
       counterexampleEliminated = mRefiner.performRefinement(reached, target);
       //  false: a FEASIBLE counterexample was found!
       //  true: a SPURIOUS counterexample was found; a refinement has been performed!
 
-      if (!counterexampleEliminated) {
+      if (counterexampleEliminated) {
+        // An infeasible counterexample was found and eliminated.
+      } else {
         Preconditions.checkArgument(target instanceof ARGState);
         ARGState e = (ARGState) target;
         feasibleStateIds.add(e.getStateId());
