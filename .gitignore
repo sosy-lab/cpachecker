@@ -232,3 +232,7 @@ src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.jav
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaScanner.java
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaSymbols.java
 src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/FQLSym.java
+
+# Dingo CPA
+src/org/sosy_lab/cpachecker/cpa/dingo
+test/programs/dingo
