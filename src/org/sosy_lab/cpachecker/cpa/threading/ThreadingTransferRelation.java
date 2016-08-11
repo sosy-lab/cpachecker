@@ -332,14 +332,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // this is done before applying any other step.
     for (String id : tmp.getThreadIds()) {
       if (isLastNodeOfThread(tmp.getThreadLocation(id).getLocationNode())) {
-        tmp = exitThread(tmp, id);
+        tmp = removeThreadId(tmp, id);
       }
     }
     return tmp;
   }
 
   /** remove the thread-id from the state, and cleanup remaining locks of this thread. */
-  private ThreadingState exitThread(ThreadingState ts, final String id) {
+  private ThreadingState removeThreadId(ThreadingState ts, final String id) {
     if (useLocalAccessLocks) {
       ts = ts.removeLockAndCopy(id, LOCAL_ACCESS_LOCK);
     }
