@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
@@ -45,6 +46,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -99,7 +101,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.MarkingAutomatonBuilder;
@@ -1309,6 +1314,7 @@ public class TigerAlgorithm
           algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
         }
       } else {
+
         long timeout = cpuTimelimitPerGoal;
         // calculate the timeout
         if (useDynamicTimeouts) {
@@ -1424,6 +1430,7 @@ public class TigerAlgorithm
   private Set<Goal> addTestToSuite(Set<Goal> pRemainingGoals,
       CounterexampleInfo pCex, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
       throws InterruptedException {
+
     try (StatCpuTimer t = tigerStats.addTestToSuiteTime.start()) {
 
       Preconditions.checkNotNull(pInfeasibilityPropagation);
@@ -1627,6 +1634,8 @@ public class TigerAlgorithm
             a = markingAutomata;
           }
 
+          checkAutomaton(a);
+
           goalAutomata.add(a);
           dumpAutomaton(a);
         }
@@ -1735,6 +1744,27 @@ public class TigerAlgorithm
       }
 
       return result;
+    }
+  }
+
+  /**
+   * Check some properties of the automaton to
+   * ensure that it works as expected.
+   *
+   * @param pAutomaton
+   */
+  private void checkAutomaton(Automaton pAutomaton) {
+    for (AutomatonInternalState q: pAutomaton.getStates()) {
+      if (!q.isNonDetState()) {
+        Set<Pair<AutomatonBoolExpr, ImmutableList<AStatement>>> distinct = Sets.newHashSet();
+        // No similar triggers!
+        for (AutomatonTransition t: q.getTransitions()) {
+          Pair<AutomatonBoolExpr, ImmutableList<AStatement>> key = Pair.of(t.getTrigger(), t.getAssumptions());
+          if (!distinct.add(key)) {
+            throw new RuntimeException("Transition not unique on MATCH-FIRST state: " + t);
+          }
+        }
+      }
     }
   }
 
