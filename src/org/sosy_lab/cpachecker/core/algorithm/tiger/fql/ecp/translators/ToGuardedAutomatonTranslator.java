@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.St
 
 public class ToGuardedAutomatonTranslator {
 
-  private static String stutterEdgeLabelPattern = "Set: 1 Guard: \\[\\]";
+  private static String stutterEdgeLabelPattern = "Set: [0-9]* Guard: \\[\\]";
   private static String notMainLabelPattern = "!Set: line [0-9]*:\tN[0-9]* -\\{main\\(\\)\\}-> N[0-9]* Guard: \\[\\]";
 
   public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> toAutomaton(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseOmegaLabel) {
