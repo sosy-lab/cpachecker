@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,15 +26,18 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public interface Refiner {
+public interface TargetedRefiner {
 
   /**
    * Perform refinement, if possible.
    *
    * @param pReached The reached set.
-   * @return Whether the refinement was successful.
+   * @param pTargetState The target state to remove by the refinement.
+   *
+   * @return Whether the refinement was successful (if the counterexample is spurious)
    * @throws CPAException If an error occurred during refinement.
    */
-  boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException;
+
+  boolean performRefinement(ReachedSet pReached, AbstractState pTargetState) throws CPAException, InterruptedException;
 
 }

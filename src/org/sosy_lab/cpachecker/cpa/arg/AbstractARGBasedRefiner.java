@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.errorprone.annotations.ForOverride;
 
@@ -35,10 +36,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TargetedRefiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -57,7 +60,7 @@ import javax.annotation.Nullable;
  * To use this, implement {@link ARGBasedRefiner} and call
  * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
  */
-public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
+public class AbstractARGBasedRefiner implements Refiner, TargetedRefiner, StatisticsProvider {
 
   private int refinementNumber;
 
@@ -95,13 +98,24 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       = arg ->  arg instanceof CFunctionCallEdge ? arg.toString() : null;
 
   @Override
-  public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.FINEST, "Starting ARG based refinement");
-
-    assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
-
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     final ARGState lastElement = (ARGState)pReached.getLastState();
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
+
+    return performRefinement(pReached, lastElement);
+  }
+
+  @Override
+  public final boolean performRefinement(ReachedSet pReached, AbstractState pTargetState)
+      throws CPAException, InterruptedException {
+
+    assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
+    Preconditions.checkArgument(pTargetState instanceof ARGState);
+    ARGState lastElement = (ARGState) pTargetState;
+    Preconditions.checkState(lastElement.isTarget(), "Last element in reached is not a target state before refinement");
+
+    logger.log(Level.FINEST, "Starting ARG based refinement");
+
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
     final @Nullable ARGPath path = computePath(lastElement, reached);

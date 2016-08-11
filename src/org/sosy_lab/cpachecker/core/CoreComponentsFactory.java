@@ -101,6 +101,12 @@ public class CoreComponentsFactory {
         + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useCEGAR = false;
 
+  @Option(secure=true, name="algorithm.TGAR",
+      description = "use TGAR algorithm for lazy counter-example guided analysis"
+          + "\nYou need to specify a refiner with the tgar.refiner option."
+          + "\nCurrently all refiner require the use of the ARGCPA.")
+  private boolean useTGAR = false;
+
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
@@ -281,7 +287,9 @@ public class CoreComponentsFactory {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
-      if (useCEGAR) {
+      if (useTGAR) {
+        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+      } else if (useCEGAR) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
       }
 
