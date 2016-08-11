@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 
 public interface ConfigurableProgramAnalysisWithBAM extends
@@ -31,4 +32,9 @@ public interface ConfigurableProgramAnalysisWithBAM extends
   default Reducer getReducer() {
     return NoOpReducer.getInstance();
   }
+
+  /**
+   * Set the block partitioning on the CPA.
+   */
+  default void setPartitioning(BlockPartitioning pPartitioning) { }
 }
