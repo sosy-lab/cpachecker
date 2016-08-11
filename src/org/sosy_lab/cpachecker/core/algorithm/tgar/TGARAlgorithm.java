@@ -53,12 +53,15 @@ import org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.DeeperLevelFirstCo
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TargetedRefiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -256,7 +259,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     try {
       boolean counterexampleEliminated;
       do {
-        counterexampleEliminated = false;
+        counterexampleEliminated = true;
 
         // There might be unhandled target states left for refinement.
         //    This might be the case if there was a feasible path
@@ -265,6 +268,14 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
         if (lastTargetState.isPresent()) {
           Preconditions.checkState(AbstractStates.isTargetState(lastTargetState.get()));
           counterexampleEliminated = refine(reached, lastTargetState.get());
+          Set<SafetyProperty> targetProperties =
+              AbstractStates.extractViolatedProperties(lastTargetState.get(), SafetyProperty.class);
+
+          if (counterexampleEliminated) {
+            logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
+          } else {
+            logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
+          }
         }
 
         status = status.update(algorithm.run(reached));
