@@ -34,7 +34,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
-import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
@@ -46,6 +45,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -60,7 +61,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.PrintStream;
-import java.lang.annotation.Target;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -76,7 +76,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 // GuidedRefinementAlgorithm
 @Options(prefix="tgar")
-public class TGARAlgorithm implements Algorithm, StatisticsProvider {
+public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, StatisticsProvider {
 
   private static class TGARStatistics implements Statistics {
 
@@ -165,6 +165,7 @@ public class TGARAlgorithm implements Algorithm, StatisticsProvider {
   private final TargetedRefiner mRefiner;
 
   private final Set<Integer> feasibleStateIds = Sets.newTreeSet();
+  private Optional<AbstractState> lastTargetState = Optional.absent();
 
   // TODO Copied from CPABuilder, should be refactored into a generic implementation
   private TargetedRefiner createInstance(ConfigurableProgramAnalysis pCpa) throws CPAException,
@@ -238,28 +239,40 @@ public class TGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     try {
-      boolean refinementSuccessful;
+      boolean counterexampleEliminated;
       do {
-        refinementSuccessful = false;
+        counterexampleEliminated = false;
 
         // There might be unhandled target states left for refinement.
         //    This might be the case if there was a feasible path
         //    for that the algorithm returned.
-        Optional<AbstractState> target = chooseTarget(reached);
-        if (target.isPresent()) {
-          Preconditions.checkState(AbstractStates.isTargetState(target.get()));
-
-          refinementSuccessful = refine(reached, target.get());
+        lastTargetState = chooseTarget(reached);
+        if (lastTargetState.isPresent()) {
+          Preconditions.checkState(AbstractStates.isTargetState(lastTargetState.get()));
+          counterexampleEliminated = refine(reached, lastTargetState.get());
         }
 
         status = status.update(algorithm.run(reached));
 
-      } while (refinementSuccessful);
+      } while (counterexampleEliminated);
 
     } finally {
       stats.totalTimer.stop();
     }
     return status;
+  }
+
+  @Override
+  public AlgorithmResult getResult() {
+    final Optional<CounterexampleInfo> info;
+    if (lastTargetState.isPresent()) {
+      ARGState e = (ARGState) lastTargetState.get();
+      info = e.getCounterexampleInformation();
+    } else {
+      info = Optional.absent();
+    }
+
+    return new CounterexampleInfoResult(info);
   }
 
   private final Predicate<AbstractState> NOT_YET_HANDLED = new Predicate<AbstractState>() {

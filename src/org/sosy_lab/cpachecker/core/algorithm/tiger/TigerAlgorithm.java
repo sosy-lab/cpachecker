@@ -52,8 +52,10 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
@@ -1171,9 +1173,10 @@ public class TigerAlgorithm
 
       do {
         // The wrapped algorithm (pAlgorithm) is (typically)
-        // either the CEGAR algorithm,
+        // either the CEGAR/TGAR algorithm,
         // or another algorithm that wraps the CEGAR algorithm.
         Preconditions.checkState(pAlgorithm instanceof CEGARAlgorithm
+            || pAlgorithm instanceof TGARAlgorithm
             || pAlgorithm instanceof CounterexampleCheckAlgorithm);
 
         algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
@@ -1185,45 +1188,31 @@ public class TigerAlgorithm
 
         if (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT) {
 
-          boolean newTargetFound = (reachedSet.getLastState() != null)
-              && ((ARGState) reachedSet.getLastState()).isTarget();
+          Optional<CounterexampleInfo> cexInfo = retrieveCounterexampleInfo(pAlgorithm, reachedSet);
 
-          if (reachedSet.hasWaitingState() && newTargetFound) {
-            Preconditions.checkState(reachedSet.getLastState() instanceof ARGState);
-            ARGState lastState = (ARGState) reachedSet.getLastState();
-            Preconditions.checkState(lastState.isTarget());
+          if (!cexInfo.isPresent()) {
+            // No feasible counterexample!
+            logger.logf(Level.WARNING, "Analysis returned a target state without a feasible counterexample!");
+          } else {
+            CounterexampleInfo allCexi = cexInfo.get();
 
-            if (lastState.getCounterexampleInformation().isPresent()) {
-              CounterexampleInfo cexi = lastState.getCounterexampleInformation().get();
-            }
+            for (CounterexampleInfo cexi: allCexi.getAll()) {
+              dumpArgForCex(cexi);
 
-            if (!lastState.getCounterexampleInformation().isPresent()) {
-              // No feasible counterexample!
-              logger.logf(Level.WARNING,
-                  "Analysis returned a target state (%d) without a feasible counterexample for: "
-                      + lastState.getViolatedProperties(),
-                  lastState.getStateId());
-            } else {
-              CounterexampleInfo allCexi = lastState.getCounterexampleInformation().get();
-
-              for (CounterexampleInfo cexi: allCexi.getAll()) {
-                dumpArgForCex(cexi);
-
-                Set<Goal> fullyCoveredGoals = null;
-                if (allCoveredGoalsPerTestCase) {
-                  fullyCoveredGoals =
-                      addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
-                } else if (checkCoverage) {
-                  fullyCoveredGoals =
-                      addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi,
-                          pInfeasibilityPropagation);
-                } else {
-                  fullyCoveredGoals =
-                      addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
-                }
-
-                pUncoveredGoals.removeAll(fullyCoveredGoals);
+              Set<Goal> fullyCoveredGoals = null;
+              if (allCoveredGoalsPerTestCase) {
+                fullyCoveredGoals =
+                    addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
+              } else if (checkCoverage) {
+                fullyCoveredGoals =
+                    addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi,
+                        pInfeasibilityPropagation);
+              } else {
+                fullyCoveredGoals =
+                    addTestToSuite(pTestGoalsToBeProcessed, cexi, pInfeasibilityPropagation);
               }
+
+              pUncoveredGoals.removeAll(fullyCoveredGoals);
             }
           }
 
@@ -1265,6 +1254,29 @@ public class TigerAlgorithm
 
       return algorithmStatus;
     }
+  }
+
+  private static Optional<CounterexampleInfo> retrieveCounterexampleInfo(
+      Algorithm pAlg, ReachedSet pReachedSet) {
+
+    if (pAlg instanceof TGARAlgorithm) {
+      TGARAlgorithm alg = (TGARAlgorithm) pAlg;
+      CounterexampleInfoResult r = (CounterexampleInfoResult) alg.getResult();
+      return r.getCounterexampleInfo();
+    } else {
+      boolean newTargetFound = (pReachedSet.getLastState() != null)
+          && ((ARGState) pReachedSet.getLastState()).isTarget();
+
+      if (pReachedSet.hasWaitingState() && newTargetFound) {
+        Preconditions.checkState(pReachedSet.getLastState() instanceof ARGState);
+        ARGState lastState = (ARGState) pReachedSet.getLastState();
+        Preconditions.checkState(lastState.isTarget());
+
+        return lastState.getCounterexampleInformation();
+      }
+    }
+
+    return Optional.absent();
   }
 
   private void dumpArgForCex(CounterexampleInfo cexi) {

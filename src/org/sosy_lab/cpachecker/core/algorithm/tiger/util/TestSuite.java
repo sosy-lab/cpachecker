@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class TestSuite extends AlgorithmResult {
+public class TestSuite implements AlgorithmResult {
 
   private boolean printLabels;
   boolean useTigerAlgorithm_with_pc;

@@ -23,9 +23,27 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-/**
- * Class that represents the final results of a CPAchecker algorithm.
- */
-public class AlgorithmResult {
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+
+/**
+ * Interface that represents the final results of a CPAchecker algorithm.
+ */
+public interface AlgorithmResult {
+
+
+  public static class CounterexampleInfoResult implements AlgorithmResult {
+    private final Optional<CounterexampleInfo> counterexampleInfo;
+
+    public CounterexampleInfoResult(Optional<CounterexampleInfo> pCounterexampleInfo) {
+      Preconditions.checkNotNull(pCounterexampleInfo);
+      counterexampleInfo = pCounterexampleInfo;
+    }
+
+    public Optional<CounterexampleInfo> getCounterexampleInfo() {
+      return counterexampleInfo;
+    };
+  }
 }
