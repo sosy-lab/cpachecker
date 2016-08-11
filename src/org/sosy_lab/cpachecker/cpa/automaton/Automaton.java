@@ -225,7 +225,7 @@ public class Automaton {
     StringBuilder sb = new StringBuilder();
 
     final String name = s.getName().replace("_predefinedState_", "");
-    sb.append(String.format("%d [label=\"%s\" ", s.getStateId(), name));
+    sb.append(String.format("%d [label=\"%s\" ", s.getStateId(), s.getStateId()));
 
     String shape = s.isTarget() ? "doublecircle" : "circle";
     sb.append("shape=\"" + shape + "\" ");

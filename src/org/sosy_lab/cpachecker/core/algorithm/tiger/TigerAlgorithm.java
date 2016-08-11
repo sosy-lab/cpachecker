@@ -1634,10 +1634,9 @@ public class TigerAlgorithm
             a = markingAutomata;
           }
 
-          checkAutomaton(a);
-
           goalAutomata.add(a);
           dumpAutomaton(a);
+          checkAutomaton(a);
         }
 
         if (useAutomataCrossProduct) {
