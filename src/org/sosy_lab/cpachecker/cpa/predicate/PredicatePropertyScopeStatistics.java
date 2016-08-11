@@ -399,12 +399,19 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     List<Integer> trueGlobalOtherSwitch =
         depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), true);
 
-    addKeyValueStatistic("Abs formula glob->other switch", "[" + globalOtherSwitch.stream().map
-        (Object::toString).collect(Collectors.joining(":")) + "]");
+    addKeyValueStatistic("Abs formula glob->other switch avg",
+        globalOtherSwitch
+            .isEmpty() ? "<unknown>" : globalOtherSwitch
+            .stream().map(pInteger -> (long) pInteger).reduce(Long::sum).orElse(0L) / (double)
+            globalOtherSwitch.size());
 
-    addKeyValueStatistic("Abs formula TRUE->glob->other switch", "[" + trueGlobalOtherSwitch
-        .stream()
-        .map(Object::toString).collect(Collectors.joining(":")) + "]");
+    addKeyValueStatistic("Abs formula TRUE->glob->other switch avg",
+        trueGlobalOtherSwitch
+            .isEmpty() ? "<unknown>" :
+        trueGlobalOtherSwitch
+            .stream().map(pInteger -> (long) pInteger)
+            .reduce(Long::sum)
+            .orElse(0L) / (double) trueGlobalOtherSwitch.size());
 
     super.printStatistics(pOut, pResult, pReached);
   }

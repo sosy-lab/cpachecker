@@ -254,8 +254,8 @@
     <column title="formula_atom_global_loop_exit_sum">Abs. formula atoms with global and loopExitCondVars sum:</column>
     <column title="formula_atom_global_loop_inc_dec_sum">Abs. formula atoms with global and loopIncDecVars sum:</column>
 
-    <column title="abs_formula_glob_other_sw">Abs formula glob->other switch:</column>
-    <column title="abs_formula_true_glob_other_sw">Abs formula TRUE->glob->other switch:</column>
+    <column title="abs_formula_glob_other_sw_avg">Abs formula glob->other switch avg:</column>
+    <column title="abs_formula_true_glob_other_sw_avg">Abs formula TRUE->glob->other switch avg</column>
 
 
 
