@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -288,7 +289,7 @@ public class CoreComponentsFactory {
       }
 
       if (useTGAR) {
-        algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new TGARAlgorithm(algorithm, cpa, config, logger);
       } else if (useCEGAR) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
       }
