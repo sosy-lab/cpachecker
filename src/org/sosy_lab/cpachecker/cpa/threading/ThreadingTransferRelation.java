@@ -136,6 +136,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
+    if (null == activeThread) {
+      return Collections.emptySet();
+    }
 
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK)
@@ -165,12 +168,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   /** Search for the thread, where the current edge is available.
-   * The result should be exactly one thread, that is denoted as 'active'.
+   * The result should be exactly one thread, that is denoted as 'active',
+   * or NULL, if no active thread is available.
    *
    * This method is needed, because we use the CompositeCPA to choose the edge,
    * and when we have several locations in the threadingState,
    * only one of them has an outgoing edge matching the current edge.
    */
+  @Nullable
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     final Set<String> activeThreads = new HashSet<>();
     for (String id : threadingState.getThreadIds()) {
@@ -179,11 +184,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    assert activeThreads.size() == 1 : "multiple active threads are not allowed: " + activeThreads;
+    assert activeThreads.size() <= 1 : "multiple active threads are not allowed: " + activeThreads;
     // then either the same function is called in different threads -> not supported.
     // (or CompositeCPA and ThreadingCPA do not work together)
 
-    return Iterables.getOnlyElement(activeThreads);
+    return activeThreads.isEmpty() ? null : Iterables.getOnlyElement(activeThreads);
   }
 
   /** handle all edges related to thread-management:
@@ -212,7 +217,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_EXIT:
             // this function-call is already handled in the beginning with isLastNodeOfThread.
             // return exitThread(threadingState, activeThread, results);
-            // TODO check for code like "x=4; pthread_exit(); x=5; return 0;", that would be invalid.
           default:
             // nothing to do, return results
           }
@@ -287,7 +291,30 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** checks whether the location is the last node of a thread,
    * i.e. the current thread will terminate after this node. */
   static boolean isLastNodeOfThread(CFANode node) {
-    return 0 == node.getNumLeavingEdges();
+
+    if (0 == node.getNumLeavingEdges()) {
+      return true;
+    }
+
+    if (1 == node.getNumEnteringEdges()) {
+      return isThreadExit(node.getEnteringEdge(0));
+    }
+
+    return false;
+  }
+
+  private static boolean isThreadExit(CFAEdge cfaEdge) {
+    if (CFAEdgeType.StatementEdge == cfaEdge.getEdgeType()) {
+      AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp =
+            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          return THREAD_EXIT.equals(((AIdExpression) functionNameExp).getName());
+        }
+      }
+    }
+    return false;
   }
 
   /** the whole program will terminate after this edge */
