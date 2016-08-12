@@ -1068,10 +1068,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGRegion paramObj;
       // If parameter is a array, convert to pointer
       if (cParamType instanceof CArrayType) {
-        int size = machineModel.getSizeofPtr();
+        int size = machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits();
         paramObj = new SMGRegion(size, varName);
       } else {
-        int size = machineModel.getSizeof(cParamType);
+        int size = expressionEvaluator.getSizeof(callEdge, cParamType, initialNewState);
         paramObj = new SMGRegion(size, varName);
       }
 
