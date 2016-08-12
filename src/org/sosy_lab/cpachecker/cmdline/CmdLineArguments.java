@@ -384,42 +384,7 @@ class CmdLineArguments {
 
         String newValue = args.next();
         if (arg.equals("-spec")) {
-          // handle normal specification definitions
-          if (SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
-            Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
-            if (specFile != null) {
-              newValue = specFile.toString();
-            } else {
-              ERROR_OUTPUT.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-              System.exit(ERROR_EXIT_CODE);
-            }
-          }
-
-          // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
-          // the respective specification definition
-          else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
-            Path propertyFile = Paths.get(newValue);
-            if (propertyFile.toFile().exists()) {
-              PropertyFileParser parser = new PropertyFileParser(propertyFile);
-              try {
-                parser.parse();
-              } catch (InvalidPropertyFileException e) {
-                throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
-              }
-              putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
-              appendOptionValue(options, PROPERTY_OPTION, newValue);
-
-              // set the file from where to read the specification automaton
-              Set<PropertyType> properties = parser.getProperties();
-              assert !properties.isEmpty();
-
-              newValue = getSpecifications(options, properties);
-
-            } else {
-              ERROR_OUTPUT.println("The property file " + newValue + " does not exist.");
-              System.exit(ERROR_EXIT_CODE);
-            }
-          }
+          newValue = handleSpecificationDefinition(options, newValue);
         }
         appendOptionValue(options, option, newValue);
 
@@ -430,6 +395,51 @@ class CmdLineArguments {
     } else {
       return false;
     }
+  }
+
+  private static String handleSpecificationDefinition(
+      final Map<String, String> options, String specification)
+      throws InvalidCmdlineArgumentException {
+    // handle normal specification definitions
+    if (SPECIFICATION_FILES_PATTERN.matcher(specification).matches()) {
+      Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, specification);
+      if (specFile != null) {
+        specification = specFile.toString();
+      } else {
+        ERROR_OUTPUT.println(
+            "Checking for property "
+                + specification
+                + " is currently not supported by CPAchecker.");
+        System.exit(ERROR_EXIT_CODE);
+      }
+    }
+
+    // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
+    // the respective specification definition
+    else if (PROPERTY_FILE_PATTERN.matcher(specification).matches()) {
+      Path propertyFile = Paths.get(specification);
+      if (propertyFile.toFile().exists()) {
+        PropertyFileParser parser = new PropertyFileParser(propertyFile);
+        try {
+          parser.parse();
+        } catch (InvalidPropertyFileException e) {
+          throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+        }
+        putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
+        appendOptionValue(options, PROPERTY_OPTION, specification);
+
+        // set the file from where to read the specification automaton
+        Set<PropertyType> properties = parser.getProperties();
+        assert !properties.isEmpty();
+
+        specification = getSpecifications(options, properties);
+
+      } else {
+        ERROR_OUTPUT.println("The property file " + specification + " does not exist.");
+        System.exit(ERROR_EXIT_CODE);
+      }
+    }
+    return specification;
   }
 
   /** This method returns all specifications for the given properties.
