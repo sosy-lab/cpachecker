@@ -35,6 +35,7 @@ public interface  CExpression  extends CRightHandSide, AExpression {
   public  <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
+  @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
   @Override
   default <
           R,
