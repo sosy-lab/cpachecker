@@ -61,11 +61,6 @@ public class JUnaryExpression extends AUnaryExpression implements JExpression {
   }
 
   @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }

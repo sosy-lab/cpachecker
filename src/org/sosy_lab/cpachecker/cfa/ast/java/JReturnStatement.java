@@ -50,6 +50,11 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
   }
 
   @Override
+  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;

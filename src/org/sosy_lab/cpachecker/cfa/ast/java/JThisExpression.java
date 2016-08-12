@@ -45,11 +45,6 @@ public class JThisExpression extends AbstractExpression implements JRunTimeTypeE
   }
 
   @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
   public String toASTString() {
     return "this";
   }

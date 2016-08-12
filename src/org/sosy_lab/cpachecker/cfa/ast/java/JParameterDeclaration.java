@@ -59,6 +59,11 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
     return qualifiedName;
   }
 
+  @Override
+  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */

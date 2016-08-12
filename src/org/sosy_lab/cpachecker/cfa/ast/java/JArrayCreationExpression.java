@@ -71,11 +71,6 @@ public class JArrayCreationExpression extends AbstractExpression implements JExp
   }
 
   @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
   public String toASTString() {
     if (initializer != null) {
       return initializer.toASTString();

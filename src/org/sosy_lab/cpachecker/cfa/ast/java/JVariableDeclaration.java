@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
@@ -79,6 +79,11 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
 
   public boolean isFinal() {
     return isFinal;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   /* (non-Javadoc)
