@@ -199,21 +199,22 @@ public class TestDataTools {
     return makeAssume(pAssumeExr, newDummyNode(), newDummyNode());
   }
 
-  public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException {
+  public static CFA makeCFA(String... lines)
+      throws IOException, ParserException, InterruptedException {
     try {
-      return makeCFA(cProgram, configurationForTest().build());
+      return makeCFA(configurationForTest().build(), lines);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
   }
 
-  public static CFA makeCFA(String cProgram, Configuration config) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException {
+  public static CFA makeCFA(Configuration config, String... lines)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     CFACreator creator =
         new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
-    return creator.parseSourceAndCreateCFA(cProgram);
+    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(lines));
   }
 
   /**
