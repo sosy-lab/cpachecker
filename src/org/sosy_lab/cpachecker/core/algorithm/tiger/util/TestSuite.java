@@ -326,7 +326,7 @@ public class TestSuite implements AlgorithmResult {
    * Returns the label of a test goal if there is one; otherwise the goal index will be returned.
    */
   public String getTestGoalLabel(Goal goal) {
-    String label = "";
+    final String label;
 
     CFANode predecessor = goal.getCriticalEdge().getPredecessor();
     if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
