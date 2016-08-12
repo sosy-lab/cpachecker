@@ -2580,47 +2580,74 @@ public class SMGExpressionEvaluator {
 
     @Override
     public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
-      return super.visit(pCompositeType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pCompositeType);
+      return result;
     }
 
     @Override
     public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      return super.visit(pElaboratedType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pElaboratedType);
+      return result;
     }
 
     @Override
     public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
-      return super.visit(pEnumType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pEnumType);
+      return result;
     }
 
     @Override
     public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
-      return super.visit(pFunctionType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pFunctionType);
+      return result;
     }
 
     @Override
     public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
-      return super.visit(pPointerType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pPointerType);
+      return result;
     }
 
     @Override
     public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
-      return super.visit(pProblemType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pProblemType);
+      return result;
     }
 
     @Override
     public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return super.visit(pSimpleType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pSimpleType);
+      return result;
     }
 
     @Override
     public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
-      return super.visit(pTypedefType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pTypedefType);
+      return result;
     }
 
     @Override
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
-      return super.visit(pVoidType) * sizeofCharInBits;
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pVoidType);
+      return result;
     }
 
     @Override
@@ -2639,7 +2666,10 @@ public class SMGExpressionEvaluator {
 
       if(arrayLength == null) {
         // treat size of unknown array length type as ptr
-        return super.visit(pArrayType) * sizeofCharInBits;
+        int result = sizeofCharInBits;
+        sizeofCharInBits = 1;
+        result *= super.visit(pArrayType);
+        return result;
       } else if (arrayLength instanceof CIntegerLiteralExpression) {
         length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
       } else if (edge instanceof CDeclarationEdge) {
