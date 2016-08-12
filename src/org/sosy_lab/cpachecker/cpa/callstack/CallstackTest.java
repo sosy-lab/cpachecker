@@ -103,7 +103,8 @@ public class CallstackTest {
       CFANode coverageLocation = AbstractStates.extractLocation(coveredStates.get(0));
       assert_()
           .withFailureMessage("expected coverage only in main")
-          .that(coverageLocation.getFunctionName().equals("main"));
+          .that(coverageLocation.getFunctionName())
+          .isEqualTo("main");
       assert_()
           .withFailureMessage("expected coverage right after return from f")
           .that(coverageLocation.getEnteringSummaryEdge())
