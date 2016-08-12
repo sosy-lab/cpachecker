@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -75,10 +78,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,7 +93,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.BitSet;
 
 import javax.annotation.Nullable;
 
@@ -551,7 +555,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    */
   private boolean isLeftHandSideLive(ALeftHandSide expression) {
     BitSet lhs = new BitSet(noVars);
-    collectDeclarationsLeft(expression, lhs);
+    handleLeftHandSide(expression, lhs);
     return isAlwaysLive(expression) || state.containsAny(lhs);
   }
 
@@ -560,22 +564,23 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * Mark all declarations occurring inside the expression as live.
    */
   private void handleExpression(AExpression expression, BitSet writeInto) {
-    collectDeclarationsAll(expression, writeInto);
+    markDeclarationsInBitSet(CFAUtils.traverseRecursively(expression), writeInto);
   }
 
   /**
    * Mark all declarations occurring in {@code pLeftHandSide} as live.
    */
-  private void handleLeftHandSide(AExpression pLeftHandSide, BitSet writeInto) {
-    collectDeclarationsLeft(pLeftHandSide, writeInto);
+  private void handleLeftHandSide(ALeftHandSide pLeftHandSide, BitSet writeInto) {
+    markDeclarationsInBitSet(CFAUtils.traverseLeftHandSideRecursively(pLeftHandSide), writeInto);
   }
 
-  private void collectDeclarationsLeft(AExpression exp, BitSet writeInto) {
-    exp.accept_(new LeftHandSideIdExpressionVisitor(declarationListPos, writeInto));
-  }
-
-  private void collectDeclarationsAll(AExpression exp, BitSet writeInto) {
-    exp.accept_(new DeclarationCollectingVisitor(declarationListPos, writeInto));
+  private void markDeclarationsInBitSet(
+      FluentIterable<? extends AAstNode> nodes, BitSet writeInto) {
+    for (AIdExpression exp : nodes.filter(AIdExpression.class)) {
+      int pos =
+          declarationListPos.get(LiveVariables.LIVE_DECL_EQUIVALENCE.wrap(exp.getDeclaration()));
+      writeInto.set(pos);
+    }
   }
 
   /**
@@ -584,7 +589,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    */
   private boolean isAlwaysLive(ALeftHandSide expression) {
     BitSet lhs = new BitSet(noVars);
-    collectDeclarationsLeft(expression, lhs);
+    handleLeftHandSide(expression, lhs);
     lhs.and(addressedOrGlobalVars);
     return !lhs.isEmpty();
   }
@@ -597,24 +602,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       BitSet writeInto) {
     for (AExpression expression : parameters) {
       handleExpression(expression, writeInto);
-    }
-  }
-
-  /**
-   * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptExpressions
-   * we do only want the IdExpressions inside the ArrayExpression.
-   */
-  private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
-    private LeftHandSideIdExpressionVisitor(
-        Map<Wrapper<? extends ASimpleDeclaration>, Integer> pListPos,
-        BitSet writeInto
-    ) {
-      super(pListPos, writeInto);
-    }
-
-    @Override
-    public Void visit(AArraySubscriptExpression pE) {
-      return pE.getArrayExpression().accept_(this);
     }
   }
 }
