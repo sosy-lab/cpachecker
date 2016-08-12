@@ -425,11 +425,11 @@ public class AutomatonTransition {
     return trigger;
   }
 
-  public ImmutableSet<? extends SafetyProperty> getViolatedWhenAssertionFailed() {
+  public Set<? extends SafetyProperty> getViolatedWhenAssertionFailed() {
     return violatedWhenAssertionFailed;
   }
 
-  public ImmutableSet<? extends SafetyProperty> getViolatedWhenEnteringTarget() {
+  public Set<? extends SafetyProperty> getViolatedWhenEnteringTarget() {
     return violatedWhenEnteringTarget;
   }
 

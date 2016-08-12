@@ -46,10 +46,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchSuccessorNotWeaved;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -153,6 +154,24 @@ public class MarkingAutomatonBuilder {
           markerVariable, CIntegerLiteralExpression.ONE);
     }
 
+  }
+
+  private static int skipOverShadowcodeToErrorSeq = 0;
+
+  private static synchronized AutomatonInternalState skipOverShadowcodeToError(
+      List<AStatement> pAssumptions,
+      Set<SafetyProperty> pViolatedOnTarget) {
+    return new AutomatonInternalState(
+        "SKIP_TO_ERROR_" + (skipOverShadowcodeToErrorSeq++),
+        Collections.singletonList(new AutomatonTransition(
+            MatchSuccessorNotWeaved.INSTANCE,
+            pAssumptions,
+            true,
+            ImmutableList.<AAstNode>of(),
+            ImmutableList.<AutomatonAction>of(),
+            AutomatonInternalState.ERROR,
+            pViolatedOnTarget)),
+        false, false);
   }
 
   public static Automaton build(Automaton pInput) {
@@ -259,17 +278,35 @@ public class MarkingAutomatonBuilder {
                       CIntegerLiteralExpression.ONE, CBinaryExpression.BinaryOperator.EQUALS)));
             }
 
-            qPrimeTrans.add(new AutomatonTransition(
-                t.getTrigger(),
-                ImmutableList.<AutomatonBoolExpr>of(), //FIXME
-                assumptions,
-                true,               //FIXME
-                newShadowCode,
-                ExpressionTrees.<AExpression>getTrue(),
-                t.getActions(),
-                t.getFollowState().getName(), null,
-                t.getViolatedWhenEnteringTarget(),
-                t.getViolatedWhenAssertionFailed()));
+            if (newShadowCode.size() > 0) {
+              final AutomatonInternalState skipToErrorState =
+                  skipOverShadowcodeToError(assumptions,
+                      (Set<SafetyProperty>) t.getViolatedWhenEnteringTarget());
+
+              qPrimeTrans.add(new AutomatonTransition(
+                  t.getTrigger(),
+                  ImmutableList.of(), //FIXME
+                  ImmutableList.of(),
+                  true,               //FIXME
+                  newShadowCode,
+                  ExpressionTrees.getTrue(),
+                  t.getActions(),
+                  skipToErrorState.getName(), skipToErrorState,
+                  ImmutableSet.of(),
+                  ImmutableSet.of()));
+            } else {
+              qPrimeTrans.add(new AutomatonTransition(
+                  t.getTrigger(),
+                  ImmutableList.of(), //FIXME
+                  assumptions,
+                  true,               //FIXME
+                  newShadowCode,
+                  ExpressionTrees.getTrue(),
+                  t.getActions(),
+                  t.getFollowState().getName(), null,
+                  t.getViolatedWhenEnteringTarget(),
+                  t.getViolatedWhenAssertionFailed()));
+            }
           }
         } else {
           qPrimeTrans.add(new AutomatonTransition(

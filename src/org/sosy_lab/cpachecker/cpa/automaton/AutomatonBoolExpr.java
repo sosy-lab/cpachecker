@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -124,6 +125,48 @@ public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable
       return pOther instanceof MatchProgramEntry
           ? Equality.EQUAL
           : Equality.UNKNOWN; // Also other matches might match a program exit
+    }
+
+  }
+
+  enum MatchIsWeaved implements AutomatonBoolExpr {
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getCfaEdge().getPredecessor() instanceof ShadowCFANode) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchIsWeaved
+             ? Equality.EQUAL
+             : Equality.UNKNOWN; // Also other matches might match a program exit
+    }
+
+  }
+
+  enum MatchSuccessorNotWeaved implements AutomatonBoolExpr {
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (!(pArgs.getCfaEdge().getSuccessor() instanceof ShadowCFANode)) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchSuccessorNotWeaved
+             ? Equality.EQUAL
+             : Equality.UNKNOWN; // Also other matches might match a program exit
     }
 
   }
