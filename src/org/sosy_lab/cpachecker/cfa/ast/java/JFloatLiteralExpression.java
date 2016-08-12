@@ -33,7 +33,8 @@ import java.math.BigDecimal;
 /**
  * This class represents the float number literal AST node type.
  */
-public class JFloatLiteralExpression extends AFloatLiteralExpression implements JLiteralExpression {
+public final class JFloatLiteralExpression extends AFloatLiteralExpression
+    implements JLiteralExpression {
 
   public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
     super(pFileLocation, JSimpleType.getFloat(), pValue);

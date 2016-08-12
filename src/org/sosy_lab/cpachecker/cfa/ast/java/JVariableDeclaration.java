@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
 
+  // TODO refactor to be either abstract or final
 
   private static final boolean IS_LOCAL = false;
   private final boolean isFinal;

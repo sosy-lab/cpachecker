@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * And for method assignments, we use {@link JMethodInvocationAssignmentStatement}.
  *
  */
-public class JExpressionStatement extends AExpressionStatement implements JStatement {
+public final class JExpressionStatement extends AExpressionStatement implements JStatement {
 
   public JExpressionStatement(FileLocation pFileLocation, JExpression pExpression) {
     super(pFileLocation, pExpression);

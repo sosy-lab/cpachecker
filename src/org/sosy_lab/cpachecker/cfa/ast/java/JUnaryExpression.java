@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *  to {@link JBinaryExpression}.
  *
  */
-public class JUnaryExpression extends AUnaryExpression implements JExpression {
+public final class JUnaryExpression extends AUnaryExpression implements JExpression {
 
   public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);

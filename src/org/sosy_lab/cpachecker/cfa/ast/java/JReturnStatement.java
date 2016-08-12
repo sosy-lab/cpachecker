@@ -37,6 +37,8 @@ import java.util.Optional;
  */
 public class JReturnStatement extends AbstractReturnStatement implements JAstNode {
 
+  // TODO refactor to be either abstract or final
+
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special variable with the return type of the function.
     super(pFileLocation, pExpression, Optional.empty());

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * The expression type also denotes the type the expression is casted to.
  *
  */
-public class JCastExpression extends ACastExpression implements JExpression {
+public final class JCastExpression extends ACastExpression implements JExpression {
 
   public JCastExpression(FileLocation pFileLocation, JType pCastType, JExpression pOperand) {
     super(pFileLocation, pCastType, pOperand);

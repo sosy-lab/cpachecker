@@ -32,7 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import java.util.Objects;
 
 
-public class JVariableRunTimeType extends AbstractExpression implements JRunTimeTypeExpression {
+public final class JVariableRunTimeType extends AbstractExpression
+    implements JRunTimeTypeExpression {
 
   private final JIdExpression referencedVariable;
 

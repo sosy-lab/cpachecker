@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+
 import java.util.List;
 
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
 /**
  *
@@ -50,13 +50,16 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
  */
 public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
 
+  // TODO refactor to be either abstract or final
+
   //TODO Type Variables , AnonymousClassDeclaration
 
-  public JClassInstanceCreation(FileLocation pFileLocation,
-                                JClassOrInterfaceType pType,
-                                JExpression pFunctionName,
-                                List<? extends JExpression> pParameters,
-                                JConstructorDeclaration pDeclaration) {
+  public JClassInstanceCreation(
+      FileLocation pFileLocation,
+      JClassOrInterfaceType pType,
+      JExpression pFunctionName,
+      List<? extends JExpression> pParameters,
+      JConstructorDeclaration pDeclaration) {
 
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }

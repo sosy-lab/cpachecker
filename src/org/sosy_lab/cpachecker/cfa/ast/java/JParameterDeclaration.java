@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * This class contains Parameter Declarations for methods.
  * It contains a type and a name.
  */
-public class JParameterDeclaration extends AParameterDeclaration implements JSimpleDeclaration {
+public final class JParameterDeclaration extends AParameterDeclaration
+    implements JSimpleDeclaration {
 
   private final String qualifiedName;
   private final boolean isFinal;

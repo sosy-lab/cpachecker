@@ -37,7 +37,7 @@ import java.util.Objects;
  * as the type Definition. Otherwise, it evaluates to false.
  *
  */
-public class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
+public final class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
 
   private final JRunTimeTypeExpression runTimeTypeExpression;
   private final JClassOrInterfaceType typeDef;
