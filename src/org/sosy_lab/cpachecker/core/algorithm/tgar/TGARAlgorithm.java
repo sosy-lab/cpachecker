@@ -344,8 +344,6 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
             .filter(PROPERTY_NOT_BLACKLISTED)
             .toSortedList(comparator);
 
-
-
     if (rankedCandidates.isEmpty()) {
       return Optional.absent();
     }
