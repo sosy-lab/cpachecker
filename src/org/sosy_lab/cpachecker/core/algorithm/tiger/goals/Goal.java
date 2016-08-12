@@ -68,12 +68,14 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 public class Goal implements SafetyProperty {
 
-  private int mIndex;
-  private ElementaryCoveragePattern mPattern;
-  private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
-  private Automaton mCheckedWithAutomaton;
+  private final int mIndex;
+  private final ElementaryCoveragePattern mPattern;
+  private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
+  @Nullable private Automaton mCheckedWithAutomaton;
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
@@ -361,7 +363,7 @@ public class Goal implements SafetyProperty {
         final boolean isStutterTransition = t.getTarget().equals(q);
         if (matchesCriticalEdge && !isStutterTransition && !matchesAnyting) {// Ignore stutter transitions
           // This ensures that each path is along a critical edge!
-          actions = ImmutableList.<AutomatonAction>of(
+          actions = ImmutableList.of(
               AutomatonAction.CheckFeasibility.getInstance(),
               AutomatonAction.SetMarkerVariable.getInstance());
         } else {
@@ -370,16 +372,16 @@ public class Goal implements SafetyProperty {
 
         AutomatonTransition ct = new AutomatonTransition(
             trigger,
-            Collections.<AutomatonBoolExpr> emptyList(),
+            Collections.emptyList(),
             assumptions,
             true,
             null,
-            ExpressionTrees.<AExpression>getTrue(),
+            ExpressionTrees.getTrue(),
             actions,
             sucessorStateName,
             null,
             ImmutableSet.<SafetyProperty>of(this),
-            ImmutableSet.<SafetyProperty>of());
+            ImmutableSet.of());
 
         if (isStutterTransition) {
           stutterTransitions.add(ct);
@@ -399,9 +401,9 @@ public class Goal implements SafetyProperty {
             null,
             true,
             null,
-            Collections.<AutomatonAction>emptyList(),
+            Collections.emptyList(),
             AutomatonInternalState.BOTTOM,
-            ImmutableSet.<SafetyProperty>of());
+            ImmutableSet.of());
 
         transitions.add(t);
       }
@@ -413,7 +415,7 @@ public class Goal implements SafetyProperty {
     try {
       mCheckedWithAutomaton = new Automaton(new AutomatonSafetyPropertyFactory(Configuration
           .defaultConfiguration(), ""),
-          automatonName, Maps.<String, AutomatonVariable> newHashMap(),
+          automatonName, Maps.newHashMap(),
           automatonStates, initialStateName);
 
       return mCheckedWithAutomaton;
