@@ -877,6 +877,10 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 # mergeType
 cpa.bdd.merge = "join"
 
+# Threshold for unrolling blocks before stopping. A value of 0 disables the
+# threshold.
+cpa.blockcount.threshold = 1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.bounds.loopIterationsBeforeAbstraction = 0
