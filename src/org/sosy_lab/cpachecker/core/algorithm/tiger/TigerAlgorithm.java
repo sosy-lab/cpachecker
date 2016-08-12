@@ -174,17 +174,17 @@ public class TigerAlgorithm
 
   private class TigerStatistics extends AbstractStatistics {
 
-    StatCpuTime acceptsTime = new StatCpuTime();
-    StatCpuTime updateTestsuiteByCoverageOfTime = new StatCpuTime();
-    StatCpuTime createTestcaseTime = new StatCpuTime();
-    StatCpuTime addTestToSuiteTime = new StatCpuTime();
-    StatCpuTime handleInfeasibleTestGoalTime = new StatCpuTime();
-    StatCpuTime runAlgorithmWithLimitTime = new StatCpuTime();
-    StatCpuTime runAlgorithmTime = new StatCpuTime();
-    StatCpuTime initializeAlgorithmTime = new StatCpuTime();
-    StatCpuTime initializeReachedSetTime = new StatCpuTime();
-    StatCpuTime composeCPATime = new StatCpuTime();
-    StatCpuTime testGenerationTime = new StatCpuTime();
+    final StatCpuTime acceptsTime = new StatCpuTime();
+    final StatCpuTime updateTestsuiteByCoverageOfTime = new StatCpuTime();
+    final StatCpuTime createTestcaseTime = new StatCpuTime();
+    final StatCpuTime addTestToSuiteTime = new StatCpuTime();
+    final StatCpuTime handleInfeasibleTestGoalTime = new StatCpuTime();
+    final StatCpuTime runAlgorithmWithLimitTime = new StatCpuTime();
+    final StatCpuTime runAlgorithmTime = new StatCpuTime();
+    final StatCpuTime initializeAlgorithmTime = new StatCpuTime();
+    final StatCpuTime initializeReachedSetTime = new StatCpuTime();
+    final StatCpuTime composeCPATime = new StatCpuTime();
+    final StatCpuTime testGenerationTime = new StatCpuTime();
 
     public TigerStatistics() {
       super();
@@ -413,11 +413,6 @@ public class TigerAlgorithm
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private FQLSpecification fqlSpecification;
 
-  private Wrapper wrapper;
-  private GuardedEdgeLabel mAlphaLabel;
-  private GuardedEdgeLabel mOmegaLabel;
-  private InverseGuardedEdgeLabel mInverseAlphaLabel;
-
   private TestSuite testsuite;
   private ReachedSet reachedSet = null;
   private ReachedSet outsideReachedSet = null;
@@ -444,8 +439,7 @@ public class TigerAlgorithm
 
   private final ReachedSetFactory reachedSetFactory;
 
-  public TigerAlgorithm(
-      Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+  public TigerAlgorithm(ConfigurableProgramAnalysis pCpa,
       ShutdownManager pShutdownManager, CFA pCfa, Configuration pConfig, LogManager pLogger,
       String pProgramDenotation, ReachedSetFactory pReachedSetFactory, MainCPAStatistics pMainStats)
       throws InvalidConfigurationException {
@@ -463,8 +457,6 @@ public class TigerAlgorithm
     cpa = pCpa;
     cfa = pCfa;
 
-    // Check if BDD is enabled for variability-aware test-suite generation
-
     testsuite = new TestSuite(printLabels, useTigerAlgorithm_with_pc);
     inputVariables = new TreeSet<>();
     for (String variable : inputInterface.split(",")) {
@@ -481,17 +473,19 @@ public class TigerAlgorithm
         new CoverageSpecificationTranslator(
             pCfa.getFunctionHead(TigerAlgorithm.originalMainFunction));
 
-    wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
+    Wrapper wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
 
-    mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
-    mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
-    mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
+    GuardedEdgeLabel alphaLabel =
+        new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
+    InverseGuardedEdgeLabel inverseAlphaLabel = new InverseGuardedEdgeLabel(alphaLabel);
+    GuardedEdgeLabel omegaLabel =
+        new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
     edgeToTgaMapping = new HashMap<>();
     targetStateFormulas = new HashMap<>();
 
-    testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, mAlphaLabel,
-        mInverseAlphaLabel, mOmegaLabel);
+    testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, alphaLabel,
+        inverseAlphaLabel, omegaLabel);
 
     // get internal representation of FQL query
     fqlSpecification = testGoalUtils.parseFQLQuery(fqlQuery);
@@ -612,7 +606,6 @@ public class TigerAlgorithm
 
   private void dumpTestSuite() {
     if (testsuiteFile != null) {
-
       try (Writer writer = MoreFiles.openOutputFile(testsuiteFile, Charset.defaultCharset())) {
         writer.write(testsuite.toString());
       } catch (IOException e) {
@@ -622,25 +615,24 @@ public class TigerAlgorithm
   }
 
   private Pair<Boolean, LinkedList<Edges>> initializeInfisabilityPropagation() {
-    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
+    Pair<Boolean, LinkedList<Edges>> propagation;
 
     if (useInfeasibilityPropagation) {
-      lInfeasibilityPropagation =
-          InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
+      propagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
     } else {
-      lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
+      propagation = Pair.of(Boolean.FALSE, null);
     }
 
-    return lInfeasibilityPropagation;
+    return propagation;
   }
 
-  private ImmutableSet<Goal> nextTestGoalSet(Set<Goal> pGoalsToCover, TestSuite pSuite) {
+  private ImmutableSet<Goal> nextTestGoalSet(Set<Goal> pGoalsToCover) {
     final int testGoalSetSize = (numberOfTestGoalsPerRun <= 0)
         ? pGoalsToCover.size()
         : (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun
             : pGoalsToCover.size();
 
-    Builder<Goal> builder = ImmutableSet.<Goal> builder();
+    Builder<Goal> builder = ImmutableSet.builder();
 
     Iterator<Goal> it = pGoalsToCover.iterator();
     for (int i = 0; i < testGoalSetSize; i++) {
@@ -649,13 +641,10 @@ public class TigerAlgorithm
       }
     }
 
-    ImmutableSet<Goal> result = builder.build();
-
-    return result;
+    return builder.build();
   }
 
-  private boolean testGeneration(Set<Goal> pGoalsToCover,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
+  private boolean testGeneration(Set<Goal> pGoalsToCover, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
     try (StatCpuTimer t = tigerStats.testGenerationTime.start()) {
@@ -707,7 +696,7 @@ public class TigerAlgorithm
         }
 
         while (!pGoalsToCover.isEmpty()) {
-          Set<Goal> goalsToBeProcessed = nextTestGoalSet(pGoalsToCover, testsuite);
+          Set<Goal> goalsToBeProcessed = nextTestGoalSet(pGoalsToCover);
           statistics_numberOfProcessedTestGoals += goalsToBeProcessed.size();
           pGoalsToCover.removeAll(goalsToBeProcessed);
 
@@ -776,7 +765,7 @@ public class TigerAlgorithm
 
           // goal is uncovered so far; run CPAchecker to cover it
           ReachabilityAnalysisResult result =
-              runReachabilityAnalysis(pGoalsToCover, goalsToBeProcessed, previousAutomaton,
+              runReachabilityAnalysis(pGoalsToCover, goalsToBeProcessed,
                   pInfeasibilityPropagation);
           if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
             logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -861,7 +850,9 @@ public class TigerAlgorithm
 
             f.add(formulas);
           }
-        } catch (CPAException | InterruptedException e) {}
+        } catch (CPAException | InterruptedException e) {
+
+        }
 
         return new HashSet<>();
       }
@@ -1130,7 +1121,6 @@ public class TigerAlgorithm
   private ReachabilityAnalysisResult runReachabilityAnalysis(
       Set<Goal> pUncoveredGoals,
       Set<Goal> pTestGoalsToBeProcessed,
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
@@ -1159,11 +1149,8 @@ public class TigerAlgorithm
     Preconditions.checkState(algorithm instanceof TGARAlgorithm);
     TGARAlgorithm tgarAlgorithm = (TGARAlgorithm) algorithm;
 
-    ReachabilityAnalysisResult algorithmStatus =
-        runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
-            presenceConditionToCover, shutdownManager, tgarAlgorithm);
-
-    return algorithmStatus;
+    return runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
+        presenceConditionToCover, shutdownManager, tgarAlgorithm);
   }
 
   private ReachabilityAnalysisResult runAlgorithm(
@@ -1188,7 +1175,7 @@ public class TigerAlgorithm
             for (CounterexampleInfo cexi: pCounterexample.getAll()) {
               dumpArgForCex(cexi);
 
-              Set<Goal> fullyCoveredGoals = null;
+              final Set<Goal> fullyCoveredGoals;
               if (allCoveredGoalsPerTestCase) {
                 fullyCoveredGoals =
                     addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
@@ -1437,9 +1424,7 @@ public class TigerAlgorithm
       PresenceCondition testCasePresenceCondition = argPath.getLastPresenceCondition();
       TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
 
-      Set<Goal> fullyCoveredGoals = updateTestsuiteByCoverageOf(testcase, argPath, pRemainingGoals);
-
-      return fullyCoveredGoals;
+      return updateTestsuiteByCoverageOf(testcase, argPath, pRemainingGoals);
     }
   }
 
