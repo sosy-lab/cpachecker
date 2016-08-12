@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -1157,9 +1158,12 @@ public class TigerAlgorithm
         ShutdownManager.createWithParent(mainShutdownManager.getNotifier());
     Algorithm algorithm = initializeAlgorithm(presenceConditionToCover, cpa, shutdownManager);
 
+    Preconditions.checkState(algorithm instanceof TGARAlgorithm);
+    TGARAlgorithm tgarAlgorithm = (TGARAlgorithm) algorithm;
+
     ReachabilityAnalysisResult algorithmStatus =
         runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
-            presenceConditionToCover, shutdownManager, algorithm);
+            presenceConditionToCover, shutdownManager, tgarAlgorithm);
 
     return algorithmStatus;
   }
@@ -1170,38 +1174,20 @@ public class TigerAlgorithm
       final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       final PresenceCondition pRemainingPresenceCondition,
       final ShutdownManager pShutdownNotifier,
-      final Algorithm pAlgorithm)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      final TGARAlgorithm pAlgorithm)
+      throws CPAException, InterruptedException {
     try (StatCpuTimer t = tigerStats.runAlgorithmTime.start()) {
 
       ReachabilityAnalysisResult algorithmStatus;
 
       do {
-        // The wrapped algorithm (pAlgorithm) is (typically)
-        // either the CEGAR/TGAR algorithm,
-        // or another algorithm that wraps the CEGAR algorithm.
-        Preconditions.checkState(pAlgorithm instanceof CEGARAlgorithm
-            || pAlgorithm instanceof TGARAlgorithm
-            || pAlgorithm instanceof CounterexampleCheckAlgorithm);
+        final TestificationOperator testifier = new TestificationOperator() {
+          @Override
+          public void feasibleCounterexample(
+              CounterexampleInfo pCounterexample, Set<SafetyProperty> pForProperties)
+              throws InterruptedException {
 
-        algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
-
-        // Cases where runAlgorithm terminates:
-        //  A) TIMEOUT
-        //  B) Feasible counterexample
-        //  C) No feasible counterexample (fixpoint)
-
-        if (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT) {
-
-          Optional<CounterexampleInfo> cexInfo = retrieveCounterexampleInfo(pAlgorithm, reachedSet);
-
-          if (!cexInfo.isPresent()) {
-            // No feasible counterexample!
-            logger.logf(Level.WARNING, "Analysis returned a target state without a feasible counterexample!");
-          } else {
-            CounterexampleInfo allCexi = cexInfo.get();
-
-            for (CounterexampleInfo cexi: allCexi.getAll()) {
+            for (CounterexampleInfo cexi: pCounterexample.getAll()) {
               dumpArgForCex(cexi);
 
               Set<Goal> fullyCoveredGoals = null;
@@ -1219,9 +1205,6 @@ public class TigerAlgorithm
 
               pUncoveredGoals.removeAll(fullyCoveredGoals);
             }
-          }
-
-          if (reachedSet.hasWaitingState()) {
 
             // Exclude covered goals from further exploration
             Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
@@ -1238,8 +1221,21 @@ public class TigerAlgorithm
 
             AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
                 .cloneAndAddBlacklisted(toBlacklist));
+
           }
+        };
+
+        pAlgorithm.setTestificationOp(testifier);
+
+        algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
+
+
+        List<Statistics> stats = Lists.newArrayList();
+        pARTCPA.collectStatistics(stats);
+        for (Statistics s: stats) {
+          s.printStatistics(System.out, null, reachedSet);
         }
+
 
       } while ((reachedSet.hasWaitingState()
           && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
@@ -1299,19 +1295,18 @@ public class TigerAlgorithm
     //    }
   }
 
-  private ReachabilityAnalysisResult runAlgorithmWithLimit(
-      final ShutdownManager algNotifier,
+  private ReachabilityAnalysisResult runAlgorithmWithLimit(final ShutdownManager algNotifier,
       final Algorithm algorithm, int numberOfGoals)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-    try (StatCpuTimer t = tigerStats.runAlgorithmWithLimitTime.start()) {
+    throws CPAException, InterruptedException {
 
-      ReachabilityAnalysisResult algorithmStatus;
+    try (StatCpuTimer t = tigerStats.runAlgorithmWithLimitTime.start()) {
+      ReachabilityAnalysisResult status;
       if (cpuTimelimitPerGoal < 0) {
         // run algorithm without time limit
         if (algorithm.run(reachedSet).isSound()) {
-          algorithmStatus = ReachabilityAnalysisResult.SOUND;
+          status = ReachabilityAnalysisResult.SOUND;
         } else {
-          algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
+          status = ReachabilityAnalysisResult.UNSOUND;
         }
       } else {
 
@@ -1336,21 +1331,21 @@ public class TigerAlgorithm
 
         if (workerRunnable.throwableWasCaught()) {
           // TODO: handle exception
-          algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
+          status = ReachabilityAnalysisResult.UNSOUND;
           //        throw new RuntimeException(workerRunnable.getCaughtThrowable());
         } else {
           if (workerRunnable.analysisWasSound()) {
-            algorithmStatus = ReachabilityAnalysisResult.SOUND;
+            status = ReachabilityAnalysisResult.SOUND;
           } else {
-            algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
+            status = ReachabilityAnalysisResult.UNSOUND;
           }
 
           if (workerRunnable.hasTimeout()) {
-            algorithmStatus = ReachabilityAnalysisResult.TIMEOUT;
+            status = ReachabilityAnalysisResult.TIMEOUT;
           }
         }
       }
-      return algorithmStatus;
+      return status;
     }
   }
 

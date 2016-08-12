@@ -50,22 +50,23 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.DeeperLevelFirstComparator;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TargetedRefiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -178,6 +179,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
   private final LogManager logger;
   private final Algorithm algorithm;
   private final TargetedRefiner mRefiner;
+  private TestificationOperator testificationOp = null;
 
   private final Set<Integer> feasibleStateIds = Sets.newTreeSet();
   private Optional<ARGState> lastTargetState = Optional.absent();
@@ -248,26 +250,28 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     return (TargetedRefiner)refinerObj;
   }
 
+  public void setTestificationOp(TestificationOperator pTestificationOp) {
+    testificationOp = pTestificationOp;
+  }
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    Preconditions.checkState(testificationOp != null, "A testification operator must be provided!");
 
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     int initialReachedSetSize = reached.size();
     boolean refinedInPreviousIteration = false;
     stats.totalTimer.start();
     try {
-      boolean counterexampleEliminated;
-      do {
-        counterexampleEliminated = true;
+      // There might be unhandled target states left for refinement.
+      //    This might be the case if there was a feasible path
+      //    for that the algorithm returned.
+      lastTargetState = chooseTarget(reached);
 
-        // There might be unhandled target states left for refinement.
-        //    This might be the case if there was a feasible path
-        //    for that the algorithm returned.
-        lastTargetState = chooseTarget(reached);
+      do {
         if (lastTargetState.isPresent()) {
           Preconditions.checkState(AbstractStates.isTargetState(lastTargetState.get()));
-          counterexampleEliminated = refine(reached, lastTargetState.get());
+          boolean counterexampleEliminated = refine(reached, lastTargetState.get());
           Set<SafetyProperty> targetProperties =
               AbstractStates.extractViolatedProperties(lastTargetState.get(), SafetyProperty.class);
 
@@ -275,12 +279,16 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
           } else {
             logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
+            testificationOp.feasibleCounterexample(lastTargetState.get()
+                .getCounterexampleInformation().get(), targetProperties);
           }
         }
 
         status = status.update(algorithm.run(reached));
 
-      } while (counterexampleEliminated);
+        lastTargetState = chooseTarget(reached);
+
+      } while (lastTargetState.isPresent() || reached.hasWaitingState());
 
     } finally {
       stats.totalTimer.stop();
@@ -301,11 +309,29 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     return new CounterexampleInfoResult(info);
   }
 
-  private final Predicate<ARGState> NOT_YET_HANDLED = new Predicate<ARGState>() {
+  private final Predicate<ARGState> STATE_NOT_YET_HANDLED = new Predicate<ARGState>() {
     @Override
     public boolean apply(@Nullable ARGState pAbstractState) {
       Preconditions.checkNotNull(pAbstractState);
       return !feasibleStateIds.contains(pAbstractState.getStateId());
+    }
+  };
+
+  private final Predicate<ARGState> PROPERTY_NOT_BLACKLISTED = new Predicate<ARGState>() {
+    @Override
+    public boolean apply(@Nullable ARGState pAbstractState) {
+      Preconditions.checkNotNull(pAbstractState);
+      Preconditions.checkArgument(AbstractStates.isTargetState(pAbstractState));
+
+      Set<SafetyProperty> violated =
+          AbstractStates.extractViolatedProperties(pAbstractState, SafetyProperty.class);
+
+      try {
+        return !AutomatonPrecision.getGlobalPrecision()
+            .areBlackListed(violated, PresenceConditions.manager().makeTrue());
+      } catch (InterruptedException|CPAException pE) {
+        throw new RuntimeException(pE);
+      }
     }
   };
 
@@ -314,8 +340,11 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
         from(pReached)
             .filter(IS_TARGET_STATE)
             .filter(ARGState.class)
-            .filter(NOT_YET_HANDLED)
+            .filter(STATE_NOT_YET_HANDLED)
+            .filter(PROPERTY_NOT_BLACKLISTED)
             .toSortedList(comparator);
+
+
 
     if (rankedCandidates.isEmpty()) {
       return Optional.absent();
