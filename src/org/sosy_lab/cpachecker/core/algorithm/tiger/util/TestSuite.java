@@ -402,10 +402,6 @@ public class TestSuite implements AlgorithmResult {
     return isGoalCovered(pGoal) || isGoalInfeasible(pGoal);
   }
 
-  public boolean isGoalTimedout(Goal pGoal) {
-    return timedOutPresenceCondition.containsKey(pGoal);
-  }
-
   public Appender dumpRegion(PresenceCondition region) {
     return pcm().dump(region);
   }
