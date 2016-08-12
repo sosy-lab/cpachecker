@@ -51,26 +51,26 @@ import java.util.Set;
 
 public class TestSuite implements AlgorithmResult {
 
-  private boolean printLabels;
-  boolean useTigerAlgorithm_with_pc;
+  private final boolean printLabels;
+  private final boolean useTigerAlgorithm_with_pc;
   private long generationStartTime = 0;
 
-  private Map<TestCase, List<Goal>> mapping;
-  private Map<Goal, List<TestCase>> coveringTestCases;
+  private final Map<TestCase, List<Goal>> mapping;
+  private final Map<Goal, List<TestCase>> coveringTestCases;
 
-  private Set<Goal> testGoals;
-  private Set<Goal> feasibleGoals;
-  private Set<Goal> partiallyFeasibleGoals;
-  private Set<Goal> partiallyInfeasibleGoals;
-  private Set<Goal> infeasibleGoals;
-  private Set<Goal> timedOutGoals;
-  private Set<Goal> partiallyTimedOutGoals;
+  private final Set<Goal> testGoals;
+  private final Set<Goal> feasibleGoals;
+  private final Set<Goal> partiallyFeasibleGoals;
+  private final Set<Goal> partiallyInfeasibleGoals;
+  private final Set<Goal> infeasibleGoals;
+  private final Set<Goal> timedOutGoals;
+  private final Set<Goal> partiallyTimedOutGoals;
 
-  private Map<Goal, PresenceCondition> remainingPresenceConditions;
-  private Map<Goal, PresenceCondition> remainingPresenceConditionsBeforeTimeout;
-  private Map<Pair<TestCase, Goal>, PresenceCondition> coveringPresenceConditions;
-  private Map<Goal, PresenceCondition> infeasiblePresenceConditions;
-  private Map<Integer, Pair<Goal, PresenceCondition>> timedOutPresenceCondition;
+  private final Map<Goal, PresenceCondition> remainingPresenceConditions;
+  private final Map<Goal, PresenceCondition> remainingPresenceConditionsBeforeTimeout;
+  private final Map<Pair<TestCase, Goal>, PresenceCondition> coveringPresenceConditions;
+  private final Map<Goal, PresenceCondition> infeasiblePresenceConditions;
+  private final Map<Integer, Pair<Goal, PresenceCondition>> timedOutPresenceCondition;
 
   public TestSuite(boolean pPrintLabels, boolean pUseTigerAlgorithm_with_pc) {
     mapping = new HashMap<>();
@@ -141,16 +141,8 @@ public class TestSuite implements AlgorithmResult {
     return partiallyFeasibleGoals.size();
   }
 
-  public Set<Goal> getInfeasibleGoals() {
-    return infeasibleGoals;
-  }
-
   public int getNumberOfInfeasibleTestGoals() {
     return infeasibleGoals.size();
-  }
-
-  public Set<Goal> getPartiallyInfeasibleGoals() {
-    return partiallyInfeasibleGoals;
   }
 
   public int getNumberOfPartiallyInfeasibleTestGoals() {
@@ -173,24 +165,12 @@ public class TestSuite implements AlgorithmResult {
     return partiallyTimedOutGoals.size();
   }
 
-  public boolean isGoalCoveredByTestCase(Goal pGoal, TestCase pTestCase) {
-    return coveringTestCases.get(pGoal).contains(pTestCase);
-  }
-
-  public boolean hasTimedoutTestGoals() {
-    return !partiallyTimedOutGoals.isEmpty();
-  }
-
   public PresenceCondition getRemainingPresenceCondition(Goal pGoal) {
     return PresenceConditions.orTrue(remainingPresenceConditions.get(pGoal));
   }
 
-  public void setRemainingPresenceCondition(Goal pGoal, PresenceCondition presenceCondtion) {
+  private void setRemainingPresenceCondition(Goal pGoal, PresenceCondition presenceCondtion) {
     remainingPresenceConditions.put(pGoal, presenceCondtion);
-  }
-
-  public void setInfeasiblePresenceCondition(Goal pGoal, PresenceCondition presenceCondtion) {
-    infeasiblePresenceConditions.put(pGoal, presenceCondtion);
   }
 
   public PresenceCondition getInfeasiblePresenceCondition(Goal pGoal) {
@@ -266,7 +246,7 @@ public class TestSuite implements AlgorithmResult {
     }
   }
 
-  public void addTimedOutGoal(Goal pGoal, PresenceCondition pPresenceCondition) {
+  private void addTimedOutGoal(Goal pGoal, PresenceCondition pPresenceCondition) {
     if (isVariabilityAware()) {
       remainingPresenceConditionsBeforeTimeout.put(pGoal, getRemainingPresenceCondition(pGoal));
       setRemainingPresenceCondition(pGoal, pcm().makeFalse());
@@ -302,24 +282,12 @@ public class TestSuite implements AlgorithmResult {
     return mapping.get(testcase);
   }
 
-  public long getGenerationStartTime() {
+  private long getGenerationStartTime() {
     return generationStartTime;
   }
 
   public void setGenerationStartTime(long pGenerationStartTime) {
     generationStartTime = pGenerationStartTime;
-  }
-
-  public Pair<String, Integer> parseVariableName(String name) {
-    String variableName;
-    if (name.contains("::")) {
-      variableName = name.substring(name.indexOf("::") + 2, name.indexOf("@"));
-    } else {
-      variableName = name.substring(0, name.indexOf("@"));
-    }
-    int ssaIndex = new Integer(name.substring(name.indexOf("@") + 1));
-
-    return Pair.of(variableName, ssaIndex);
   }
 
   /**
@@ -368,25 +336,6 @@ public class TestSuite implements AlgorithmResult {
       List<TestCase> testCases = coveringTestCases.get(pGoal);
       return (testCases != null && testCases.size() > 0);
     }
-  }
-
-  public boolean areGoalsCovered(Set<Goal> pTestGoalsToBeProcessed) throws InterruptedException {
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      if (!isGoalCovered(goal)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  public boolean areGoalsInfeasible(Set<Goal> pTestGoalsToBeProcessed) {
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      if (!isGoalInfeasible(goal)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) throws InterruptedException {
