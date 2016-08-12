@@ -2470,7 +2470,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    private class CSizeOfVisitor extends CBitSizeOfVisitor {
+    private class CSizeOfVisitor extends SMGExpressionEvaluator.CSizeOfVisitor {
 
       public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
           LogManagerWithoutDuplicates pLogger) {

@@ -954,7 +954,8 @@ public class SMGExpressionEvaluator {
             continue;
           }
 
-          SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer, newState, address));
+          SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer,
+              newState, address) / machineModel.getSizeofCharInBits());
 
           SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -2306,12 +2307,12 @@ public class SMGExpressionEvaluator {
   }
 
   protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
-    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger);
+    return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
   }
 
   protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
       CExpression pExpression) {
-    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
+    return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
@@ -2548,30 +2549,33 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  public static class CBitSizeOfVisitor extends CSizeOfVisitor {
+  public static class CSizeOfVisitor extends BaseSizeofVisitor {
     int sizeofCharInBits;
+    private final CFAEdge edge;
+    private final SMGState state;
+    private final CExpression expression;
+    private final SMGExpressionEvaluator eval;
 
-    public CBitSizeOfVisitor(
-        MachineModel pModel,
-        CFAEdge pEdge,
-        SMGState pState,
-        LogManagerWithoutDuplicates logger,
+    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState, LogManagerWithoutDuplicates logger,
         CExpression pExpression) {
-      super(pModel, pEdge, pState, logger, pExpression);
+      super(pModel);
+
+      edge = pEdge;
+      state = pState;
+      expression = pExpression;
+      eval = new SMGExpressionEvaluator(logger, pModel);
       sizeofCharInBits = pModel.getSizeofCharInBits();
     }
 
-    public CBitSizeOfVisitor(
-        MachineModel pModel,
-        CFAEdge pEdge,
-        SMGState pState, LogManagerWithoutDuplicates pLogger) {
-      super(pModel, pEdge, pState, pLogger);
-      sizeofCharInBits = pModel.getSizeofCharInBits();
-    }
+    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
+        LogManagerWithoutDuplicates pLogger) {
+      super(pModel);
 
-    @Override
-    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
-      return super.visit(pArrayType) * sizeofCharInBits;
+      edge = pEdge;
+      state = pState;
+      expression = null;
+      eval = new SMGExpressionEvaluator(pLogger, pModel);
+      sizeofCharInBits = pModel.getSizeofCharInBits();
     }
 
     @Override
@@ -2618,34 +2622,6 @@ public class SMGExpressionEvaluator {
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
       return super.visit(pVoidType) * sizeofCharInBits;
     }
-  }
-
-  public static class CSizeOfVisitor extends BaseSizeofVisitor {
-
-    private final CFAEdge edge;
-    private final SMGState state;
-    private final CExpression expression;
-    private final SMGExpressionEvaluator eval;
-
-    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState, LogManagerWithoutDuplicates logger,
-        CExpression pExpression) {
-      super(pModel);
-
-      edge = pEdge;
-      state = pState;
-      expression = pExpression;
-      eval = new SMGExpressionEvaluator(logger, pModel);
-    }
-
-    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
-        LogManagerWithoutDuplicates pLogger) {
-      super(pModel);
-
-      edge = pEdge;
-      state = pState;
-      expression = null;
-      eval = new SMGExpressionEvaluator(pLogger, pModel);
-    }
 
     @Override
     public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
@@ -2663,7 +2639,7 @@ public class SMGExpressionEvaluator {
 
       if(arrayLength == null) {
         // treat size of unknown array length type as ptr
-        return super.visit(pArrayType);
+        return super.visit(pArrayType) * sizeofCharInBits;
       } else if (arrayLength instanceof CIntegerLiteralExpression) {
         length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
       } else if (edge instanceof CDeclarationEdge) {
