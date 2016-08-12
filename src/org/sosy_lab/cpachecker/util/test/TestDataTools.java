@@ -213,7 +213,7 @@ public class TestDataTools {
     CFACreator creator =
         new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
-    return creator.parseFileAndCreateCFA(cProgram);
+    return creator.parseSourceAndCreateCFA(cProgram);
   }
 
   /**
@@ -291,7 +291,7 @@ public class TestDataTools {
    */
   public static CFA toCFA(CFACreator creator, String... parts)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-    return creator.parseFileAndCreateCFA(getProgram(parts));
+    return creator.parseSourceAndCreateCFA(getProgram(parts));
   }
 
   private static String getProgram(String... parts) {
