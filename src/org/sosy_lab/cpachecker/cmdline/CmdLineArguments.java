@@ -126,20 +126,33 @@ class CmdLineArguments {
 
   private static final Collection<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
-          new CmdLineArgument0("-stats", "statistics.print", "true"),
-          new CmdLineArgument0("-noout", "output.disable", "true"),
-          new CmdLineArgument0("-java", "language", "JAVA"),
-          new CmdLineArgument0("-32", "analysis.machineModel", "Linux32"),
-          new CmdLineArgument0("-64", "analysis.machineModel", "Linux64"),
-          new CmdLineArgument0("-preprocess", "parser.usePreprocessor", "true"),
-          new CmdLineArgument0("-secureMode", SECURE_MODE_OPTION, "true"),
-          new CmdLineArgument1("-outputpath", "output.path"),
-          new CmdLineArgument1("-logfile", "log.file"),
-          new CmdLineArgument1("-entryfunction", "analysis.entryFunction"),
-          new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION),
-          new CmdLineArgument1("-timelimit", "limits.time.cpu"),
-          new CmdLineArgument1("-sourcepath", "java.sourcepath"),
-          new CmdLineArgument1("-cp", "-classpath", "java.classpath"),
+          new CmdLineArgument0("-stats", "statistics.print", "true")
+              .withDescription("collect statistics during the analysis and print them afterwards"),
+          new CmdLineArgument0("-noout", "output.disable", "true")
+              .withDescription("disable all output (except directly specified files)"),
+          new CmdLineArgument0("-java", "language", "JAVA")
+              .withDescription("language of the sourcefile"),
+          new CmdLineArgument0("-32", "analysis.machineModel", "Linux32")
+              .withDescription("set machine model to LINUX32"),
+          new CmdLineArgument0("-64", "analysis.machineModel", "Linux64")
+              .withDescription("set machine model to LINUX64"),
+          new CmdLineArgument0("-preprocess", "parser.usePreprocessor", "true")
+              .withDescription("execute a preprocessor before starting the analysis"),
+          new CmdLineArgument0("-secureMode", SECURE_MODE_OPTION, "true")
+              .withDescription("allow to use only secure options"),
+          new CmdLineArgument1("-outputpath", "output.path")
+              .withDescription("where to store the files with results, statistics, logs"),
+          new CmdLineArgument1("-logfile", "log.file").withDescription("set a direct logfile"),
+          new CmdLineArgument1("-entryfunction", "analysis.entryFunction")
+              .withDescription("set the initial function for the analysis"),
+          new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION)
+              .withDescription("set the configuration for the analysis"),
+          new CmdLineArgument1("-timelimit", "limits.time.cpu")
+              .withDescription("set a timelimit for the analysis"),
+          new CmdLineArgument1("-sourcepath", "java.sourcepath")
+              .withDescription("set the sourcepath for the analysis of Java programs"),
+          new CmdLineArgument1("-cp", "-classpath", "java.classpath")
+              .withDescription("set the classpath for the analysis of Java programs"),
           new CmdLineArgument1("-spec", "specification") {
             @Override
             void handleArg(Map<String, String> properties, String arg)
@@ -147,7 +160,7 @@ class CmdLineArguments {
               String newValue = handleSpecificationDefinition(properties, arg);
               appendOptionValue(properties, getOption(), newValue);
             }
-          },
+          }.withDescription("set the specification for the main analysis"),
           new CmdLineArgument("-cmc") {
 
             @Override
@@ -155,7 +168,7 @@ class CmdLineArguments {
                 throws InvalidCmdlineArgumentException {
               handleCmc(argsIt, properties);
             }
-          },
+          }.withDescription("use conditional model checking"),
           new CmdLineArgument1("-cpas") {
 
             @Override
@@ -163,15 +176,18 @@ class CmdLineArguments {
               properties.put("cpa", CompositeCPA.class.getName());
               properties.put(CompositeCPA.class.getSimpleName() + ".cpas", arg);
             }
-          },
+          }.withDescription("set CPAs for the analysis"),
           new PropertyAddingCmdLineArgument(
-              "-cbmc",
-              of("analysis.checkCounterexamples", "true", "counterexample.checker", "CBMC")),
+                  "-cbmc",
+                  of("analysis.checkCounterexamples", "true", "counterexample.checker", "CBMC"))
+              .withDescription("use CBMC as counterexample checker"),
           new PropertyAddingCmdLineArgument(
-              "-nolog", of("log.level", "off", "log.consoleLevel", "off")),
+                  "-nolog", of("log.level", "off", "log.consoleLevel", "off"))
+              .withDescription("disable logging"),
           new PropertyAddingCmdLineArgument(
-              "-skipRecursion",
-              of("analysis.summaryEdges", "true", "cpa.callstack.skipRecursion", "true")),
+                  "-skipRecursion",
+                  of("analysis.summaryEdges", "true", "cpa.callstack.skipRecursion", "true"))
+              .withDescription("skip recursive function calls"),
           new CmdLineArgument1("-setprop") {
 
             @Override
@@ -184,7 +200,7 @@ class CmdLineArguments {
               }
               putIfNotExistent(properties, bits.get(0), bits.get(1));
             }
-          },
+          }.withDescription("set an option directly"),
           new CmdLineArgument("-printOptions") {
 
             @SuppressFBWarnings("DM_EXIT")
@@ -200,11 +216,12 @@ class CmdLineArguments {
               OptionCollector.collectOptions(verbose, true, out);
               System.exit(0);
             }
-          },
+          }.withDescription("print all possible options on StdOut"),
           new PropertyAddingCmdLineArgument(
-              "-printUsedOptions",
-              of(PRINT_USED_OPTIONS_OPTION, "true", "analysis.disable", "true"),
-              of("log.consoleLevel", "SEVERE")),
+                  "-printUsedOptions",
+                  of(PRINT_USED_OPTIONS_OPTION, "true", "analysis.disable", "true"),
+                  of("log.consoleLevel", "SEVERE"))
+              .withDescription("print all used options"),
           new CmdLineArgument("-h", "-help") {
 
             @SuppressFBWarnings("DM_EXIT")
@@ -215,7 +232,7 @@ class CmdLineArguments {
               printHelp(System.out);
               System.exit(0);
             }
-          });
+          }.withDescription("print help message"));
 
   /**
    * Reads the arguments and process them.
