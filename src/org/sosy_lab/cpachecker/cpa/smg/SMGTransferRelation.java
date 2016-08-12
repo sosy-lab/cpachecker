@@ -141,6 +141,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, toUppercase=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
+  @Option(secure=true, toUppercase=true, name="GCCZeroLengthArray", description = "Enable GCC extension 'Arrays of Length Zero'.")
+  private boolean GCCZeroLengthArray = false;
+
   private static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
 
   @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
@@ -298,7 +301,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGAddressValueAndState.of(currentState);
       }
 
-      long count = countValue.getAsLong();
+      long count = countValue.getAsLong() * machineModel.getSizeofCharInBits();
 
       if (ch.isUnknown()) {
         // If the symbolic value is not known create a new one.
@@ -434,7 +437,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label = "alloc_ID" + SMGValueFactory.getNewValue();
-      SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt(), allocation_label);
+      SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt() *
+          machineModel.getSizeofCharInBits(), allocation_label);
 
       possibleMallocFail = true;
       return SMGAddressValueAndState.of(currentState, addressValue);
@@ -554,7 +558,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         // TODO line numbers are not unique when we have multiple input files!
         String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
             + functionCall.getFileLocation().getStartingLineNumber();
-        SMGAddressValue new_address = currentState.addNewHeapAllocation(size, allocation_label);
+        SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
+            allocation_label);
 
         if (zeroingMemoryAllocation.contains(functionName)) {
           currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size),
@@ -684,7 +689,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
               SMGValueAndStateList sizeSymbolicValueAndStates =
                   evaluateExpressionValue(sizeState, pCfaEdge, sizeExpr);
               int symbolicValueSize = expressionEvaluator.getSizeof(pCfaEdge, sizeExpr
-                  .getExpressionType(), sizeState) * machineModel.getSizeofCharInBits();
+                  .getExpressionType(), sizeState);
               for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
                   .getValueAndStateList()) {
                 SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
@@ -724,15 +729,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown()
           || sizeValue.isUnknown()) {
 
-        if (sizeValue.isUnknown()) {
-          currentState = currentState.setInvalidWrite();
-          currentState = currentState.setInvalidRead();
-        } else if (targetStr1Address.isUnknown()) {
-          currentState = currentState.setInvalidWrite();
-        } else {
-          currentState = currentState.setInvalidRead();
+        if (!currentState.isTrackPredicatesEnabled()) {
+          if (sizeValue.isUnknown()) {
+            currentState = currentState.setInvalidWrite();
+            currentState = currentState.setInvalidRead();
+          } else if (targetStr1Address.isUnknown()) {
+            currentState = currentState.setInvalidWrite();
+          } else {
+            currentState = currentState.setInvalidRead();
+          }
         }
-
         if (targetStr1Address.isUnknown()) {
           currentState.unknownWrite();
           return SMGAddressValueAndState.of(currentState);
@@ -747,7 +753,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject target = targetStr1Address.getObject();
 
       int sourceRangeOffset = sourceStr2Address.getOffset().getAsInt();
-      int sourceRangeSize = sizeValue.getAsInt() + sourceRangeOffset;
+      int sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() + sourceRangeOffset;
       int targetRangeOffset = targetStr1Address.getOffset().getAsInt();
 
       currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
@@ -1889,14 +1895,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       List<SMGState> result = new ArrayList<>(newStates.size());
 
       for (SMGState newState : newStates) {
-        int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
+        if (!GCCZeroLengthArray || pLValueType.getLength() != null) {
+          int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
 
-        int offset = pOffset + listCounter * sizeOfElementType;
-        if (offset - pOffset < sizeOfType) {
-          newState = writeValue(newState, pNewObject, offset,
-              AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
+          int offset = pOffset + listCounter * sizeOfElementType;
+          if (offset - pOffset < sizeOfType) {
+            newState = writeValue(newState, pNewObject, offset,
+                AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)),
+                SMGKnownSymValue.ZERO, pEdge);
+          }
         }
-
         result.add(newState);
       }
       newStates = result;
@@ -2462,7 +2470,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    private class CSizeOfVisitor extends SMGExpressionEvaluator.CSizeOfVisitor {
+    private class CSizeOfVisitor extends CBitSizeOfVisitor {
 
       public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
           LogManagerWithoutDuplicates pLogger) {

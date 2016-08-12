@@ -63,10 +63,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -314,14 +319,12 @@ public class SMGExpressionEvaluator {
       if (typeMember.getType().isBitField()) {
         int padding = 0;
         if (!previousIsBitField) {
-          padding = machineModel.getPadding(offset, typeMember.getType());
+          padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
+              machineModel.getSizeofCharInBits();
         }
 
         if (memberName.equals(fieldName)) {
-          offset += padding + (bitFieldsSize / 8);
-          if (bitFieldsSize % 8 > 0) {
-            offset++;
-          }
+          offset += padding + bitFieldsSize;
           return new SMGField(SMGKnownExpValue.valueOf(offset),
               getRealExpressionType(typeMember.getType()));
         }
@@ -332,14 +335,15 @@ public class SMGExpressionEvaluator {
         previousIsBitField = true;
       } else {
         if (bitFieldsSize > 0) {
-          offset += (bitFieldsSize / 8);
-          if (bitFieldsSize % 8 > 0) {
-            offset++;
+          offset += bitFieldsSize;
+          if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
+            offset += machineModel.getSizeofCharInBits();
           }
           bitFieldsSize = 0;
         }
         previousIsBitField = false;
-        int padding = machineModel.getPadding(offset, typeMember.getType());
+        int padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
+            machineModel.getSizeofCharInBits();
 
         if (memberName.equals(fieldName)) {
           offset += padding;
@@ -2302,12 +2306,12 @@ public class SMGExpressionEvaluator {
   }
 
   protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
-    return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
+    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger);
   }
 
   protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
       CExpression pExpression) {
-    return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
+    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
@@ -2541,6 +2545,78 @@ public class SMGExpressionEvaluator {
     @Override
     public String toString() {
       return object.toString() + " StateId: " + smgState.getId();
+    }
+  }
+
+  public static class CBitSizeOfVisitor extends CSizeOfVisitor {
+    int sizeofCharInBits;
+
+    public CBitSizeOfVisitor(
+        MachineModel pModel,
+        CFAEdge pEdge,
+        SMGState pState,
+        LogManagerWithoutDuplicates logger,
+        CExpression pExpression) {
+      super(pModel, pEdge, pState, logger, pExpression);
+      sizeofCharInBits = pModel.getSizeofCharInBits();
+    }
+
+    public CBitSizeOfVisitor(
+        MachineModel pModel,
+        CFAEdge pEdge,
+        SMGState pState, LogManagerWithoutDuplicates pLogger) {
+      super(pModel, pEdge, pState, pLogger);
+      sizeofCharInBits = pModel.getSizeofCharInBits();
+    }
+
+    @Override
+    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+      return super.visit(pArrayType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+      return super.visit(pCompositeType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+      return super.visit(pElaboratedType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
+      return super.visit(pEnumType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+      return super.visit(pFunctionType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
+      return super.visit(pPointerType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
+      return super.visit(pProblemType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      return super.visit(pSimpleType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+      return super.visit(pTypedefType) * sizeofCharInBits;
+    }
+
+    @Override
+    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return super.visit(pVoidType) * sizeofCharInBits;
     }
   }
 

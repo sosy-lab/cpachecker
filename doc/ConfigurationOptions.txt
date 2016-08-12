@@ -1901,6 +1901,9 @@ cpa.slicing.timeForLoopGeneration = 0s
 cpa.slicing.weakeningStrategy = CEX
   enum:     [SYNTACTIC, DESTRUCTIVE, CEX]
 
+# Enable GCC extension 'Arrays of Length Zero'.
+cpa.smg.GCCZeroLengthArray = false
+
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {
       "calloc"}
