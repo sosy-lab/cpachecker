@@ -131,7 +131,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       }
 
     case FunctionCallEdge: {
-          if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
+        // FIXME: Actually, during backwards analysis you always have wildcard
+        // states, because you never know where you "came from",
+        // and obviously, there is some handling of that situation below,
+        // see "if (nextStackState == null) { ...".
+        if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
           throw new UnsupportedCCodeException("ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }
         Collection<CallstackState> result;
