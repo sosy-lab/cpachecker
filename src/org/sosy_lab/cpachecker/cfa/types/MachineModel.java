@@ -637,6 +637,18 @@ public enum MachineModel {
     return type.accept(sizeofVisitor);
   }
 
+  public int getBitSizeofPtr() {
+    return getSizeofPtr() * getSizeofCharInBits();
+  }
+
+  public int getBitSizeof(CType pType) {
+    if (pType.isBitField()) {
+      return pType.getBitFieldSize();
+    } else {
+      return getSizeof(pType) * getSizeofCharInBits();
+    }
+  }
+
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor = new BaseAlignofVisitor(this);
 
   public static class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {

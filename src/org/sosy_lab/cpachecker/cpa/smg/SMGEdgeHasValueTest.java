@@ -50,7 +50,7 @@ public class SMGEdgeHasValueTest {
     Assert.assertEquals(obj, hv.getObject());
     Assert.assertEquals(4, hv.getOffset());
     Assert.assertEquals(mockType, hv.getType());
-    Assert.assertEquals(4, hv.getSizeInBytes(MachineModel.LINUX64));
+    Assert.assertEquals(4, hv.getSizeInBits(MachineModel.LINUX64));
   }
 
   @Test

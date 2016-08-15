@@ -91,7 +91,7 @@ public class SMGSingleLinkedListCandidateTest {
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(0, onlyOutboundEdge.getValue());
     Assert.assertEquals(0, onlyOutboundEdge.getOffset());
-    Assert.assertEquals(NODE_SIZE, onlyOutboundEdge.getSizeInBytes(abstractedSmg.getMachineModel()));
+    Assert.assertEquals(NODE_SIZE, onlyOutboundEdge.getSizeInBits(abstractedSmg.getMachineModel()));
   }
 
   @Test
@@ -116,7 +116,7 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertEquals(1, outboundEdges.size());
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(8, outbound.getOffset());
-    Assert.assertEquals(8, outbound.getSizeInBytes(abstractedSmg.getMachineModel()));
+    Assert.assertEquals(8, outbound.getSizeInBits(abstractedSmg.getMachineModel()));
     Assert.assertEquals(0, outbound.getValue());
   }
 }

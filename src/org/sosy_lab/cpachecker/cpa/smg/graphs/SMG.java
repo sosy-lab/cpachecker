@@ -561,7 +561,7 @@ public class SMG {
 
     TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
     for (SMGEdgeHasValue edge : edges) {
-      offsetToSize.put(edge.getOffset(), edge.getSizeInBytes(machine_model));
+      offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
     TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
@@ -610,11 +610,11 @@ public class SMG {
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
-    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBytes(machine_model));
+    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeof(pType));
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
   }
 
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {

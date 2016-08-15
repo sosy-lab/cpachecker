@@ -301,7 +301,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGAddressValueAndState.of(currentState);
       }
 
-      long count = countValue.getAsLong() * machineModel.getSizeofCharInBits();
+      int count = countValue.getAsInt() * machineModel.getSizeofCharInBits();
 
       if (ch.isUnknown()) {
         // If the symbolic value is not known create a new one.
@@ -1068,7 +1068,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGRegion paramObj;
       // If parameter is a array, convert to pointer
       if (cParamType instanceof CArrayType) {
-        int size = machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits();
+        int size = machineModel.getBitSizeofPtr();
         paramObj = new SMGRegion(size, varName);
       } else {
         int size = expressionEvaluator.getSizeof(callEdge, cParamType, initialNewState);
@@ -1552,7 +1552,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return pNewState;
   }
 
-  private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, long pSizeType,
+  private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, int pSizeType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws UnrecognizedCCodeException, SMGInconsistentException {
     return writeValue(pNewState, pMemoryOfField, pFieldOffset, AnonymousTypes.createTypeWithLength(pSizeType), pValue, pEdge);
   }

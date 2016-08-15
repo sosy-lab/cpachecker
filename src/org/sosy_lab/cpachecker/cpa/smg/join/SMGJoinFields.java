@@ -151,7 +151,7 @@ class SMGJoinFields {
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
         int min = edge.getOffset();
-        int max = edge.getOffset() + edge.getSizeInBytes(pSMG1.getMachineModel());
+        int max = edge.getOffset() + edge.getSizeInBits(pSMG1.getMachineModel());
 
         Entry<Integer, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
@@ -207,7 +207,7 @@ class SMGJoinFields {
                                                        SMG pSMG2, SMGObject pObj2, TreeMap<Integer, Integer> nullEdgesInSMG2) throws SMGInconsistentException {
     for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
       int start = edgeInSMG1.getOffset();
-      int byte_after_end = start + edgeInSMG1.getSizeInBytes(pSMG1.getMachineModel());
+      int byte_after_end = start + edgeInSMG1.getSizeInBits(pSMG1.getMachineModel());
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObj2)
                                                           .filterAtOffset(edgeInSMG1.getOffset())
                                                           .filterByType(edgeInSMG1.getType());
