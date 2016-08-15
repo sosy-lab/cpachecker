@@ -1216,14 +1216,6 @@ public class TigerAlgorithm
 
         algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
 
-
-        List<Statistics> stats = Lists.newArrayList();
-        pARTCPA.collectStatistics(stats);
-        for (Statistics s: stats) {
-          s.printStatistics(System.out, null, reachedSet);
-        }
-
-
       } while ((reachedSet.hasWaitingState()
           && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
           && (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT));
