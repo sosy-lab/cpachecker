@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tgar;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -34,7 +33,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -43,8 +41,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
@@ -68,98 +64,21 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 
-import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 // GuidedRefinementAlgorithm
 @Options(prefix="tgar")
 public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, StatisticsProvider {
 
-  private static class TGARStatistics implements Statistics {
-
-    private final Timer totalTimer = new Timer();
-    private final Timer refinementTimer = new Timer();
-
-    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
-        justification = "only one thread writes, others read")
-    private volatile int countRefinements = 0;
-    private int countSuccessfulRefinements = 0;
-    private int countFailedRefinements = 0;
-
-    private int maxReachedSizeBeforeRefinement = 0;
-    private int maxReachedSizeAfterRefinement = 0;
-    private long totalReachedSizeBeforeRefinement = 0;
-    private long totalReachedSizeAfterRefinement = 0;
-
-    @Override
-    public String getName() {
-      return "TGAR algorithm";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
-
-      out.println("Number of refinements:                " + countRefinements);
-
-      if (countRefinements > 0) {
-        out.println("Number of successful refinements:     " + countSuccessfulRefinements);
-        out.println("Number of failed refinements:         " + countFailedRefinements);
-        out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
-        out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
-        out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
-        out.println("Avg. size of reached set after ref.:  " + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
-        out.println("");
-        out.println("Total time for CEGAR algorithm:   " + totalTimer);
-        out.println("Time for refinements:             " + refinementTimer);
-        out.println("Average time for refinement:      " + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-        out.println("Max time for refinement:          " + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
-      }
-    }
-  }
-
-  private final TGARStatistics stats = new TGARStatistics();
-
-  public static interface CEGARMXBean {
-    int getNumberOfRefinements();
-    int getSizeOfReachedSetBeforeLastRefinement();
-    boolean isRefinementActive();
-  }
-
-  private class TGARMBean extends AbstractMBean implements CEGARMXBean {
-    public TGARMBean() {
-      super("org.sosy_lab.cpachecker:type=CEGAR", logger);
-      register();
-    }
-
-    @Override
-    public int getNumberOfRefinements() {
-      return stats.countRefinements;
-    }
-
-    @Override
-    public int getSizeOfReachedSetBeforeLastRefinement() {
-      return sizeOfReachedSetBeforeRefinement;
-    }
-
-    @Override
-    public boolean isRefinementActive() {
-      return stats.refinementTimer.isRunning();
-    }
-  }
-
-  private volatile int sizeOfReachedSetBeforeRefinement = 0;
+  private TGARStatistics stats;
 
   @Option(secure=true, name="refiner", required = true,
       description = "Which refinement algorithm to use? "
@@ -184,22 +103,37 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
   private final Set<Integer> feasibleStateIds = Sets.newTreeSet();
   private Optional<ARGState> lastTargetState = Optional.absent();
 
-  public TGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
-    config.inject(this);
-    this.algorithm = algorithm;
-    this.logger = logger;
+  public TGARAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, Configuration pConfig,
+       LogManager pLogManager) throws InvalidConfigurationException, CPAException {
 
-    comparator = createComparator();
+    pConfig.inject(this);
+
+    algorithm = pAlgorithm;
+    logger = pLogManager;
+
+    stats = new TGARStatistics(pLogManager);
     mRefiner = createInstance(pCpa);
-    new TGARMBean(); // don't store it because we wouldn't know when to unregister anyway
+    comparator = createComparator();
   }
 
-  public TGARAlgorithm(Algorithm algorithm, TargetedRefiner pRefiner, Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
-    this.algorithm = algorithm;
-    this.logger = logger;
+  public TGARAlgorithm(Algorithm pAlgorithm, TargetedRefiner pRefiner, Configuration pConfig, LogManager pLogManager)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    algorithm = pAlgorithm;
+    logger = pLogManager;
+
+    stats = new TGARStatistics(pLogManager);
     mRefiner = Preconditions.checkNotNull(pRefiner);
     comparator = createComparator();
+  }
+
+  public void setStats(TGARStatistics pStats) {
+    stats = pStats;
+  }
+
+  public TGARStatistics getStats() {
+    return stats;
   }
 
   private Comparator<ARGState> createComparator() throws InvalidConfigurationException {
@@ -353,43 +287,33 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
 
   @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
-  private boolean refine(ReachedSet reached, AbstractState target)
+  private boolean refine(ReachedSet pReached, AbstractState pTarget)
       throws CPAException, InterruptedException {
+    Preconditions.checkArgument(pTarget instanceof ARGState);
+    final ARGState target = (ARGState) pTarget;
 
     logger.log(Level.FINE, "Counterexample found, performing TGAR");
-    stats.countRefinements++;
-    stats.totalReachedSizeBeforeRefinement += reached.size();
-    stats.maxReachedSizeBeforeRefinement = Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
-    sizeOfReachedSetBeforeRefinement = reached.size();
+    stats.beginRefinement(pReached, target);
 
-    stats.refinementTimer.start();
     final boolean counterexampleEliminated;
     try {
-      counterexampleEliminated = mRefiner.performRefinement(reached, target);
+      counterexampleEliminated = mRefiner.performRefinement(pReached, target);
+      logger.log(Level.FINE, "Refinement successful: ", counterexampleEliminated);
+
       //  false: a FEASIBLE counterexample was found!
       //  true: a SPURIOUS counterexample was found; a refinement has been performed!
 
       if (counterexampleEliminated) {
         // An infeasible counterexample was found and eliminated.
+        stats.endWithInfeasible(pReached, target);
       } else {
-        Preconditions.checkArgument(target instanceof ARGState);
-        ARGState e = (ARGState) target;
-        feasibleStateIds.add(e.getStateId());
+        feasibleStateIds.add(target.getStateId());
+        stats.endWithFeasible(pReached, target);
       }
 
     } catch (RefinementFailedException e) {
-      stats.countFailedRefinements++;
+      stats.endWithError(pReached);
       throw e;
-    } finally {
-      stats.refinementTimer.stop();
-    }
-
-    logger.log(Level.FINE, "Refinement successful:", counterexampleEliminated);
-
-    if (counterexampleEliminated) {
-      stats.countSuccessfulRefinements++;
-      stats.totalReachedSizeAfterRefinement += reached.size();
-      stats.maxReachedSizeAfterRefinement = Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
     }
 
     return counterexampleEliminated;

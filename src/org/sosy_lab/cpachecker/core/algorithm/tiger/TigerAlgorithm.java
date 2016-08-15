@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfo
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
@@ -93,12 +94,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TargetedRefiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
@@ -408,7 +409,7 @@ public class TigerAlgorithm
   private final CFA cfa;
 
   private ConfigurableProgramAnalysis cpa;
-  private Refiner refiner;
+  private TGARStatistics tgarStatistics;
 
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private FQLSpecification fqlSpecification;
@@ -448,6 +449,7 @@ public class TigerAlgorithm
     programDenotation = pProgramDenotation;
     statCpuTime = new StatCpuTime();
     mainStats = pMainStats;
+    tgarStatistics = new TGARStatistics(pLogger);
 
     mainShutdownManager = pShutdownManager;
     logger = pLogger;
@@ -833,29 +835,29 @@ public class TigerAlgorithm
 
       ARGState lastState = pTestcase.getArgPath().getLastState();
 
-      if (printPathFormulasPerGoal) {
-        try {
-          List<BooleanFormula> formulas = getPathFormula(pTestcase.getArgPath());
-
-          Set<Property> violatedProperties = lastState.getViolatedProperties();
-
-          for (Property property : violatedProperties) {
-            Preconditions.checkState(property instanceof Goal);
-            Goal g = (Goal) property;
-            List<List<BooleanFormula>> f = targetStateFormulas.get(g);
-            if (f == null) {
-              f = new ArrayList<>();
-              targetStateFormulas.put(g, f);
-            }
-
-            f.add(formulas);
-          }
-        } catch (CPAException | InterruptedException e) {
-
-        }
-
-        return new HashSet<>();
-      }
+//      if (printPathFormulasPerGoal) {
+//        try {
+//          List<BooleanFormula> formulas = getPathFormula(pTestcase.getArgPath());
+//
+//          Set<Property> violatedProperties = lastState.getViolatedProperties();
+//
+//          for (Property property : violatedProperties) {
+//            Preconditions.checkState(property instanceof Goal);
+//            Goal g = (Goal) property;
+//            List<List<BooleanFormula>> f = targetStateFormulas.get(g);
+//            if (f == null) {
+//              f = new ArrayList<>();
+//              targetStateFormulas.put(g, f);
+//            }
+//
+//            f.add(formulas);
+//          }
+//        } catch (CPAException | InterruptedException e) {
+//
+//        }
+//
+//        return new HashSet<>();
+//      }
 
       for (Property p : lastState.getViolatedProperties()) {
         Preconditions.checkState(p instanceof Goal);
@@ -963,21 +965,21 @@ public class TigerAlgorithm
     }
   }
 
-  private List<BooleanFormula> getPathFormula(ARGPath pPath)
-      throws CPAException, InterruptedException {
-    List<BooleanFormula> formulas = null;
-
-    Refiner refiner = this.refiner;
-
-    if (refiner instanceof PredicateCPARefiner) {
-      final List<ARGState> abstractionStatesTrace =
-          PredicateCPARefiner.filterAbstractionStates(pPath);
-      formulas =
-          ((PredicateCPARefiner) refiner).createFormulasOnPath(pPath, abstractionStatesTrace);
-    }
-
-    return formulas;
-  }
+//  private List<BooleanFormula> getPathFormula(ARGPath pPath)
+//      throws CPAException, InterruptedException {
+//    List<BooleanFormula> formulas = null;
+//
+//    Refiner refiner = this.refiner;
+//
+//    if (refiner instanceof PredicateCPARefiner) {
+//      final List<ARGState> abstractionStatesTrace =
+//          PredicateCPARefiner.filterAbstractionStates(pPath);
+//      formulas =
+//          ((PredicateCPARefiner) refiner).createFormulasOnPath(pPath, abstractionStatesTrace);
+//    }
+//
+//    return formulas;
+//  }
 
   private class AcceptStatus {
 
@@ -1144,7 +1146,7 @@ public class TigerAlgorithm
 
     ShutdownManager shutdownManager =
         ShutdownManager.createWithParent(mainShutdownManager.getNotifier());
-    Algorithm algorithm = initializeAlgorithm(presenceConditionToCover, cpa, shutdownManager);
+    Algorithm algorithm = initializeAlgorithm(cpa, shutdownManager);
 
     Preconditions.checkState(algorithm instanceof TGARAlgorithm);
     TGARAlgorithm tgarAlgorithm = (TGARAlgorithm) algorithm;
@@ -1334,11 +1336,9 @@ public class TigerAlgorithm
     }
   }
 
-  private Algorithm initializeAlgorithm(PresenceCondition pRemainingPresenceCondition,
-      ARGCPA lARTCPA,
-      ShutdownManager algNotifier) throws CPAException {
-    try (StatCpuTimer t = tigerStats.initializeAlgorithmTime.start()) {
+  private Algorithm initializeAlgorithm(ARGCPA lARTCPA, ShutdownManager algNotifier) throws CPAException {
 
+    try (StatCpuTimer t = tigerStats.initializeAlgorithmTime.start()) {
       Algorithm algorithm;
       try {
         Configuration internalConfiguration =
@@ -1349,11 +1349,15 @@ public class TigerAlgorithm
 
         algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, mainStats);
 
-        if (algorithm instanceof CEGARAlgorithm) {
-          CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
+        Preconditions.checkState(algorithm instanceof TGARAlgorithm, "Only TGAR supported!");
+        TGARAlgorithm tgar = (TGARAlgorithm) algorithm;
+        tgar.setStats(tgarStatistics);
 
-          this.refiner = cegarAlg.getRefiner();
-        }
+//        if (algorithm instanceof TGARAlgorithm) {
+//          TGARAlgorithm tgarAlg = (TGARAlgorithm) algorithm;
+//
+//          this.refiner = tgarAlg.getRefiner();
+//        }
 
       } catch (IOException | InvalidConfigurationException e) {
         throw new RuntimeException(e);
@@ -1736,6 +1740,7 @@ public class TigerAlgorithm
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(this);
+    pStatsCollection.add(tgarStatistics);
   }
 
   @Override
