@@ -149,7 +149,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
       boolean wasTrueSomewhere = !mustBeTruefirst;
       BooleanFormula firstGlobalFormula = null;
       for (int i = 0; i < seq.size(); i++) {
-        Optional<PredicateAbstractState> state = asNonTrueAbstractionState(seq.get(i));
+        Optional<PredicateAbstractState> state = Optional.ofNullable(extractStateByType(seq.get(i),
+            PredicateAbstractState.class));
         if (wasTrueSomewhere && state.isPresent() && !state.get().getAbstractionFormula()
             .isTrue()) {
 
