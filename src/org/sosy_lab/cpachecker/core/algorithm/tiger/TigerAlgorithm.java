@@ -1353,18 +1353,6 @@ public class TigerAlgorithm
           CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
 
           this.refiner = cegarAlg.getRefiner();
-
-          ARGStatistics lARTStatistics;
-          try {
-            lARTStatistics =
-                new ARGStatistics(internalConfiguration, logger,
-                    null, null, lARTCPA.getCexSummary());
-          } catch (InvalidConfigurationException e) {
-            throw new RuntimeException(e);
-          }
-          Set<Statistics> lStatistics = Sets.newLinkedHashSet();
-          lStatistics.add(lARTStatistics);
-          cegarAlg.collectStatistics(lStatistics);
         }
 
       } catch (IOException | InvalidConfigurationException e) {
