@@ -125,9 +125,7 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, Unrecog
     CExpression parent = pIastFieldReference.getFieldOwner();
     CType parentType = parent.getExpressionType();
 
-    parentType = getTypeWithoutPointers(parentType);
-    parentType = getNonTypedefType(parentType);
-    parentType = getNonElaboratedType(parentType);
+    parentType = getUnmaskedCompositeType(parentType);
 
     CType fieldType = pIastFieldReference.getExpressionType();
 
@@ -151,25 +149,21 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, Unrecog
     return null;
   }
 
-  private CType getNonElaboratedType(CType elaboratedType) {
-    while (elaboratedType instanceof CElaboratedType) {
-      elaboratedType = ((CElaboratedType) elaboratedType).getRealType();
-    }
-    return elaboratedType;
-  }
+  private CType getUnmaskedCompositeType(CType maskedType) {
 
-  private CType getNonTypedefType(CType typedefType) {
-    while (typedefType instanceof CTypedefType) {
-      typedefType = ((CTypedefType) typedefType).getRealType();
+    while (maskedType instanceof CElaboratedType) {
+      maskedType = ((CElaboratedType) maskedType).getRealType();
     }
-    return typedefType;
-  }
 
-  private CType getTypeWithoutPointers(CType pointerType) {
-    while (pointerType instanceof CPointerType) {
-      pointerType = ((CPointerType)pointerType).getType();
+    while (maskedType instanceof CTypedefType) {
+      maskedType = ((CTypedefType) maskedType).getRealType();
     }
-    return pointerType;
+
+    while (maskedType instanceof CPointerType) {
+      maskedType = ((CPointerType)maskedType).getType();
+    }
+
+    return maskedType;
   }
 
   //Don't think we even need this
