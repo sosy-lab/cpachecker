@@ -301,7 +301,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGAddressValueAndState.of(currentState);
       }
 
-      int count = countValue.getAsInt() * machineModel.getSizeofCharInBits();
+      int count = countValue.getAsInt();
 
       if (ch.isUnknown()) {
         // If the symbolic value is not known create a new one.
@@ -314,12 +314,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (ch.equals(SMGKnownSymValue.ZERO)) {
         // Create one large edge
-        currentState = writeValue(currentState, bufferMemory, offset, count, ch, cfaEdge);
+        currentState = writeValue(currentState, bufferMemory, offset, count * machineModel.getSizeofCharInBits(), ch, cfaEdge);
       } else {
         // We need to create many edges, one for each character written
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
-          currentState = writeValue(currentState, bufferMemory, offset + c, CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
+          currentState = writeValue(currentState, bufferMemory, offset + (c  * machineModel.getSizeofCharInBits()),
+              CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
         }
 
         if (!expValue.isUnknown()) {
