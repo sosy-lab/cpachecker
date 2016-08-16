@@ -330,6 +330,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   @Override
   protected void finishRefinementOfPath(
       ARGState pUnreachableState,
+      ARGState pTargetState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
       boolean pRepeatedCounterexample,
