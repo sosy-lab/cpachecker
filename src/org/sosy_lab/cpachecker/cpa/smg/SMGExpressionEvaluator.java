@@ -955,7 +955,7 @@ public class SMGExpressionEvaluator {
           }
 
           SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer,
-              newState, address) / machineModel.getSizeofCharInBits());
+              newState, address));
 
           SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
