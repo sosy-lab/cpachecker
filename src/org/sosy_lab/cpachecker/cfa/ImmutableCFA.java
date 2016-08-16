@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -83,9 +83,9 @@ class ImmutableCFA implements CFA {
     functions = ImmutableSortedMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
-    loopStructure = Optional.absent();
-    varClassification = Optional.absent();
-    liveVariables = Optional.absent();
+    loopStructure = Optional.empty();
+    varClassification = Optional.empty();
+    liveVariables = Optional.empty();
     language = pLanguage;
   }
 
@@ -148,7 +148,7 @@ class ImmutableCFA implements CFA {
     if (loopStructure.isPresent()) {
       return Optional.of(loopStructure.get().getAllLoopHeads());
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   @Override

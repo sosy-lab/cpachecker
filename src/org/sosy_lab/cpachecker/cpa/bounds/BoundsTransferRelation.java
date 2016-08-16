@@ -133,7 +133,7 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
         state = state.setDeepestRecursion(state.getReturnFromCounter());
       }
     }
-    return state.equals(pState) ? null : Collections.singleton(state);
+    return state.equals(pState) ? Collections.singleton(pState) : Collections.singleton(state);
   }
 
   private static final int getRecursionDepth(CallstackState pCallstackState) {

@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Serializable;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -36,9 +34,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Base class for AbstractStates which wrap the abstract state of exactly
@@ -47,22 +46,12 @@ import com.google.common.collect.ImmutableList;
 public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
-  private static final Function<AbstractState, AbstractState> unwrapFunction
-      = new Function<AbstractState, AbstractState>() {
-
-    @Override
-    public AbstractState apply(AbstractState pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof AbstractSingleWrapperState);
-
-      return ((AbstractSingleWrapperState)pArg0).getWrappedState();
-    }
-  };
 
   public static Function<AbstractState, AbstractState> getUnwrapFunction() {
-    return unwrapFunction;
+    return pArg0 -> ((AbstractSingleWrapperState)pArg0).getWrappedState();
   }
 
-  private final AbstractState wrappedState;
+  private final @Nullable AbstractState wrappedState;
 
   public AbstractSingleWrapperState(@Nullable AbstractState pWrappedState) {
     // TODO this collides with some CPAs' way of handling dummy states, but it should really be not null here
@@ -70,7 +59,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
     wrappedState = pWrappedState;
   }
 
-  public AbstractState getWrappedState() {
+  public @Nullable AbstractState getWrappedState() {
     return wrappedState;
   }
 

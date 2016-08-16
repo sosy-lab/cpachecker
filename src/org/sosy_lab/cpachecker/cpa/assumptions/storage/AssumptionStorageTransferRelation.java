@@ -117,7 +117,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     }
 
     if (bfmgr.isTrue(assumption) && bfmgr.isTrue(stopFormula)) {
-      return null; // nothing has changed
+      return Collections.singleton(el); // nothing has changed
 
     } else {
       return Collections.singleton(new AssumptionStorageState(formulaManager, assumption, stopFormula));

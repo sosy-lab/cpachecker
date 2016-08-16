@@ -39,7 +39,7 @@ public final class TestHelpers {
       SMGObject node = new SMGRegion(pSize, pPrefix + "list_node" + i);
       SMGEdgeHasValue hv;
       if (value == null) {
-        hv = new SMGEdgeHasValue(pSize, 0, node, 0);
+        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, 0);
       } else {
         hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, value);
       }

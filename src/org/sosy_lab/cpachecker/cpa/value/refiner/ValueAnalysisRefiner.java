@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -41,10 +44,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -246,24 +250,13 @@ public class ValueAnalysisRefiner
    * the subgraph below the refinement root.
    */
   private PredicatePrecision mergePredicatePrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
-
-    PredicatePrecision mergedPrecision = PredicatePrecision.empty();
-
-    // find all distinct precisions to merge them
-    Set<PredicatePrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractPredicatePrecision(pReached, descendant));
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+    UnmodifiableReachedSet reached = pReached.asReachedSet();
+    return PredicatePrecision.unionOf(
+        from(pRefinementRoot.getSubgraph())
+            .filter(not(ARGState::isCovered))
+            .transform(reached::getPrecision));
     }
-
-    for (PredicatePrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.mergeWith(precision);
-    }
-
-    return mergedPrecision;
-  }
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
       ARGState state) {

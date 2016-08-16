@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -44,7 +42,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.errorprone.annotations.ForOverride;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
@@ -113,7 +113,11 @@ public abstract class RefinementStrategy {
     // Hook
     finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample);
 
-    assert !pReached.asReachedSet().contains(lastElement);
+    // TODO find a way to uncomment this assert. In combination with
+    // PredicateCPAGlobalRefiner and the PredicateAbstractionGlobalRefinementStrategy
+    // this assert doesn't hold, as the updated elements are removed from the
+    // reached set one step later
+    // assert !pReached.asReachedSet().contains(lastElement);
   }
 
   // returns a pair consisting of the root of the infeasible part of the ARG and a list of all

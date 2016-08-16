@@ -24,18 +24,20 @@
 package org.sosy_lab.cpachecker.util.states;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Objects;
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalLong;
+
+import javax.annotation.Nullable;
 
 /**
 * This class describes a location in the memory.
@@ -45,31 +47,9 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   private static final long serialVersionUID = -8910967707373729034L;
   private final String functionName;
   private final String identifier;
-  private final Optional<Long> offset;
+  private final @Nullable Long offset;
 
-  /**
-   * This function can be used to {@link com.google.common.collect.Iterables#transform transform}
-   * a collection of {@link String}s to a collection of {@link MemoryLocation}s, representing the
-   * respective memory location of the identifiers.
-   */
-  public static final Function<String, MemoryLocation> FROM_STRING_TO_MEMORYLOCATION =
-      new Function<String, MemoryLocation>() {
-          @Override
-          public MemoryLocation apply(String variableName) { return MemoryLocation.valueOf(variableName); }
-      };
-
-  /**
-   * This function can be used to {@link com.google.common.collect.Iterables#transform transform} a
-   * collection of {@link MemoryLocation}s
-   * to a collection of {@link String}s, representing the respective variable identifiers.
-   */
-  public static final Function<MemoryLocation, String> FROM_MEMORYLOCATION_TO_STRING =
-      new Function<MemoryLocation, String>() {
-          @Override
-          public String apply(MemoryLocation memoryLocation) { return memoryLocation.getAsSimpleString(); }
-      };
-
-  private MemoryLocation(String pFunctionName, String pIdentifier, Optional<Long> pOffset) {
+  private MemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pFunctionName);
     checkNotNull(pIdentifier);
 
@@ -78,7 +58,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     offset = pOffset;
   }
 
-  private MemoryLocation(String pIdentifier, Optional<Long> pOffset) {
+  private MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pIdentifier);
 
     int separatorIndex = pIdentifier.indexOf("::");
@@ -107,7 +87,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
     return Objects.equals(functionName, otherLocation.functionName)
         && Objects.equals(identifier, otherLocation.identifier)
-        && offset.equals(otherLocation.offset);
+        && Objects.equals(offset, otherLocation.offset);
   }
 
   @Override
@@ -118,21 +98,25 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
     hc = hc * hashMultiplier + Objects.hashCode(functionName);
     hc = hc * hashMultiplier + identifier.hashCode();
-    hc = hc * hashMultiplier + offset.hashCode();
+    hc = hc * hashMultiplier + Objects.hashCode(offset);
 
     return hc;
   }
 
   public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
-    return new MemoryLocation(pFunctionName, pIdentifier, Optional.<Long>absent());
+    return new MemoryLocation(pFunctionName, pIdentifier, null);
   }
 
-  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffest) {
-    return new MemoryLocation(pFunctionName, pIdentifier, Optional.of(pOffest));
+  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
+    return new MemoryLocation(pFunctionName, pIdentifier, pOffset);
   }
 
-  public static MemoryLocation valueOf(String pIdentifier, long pOffest) {
-    return new MemoryLocation(pIdentifier, Optional.of(pOffest));
+  public static MemoryLocation valueOf(String pIdentifier, long pOffset) {
+    return new MemoryLocation(pIdentifier, pOffset);
+  }
+
+  public static MemoryLocation valueOf(String pIdentifier, OptionalLong pOffset) {
+    return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.getAsLong() : null);
   }
 
   public static MemoryLocation valueOf(String pVariableName) {
@@ -143,18 +127,18 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     boolean isScoped  = nameParts.length == 2;
     boolean hasOffset = offsetParts.length == 2;
 
-    Optional<Long> offset =
-        hasOffset ? Optional.of(Long.parseLong(offsetParts[1])) : Optional.<Long>absent();
+    @Nullable Long offset =
+        hasOffset ? Long.parseLong(offsetParts[1]) : null;
 
     if (isScoped) {
       if (hasOffset) {
-        nameParts[1] = nameParts[1].replace("/" + offset.get(), "");
+        nameParts[1] = nameParts[1].replace("/" + offset, "");
       }
       return new MemoryLocation(nameParts[0], nameParts[1], offset);
 
     } else {
       if (hasOffset) {
-        nameParts[0] = nameParts[0].replace("/" + offset.get(), "");
+        nameParts[0] = nameParts[0].replace("/" + offset, "");
       }
       return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
     }
@@ -162,10 +146,10 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   public String getAsSimpleString() {
     String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
-    if (!offset.isPresent()) {
+    if (offset == null) {
       return variableName;
     }
-    return variableName + "/" + offset.get();
+    return variableName + "/" + offset;
   }
 
   public String serialize() {
@@ -189,7 +173,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public boolean isReference() {
-    return offset.isPresent();
+    return offset != null;
   }
 
   /**
@@ -199,7 +183,8 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
    * @return the offset of a reference.
    */
   public long getOffset() {
-    return offset.get();
+    checkState(offset != null);
+    return offset;
   }
 
   @Override
@@ -244,7 +229,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
     return ComparisonChain.start()
         .compare(identifier, other.identifier)
-        .compare(offset.orNull(), other.offset.orNull(), Ordering.<Long>natural().nullsFirst())
+        .compare(offset, other.offset, Ordering.<Long>natural().nullsFirst())
         .result();
   }
 }

@@ -23,21 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -48,10 +36,18 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 
 @Options(prefix="cwriter.withLoops")
@@ -79,6 +75,17 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   public LoopCollectingEdgeVisitor(LoopStructure pLoopStructure, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     loopStructure = pLoopStructure;
+  }
+
+  /**
+   * Resets the state of this visitor, such that it works as if it was created newly.
+   */
+  public void reset() {
+    cfaPath.clear();
+    loopStack.clear();
+    relevantLoops.clear();
+    finishedLoops.clear();
+    lastLoopFound = false;
   }
 
   @Override
@@ -209,12 +216,8 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
    * Checks if a given CFANode is part of any loop.
    */
   static boolean isInAnyLoop(LoopStructure loopStructure, final CFANode node) {
-    return FluentIterable.from(loopStructure.getAllLoops()).anyMatch(new Predicate<Loop>() {
-
-      @Override
-      public boolean apply(final Loop pInput) {
-        return pInput.getLoopNodes().contains(node);
-      }});
+    return from(loopStructure.getAllLoops())
+        .anyMatch(pInput -> pInput.getLoopNodes().contains(node));
   }
 
   /**
@@ -222,20 +225,12 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
    * to the innermost loop.
    */
   static List<Loop> getLoopsOfNode(LoopStructure loopStructure, final CFANode node) {
-    FluentIterable<Loop> ret = FluentIterable.from(loopStructure.getAllLoops());
-    ret = ret.filter(new Predicate<Loop>() {
-                              @Override
-                              public boolean apply(Loop pInput) {
-                                return pInput.getLoopNodes().contains(node);
-                              }});
-    ImmutableList<Loop> realRet = ret
-                         .toSortedList(new Comparator<Loop>() {
-                              @Override
-                              public int compare(Loop loop1, Loop loop2) {
-                                boolean retVal = isOuterLoopOf(loop1, loop2) ;
-                                return retVal? -1 : 1;
-                              }});
-    return realRet;
+    return from(loopStructure.getAllLoops())
+        .filter(pInput -> pInput.getLoopNodes().contains(node))
+        .toSortedList(
+            (loop1, loop2) -> {
+              return isOuterLoopOf(loop1, loop2) ? -1 : 1;
+            });
   }
 
   static boolean isOuterLoopOf(Loop outer, Loop inner) {

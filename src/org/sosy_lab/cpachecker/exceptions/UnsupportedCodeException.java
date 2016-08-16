@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+
+import javax.annotation.Nullable;
 
 /**
  * Exception thrown when a CPA cannot handle some code attached to a CFAEdge
@@ -34,11 +39,22 @@ public class UnsupportedCodeException extends UnrecognizedCodeException {
 
   private static final long serialVersionUID = -7693635256672813804L;
 
-  public UnsupportedCodeException(String msg, CFAEdge edge, AAstNode astNode) {
+  private @Nullable ARGState parentState = null;
+
+  public UnsupportedCodeException(String msg, CFAEdge edge, @Nullable AAstNode astNode) {
     super("Unsupported feature", msg, edge, astNode);
   }
 
   public UnsupportedCodeException(String msg, CFAEdge cfaEdge) {
     this(msg, cfaEdge, null);
+  }
+
+  public void setParentState(ARGState pParentState) {
+    Preconditions.checkState(parentState == null);
+    parentState = pParentState;
+  }
+
+  public @Nullable ARGState getParentState() {
+    return parentState;
   }
 }

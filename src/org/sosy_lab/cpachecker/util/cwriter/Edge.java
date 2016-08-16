@@ -62,15 +62,7 @@ class Edge implements Comparable<Edge> {
   @Override
   /** comparison based on the child element*/
   public int compareTo(Edge pO) {
-    int otherElementId = pO.getChildState().getStateId();
-    int thisElementId = this.getChildState().getStateId();
-
-    if (thisElementId > otherElementId) {
-      return 1;
-    } else if (thisElementId < otherElementId) {
-      return -1;
-    }
-    return 0;
+    return Integer.compare(this.getChildState().getStateId(), pO.getChildState().getStateId());
   }
 
   @Override

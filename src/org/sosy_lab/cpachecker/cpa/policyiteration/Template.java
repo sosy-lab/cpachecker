@@ -1,5 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.collect.Iterables;
+
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,17 +14,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.sosy_lab.common.rationals.LinearExpression;
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-
-import com.google.common.collect.Iterables;
-
 /**
  * Wrapper for a template.
  */
 public class Template {
+  // todo: switch to MemoryLocation.
   final LinearExpression<CIdExpression> linearExpression;
   final Kind kind;
 

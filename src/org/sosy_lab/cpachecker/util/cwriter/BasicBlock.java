@@ -133,7 +133,7 @@ class BasicBlock {
       } else if (obj instanceof BasicBlock) {
         ret.append(((BasicBlock)obj).getCode(indent));
       } else {
-        assert false;
+        throw new AssertionError();
       }
       ret.append("\n");
     }

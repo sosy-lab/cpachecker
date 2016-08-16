@@ -24,17 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.deterministic;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.LiveVariables.*;
+import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
+import static org.sosy_lab.cpachecker.util.LiveVariables.TO_EQUIV_WRAPPER;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -76,8 +70,15 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.Iterables;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 public class DeterministicVariablesTransferRelation
   extends ForwardingTransferRelation<DeterministicVariablesState, DeterministicVariablesState, Precision> implements Statistics {
@@ -253,12 +254,6 @@ public class DeterministicVariablesTransferRelation
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
     }
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(final AbstractState pState, final List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
   }
 
   /**

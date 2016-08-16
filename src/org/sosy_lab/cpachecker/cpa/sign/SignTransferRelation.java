@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.sign;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -63,13 +60,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
@@ -87,16 +84,10 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
-  }
-
-  @Override
   protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
 
-    CExpression expression = pCfaEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+    CExpression expression = pCfaEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
     String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
     return handleAssignmentToVariable(state, assignedVar, expression);
   }
@@ -182,7 +173,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean truthAssumption, CFAEdge pCFAEdge)  {
     Optional<CExpression> optStrongestId = getStrongestIdentifier(pAssumeExp, pCFAEdge);
     if (!optStrongestId.isPresent()) {
-      return Optional.absent(); // No refinement possible, since no strongest identifier was found
+      return Optional.empty(); // No refinement possible, since no strongest identifier was found
     }
     CExpression strongestId = optStrongestId.get();
     logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
@@ -192,7 +183,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     try {
       resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
     } catch (UnrecognizedCodeException e) {
-      return Optional.absent();
+      return Optional.empty();
     }
     return evaluateAssumption(strongestId, resultOp, resultSign, isLeftOperand(strongestId, pAssumeExp));
   }
@@ -247,7 +238,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     default:
       // nothing to do here
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   private CExpression getRefinementExpression(CExpression pStrongestIdent, CBinaryExpression pBinExp) {
@@ -273,7 +264,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   private Optional<CExpression> getStrongestIdentifier(CBinaryExpression pAssumeExp, CFAEdge pCFAEdge) {
     List<CExpression> result = filterIdentifier(pAssumeExp); // TODO
     if (result.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
     }
     if (result.size() == 1) {
       return Optional.of(result.get(0));
@@ -287,7 +278,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
         return Optional.of(result.get(1));
       }
     } catch (UnrecognizedCodeException ex) {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -65,8 +65,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 @Options(prefix="cpa.value.abstraction")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -107,7 +105,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   private final Optional<LiveVariables> liveVariables;
 
-  private @Nullable Boolean performPrecisionBasedAbstraction = null;
+  @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
+  private boolean performPrecisionBasedAbstraction = false;
 
   private final Statistics statistics;
 
@@ -204,25 +203,31 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
   /**
    * This method decides whether or not to perform abstraction computations. These are computed
-   * if the iteration threshold is deactivated, or if the level of determinism, by the time the
-   * iteration threshold was reached, is lower then the threshold for the level of determinism.
+   * if the iteration threshold is deactivated, or if the level of determinism ever gets below
+   * the threshold for the level of determinism.
    *
    * @return true, if abstractions should be computed, else false
    */
   private boolean performPrecisionBasedAbstraction() {
+    // always compute abstraction if option is disabled
     if (iterationThreshold == -1) {
       return true;
     }
 
+    // else, delay abstraction computation as long as iteration threshold is not reached
     if (transfer.getCurrentNumberOfIterations() < iterationThreshold) {
       return false;
     }
 
-    if (performPrecisionBasedAbstraction == null) {
-      performPrecisionBasedAbstraction = (transfer.getCurrentLevelOfDeterminism() < determinismThreshold)
-          ? true
-          : false;
+    // else, always compute abstraction if computed abstraction before
+    if (performPrecisionBasedAbstraction) {
+      return true;
     }
+
+    // else, determine current setting and return that
+    performPrecisionBasedAbstraction = (transfer.getCurrentLevelOfDeterminism() < determinismThreshold)
+        ? true
+        : false;
 
     return performPrecisionBasedAbstraction;
   }

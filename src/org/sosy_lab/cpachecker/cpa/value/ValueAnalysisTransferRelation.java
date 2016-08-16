@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -110,7 +110,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -124,8 +124,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -156,6 +154,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -384,7 +383,7 @@ public class ValueAnalysisTransferRelation
     state = ValueAnalysisState.copyOf(state);
     state.dropFrame(functionName);
 
-    AExpression expression = returnEdge.getExpression().orNull();
+    AExpression expression = returnEdge.getExpression().orElse(null);
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
@@ -451,10 +450,10 @@ public class ValueAnalysisTransferRelation
         JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
 
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
-        Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+        OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.get());
+          assignedArray.setValue(newValue, maybeIndex.getAsInt());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -464,7 +463,7 @@ public class ValueAnalysisTransferRelation
         // We can handle all types below "casually", so just get the memory location for the
         // left hand side and assign the function's return value
 
-        Optional<MemoryLocation> memLoc = Optional.absent();
+        Optional<MemoryLocation> memLoc = Optional.empty();
 
         // get memory location for left hand side
         if (op1 instanceof CLeftHandSide) {
@@ -526,7 +525,7 @@ public class ValueAnalysisTransferRelation
       if (pValueVisitor.hasMissingPointer()) {
         addMissingInformation(pExpression, pRightHandSideValue);
       }
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       return Optional.of(assignedVarName);
@@ -540,14 +539,14 @@ public class ValueAnalysisTransferRelation
         && !((JFieldDeclaration) declaration).isStatic();
   }
 
-  private Optional<Integer> getIndex(JArraySubscriptExpression pExpression) {
+  private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
     final ExpressionValueVisitor evv = getVisitor();
     final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
 
     if (indexValue.isUnknown()) {
-      return Optional.absent();
+      return OptionalInt.empty();
     } else {
-      return Optional.of((int) ((NumericValue) indexValue).longValue());
+      return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
     }
   }
 
@@ -1132,12 +1131,12 @@ public class ValueAnalysisTransferRelation
       // the array enclosing the array specified in the given array subscript expression
       ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      Optional<Integer> maybeIndex = getIndex(arraySubscriptExpression);
+      OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
       int index;
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.get();
+        index = maybeIndex.getAsInt();
 
       } else {
         return null;
@@ -1171,10 +1170,10 @@ public class ValueAnalysisTransferRelation
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
       ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
-      Optional<Integer> maybeIndex = getIndex(enclosingSubscriptExpression);
+      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.get());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
@@ -1423,46 +1422,6 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-
-  private class SMGAssigningValueVisitor extends AssigningValueVisitor {
-
-    private final ValueAnalysisSMGCommunicator expressionEvaluator;
-    @SuppressWarnings("unused")
-    private final SMGState smgState;
-
-    public SMGAssigningValueVisitor(
-        ValueAnalysisState pAssignableState,
-        boolean pTruthValue,
-        Collection<String> booleanVariables,
-        SMGState pSmgState) {
-
-      super(pAssignableState, pTruthValue, booleanVariables);
-      checkNotNull(pSmgState);
-      expressionEvaluator = new ValueAnalysisSMGCommunicator(pAssignableState, functionName,
-          pSmgState, machineModel, logger, edge);
-      smgState = pSmgState;
-    }
-
-    @Override
-    protected boolean isAssignable(CExpression pExpression) throws UnrecognizedCCodeException {
-
-      //TODO Ugly, Refactor
-      if (pExpression instanceof CLeftHandSide) {
-        MemoryLocation memLoc =
-            expressionEvaluator.evaluateLeftHandSide(pExpression);
-
-        return memLoc != null;
-      }
-
-      return false;
-    }
-
-    @Override
-    protected MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
-      return expressionEvaluator.evaluateLeftHandSide(pLValue);
-    }
-  }
-
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
@@ -1542,19 +1501,6 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret = strengthen((RTTState)ae);
-          if (ret == null) {
-            result.add(state);
-          } else {
-            result.addAll(ret);
-          }
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof SMGState) {
-        result.clear();
-        for (ValueAnalysisState state : toStrengthen) {
-          super.setInfo(element, precision, cfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((SMGState)ae);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1854,200 +1800,6 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private Collection<ValueAnalysisState> strengthen(SMGState smgState) throws UnrecognizedCCodeException {
-
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-
-    //TODO Refactor
-
-    for (MissingInformation missingInformation : missingInformationList) {
-      if (missingInformation.isMissingAssumption()) {
-        newElement = resolvingAssumption(newElement, smgState, missingInformation);
-      } else if (missingInformation.isMissingAssignment()) {
-        if (isRelevant(missingInformation)) {
-          newElement = resolvingAssignment(newElement, smgState, missingInformation);
-        } else {
-          // We have to forget Nonrelevant Information to not contradict SMGState.
-          newElement = forgetMemLoc(newElement, missingInformation, smgState);
-        }
-      } else if (missingInformation.isFreeInvocation()) {
-        newElement = resolveFree(newElement, smgState, missingInformation);
-      }
-    }
-
-    //TODO More common handling of missing information (erase missing Information if other cpas solved it).
-    missingInformationList.clear();
-
-    if (newElement == null) {
-      return new HashSet<>();
-    }
-
-    return state.equals(newElement) ? null : Collections.singleton(newElement);
-  }
-
-  private ValueAnalysisState resolveFree(ValueAnalysisState pNewElement, SMGState pSmgState,
-      MissingInformation pMissingInformation) throws UnrecognizedCCodeException {
-
-    CFunctionCallExpression functionCall = pMissingInformation.getMissingFreeInvocation();
-
-    CExpression pointerExp;
-
-    try {
-      pointerExp = functionCall.getParameterExpressions().get(0);
-    } catch (IndexOutOfBoundsException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Built in function free has no parameter", edge, functionCall);
-    }
-
-    ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(pNewElement, functionName, pSmgState,
-        machineModel, logger, edge);
-
-    SMGAddressValue address;
-    try {
-      address = cc.evaluateSMGAddressExpression(pointerExp);
-    } catch (CPATransferException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Error while evaluating free pointer exception.", edge, functionCall);
-    }
-
-    if (address.isUnknown()) {
-      //TODO if sound Option is implemented, here every heap value has to be erased.
-      return pNewElement;
-    }
-
-    pNewElement.forgetValuesWithIdentifier(address.getObject().getLabel());
-
-    return pNewElement;
-  }
-
-  private ValueAnalysisState forgetMemLoc(ValueAnalysisState pNewElement, MissingInformation pMissingInformation,
-      SMGState pSmgState) throws UnrecognizedCCodeException {
-
-    MemoryLocation memoryLocation = null;
-
-    if (pMissingInformation.hasKnownMemoryLocation()) {
-      memoryLocation = pMissingInformation.getcLeftMemoryLocation();
-    } else if (pMissingInformation.hasUnknownMemoryLocation()) {
-      memoryLocation = resolveMemoryLocation(pSmgState,
-          pMissingInformation.getMissingCLeftMemoryLocation());
-    }
-
-    if (memoryLocation == null) {
-      // Always return the new Element
-      // if you want to interrupt the calculation
-      // in case it was changed before
-      return pNewElement;
-    } else {
-      pNewElement.forget(memoryLocation);
-      return pNewElement;
-    }
-  }
-
-  private boolean isRelevant(MissingInformation missingInformation) {
-
-    CRightHandSide value;
-
-    if (missingInformation.hasUnknownMemoryLocation()) {
-      value = missingInformation.getMissingCLeftMemoryLocation();
-    } else if (missingInformation.hasUnknownValue()) {
-      value = missingInformation.getMissingCExpressionInformation();
-    } else {
-      return false;
-    }
-
-    CType type = value.getExpressionType().getCanonicalType();
-
-    return !(type instanceof CPointerType);
-  }
-
-  //TODO Better Name, these are not just Assignments, but also calls, etc
-  private ValueAnalysisState resolvingAssignment(ValueAnalysisState pNewElement,
-      SMGState pSmgState, MissingInformation pMissingInformation) throws UnrecognizedCCodeException {
-
-    MemoryLocation memoryLocation = null;
-
-    if (pMissingInformation.hasKnownMemoryLocation()) {
-      memoryLocation = pMissingInformation.getcLeftMemoryLocation();
-    } else if (pMissingInformation.hasUnknownMemoryLocation()) {
-      memoryLocation = resolveMemoryLocation(pSmgState,
-          pMissingInformation.getMissingCLeftMemoryLocation());
-    }
-
-    if (memoryLocation == null) {
-      // Always return the new Element
-      // if you want to interrupt the calculation
-      // in case it was changed before
-      return pNewElement;
-    }
-
-    Value value = Value.UnknownValue.getInstance();
-
-    if (pMissingInformation.hasKnownValue()) {
-      value = pMissingInformation.getcExpressionValue();
-    } else if (pMissingInformation.hasUnknownValue()) {
-      value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
-    }
-
-    if (value.isUnknown()) {
-      // Always return the new Element
-      // if you want to interrupt the calculation
-      // in case it was changed before
-      if (pNewElement.contains(memoryLocation)) {
-        pNewElement.forget(memoryLocation);
-      }
-      return pNewElement;
-    }
-
-    pNewElement.assignConstant(memoryLocation, value, pNewElement.getTypeForMemoryLocation(memoryLocation));
-
-    return pNewElement;
-  }
-
-  private Value resolveValue(SMGState pSmgState, CExpression rValue)
-      throws UnrecognizedCCodeException {
-
-    ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(oldState, functionName,
-        pSmgState, machineModel, logger, edge);
-
-    return cc.evaluateExpression(rValue);
-  }
-
-  private MemoryLocation resolveMemoryLocation(SMGState pSmgState, CExpression lValue)
-      throws UnrecognizedCCodeException {
-
-    ValueAnalysisSMGCommunicator cc =
-        new ValueAnalysisSMGCommunicator(oldState, functionName, pSmgState, machineModel, logger, edge);
-
-    return cc.evaluateLeftHandSide(lValue);
-  }
-
-  private ValueAnalysisState resolvingAssumption(ValueAnalysisState pNewElement,
-      SMGState pSmgState, MissingInformation pMissingInformation) throws UnrecognizedCCodeException {
-
-    Boolean bTruthValue = pMissingInformation.getTruthAssumption();
-
-    long truthValue = bTruthValue ? 1 : 0;
-
-    Value value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
-
-    if (value.isExplicitlyKnown() && !value.equals(new NumericValue(truthValue))) {
-      return null;
-    } else {
-
-      if (!value.isExplicitlyKnown()) {
-
-        // Try deriving further Information
-        ValueAnalysisState element = ValueAnalysisState.copyOf(pNewElement);
-        SMGAssigningValueVisitor avv = new SMGAssigningValueVisitor(element, bTruthValue, booleanVariables, pSmgState);
-        pMissingInformation.getMissingCExpressionInformation().accept(avv);
-
-        return element;
-      }
-
-      return pNewElement;
-    }
-  }
-
   private Collection<ValueAnalysisState> strengthen(RTTState rttState) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
@@ -2148,8 +1900,7 @@ public class ValueAnalysisTransferRelation
 
   }
 
-
-  private static class MissingInformation {
+  public static class MissingInformation {
 
     /**
      * This field stores the Expression of the Memory Location that

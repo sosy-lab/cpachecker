@@ -30,11 +30,13 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import java.util.HashSet;
 import java.util.List;
@@ -127,15 +129,15 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    if (target1.getClass() != target2.getClass() && mapping1.containsKey(pAddress1)
-        && mapping2.containsKey(pAddress2)
+    if (target1.getKind() != target2.getKind() && mapping1.containsKey(target1)
+        && mapping2.containsKey(target2)
         && !mapping1.get(target1).equals(mapping2.get(target2))) {
       recoverable = true;
       defined = false;
       return;
     }
 
-    if (target1.getClass() == target2.getClass()
+    if (target1.getKind() == target2.getKind()
         && pt1.getTargetSpecifier() != pt2.getTargetSpecifier()) {
       recoverable = true;
       defined = false;
@@ -154,11 +156,11 @@ final class SMGJoinTargetObjects {
      * as join Object, a new object has to be created.
      */
     if (destSMG.getObjects().contains(target1)
-        && (target1 instanceof SMGDoublyLinkedList || !(target2 instanceof SMGDoublyLinkedList))) {
+        && (target1.isAbstract() || !(target2.isAbstract()))) {
       objectToJoin1 = target1.copy();
       objectToJoin2 = target2;
-    } else if (destSMG.getObjects().contains(target2) && target2 instanceof SMGDoublyLinkedList
-        && !(target1 instanceof SMGDoublyLinkedList)) {
+    } else if (destSMG.getObjects().contains(target2) && target2.isAbstract()
+        && !(target1.isAbstract())) {
       objectToJoin2 = target2.copy();
       objectToJoin1 = target1;
     } else {
@@ -174,11 +176,9 @@ final class SMGJoinTargetObjects {
       destSMG.addObject(newObject);
     }
 
-    if (mapping1.containsKey(target1)) {
-      throw new UnsupportedOperationException("Delayed join not yet implemented");
-    }
+    destSMG.setValidity(newObject, inputSMG1.isObjectValid(target1));
 
-    delayedJoin(target1, target2);
+    delayedJoin(target1, target2, newObject);
 
     mapping1.map(target1, newObject);
     mapping2.map(target2, newObject);
@@ -201,25 +201,78 @@ final class SMGJoinTargetObjects {
     abstractionCandidates = ImmutableList.of();
   }
 
-  private void delayedJoin(SMGObject pTarget1, SMGObject pTarget2) {
+  private void delayedJoin(SMGObject pTarget1, SMGObject pTarget2, SMGObject targetObject) {
 
     if (mapping1.containsKey(pTarget1)) {
-      removeSubSmgAndMappping(mapping1.get(pTarget1));
+      SMGObject oldTarget = mapping1.get(pTarget1);
+      Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(oldTarget, destSMG);
+      removeSubSmgAndMappping(oldTarget, mapping1);
+
+      for (SMGEdgePointsTo ptE : pointer) {
+        destSMG.addPointsToEdge(new SMGEdgePointsTo(ptE.getValue(), targetObject, ptE.getOffset(),
+            ptE.getTargetSpecifier()));
+      }
     }
 
     if (mapping2.containsKey(pTarget2)) {
-      removeSubSmgAndMappping(mapping1.get(pTarget2));
+      SMGObject oldTarget = mapping2.get(pTarget2);
+      Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(oldTarget, destSMG);
+      removeSubSmgAndMappping(oldTarget, mapping2);
+
+      for (SMGEdgePointsTo ptE : pointer) {
+        destSMG.addPointsToEdge(
+            new SMGEdgePointsTo(ptE.getValue(), targetObject, ptE.getOffset(),
+                ptE.getTargetSpecifier()));
+      }
     }
   }
 
-  private void removeSubSmgAndMappping(SMGObject targetObject) {
+  private void removeSubSmgAndMappping(SMGObject targetObject, SMGNodeMapping pMapping) {
     Set<SMGObject> toBeChecked = new HashSet<>();
     Set<SMGObject> reached = new HashSet<>();
 
-    toBeChecked.add(targetObject);
     reached.add(targetObject);
 
     Set<SMGObject> toCheck = new HashSet<>();
+
+    pMapping.removeValue(targetObject);
+    Set<SMGEdgeHasValue> hves =
+        destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(targetObject));
+
+    destSMG.removeObjectAndEdges(targetObject);
+
+    Set<Integer> restricted = new HashSet<>();
+
+    switch (targetObject.getKind()) {
+      case DLL:
+        restricted.add(((SMGDoublyLinkedList) targetObject).getNfo());
+        restricted.add(((SMGDoublyLinkedList) targetObject).getPfo());
+        break;
+      case SLL:
+        restricted.add(((SMGSingleLinkedList) targetObject).getNfo());
+        break;
+      default:
+        return;
+    }
+
+    for (SMGEdgeHasValue hve : hves) {
+      Integer val = hve.getValue();
+
+      if (!restricted.contains(val) && val != 0) {
+
+        if (destSMG.isPointer(val)) {
+          SMGObject reachedObject = destSMG.getPointer(val).getObject();
+          if (!reached.contains(reachedObject)
+              && reachedObject.getLevel() <= targetObject.getLevel()) {
+            toBeChecked.add(reachedObject);
+            reached.add(reachedObject);
+            pMapping.removeValue(val);
+          }
+        } else {
+          pMapping.removeValue(val);
+        }
+      }
+    }
 
     while(!toBeChecked.isEmpty()) {
       toCheck.clear();
@@ -227,31 +280,36 @@ final class SMGJoinTargetObjects {
       toBeChecked.clear();
 
       for(SMGObject objToCheck : toCheck) {
-        removeObjectAndNodesFromDestSMG(objToCheck, reached, toBeChecked);
+        removeObjectAndNodesFromDestSMG(objToCheck, reached, toBeChecked, targetObject.getLevel(), pMapping);
       }
     }
   }
 
   private void removeObjectAndNodesFromDestSMG(SMGObject pObjToCheck, Set<SMGObject> pReached,
-      Set<SMGObject> pToBeChecked) {
+      Set<SMGObject> pToBeChecked, int pLevel, SMGNodeMapping pMapping) {
 
-    mapping1.removeValue(pObjToCheck);
+    pMapping.removeValue(pObjToCheck);
     Set<SMGEdgeHasValue> hves = destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck));
 
     for (SMGEdgeHasValue hve : hves) {
-
       Integer val = hve.getValue();
 
-      mapping1.removeValue(val);
+      if (val != 0) {
 
-      if (destSMG.isPointer(hve.getValue())) {
-        SMGObject reachedObject = destSMG.getPointer(hve.getValue()).getObject();
-        if (!pReached.contains(reachedObject)) {
-          pToBeChecked.add(reachedObject);
-          pReached.add(reachedObject);
+        if (destSMG.isPointer(val)) {
+          SMGObject reachedObject = destSMG.getPointer(val).getObject();
+          if (!pReached.contains(reachedObject)
+              && reachedObject.getLevel() <= pLevel) {
+            pToBeChecked.add(reachedObject);
+            pReached.add(reachedObject);
+            pMapping.removeValue(val);
+          }
+        } else {
+          pMapping.removeValue(val);
         }
       }
     }
+
 
     destSMG.removeObjectAndEdges(pObjToCheck);
   }

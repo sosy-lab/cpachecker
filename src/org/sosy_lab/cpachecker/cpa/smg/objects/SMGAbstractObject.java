@@ -30,5 +30,6 @@ public interface SMGAbstractObject {
   public boolean isAbstract();
   public boolean matchGenericShape(SMGAbstractObject pOther);
   public boolean matchSpecificShape(SMGAbstractObject pOther);
+  public SMGObjectKind getKind();
 
 }

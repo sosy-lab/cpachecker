@@ -80,25 +80,6 @@ public class SMGJoinTargetObjectsTest {
     Assert.assertTrue(((SMGRegion)jto.getMapping1().get(obj1)).propertiesEqual((SMGRegion)obj1));
   }
 
-  @Test(expected=UnsupportedOperationException.class)
-  public void matchingObjectsWithMappingTest() throws SMGInconsistentException {
-    smg1.addObject(obj1);
-    smg1.addValue(value1);
-    smg1.addPointsToEdge(pt1);
-
-    smg2.addObject(obj2);
-    smg2.addValue(value2);
-    smg2.addPointsToEdge(pt2);
-
-    destSMG.addObject(destObj);
-    mapping1.map(obj1, destObj);
-
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, obj2);
-    Assert.assertTrue(mo.isDefined());
-
-    new SMGJoinTargetObjects(mo.getStatus(), smg1, smg2, destSMG, mapping1, mapping2, value1, value2, 0, 0, 0, false, false, null, null);
-  }
-
   @Test
   public void nonMatchingObjectsTest() throws SMGInconsistentException {
     smg1.addObject(obj1);

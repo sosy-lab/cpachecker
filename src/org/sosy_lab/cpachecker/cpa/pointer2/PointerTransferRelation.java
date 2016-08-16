@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -455,11 +455,4 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     }
     return (ExplicitLocationSet) pLocationSet;
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return Collections.singleton(pState);
-  }
-
 }

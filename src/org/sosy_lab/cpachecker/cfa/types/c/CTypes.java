@@ -32,6 +32,20 @@ public final class CTypes {
 
   private CTypes() { }
 
+  /**
+   * Check whether the given type is a pointer to a function.
+   */
+  public static boolean isFunctionPointer(CType type) {
+    type = type.getCanonicalType();
+    if (type instanceof CPointerType) {
+      CType innerType = ((CPointerType)type).getType();
+      if (innerType instanceof CFunctionType) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static class CanonicalCTypeEquivalence extends Equivalence<CType> {
     private static final CanonicalCTypeEquivalence INSTANCE = new CanonicalCTypeEquivalence();
 

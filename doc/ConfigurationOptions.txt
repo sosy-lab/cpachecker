@@ -35,9 +35,6 @@ log.truncateSize = 10000
 # use colors for log messages on console
 log.useColors = true
 
-# all used options are printed
-log.usedOptions.export = false
-
 # disable all default output files
 # (any explicitly given file will still be written)
 output.disable = false
@@ -77,7 +74,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, Z3JAVA, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -99,21 +96,6 @@ solver.z3.requireProofs = true
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
-
-# Activate replayable logging in Z3. The log can be given as an input to the
-# solver and replayed.
-solver.z3java.log = no default value
-
-# Ordering for objectives in the optimization context
-solver.z3java.objectivePrioritizationMode = "box"
-  allowed values: [lex, pareto, box]
-
-# Engine to use for the optimization
-solver.z3java.optimizationEngine = "basic"
-  allowed values: [basic, farkas, symba]
-
-# Require proofs from SMT solver
-solver.z3java.requireProofs = true
 
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
@@ -147,6 +129,9 @@ analysis.algorithm.proofCheck = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
+# Use termination algorithm to prove (non-)termination.
+analysis.algorithm.termination = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -159,6 +144,9 @@ analysis.checkProof = false
 
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
+
+# continue analysis after a unsupported code was found on one path
+analysis.continueAfterUnsupportedCode = false
 
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
@@ -272,6 +260,10 @@ analysis.unknownIfUnrestrictedProgram = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# Use analyses parallely. The resulting reachedset is the one of the first
+# analysis finishing in time. All other analyses are terminated.
+analysis.useParallelAnalyses = false
+
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
 assumptions.automatonBranchingThreshold = 0
@@ -291,7 +283,7 @@ assumptions.file = "assumptions.txt"
 # in a backwards analysis; used if the full analysis consists of a forward
 # AND a backward part!
 # (see config/specification/ for examples)
-backwardSpecification = no default value
+backwardSpecification = []
 
 # Size of the BDD cache in relation to the node table size (set to 0 to use
 # fixed BDD cache size).
@@ -348,9 +340,6 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
-# Generate invariants and add them to the induction hypothesis.
-bmc.addInvariantsByAI = false
-
 # Generate additional invariants by induction and add them to the induction
 # hypothesis.
 bmc.addInvariantsByInduction = true
@@ -396,6 +385,10 @@ cbmc.options.unwindings = 0
 # infinite)
 cbmc.timelimit = 0
 cbmc.timelimit = 0ms
+
+# continue analysis after a failed refinement (e.g. due to interpolation)
+# other paths may still contain errors that could be found
+cegar.continueAfterFailedRefinement = false
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
@@ -473,9 +466,6 @@ cfa.initializeAllVariables = false
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
 
-# remove paths from CFA that cannot lead to a specification violation
-cfa.removeIrrelevantForSpecification = false
-
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
 
@@ -542,7 +532,7 @@ counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
 
 # configuration file for counterexample checks with CPAchecker
-counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
+counterexample.checker.config = no default value
 
 # File name where to put the path specification that is generated as input
 # for the counterexample check. A temporary file is used if this is
@@ -587,9 +577,63 @@ counterexample.export.assumptions.assumeLinearArithmetics = false
 # Whether or not to include concrete address values.
 counterexample.export.assumptions.includeConstantsForPointers = true
 
+# export counterexample as automaton
+counterexample.export.automaton = "Counterexample.%d.spc"
+
+# exports either CMBC format or a concrete path program
+counterexample.export.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
+
+# compress the produced error-witness automata using GZIP compression.
+counterexample.export.compressErrorWitness = true
+
+# export counterexample core as text file
+counterexample.export.core = "Counterexample.%d.core.txt"
+
+# export counterexample to file, if one is found
+counterexample.export.enabled = true
+
+# export counterexample as source file
+counterexample.export.exportAsSource = true
+
+# export error paths to files immediately after they were found
+counterexample.export.exportImmediately = false
+
+# export counterexample as witness/graphml file
+counterexample.export.exportWitness = true
+
+# export counterexample as text file
+counterexample.export.file = "Counterexample.%d.txt"
+
+# Filter for irrelevant counterexamples to reduce the number of similar
+# counterexamples reported. Only relevant with analysis.stopAfterError=false
+# and counterexample.export.exportImmediately=true. Put the weakest and
+# cheapest filter first, e.g., PathEqualityCounterexampleFilter.
+counterexample.export.filters = no default value
+
+# where to dump the counterexample formula in case a specification violation
+# is found
+counterexample.export.formula = "Counterexample.%d.smt2"
+
+# export counterexample as graph
+counterexample.export.graph = "Counterexample.%d.dot"
+
+# export counterexample to file as GraphML automaton
+counterexample.export.graphml = "Counterexample.%d.graphml"
+
+# where to dump the counterexample model in case a specification violation is
+# found
+counterexample.export.model = "Counterexample.%d.assignment.txt"
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
-counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
+counterexample.export.presenceCondition = "Counterexample.%d.presenceCondition.txt"
+
+# File name for analysis report in case a counterexample was found.
+counterexample.export.report = "Counterexample.%d.html"
+
+# export counterexample as source file
+counterexample.export.source = "Counterexample.%d.c"
 
 # If continueAfterInfeasibleError is true, remove the infeasible
 # counterexample before continuing.Setting this to false may prevent a lot of
@@ -615,8 +659,8 @@ coverage.stdout = true
 cpa = CompositeCPA.class.getCanonicalName()
 
 # Use this to change the underlying abstract domain in the APRON library
-cpa.apron.domain = "OCTAGON"
-  allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
+cpa.apron.domain = OCTAGON
+  enum:     [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
 
 # get an initial precision from file
 cpa.apron.initialPrecisionFile = no default value
@@ -655,50 +699,6 @@ cpa.arg.deleteInCPAEnabledAnalysis = false
 # Dump all ARG related statistics files after each iteration of the CPA
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
-
-# export error path as automaton
-cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
-
-# exports either CMBC format or a concrete path program
-cpa.arg.errorPath.codeStyle = CBMC
-  enum:     [CBMC, CONCRETE_EXECUTION]
-
-# export error path core as text file
-cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
-
-# export error path to file, if one is found
-cpa.arg.errorPath.export = true
-
-# export error path as source file
-cpa.arg.errorPath.exportAsSource = true
-
-# export error paths to files immediately after they were found
-cpa.arg.errorPath.exportImmediately = false
-
-# export error path as witness/graphml file
-cpa.arg.errorPath.exportWitness = true
-
-# export error path as text file
-cpa.arg.errorPath.file = "ErrorPath.%d.txt"
-
-# Filter for irrelevant counterexamples to reduce the number of similar
-# counterexamples reported. Only relevant with analysis.stopAfterError=false
-# and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
-# filter first, e.g., PathEqualityCounterexampleFilter.
-cpa.arg.errorPath.filters = [
-          PathEqualityCounterexampleFilter.class]
-
-# export error path as graph
-cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
-
-# export error path to file as GraphML automaton
-cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
-
-# export error path as JSON file
-cpa.arg.errorPath.json = "ErrorPath.%d.json"
-
-# export error path as source file
-cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
 # export final ARG as .dot file
 cpa.arg.export = true
@@ -743,6 +743,12 @@ cpa.arg.witness.exportOffset = true
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
 
+# Verification witness: Include an thread-identifier within the file?
+cpa.arg.witness.exportThreadId = false
+
+# Verification witness: Revert escaping/renaming of functions for threads?
+cpa.arg.witness.revertThreadFunctionRenaming = false
+
 # signal the analysis to break in case the given number of error state is
 # reached 
 cpa.automaton.breakOnTargetState = 1
@@ -784,7 +790,7 @@ cpa.bam.argFile = "BlockedARG.dot"
 # Type of partitioning (FunctionAndLoopPartitioning or
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
-cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
+cpa.bam.blockHeuristic = no default value
 
 # This flag determines which precisions should be updated during refinement.
 # We can choose between the minimum number of states and all states that are
@@ -1023,6 +1029,36 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# which default SecurityClass to use for PolicyEnforcementCPA
+cpa.ifcsecurity.defaultsc = "LOW"
+
+# which immediatechecksfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.immediatechecksfile = "immediatechecks.conf"
+
+# defines security classes of entities
+cpa.ifcsecurity.initialmapfile = no default value
+
+# which merge operator to use for ControlDependencyTrackerCPA
+# which merge operator to use for DependencyTrackerCPA
+# which merge operator to use for PolicyEnforcementCPA
+cpa.ifcsecurity.merge = "JOIN"
+  allowed values: [SEP, JOIN]
+
+# which policy to use for PolicyEnforcementCPA
+cpa.ifcsecurity.policy = "HILO"
+
+# which betamapfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.scMappingFile = "betamap.conf"
+
+# which states shall be checked
+cpa.ifcsecurity.statestocheck = 0
+
+# which stop operator to use for ControlDependencyTrackerCPA
+# which stop operator to use for DependencyTrackerCPA
+# which stop operator to use for PolicyEnforcementCPA
+cpa.ifcsecurity.stop = "SEP"
+  allowed values: [SEP, JOIN]
+
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1066,6 +1102,10 @@ cpa.invariants.includeTypeInformation = true
 # variables is disabled.
 cpa.invariants.interestingVariableLimit = 2
 
+# the maximum number of adjustments of the interestingVariableLimit. -1 one
+# disables the limit
+cpa.invariants.maxInterestingVariableAdjustments = -1
+
 # the maximum tree depth of a formula recorded in the environment.
 cpa.invariants.maximumFormulaDepth = 4
 
@@ -1104,6 +1144,76 @@ cpa.loopstack.maxLoopIterations = 0
 # only relevant in combination with a non-static maximum loop iteration
 # adjuster.
 cpa.loopstack.maxLoopIterationsUpperBound = 0
+
+# Where to perform abstraction
+cpa.lpi.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
+
+# Allowed coefficients in a template.
+cpa.lpi.allowedCoefficients = {
+      Rational.NEG_ONE, Rational.ONE
+  }
+
+# Check whether the policy depends on the initial value
+cpa.lpi.checkPolicyInitialCondition = true
+
+# Check target states reachability
+cpa.lpi.checkTargetStates = true
+
+# Compute abstraction for larger templates using decomposition
+cpa.lpi.computeAbstractionByDecomposition = false
+
+# Value to substitute for the epsilon
+cpa.lpi.epsilon = Rational.ONE
+
+# Generate templates from assert statements
+cpa.lpi.generateFromAsserts = true
+
+# Generate templates from all program statements
+cpa.lpi.generateFromStatements = true
+
+# Generate new templates using polyhedra convex hull
+cpa.lpi.generateTemplatesUsingConvexHull = false
+
+# Remove UFs and ITEs from policies.
+cpa.lpi.linearizePolicy = true
+
+# Maximum size for the generated template
+cpa.lpi.maxExpressionSize = 1
+
+# Run simple congruence analysis
+cpa.lpi.runCongruence = true
+
+# Run naive value determination first, switch to namespaced if it fails.
+cpa.lpi.runHopefulValueDetermination = true
+
+# Do not generate templates with threshold larger than specified. Set to '-1'
+# for no limit.
+cpa.lpi.templateConstantThreshold = 100
+
+# Algorithm for converting a formula to a set of lemmas
+cpa.lpi.toLemmasAlgorithm = "RCNF"
+  allowed values: [CNF, RCNF, NONE]
+
+# Number of refinements after which the unrolling depth is increased
+cpa.lpi.unrollingRefinementThreshold = 2
+
+# Use caching optimization solver
+cpa.lpi.useCachingOptSolver = false
+
+# Cache formulas produced by path formula manager
+cpa.lpi.useCachingPathFormulaManager = true
+
+# Syntactically pre-compute dependencies for value determination
+cpa.lpi.valDetSyntacticCheck = true
+
+# Strategy for filtering variables out of templates using liveness
+cpa.lpi.varFiltering = ALL_LIVE
+  enum:     [ALL_LIVE, ONE_LIVE, ALL]
+
+# Number of value determination steps allowed before widening is run. Value
+# of '-1' runs value determination until convergence.
+cpa.lpi.wideningThreshold = -1
 
 # time limit for a single post computation (use milliseconds or specify a
 # unit; 0 for infinite)
@@ -1289,14 +1399,6 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
-# where to dump the counterexample formula in case a specification violation
-# is found
-cpa.predicate.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
-
-# where to dump the counterexample model in case a specification violation is
-# found
-cpa.predicate.dumpCounterexampleModel = "ErrorPath.%d.assignment.txt"
-
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -1363,6 +1465,23 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
+# Add computed invariants to the precision. Invariants do not need to be
+# generated with the PredicateCPA they can also be given from outside.
+cpa.predicate.invariants.addToPrecision = false
+
+# Strengthen the abstraction formula during abstraction with invariants if
+# some are generated. Invariants do not need to be generated with the
+# PredicateCPA they can also be given from outside.
+cpa.predicate.invariants.appendToAbstractionFormula = false
+
+# Strengthen the pathformula during abstraction with invariants if some are
+# generated. Invariants do not need to be generated with the PredicateCPA
+# they can also be given from outside.
+cpa.predicate.invariants.appendToPathFormula = false
+
+# Compute invariants with PredicateCPA
+cpa.predicate.invariants.computeInvariants = false
+
 # Should the automata used for invariant generation be dumped to files?
 cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
 
@@ -1381,8 +1500,8 @@ cpa.predicate.invariants.file = "invariants.txt"
 
 # Which strategy should be used for generating invariants, a comma separated
 # list can be specified. Usually later specified strategies serve as fallback
-# for earlier ones.
-cpa.predicate.invariants.generationStrategy = Lists.newArrayList(InvariantGenerationStrategy.RF_INVARIANT_GENERATION)
+# for earlier ones. (default is no invariant generation at all)
+cpa.predicate.invariants.generationStrategy = new ArrayList<>()
 
 # How often should generating invariants from sliced prefixes with
 # k-induction be tried?
@@ -1395,14 +1514,14 @@ cpa.predicate.invariants.precisionFile = "invariantPrecs.txt"
 # (Use seconds or specify a unit; 0 for infinite)
 cpa.predicate.invariants.timeForInvariantGeneration = 10s
 
-# Where should the generated invariants (if there are some) be used?
-cpa.predicate.invariants.usageStrategy = NONE
-  enum:     [REFINEMENT, ABSTRACTION_FORMULA, COMBINATION, NONE]
-
 # Should the strategies be used all-together or only as fallback. If all
 # together, the computation is done until the timeout is hit and the results
 # up to this point are taken.
 cpa.predicate.invariants.useAllStrategies = false
+
+# Provide invariants generated with other analyses via the
+# PredicateCPAInvariantsManager.
+cpa.predicate.invariants.useGlobalInvariants = true
 
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
@@ -1520,14 +1639,17 @@ cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
+# Do a complete restart (clearing the reached set) after the refinement
+cpa.predicate.refinement.global.restartAfterRefinement = false
+
+# Instead of updating precision and arg we say that the refinement was not
+# successful after N times of refining. A real error state is not necessary
+# to be found. Use 0 for unlimited refinements (default).
+cpa.predicate.refinement.global.stopAfterNRefinements = 0
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
-
-# For differing errorpaths, the loop for which invariants should be generated
-# may still be the same, with this option you can set the maximal amount of
-# invariant generation runs per loop. 0 means no upper limit given.
-cpa.predicate.refinement.maxInvariantGenerationsPerLoop = 2
 
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
@@ -1597,6 +1719,10 @@ cpa.predicate.refinement.timelimit = 0ms
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
+
+# Should the path invariants be created and used (potentially additionally to
+# the other invariants)
+cpa.predicate.refinement.usePathInvariants = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
@@ -1669,10 +1795,6 @@ cpa.predicate.trackFunctionPointers = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
-# Generate invariants and strengthen the formulas during abstraction with
-# them.
-cpa.predicate.useInvariantsForAbstraction = false
-
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
@@ -1693,6 +1815,9 @@ cpa.predicate.useQuantifiersOnArrays = false
 # Enable fallback to UFs if a solver does not support non-linear arithmetics.
 # This option only effects MULT, MOD and DIV.
 cpa.predicate.useUFsForNonLinearArithmetic = true
+
+# Do not follow states which can not syntactically lead to a target location
+cpa.property_reachability.noFollowBackwardsUnreachable = true
 
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
@@ -1727,16 +1852,8 @@ cpa.sign.stop = "SEP"
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
-# Quantifier elimination strategy
-cpa.slicing.boundVarsHandling = QE_LIGHT_THEN_DROP
-  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
-
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
-
-# Limit on the size of the resulting number of lemmas from the explicit
-# expansion
-cpa.slicing.expansionResultSizeLimit = 1000
 
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
@@ -1758,9 +1875,6 @@ cpa.slicing.removalSelectionStrategy = ALL
 # Time for loop generation before aborting.
 # (Use seconds or specify a unit; 0 for infinite)
 cpa.slicing.timeForLoopGeneration = 0s
-
-# Cache formulas produced by path formula manager
-cpa.slicing.useCachingPathFormulaManager = true
 
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
@@ -1823,6 +1937,17 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
+
+# when to export the interpolation tree
+# NEVER:   never export the interpolation tree
+# FINAL:   export the interpolation tree once after each refinement
+# ALWAYS:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinement
+cpa.smg.refinement.exportInterpolationTree = "NEVER"
+  allowed values: [NEVER, FINAL, ALWAYS]
+
+# export interpolation trees to this file template
+cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg.runtimeCheck = NONE
@@ -1911,96 +2036,10 @@ cpa.statistics.statisticsCPAFile = no default value
 # evenness)
 cpa.stator.congruence.trackCongruenceSum = false
 
-# Where to perform abstraction
-cpa.stator.policy.abstractionLocations = LOOPHEAD
-  enum:     [ALL, LOOPHEAD, MERGE]
-
-# Check whether the policy depends on the initial value
-cpa.stator.policy.checkPolicyInitialCondition = true
-
-# Check target states reachability
-cpa.stator.policy.checkTargetStates = true
-
-# Ignore the template type and encode with a rational variable
-cpa.stator.policy.encodeTemplatesAsRationals = false
-
-# Value to substitute for the epsilon
-cpa.stator.policy.epsilon = Rational.ONE
-
-# Use only variables which appear in IntAddVars in variable classification
-cpa.stator.policy.filterIntAddVars = false
-
-# Generate cubic constraints: templates +/- x +/- y +/- z for every
-# combination (x, y, z)
-cpa.stator.policy.generateCube = false
-
-# Generate templates from assert statements
-cpa.stator.policy.generateFromAsserts = true
-
-# Generate templates from all program statements
-cpa.stator.policy.generateFromStatements = true
-
-# Generate templates for the lower bounds of each variable
-cpa.stator.policy.generateLowerBound = true
-
-# Generate even more templates (try coeff. 2 for each variable)
-cpa.stator.policy.generateMoreTemplates = false
-
-# Generate octagon templates for all combinations of variables. 
-cpa.stator.policy.generateOctagons = false
-
-# Generate new templates using polyhedra convex hull
-cpa.stator.policy.generateTemplatesUsingConvexHull = false
-
-# Generate templates for the upper bounds of each variable
-cpa.stator.policy.generateUpperBound = true
-
-# Any intermediate state with formula length bigger than specified will be
-# checked for reachability. Set to -1 for no limit.
-cpa.stator.policy.lengthLimitForSATCheck = 300
-
-# Remove UFs and ITEs from policies.
-cpa.stator.policy.linearizePolicy = true
-
-# Run simple congruence analysis
-cpa.stator.policy.runCongruence = true
-
-# Run naive value determination first, switch to namespaced if it fails.
-cpa.stator.policy.runHopefulValueDetermination = true
-
-# Use syntactic check to short-circuit val. det. and abstraction operations.
-cpa.stator.policy.shortCircuitSyntactic = true
-
-# Do not generate templates with threshold larger than specified. Set to '-1'
-# for no limit.
-cpa.stator.policy.templateConstantThreshold = 100
-
-# Use unguided template refinement, progressively brute-forcing the possible
-# template space.
-cpa.stator.policy.unguidedTemplateRefinement = true
-
-# Number of refinements after which the unrolling depth is increased
-cpa.stator.policy.unrollingRefinementThreshold = 2
-
-# Cache formulas produced by path formula manager
-cpa.stator.policy.useCachingPathFormulaManager = true
-
-# Generate invariants and strengthen the formulas during abstraction with
-# them.
-cpa.stator.policy.useInvariantsForAbstraction = false
-
-# Use the optimized abstraction, which takes into the account the previously
-# obtained bound at the location. Interferes withobtaining templates using
-# convex hull.
-cpa.stator.policy.usePreviousBounds = true
-
-# Strategy for filtering variables out of templates
-cpa.stator.policy.varFiltering = ALL_LIVE
-  enum:     [ALL_LIVE, ONE_LIVE, ALL]
-
-# Number of value determination steps allowed before widening is run. Value
-# of '-1' runs value determination until convergence.
-cpa.stator.policy.wideningThreshold = -1
+# Which refinement algorithm to use? (give class name, required for
+# termination algorithm with CEGAR) If the package name starts with
+# 'org.sosy_lab.cpachecker.', this prefix can be omitted.
+cpa.termination.refiner = no default value
 
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
@@ -2106,6 +2145,10 @@ cpa.value.optimizeBooleanVariables = true
 
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
+
+# whether or not to add assumptions to counterexamples, e.g., for supporting
+# counterexample checks
+cpa.value.refinement.addAssumptionsToCex = true
 
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
@@ -2258,6 +2301,15 @@ invariantGeneration.async = false
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
+# generate invariants in parallel to the normal analysis
+invariantGeneration.cpachecker.async = false
+
+# Configuration file for invariant generation with a full CPAchecker run.
+invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart-bitprecise.properties"
+
+# dump generated invariants
+invariantGeneration.cpachecker.invExportPath = no default value
+
 # Check candidate invariants in a separate thread asynchronously.
 invariantGeneration.kInduction.async = true
 
@@ -2323,6 +2375,9 @@ liveVar.partwiseLivenessCheckTime = 20s
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
 
+# all used options are printed
+log.usedOptions.export = false
+
 # Whether to check for memory safety properties (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
 memorysafety.check = false
@@ -2335,9 +2390,6 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# insert all files except cfa/arg-graphs in html/js-template
-newCounterexampleReport = true
-
 # Whether to check for the overflow property (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
 overflow.check = false
@@ -2345,6 +2397,15 @@ overflow.check = false
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
+
+# List of files with configurations to use. Files can be suffixed with
+# ::supply-reached this signalizes that the (finished) reached set of an
+# analysis can be used in other analyses (e.g. for invariants computation).
+# If you use the suffix ::supply-reached-refinable instead this means that
+# the reached set supplier is additionally continously refined (so one of the
+# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
+# properly.
+parallelAlgorithm.configFiles = no default value
 
 # C dialect for parser
 parser.dialect = GNUC
@@ -2381,7 +2442,7 @@ pcc.backwardtargets.certificateStatesAsARGStates = false
 pcc.cmc.configFiles = no default value
 
 # write collected assumptions to file
-pcc.cmc.file = "assumptions.txt"
+pcc.cmc.file = "AssumptionAutomaton.txt"
 
 # collects information about value analysis states in proof
 pcc.collectValueAnalysisStateInfo = false
@@ -2461,6 +2522,9 @@ pcc.partitioning.partitioningStrategy = RANDOM
 pcc.partitioning.useGraphSizeToComputePartitionNumber = false
 
 # file in which proof representation needed for proof checking is stored
+pcc.proof = "arg.obj"
+
+# file in which proof representation will be stored
 pcc.proofFile = "arg.obj"
 
 # Generate and dump a proof
@@ -2477,11 +2541,9 @@ pcc.resultcheck.writeProof = false
 # prove the property.
 pcc.sliceProof = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
-pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
+pcc.strategy = no default value
 
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
@@ -2527,12 +2589,30 @@ precision.variableWhitelist = ""
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []
 
+# Quantifier elimination strategy
+rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
+  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
+
+# Expand equality atoms. E.g. 'x=a' gets expanded into 'x >= a AND x <= a'.
+# Can lead to stronger weakenings.
+rcnf.expandEquality = false
+
+# Limit on the size of the resulting number of lemmas from the explicit
+# expansion
+rcnf.expansionResultSizeLimit = 100
+
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
 
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# Generate HTML report with analysis result.
+report.export = true
+
+# File name for analysis report in case no counterexample was found.
+report.file = "Report.html"
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
@@ -2541,11 +2621,19 @@ restartAlgorithm.combineARGsAfterRestart = false
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
 # configuration will only be used if the previous configuration ended with a
-# matching condition.
+# matching condition. What also can be added is :use-reached then the reached
+# set of the preceding analysis is taken and provided to the next analysis.
 restartAlgorithm.configFiles = no default value
+
+# print the statistics of each component of the restart algorithm directly
+# after the components computation is finished
+restartAlgorithm.printIntermediateStatistics = true
 
 # List of files with configurations to use. 2 filenames expected.
 restartAlgorithmWithARGReplay.configFiles = no default value
+
+# Extract and cache unsat cores for satisfiability checking
+solver.cacheUnsatCores = true
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
@@ -2553,11 +2641,11 @@ solver.checkUFs = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, Z3JAVA, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, Z3JAVA, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
@@ -2587,7 +2675,7 @@ spec.transitionToStopForNegatedTokensetMatch = false
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
-specification = no default value
+specification = []
 
 # export abstract states as formula, e.g. for re-using them as
 # PredicatePrecision.
@@ -2637,3 +2725,11 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Whether to check for the termination property (this can be specified by
+# passing an appropriate .prp file to the -spec parameter).
+termination.check = false
+
+# When checking for the termination property, use this configuration file
+# instead of the current one.
+termination.config = no default value

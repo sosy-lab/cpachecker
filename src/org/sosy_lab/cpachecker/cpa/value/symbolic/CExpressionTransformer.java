@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import java.util.Optional;
+
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -52,8 +54,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.base.Optional;
 
 /**
  * Class for transforming {@link CExpression} objects into their {@link SymbolicExpression}
@@ -233,22 +233,19 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CTypeIdExpression pIastTypeIdExpression)
       throws UnrecognizedCodeException {
-    assert false : "Type id expression invalid for constraint";
-    return null;
+    throw new AssertionError("Type id expression invalid for constraint");
   }
 
   @Override
   public SymbolicExpression visit(final CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
-    assert false : "Imaginary literal invalid for constraint";
-    return null;
+    throw new AssertionError("Imaginary literal invalid for constraint");
   }
 
   @Override
   public SymbolicExpression visit(final CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
-    assert false : "Address of label expression used in symbolic expression";
-    return null;
+    throw new AssertionError("Address of label expression used in symbolic expression");
   }
 
   @Override
@@ -323,7 +320,6 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CComplexCastExpression complexCastExpression)
       throws UnrecognizedCodeException {
-    assert false : "Complex cast not valid for constraint";
-    return null;
+    throw new AssertionError("Complex cast not valid for constraint");
   }
 }

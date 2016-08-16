@@ -26,13 +26,10 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -40,12 +37,10 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -110,8 +105,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSMGCommunicator;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -121,12 +115,15 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -203,23 +200,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private boolean possibleMallocFail;
 
   /**
-   * If try to meaningfully abstract heap segments.
-   */
-  private final boolean enableHeapAbstraction;
-
-  /**
-   * This List is used to communicate the missing
-   * Information needed from other cpas.
-   * (at the moment specifically SMG)
-   */
-  private List<MissingInformation> missingInformationList;
-
-  /**
-   * Save the old State for strengthen.
-   */
-  private SMGState oldState;
-
-  /**
    * name for the special variable used as container for return values of functions
    */
   public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
@@ -257,7 +237,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         Path outputFile = getOutputFile(exportSMGFilePattern, name);
         try {
           String dot = getDot(currentState, name, location);
-          Files.writeFile(outputFile, dot);
+          MoreFiles.writeFile(outputFile, Charset.defaultCharset(), dot);
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
         }
@@ -751,29 +731,31 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
 
-    return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
+    SMGPrecision smgPrecision = (SMGPrecision) precision;
+
+    return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge, smgPrecision);
   }
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
-      MachineModel pMachineModel, boolean pEnableHeapAbstraction)
-          throws InvalidConfigurationException {
+      MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(logger, machineModel);
     id_counter = new AtomicInteger(0);
-    enableHeapAbstraction = pEnableHeapAbstraction;
   }
 
-  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
+  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config,
+      LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
-    SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel, false);
+    SMGTransferRelation result =
+        new SMGTransferRelation(config, pLogger, pMachineModel);
     result.exportSMG = SMGExportLevel.NEVER;
     return result;
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      SMGState state, CFAEdge cfaEdge)
+      SMGState state, CFAEdge cfaEdge, SMGPrecision precision)
           throws CPATransferException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
@@ -782,8 +764,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     List<SMGState> successors;
 
     SMGState smgState = state;
-
-    setInfo(smgState);
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
@@ -853,18 +833,20 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       successors = ImmutableList.of(smgState);
     }
 
-    if (enableHeapAbstraction && cfaEdge.getPredecessor().isLoopStart()) {
+    if (precision.allowsHeapAbstractionOnEdge(cfaEdge)) {
       for (SMGState successor : successors) {
         String name = String.format("%03d-before-abstraction", successor.getId());
         String name2 = String.format("%03d-after-abstraction", successor.getId());
         plotWhenConfigured(SMGExportLevel.EVERY, name, successor, cfaEdge.getDescription());
         successor.executeHeapAbstraction();
         plotWhenConfigured(SMGExportLevel.EVERY, name2, successor, cfaEdge.getDescription());
+        logger.log(Level.ALL, "Heap abstraction on node " + cfaEdge.getPredecessor().getNodeNumber() + " with state id: " + successor.getId());
       }
     }
 
     for (SMGState smg : successors) {
       plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
+      logger.log(Level.ALL, "state id " + smg.getId() + " -> state id " + state.getId());
     }
 
     return successors;
@@ -877,16 +859,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private void setInfo(SMGState pOldState) {
-    missingInformationList = new ArrayList<>(5);
-    oldState = pOldState;
-    expressionEvaluator.reset();
-  }
-
   private List<SMGState> handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.FINEST, "Handling return Statement: ", returnExp);
 
@@ -1024,7 +1000,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       for(SMGState newState : newStates) {
         // We want to write a possible new Address in the new State, but
         // explore the old state for the parameters
-        SMGValueAndStateList stateValues = readValueToBeAssiged(newState, callEdge, paramObj, 0, exp);
+        SMGValueAndStateList stateValues = readValueToBeAssiged(newState, callEdge, exp);
 
         for(SMGValueAndState stateValue : stateValues.getValueAndStateList()) {
           SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
@@ -1155,12 +1131,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGExplicitValue explicitValue = explicitValueAndState.getObject();
       smgState = explicitValueAndState.getSmgState();
 
-      if (expressionEvaluator.isMissingExplicitInformation()) {
-        missingInformationList
-            .add(new MissingInformation(truthValue, expression));
-        expressionEvaluator.reset();
-      }
-
       if (explicitValue.isUnknown()) {
 
         SMGState newState;
@@ -1248,7 +1218,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
-      boolean isRequiered = false;
       String functionName = fileNameExpression.toASTString();
 
       if (builtins.isABuiltIn(functionName)) {
@@ -1261,11 +1230,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           for (SMGState state : newStates) {
             state.setMemLeak();
           }
-          isRequiered = true;
         }
+
         if (builtins.isDeallocationFunction(functionName)) {
           newStates = builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
+
         if (builtins.isExternalAllocationFunction(functionName)) {
           newStates = builtins.evaluateExternalAllocation(cFCExpression, newState).asSMGStateList();
         }
@@ -1273,8 +1243,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         switch (functionName) {
         case "__VERIFIER_BUILTIN_PLOT":
           builtins.evaluateVBPlot(cFCExpression, newState);
-          expressionEvaluator.reset();
-          missingInformationList.add(new MissingInformation(cFCExpression, false));
           break;
         case "__builtin_alloca":
           logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
@@ -1293,11 +1261,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           return ImmutableList.of(new SMGState(pState));
         default:
           // nothing to do here
-        }
-
-        if (expressionEvaluator.missingExplicitInformation) {
-          missingInformationList.add(new MissingInformation(cFCExpression, isRequiered));
-          expressionEvaluator.reset();
         }
 
       } else {
@@ -1336,10 +1299,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        addMissingInformation(lValue, rValue);
         //TODO: Really? I would say that when we do not know where to write a value, we are in trouble
-        /* Maybe defining it as relevant? In some cases, we can get the address through the explicitCPA.
-         * In all other cases we could give an Invalid Write*/
         result.add(new SMGState(state));
       } else {
         List<SMGState> newStates =
@@ -1352,18 +1312,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return result;
   }
 
-  private void addMissingInformation(CExpression pLValue, CRightHandSide pRValue) {
-    missingInformationList.add(new MissingInformation(pLValue, pRValue, false));
-  }
-
   /*
    * Creates value to be assigned to given field, by either reading it from the state,
    * or creating it, if an unknown value is returned, and marking it in missing Information.
    * Note that this read may modify the state.
    *
    */
-  private SMGValueAndStateList readValueToBeAssiged(SMGState pNewState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, CRightHandSide rValue) throws CPATransferException {
+  private SMGValueAndStateList readValueToBeAssiged(SMGState pNewState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
 
     SMGValueAndStateList valueAndStates = expressionEvaluator.evaluateExpressionValue(pNewState, cfaEdge, rValue);
 
@@ -1373,11 +1328,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGSymbolicValue value = valueAndState.getObject();
 
       if (value.isUnknown()) {
-
-        if (expressionEvaluator.isMissingExplicitInformation()) {
-          addMissingInformation(memoryOfField, fieldOffset, rValue, expressionEvaluator.isRequiered());
-          expressionEvaluator.reset();
-        }
 
         value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
         valueAndState = SMGValueAndState.of(valueAndState.getSmgState(), value);
@@ -1396,7 +1346,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
 
-    SMGValueAndStateList valueAndStates = readValueToBeAssiged(pNewState, cfaEdge, memoryOfField, fieldOffset, rValue);
+    SMGValueAndStateList valueAndStates = readValueToBeAssiged(pNewState, cfaEdge, rValue);
 
     for (SMGValueAndState valueAndState : valueAndStates.getValueAndStateList()) {
       SMGSymbolicValue value = valueAndState.getObject();
@@ -1449,15 +1399,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }).toList();
 
     return result;
-  }
-
-  private void addMissingInformation(SMGObject pMemoryOfField, int pFieldOffset, CRightHandSide pRValue,
-      boolean isRequiered) {
-
-    SMGAddress address = SMGAddress.valueOf(pMemoryOfField, SMGKnownExpValue.valueOf(pFieldOffset));
-
-    missingInformationList.add(
-        new MissingInformation(address, pRValue, isRequiered));
   }
 
   private SMGState assignFieldToState(SMGState newState, CFAEdge cfaEdge,
@@ -1863,9 +1804,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
    */
   private class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
-    private boolean missingExplicitInformation;
-    private boolean isRequiered;
-
     public SMGRightHandSideEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
       super(pLogger, pMachineModel);
     }
@@ -1978,23 +1916,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       @Override
       public Void visit(CCharLiteralExpression pE) throws CPATransferException {
-
-        assert false;
-        return null;
+        throw new AssertionError();
       }
 
       @Override
       public Void visit(CFloatLiteralExpression pE) throws CPATransferException {
-
-        assert false;
-        return null;
+        throw new AssertionError();
       }
 
       @Override
       public Void visit(CIntegerLiteralExpression pE) throws CPATransferException {
-
-        assert false;
-        return null;
+        throw new AssertionError();
       }
 
 
@@ -2072,15 +2004,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         switch (op) {
         case AMPER:
-          assert false : "In this case, the assume should be able to be calculated";
-          return null;
+          throw new AssertionError("In this case, the assume should be able to be calculated");
         case MINUS:
         case TILDE:
           // don't change the truth value
           return operand.accept(this);
         case SIZEOF:
-          assert false : "At the moment, this cae should be able to be calculated";
-          break;
+          throw new AssertionError("At the moment, this case should be able to be calculated");
         default:
           // TODO alignof is not handled
         }
@@ -2424,38 +2354,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    public List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) throws CPATransferException {
-
-      List<SMGExplicitValueAndState> explicitValues = super.evaluateExplicitValue(pSmgState, pCfaEdge, pRValue);
-
-      for (SMGExplicitValueAndState explicitValue : explicitValues) {
-        if (explicitValue.getObject().isUnknown()) {
-          missingExplicitInformation = true;
-        }
-      }
-
-      return explicitValues;
-    }
-
-    public boolean isMissingExplicitInformation() {
-      return missingExplicitInformation;
-    }
-
-    public boolean isRequiered() {
-      return isRequiered;
-    }
-
-    @Override
     protected SMGValueAndState handleUnknownDereference(SMGState pSmgState,
         CFAEdge pEdge) {
 
       SMGState newState = pSmgState.setUnknownDereference();
       return super.handleUnknownDereference(newState, pEdge);
-    }
-
-    public void reset() {
-      isRequiered = false;
-      missingExplicitInformation= false;
     }
   }
 
@@ -2485,10 +2388,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    missingInformationList.clear();
     possibleMallocFail = false;
-    hasChanged = false;
-    oldState = null;
     return result;
   }
 
@@ -2532,437 +2432,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(newElement);
     }
   }
-
-  private boolean hasChanged;
-
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
-  private Collection<? extends AbstractState> strengthen(ValueAnalysisState explicitState, SMGState pSMGState, CFAEdge cfaEdge) throws CPATransferException {
-
-    SMGState newElement = new SMGState(pSMGState);
-
-    for (MissingInformation missingInformation : missingInformationList) {
-      if (missingInformation.isMissingAssumption()) {
-       // newElement = resolvingAssumption(newElement, explicitState, missingInformation, cfaEdge);
-      } else if (missingInformation.isMissingAssignment()) {
-        if (isRelevant(missingInformation)) {
-          newElement = resolvingAssignment(newElement, explicitState, missingInformation, cfaEdge);
-        }
-      } else if (missingInformation.isFunctionCall()) {
-        resolveRValue(pSMGState, newElement, explicitState, missingInformation.getMissingCExpressionInformation(), cfaEdge);
-      }
-    }
-
-
-    return hasChanged ? Collections.singleton(newElement) : null;
-  }
-
-  private boolean isRelevant(MissingInformation missingInformation) {
-
-    CRightHandSide value;
-
-    if (missingInformation.hasUnknownMemoryLocation()) {
-      value = missingInformation.getMissingCLeftMemoryLocation();
-    } else if (missingInformation.hasUnknownValue()) {
-      value = missingInformation.getMissingCExpressionInformation();
-    } else {
-      return false;
-    }
-
-    CType type = expressionEvaluator.getRealExpressionType(value);
-    boolean result = type instanceof CPointerType;
-    return result;
-  }
-
-  private SMGState resolvingAssignment(SMGState pSmgState,
-      ValueAnalysisState explicitState, MissingInformation pMissingInformation, CFAEdge edge) throws CPATransferException {
-
-    SMGAddress memoryLocation = null;
-
-    if (pMissingInformation.hasKnownMemoryLocation()) {
-      memoryLocation = pMissingInformation.getcLeftMemoryLocation();
-    } else if (pMissingInformation.hasUnknownMemoryLocation()) {
-      memoryLocation = resolveMemoryLocation(oldState, explicitState,
-          pMissingInformation.getMissingCLeftMemoryLocation(), edge);
-    }
-
-    if (memoryLocation == null || memoryLocation.isUnknown()) {
-      // Always return the new Element
-      // if you want to interrupt the calculation
-      // in case it was changed before
-
-      if (pMissingInformation.isRequieredInformation()) {
-        throw new UnrecognizedCCodeException("Not able to compute allocation size", edge);
-      }
-
-      return pSmgState;
-    }
-
-    SMGSymbolicValue symbolicValue = null;
-
-    if (pMissingInformation.hasUnknownValue()) {
-
-      CRightHandSide rValue = pMissingInformation.getMissingCExpressionInformation();
-
-      symbolicValue = resolveRValue(oldState,pSmgState, explicitState,
-          pMissingInformation.getMissingCExpressionInformation(), edge);
-
-      if (symbolicValue == null || symbolicValue.isUnknown()) {
-        // Always return the new Element
-        // if you want to interrupt the calculation
-        // in case it was changed before
-
-        if (pMissingInformation.isRequieredInformation()) {
-          throw new UnrecognizedCCodeException("Not able to compute allocation size", edge);
-        }
-        return pSmgState;
-      }
-
-      hasChanged = true;
-      pSmgState = writeValue(pSmgState, memoryLocation.getObject(), memoryLocation.getOffset().getAsInt(),
-          expressionEvaluator.getRealExpressionType(rValue), symbolicValue, edge);
-
-    }
-
-    return pSmgState;
-  }
-
-  private SMGSymbolicValue resolveRValue(SMGState oldState, SMGState newSmgState,
-      ValueAnalysisState pExplicitState, CRightHandSide rValue, CFAEdge pEdge)
-      throws CPATransferException {
-
-    //TODO Refactor ...
-    if (rValue instanceof CFunctionCallExpression) {
-      return resolveFunctionCall(newSmgState, pExplicitState,
-          (CFunctionCallExpression) rValue, pEdge).getValueAndStateList().get(0).getObject();
-    } else {
-
-      String functionName = pEdge.getPredecessor().getFunctionName();
-
-      ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(pExplicitState,
-          functionName, oldState, machineModel, logger, pEdge);
-
-      return cc.evaluateSMGExpression(rValue);
-    }
-  }
-
-  private SMGValueAndStateList resolveFunctionCall(SMGState pSmgState,
-      ValueAnalysisState pExplicitState,
-      CFunctionCallExpression pIastFunctionCallExpression,
-      CFAEdge pEdge) throws CPATransferException {
-
-    SMGExplicitBuiltIns builtins = new SMGExplicitBuiltIns(pExplicitState);
-
-    CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
-    String functionName = fileNameExpression.toASTString();
-
-    if (builtins.isABuiltIn(functionName)) {
-      if (builtins.isConfigurableAllocationFunction(functionName)) {
-        SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(pIastFunctionCallExpression, pSmgState, pEdge);
-        return configAllocEdge;
-      }
-      if (builtins.isDeallocationFunction(functionName)) {
-        List<SMGState> newStates = builtins.evaluateFree(pIastFunctionCallExpression, pSmgState, pEdge);
-        return SMGValueAndStateList.copyOfUnknownValue(newStates);
-      }
-      switch (functionName) {
-      case "__VERIFIER_BUILTIN_PLOT":
-        builtins.evaluateVBPlot(pIastFunctionCallExpression, pSmgState);
-        return SMGValueAndStateList.of(pSmgState);
-      case "__builtin_alloca":
-        SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, pSmgState, pEdge);
-        return allocEdge;
-      case "memset":
-        SMGAddressValueAndStateList memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, pSmgState, pEdge);
-        return memsetTargetEdge;
-      default:
-        // nothing to do here
-      }
-      throw new AssertionError();
-    } else {
-      return SMGValueAndStateList.of(pSmgState);
-    }
-  }
-
-  private SMGAddress resolveMemoryLocation(SMGState pSmgState, ValueAnalysisState pExplicitState,
-      CExpression lValue, CFAEdge edge) throws UnrecognizedCCodeException {
-
-    String functionName = edge.getPredecessor().getFunctionName();
-
-    ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(pExplicitState, functionName,
-        pSmgState, machineModel, logger, edge);
-
-    return cc.evaluateSMGLeftHandSide(lValue);
-  }
-
-  @SuppressWarnings("unused")
-  private SMGState resolvingAssumption(SMGState pSmgState, ValueAnalysisState pExplicitState,
-      MissingInformation pMissingInformation, CFAEdge edge) throws UnrecognizedCCodeException {
-
-    long truthValue = pMissingInformation.getTruthAssumption() ? 1 : 0;
-
-    Long value =
-        resolveAssumptionValue(oldState,
-            pExplicitState,
-            pMissingInformation.getMissingCExpressionInformation(),
-            edge);
-
-    if (value != null && value != truthValue) {
-      return null;
-    } else {
-      hasChanged = true;
-      return pSmgState;
-    }
-  }
-
-  private Long resolveAssumptionValue(SMGState pSmgState, ValueAnalysisState pExplicitState,
-      CRightHandSide rValue, CFAEdge edge) throws UnrecognizedCCodeException {
-
-    String functionName = edge.getPredecessor().getFunctionName();
-
-    ValueAnalysisSMGCommunicator cc =
-        new ValueAnalysisSMGCommunicator(pExplicitState, functionName,
-            pSmgState, machineModel, logger, edge);
-
-    Value value = cc.evaluateExpression(rValue);
-
-    if (value.isExplicitlyKnown() && value.isNumericValue()) {
-      return value.asNumericValue().longValue();
-    }
-
-    return null;
-  }
-
-  @SuppressWarnings("unused")
-  private void checkForMissingRequiredInformation(CFAEdge cfaEdge) throws UnrecognizedCCodeException {
-    for (MissingInformation missingInformation : missingInformationList) {
-      if (missingInformation.isRequieredInformation()) { throw new UnrecognizedCCodeException(
-          "Not able to compute allocation size", cfaEdge); }
-    }
-  }
-
-  private class SMGExplicitBuiltIns extends SMGBuiltins {
-
-    private final ValueAnalysisState explicitState;
-
-    public SMGExplicitBuiltIns(ValueAnalysisState pExplicitState) {
-      explicitState = pExplicitState;
-    }
-
-    @Override
-    protected SMGAddressValueAndStateList evaluateAddress(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRvalue)
-        throws CPATransferException {
-
-      String functionName = pCfaEdge.getPredecessor().getFunctionName();
-
-      ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(explicitState, functionName,
-          pState, machineModel, logger, pCfaEdge);
-
-      return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(pState, cc.evaluateSMGAddressExpression(pRvalue)));
-    }
-
-    @Override
-    protected SMGValueAndStateList evaluateExpressionValue(SMGState pSmgState, CFAEdge pCfaEdge, CExpression pRValue)
-        throws CPATransferException {
-      return SMGValueAndStateList.of(SMGValueAndState.of(pSmgState, resolveRValue(oldState, pSmgState, explicitState, pRValue, pCfaEdge)));
-    }
-
-    @Override
-    protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
-      return pCurrentState.toDot(pName, pLocation, explicitState);
-    }
-
-    @Override
-    protected Path getOutputFile(PathTemplate pExportSMGFilePattern, String pName) {
-      return exportSMGFilePattern.getPath("Explicit_" + pName);
-    }
-
-    @Override
-    protected List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRValue)
-        throws CPATransferException {
-
-      String functionName = pCfaEdge.getPredecessor().getFunctionName();
-
-      ValueAnalysisSMGCommunicator cc = new ValueAnalysisSMGCommunicator(explicitState, functionName,
-          pState, machineModel, logger, pCfaEdge);
-
-      Value valueV = cc.evaluateExpression(pRValue);
-
-      if (!valueV.isExplicitlyKnown() || !valueV.isNumericValue()) {
-        return ImmutableList.of(SMGExplicitValueAndState.of(pState));
-      } else {
-        return ImmutableList.of(SMGExplicitValueAndState.of(pState, SMGKnownExpValue.valueOf(valueV.asNumericValue().longValue())));
-      }
-    }
-  }
-
-  private static class MissingInformation {
-
-    /**
-     * This field stores the Expression of the Memory Location that
-     * could not be evaluated.
-     */
-    private final CExpression missingCLeftMemoryLocation;
-
-    /**
-     *  This expression stores the Memory Location
-     *  to be assigned.
-     */
-    private final SMGAddress cLeftMemoryLocation;
-
-    /**
-     * Expression could not be evaluated due to missing information.
-     */
-    private final CRightHandSide missingCExpressionInformation;
-
-    /**
-     * Expression could not be evaluated due to missing information.
-     */
-    private final SMGSymbolicValue cExpressionValue;
-
-    /**
-     * The truth Assumption made in this assume edge.
-     */
-    private final Boolean truthAssumption;
-
-    /**
-     * If this missing Information can't be evaluated, stop analysis
-     */
-    private final boolean requieredInformation;
-
-    public MissingInformation(CExpression pMissingCLeftMemoryLocation,
-        CRightHandSide pMissingCExpressionInformation, boolean pRequieredInformation) {
-      missingCExpressionInformation = pMissingCExpressionInformation;
-      missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
-      cExpressionValue = null;
-      cLeftMemoryLocation = null;
-      truthAssumption = null;
-      requieredInformation = pRequieredInformation;
-    }
-
-    //TODO Better checks...don't be lazy, just because class
-    // will likely change.
-
-    @SuppressWarnings("unused")
-    public boolean hasUnknownValue() {
-      return missingCExpressionInformation != null;
-    }
-
-    @SuppressWarnings("unused")
-    public boolean hasKnownValue() {
-      return cExpressionValue != null;
-    }
-
-    @SuppressWarnings("unused")
-    public boolean hasUnknownMemoryLocation() {
-      return missingCLeftMemoryLocation != null;
-    }
-
-    public boolean isFunctionCall() {
-      return missingCLeftMemoryLocation == null && cLeftMemoryLocation == null
-          && missingCExpressionInformation instanceof CFunctionCallExpression;
-    }
-
-    @SuppressWarnings("unused")
-    public boolean hasKnownMemoryLocation() {
-      return cLeftMemoryLocation != null;
-    }
-
-    public boolean isMissingAssignment() {
-      // TODO Better Name for this method.
-      // Checks if a variable needs to be assigned a value,
-      // but to evaluate the MemoryLocation, or the value,
-      // we lack information.
-
-      return (missingCExpressionInformation != null
-          || missingCLeftMemoryLocation != null)
-          && truthAssumption == null &&
-          (missingCLeftMemoryLocation != null
-          || cLeftMemoryLocation != null);
-    }
-
-    public boolean isMissingAssumption() {
-      return truthAssumption != null && missingCExpressionInformation != null;
-  }
-
-    @SuppressWarnings("unused")
-    public MissingInformation(CExpression pMissingCLeftMemoryLocation,
-        SMGSymbolicValue pCExpressionValue, boolean pRequieredInformation) {
-      missingCExpressionInformation = null;
-      missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
-      cExpressionValue = pCExpressionValue;
-      cLeftMemoryLocation = null;
-      truthAssumption = null;
-      requieredInformation = pRequieredInformation;
-    }
-
-    public MissingInformation(SMGAddress pCLeftMemoryLocation,
-        CRightHandSide pMissingCExpressionInformation, boolean pRequieredInformation) {
-      missingCExpressionInformation = pMissingCExpressionInformation;
-      missingCLeftMemoryLocation = null;
-      cExpressionValue = null;
-      cLeftMemoryLocation = pCLeftMemoryLocation;
-      truthAssumption = null;
-      requieredInformation = pRequieredInformation;
-    }
-
-    public MissingInformation(boolean pTruthAssumption,
-        ARightHandSide pMissingCExpressionInformation) {
-
-      missingCExpressionInformation = (CExpression) pMissingCExpressionInformation;
-      missingCLeftMemoryLocation = null;
-      cExpressionValue = null;
-      cLeftMemoryLocation = null;
-      truthAssumption = pTruthAssumption;
-      requieredInformation = false;
-    }
-
-    public MissingInformation(CFunctionCallExpression pCFCExpression, boolean pIsRequiered) {
-      missingCExpressionInformation = pCFCExpression;
-      requieredInformation = pIsRequiered;
-      cExpressionValue = null;
-      truthAssumption = null;
-      missingCLeftMemoryLocation = null;
-      cLeftMemoryLocation = null;
-    }
-
-    @SuppressWarnings("unused")
-    public SMGSymbolicValue getcExpressionValue() {
-      checkNotNull(cExpressionValue);
-      return cExpressionValue;
-    }
-
-    @SuppressWarnings("unused")
-    public SMGAddress getcLeftMemoryLocation() {
-      checkNotNull(cLeftMemoryLocation);
-      return cLeftMemoryLocation;
-    }
-
-    @SuppressWarnings("unused")
-    public CRightHandSide getMissingCExpressionInformation() {
-      checkNotNull(missingCExpressionInformation);
-      return missingCExpressionInformation;
-    }
-
-    public CExpression getMissingCLeftMemoryLocation() {
-      checkNotNull(missingCLeftMemoryLocation);
-      return missingCLeftMemoryLocation;
-    }
-
-    @SuppressWarnings("unused")
-    public Boolean getTruthAssumption() {
-      checkNotNull(truthAssumption);
-      return truthAssumption;
-    }
-
-    public boolean isRequieredInformation() {
-      return requieredInformation;
-    }
-  }
-
-
-
-
 
   public interface SMGSymbolicValue extends SMGValue {
 

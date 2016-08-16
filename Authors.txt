@@ -7,6 +7,8 @@ Former Maintainers:
 
 Developers/Contributors:
   Pavel Andrianov (since 2014), Russian Academy of Sciences, Russia
+  Henrik Bröcher (since 2016), University of Paderborn, Germany
+  Johannes Bürdek (since 2014), University of Darmstadt, Germany
   Matthias Dangl (since 2012), University of Passau, Germany
   Alexander Driemeyer (since 2012), University of Passau, Germany
   Karlheinz Friedberger (since 2011), University of Passau, Germany
@@ -15,31 +17,60 @@ Developers/Contributors:
   George Karpenkov (since 2014), Verimag, Grenoble
   Thomas Lemberger (since 2014), University of Passau, Germany
   Stefan Löwe (since 2010), University of Passau, Germany
+  Stephan Lukasczyk (since 2015), University of Passau, Germany
   Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
-  Petr Muller (since 2012), Brno University of Technology, Czech Republic
+  Vitaly Mordan (since 2014), Russian Academy of Sciences, Russia
   Vadim Mutilin (since 2012), Russian Academy of Sciences, Russia
+  Sebastian Ott (since 2013), University of Passau, Germany
+  Leon Sell (since 2015), University of Passau, Germany
   Andreas Stahlbauer (since 2011), University of Passau, Germany / GrammaTech, USA
   Thomas Stieglmaier (since 2011), University of Passau, Germany
+  Maximilian Syri (since 2015), University of Passau, Germany
+  Tanja Tornede (since 2014), University of Paderborn, Germany
+  Manuel Töws (since 2016), University of Paderborn, Germany
+  Anton Vasilyev (since 2015), Russian Academy of Sciences, Russia
+  Anton Volkov (since 2015), Russian Academy of Sciences, Russia
+  Ilja Zakharov (since 2016), Russian Academy of Sciences, Russia
 
 Former Developers/Contributors:
+  Emanuele De Angelis (2013 - 2014), University of Chieti and Pescara, Italy
+  Bernhard Bermeitinger (2015), University of Passau, Germany
   Christian Bielert (2013 - 2014), University of Passau, Germany
-  Mike Czech (2013), University of Paderborn, Germany
+  Stefan Brand (2015), University of Passau, Germany
+  Michael Bruckmeier (2011), University of Passau, Germany
+  Mike Czech (2013 - 2014), University of Paderborn, Germany
   Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
   Peter Dahlberg (2013 - 2014), University of Passau, Germany
   Matthias Dittrich (2013), University of Passau, Germany
+  Andreas Donig (2010 - 2013), University of Passau, Germany
   Georg Dresler (2013-2014), University of Passau, Germany
   Gregor Endler (2009 - 2010), University of Passau, Germany
+  Alexander Esch (2012), University of Passau, Germany
+  Ashgan Fararooy (2009), Simon Fraser University, Canada
   Tobias Friedl (2013 - 2014), University of Passau, Germany
   Alberto Griggio (2008 - 2009), Simon Fraser University, Canada / University of Trento, Italy
+  Christian Hagenhof (2015), University of Passau, Germany
   Peter Häring (2011 - 2014), University of Passau, Germany
+  Julian Heydebrand (2015), University of Passau, Germany
   Michael Käufl (2011), University of Passau, Germany
   Steven Kieffer (2011 - 2012), Simon Fraser University, Canada
+  Philipp Korth (2012), University of Paderborn, Germany
+  Stefan Kronawitter (2012), University of Passau, Germany
+  Zdenek Letko (2014), Brno University of Technology, Czech Republic
+  Alexander Maringer (2010), University of Passau, Germany
+  Petr Muller (2012 - 2014), Brno University of Technology, Czech Republic
+  Magdalena Murr (2015), University of Passau, Germany
+  Christian Olbrich (2014), University of Passau, Germany
   Stefan Peters (2011 - 2012), University of Passau, Germany
   Florian Quadt (2013 - 2014), University of Passau, Germany
   Alexander von Rhein (2010), University of Passau, Germany
+  Sebastian Scheffel (2014 - 2015), University of Passau, Germany
   Alexander Schremmer (2012 - 2013), University of Paderborn, Germany
+  Georg Seibt (2015), University of Passau, Germany
+  Hendrik Speidel (2010), University of Passau, Germany
   Michael Tautschnig (2008 - 2009), University of Darmstadt, Germany
   Gregory Theoduloz (2009 - 2010), EPFL, Switzerland
+  Christoph Woller (2014 - 2015), University of Passau, Germany
   Daniel Wonisch (2011 - 2012), University of Paderborn, Germany
   Geoff Zenger (2007), Simon Fraser University, Canada
 

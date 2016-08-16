@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.Collection;
-import java.util.Iterator;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Nullable;
 
 /**
  * Interface representing an unmodifiable reached set
@@ -87,7 +90,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * Returns the last state that was added to the reached set.
    * May be null if it is unknown, which state was added last.
    */
-  public AbstractState getLastState();
+  public @Nullable AbstractState getLastState();
 
   public boolean hasWaitingState();
 
@@ -105,6 +108,10 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   public Precision getPrecision(AbstractState state)
     throws UnsupportedOperationException;
 
+  /**
+   * Iterate over all (state, precision) pairs in the reached set and apply an action for them.
+   */
+  public void forEach(BiConsumer<? super AbstractState, ? super Precision> action);
 
   public boolean contains(AbstractState state);
 

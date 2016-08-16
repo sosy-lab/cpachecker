@@ -24,25 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.*;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -50,12 +46,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -66,10 +61,17 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.predicate")
 class PredicateCPAStatistics extends AbstractStatistics {
@@ -194,17 +196,15 @@ class PredicateCPAStatistics extends AbstractStatistics {
    */
   private static class MutablePredicateSets {
 
-    private final SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstance;
+    private final SetMultimap<PredicatePrecision.LocationInstance, AbstractionPredicate>
+        locationInstance;
     private final SetMultimap<CFANode, AbstractionPredicate> location;
     private final SetMultimap<String, AbstractionPredicate> function;
     private final Set<AbstractionPredicate> global;
 
     private MutablePredicateSets() {
       // Use special multimaps with set-semantics and an ordering only on keys (not on values)
-      this.locationInstance = MultimapBuilder
-          .treeKeys(Pair.<CFANode, Integer>lexicographicalNaturalComparator())
-          .linkedHashSetValues()
-          .build();
+      this.locationInstance = MultimapBuilder.treeKeys().linkedHashSetValues().build();
 
       this.location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
       this.function = MultimapBuilder.treeKeys().linkedHashSetValues().build();
@@ -222,7 +222,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
 
-    try (Writer w = Files.openOutputFile(targetFile)) {
+    try (Writer w = MoreFiles.openOutputFile(targetFile, Charset.defaultCharset())) {
       precisionWriter.writePredicateMap(predicates.locationInstance,
           predicates.location, predicates.function, predicates.global,
           allPredicates, w);
@@ -240,11 +240,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (precisionStatistics) {
       MutablePredicateSets predicates = new MutablePredicateSets();
       {
-        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
+        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<>());
 
         for (Precision precision : reached.getPrecisions()) {
-          if (seenPrecisions.add(precision) && precision instanceof WrapperPrecision) {
-            PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
+          PredicatePrecision preds =
+              Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+          if (preds != null && seenPrecisions.add(preds)) {
             predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
             predicates.location.putAll(preds.getLocalPredicates());
             predicates.function.putAll(preds.getFunctionPredicates());

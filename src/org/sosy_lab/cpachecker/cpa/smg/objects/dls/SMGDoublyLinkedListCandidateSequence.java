@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -34,8 +35,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,11 +47,13 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
   private final SMGDoublyLinkedListCandidate candidate;
   private final int length;
+  private final SMGJoinStatus seqStatus;
 
   public SMGDoublyLinkedListCandidateSequence(SMGDoublyLinkedListCandidate pCandidate,
-      int pLength) {
+      int pLength, SMGJoinStatus pSmgJoinStatus) {
     candidate = pCandidate;
     length = pLength;
+    seqStatus = pSmgJoinStatus;
   }
 
   public SMGDoublyLinkedListCandidate getCandidate() {
@@ -66,10 +71,27 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
     int nfo = candidate.getNfo();
     int pfo = candidate.getPfo();
 
-    for (int i = 0; i < length; i++) {
+    pSmgState.pruneUnreachable();
+
+    // Abstraction not reachable
+    if(!pSMG.getHeapObjects().contains(prevObject)) {
+      return pSMG;
+    }
+
+    for (int i = 1; i < length; i++) {
 
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
+
+      if (length > 1) {
+        SMGJoinSubSMGsForAbstraction jointest =
+            new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSMG), prevObject, nextObject, candidate,
+                pSmgState);
+
+        if (!jointest.isDefined()) {
+          return pSMG;
+        }
+      }
 
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
@@ -160,6 +182,33 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
   @Override
   public int getScore() {
-    return getLength();
+    int score = getLength() + getStatusScore() + getRecursivScore();
+    return score;
+  }
+
+  private int getRecursivScore() {
+    return candidate.hasRecursiveFields() ? 10 : 0;
+  }
+
+  private int getStatusScore() {
+    switch (seqStatus) {
+      case EQUAL:
+        return 3;
+      case LEFT_ENTAIL:
+      case RIGHT_ENTAIL:
+        return 2;
+      case INCOMPARABLE:
+      default:
+        return 0;
+    }
+  }
+
+  @Override
+  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
+
+    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
+    SMGMemoryPath pPointerToStartObject = map.get(candidate.getObject());
+    return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getDllShape(), length,
+        pPointerToStartObject);
   }
 }

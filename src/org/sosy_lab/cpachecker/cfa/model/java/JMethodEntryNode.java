@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class JMethodEntryNode extends FunctionEntryNode {
 

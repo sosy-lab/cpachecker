@@ -74,14 +74,7 @@ class AcyclicGraph {
   /**
    * A predicate that matches edges contained in the subgraph.
    */
-  private final Predicate<CFAEdge> CONTAINS_EDGE = new Predicate<CFAEdge>() {
-
-    @Override
-    public boolean apply(@Nullable CFAEdge pArg0) {
-      return pArg0 != null && containsEdge(pArg0);
-    }
-
-  };
+  private final Predicate<CFAEdge> CONTAINS_EDGE = pArg0 -> pArg0 != null && containsEdge(pArg0);
 
   /**
    * A function producing those edges leaving a node that are contained in

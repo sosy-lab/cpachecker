@@ -1,14 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -18,11 +13,16 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
+import org.sosy_lab.cpachecker.util.ApronManager;
+import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
 
 import apron.Abstract1;
 import apron.Coeff;
@@ -32,14 +32,8 @@ import apron.Linexpr1;
 import apron.Linterm1;
 import apron.Manager;
 import apron.MpqScalar;
-import apron.Polka;
-import apron.SetUp;
 
 public class PolyhedraWideningManager {
-  static {
-    SetUp.init(
-        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
-  }
 
   private final Manager manager;
   private final Map<String, CIdExpression> types;
@@ -50,20 +44,15 @@ public class PolyhedraWideningManager {
       LogManager pLogger) {
     statistics = pStatistics;
     logger = pLogger;
-    manager = new Polka(false);
+    ApronManager apronManager = new ApronManager(AbstractDomain.POLKA);
+
+    manager = apronManager.getManager();
     types = new HashMap<>();
   }
 
   Manager getManager() {
     return manager;
   }
-
-  private static final Function<PolicyBound, Rational> DATA_GETTER = new Function<PolicyBound, Rational>() {
-    @Override
-    public Rational apply(PolicyBound input) {
-      return input.getBound();
-    }
-  };
 
   public Set<Template> generateWideningTemplates(
       PolicyAbstractedState oldState,
@@ -72,14 +61,14 @@ public class PolyhedraWideningManager {
     Set<Template> allTemplates = Sets.union(oldState.getAbstraction().keySet(),
         newState.getAbstraction().keySet());
     Map<Template, Rational> oldData = Maps.transformValues(oldState.getAbstraction(),
-        DATA_GETTER);
+        PolicyBound::getBound);
     Map<Template, Rational> newData = Maps.transformValues(
         newState.getAbstraction(),
-        DATA_GETTER);
+        PolicyBound::getBound);
 
     Abstract1 widened;
     try {
-      statistics.startPolyhedraWideningTimer();
+      statistics.polyhedraWideningTimer.start();
       Abstract1 abs1, abs2;
       Environment env = generateEnvironment(ImmutableList.of(oldData, newData));
       abs1 = fromTemplates(env, oldData);
@@ -87,11 +76,11 @@ public class PolyhedraWideningManager {
       abs2.join(manager, abs1);
       widened = abs1.widening(manager, abs2);
     } finally {
-      statistics.stopPolyhedraWideningTimer();
+      statistics.polyhedraWideningTimer.stop();
     }
 
     Map<Template, Rational> generated = toTemplates(widened);
-    logger.log(Level.INFO, "Generated templates", generated);
+    logger.log(Level.FINE, "Generated templates", generated);
     Set<Template> diff = Sets.difference(generated.keySet(), allTemplates);
     Set<Template> out = new HashSet<>();
 
@@ -156,7 +145,7 @@ public class PolyhedraWideningManager {
       String varName = term.getVariable();
       Rational coeff = ofCoeff(term.getCoefficient());
 
-      out = out.add(LinearExpression.pair(types.get(varName),  coeff));
+      out = out.add(LinearExpression.monomial(types.get(varName),  coeff));
     }
 
     return Template.of(out);

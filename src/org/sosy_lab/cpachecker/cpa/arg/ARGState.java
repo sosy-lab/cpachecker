@@ -29,12 +29,13 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
-import com.google.common.base.Function;
+import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -76,6 +77,9 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   private ARGState mergedWith = null;
 
   private final int stateId;
+
+  // If this is a target state, we may store additional information here.
+  private transient CounterexampleInfo counterexample;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
@@ -302,6 +306,30 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     child.parents.remove(this);
   }
 
+  // counterexample
+
+  /**
+   * Store additional information about the counterexample that leads to this target state.
+   */
+  public void addCounterexampleInformation(CounterexampleInfo pCounterexample) {
+    checkState(counterexample == null);
+    checkArgument(isTarget());
+    checkArgument(!pCounterexample.isSpurious());
+    // With BAM, the targetState and the last state of the path
+    // may actually be not identical.
+    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
+    counterexample = pCounterexample;
+  }
+
+  /**
+   * Get additional information about the counterexample that is associated with this target state,
+   * if present.
+   */
+  public Optional<CounterexampleInfo> getCounterexampleInformation() {
+    checkState(isTarget());
+    return Optional.ofNullable(counterexample);
+  }
+
   // small and less important stuff
 
   public int getStateId() {
@@ -390,15 +418,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return from(elements).transform(TO_STATE_ID);
+    return from(elements).transform(ARGState::getStateId);
   }
-
-  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
-    @Override
-    public Integer apply(ARGState pInput) {
-      return pInput.stateId;
-    }
-  };
 
   // removal from ARG
 

@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -16,13 +16,13 @@ import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-import com.google.common.collect.Iterables;
+import java.util.logging.Level;
 
 /**
  * Unguided precision refiner: increase the number of generated templates
  * at each refinement stage.
  */
-@Options(prefix="cpa.stator.policy")
+@Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
 public class PolicyUnguidedRefiner implements Refiner {
 
   @Option(secure=true,

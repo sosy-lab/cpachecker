@@ -258,8 +258,8 @@ final class TypeHierarchy {
 
     public void registerType(JClassOrInterfaceType pType) {
       types.put(pType.getName(), pType);
-      methodDeclarationsOfType.put(pType, new HashSet<JMethodDeclaration>());
-      fieldDeclarationsOfType.put(pType, new HashSet<JFieldDeclaration>());
+      methodDeclarationsOfType.put(pType, new HashSet<>());
+      fieldDeclarationsOfType.put(pType, new HashSet<>());
     }
 
     /**

@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedSet;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
+import com.google.common.collect.UnmodifiableIterator;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -47,14 +47,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
-import com.google.common.collect.UnmodifiableIterator;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.SortedSet;
 
 public class CFAUtils {
 
@@ -182,27 +182,12 @@ public class CFAUtils {
     };
   }
 
-  public static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
-      @Override
-      public CFANode apply(CFAEdge pInput) {
-        return pInput.getPredecessor();
-      }
-    };
-
-
-  public static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
-    @Override
-    public CFANode apply(CFAEdge pInput) {
-      return pInput.getSuccessor();
-    }
-  };
-
   /**
    * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode,
    * excluding the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
-    return enteringEdges(node).transform(TO_PREDECESSOR);
+    return enteringEdges(node).transform(CFAEdge::getPredecessor);
   }
 
   /**
@@ -210,7 +195,7 @@ public class CFAUtils {
    * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
-    return allEnteringEdges(node).transform(TO_PREDECESSOR);
+    return allEnteringEdges(node).transform(CFAEdge::getPredecessor);
   }
 
   /**
@@ -218,7 +203,7 @@ public class CFAUtils {
    * excluding the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> successorsOf(final CFANode node) {
-    return leavingEdges(node).transform(TO_SUCCESSOR);
+    return leavingEdges(node).transform(CFAEdge::getSuccessor);
   }
 
   /**
@@ -226,25 +211,8 @@ public class CFAUtils {
    * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
-    return allLeavingEdges(node).transform(TO_SUCCESSOR);
+    return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
   }
-
-  public static final Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
-    @Override
-    public String apply(CFANode pInput) {
-      return pInput.getFunctionName();
-    }
-  };
-
-  /**
-   * A comparator for comparing {@link CFANode}s by their node numbers.
-   */
-  public static final Comparator<CFANode> NODE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
-    @Override
-    public int compare(CFANode pO1, CFANode pO2) {
-      return Integer.compare(pO1.getNodeNumber(), pO2.getNodeNumber());
-    }
-  };
 
   /**
    * Returns a predicate for CFA edges with the given edge type.
@@ -254,14 +222,7 @@ public class CFAUtils {
    */
   public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
     checkNotNull(pType);
-    return new Predicate<CFAEdge>() {
-
-      @Override
-      public boolean apply(CFAEdge pInput) {
-        return pInput.getEdgeType() == pType;
-      }
-
-    };
+    return pInput -> pInput.getEdgeType() == pType;
   }
 
   /**

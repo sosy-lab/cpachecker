@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -103,7 +103,7 @@ public class SMGJoinAbstractionManager {
   private Optional<GenericAbstractionCandidateTemplate> calculateSimpleTemplateAbstractionFromObject() {
 
     if (!(destObject instanceof SMGRegion)) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     SMGRegion root = (SMGRegion) destObject;
@@ -128,7 +128,7 @@ public class SMGJoinAbstractionManager {
     Set<SMGEdgePointsTo> nonSharedIPointer = sharedIPointerNonSharedIP.getSecond();
 
     if (!nonSharedIPointer.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     GenericAbstractionCandidateTemplate result = GenericAbstractionCandidateTemplate
@@ -263,7 +263,7 @@ public class SMGJoinAbstractionManager {
     if (template instanceof GenericAbstractionCandidate) {
       return Optional.of(((GenericAbstractionCandidate) template).createTemplate());
     } else {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

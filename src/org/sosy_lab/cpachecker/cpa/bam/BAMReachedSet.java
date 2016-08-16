@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,11 +38,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Nullable;
 
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
@@ -134,6 +135,11 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       }
 
       @Override
+      public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
+        subgraph.forEach(state -> pAction.accept(state, GET_PRECISION.apply(state)));
+      }
+
+      @Override
       public boolean contains(AbstractState state) {
         return subgraph.contains(state);
       }
@@ -152,13 +158,18 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @SuppressWarnings("unchecked")
   @Override
-  public void removeSubtree(ARGState element, Precision newPrecision,
-      Predicate<? super Precision> pPrecisionType) {
+  public void removeSubtree(
+      ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
+      throws InterruptedException {
     removeSubtree(element, Lists.newArrayList(newPrecision), Lists.<Predicate<? super Precision>>newArrayList(pPrecisionType));
   }
 
   @Override
-  public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
+  public void removeSubtree(
+      ARGState element,
+      List<Precision> newPrecisions,
+      List<Predicate<? super Precision>> pPrecisionTypes)
+      throws InterruptedException {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
     assert rootOfSubgraph.getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);

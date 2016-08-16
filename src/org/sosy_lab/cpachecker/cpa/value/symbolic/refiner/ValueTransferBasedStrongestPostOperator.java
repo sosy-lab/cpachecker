@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import java.util.Collection;
-import java.util.Deque;
+import java.util.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -48,9 +49,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.Deque;
 
 /**
  * Strongest post-operator based on symbolic value analysis.
@@ -102,7 +102,7 @@ public class ValueTransferBasedStrongestPostOperator
         valueTransfer.getAbstractSuccessorsForEdge(oldValues, pPrecision, pOperation);
 
     if (isContradiction(successors)) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       final ValueAnalysisState valuesSuccessor = Iterables.getOnlyElement(successors);
@@ -114,7 +114,7 @@ public class ValueTransferBasedStrongestPostOperator
               pOperation);
 
       if (isContradiction(constraintsSuccessors)) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       final ConstraintsState constraintsSuccessor =
@@ -124,14 +124,14 @@ public class ValueTransferBasedStrongestPostOperator
           strengthenConstraintsState(constraintsSuccessor, valuesSuccessor, pOperation);
 
       if (!constraintsStrengthenResult.isPresent()) {
-        return Optional.absent();
+        return Optional.empty();
 
       } else {
         Optional<ValueAnalysisState> valueStrengthenResult =
             strengthenValueState(valuesSuccessor, constraintsSuccessor, pPrecision, pOperation);
 
         if (!valueStrengthenResult.isPresent()) {
-          return Optional.absent();
+          return Optional.empty();
         }
 
         return Optional.of(
@@ -212,7 +212,7 @@ public class ValueTransferBasedStrongestPostOperator
                                  pPrecision);
 
     if (isContradiction(strengthenResult)) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(strengthenResult);
@@ -234,12 +234,8 @@ public class ValueTransferBasedStrongestPostOperator
                                        pOperation,
                                        SingletonPrecision.getInstance());
 
-    if (successors == null) {
-      // nothing changed
-      return Optional.of(pConstraintsState);
-
-    } else if (isContradiction(successors)) {
-      return Optional.absent();
+    if (isContradiction(successors)) {
+      return Optional.empty();
 
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(successors);

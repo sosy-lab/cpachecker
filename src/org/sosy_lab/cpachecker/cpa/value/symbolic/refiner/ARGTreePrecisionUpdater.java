@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Class for creating precisions and updating the ARGTree with them.
@@ -188,8 +188,8 @@ public class ARGTreePrecisionUpdater {
       final ARGReachedSet pReached,
       final ARGState pRefinementRoot,
       final Multimap<CFANode, MemoryLocation> pValuePrecIncrement,
-      final ConstraintsPrecision.Increment pConstraintsPrecIncrement
-  ) {
+      final ConstraintsPrecision.Increment pConstraintsPrecIncrement)
+      throws InterruptedException {
     List<Precision> precisions = new ArrayList<>(2);
 
     precisions.add(createValuePrec(pRefinementRoot, pReached, pValuePrecIncrement));

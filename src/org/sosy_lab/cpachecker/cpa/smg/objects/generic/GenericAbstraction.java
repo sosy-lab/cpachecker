@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
@@ -56,7 +57,7 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   protected GenericAbstraction(int pSize, String pLabel,
       Map<Integer, List<MaterlisationStep>> pMaterlisationSteps,
       Map<Integer, Integer> pAbstractToConcretePointerMap) {
-    super(pSize, pLabel);
+    super(pSize, pLabel, SMGObjectKind.GENERIC);
     abstractToConcretePointerMap = ImmutableMap.copyOf(pAbstractToConcretePointerMap);
     materlisationStepMap = ImmutableMap.copyOf(pMaterlisationSteps);
   }
@@ -64,7 +65,7 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   public GenericAbstraction(int pSize, String pLabel,
       Map<Integer, List<MaterlisationStep>> pMaterlisationStepMap,
       Map<Integer, Integer> pAbstractToConcretePointerMap, int pNewLevel) {
-    super(pSize, pLabel, pNewLevel);
+    super(pSize, pLabel, pNewLevel, SMGObjectKind.GENERIC);
     abstractToConcretePointerMap = ImmutableMap.copyOf(pAbstractToConcretePointerMap);
     materlisationStepMap = ImmutableMap.copyOf(pMaterlisationStepMap);
   }
@@ -136,5 +137,10 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   @Override
   public SMGObject copy(int pNewLevel) {
     return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap, pNewLevel);
+  }
+
+  @Override
+  public boolean isMoreGeneral(SMGObject pOther) {
+    return false;
   }
 }

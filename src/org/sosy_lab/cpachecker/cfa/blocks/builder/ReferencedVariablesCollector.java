@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -105,10 +105,9 @@ public class ReferencedVariablesCollector {
 
     // create Wrapper-Objects
     for (String var : allVars) {
-      final ReferencedVariable ref = new ReferencedVariable(
-              var,
-              varsInConditions.contains(var),
-              new HashSet<ReferencedVariable>() // cross-references filled later
+      final ReferencedVariable ref =
+          new ReferencedVariable(
+              var, varsInConditions.contains(var), new HashSet<>() // cross-references filled later
               );
       collectedVars.put(var, ref);
     }

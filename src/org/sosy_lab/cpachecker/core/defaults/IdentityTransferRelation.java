@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * This transfer relation always returns the state itself as its successor.
@@ -51,12 +50,5 @@ public enum IdentityTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
     return Collections.singleton(pState);
-  }
-
-  @Override
-  public Collection<AbstractState> strengthen(AbstractState pState,
-      List<AbstractState> pOtherStates, CFAEdge pCfaEdge, Precision pPrecision) {
-
-    return null;
   }
 }

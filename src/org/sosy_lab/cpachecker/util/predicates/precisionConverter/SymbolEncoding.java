@@ -26,13 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -52,6 +51,8 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.BitvectorType;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -152,7 +153,7 @@ public class SymbolEncoding {
       int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
       fType = BitvectorType.getBitvectorTypeWithSize(length);
     }
-    Type<FormulaType<?>> type = new Type<FormulaType<?>>(fType);
+    Type<FormulaType<?>> type = new Type<>(fType);
     if (cType instanceof CSimpleType) {
       type.setSigness(!((CSimpleType)cType).isUnsigned());
     }
@@ -195,17 +196,22 @@ public class SymbolEncoding {
    * that can be read again. */
   public void dump(Path symbolEncodingFile) throws IOException {
     if (symbolEncodingFile != null) {
-      Files.writeFile(symbolEncodingFile, new Appender() {
-        @Override
-        public void appendTo(Appendable app) throws IOException {
-          for (String symbol : encodedSymbols.keySet()) {
-            final Type<FormulaType<?>> type = encodedSymbols.get(symbol);
-            app.append(symbol + "\t" + type.getReturnType());
-            if (!type.getParameterTypes().isEmpty()) {
-              app.append("\t" + Joiner.on("\t").join(type.getParameterTypes()));
+      MoreFiles.writeFile(
+          symbolEncodingFile,
+          Charset.defaultCharset(),
+          new Appender() {
+            @Override
+            public void appendTo(Appendable app) throws IOException {
+              for (String symbol : encodedSymbols.keySet()) {
+                final Type<FormulaType<?>> type = encodedSymbols.get(symbol);
+                app.append(symbol + "\t" + type.getReturnType());
+                if (!type.getParameterTypes().isEmpty()) {
+                  app.append("\t" + Joiner.on("\t").join(type.getParameterTypes()));
+                }
+                app.append("\n");
+              }
             }
-            app.append("\n");
-          }}});
+          });
     }
   }
 

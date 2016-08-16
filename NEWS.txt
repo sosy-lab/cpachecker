@@ -1,9 +1,77 @@
-Changes since CPAchecker 1.4
-----------------------------
-* r18407: Remove all supplied 32bit binaries of native libraries and tools.
+Changes since CPAchecker 1.6.1
+------------------------------
+* CPAchecker requires Java 8.
+
+
+Changes from CPAchecker 1.6 to CPAchecker 1.6.1
+-----------------------------------------------
+* Important bug fix for all configurations that use a sequential combination
+  of analyses, for the example the -sv-comp16 configuration
+  (internal time limits were not handled correctly).
+
+
+Changes from CPAchecker 1.4 to CPAchecker 1.6
+---------------------------------------------
+* Local Policy Iteration
+  A new analysis has been added to CPAchecker
+  that derives numerical invariants from linear templates
+  with policy iteration in an efficient manner.
+
+* Formula Slicing Analysis
+  A new analysis was developed for CPAchecker that derives inductive invariants
+  from loop-free traces from the analyzed program.
+
+* Refinement Selection
+  The value analysis and the predicate analysis can now use
+  refinement selection for choosing well-suited ways to refine
+  the analysis for an infeasible counterexample.
+
+* Symbolic Execution
+  CPAchecker now supports symbolic execution
+  by enhancing the value analysis to not only track explicit,
+  but also symbolic values.
+
+* Improved Heap Support for Predicate Analysis
+  The predicate analysis now supports a heap analysis
+  with unbounded memory regions by using the SMT theory of arrays.
+  This can be enabled with cpa.predicate.handleHeapArray=true.
+
+* Concurrency Support
+  CPAchecker now supports the analysis of concurrent programs
+  with a limited number of threads
+  by using value analysis or BDD-based analysis.
+
+* Witness Export and Validation
+  After an analysis, CPAchecker exports witnesses
+  that contain information about found counterexamples or correctness-proofs.
+  The format of the witnesses is standardized and 
+  a description is available at
+  https://sv-comp.sosy-lab.org/2016/witnesses
+
+* Support for Verification Tasks with Multiple Source Files
+  Multiple C source files can be given as input to CPAchecker,
+  and they will be linked together and analyzed as a single program.
+
+* BenchExec
+  The benchmarking script (scripts/benchmark.py) of CPAchecker
+  evolved into the independent project BenchExec
+  (https://github.com/sosy-lab/benchexec).
+  It provides reliable benchmarking and resource measurement
+  for arbitrary tools.
+
+* JavaSMT
+  The SMT interface layer of CPAchecker got refactored into its own library
+  JavaSMT (https://github.com/sosy-lab/java-smt)
+  and can now be used by other projects as well.
+  Because of this, a lot of configuration options related to solver usage
+  were renamed from "cpa.predicate.*" to "solver.*",
+  so please check your configuration if necessary.
+
+* 32bit binaries of native libraries and tools removed
   If you need to run CPAchecker on a 32bit system with a configuration
   that relies on native libraries, you need to compile them yourself
-  and put them in the directory "lib/native/x86-linux/".
+  and put them in the directory "lib/native/x86-linux/"
+  (cf. documentation of JavaSMT).
 
 
 Changes from CPAchecker 1.3.4 to CPAchecker 1.4
@@ -49,8 +117,7 @@ Changes from CPAchecker 1.3.4 to CPAchecker 1.4
 
 * The SMT solver Princess (http://www.philipp.ruemmer.org/princess.shtml)
   has been integrated into CPAchecker's predicate analysis
-  and can be selected with cpa.predicate.solver=princess
-        [15/7/2015 update: current name for the option is solver.solver]
+  and can be selected with cpa.predicate.solver=princess.
 
 * The configuration files for value analysis have been renamed.
   Instead of -explicitAnalysis or similar,

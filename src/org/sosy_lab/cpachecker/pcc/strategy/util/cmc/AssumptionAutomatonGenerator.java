@@ -23,8 +23,23 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.util.cmc;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -34,20 +49,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 @Options(prefix = "pcc.cmc")
 public class AssumptionAutomatonGenerator {
 
@@ -55,7 +56,7 @@ public class AssumptionAutomatonGenerator {
 
   @Option(secure = true, name = "file", description = "write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Paths.get("assumptions.txt");
+  private Path assumptionsFile = Paths.get("AssumptionAutomaton.txt");
 
   public AssumptionAutomatonGenerator(final Configuration config, final LogManager pLogger)
       throws InvalidConfigurationException {
@@ -64,7 +65,7 @@ public class AssumptionAutomatonGenerator {
   }
 
   public Set<ARGState> getAllAncestorsFor(final Collection<ARGState> nodes) {
-    TreeSet<ARGState> uncoveredAncestors = new TreeSet<>(nodes);
+    TreeSet<ARGState> uncoveredAncestors = new TreeSet<>();
     Deque<ARGState> toAdd = new ArrayDeque<>(nodes);
 
     while (!toAdd.isEmpty()) {
@@ -88,7 +89,7 @@ public class AssumptionAutomatonGenerator {
   public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
     assert(notCovered(incompleteNodes));
 
-    try (Writer w = Files.openOutputFile(assumptionsFile)) {
+    try (Writer w = MoreFiles.openOutputFile(assumptionsFile, Charset.defaultCharset())) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
       AssumptionCollectorAlgorithm.writeAutomaton(w, root, getAllAncestorsFor(incompleteNodes),
           new HashSet<AbstractState>(incompleteNodes), 0, true);

@@ -23,23 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -53,7 +43,17 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class AppliedCustomInstructionParserTest {
 
@@ -106,7 +106,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
@@ -217,7 +217,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException {
+  public void testParse() throws Exception {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -229,15 +229,16 @@ public class AppliedCustomInstructionParserTest {
           + "y = y + x;"
         + "}";
 
-    CFA cfa = TestDataTools.makeCFA(testProgram);
+    cfa = TestDataTools.makeCFA(testProgram);
     GlobalInfo.getInstance().storeCFA(cfa);
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             cfa);
-    Path p = Paths.createTempPath("test_acis", null);
-    try (Writer file = Files.openOutputFile(p)) {
+
+    Path p = MoreFiles.createTempFile("test_acis", null, null);
+    try (Writer file = MoreFiles.openOutputFile(p, StandardCharsets.US_ASCII)) {
       file.append("main\n");
       CFANode node;
       Deque<CFANode> toVisit = new ArrayDeque<>();
@@ -255,6 +256,19 @@ public class AppliedCustomInstructionParserTest {
       file.flush();
     }
 
+    Path signatureFile = MoreFiles.createTempFile("ci_spec", ".txt", null);
+    try {
+      testParse(p, signatureFile);
+    } finally {
+      try {
+        java.nio.file.Files.deleteIfExists(p);
+        java.nio.file.Files.deleteIfExists(signatureFile);
+      } catch (IOException e) {
+      }
+    }
+  }
+
+  private void testParse(Path p, Path signatureFile) throws Exception {
     CFANode expectedStart = null;
     for(CLabelNode n: getLabelNodes(cfa)){
       if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
@@ -263,7 +277,7 @@ public class AppliedCustomInstructionParserTest {
     }
     int startNodeNr = expectedStart.getNodeNumber();
 
-    CustomInstructionApplications cia = aciParser.parse(p, Paths.createTempPath("ci_spec", "txt"));
+    CustomInstructionApplications cia = aciParser.parse(p, signatureFile);
     Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
     Truth.assertThat(cis.size()).isEqualTo(4);
     List<CFANode> aciNodes = new ArrayList<>(2);

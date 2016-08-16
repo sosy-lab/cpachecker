@@ -23,16 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -58,8 +48,17 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
 
 public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
@@ -697,12 +696,4 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
     }
     return this.regionManager.makeTrue();
   }
-
-  @Override
-  public Collection<? extends LDDAbstractState> strengthen(AbstractState pElement,
-      List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision) throws CPATransferException,
-      InterruptedException {
-    return null;
-  }
-
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
@@ -33,8 +33,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -53,6 +52,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -105,6 +106,7 @@ public class AutomatonGraphmlCommon {
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
     ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
+    THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
@@ -231,7 +233,7 @@ public class AutomatonGraphmlCommon {
       if (pTextualRepresentation.equals("true_witness")) {
         return Optional.of(PROOF_WITNESS);
       }
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 
@@ -415,7 +417,7 @@ public class AutomatonGraphmlCommon {
       Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
       for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
         Path programPath = Paths.get(programDenotation);
-        sources.add(programPath.asByteSource());
+        sources.add(MoreFiles.asByteSource(programPath));
       }
       HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
       return BaseEncoding.base16().lowerCase().encode(hash.asBytes());

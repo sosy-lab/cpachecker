@@ -23,13 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.Lists;
 
 import org.eclipse.cdt.core.parser.OffsetLimitReachedException;
 import org.eclipse.cdt.internal.core.parser.scanner.ILexerLog;
@@ -41,9 +35,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -51,7 +43,15 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Encapsulates a {@link CParser} instance and tokenizes all files first.
@@ -104,7 +104,7 @@ public class CParserWithLocationMapper implements CParser {
 
   private String tokenizeSourcefile(String pFilename,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
-    String code = Paths.get(pFilename).asCharSource(Charset.defaultCharset()).read();
+    String code = MoreFiles.toString(Paths.get(pFilename), Charset.defaultCharset());
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
@@ -190,7 +190,8 @@ public class CParserWithLocationMapper implements CParser {
 
     String code = tokenizeCode ? tokenizedCode.toString() : pCode;
     if (tokenizeCode && dumpTokenizedProgramToFile != null) {
-      try (Writer out = Files.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
+      try (Writer out =
+          MoreFiles.openOutputFile(dumpTokenizedProgramToFile, StandardCharsets.US_ASCII)) {
         out.append(code);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write tokenized program to file");

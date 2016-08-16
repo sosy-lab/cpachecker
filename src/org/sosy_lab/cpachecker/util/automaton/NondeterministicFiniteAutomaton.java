@@ -159,7 +159,8 @@ public class NondeterministicFiniteAutomaton<T> {
         return false;
       }
 
-      Edge lEdge = getClass().cast(pOther);
+      @SuppressWarnings("unchecked")
+      Edge lEdge = (Edge) pOther;
 
       if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
         if (mLabel == null) {
@@ -228,8 +229,8 @@ public class NondeterministicFiniteAutomaton<T> {
   public State createState() {
     State lState = StatePool.STATE_POOL.get(this);
 
-    mOutgoingEdges.add(new HashSet<Edge>());
-    mIncomingEdges.add(new HashSet<Edge>());
+    mOutgoingEdges.add(new HashSet<>());
+    mIncomingEdges.add(new HashSet<>());
 
     return lState;
   }

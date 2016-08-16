@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.List;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 /**
  * Abstract state for the generic assumption generator CPA;
@@ -69,6 +69,6 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
 
   @Override
   public String toString() {
-    return from(assumptions).transform(CExpression.TO_AST_STRING).join(Joiner.on(", "));
+    return from(assumptions).transform(CExpression::toASTString).join(Joiner.on(", "));
   }
 }

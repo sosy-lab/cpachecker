@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /** This static analyzer for edges checks whether there exists
  * read- or write-access to global variables or shared memory along edges. */

@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 
 public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
@@ -88,11 +87,4 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     }
     return Collections.singleton(new ValidVarsState(validVariables));
   }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return null;
-  }
-
 }

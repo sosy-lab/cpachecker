@@ -73,6 +73,9 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
     private final LocationState[] states;
 
+    private final LocationStateType locationType;
+    private final CFA cfa;
+
     enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
 
     @Option(secure=true, description="With this option enabled, unction calls that occur"
@@ -80,8 +83,11 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
         + " without following function calls (in this case FunctionSummaryEdges are used)")
     private boolean followFunctionCalls = true;
 
-    public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config) throws InvalidConfigurationException {
+    public LocationStateFactory(CFA pCfa, LocationStateType pLocationType, Configuration config)
+        throws InvalidConfigurationException {
       config.inject(this);
+      locationType = checkNotNull(pLocationType);
+      cfa = checkNotNull(pCfa);
 
       ImmutableSortedSet<CFANode> allNodes;
       Collection<CFANode> tmpNodes = pCfa.getAllNodes();
@@ -94,21 +100,33 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       int maxNodeNumber = allNodes.last().getNodeNumber();
       states = new LocationState[maxNodeNumber+1];
       for (CFANode node : allNodes) {
-        LocationState state = locationType == LocationStateType.BACKWARD
-            ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
-            : locationType == LocationStateType.BACKWARDNOTARGET
-                ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
-                : new LocationState(node, followFunctionCalls);
-
+        LocationState state = createLocationState(node);
         states[node.getNodeNumber()] = state;
       }
     }
 
     public LocationState getState(CFANode node) {
-      return Preconditions.checkNotNull(states[checkNotNull(node).getNodeNumber()],
-          "LocationState for CFANode %s in function %s requested,"
-          + " but this node is not part of the current CFA.",
-          node, node.getFunctionName());
+      int nodeNumber = checkNotNull(node).getNodeNumber();
+
+      if (nodeNumber >= 0 && nodeNumber < states.length) {
+        return Preconditions.checkNotNull(
+            states[nodeNumber],
+            "LocationState for CFANode %s in function %s requested,"
+                + " but this node is not part of the current CFA.",
+            node,
+            node.getFunctionName());
+
+      } else {
+        return createLocationState(node);
+      }
+    }
+
+    private LocationState createLocationState(CFANode node) {
+      return locationType == LocationStateType.BACKWARD
+          ? new BackwardsLocationState(node, cfa, followFunctionCalls)
+          : locationType == LocationStateType.BACKWARDNOTARGET
+              ? new BackwardsLocationStateNoTarget(node, cfa, followFunctionCalls)
+              : new LocationState(node, followFunctionCalls);
     }
   }
 

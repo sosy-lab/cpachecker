@@ -1,14 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import static org.sosy_lab.solver.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
-
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,18 +26,20 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
@@ -53,13 +49,20 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
+  @Option(secure=true, description="Check target states reachability")
+  private boolean checkTargetStates = true;
+
+  @Option(secure=true, description="Filter lemmas by liveness")
+  private boolean filterByLiveness = true;
+
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
@@ -70,28 +73,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
 
-  /**
-   * For each node, map a set of constraints to whether it is unsatisfiable
-   * or satisfiable (maps to |true| <=> |UNSAT|).
-   * If a set of constraints is satisfiable, any subset of it is also
-   * satisfiable.
-   * If a set of constraints is unsatisfiable, any superset of it is also
-   * unsatisfiable.
-   */
-  private final Map<CFANode, Map<Set<BooleanFormula>, Boolean>> unsatCache;
-
   @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
 
-  @Option(secure=true, description="Check target states reachability")
-  private boolean checkTargetStates = true;
-
-  @Option(secure=true, description="Filter lemmas by liveness")
-  private boolean filterByLiveness = true;
-
   FormulaSlicingManager(
       Configuration config,
-      PathFormulaManager pPfmgr,
+      CachingPathFormulaManager pPfmgr,
       FormulaManagerView pFmgr,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
@@ -107,8 +94,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics();
-    unsatCache = new HashMap<>();
+    statistics = new FormulaSlicingStatistics(pPfmgr, pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().get();
@@ -131,7 +117,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
     SlicingIntermediateState out = SlicingIntermediateState.of(
-        edge.getSuccessor(), outPath, iOldState.getAbstractParent());
+        edge.getSuccessor(),
+        outPath,
+        iOldState.getAbstractParent()
+    );
     statistics.propagation.stop();
 
     return Collections.singleton(out);
@@ -155,35 +144,37 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       iState = pState.asIntermediate();
     }
 
-    boolean hasTargetState = Iterables.filter(
-        AbstractStates.asIterable(pFullState),
-        AbstractStates.IS_TARGET_STATE).iterator().hasNext();
+    boolean hasTargetState = StreamSupport
+        .stream(AbstractStates.asIterable(pFullState).spliterator(), false)
+        .filter(AbstractStates.IS_TARGET_STATE::apply)
+        .collect(Collectors.toList()).iterator().hasNext();
     boolean shouldPerformAbstraction = shouldPerformAbstraction(
         iState.getNode(), pFullState);
     if (hasTargetState && checkTargetStates && isUnreachableTarget(iState)) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     if (shouldPerformAbstraction) {
-      statistics.abstractionLocations++;
-
       Optional<SlicingAbstractedState> oldState = findOldToMerge(
           pStates, pFullState, pState);
 
       SlicingAbstractedState out;
       if (oldState.isPresent()) {
+
         // Perform slicing, there is a relevant "to-merge" element.
-        // Delay checking reachability.
         Optional<SlicingAbstractedState> slicingOut =
             performSlicing(iState, oldState.get());
         if (slicingOut.isPresent()) {
           out = slicingOut.get();
         } else {
-          return Optional.absent();
+          return Optional.empty();
         }
       } else {
-        if (isUnreachable(iState, false)) {
-          return Optional.absent();
+
+        // No predecessor in the same partition, check reachability and
+        // convert the intermediate path to RCNF form.
+        if (isUnreachableAbstraction(iState)) {
+          return Optional.empty();
         }
         out = SlicingAbstractedState.ofClauses(
             toRcnf(iState),
@@ -222,24 +213,19 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     // Filter non-final UFs out first, as they can not be quantified.
     transition = fmgr.filterLiterals(transition,
-        new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula input) {
-            return !hasDeadUf(input, ssa);
-          }
-        });
+        input -> !hasDeadUf(input, ssa));
     BooleanFormula quantified = fmgr.quantifyDeadVariables(
         transition, ssa);
 
-    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified);
+    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified, fmgr);
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
       if (filterByLiveness &&
           Sets.intersection(
               ImmutableSet.copyOf(
-                  liveVariables.getLiveVariableNamesForNode(node).filter(
-                      Predicates.<String>notNull())),
+                  liveVariables.getLiveVariableNamesForNode(node)
+                      .filter(s -> s != null)),
               fmgr.extractFunctionNames(fmgr.uninstantiate(lemma))).isEmpty()
           ) {
 
@@ -249,7 +235,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
     return finalLemmas;
   }
-
 
   private final Map<Pair<SlicingIntermediateState, SlicingAbstractedState>,
       SlicingAbstractedState> slicingCache = new HashMap<>();
@@ -261,29 +246,24 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     SlicingAbstractedState out = slicingCache.get(Pair.of(iState, prevToMerge));
     if (out != null) {
+      statistics.cachedInductiveWeakenings++;
       return Optional.of(out);
     }
+    statistics.inductiveWeakeningLocations.add(iState.getNode());
 
     final SlicingAbstractedState parentState = iState.getAbstractParent();
 
     Set<BooleanFormula> candidateLemmas = Sets.filter(
         prevToMerge.getAbstraction(),
-        new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula input) {
-            return allVarsInSSAMap(input,
-                    prevToMerge.getSSA(),
-                    iState.getPathFormula().getSsa());
-          }
-        });
+        input -> allVarsInSSAMap(input,
+                prevToMerge.getSSA(),
+                iState.getPathFormula().getSsa()));
 
     PathFormulaWithStartSSA path =
         new PathFormulaWithStartSSA(iState.getPathFormula(), iState
             .getAbstractParent().getSSA());
     if (prevToMerge == parentState) {
 
-      // TODO: optimization can be extended to nested loops
-      // as well.
       if (parentState.getInductiveUnder().contains(path)) {
 
         // Optimization for non-nested loops.
@@ -293,8 +273,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> finalClauses;
     Set<PathFormulaWithStartSSA> inductiveUnder;
-    if (isUnreachable(iState, false)) {
-      return Optional.absent();
+    if (isUnreachableAbstraction(iState)) {
+      return Optional.empty();
     }
     try {
       statistics.inductiveWeakening.start();
@@ -342,87 +322,56 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     slicingCache.put(Pair.of(iState, prevToMerge), out);
     return Optional.of(out);
   }
+
+  /**
+   * Check whether target state is unreachable.
+   */
   private boolean isUnreachableTarget(SlicingIntermediateState iState)
-  throws InterruptedException, CPAException {
+      throws InterruptedException, CPAException {
     try {
       statistics.reachabilityTargetTimer.start();
-      statistics.reachabilityTargetChecks++;
-      return isUnreachable(iState, true);
+      return isUnreachable(iState);
     } finally {
       statistics.reachabilityTargetTimer.stop();
     }
   }
 
-  private boolean isUnreachable(SlicingIntermediateState iState, boolean isTarget)
-      throws InterruptedException, CPAException {
-    // TODO: refactor statistics.
+  /**
+   * Check whether abstraction location is unreachable.
+   */
+  private boolean isUnreachableAbstraction(SlicingIntermediateState iState)
+      throws CPAException, InterruptedException {
+    try {
+      statistics.reachabilityAbstractionTimer.start();
+      return isUnreachable(iState);
+    } finally {
+      statistics.reachabilityAbstractionTimer.stop();
+    }
+  }
 
+  private boolean isUnreachable(SlicingIntermediateState iState)
+      throws InterruptedException, CPAException {
     BooleanFormula prevSlice = bfmgr.and(iState.getAbstractParent().getAbstraction());
-    BooleanFormula instantiatedFormula =
+    BooleanFormula instantiatedParent =
         fmgr.instantiate(prevSlice, iState.getAbstractParent().getSSA());
     BooleanFormula reachabilityQuery = bfmgr.and(
-        iState.getPathFormula().getFormula(), instantiatedFormula);
+        iState.getPathFormula().getFormula(), instantiatedParent);
 
     Set<BooleanFormula> constraints = ImmutableSet.copyOf(
         bfmgr.toConjunctionArgs(reachabilityQuery, true));
-
     CFANode node = iState.getNode();
     statistics.satChecksLocations.add(node);
 
-    Map<Set<BooleanFormula>, Boolean> stored = unsatCache.get(node);
-    if (stored != null) {
-      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored
-          .entrySet()) {
-        Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
-        boolean cachedIsUnsat = isUnsatResults.getValue();
-
-        if (cachedIsUnsat && constraints.containsAll(cachedConstraints)) {
-          statistics.cachedSatChecks++;
-          if (isTarget) {
-            statistics.reachabilityTargetChecksCached++;
-          }
-          return true;
-        } else if (!cachedIsUnsat &&
-            cachedConstraints.containsAll(constraints)) {
-          statistics.cachedSatChecks++;
-          return false;
-        }
-      }
-    }
-
-    if (stored == null) {
-      stored = new HashMap<>();
-    } else {
-      stored = new HashMap<>(stored);
-    }
-
-    statistics.reachabilityCheck.start();
-    try (ProverEnvironment pe = solver.newProverEnvironment(GENERATE_UNSAT_CORE)){
-      for (BooleanFormula f : constraints) {
-        pe.addConstraint(f);
-      }
-      if (pe.isUnsat()) {
-        Set<BooleanFormula> unsatCore = ImmutableSet.copyOf(pe.getUnsatCore());
-        stored.put(unsatCore, true);
-        return true;
-      } else {
-        stored.put(constraints, false);
-        return false;
-      }
+    try {
+      return solver.isUnsat(constraints, node);
     } catch (SolverException pE) {
+      logger.log(Level.FINE, "Got solver exception while obtaining unsat core;"
+          + "Re-trying without unsat core extraction", pE);
       try {
-
-        // Re-try without unsat core.
-        logger.log(Level.FINE,
-            "Got solver exception while obtaining unsat core;"
-                + "Re-trying a simple query", pE);
         return solver.isUnsat(reachabilityQuery);
       } catch (SolverException pE1) {
-        throw new CPAException("Solver exception suppressed: ", pE1);
+        throw new CPAException("Solver error occurred", pE1);
       }
-    } finally {
-      unsatCache.put(node, ImmutableMap.copyOf(stored));
-      statistics.reachabilityCheck.stop();
     }
   }
 
@@ -456,7 +405,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingAbstractedState pState1,
       SlicingAbstractedState pState2
   ) {
-    // More clauses => more constraints => the state is *smaller*.
+
+    // Has at least all the constraints other state does => the state is
+    // smaller-or-equal.
     return pState1.getAbstraction().containsAll(pState2.getAbstraction());
   }
 
@@ -498,7 +449,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             bfmgr.makeBoolean(true),
             pSlicingAbstractedState.getSSA(),
             pSlicingAbstractedState.getPointerTargetSet(),
-            0), pSlicingAbstractedState);
+            0), pSlicingAbstractedState
+    );
   }
 
   private boolean shouldPerformAbstraction(CFANode node, AbstractState pFullState) {
@@ -544,7 +496,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   /**
    * Find a previous closest occurrence in ARG in the same partition, or
-   * {@code Optional.absent()}
+   * {@code Optional.empty()}
    */
   private Optional<SlicingAbstractedState> findOldToMerge
   (UnmodifiableReachedSet states, AbstractState pArgState, SlicingState state) {
@@ -555,7 +507,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
                 SlicingAbstractedState.class)
         );
     if (filteredSiblings.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     // We follow the chain of backpointers until we intersect something in the
@@ -571,7 +523,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         } else {
           if (!aState.getGeneratingState().isPresent()) {
             // Empty.
-            return Optional.absent();
+            return Optional.empty();
           }
           a = aState.getGeneratingState().get().getAbstractParent();
         }

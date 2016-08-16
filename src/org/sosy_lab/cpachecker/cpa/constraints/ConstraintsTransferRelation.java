@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -78,8 +73,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.
@@ -133,7 +132,7 @@ public class ConstraintsTransferRelation
     converter = new CtoFormulaConverter(options,
                                         formulaManager,
                                         machineModel,
-                                        Optional.<VariableClassification>absent(),
+                                        Optional.empty(),
                                         pLogger,
                                         pShutdownNotifier,
                                         typeHandler,
@@ -280,7 +279,7 @@ public class ConstraintsTransferRelation
       constraint = pFactory.createNegativeConstraint(pExpression);
     }
 
-    return Optional.fromNullable(constraint);
+    return Optional.ofNullable(constraint);
   }
 
   private Optional<Constraint> createConstraint(JUnaryExpression pExpression, ConstraintFactory pFactory,
@@ -293,7 +292,7 @@ public class ConstraintsTransferRelation
       constraint = pFactory.createNegativeConstraint(pExpression);
     }
 
-    return Optional.fromNullable(constraint);
+    return Optional.ofNullable(constraint);
   }
 
   private Optional<Constraint> createConstraint(CBinaryExpression pExpression, ConstraintFactory pFactory,
@@ -307,7 +306,7 @@ public class ConstraintsTransferRelation
       constraint = pFactory.createNegativeConstraint(pExpression);
     }
 
-    return Optional.fromNullable(constraint);
+    return Optional.ofNullable(constraint);
   }
 
   private Optional<Constraint> createConstraint(AIdExpression pExpression, ConstraintFactory pFactory,
@@ -320,7 +319,7 @@ public class ConstraintsTransferRelation
       constraint = pFactory.createNegativeConstraint(pExpression);
     }
 
-    return Optional.fromNullable(constraint);
+    return Optional.ofNullable(constraint);
   }
 
   private boolean isTrivial(
@@ -391,7 +390,7 @@ public class ConstraintsTransferRelation
     }
 
     if (nothingChanged) {
-      return null;
+      return Collections.singleton(pStateToStrengthen);
     } else {
       return newStates;
     }
@@ -410,7 +409,7 @@ public class ConstraintsTransferRelation
       assert pValueState instanceof ValueAnalysisState;
 
       if (!(pCfaEdge instanceof AssumeEdge)) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
@@ -444,7 +443,7 @@ public class ConstraintsTransferRelation
         newStates.add(newState);
 
         if (newState.equals(pStateToStrengthen)) {
-          return Optional.absent();
+          return Optional.empty();
         }
       }
       return Optional.of(newStates);
@@ -463,7 +462,7 @@ public class ConstraintsTransferRelation
       assert pStrengtheningState instanceof AutomatonState;
 
       if (checkStrategy != CheckStrategy.AT_TARGET) {
-        return Optional.absent();
+        return Optional.empty();
       }
 
       final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
@@ -476,7 +475,7 @@ public class ConstraintsTransferRelation
           return Optional.<Collection<ConstraintsState>>of(Collections.<ConstraintsState>emptySet());
 
         } else {
-          return Optional.absent();
+          return Optional.empty();
         }
       } catch (SolverException e) {
         throw new CPATransferException("Error while strengthening.", e);

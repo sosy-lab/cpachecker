@@ -100,8 +100,12 @@ public class Converter {
     if (terms.isEmpty()) {
       return wrap("(" + op.getFirst() + ")"); // should not happen?
     } else {
-      return wrap("(" + op.getFirst() + " " +
-          Joiner.on(' ').join(Lists.transform(terms, Pair.getProjectionToFirst())) + ")");
+      return wrap(
+          "("
+              + op.getFirst()
+              + " "
+              + Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))
+              + ")");
     }
   }
 

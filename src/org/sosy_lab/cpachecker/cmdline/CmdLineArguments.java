@@ -23,32 +23,38 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static org.sosy_lab.cpachecker.cmdline.CPAMain.*;
+import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
+import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.OptionCollector;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /**
  * This classes parses the CPAchecker command line arguments.
@@ -98,6 +104,7 @@ class CmdLineArguments {
   private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "config/specification/memorysafety-free.spc";
   private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "config/specification/memorysafety-memtrack.spc";
   private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
+  private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -108,6 +115,7 @@ class CmdLineArguments {
   private static final String PROPERTY_OPTION = "properties";
 
   static final String SECURE_MODE_OPTION = "secureMode";
+  static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
 
   /**
    * Reads the arguments and process them.
@@ -190,7 +198,7 @@ class CmdLineArguments {
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {
-        putIfNotExistent(properties, "log.usedOptions.export", "true");
+        putIfNotExistent(properties, PRINT_USED_OPTIONS_OPTION, "true");
         putIfNotExistent(properties, "analysis.disable", "true");
 
         // this will disable all other output
@@ -200,14 +208,14 @@ class CmdLineArguments {
         printHelp(System.out);
         System.exit(0);
 
-      } else if (arg.startsWith("-") && !(Paths.get(arg).exists())) {
+      } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
 
           if (configFile != null) {
             try {
-              Files.checkReadableFile(configFile);
+              MoreFiles.checkReadableFile(configFile);
               putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
             } catch (FileNotFoundException e) {
               ERROR_OUTPUT.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
@@ -249,7 +257,8 @@ class CmdLineArguments {
       String newValue = argsIt.next();
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
-      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(Paths.get(newValue).exists())) {
+      if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches()
+          && Files.notExists(Paths.get(newValue))) {
         Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
         if (configFile != null) {
@@ -430,36 +439,43 @@ class CmdLineArguments {
       Set<PropertyType> properties) throws InvalidCmdlineArgumentException {
     final List<String> specifications = new ArrayList<>();
     for (PropertyType property : properties) {
-      String newSpec = null;
+      Optional<String> newSpec = null;
       switch (property) {
       case VALID_DEREF:
         putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_DEREF;
+        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_DEREF);
         break;
       case VALID_FREE:
         putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_FREE;
+        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_FREE);
         break;
       case VALID_MEMTRACK:
         putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK;
+        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK);
         break;
       case REACHABILITY_LABEL:
-        newSpec = REACHABILITY_LABEL_SPECIFICATION_FILE;
+        newSpec = Optional.of(REACHABILITY_LABEL_SPECIFICATION_FILE);
         break;
       case OVERFLOW:
         putIfNotExistent(options, "overflow.check", "true");
-        newSpec = OVERFLOW_SPECIFICATION_FILE;
+        newSpec = Optional.of(OVERFLOW_SPECIFICATION_FILE);
+        break;
+      case DEADLOCK:
+        newSpec = Optional.of(DEADLOCK_SPECIFICATION_FILE);
+        break;
+      case TERMINATION:
+        putIfNotExistent(options, "termination.check", "true");
+        newSpec = Optional.empty();
         break;
       case REACHABILITY:
-        newSpec = REACHABILITY_SPECIFICATION_FILE;
+        newSpec = Optional.of(REACHABILITY_SPECIFICATION_FILE);
         break;
       default:
         ERROR_OUTPUT.println("Checking for the property " + property + " is currently not supported by CPAchecker.");
         System.exit(ERROR_EXIT_CODE);
       }
       assert newSpec != null;
-      specifications.add(newSpec);
+      newSpec.ifPresent(specifications::add);
     }
     return Joiner.on(",").join(specifications);
   }
@@ -478,22 +494,29 @@ class CmdLineArguments {
    * @param name The value for filling in the template.
    * @return An absolute Path object pointing to an existing file or null.
    */
-  private static Path findFile(final String template, final String name) {
+  private static @Nullable Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
     Path file = Paths.get(fileName);
 
     // look in current directory first
-    if (file.toFile().exists()) {
+    if (Files.exists(file)) {
       return file;
     }
 
     // look relative to code location second
-    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-    Path baseDir = codeLocation.getParent();
-
-    file = baseDir.resolve(fileName);
-    if (file.toFile().exists()) {
+    Path codeLocation;
+    try {
+      codeLocation =
+          Paths.get(
+              CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    } catch (SecurityException | URISyntaxException e) {
+      ERROR_OUTPUT.println(
+          "Cannot resolve paths relative to project directory of CPAchecker: " + e.getMessage());
+      return null;
+    }
+    file = codeLocation.resolveSibling(fileName);
+    if (Files.exists(file)) {
       return file;
     }
 

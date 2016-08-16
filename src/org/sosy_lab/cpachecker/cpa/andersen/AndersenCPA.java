@@ -40,17 +40,16 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.pointerA")
-public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
+public class AndersenCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
@@ -70,13 +69,8 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  private final Configuration config;
-  private final LogManager logger;
 
   private AndersenCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    this.config = config;
-    this.logger = logger;
-
     config.inject(this);
 
     abstractDomain      = DelegateAbstractDomain.<AndersenState>getInstance();
@@ -98,17 +92,19 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   }
 
   private StopOperator initializeStopOperator() {
-    if (stopType.equals("SEP")) {
-      return new StopSepOperator(abstractDomain);
+    switch (stopType) {
+      case "SEP":
+        return new StopSepOperator(abstractDomain);
 
-    } else if (stopType.equals("JOIN")) {
-      return new StopJoinOperator(abstractDomain);
+      case "JOIN":
+        return new StopJoinOperator(abstractDomain);
 
-    } else if (stopType.equals("NEVER")) {
-      return new StopNeverOperator();
+      case "NEVER":
+        return new StopNeverOperator();
+
+      default:
+        throw new AssertionError("unknown stop operator");
     }
-
-    return null;
   }
 
   @Override
@@ -144,18 +140,5 @@ public class AndersenCPA implements ConfigurableProgramAnalysisWithBAM {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
-  }
-
-  protected Configuration getConfiguration() {
-    return config;
-  }
-
-  protected LogManager getLogger() {
-    return logger;
-  }
-
-  @Override
-  public Reducer getReducer() {
-    return null;
   }
 }

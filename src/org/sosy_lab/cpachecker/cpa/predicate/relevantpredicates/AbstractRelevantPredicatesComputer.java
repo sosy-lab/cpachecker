@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
+import com.google.common.collect.Maps;
+import com.google.errorprone.annotations.ForOverride;
+
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import com.google.common.collect.Maps;
-import com.google.errorprone.annotations.ForOverride;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
@@ -47,7 +47,7 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
   }
 
   @Override
-  public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
+  public final Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
     Set<AbstractionPredicate> result = new HashSet<>(predicates.size());
 
     T precomputeResult = precompute(context, predicates);
@@ -90,13 +90,4 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
 
   @ForOverride
   protected abstract T precompute(Block pContext, Collection<AbstractionPredicate> pPredicates);
-
-  @Override
-  public Set<AbstractionPredicate> getIrrelevantPredicates(Block context, Collection<AbstractionPredicate> predicates) {
-
-    Set<AbstractionPredicate> result = new HashSet<>(predicates);
-    result.removeAll(getRelevantPredicates(context, predicates));
-
-    return result;
-  }
 }

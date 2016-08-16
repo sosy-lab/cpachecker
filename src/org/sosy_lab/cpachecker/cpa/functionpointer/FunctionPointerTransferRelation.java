@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -601,14 +601,5 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     String name = ((CIdExpression)exp.getArrayExpression()).getDeclaration().getQualifiedName();
     name += "[" + exp.getSubscriptExpression().toASTString() + "]";
     return name;
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) {
-    // in this method we could access the abstract domains of other CPAs
-    // if required.
-    return null;
   }
 }

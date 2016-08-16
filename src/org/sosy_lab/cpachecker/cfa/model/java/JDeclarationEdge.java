@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class JDeclarationEdge extends ADeclarationEdge {
 

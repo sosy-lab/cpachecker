@@ -1651,7 +1651,9 @@ public class SMGExpressionEvaluator {
 
         CType fieldType = fieldReference.getExpressionType().getCanonicalType();
 
-        result.add(readValue(newState, addressOfField.getObject(), addressOfField.getOffset(), fieldType, cfaEdge));
+        SMGValueAndState resultState = readValue(newState, addressOfField.getObject(), addressOfField.getOffset(), fieldType, cfaEdge);
+
+        result.add(resultState);
       }
 
       return SMGValueAndStateList.copyOf(result);

@@ -23,20 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
 
-import javax.annotation.Nonnull;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -53,8 +46,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
 
 @Options(prefix="cpa.bam")
 public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRelation {
@@ -316,7 +318,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private Collection<AbstractState> analyseRecursiveBlockAndExpand(
       final AbstractState initialState, final Precision pPrecision,
       final Block pOuterSubtree, final AbstractState pReducedInitialState,
-      final Triple<AbstractState, Precision, Block> pCoveringLevel) throws CPATransferException {
+      final Triple<AbstractState, Precision, Block> pCoveringLevel)
+      throws CPATransferException, InterruptedException {
 
     recursionSeen = true;
     // after this point we have to check all returnStates for changes.

@@ -25,6 +25,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Maps;
+
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -37,15 +47,6 @@ import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
-import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -87,12 +88,10 @@ public final class PointerTargetSet implements Serializable {
 
     @Override
     public int compareTo(final CompositeField other) {
-      final int result = this.compositeType.compareTo(other.compositeType);
-      if (result != 0) {
-        return result;
-      } else {
-        return this.fieldName.compareTo(other.fieldName);
-      }
+      return ComparisonChain.start()
+          .compare(this.compositeType, other.compositeType)
+          .compare(this.fieldName, other.fieldName)
+          .result();
     }
 
     @Override

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 
 /**
@@ -97,7 +97,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 //      }
 //    }
     if (!unwrappedResult.isPresent()) {
-      return Optional.absent();
+      return Optional.empty();
     }
 
     PrecisionAdjustmentResult unwrapped = unwrappedResult.get();

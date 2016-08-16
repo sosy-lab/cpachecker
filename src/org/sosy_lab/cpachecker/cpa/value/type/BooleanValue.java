@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * This class represents a boolean value.
@@ -72,7 +72,7 @@ public class BooleanValue implements Value {
    */
   public static Optional<BooleanValue> valueOf(Value pValue) {
     if (pValue.isUnknown()) {
-      return Optional.absent();
+      return Optional.empty();
 
     } else if (pValue.isNumericValue()) {
       return valueOf((NumericValue) pValue);
@@ -81,7 +81,7 @@ public class BooleanValue implements Value {
       return Optional.of((BooleanValue) pValue);
 
     } else {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 
@@ -91,7 +91,7 @@ public class BooleanValue implements Value {
     } else if (pValue.equals(new NumericValue(1L))) {
       return Optional.of(valueOf(true));
     } else {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 

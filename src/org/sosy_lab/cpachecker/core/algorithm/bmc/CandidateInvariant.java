@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+
+import javax.annotation.Nullable;
 
 
 public interface CandidateInvariant {
@@ -50,7 +50,7 @@ public interface CandidateInvariant {
    * @throws InterruptedException if the formula creation was interrupted.
    */
   BooleanFormula getFormula(
-      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+      FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
       throws CPATransferException, InterruptedException;
 
   /**
@@ -82,16 +82,5 @@ public interface CandidateInvariant {
    * @param pReachedSet the reached set to remove unreachable states from.
    */
   void assumeTruth(ReachedSet pReachedSet);
-
-  /**
-   * Try to inject the invariant into an invariant generator in order to
-   * improve its results.
-   *
-   * @param pInvariantGenerator the invariant generator to inject the invariant
-   * into.
-   * @throws UnrecognizedCodeException if a problem occurred during the
-   * injection.
-   */
-  void attemptInjection(InvariantGenerator pInvariantGenerator) throws UnrecognizedCodeException;
 
 }

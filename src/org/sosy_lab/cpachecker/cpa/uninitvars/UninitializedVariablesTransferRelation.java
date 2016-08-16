@@ -118,7 +118,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         //this is the return-statement of a function
         //set a local variable tracking the return statement's initialization status
         if (isExpressionUninitialized(successor, ((CReturnStatementEdge) cfaEdge).getExpression()
-            .orNull(), cfaEdge)) {
+            .orElse(null), cfaEdge)) {
           setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
@@ -483,14 +483,6 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
                                            Precision precision, CFAEdge cfaEdge)
                        throws CPATransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge));
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-                          List<AbstractState> otherElements, CFAEdge cfaEdge,
-                          Precision precision) {
-
-    return null;
   }
 
   /**

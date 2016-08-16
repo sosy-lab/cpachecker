@@ -23,25 +23,28 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.io.PrintStream;
-
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+import java.io.PrintStream;
+
 public class BMCStatistics implements Statistics {
 
+  final Timer bmcPreparation = new Timer();
   final Timer satCheck = new Timer();
   final Timer errorPathCreation = new Timer();
   final Timer assertionsCheck = new Timer();
 
   final Timer inductionPreparation = new Timer();
   final Timer inductionCheck = new Timer();
-  private int inductionCutPoints = 0;
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    if (bmcPreparation.getNumberOfIntervals() > 0) {
+      out.println("Time for BMC formula creation:       " + bmcPreparation);
+    }
     if (satCheck.getNumberOfIntervals() > 0) {
       out.println("Time for final sat check:            " + satCheck);
     }
@@ -52,7 +55,6 @@ public class BMCStatistics implements Statistics {
       out.println("Time for bounding assertions check:  " + assertionsCheck);
     }
     if (inductionCheck.getNumberOfIntervals() > 0) {
-      out.println("Number of cut points for induction:  " + inductionCutPoints);
       out.println("Time for induction formula creation: " + inductionPreparation);
       out.println("Time for induction check:            " + inductionCheck);
     }

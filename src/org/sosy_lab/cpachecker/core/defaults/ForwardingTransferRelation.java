@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -125,31 +127,31 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
   /** the given edge, not casted, for local access (like logging) */
-  protected CFAEdge edge;
+  protected @Nullable CFAEdge edge;
 
   /** the given state, casted to correct type, for local access */
-  protected T state;
+  protected @Nullable T state;
 
   /** the given precision, casted to correct type, for local access */
-  protected P precision;
+  protected @Nullable P precision;
 
   /** the function BEFORE the current edge */
-  protected String functionName;
+  protected @Nullable String functionName;
 
   protected CFAEdge getEdge() {
-    return edge;
+    return checkNotNull(edge);
   }
 
   protected T getState() {
-    return state;
+    return checkNotNull(state);
   }
 
   protected P getPrecision() {
-    return precision;
+    return checkNotNull(precision);
   }
 
   protected String getFunctionName() {
-    return functionName;
+    return checkNotNull(functionName);
   }
 
 
@@ -258,7 +260,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
    * otherwise the return-value for skipping. */
-  protected Collection<T> preCheck() {
+  protected @Nullable Collection<T> preCheck() {
     return null;
   }
 
@@ -276,7 +278,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
    * If the assumption is not fulfilled, NULL should be returned. */
-  protected S handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
+  protected @Nullable S handleAssumption(
+      AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthAssumption);
@@ -302,7 +305,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param truthAssumption indicates if this is the then or the else branch
    * @throws CPATransferException may be thrown in subclasses
    */
-  protected S handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected @Nullable S handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }
@@ -315,7 +319,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param truthAssumption indicates if this is the then or the else branch
    * @throws CPATransferException may be thrown in subclasses
    */
-  protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
+  protected @Nullable S handleAssumption(
+      JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
       throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
   }

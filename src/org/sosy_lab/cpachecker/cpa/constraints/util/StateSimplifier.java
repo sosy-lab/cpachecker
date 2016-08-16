@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -212,13 +211,8 @@ public class StateSimplifier {
           dependents.removeAll(parents);
 
           // remove all infos already known as deletable
-          Iterables.removeIf(dependents, new Predicate<ActivityInfo>() {
-
-            @Override
-            public boolean apply(ActivityInfo pActivityInfo) {
-              return pActivityInfo.getActivity() == Activity.DELETED;
-            }
-          });
+          Iterables.removeIf(dependents,
+              pActivityInfo -> pActivityInfo.getActivity() == Activity.DELETED);
 
           if (dependents.isEmpty()) {
             t.markDeleted();

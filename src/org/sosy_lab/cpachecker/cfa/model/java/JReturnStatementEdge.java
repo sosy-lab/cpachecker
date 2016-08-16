@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class JReturnStatementEdge extends AReturnStatementEdge {
 

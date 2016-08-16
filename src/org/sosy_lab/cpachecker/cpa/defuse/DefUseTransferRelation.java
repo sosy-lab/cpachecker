@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -38,6 +34,9 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import java.util.Collection;
+import java.util.Collections;
 
 public class DefUseTransferRelation extends SingleEdgeTransferRelation {
   private DefUseState handleExpression(DefUseState defUseState, CStatement expression, CFAEdge cfaEdge) {
@@ -91,12 +90,5 @@ public class DefUseTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return Collections.singleton(defUseState);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-                         List<AbstractState> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
-    return null;
   }
 }

@@ -40,7 +40,8 @@ public class BnBStatementVisitor implements CStatementVisitor<Void, Unrecognized
   private final BnBExpressionVisitor visitor = new BnBExpressionVisitor();
   private final BnBMapMerger merger = new BnBMapMerger();
 
-  private Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visitResult = new HashMap();
+  private Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visitResult =
+      new HashMap<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>>();
 
   public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> getVisitResult() {
     return visitResult;

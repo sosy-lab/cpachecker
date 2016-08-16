@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -23,15 +23,13 @@ import java.util.Set;
  * The invariant is universally true wrt the intermediate state
  * which was used for the abstraction.
  */
-public class SlicingAbstractedState
+class SlicingAbstractedState
     extends SlicingState implements FormulaReportingState, Graphable {
 
   /**
-   * Slice with respect to the current loop.
-   * The slice does not contain any intermediate variables, and thus can be
-   * represented as an *un-instantiated* formula.
+   * Uninstantiated set of lemmas.
    */
-  private final ImmutableSet<BooleanFormula> semiClauses;
+  private final ImmutableSet<BooleanFormula> lemmas;
 
   /**
    * Expected starting {@link PointerTargetSet} and {@link SSAMap}.
@@ -58,6 +56,8 @@ public class SlicingAbstractedState
    */
   private final ImmutableSet<PathFormulaWithStartSSA> inductiveUnder;
 
+  private transient int hashCache = 0;
+
   private SlicingAbstractedState(
       Set<BooleanFormula> pSlice,
       SSAMap pSsaMap,
@@ -67,7 +67,7 @@ public class SlicingAbstractedState
       CFANode pNode,
       Iterable<PathFormulaWithStartSSA> pInductiveUnder) {
     inductiveUnder = ImmutableSet.copyOf(pInductiveUnder);
-    semiClauses = ImmutableSet.copyOf(pSlice);
+    lemmas = ImmutableSet.copyOf(pSlice);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
     fmgr = pFmgr;
@@ -102,7 +102,7 @@ public class SlicingAbstractedState
 
   public static SlicingAbstractedState copyOf(SlicingAbstractedState sliced) {
     return new SlicingAbstractedState(
-        sliced.semiClauses,
+        sliced.lemmas,
         sliced.ssaMap,
         sliced.pointerTargetSet,
         sliced.fmgr,
@@ -132,12 +132,12 @@ public class SlicingAbstractedState
   }
 
   public Set<BooleanFormula> getAbstraction() {
-    return semiClauses;
+    return lemmas;
   }
 
   public Set<BooleanFormula> getInstantiatedAbstraction() {
-    Set<BooleanFormula> out = new HashSet<>(semiClauses.size());
-    for (BooleanFormula f : semiClauses) {
+    Set<BooleanFormula> out = new HashSet<>(lemmas.size());
+    for (BooleanFormula f : lemmas) {
       out.add(fmgr.instantiate(f, ssaMap));
     }
     return out;
@@ -152,9 +152,37 @@ public class SlicingAbstractedState
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pFmgr,
-        Optional.<SlicingIntermediateState>absent(),
+        Optional.empty(),
         startingNode,
         ImmutableSet.<PathFormulaWithStartSSA>of());
+  }
+
+
+  @Override
+  public boolean isAbstracted() {
+    return true;
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
+      PathFormulaManager pfmgr) {
+    BooleanFormula constraint = fmgr.getBooleanFormulaManager().and(lemmas);
+    return manager.translateFrom(constraint, fmgr);
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return Joiner.on("\n---\n").join(lemmas);
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
+  @Override
+  public String toString() {
+    return lemmas.toString();
   }
 
   @Override
@@ -166,42 +194,16 @@ public class SlicingAbstractedState
       return false;
     }
     SlicingAbstractedState that = (SlicingAbstractedState) pO;
-    return Objects.equals(semiClauses, that.semiClauses) &&
+    return Objects.equals(lemmas, that.lemmas) &&
         Objects.equals(ssaMap, that.ssaMap) &&
         Objects.equals(pointerTargetSet, that.pointerTargetSet);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(semiClauses, ssaMap, pointerTargetSet);
-  }
-
-  @Override
-  public boolean isAbstracted() {
-    return true;
-  }
-
-  @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
-      PathFormulaManager pfmgr) {
-    return manager.parse(
-        fmgr.dumpFormula(
-            fmgr.getBooleanFormulaManager().and(semiClauses)
-        ).toString());
-  }
-
-  @Override
-  public String toDOTLabel() {
-    return Joiner.on("\n---\n").join(semiClauses);
-  }
-
-  @Override
-  public boolean shouldBeHighlighted() {
-    return false;
-  }
-
-  @Override
-  public String toString() {
-    return semiClauses.toString();
+    if (hashCache == 0) {
+      hashCache = Objects.hash(lemmas, ssaMap, pointerTargetSet);
+    }
+    return hashCache;
   }
 }

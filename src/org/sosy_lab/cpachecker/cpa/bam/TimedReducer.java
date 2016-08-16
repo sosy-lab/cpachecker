@@ -48,7 +48,7 @@ class TimedReducer implements Reducer {
   @Override
   public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
+      CFANode pCallNode) throws InterruptedException {
 
     reduceTime.start();
     try {
@@ -61,7 +61,7 @@ class TimedReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedState(
       AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
+      AbstractState pReducedState) throws InterruptedException {
 
     expandTime.start();
     try {
@@ -112,7 +112,7 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
+      AbstractState pReducedState) throws InterruptedException {
     return wrappedReducer.getVariableExpandedStateForProofChecking(pRootState, pReducedContext, pReducedState);
   }
 

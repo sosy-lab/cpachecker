@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nullable;
+import com.google.common.base.Strings;
 
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
-import com.google.common.base.Strings;
+import javax.annotation.Nullable;
 
 /**
  * Exception raised when the refinement procedure fails, or was
@@ -60,7 +60,7 @@ public class RefinementFailedException extends CPAException {
 
   private static final long serialVersionUID = 2353178323706458175L;
 
-  private ARGPath path;
+  private @Nullable ARGPath path;
 
   private final Reason reason;
 

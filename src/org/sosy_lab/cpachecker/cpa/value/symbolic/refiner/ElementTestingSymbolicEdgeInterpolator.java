@@ -34,9 +34,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -50,7 +51,7 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Edge interpolator for
@@ -115,8 +116,23 @@ public class ElementTestingSymbolicEdgeInterpolator
     interpolationQueries = 0;
 
     ForgettingCompositeState originState = pInputInterpolant.reconstructState();
-    Optional<ForgettingCompositeState> maybeSuccessor =
-        strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
+    final Optional<ForgettingCompositeState> maybeSuccessor;
+    if (pCurrentEdge == null) {
+      PathIterator it = pLocationInPath.fullPathIterator();
+      Optional<ForgettingCompositeState> intermediate = Optional.of(originState);
+      do {
+        if (!intermediate.isPresent()) {
+          break;
+        }
+
+        intermediate = strongestPost.getStrongestPost(intermediate.get(), valuePrecision,
+            it.getOutgoingEdge());
+        it.advance();
+      } while (!it.isPositionWithState());
+      maybeSuccessor = intermediate;
+    } else {
+      maybeSuccessor = strongestPost.getStrongestPost(originState, valuePrecision, pCurrentEdge);
+    }
 
     if (!maybeSuccessor.isPresent()) {
       return interpolantManager.getFalseInterpolant();
@@ -184,7 +200,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     IdentifierAssignment definiteAssignments = pState.getConstraintsState().getDefiniteAssignment();
 
     return new ForgettingCompositeState(pState.getValueState(),
-                                 new ConstraintsState(new HashSet<Constraint>(), definiteAssignments));
+                                 new ConstraintsState(new HashSet<>(), definiteAssignments));
   }
 
   private ForgettingCompositeState reduceConstraintsToNecessaryState(

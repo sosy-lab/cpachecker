@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * Intermediate state: a formula describing all possible executions at a point.
  */
-public class SlicingIntermediateState extends SlicingState {
+class SlicingIntermediateState extends SlicingState {
 
   private final CFANode node;
 
@@ -21,7 +21,10 @@ public class SlicingIntermediateState extends SlicingState {
   /** Checking coverage */
   private transient SlicingIntermediateState mergedInto;
 
-  private SlicingIntermediateState(CFANode pNode, PathFormula pPathFormula,
+  private transient int hashCache = 0;
+
+  private SlicingIntermediateState(
+      CFANode pNode, PathFormula pPathFormula,
       SlicingAbstractedState pStart) {
     node = pNode;
     pathFormula = pPathFormula;
@@ -31,7 +34,8 @@ public class SlicingIntermediateState extends SlicingState {
   public static SlicingIntermediateState of(
       CFANode pNode,
       PathFormula pPathFormula,
-      SlicingAbstractedState pStart) {
+      SlicingAbstractedState pStart
+      ) {
     return new SlicingIntermediateState(pNode, pPathFormula, pStart);
   }
 
@@ -56,7 +60,6 @@ public class SlicingIntermediateState extends SlicingState {
     return mergedInto == other;
   }
 
-
   @Override
   public boolean isAbstracted() {
     return false;
@@ -78,6 +81,9 @@ public class SlicingIntermediateState extends SlicingState {
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, pathFormula, start);
+    if (hashCache == 0) {
+      hashCache = Objects.hash(node, pathFormula, start);
+    }
+    return hashCache;
   }
 }

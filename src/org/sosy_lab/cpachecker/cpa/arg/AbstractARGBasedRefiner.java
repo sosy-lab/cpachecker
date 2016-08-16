@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Collection;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
-import com.google.errorprone.annotations.ForOverride;
+import java.util.Collection;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Base implementation for {@link Refiner}s that provides access to ARG utilities
@@ -65,7 +65,11 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
-  private int counterexamplesCounter = 0;
+  protected AbstractARGBasedRefiner(AbstractARGBasedRefiner pAbstractARGBasedRefiner) {
+    refiner = pAbstractARGBasedRefiner.refiner;
+    argCpa = pAbstractARGBasedRefiner.argCpa;
+    logger = pAbstractARGBasedRefiner.logger;
+  }
 
   protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
     refiner = pRefiner;
@@ -94,18 +98,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
-        = new Function<CFAEdge, String>() {
-    @Override
-    public String apply(CFAEdge arg) {
-
-      if (arg instanceof CFunctionCallEdge) {
-        CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg;
-        return funcEdge.toString();
-      } else {
-        return null;
-      }
-    }
-  };
+        = arg ->  arg instanceof CFunctionCallEdge ? arg.toString() : null;
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
@@ -137,7 +130,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       // so it can be used for debugging
       // we don't know if the path is precise here, so we assume it is imprecise
       // (this only affects the CEXExporter)
-      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasibleImprecise(e.getErrorPath()));
+      lastElement.addCounterexampleInformation(
+          CounterexampleInfo.feasibleImprecise(e.getErrorPath()));
       throw e;
     }
 
@@ -150,13 +144,12 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
-      argCpa.addCounterexample(lastElement, counterexample);
+      lastElement.addCounterexampleInformation(counterexample);
 
-      logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
+      logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
-      counterexamplesCounter++;
+      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

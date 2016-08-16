@@ -25,13 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.Set;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -41,7 +35,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
-import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -73,6 +73,7 @@ public class AbstractionFormula implements Serializable {
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final transient int id = idGenerator.getFreshId();
   private final transient BooleanFormulaManager mgr;
+  private final transient FormulaManagerView fMgr;
   private final transient ImmutableSet<Integer> idsOfStoredAbstractionReused;
 
   public AbstractionFormula(
@@ -80,6 +81,7 @@ public class AbstractionFormula implements Serializable {
       Region pRegion, BooleanFormula pFormula,
       BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula,
       Set<Integer> pIdOfStoredAbstractionReused) {
+    this.fMgr = checkNotNull(mgr);
     this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
     this.region = checkNotNull(pRegion);
     this.formula = checkNotNull(pFormula);
@@ -109,6 +111,10 @@ public class AbstractionFormula implements Serializable {
    */
   public BooleanFormula asFormula() {
     return formula;
+  }
+
+  public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pMgr) {
+    return pMgr.translateFrom(formula, fMgr);
   }
 
   /**

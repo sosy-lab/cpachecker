@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Interface for the strongest post-operator as used in CEGAR.

@@ -45,11 +45,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -131,27 +133,15 @@ public final class AbstractStates {
   }
 
   public static FluentIterable<CFANode> extractLocations(Iterable<AbstractState> pStates) {
-    return from(pStates).transformAndConcat(EXTRACT_LOCATIONS);
+    return from(pStates).transformAndConcat(AbstractStates::extractLocations);
   }
 
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
     return extractStateByType(pState, AbstractStateWithLocation.class).getOutgoingEdges();
   }
 
-  public static final Function<AbstractState, CFANode> EXTRACT_LOCATION = new Function<AbstractState, CFANode>() {
-    @Override
-    public CFANode apply(AbstractState pArg0) {
-      return extractLocation(pArg0);
-    }
-  };
-
-  public static final Function<AbstractState, Iterable<CFANode>> EXTRACT_LOCATIONS =
-      new Function<AbstractState, Iterable<CFANode>>() {
-    @Override
-    public Iterable<CFANode> apply(AbstractState pArg0) {
-      return extractLocations(pArg0);
-    }
-  };
+  public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
+      AbstractStates::extractLocation;
 
   public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
     if (pStates instanceof LocationMappedReachedSet) {
@@ -160,7 +150,8 @@ public final class AbstractStates {
       return ((LocationMappedReachedSet)pStates).getReached(pLoc);
     }
 
-    Predicate<AbstractState> statesWithRightLocation = Predicates.compose(equalTo(pLoc), EXTRACT_LOCATION);
+    Predicate<AbstractState> statesWithRightLocation =
+        Predicates.compose(equalTo(pLoc), AbstractStates::extractLocation);
     return FluentIterable.from(pStates).filter(statesWithRightLocation);
   }
 
@@ -169,15 +160,11 @@ public final class AbstractStates {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
       final LocationMappedReachedSet states = (LocationMappedReachedSet)pStates;
-      return from(pLocs).transformAndConcat(new Function<CFANode, Iterable<AbstractState>>() {
-                  @Override
-                  public Iterable<AbstractState> apply(CFANode location) {
-                    return states.getReached(location);
-                  }
-                });
+      return from(pLocs).transformAndConcat(states::getReached);
     }
 
-    Predicate<AbstractState> statesWithRightLocation = Predicates.compose(in(pLocs), EXTRACT_LOCATION);
+    Predicate<AbstractState> statesWithRightLocation =
+        Predicates.compose(in(pLocs), AbstractStates::extractLocation);
     return from(pStates).filter(statesWithRightLocation);
   }
 
@@ -185,12 +172,12 @@ public final class AbstractStates {
     return (as instanceof Targetable) && ((Targetable)as).isTarget();
   }
 
-  public static final Predicate<AbstractState> IS_TARGET_STATE = new Predicate<AbstractState>() {
-    @Override
-    public boolean apply(AbstractState pArg0) {
-      return isTargetState(pArg0);
-    }
-  };
+  public static final Predicate<AbstractState> IS_TARGET_STATE = AbstractStates::isTargetState;
+
+  public static boolean hasAssumptions(AbstractState as) {
+    AssumptionStorageState assumption = extractStateByType(as, AssumptionStorageState.class);
+    return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();
+  }
 
   /**
    * Returns a {@link Function} object for {@link #extractStateByType(AbstractState, Class)}.
@@ -206,12 +193,7 @@ public final class AbstractStates {
   public static <T extends AbstractState>
                 Function<AbstractState, T> toState(final Class<T> pType) {
 
-    return new Function<AbstractState, T>() {
-      @Override
-      public T apply(AbstractState as) {
-        return extractStateByType(as, pType);
-      }
-    };
+    return as -> extractStateByType(as, pType);
   }
 
   /**
@@ -256,14 +238,6 @@ public final class AbstractStates {
     }.preOrderTraversal(as);
   }
 
-  private static final Function<AbstractState, Iterable<AbstractState>> AS_ITERABLE
-    = new Function<AbstractState, Iterable<AbstractState>>() {
-      @Override
-      public Iterable<AbstractState> apply(AbstractState pState) {
-        return asIterable(pState);
-      }
-    };
-
   /**
    * Apply {@link #asIterable(AbstractState)} to several abstract states at once
    * and provide an iterable for all resulting component abstract states.
@@ -272,7 +246,7 @@ public final class AbstractStates {
    * and there is no guaranteed order.
    */
   public static FluentIterable<AbstractState> asFlatIterable(final Iterable<AbstractState> pStates) {
-    return from(pStates).transformAndConcat(AS_ITERABLE);
+    return from(pStates).transformAndConcat(AbstractStates::asIterable);
   }
 
   /**
@@ -282,15 +256,14 @@ public final class AbstractStates {
    */
   public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state,
       PathFormulaManager pfmgr) {
-    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    List<BooleanFormula> result = new ArrayList<>();
 
     // traverse through all the sub-states contained in this state
     for (FormulaReportingState s : asIterable(state).filter(FormulaReportingState.class)) {
 
-      result = bfmgr.and(result, s.getFormulaApproximation(manager, pfmgr));
+      result.add(s.getFormulaApproximation(manager, pfmgr));
     }
 
-    return result;
+    return manager.getBooleanFormulaManager().and(result);
   }
 }

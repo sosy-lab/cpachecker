@@ -23,21 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -52,9 +41,20 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorState.TimeoutState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
-import com.google.common.base.Throwables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation extends SingleEdgeTransferRelation {
@@ -88,7 +88,8 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
+      executor =
+          Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
   }
 
@@ -183,7 +184,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // ignore strengthen
-      return null;
+      return Collections.singleton(pElement);
     }
 
     totalTimeOfTransfer.start();

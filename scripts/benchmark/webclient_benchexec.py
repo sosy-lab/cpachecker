@@ -25,6 +25,7 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
@@ -50,7 +51,7 @@ _print_lock = threading.Lock()
 
 def init(config, benchmark):
     global _webclient
-    
+
     if not config.debug:
         logging.getLogger('requests').setLevel(logging.WARNING)
 
@@ -98,38 +99,41 @@ def execute_benchmark(benchmark, output_handler):
     STOPPED_BY_INTERRUPT = False
     try:
         for runSet in benchmark.run_sets:
+            if STOPPED_BY_INTERRUPT:
+                break
+
             if not runSet.should_be_executed():
                 output_handler.output_for_skipping_run_set(runSet)
                 continue
 
             output_handler.output_before_run_set(runSet)
-            result_futures = _submitRunsParallel(runSet, benchmark)
+            try:
+                result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
 
-            _handle_results(result_futures, output_handler, benchmark)
+                _handle_results(result_futures, output_handler, benchmark, runSet)
+            except KeyboardInterrupt:
+                STOPPED_BY_INTERRUPT = True
+                output_handler.set_error('interrupted', runSet)
             output_handler.output_after_run_set(runSet)
 
-    except KeyboardInterrupt as e:
-        STOPPED_BY_INTERRUPT = True
-        raise e
-    except:
-        stop()
-        raise
     finally:
+        stop()
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
-
-    stop()
 
 def stop():
     global _webclient
-    _webclient.shutdown()
-    _webclient = None
+    if _webclient:
+        _webclient.shutdown()
+        _webclient = None
 
-def _submitRunsParallel(runSet, benchmark):
+def _submitRunsParallel(runSet, benchmark, output_handler):
     global _webclient
 
     logging.info('Submitting runs...')
-    
-    meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), "revision": _webclient.tool_revision()}, \
+
+    meta_information = json.dumps({"tool": {"name": _webclient.tool_name(), \
+                                            "revision": _webclient.tool_revision(), \
+                                            "benchexec-module" : benchmark.tool_module}, \
                                        "benchmark" : benchmark.name,
                                        "timestamp" : benchmark.instance,
                                        "runSet" : runSet.real_name or "",
@@ -143,16 +147,23 @@ def _submitRunsParallel(runSet, benchmark):
         logging.warning("CPU core requirement is not supported by the WebInterface.")
     if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
         logging.warning("Memory requirement is not supported by the WebInterface.")
-        
+
     cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
-    result_files_pattern = benchmark.result_files_pattern
-    if result_files_pattern is None:
+    result_files_patterns = benchmark.result_files_patterns
+    if not result_files_patterns:
         logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
-        submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, 
-                                           result_files_pattern, meta_information, priority)
+        required_files = run.required_files
+        submisson_future = executor.submit(_webclient.submit,
+                                           run=run,
+                                           limits=limits,
+                                           cpu_model=cpu_model,
+                                           required_files = required_files,
+                                           meta_information=meta_information,
+                                           priority=priority,
+                                           result_files_patterns=result_files_patterns)
         submission_futures[submisson_future] = run
 
     executor.shutdown(wait=False)
@@ -170,7 +181,10 @@ def _submitRunsParallel(runSet, benchmark):
 
 
             except (HTTPError, WebClientError) as e:
+                output_handler.set_error("VerifierCloud problem", runSet)
                 logging.warning('Could not submit run %s: %s.', run.identifier, e)
+                return result_futures # stop submitting runs
+
             finally:
                 submissonCounter += 1
     finally:
@@ -186,7 +200,7 @@ def _log_future_exception(result):
     if result.exception() is not None:
         logging.warning('Error during result processing.', exc_info=True)
 
-def _handle_results(result_futures, output_handler, benchmark):
+def _handle_results(result_futures, output_handler, benchmark, run_set):
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
@@ -195,10 +209,11 @@ def _handle_results(result_futures, output_handler, benchmark):
             result = result_future.result()
             f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
             f.add_done_callback(_log_future_exception)
-        
+
         except WebClientError as e:
+            output_handler.set_error("VerifierCloud problem", run_set)
             logging.warning("Execution of %s failed: %s", run.identifier, e)
-            
+
     executor.shutdown(wait=True)
 
 IGNORED_VALUES = set(['command', 'timeLimit', 'coreLimit', 'returnvalue', 'exitsignal'])
@@ -208,7 +223,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """
     Call handle_result with appropriate parameters to fit into the BenchExec expectations.
     """
-    result_values = {}
+    result_values = collections.OrderedDict()
 
     def _open_output_log(output_path):
         log_file = open(run.log_file, 'wb')
@@ -256,8 +271,12 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             os.rmdir(output_path)
 
     handle_result(
-        zip_content, run.log_file + ".output", run.identifier, benchmark.result_files_pattern,
-        _open_output_log, _handle_run_info, _handle_host_info, _handle_stderr_file)
+        zip_content, run.log_file + ".output", run.identifier,
+        result_files_patterns=benchmark.result_files_patterns,
+        open_output_log=_open_output_log,
+        handle_run_info=_handle_run_info,
+        handle_host_info=_handle_host_info,
+        handle_special_files=_handle_stderr_file)
 
     if result_values:
         with _print_lock:

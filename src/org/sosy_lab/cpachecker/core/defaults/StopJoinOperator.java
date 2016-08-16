@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
-import java.util.Collection;
-import java.util.Iterator;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.util.Collection;
+import java.util.Iterator;
 
 /**
  * Standard stop-join operator that first joins all states
@@ -48,6 +48,9 @@ public class StopJoinOperator implements StopOperator {
   @Override
   public boolean stop(AbstractState state, Collection<AbstractState> reached,
                       Precision precision) throws CPAException, InterruptedException {
+    if (reached.isEmpty()) {
+      return false;
+    }
     Iterator<AbstractState> it = reached.iterator();
     AbstractState joinedState = it.next();
     while (it.hasNext()) {

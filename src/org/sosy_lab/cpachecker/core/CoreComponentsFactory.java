@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Verify.verifyNotNull;
+
+import com.google.common.base.Preconditions;
+
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,7 +42,9 @@ import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -49,8 +55,9 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -70,8 +77,6 @@ import javax.annotation.Nullable;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
-  public static enum SpecAutomatonCompositionType { NONE, TARGET_SPEC, BACKWARD_TO_ENTRY_SPEC }
-
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
@@ -88,9 +93,8 @@ public class CoreComponentsFactory {
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
-  @Option(secure=true, name="checkCounterexamplesWithBDDCPARestriction",
-      description="use counterexample check and the BDDCPA Restriction option")
-  private boolean useBDDCPARestriction = false;
+  @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
+  private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -104,6 +108,21 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "useParallelAnalyses",
+    description =
+        "Use analyses parallely. The resulting reachedset is the one of the first"
+        + " analysis finishing in time. All other analyses are terminated."
+  )
+  private boolean useParallelAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.termination",
+    description = "Use termination algorithm to prove (non-)termination.")
+  private boolean useTerminationAlgorithm = false;
 
   @Option(secure=true,
       description="memorize previously used (incomplete) reached sets after a restart of the analysis")
@@ -147,52 +166,105 @@ public class CoreComponentsFactory {
 
   private final Configuration config;
   private final LogManager logger;
-  private final ShutdownManager shutdownManager;
+  private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
-  public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public CoreComponentsFactory(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      AggregatedReachedSets pAggregatedReachedSets)
+      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    // new ShutdownManager, it is important for BMCAlgorithm that it gets a ShutdownManager
-    // that also affects the CPA it is used with
-    shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
-    shutdownNotifier = shutdownManager.getNotifier();
 
     config.inject(this);
 
+    if (analysisNeedsShutdownManager()) {
+      shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
+      shutdownNotifier = shutdownManager.getNotifier();
+    } else {
+      shutdownManager = null;
+      shutdownNotifier = pShutdownNotifier;
+    }
+
     reachedSetFactory = new ReachedSetFactory(config);
+    aggregatedReachedSets = pAggregatedReachedSets;
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+
+    if (checkCounterexamplesWithBDDCPARestriction) {
+      checkCounterexamples = true;
+    }
   }
 
-  public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String programDenotation, final CFA cfa, @Nullable final MainCPAStatistics stats)
+  private boolean analysisNeedsShutdownManager() {
+    // BMCAlgorithm needs to get a ShutdownManager that also affects the CPA it is used with.
+    // We must not create such a new ShutdownManager if it is not needed,
+    // because otherwise the GC will throw it away and shutdowns will NOT WORK!
+    return !useProofCheckAlgorithm
+        && !useRestartingAlgorithm
+        && !useImpactAlgorithm
+        && !useRestartAlgorithmWithARGReplay
+        && !runCBMCasExternalTool
+        && useBMC;
+  }
+
+  public Algorithm createAlgorithm(
+      final ConfigurableProgramAnalysis cpa,
+      final String programDenotation,
+      final CFA cfa,
+      final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
+
+    // TerminationAlgorithm requires hard coded specification.
+    Specification specification;
+    if (useTerminationAlgorithm) {
+      specification = loadTerminationSpecification(cfa, pSpecification);
+    } else {
+      specification = pSpecification;
+    }
 
     Algorithm algorithm;
 
     if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
-      algorithm = new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa);
+      algorithm =
+          new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
 
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, programDenotation, cfa);
+      algorithm =
+          RestartAlgorithm.create(
+              config, logger, shutdownNotifier, specification, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
     } else if (useRestartAlgorithmWithARGReplay) {
-      algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
+      algorithm =
+          new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
+    } else if (useParallelAlgorithm) {
+      algorithm =
+          new ParallelAlgorithm(
+              config,
+              logger,
+              shutdownNotifier,
+              specification,
+              cfa,
+              programDenotation,
+              aggregatedReachedSets);
+
     } else {
-      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
+      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
@@ -203,14 +275,29 @@ public class CoreComponentsFactory {
       }
 
       if (useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownManager, cfa);
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new BMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
       }
 
       if (checkCounterexamples) {
         algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
       }
 
-      if (useBDDCPARestriction) {
+      algorithm =
+          ExceptionHandlingAlgorithm.create(
+              config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples, useCEGAR);
+
+      if (checkCounterexamplesWithBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
@@ -232,7 +319,9 @@ public class CoreComponentsFactory {
       }
 
       if (useResultCheckAlgorithm) {
-        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
+        algorithm =
+            new ResultCheckAlgorithm(
+                algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
 
       if (useCustomInstructionRequirementExtraction) {
@@ -242,22 +331,26 @@ public class CoreComponentsFactory {
       if (unknownIfUnrestrictedProgram) {
         algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
       }
+
+      if (useTerminationAlgorithm) {
+        algorithm = new TerminationAlgorithm(
+            config,
+            logger,
+            shutdownNotifier,
+            cfa,
+            specification,
+            algorithm,
+            cpa);
+      }
     }
 
-    if (stats != null && algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-    }
     return algorithm;
-  }
-
-  public ReachedSetFactory getReachedSetFactory() {
-    return reachedSetFactory;
   }
 
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -270,39 +363,38 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa,
-      @Nullable final MainCPAStatistics stats,
-      SpecAutomatonCompositionType composeWithSpecificationCPAs) throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
-    if (stats != null) {
-      stats.cpaCreationTime.start();
+
+    if (useRestartingAlgorithm || useParallelAlgorithm) {
+      // hard-coded dummy CPA
+      return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
-    try {
 
-      if (useRestartingAlgorithm) {
-        // hard-coded dummy CPA
-        return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
-      }
-
-      final ConfigurableProgramAnalysis cpa;
-      switch (composeWithSpecificationCPAs) {
-      case TARGET_SPEC:
-        cpa = cpaFactory.buildCPAWithSpecAutomatas(cfa); break;
-      case BACKWARD_TO_ENTRY_SPEC:
-        cpa = cpaFactory.buildCPAWithBackwardSpecAutomatas(cfa); break;
-      default:
-        cpa = cpaFactory.buildCPAs(cfa, null);
-      }
-
-      if (stats != null && cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-      }
-      return cpa;
-
-    } finally {
-      if (stats != null) {
-        stats.cpaCreationTime.stop();
-      }
+    // TerminationAlgorithm requires hard coded specification.
+    Specification specification;
+    if (useTerminationAlgorithm) {
+      specification = loadTerminationSpecification(cfa, pSpecification);
+    } else {
+      specification = pSpecification;
     }
+
+    return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
+  }
+
+  private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
+      throws InvalidConfigurationException {
+    Preconditions.checkState(useTerminationAlgorithm);
+    Specification terminationSpecification =
+        TerminationAlgorithm.loadTerminationSpecification(cfa, config, logger);
+
+    if (!originalSpecification.equals(Specification.alwaysSatisfied())
+        && !originalSpecification.equals(terminationSpecification)) {
+      throw new InvalidConfigurationException(
+          originalSpecification + "is not usable with termination analysis");
+    }
+
+    return terminationSpecification;
   }
 }

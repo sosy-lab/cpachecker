@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import javax.annotation.Nullable;
+
 
 public interface InvariantSupplier {
 
@@ -44,7 +46,10 @@ public interface InvariantSupplier {
    * @return An invariant boolean formula without SSA indices.
    */
   BooleanFormula getInvariantFor(
-      CFANode node, FormulaManagerView fmgr, PathFormulaManager pfmgr, PathFormula pContext);
+      CFANode node,
+      FormulaManagerView fmgr,
+      PathFormulaManager pfmgr,
+      @Nullable PathFormula pContext);
 
   static enum TrivialInvariantSupplier implements InvariantSupplier {
     INSTANCE;

@@ -102,7 +102,7 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
 
     if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);
-    } else if (mergeType.equals("JOIN")) {
+    } else if (stopType.equals("JOIN")) {
       stop = new StopJoinOperator(domain);
     } else {
       stop = new StopIgnoringCallstack();

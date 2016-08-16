@@ -24,7 +24,27 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.*;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
+
+import java.util.Optional;
+import com.google.common.collect.ContiguousSet;
+import com.google.common.collect.DiscreteDomain;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Range;
+
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -34,27 +54,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.ContiguousSet;
-import com.google.common.collect.DiscreteDomain;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Range;
 
 /**
  * Utility class for initializer-related tasks.
@@ -157,7 +156,7 @@ public final class CInitializers {
       boolean successful;
 
       if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        successful = handleInitializerForCompositeType(currentObject, Optional.<String>absent(),
+        successful = handleInitializerForCompositeType(currentObject, Optional.empty(),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 
@@ -389,7 +388,7 @@ public final class CInitializers {
       boolean successful;
 
       if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        successful = handleInitializerForCompositeType(currentSubobject, Optional.<String>absent(),
+        successful = handleInitializerForCompositeType(currentSubobject, Optional.empty(),
             (CCompositeType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
 
@@ -428,14 +427,13 @@ public final class CInitializers {
       final FileLocation loc, final CFAEdge edge, final CDesignator designator)
           throws UnrecognizedCCodeException {
 
-    Iterator<CFieldReference> fields = from(structType.getMembers()).transform(
-        new Function<CCompositeTypeMemberDeclaration, CFieldReference>() {
-          @Override
-          public CFieldReference apply(CCompositeTypeMemberDeclaration field) {
-            return new CFieldReference(loc, field.getType(),
-                field.getName(), currentSubobject, false);
-          }
-        }).iterator();
+    Iterator<CFieldReference> fields =
+        from(structType.getMembers())
+            .transform(
+                field ->
+                    new CFieldReference(
+                        loc, field.getType(), field.getName(), currentSubobject, false))
+            .iterator();
 
     if (!fields.hasNext()) {
       // empty struct
@@ -525,17 +523,17 @@ public final class CInitializers {
     final CType elementType = arrayType.getType();
 
     Set<Long> indexSet = ContiguousSet.create(arrayIndices, DiscreteDomain.longs());
-    Iterator<CExpression> elements = from(indexSet).transform(
-        new Function<Long, CExpression>() {
-          @Override
-          public CExpression apply(Long pInput) {
-            CExpression index = new CIntegerLiteralExpression(loc,
-                CNumericTypes.INT, BigInteger.valueOf(pInput.longValue()));
+    Iterator<CExpression> elements =
+        from(indexSet)
+            .<CExpression>transform(
+                pInput -> {
+                  CExpression index =
+                      new CIntegerLiteralExpression(
+                          loc, CNumericTypes.INT, BigInteger.valueOf(pInput.longValue()));
 
-            return new CArraySubscriptExpression(
-                loc, elementType, currentSubobject, index);
-          }
-        }).iterator();
+                  return new CArraySubscriptExpression(loc, elementType, currentSubobject, index);
+                })
+            .iterator();
 
     CExpression firstElement = elements.next();
 

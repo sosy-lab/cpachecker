@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,11 +73,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /******************************************************************+
@@ -250,8 +250,7 @@ public class NullPointerChecks {
                                   predecessor, successor,
                                   ((CDeclarationEdge)edge).getDeclaration());
     case CallToReturnEdge:
-      assert (false);
-      // $FALL-THROUGH$
+      throw new AssertionError();
     default:
       throw new AssertionError("more edge types valid than expected, more work to do here");
     }

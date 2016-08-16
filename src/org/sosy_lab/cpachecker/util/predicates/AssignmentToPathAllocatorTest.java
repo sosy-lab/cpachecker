@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -54,7 +54,7 @@ public class AssignmentToPathAllocatorTest {
         new AssignmentToPathAllocator(
             Configuration.defaultConfiguration(),
             ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance(),
+            LogManager.createTestLogManager(),
             MachineModel.LINUX32);
   }
 

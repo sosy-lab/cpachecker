@@ -23,12 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,6 +42,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
@@ -59,8 +61,12 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   protected int savedReachedSetSize;
 
-  public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
+  public PartialReachedSetStrategy(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      @Nullable PropertyCheckerCPA pCpa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCpa);
     pConfig.inject(this, PartialReachedSetStrategy.class);
 

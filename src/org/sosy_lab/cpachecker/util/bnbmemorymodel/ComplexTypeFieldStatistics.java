@@ -130,6 +130,8 @@ public class ComplexTypeFieldStatistics {
           }
         }
         break;
+
+      default:
     }
 
   }

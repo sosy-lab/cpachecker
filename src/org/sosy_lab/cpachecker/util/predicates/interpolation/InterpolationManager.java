@@ -27,22 +27,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -75,6 +74,7 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -196,14 +196,15 @@ public final class InterpolationManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
-    loopStructure = pLoopStructure.orNull();
-    variableClassification = pVarClassification.orNull();
+    loopStructure = pLoopStructure.orElse(null);
+    variableClassification = pVarClassification.orElse(null);
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
-      executor = Executors.newSingleThreadExecutor(Threads.threadFactoryBuilder().setDaemon(true).build());
+      executor =
+          Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
     if (reuseInterpolationEnvironment) {
@@ -326,22 +327,38 @@ public final class InterpolationManager {
             currentInterpolator.close();
           }
         }
-      } catch (SolverException e) {
-        logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
+      } catch (SolverException itpException) {
+        logger.logUserException(
+            Level.FINEST,
+            itpException,
+            "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        // (this happens for example for MathSAT).
+        // If solving works but creating the model for the error path not,
+        // we at least return an empty model.
+        try (ProverEnvironment prover =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
           if (!prover.isUnsat()) {
-            return getErrorPath(f, prover, elementsOnPath);
+            try {
+              return getErrorPath(f, prover, elementsOnPath);
+            } catch (SolverException modelException) {
+              logger.log(
+                  Level.WARNING,
+                  "Solver could not produce model, variable assignment of error path can not be dumped.");
+              logger.logDebugException(modelException);
+              return CounterexampleTraceInfo.feasible(
+                  f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+            }
           }
-        } catch (SolverException e2) {
-          // in case of exception throw original one below
-          logger.logDebugException(e2, "Solving trace failed even without interpolation");
+        } catch (SolverException solvingException) {
+          // in case of exception throw original one below but do not forget e2
+          itpException.addSuppressed(solvingException);
         }
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
       }
 
     } finally {
@@ -511,9 +528,9 @@ public final class InterpolationManager {
                                                                                                    loopStructure,
                                                                                                    fmgr);
     assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple.<BooleanFormula>getProjectionToFirst()))
+    assert ImmutableMultiset.copyOf(from(result).transform(Triple::getFirst))
             .equals(ImmutableMultiset.copyOf(traceFormulas))
-            : "Ordered list does not contain the same formulas with the same count";
+        : "Ordered list does not contain the same formulas with the same count";
     return result;
   }
 
@@ -587,7 +604,7 @@ public final class InterpolationManager {
 
     if (bfmgr.isTrue(branchingFormula)) {
       return CounterexampleTraceInfo.feasible(
-          f, getModel(pProver), ImmutableMap.<Integer, Boolean>of());
+          f, pProver.getModelAssignments(), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
@@ -598,7 +615,7 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      List<ValueAssignment> model = getModel(pProver);
+      List<ValueAssignment> model = pProver.getModelAssignments();
       return CounterexampleTraceInfo.feasible(
           f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
@@ -611,16 +628,6 @@ public final class InterpolationManager {
 
       return CounterexampleTraceInfo.feasible(
           f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
-    }
-  }
-
-  private List<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
-    try {
-      return pItpProver.getModelAssignments();
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
-      logger.logDebugException(e);
-      return ImmutableList.of();
     }
   }
 
@@ -871,8 +878,9 @@ public final class InterpolationManager {
         }
       }
 
-      assert Iterables.elementsEqual(from(traceFormulas).transform(Triple.getProjectionToFirst()),
-              from(currentlyAssertedFormulas).transform(Triple.getProjectionToFirst()));
+      assert Iterables.elementsEqual(
+          from(traceFormulas).transform(Triple::getFirst),
+          from(currentlyAssertedFormulas).transform(Triple::getFirst));
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible

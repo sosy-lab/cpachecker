@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.rationals.Rational;
@@ -34,10 +33,12 @@ import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 
+import java.util.Optional;
+
 /**
  * Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula.
  */
-public class OptimizationProverEnvironmentView implements OptimizationProverEnvironment {
+class OptimizationProverEnvironmentView implements OptimizationProverEnvironment {
 
   private final OptimizationProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;

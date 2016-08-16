@@ -25,22 +25,25 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.util.Pair;
+
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
+import javax.annotation.Nullable;
 
 /**
  * Basic implementation of ReachedSet.
@@ -50,8 +53,8 @@ class DefaultReachedSet implements ReachedSet {
 
   private final LinkedHashMap<AbstractState, Precision> reached;
   private final Set<AbstractState> unmodifiableReached;
-  private AbstractState lastState = null;
-  private AbstractState firstState = null;
+  private @Nullable AbstractState lastState = null;
+  private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
 
   DefaultReachedSet(WaitlistFactory waitlistFactory) {
@@ -256,6 +259,11 @@ class DefaultReachedSet implements ReachedSet {
     Precision prec = reached.get(state);
     Preconditions.checkArgument(prec != null, "State not in reached set:\n%s", state);
     return prec;
+  }
+
+  @Override
+  public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
+    reached.forEach(pAction);
   }
 
   @Override

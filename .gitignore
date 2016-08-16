@@ -27,9 +27,6 @@
 /lib/java
 /lib/java-contrib
 /lib/java-benchmark
-/lib/gae
-/lib/gae-contrib
-/lib/appengine-java-sdk*
 
 # /lib/native/
 /lib/native/.hg*
@@ -214,12 +211,6 @@
 
 /.metadata
 /test/programs/benchmarks
-
-/war/WEB-INF/appengine-generated
-/war/WEB-INF/classes
-/war/WEB-INF/lib
-/war/WEB-INF/configurations
-/war/WEB-INF/specifications
 
 .idea/workspace.xml
 .idea/uiDesigner.xml

@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import java.util.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,21 +38,21 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
+  private final ARGStatistics statistics;
+
   protected final boolean inCPAEnabledAnalysis;
 
 
-  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInCPAEnabledAnalysis) {
+  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInCPAEnabledAnalysis, ARGStatistics pStats) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
     inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
+    statistics = pStats;
   }
 
   @Override
@@ -62,6 +65,21 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     Preconditions.checkArgument(pElement instanceof ARGState);
     //noinspection ConstantConditions
     ARGState element = (ARGState)pElement;
+
+    // do precision adjustment
+    Optional<PrecisionAdjustmentResult> result = prec(element, oldPrecision, pElements, projection, fullState);
+
+    // print statistics for this algorithm iteration (if necessary)
+    statistics.printIterationStatistics(pElements);
+
+    return result;
+  }
+
+  private Optional<PrecisionAdjustmentResult> prec(final ARGState element,
+      Precision oldPrecision,
+      UnmodifiableReachedSet pElements,
+      final Function<AbstractState, AbstractState> projection,
+      AbstractState fullState) throws CPAException, InterruptedException {
 
     if (inCPAEnabledAnalysis && element.isTarget()) {
       if (elementHasSiblings(element)) {
@@ -87,7 +105,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     if (!optionalUnwrappedResult.isPresent()) {
       element.removeFromARG();
-      return Optional.absent();
+      return Optional.empty();
     }
 
     PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.get();
@@ -103,7 +121,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
+      return Optional.of(PrecisionAdjustmentResult.create(element, oldPrecision, action));
     }
 
     ARGState resultElement = new ARGState(newElement, null);

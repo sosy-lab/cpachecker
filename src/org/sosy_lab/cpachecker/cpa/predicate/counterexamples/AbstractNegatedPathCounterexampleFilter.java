@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.ForOverride;
 
@@ -87,7 +87,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
     }
     if (cutPoint < 0) {
       // no AssumEdge in path, cannot use this filter
-      return Optional.absent();
+      return Optional.empty();
     }
 
     AssumeEdge lastAssumeEdge = (AssumeEdge)edges.get(cutPoint);
@@ -107,7 +107,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
 
     } catch (CPATransferException e) {
       logger.logUserException(Level.WARNING, e, "Failed to filter counterexample");
-      return Optional.absent();
+      return Optional.empty();
     }
 
     return getCounterexampleRepresentation(formulas);
@@ -116,7 +116,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
   /**
    * This method needs to produce an immutable representation of each counterexample.
    * If this filter does not manage to produce a meaningful representation of the current path,
-   * it may return {@link Optional#absent()}. In this case, the counterexample
+   * it may return {@link Optional#empty()}. In this case, the counterexample
    * is considered relevant.
    * This method is given as input a list of {@link BooleanFormula}s
    * that represent the "negated path" of this counterexample.
@@ -124,7 +124,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
    * @param negatedPath A list of formulas, guaranteed to be not null.
    * @return An immutable representation of the counterexample, needs to
    * have proper implementations of {@link Object#equals(Object)}
-   * and {@link Object#hashCode()}, or {@link Optional#absent()}.
+   * and {@link Object#hashCode()}, or {@link Optional#empty()}.
    */
   @ForOverride
   protected abstract Optional<T> getCounterexampleRepresentation(List<BooleanFormula> negatedPath) throws InterruptedException;

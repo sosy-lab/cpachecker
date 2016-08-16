@@ -52,7 +52,11 @@ public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    // TODO Auto-generated method stub
-    return null;
+    return copy();
+  }
+
+  @Override
+  public boolean isMoreGeneral(SMGObject pOther) {
+    return false;
   }
 }

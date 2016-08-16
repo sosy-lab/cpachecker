@@ -1,12 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -16,6 +15,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 
 public final class PolicyAbstractedState extends PolicyState
       implements Iterable<Entry<Template, PolicyBound>>,
@@ -53,13 +54,25 @@ public final class PolicyAbstractedState extends PolicyState
    */
   private final int locationID;
 
-  private PolicyAbstractedState(CFANode node,
+  /**
+   * A pointer to the sibling state.
+   * <p>Only valid for states on which value determination was just performed.
+   */
+  private final transient Optional<PolicyAbstractedState> sibling;
+
+  private transient int hashCache = 0;
+
+  private PolicyAbstractedState(
+      CFANode node,
       Map<Template, PolicyBound> pAbstraction,
       CongruenceState pCongruence,
       int pLocationID,
-      StateFormulaConversionManager pManager, SSAMap pSsaMap,
-      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate,
-      Optional<PolicyIntermediateState> pPredecessor) {
+      StateFormulaConversionManager pManager,
+      SSAMap pSsaMap,
+      PointerTargetSet pPointerTargetSet,
+      BooleanFormula pPredicate,
+      Optional<PolicyIntermediateState> pPredecessor,
+      Optional<PolicyAbstractedState> pSibling) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
@@ -69,6 +82,11 @@ public final class PolicyAbstractedState extends PolicyState
     congruence = pCongruence;
     locationID = pLocationID;
     manager = pManager;
+    sibling = pSibling;
+  }
+
+  public Optional<PolicyAbstractedState> getSibling() {
+    return sibling;
   }
 
   public int getLocationID() {
@@ -88,11 +106,19 @@ public final class PolicyAbstractedState extends PolicyState
       SSAMap pSSAMap,
       PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
-      PolicyIntermediateState pPredecessor
-  ) {
-    return new PolicyAbstractedState(node, data,
-        pCongruence, pLocationID, pManager, pSSAMap,
-        pPointerTargetSet, pPredicate, Optional.of(pPredecessor));
+      PolicyIntermediateState pPredecessor,
+      Optional<PolicyAbstractedState> pSibling) {
+    return new PolicyAbstractedState(
+        node,
+        data,
+        pCongruence,
+        pLocationID,
+        pManager,
+        pSSAMap,
+        pPointerTargetSet,
+        pPredicate,
+        Optional.of(pPredecessor),
+        pSibling);
   }
 
   /**
@@ -100,9 +126,17 @@ public final class PolicyAbstractedState extends PolicyState
    */
   public PolicyAbstractedState withNewAbstraction(
       Map<Template, PolicyBound> newAbstraction) {
-    return new PolicyAbstractedState(getNode(),
-        newAbstraction, congruence, locationID, manager, ssaMap,
-        pointerTargetSet, extraInvariant, predecessor);
+    return new PolicyAbstractedState(
+        getNode(),
+        newAbstraction,
+        congruence,
+        locationID,
+        manager,
+        ssaMap,
+        pointerTargetSet,
+        extraInvariant,
+        predecessor,
+        sibling);
   }
 
   /**
@@ -114,9 +148,17 @@ public final class PolicyAbstractedState extends PolicyState
       // Very important to return identity.
       return this;
     }
-    return new PolicyAbstractedState(getNode(),
-        abstraction, congruence, locationID, manager, ssaMap,
-        pointerTargetSet, pNewExtraInvariant, predecessor);
+    return new PolicyAbstractedState(
+        getNode(),
+        abstraction,
+        congruence,
+        locationID,
+        manager,
+        ssaMap,
+        pointerTargetSet,
+        pNewExtraInvariant,
+        predecessor,
+        sibling);
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
@@ -140,26 +182,27 @@ public final class PolicyAbstractedState extends PolicyState
    * <code>e</code> or an empty optional if it is unbounded.
    */
   public Optional<PolicyBound> getBound(Template e) {
-    return Optional.fromNullable(abstraction.get(e));
+    return Optional.ofNullable(abstraction.get(e));
   }
 
   /**
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      BooleanFormula pPredicate,
-      StateFormulaConversionManager pManager) {
+                                            BooleanFormula pPredicate,
+                                            StateFormulaConversionManager pManager,
+                                            CongruenceManager pCongruenceManager) {
     return new PolicyAbstractedState(
         node, // node
-        ImmutableMap.<Template, PolicyBound>of(), // abstraction
-        CongruenceState.empty(),
+        ImmutableMap.of(), // abstraction
+        CongruenceState.empty(pCongruenceManager),
         -1,
         pManager,
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pPredicate,
-        Optional.<PolicyIntermediateState>absent()
-    );
+        Optional.empty(),
+        Optional.empty());
   }
 
   public int size() {
@@ -187,7 +230,8 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public String toString() {
-    return String.format("(loc=%s)%s", locationID, abstraction);
+    return String.format("(loc=%s, node=%s)%s", locationID, getNode(),
+        abstraction);
   }
 
   @Override
@@ -201,16 +245,37 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView fmgr, PathFormulaManager pfmgr) {
-    BooleanFormula invariant;
-    try {
-      invariant = fmgr.getBooleanFormulaManager().and(
-          manager.abstractStateToConstraints(fmgr, pfmgr, this, false)
-      );
-    } catch (CPAException e) {
-      throw new UnsupportedOperationException(
-          "The invariant generation exception should never be "
-              + "encountered on this code path.");
+    return fmgr.uninstantiate(fmgr.getBooleanFormulaManager().and(
+        manager.abstractStateToConstraints(fmgr, pfmgr, this, false)
+    ));
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
     }
-    return fmgr.uninstantiate(invariant);
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    PolicyAbstractedState entries = (PolicyAbstractedState) pO;
+    return Objects.equals(congruence, entries.congruence) &&
+        Objects.equals(abstraction, entries.abstraction) &&
+        Objects.equals(ssaMap, entries.ssaMap) &&
+        Objects.equals(pointerTargetSet, entries.pointerTargetSet) &&
+        Objects.equals(extraInvariant, entries.extraInvariant) &&
+        Objects.equals(getNode(), entries.getNode());
+  }
+
+  @Override
+  public int hashCode() {
+    if (hashCache == 0) {
+      hashCache = Objects
+          .hash(
+              getNode(),
+              congruence, abstraction, ssaMap, pointerTargetSet,
+              extraInvariant);
+    }
+    return hashCache;
   }
 }

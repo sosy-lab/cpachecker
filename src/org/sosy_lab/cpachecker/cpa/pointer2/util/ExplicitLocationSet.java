@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
-import java.util.Iterator;
-import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.Iterator;
+import java.util.Set;
 
 public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation> {
 
@@ -170,10 +170,6 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
   public int hashCode() {
     if (isBot()) {
       return LocationSetBot.INSTANCE.hashCode();
-    }
-    if (isTop()) {
-      assert false;
-      return LocationSetTop.INSTANCE.hashCode();
     }
     return explicitSet.hashCode();
   }

@@ -9,9 +9,9 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Policy with a local bound.
@@ -39,13 +39,15 @@ public class PolicyBound {
    */
   private final ImmutableSet<Template> dependencies;
 
+  private int hashCache = 0;
+
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
 
   private PolicyBound(PathFormula pFormula, Rational pBound,
       PolicyAbstractedState pPredecessor,
-      Set<Template> pDependencies) {
+      Collection<Template> pDependencies) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
@@ -54,7 +56,7 @@ public class PolicyBound {
 
   public static PolicyBound of(PathFormula pFormula, Rational bound,
       PolicyAbstractedState pUpdatedFrom,
-      Set<Template> pDependencies
+      Collection<Template> pDependencies
   ) {
     return new PolicyBound(pFormula, bound, pUpdatedFrom,
         pDependencies);
@@ -62,6 +64,11 @@ public class PolicyBound {
 
   public PolicyBound updateValue(Rational newValue) {
     return new PolicyBound(formula, newValue, predecessor, dependencies);
+  }
+
+  public PolicyBound withNoDependencies() {
+    return new PolicyBound(formula, bound, predecessor,
+        ImmutableSet.of());
   }
 
   /**
@@ -98,7 +105,10 @@ public class PolicyBound {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(predecessor, bound, formula);
+    if (hashCache == 0) {
+      hashCache = Objects.hashCode(predecessor, bound, formula);
+    }
+    return hashCache;
   }
 
   @Override
@@ -110,9 +120,15 @@ public class PolicyBound {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) return true;
-    if (other == null) return false;
-    if (other.getClass() != this.getClass()) return false;
+    if (this == other) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass() != this.getClass()) {
+      return false;
+    }
     PolicyBound o = (PolicyBound) other;
     return
         predecessor.equals(o.predecessor)

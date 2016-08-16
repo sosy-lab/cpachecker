@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,7 +42,9 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 
-import com.google.common.collect.FluentIterable;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * {@link PathExtractor} that sorts paths by their length or interpolant quality.
@@ -101,11 +101,9 @@ public class SortingPathExtractor extends PathExtractor {
             int score1 = prefixSelector.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_MIN);
             int score2 = prefixSelector.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_MIN);
 
-            return score1 - score2;
-          }
-
-          else {
-            return path1.size() - path2.size();
+            return Integer.compare(score1, score2);
+          } else {
+            return Integer.compare(path1.size(), path2.size());
           }
         } catch (CPAException | InterruptedException e) {
           throw new AssertionError(e);

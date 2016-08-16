@@ -57,11 +57,6 @@ public interface MergeOperator {
    * i.e., state2 <= result <= top
    * (as defined by the {@link AbstractDomain#isLessOrEqual(AbstractState, AbstractState)} method).
    *
-   * IMPORTANT NOTE:
-   * Until we fix ticket #92, and the resulting state is equal to state2,
-   * you need to return exactly the state2 object,
-   * not another object that is only equal to it.
-   *
    * @param state1 The first input state.
    * @param state2 The second input state, from which the result is produced.
    * @param precision The precision.

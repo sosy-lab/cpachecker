@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -98,7 +98,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
       if (!itpProver.isUnsat()) {
         // Negated path is not infeasible, cannot produce interpolants.
         // No filtering possible.
-        return Optional.absent();
+        return Optional.empty();
       }
 
       Set<AbstractionPredicate> predicates = new HashSet<>();
@@ -109,7 +109,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
       return Optional.of(ImmutableSet.copyOf(predicates));
     } catch (SolverException e) {
       logger.logUserException(Level.WARNING, e, "Interpolation failed on counterexample path, cannot filter this counterexample");
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

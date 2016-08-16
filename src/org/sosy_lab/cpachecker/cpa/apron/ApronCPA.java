@@ -23,18 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,8 +33,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -52,7 +42,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -69,13 +59,25 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import apron.ApronException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import javax.annotation.Nullable;
+
+import apron.ApronException;
 
 @Options(prefix="cpa.apron")
 public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker, StatisticsProvider {
@@ -91,6 +93,10 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   @Option(secure=true, name="splitDisequalities",
       description="split disequalities considering integer operands into two states or use disequality provided by apron library ")
   private boolean splitDisequalities = true;
+
+  @Option(secure=true, name="domain", toUppercase=true,
+      description="Use this to change the underlying abstract domain in the APRON library")
+  private ApronManager.AbstractDomain domainType = ApronManager.AbstractDomain.OCTAGON;
 
   @Option(secure=true, description="get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -122,7 +128,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     logger = log;
     ApronDomain apronDomain = new ApronDomain(logger);
 
-    apronManager = new ApronManager(config);
+    apronManager = new ApronManager(domainType);
 
     this.transferRelation = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), splitDisequalities);
 
@@ -271,7 +277,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   private void exportPrecision(ReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
-    try (Writer writer = Files.openOutputFile(precisionFile)) {
+    try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
       getLogger().logUserException(Level.WARNING, e, "Could not write apron-analysis precision to file");
@@ -284,7 +290,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
 
     List<String> contents = null;
     try {
-      contents = initialPrecisionFile.asCharSource(Charset.defaultCharset()).readLines();
+      contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
       return mapping;

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
@@ -59,8 +60,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
-
-import javax.annotation.Nonnull;
 
 /**
  * Actual builder implementation for PointerTargetSet.
@@ -96,38 +95,32 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
       };
 
   // Used in addEssentialFields()
-  private static final Function<Pair<CCompositeType, String>,
-      Triple<CCompositeType, String, CType>> typeFieldFunction =
-      new Function<Pair<CCompositeType, String>,
-          Triple<CCompositeType, String, CType>>() {
-        @Override
-        public Triple<CCompositeType, String, CType> apply(
-            @Nonnull Pair<CCompositeType, String> pField) {
-          final CCompositeType fieldComposite = pField.getFirst();
-          final String fieldName = pField.getSecond();
-          for (final CCompositeTypeMemberDeclaration declaration : fieldComposite.getMembers()) {
-            if (declaration.getName().equals(fieldName)) {
-              return Triple.of(fieldComposite, fieldName,
-                  CTypeUtils.simplifyType(declaration.getType()));
+  private static final Function<Pair<CCompositeType, String>, Triple<CCompositeType, String, CType>>
+      typeFieldFunction =
+          pField -> {
+            final CCompositeType fieldComposite = pField.getFirst();
+            final String fieldName = pField.getSecond();
+            for (final CCompositeTypeMemberDeclaration declaration : fieldComposite.getMembers()) {
+              if (declaration.getName().equals(fieldName)) {
+                return Triple.of(
+                    fieldComposite, fieldName, CTypeUtils.simplifyType(declaration.getType()));
+              }
             }
-          }
-          throw new AssertionError("Tried to start tracking a non-existent field " + fieldName
-              + " in composite type " + fieldComposite);
-        }
-      };
+            throw new AssertionError(
+                "Tried to start tracking a non-existent field "
+                    + fieldName
+                    + " in composite type "
+                    + fieldComposite);
+          };
 
   // Used in addEssentialFields()
   private static final Comparator<Triple<CCompositeType, String, CType>>
-      simpleTypedFieldsFirstComparator = new Comparator<Triple<CCompositeType, String, CType>>() {
-    @Override
-    public int compare(
-        Triple<CCompositeType, String, CType> pField1,
-        Triple<CCompositeType, String, CType> pField2) {
-      final int isField1Simple = pField1.getThird() instanceof CCompositeType ? 1 : 0;
-      final int isField2Simple = pField2.getThird() instanceof CCompositeType ? 1 : 0;
-      return isField1Simple - isField2Simple;
-    }
-  };
+      simpleTypedFieldsFirstComparator =
+          (pField1, pField2) -> {
+            final int isField1Simple = pField1.getThird() instanceof CCompositeType ? 1 : 0;
+            final int isField2Simple = pField2.getThird() instanceof CCompositeType ? 1 : 0;
+            return isField1Simple - isField2Simple;
+          };
 
   /**
    * Creates a new RealPointerTargetSetBuilder.
@@ -235,7 +228,13 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     final BooleanFormula nextInequality = ptsMgs.getNextBaseAddressInequality(
         pName, bases, lastBase);
     lastBase = pName;
-    return nextInequality;
+    if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(pType)) {
+      // Avoid adding constraints about function addresses,
+      // otherwise we might track facts about function pointers for code like "if (p == &f)".
+      return formulaManager.getBooleanFormulaManager().makeBoolean(true);
+    } else {
+      return nextInequality;
+    }
   }
 
   /**

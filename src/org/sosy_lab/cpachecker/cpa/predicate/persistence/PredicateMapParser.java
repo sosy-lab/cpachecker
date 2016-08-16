@@ -25,24 +25,18 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
 
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -58,11 +52,19 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /**
  * This is a parser for files which contain initial predicates for the analysis.
@@ -131,13 +133,14 @@ public class PredicateMapParser {
    * @throws IOException If the file cannot be read.
    * @throws PredicateParsingFailedException If there is a syntax error in the file.
    */
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public PredicatePrecision parsePredicates(Path file)
           throws IOException, PredicateParsingFailedException {
 
-    Files.checkReadableFile(file);
+    MoreFiles.checkReadableFile(file);
 
-    try (BufferedReader reader = file.asCharSource(StandardCharsets.US_ASCII).openBufferedStream()) {
-      return parsePredicates(reader, file.getName());
+    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
+      return parsePredicates(reader, file.getFileName().toString());
     }
   }
 
@@ -167,11 +170,11 @@ public class PredicateMapParser {
     }
 
     // second, read map of predicates
-    Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
-    SetMultimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
-    SetMultimap<CFANode, AbstractionPredicate> localPredicates = HashMultimap.create();
+    List<AbstractionPredicate> globalPredicates = new ArrayList<>();
+    ListMultimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
+    ListMultimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
 
-    Set<AbstractionPredicate> currentSet = null;
+    List<AbstractionPredicate> currentSet = null;
     String currentLine;
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
@@ -206,7 +209,7 @@ public class PredicateMapParser {
 
           if (!cfa.getAllFunctionNames().contains(currentLine)) {
             logger.log(Level.WARNING, "Cannot use predicates for function", currentLine + ", this function does not exist.");
-            currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+            currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
 
           } else {
             currentSet = functionPredicates.get(currentLine);
@@ -223,7 +226,7 @@ public class PredicateMapParser {
             if (applyFunctionWide) {
               if (!cfa.getAllFunctionNames().contains(function)) {
                 logger.log(Level.WARNING, "Cannot use predicates for function", function + ", this function does not exist.");
-                currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+                currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
               } else {
                 currentSet = functionPredicates.get(function);
               }
@@ -232,7 +235,7 @@ public class PredicateMapParser {
               CFANode node = getCFANodeWithId(nodeId);
               if (node == null) {
                 logger.log(Level.WARNING, "Cannot use predicates for CFANode", nodeId + ", this node does not exist.");
-                currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+                currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
               } else {
                 currentSet = localPredicates.get(node);
               }
@@ -273,8 +276,10 @@ public class PredicateMapParser {
     }
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
-        localPredicates, functionPredicates, globalPredicates);
+        ImmutableSetMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
+        localPredicates,
+        functionPredicates,
+        globalPredicates);
   }
 
   private @Nullable String convertFormula(final Converter converter, final String line) {

@@ -29,9 +29,11 @@ public abstract class SMGObject {
   private final int size;
   private final String label;
   private final int level;
+  private final SMGObjectKind kind;
 
 
-  static private final SMGObject nullObject = new SMGObject(0, "NULL") {
+
+  static private final SMGObject nullObject = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
 
     @Override
     public String toString() {
@@ -49,28 +51,41 @@ public abstract class SMGObject {
       // fancy way of referencing itself
       return SMGObject.getNullObject();
     }
+
+    @Override
+    public boolean isMoreGeneral(SMGObject pOther) {
+      /*There is no object that can replace the null object in an smg.*/
+      return false;
+    }
   };
 
   static public SMGObject getNullObject() {
     return nullObject;
   }
 
-  protected SMGObject(int pSize, String pLabel) {
+  public SMGObjectKind getKind() {
+    return kind;
+  }
+
+  protected SMGObject(int pSize, String pLabel, SMGObjectKind pKind) {
     size = pSize;
     label = pLabel;
     level = 0;
+    kind = pKind;
   }
 
-  protected SMGObject(int pSize, String pLabel, int pLevel) {
+  protected SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
     size = pSize;
     label = pLabel;
     level = pLevel;
+    kind = pKind;
   }
 
   protected SMGObject(SMGObject pOther) {
     size = pOther.size;
     label = pOther.label;
-    level = pOther.getLevel();
+    level = pOther.level;
+    kind = pOther.kind;
   }
 
   public abstract SMGObject copy();
@@ -104,12 +119,16 @@ public abstract class SMGObject {
     throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");
   }
 
-  public boolean isMoreGeneral(SMGObject pOther) {
-    if (size != pOther.size) {
-      throw new IllegalArgumentException("isMoreGeneral called on incompatible pair of objects");
-    }
-    return false;
-  }
+  /**
+   * Compares objects and determines, if this object is more general than given object.
+   * If this object is more general than the given object, then a smg resulting in replacing
+   * the given object with this object would cover strictly more states.
+   *
+   * @param pOther other object to be compared with this object.
+   * @return Returns true iff this object is more general than given object.
+   *  False otherwise.
+   */
+  public abstract boolean isMoreGeneral(SMGObject pOther);
 
   /**
    * @param pOther object to join with

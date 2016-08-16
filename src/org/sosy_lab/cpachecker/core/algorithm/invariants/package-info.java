@@ -24,4 +24,5 @@
 /**
  * Utilities for finding auxiliary invariants.
  */
+@javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.invariants;

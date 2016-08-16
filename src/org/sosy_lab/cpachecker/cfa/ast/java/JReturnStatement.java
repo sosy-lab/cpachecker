@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  *  This class represents the return statement AST node type.
@@ -39,7 +39,7 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
 
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special variable with the return type of the function.
-    super(pFileLocation, pExpression, Optional.<JAssignment>absent());
+    super(pFileLocation, pExpression, Optional.empty());
 
   }
 

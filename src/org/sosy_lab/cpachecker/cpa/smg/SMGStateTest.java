@@ -30,7 +30,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -57,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class SMGStateTest {
-  static private final  LogManager logger = TestLogManager.getInstance();
+  static private final  LogManager logger = LogManager.createTestLogManager();
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 

@@ -27,12 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -81,12 +79,13 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -149,7 +148,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           throws InvalidConfigurationException {
 
     this(pFmgr, config, pLogger, pShutdownNotifier,
-        pMachineModel, Optional.<VariableClassification>absent(), pDirection);
+        pMachineModel, Optional.empty(), pDirection);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
@@ -189,7 +188,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
       logger.log(Level.WARNING,
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
@@ -209,11 +208,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               + "theories!";
 
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection,
             qfmgr);
       } else {
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
-            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction);
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, pDirection);
       }
     } else if (handlePointerAliasing) {
       afmgr = null;
@@ -222,14 +221,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
-          aliasingTypeHandler, direction);
+          aliasingTypeHandler, pDirection);
 
     } else {
       afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
@@ -436,8 +435,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
       final CType symbolType = resultSSA.getType(symbolName);
-      final int index1 = symbolDifference.getLeftValue().or(1);
-      final int index2 = symbolDifference.getRightValue().or(1);
+      final int index1 = symbolDifference.getLeftValue().orElse(1);
+      final int index2 = symbolDifference.getRightValue().orElse(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
@@ -582,8 +581,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
       final CType symbolType = resultSSA.getType(symbolName);
-      final int index1 = symbolDifference.getLeftValue().or(1);
-      final int index2 = symbolDifference.getRightValue().or(1);
+      final int index1 = symbolDifference.getLeftValue().orElse(1);
+      final int index2 = symbolDifference.getRightValue().orElse(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
@@ -645,12 +644,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
 
         FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
-            new Function<ARGState, CFAEdge>() {
-              @Override
-              public CFAEdge apply(ARGState child) {
-                return pathElement.getEdgeToChild(child);
-              }
-        });
+            child -> pathElement.getEdgeToChild(child));
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
           if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
@@ -713,6 +707,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    */
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> model) {
+    // Do not use fmgr here, this fails if a separate solver is used for interpolation.
     if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return Collections.emptyMap();
@@ -722,7 +717,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 
-      if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
+      if (entry.getKey() instanceof BooleanFormula) {
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
         if (!name.equals(canonicalName)) {
           // pattern matched, so it's a variable with __ART__ in it

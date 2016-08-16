@@ -41,210 +41,210 @@
   </tasks>
 
   <!--<rundefinition name="none">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=NONE</option>
   </rundefinition>-->
   <rundefinition name="random">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=RANDOM</option>
   </rundefinition>
   <rundefinition name="length-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_SHORT</option>
   </rundefinition>
   <!--<rundefinition name="length-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=LENGTH_LONG</option>
   </rundefinition>-->
   <rundefinition name="domain-good-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_GOOD_SHORT</option>
   </rundefinition>
   <rundefinition name="domain-good-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_GOOD_LONG</option>
   </rundefinition>
   <!--<rundefinition name="domain-bad-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_BAD_SHORT</option>
   </rundefinition>-->
   <!--<rundefinition name="domain-bad-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_BAD_LONG</option>
   </rundefinition>-->
   <rundefinition name="domain-good-width-narrow-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_GOOD_WIDTH_NARROW_SHORT</option>
   </rundefinition>
   <rundefinition name="domain-precise-good-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_PRECISE_GOOD_SHORT</option>
   </rundefinition>
   <rundefinition name="domain-precise-good-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_PRECISE_GOOD_LONG</option>
   </rundefinition>
   <!--<rundefinition name="domain-precise-bad-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_PRECISE_BAD_SHORT</option>
   </rundefinition>
   <rundefinition name="domain-precise-bad-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=DOMAIN_PRECISE_BAD_LONG</option>
   </rundefinition>-->
   <rundefinition name="pivot-shallow-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=PIVOT_SHALLOW_SHORT</option>
   </rundefinition>
   <rundefinition name="pivot-shallow-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=PIVOT_SHALLOW_LONG</option>
   </rundefinition>
   <rundefinition name="pivot-deep-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=PIVOT_DEEP_SHORT</option>
   </rundefinition>
   <rundefinition name="pivot-deep-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=PIVOT_DEEP_LONG</option>
   </rundefinition>
   <!--<rundefinition name="width-narrow-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=WIDTH_NARROW_SHORT</option>
   </rundefinition>
   <rundefinition name="width-narrow-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=WIDTH_NARROW_LONG</option>
   </rundefinition>
   <rundefinition name="width-wide-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=WIDTH_WIDE_SHORT</option>
   </rundefinition>
   <rundefinition name="width-wide-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=WIDTH_WIDE_LONG</option>
   </rundefinition>
   <rundefinition name="width-narrow-no-loop-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=WIDTH_NARROW_NO_LOOP_SHORT</option>
   </rundefinition>-->
   <rundefinition name="assignments-fewest-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_FEWEST_SHORT</option>
   </rundefinition>
   <rundefinition name="assignments-fewest-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_FEWEST_LONG</option>
   </rundefinition>
   <!--<rundefinition name="assignments-most-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_MOST_SHORT</option>
   </rundefinition>-->
   <!--<rundefinition name="assignments-most-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSIGNMENTS_MOST_LONG</option>
   </rundefinition>-->
   <rundefinition name="assumptions-fewest-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSUMPTIONS_FEWEST_SHORT</option>
   </rundefinition>
   <rundefinition name="assumptions-fewest-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSUMPTIONS_FEWEST_LONG</option>
   </rundefinition>
   <rundefinition name="assumptions-most-short">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>
     <option name="-setprop">cpa.value.refinement.prefixPreference=ASSUMPTIONS_MOST_SHORT</option>
   </rundefinition>
   <rundefinition name="assumptions-most-long">
-    <option name="-valueAnalysis-symbolic-refiner" />
+    <option name="-valueAnalysis-symbolic-Cegar" />
     <option name="-setprop">cpa.value.symbolic.refinement.strategy=CONSTRAINTS_FIRST</option>
     <option name="-setprop">cpa.constraints.lessOrEqualType=SUBSET</option>
     <option name="-setprop">cpa.value.refinement.pathSlicing=true</option>

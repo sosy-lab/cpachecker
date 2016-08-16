@@ -4,17 +4,18 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.truth.TruthJUnit;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.InductiveWeakeningManager.WEAKENING_STRATEGY;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,10 +27,24 @@ public class FormulaSlicingTest {
     return WEAKENING_STRATEGY.values();
   }
 
-  @Parameter(0)
+  @Parameter
   public WEAKENING_STRATEGY weakeningStrategy;
 
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
+
+  @Test public void expand_equality_true_assert() throws Exception {
+    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo
+        (WEAKENING_STRATEGY.SYNTACTIC);
+    check("expand_equality_true_assert.c", ImmutableMap.of(
+        "rcnf.expandEquality", "true"
+    ));
+  }
+
+  @Test public void expand_equality_false_assert() throws Exception {
+    check("expand_equality_false_assert.c", ImmutableMap.of(
+        "rcnf.expandEquality", "true"
+    ));
+  }
 
   @Test public void simplest_true_assert() throws Exception {
     check("simplest_true_assert.c");
@@ -65,7 +80,7 @@ public class FormulaSlicingTest {
   }
 
   private void check(String filename) throws Exception {
-    check(filename, new HashMap<String, String>());
+    check(filename, new HashMap<>());
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
@@ -76,8 +91,7 @@ public class FormulaSlicingTest {
       fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
     }
 
-    TestResults results = CPATestRunner.runAndLogToSTDOUT(
-        getProperties(extra), fullPath);
+    TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
@@ -91,12 +105,14 @@ public class FormulaSlicingTest {
         .put("ARGCPA.cpa", "cpa.composite.CompositeCPA")
         .put("CompositeCPA.cpas",
             Joiner.on(", ").join(ImmutableList.<String>builder()
-                    .add("cpa.location.LocationCPA")
-                    .add("cpa.callstack.CallstackCPA")
-                    .add("cpa.functionpointer.FunctionPointerCPA")
-                    .add("cpa.loopstack.LoopstackCPA")
-                    .add("cpa.formulaslicing.FormulaSlicingCPA")
-                    .build()
+                .add("cpa.location.LocationCPA")
+                .add("cpa.callstack.CallstackCPA")
+                .add("cpa.functionpointer.FunctionPointerCPA")
+                .add("cpa.loopstack.LoopstackCPA")
+                .add("cpa.formulaslicing.FormulaSlicingCPA")
+                .add("cpa.targetreachability.TargetReachabilityCPA")
+                .add("cpa.assumptions.storage.AssumptionStorageCPA")
+                .build()
             ))
     )
         .put("solver.z3.requireProofs", "false")
@@ -110,9 +126,7 @@ public class FormulaSlicingTest {
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
         .put("cfa.findLiveVariables", "true")
-
         .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
-        .put("log.consoleLevel", "INFO")
         .build());
     props.putAll(extra);
     return props;

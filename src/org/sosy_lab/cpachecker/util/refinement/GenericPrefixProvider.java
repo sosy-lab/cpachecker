@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
@@ -219,7 +219,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         useDefRelation,
         cfa.getMachineModel()).obtainInterpolants();
 
-    return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix,
-        FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
+    return InfeasiblePrefix.buildForValueDomain(
+        infeasiblePrefix, FluentIterable.from(interpolants).transform(Pair::getSecond).toList());
   }
 }

@@ -40,8 +40,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -73,7 +72,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -93,6 +92,8 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -212,7 +213,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.transformPath(allStatesTrace);
+    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
     final List<BooleanFormula> formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
@@ -249,11 +250,17 @@ public class PredicateStaticRefiner extends StaticRefiner
         predicateExtractionTime.stop();
       }
 
+      // Import for not forgetting predicates from initial precisions
+      PredicatePrecision basePrecision =
+          Precisions.extractPrecisionByType(
+              pReached.asReachedSet().getPrecision(root), PredicatePrecision.class);
+      PredicatePrecision newPrecision = basePrecision.mergeWith(heuristicPrecision);
+
       shutdownNotifier.shutdownIfNecessary();
       argUpdateTime.start();
       for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
         pReached.removeSubtree(
-            refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+            refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
       }
       argUpdateTime.stop();
 
@@ -487,8 +494,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.<Pair<CFANode,Integer>,
-        AbstractionPredicate>of(),
+        ImmutableSetMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
         ArrayListMultimap.<CFANode, AbstractionPredicate>create(),
         functionPredicates,
         globalPredicates);
@@ -509,7 +515,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   }
 
   private void dumpAssumePredicate(Path target) {
-    try (Writer w = Files.openOutputFile(target)) {
+    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
       for (CFANode u : cfa.getAllNodes()) {
         for (CFAEdge e: CFAUtils.leavingEdges(u)) {
           if (e instanceof AssumeEdge) {

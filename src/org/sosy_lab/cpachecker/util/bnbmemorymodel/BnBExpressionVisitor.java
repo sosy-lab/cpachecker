@@ -56,7 +56,8 @@ public class BnBExpressionVisitor implements CRightHandSideVisitor<Void, Unrecog
 
   private Boolean refd = false;
 
-  private Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visitResult = new HashMap();
+  private Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> visitResult =
+      new HashMap<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>>();
 
   public Map<Boolean, HashMap<CType, HashMap<CType, HashSet<String>>>> getVisitResult() {
     return visitResult;

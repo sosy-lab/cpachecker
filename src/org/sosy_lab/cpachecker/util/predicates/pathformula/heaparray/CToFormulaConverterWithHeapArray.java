@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import com.google.common.base.Optional;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -94,12 +92,13 @@ import org.sosy_lab.solver.api.FormulaType;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Implements a converter for C code into SMT formulae.
@@ -647,10 +646,11 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final CType variableType = CTypeUtils.simplifyType(pDeclaration.getType());
     final CLeftHandSide lhs = new CIdExpression(pDeclaration.getFileLocation(),
         variableType, pDeclaration.getName(), pDeclaration);
-    final Set<String> alreadyAssigned = new HashSet<>();
-    for (CExpressionAssignmentStatement statement : pExplicitAssignments) {
-      alreadyAssigned.add(statement.getLeftHandSide().toString());
-    }
+    final Set<String> alreadyAssigned =
+        pExplicitAssignments
+            .stream()
+            .map(statement -> statement.getLeftHandSide().toString())
+            .collect(Collectors.toSet());
 
     final List<CExpressionAssignmentStatement> defaultAssignments = new ArrayList<>();
     expandAssignmentList(variableType, lhs, alreadyAssigned, defaultAssignments);
@@ -694,6 +694,14 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
 
     } else if (pType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) pType;
+      if (compositeType.getKind() == ComplexTypeKind.UNION) {
+        // If it is a union, we must make sure that the first member is initialized,
+        // but only if none of the members appear in alreadyAssigned.
+        // The way it is currently implemented this is very difficult to check,
+        // so for now we initialize none of the union members to be safe.
+        // TODO: add implicit initializers for union members
+        return;
+      }
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final CType memberType = memberDeclaration.getType();
         final CLeftHandSide newLhs = new CFieldReference(pLhs.getFileLocation(),

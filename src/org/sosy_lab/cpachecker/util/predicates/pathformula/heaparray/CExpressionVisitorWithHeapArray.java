@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.BaseVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
@@ -646,7 +647,6 @@ class CExpressionVisitorWithHeapArray
    * @return The value of the expression.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  @SuppressWarnings("deprecation")
   @Override
   public Value visit(final CFunctionCallExpression pExpression)
       throws UnrecognizedCCodeException {
@@ -662,11 +662,7 @@ class CExpressionVisitorWithHeapArray
         try {
           return memoryHandler.handleDynamicMemoryFunction(pExpression, functionName, this);
         } catch (InterruptedException exc) {
-          // Throwing two checked exception from this visitor is not possible directly.
-          // The following does the same although it is not recommended to do so.
-          // However, we are sure that an InterrupedException from this visitor
-          // will be handled correctly outside.
-          Thread.currentThread().stop(exc);
+          throw CtoFormulaConverter.propagateInterruptedException(exc);
         }
       }
     }

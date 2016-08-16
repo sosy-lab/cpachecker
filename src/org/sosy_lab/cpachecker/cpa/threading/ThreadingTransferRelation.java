@@ -93,7 +93,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private boolean useLocalAccessLocks = true;
 
   public static final String THREAD_START = "pthread_create";
-  private static final String THREAD_JOIN = "pthread_join";
+  protected static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
@@ -285,12 +285,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** checks whether the location is the last node of a thread,
    * i.e. the current thread will terminate after this node. */
-  private boolean isLastNodeOfThread(CFANode node) {
+  static boolean isLastNodeOfThread(CFANode node) {
     return 0 == node.getNumLeavingEdges();
   }
 
   /** the whole program will terminate after this edge */
-  private boolean isTerminatingEdge(CFAEdge edge) {
+  private static boolean isTerminatingEdge(CFAEdge edge) {
     return edge.getSuccessor() instanceof CFATerminationNode;
   }
 
@@ -452,21 +452,24 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private Collection<ThreadingState> joinThread(ThreadingState threadingState,
       AStatement statement, Collection<ThreadingState> results) throws UnrecognizedCodeException {
 
-    // first check for some possible errors and unsupported parts
-    List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
-    AExpression expr0 = params.get(0);
-    if (!(expr0 instanceof CIdExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread join access", expr0);
-    }
-
-    String threadId = ((CIdExpression) expr0).getName();
-
-    if (threadingState.getThreadIds().contains(threadId)) {
+    if (threadingState.getThreadIds().contains(extractParamName(statement, 0))) {
       // we wait for an active thread -> nothing to do
       return Collections.emptySet();
     }
 
     return results;
+  }
+
+  /** extract the name of the n-th parameter from a function call. */
+  static String extractParamName(AStatement statement, int n) throws UnrecognizedCodeException {
+    // first check for some possible errors and unsupported parts
+    List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
+    AExpression expr = params.get(n);
+    if (!(expr instanceof CIdExpression)) {
+      throw new UnrecognizedCodeException("unsupported thread join access", expr);
+    }
+
+    return ((CIdExpression) expr).getName();
   }
 
   /** optimization for interleaved threads.
@@ -490,7 +493,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  private boolean isImporantForThreading(CFAEdge cfaEdge) {
+  private static boolean isImporantForThreading(CFAEdge cfaEdge) {
     switch (cfaEdge.getEdgeType()) {
     case StatementEdge: {
       AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
@@ -509,13 +512,5 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     default:
       return false;
     }
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-      List<AbstractState> otherElements, CFAEdge cfaEdge,
-      Precision precision) {
-    // strengthen should not be used with ThreadingTransfer
-    return null;
   }
 }

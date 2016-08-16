@@ -27,7 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -229,14 +230,8 @@ public class CtoFormulaConverter {
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
-    if (!options.trackFunctionPointers()) {
-      CType lhsType = lhs.getExpressionType().getCanonicalType();
-      if (lhsType instanceof CPointerType) {
-        CType innerType = ((CPointerType)lhsType).getType();
-        if (innerType instanceof CFunctionType) {
-          return false;
-        }
-      }
+    if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(lhs.getExpressionType())) {
+      return false;
     }
 
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
@@ -456,7 +451,11 @@ public class CtoFormulaConverter {
 
       // simplify constant formulas like "1<=2" and return the value directly.
       // benefit: divide_by_constant works without UFs
-      range = fmgr.simplify(range);
+      try {
+        range = fmgr.simplify(range);
+      } catch (InterruptedException pE) {
+        throw propagateInterruptedException(pE);
+      }
       if (bfmgr.isTrue(range)) {
         return value;
       }
@@ -1015,8 +1014,7 @@ public class CtoFormulaConverter {
       if (expressionType instanceof CFunctionType) {
         CFunctionType funcPtrType = (CFunctionType)expressionType;
         retType = funcPtrType.getReturnType();
-      } else if (expressionType instanceof CPointerType &&
-                 ((CPointerType) expressionType).getType().getCanonicalType() instanceof CFunctionType) {
+      } else if (CTypes.isFunctionPointer(expressionType)) {
         CFunctionType funcPtrType = (CFunctionType) ((CPointerType) expressionType).getType().getCanonicalType();
         retType = funcPtrType.getReturnType();
       } else {
@@ -1445,5 +1443,18 @@ public class CtoFormulaConverter {
     } else {
       return makeVariable(var, exp.getExpressionType(), ssa);
     }
+  }
+
+  /**
+   * Throwing two checked exception from a visitor is not possible directly,
+   * thus we have trouble handling InterruptedExceptions in visitors.
+   * This method allows them to be thrown without the compiler complaining.
+   * This is safe because the public methods of this package specify InterruptedException
+   * to be thrown, so callers need to handle it anyway.
+   */
+  @SuppressWarnings("unchecked")
+  public static <T extends Throwable> RuntimeException propagateInterruptedException(
+      InterruptedException e) throws T {
+    throw (T) e;
   }
 }

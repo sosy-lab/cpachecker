@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
@@ -130,8 +130,8 @@ public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, Unrecogniz
     Formula newStructure = owner.accept(this);
 
     // Other fields did not change.
-    Formula oldRestS = conv.replaceField(fexp, oldStructure, Optional.<Formula>absent());
-    Formula newRestS = conv.replaceField(fexp, newStructure, Optional.<Formula>absent());
+    Formula oldRestS = conv.replaceField(fexp, oldStructure, Optional.empty());
+    Formula newRestS = conv.replaceField(fexp, newStructure, Optional.empty());
     constraints.addConstraint(conv.fmgr.makeEqual(oldRestS, newRestS));
 
     Formula fieldFormula = conv.accessField(fexp, newStructure);

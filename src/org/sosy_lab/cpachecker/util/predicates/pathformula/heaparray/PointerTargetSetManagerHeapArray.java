@@ -317,24 +317,18 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final PointerTargetSet pPts2) {
     final Map<DeferredAllocationPool, DeferredAllocationPool> mergedPools = new HashMap<>();
     final MergeConflictHandler<String, DeferredAllocationPool> mergeConflictHandler =
-        new MergeConflictHandler<String, DeferredAllocationPool>() {
-      @Override
-      public DeferredAllocationPool resolveConflict(
-          String key,
-          DeferredAllocationPool a,
-          DeferredAllocationPool b) {
-        final DeferredAllocationPool result = a.mergeWith(b);
-        final DeferredAllocationPool oldResult = mergedPools.get(result);
-        if (oldResult == null) {
-          mergedPools.put(result, result);
-          return result;
-        } else {
-          final DeferredAllocationPool newResult = oldResult.mergeWith(result);
-          mergedPools.put(newResult, newResult);
-          return newResult;
-        }
-      }
-    };
+        (key, a, b) -> {
+          final DeferredAllocationPool result = a.mergeWith(b);
+          final DeferredAllocationPool oldResult = mergedPools.get(result);
+          if (oldResult == null) {
+            mergedPools.put(result, result);
+            return result;
+          } else {
+            final DeferredAllocationPool newResult = oldResult.mergeWith(result);
+            mergedPools.put(newResult, newResult);
+            return newResult;
+          }
+        };
 
     PersistentSortedMap<String, DeferredAllocationPool> mergedAllocations = merge(
         pPts1.getDeferredAllocations(), pPts2.getDeferredAllocations(), mergeConflictHandler);
@@ -435,14 +429,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return A handler for merge conflicts.
    */
   private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return new MergeConflictHandler<K, PersistentList<T>>() {
-      @Override
-      public PersistentList<T> resolveConflict(
-          K pKey, PersistentList<T> pList1,
-          PersistentList<T> pList2) {
-        return DeferredAllocationPool.mergeLists(pList1, pList2);
-      }
-    };
+    return (pKey, pList1, pList2) -> DeferredAllocationPool.mergeLists(pList1, pList2);
   }
 
   /**

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.Collections;
@@ -52,12 +53,12 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
   private CLangSMG smg;
   private  Map<SMGObject, Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate>> candidates = new HashMap<>();
   private  Map<SMGDoublyLinkedListCandidate, Integer> candidateLength = new HashMap<>();
-  private  Map<SMGDoublyLinkedListCandidate, Boolean> candidateSeqJoinGood = new HashMap<>();
+  private  Map<SMGDoublyLinkedListCandidate, SMGJoinStatus> candidateSeqJoinGood = new HashMap<>();
 
   private final int seqLengthThreshold;
 
   public SMGDoublyLinkedListCandidateFinder() {
-    seqLengthThreshold = 2;
+    seqLengthThreshold = 3;
   }
 
   public SMGDoublyLinkedListCandidateFinder(int pSeqLengthThreshold) {
@@ -84,8 +85,8 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates
         .values()) {
       for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) &&  candidateLength.get(candidate) > 0)) {
-          returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate)));
+        if (candidateLength.get(candidate) >= seqLengthThreshold || (candidateSeqJoinGood.get(candidate) != SMGJoinStatus.INCOMPARABLE && candidateLength.get(candidate) > 1)) {
+          returnSet.add(new SMGDoublyLinkedListCandidateSequence(candidate, candidateLength.get(candidate), candidateSeqJoinGood.get(candidate)));
         }
       }
     }
@@ -103,7 +104,11 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
   private void createCandidatesOfObject(SMGObject pObject, SMGState pSMGState) throws SMGInconsistentException {
 
-    if (!smg.isObjectValid(pObject) || !(pObject.getLevel() == 0)) {
+    if (!smg.isObjectValid(pObject)) {
+      return;
+    }
+
+    if(!(pObject.getKind() == SMGObjectKind.DLL || pObject.getKind() == SMGObjectKind.REG)) {
       return;
     }
 
@@ -116,6 +121,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (SMGEdgeHasValue hveNext : hvesOfObject) {
 
       int nfo = hveNext.getOffset();
+      CType nfoType = hveNext.getType();
       int nextPointer = hveNext.getValue();
 
       if (!smg.isPointer(nextPointer)) {
@@ -147,9 +153,18 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         continue;
       }
 
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == pObject.getLevel())) {
+        continue;
+      }
+
+      if(!(nextObject.getKind() == SMGObjectKind.DLL || nextObject.getKind() == SMGObjectKind.REG)) {
+        continue;
+      }
+
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
         int pfo = hvePrev.getOffset();
+        CType pfoType = hvePrev.getType();
         int prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
@@ -177,16 +192,28 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
           continue;
         }
 
+        //TODO At the moment, we still demand that a pointer is found at prev or next.
+
+        Set<SMGEdgeHasValue> prevObjectprevPointer =
+            smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo));
+
+        if (prevObjectprevPointer.size() != 1) {
+          continue;
+        }
+
+        if (!smg.isPointer(Iterables.getOnlyElement(prevObjectprevPointer).getValue())) {
+          continue;
+        }
+
         SMGDoublyLinkedListCandidate candidate =
-            new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo);
+            new SMGDoublyLinkedListCandidate(pObject, hfo, pfo, nfo, pfoType, nfoType, smg.getMachineModel());
         candidates.get(pObject).put(Pair.of(nfo, pfo), candidate);
-        candidateLength.put(candidate, 0);
-        candidateSeqJoinGood.put(candidate, true);
+        candidateLength.put(candidate, 1);
+        candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
         continueTraversal(nextPointer, candidate, pSMGState);
       }
     }
   }
-
 
   private void continueTraversal(int pValue, SMGDoublyLinkedListCandidate pPrevCandidate, SMGState pSmgState) throws SMGInconsistentException {
 
@@ -215,11 +242,40 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       /* candidate not doubly linked with next object,
        * last object in sequence.
        */
-      candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo);
-      candidateLength.put(candidate, 0);
-      candidateSeqJoinGood.put(candidate, true);
+
+      if (!smg.isObjectValid(nextObject) || !(nextObject.getLevel() == startObject.getLevel())) {
+        return;
+      }
+
+      if(!(nextObject.getKind() == SMGObjectKind.DLL || nextObject.getKind() == SMGObjectKind.REG)) {
+        return;
+      }
+
+      //TODO At the moment, we still demand that a pointer is found at prev or next.
+
+      Set<SMGEdgeHasValue> nextObjectNextField =
+          smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+
+      if(nextObjectNextField.size() != 1) {
+        return;
+      }
+
+      SMGEdgeHasValue nfoField = Iterables.getOnlyElement(nextObjectNextField);
+      SMGEdgeHasValue pfoField = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)));
+
+      if (!smg.isPointer(nfoField.getValue())) {
+        return;
+      }
+
+      candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo, pfoField.getType(), nfoField.getType(), smg.getMachineModel());
+      candidateLength.put(candidate, 1);
+      candidateSeqJoinGood.put(candidate, SMGJoinStatus.EQUAL);
     } else {
       candidate = objectCandidates.get(Pair.of(nfo, pfo));
+    }
+
+    if (candidate.getHfo() != pPrevCandidate.getHfo()) {
+      return;
     }
 
     // Second, find out if the subsmgs are mergeable
@@ -245,7 +301,6 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
 
-    // TODO Investigate, is this okay?
     if(nonSharedValues2.contains(pValue)) {
       nonSharedValues2.remove(pValue);
     }
@@ -277,7 +332,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         if (!nonSharedValues1.contains(pte.getValue())) {
           return;
         }
-      } else if (startObject instanceof SMGDoublyLinkedList
+      } else if (startObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.LAST) {
         Set<SMGEdgeHasValue> prevs = smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
@@ -292,7 +347,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         if (!nonSharedValues2.contains(pte.getValue())) {
           return;
         }
-      } else if (nextObject instanceof SMGDoublyLinkedList
+      } else if (nextObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.FIRST) {
         Set<SMGEdgeHasValue> prevs =
             smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
@@ -300,8 +355,8 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
         if (prevs.size() != 1) {
           return;
         }
-      } else if (nextObject instanceof SMGRegion) {
-        if (candidateLength.get(candidate) != 0) {
+      } else if (nextObject.getKind() == SMGObjectKind.REG) {
+        if (candidateLength.get(candidate) != 1) {
           Set<SMGEdgeHasValue> hves =
               smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
@@ -322,7 +377,9 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     }
 
     candidateLength.put(pPrevCandidate, candidateLength.get(candidate) + 1);
-    candidateSeqJoinGood.put(pPrevCandidate, candidateSeqJoinGood.get(candidate) && !(join.getStatus() == SMGJoinStatus.INCOMPARABLE));
+    SMGJoinStatus newJoinStatus =
+        SMGJoinStatus.updateStatus(candidateSeqJoinGood.get(candidate), join.getStatus());
+    candidateSeqJoinGood.put(pPrevCandidate, newJoinStatus);
   }
 
   private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,
@@ -350,6 +407,11 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     for (Integer val : nonSharedValues) {
       Set<SMGEdgeHasValue> hves =
           smg.getHVEdges(new SMGEdgeHasValueFilter().filterHavingValue(val));
+
+      /*Abstract simple fields when joining.*/
+      if (!smg.isPointer(val)) {
+        continue;
+      }
 
       for (SMGEdgeHasValue hve : hves) {
         if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
