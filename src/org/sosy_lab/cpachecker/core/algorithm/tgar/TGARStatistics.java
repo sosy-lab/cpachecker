@@ -87,6 +87,9 @@ public class TGARStatistics extends AbstractStatistics {
   long totalReachedSizeBeforeRefinement = 0;
   long totalReachedSizeAfterRefinement = 0;
 
+  int maxRemovedTargets = 0;
+  int totalRemovedTargets = 0;
+
   volatile int sizeOfReachedSetBeforeRefinement = 0;
 
   private final Multiset<Property> timesInfeasible;
@@ -156,6 +159,10 @@ public class TGARStatistics extends AbstractStatistics {
       put(out, "Avg. infeasible counterexamples", avgInfeasible);
       put(out, "Max. infeasible counterexamples until feasible", maxInfeasibleUntilFeasible);
       put(out, "Max. feasible counterexamples", maxFeasible);
+      out.println("");
+
+      put(out, "Max. removed targets", maxRemovedTargets);
+      put(out, "Avg. removed targets", totalRemovedTargets / countRefinements);
     }
   }
 
@@ -177,12 +184,17 @@ public class TGARStatistics extends AbstractStatistics {
     timesFeasible.addAll(pTargetState.getViolatedProperties());
   }
 
-  void endWithInfeasible(ReachedSet pReachedSetAfterRefine, ARGState pTargetState) {
+  void endWithInfeasible(
+      ReachedSet pReachedSetAfterRefine,
+      ARGState pTargetState,
+      int pRemovedTargets) {
     countSuccessfulRefinements++;
     totalReachedSizeAfterRefinement += pReachedSetAfterRefine.size();
     maxReachedSizeAfterRefinement = Math.max(maxReachedSizeAfterRefinement, pReachedSetAfterRefine.size());
     refinementTimer.stop();
     timesInfeasible.addAll(pTargetState.getViolatedProperties());
+    maxRemovedTargets = Math.max(maxRemovedTargets, pRemovedTargets);
+    totalRemovedTargets = totalRemovedTargets + maxRemovedTargets;
   }
 
 }

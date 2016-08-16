@@ -30,6 +30,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -250,7 +251,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     }
   };
 
-  private final Predicate<ARGState> PROPERTY_NOT_BLACKLISTED = new Predicate<ARGState>() {
+  private static final Predicate<ARGState> PROPERTY_NOT_BLACKLISTED = new Predicate<ARGState>() {
     @Override
     public boolean apply(@Nullable ARGState pAbstractState) {
       Preconditions.checkNotNull(pAbstractState);
@@ -268,13 +269,16 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     }
   };
 
-  private Optional<ARGState> chooseTarget(ReachedSet pReached) {
-    ImmutableList<ARGState> rankedCandidates =
-        from(pReached)
+  private FluentIterable<ARGState> filterForTargetCandidates(ReachedSet pReached) {
+    return from(pReached)
             .filter(IS_TARGET_STATE)
             .filter(ARGState.class)
             .filter(STATE_NOT_YET_HANDLED)
-            .filter(PROPERTY_NOT_BLACKLISTED)
+            .filter(PROPERTY_NOT_BLACKLISTED);
+  }
+
+  private Optional<ARGState> chooseTarget(ReachedSet pReached) {
+    ImmutableList<ARGState> rankedCandidates = filterForTargetCandidates(pReached)
             .toSortedList(comparator);
 
     if (rankedCandidates.isEmpty()) {
@@ -294,6 +298,8 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     logger.log(Level.FINE, "Counterexample found, performing TGAR");
     stats.beginRefinement(pReached, target);
 
+    final int targetCandidatesBeforeRefinement = filterForTargetCandidates(pReached).size();
+
     final boolean counterexampleEliminated;
     try {
       counterexampleEliminated = mRefiner.performRefinement(pReached, target);
@@ -304,7 +310,10 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
       if (counterexampleEliminated) {
         // An infeasible counterexample was found and eliminated.
-        stats.endWithInfeasible(pReached, target);
+        final int targetCandidatesAfterRefinement = filterForTargetCandidates(pReached).size();
+        final int removedTargets = targetCandidatesBeforeRefinement -
+            targetCandidatesAfterRefinement;
+        stats.endWithInfeasible(pReached, target, removedTargets);
       } else {
         feasibleStateIds.add(target.getStateId());
         stats.endWithFeasible(pReached, target);
