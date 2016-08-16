@@ -97,18 +97,17 @@ public abstract class RefinementStrategy {
           throws CPAException, InterruptedException {
 
     // The last state along the path is the target (error) state
-    ARGState lastElement = pAbstractionStatesTrace.get(pAbstractionStatesTrace.size()-1);
-    assert lastElement.isTarget();
-
-    Set<Property> propertiesAtTarget = lastElement.getViolatedProperties();
+    ARGState targetState = pAbstractionStatesTrace.get(pAbstractionStatesTrace.size()-1);
+    assert targetState.isTarget();
+    Set<Property> propertiesAtTarget = targetState.getViolatedProperties();
 
     // Hook
-    startRefinementOfPath(pReached, pAbstractionStatesTrace, lastElement);
+    startRefinementOfPath(pReached, pAbstractionStatesTrace, targetState);
 
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;
     try {
       rootOfInfeasibleArgAndChangedElements =
-          evaluateInterpolantsOnPath(lastElement, pAbstractionStatesTrace, pInterpolants);
+          evaluateInterpolantsOnPath(targetState, pAbstractionStatesTrace, pInterpolants);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     }
@@ -117,7 +116,8 @@ public abstract class RefinementStrategy {
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
 
     // Hook
-    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample, propertiesAtTarget);
+    finishRefinementOfPath(infeasiblePartOfARG, targetState, changedElements, pReached,
+        pRepeatedCounterexample, propertiesAtTarget);
 
     // TODO find a way to uncomment this assert. In combination with
     // PredicateCPAGlobalRefiner and the PredicateAbstractionGlobalRefinementStrategy
@@ -246,6 +246,7 @@ public abstract class RefinementStrategy {
   @ForOverride
   protected abstract void finishRefinementOfPath(
       final ARGState pUnreachableState,
+      final ARGState pTargetState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
       boolean pRepeatedCounterexample,

@@ -374,6 +374,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Override
   protected void finishRefinementOfPath(
       final ARGState pUnreachableState,
+      final ARGState pTargetState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
       boolean pRepeatedCounterexample,
@@ -381,7 +382,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       throws CPAException, InterruptedException {
 
     Pair<PredicatePrecision, ARGState> newPrecAndRefinementRoot =
-        computeNewPrecision(pUnreachableState, pAffectedStates, pReached,
+        computeNewPrecision(pUnreachableState, pTargetState, pAffectedStates, pReached,
             pRepeatedCounterexample, pPropertiesAtTarget);
 
     PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
@@ -432,6 +433,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   protected Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
+      ARGState  pTargetState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample, Set<Property> pPropertiesAtTarget)
       throws RefinementFailedException, InterruptedException {
@@ -453,7 +455,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // get previous precision
     UnmodifiableReachedSet reached = pReached.asReachedSet();
-    PredicatePrecision targetStatePrecision = extractPredicatePrecision(reached.getPrecision(reached.getLastState()));
+    PredicatePrecision targetStatePrecision = extractPredicatePrecision(reached.getPrecision(pTargetState));
 
     ARGState refinementRoot = getRefinementRoot(pAffectedStates, targetStatePrecision, pRepeatedCounterexample);
 

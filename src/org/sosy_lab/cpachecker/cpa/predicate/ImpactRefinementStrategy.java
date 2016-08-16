@@ -130,6 +130,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
    */
   @Override
   protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
+      ARGState pTargetState,
       List<ARGState> changedElements, ARGReachedSet pReached,
       boolean pRepeatedCounterexample,
       Set<Property> pPropertiesAtTarget)
