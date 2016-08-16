@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
-import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
@@ -90,15 +89,12 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.TargetedRefiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -115,7 +111,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -141,6 +136,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import javax.annotation.Nullable;
+import javax.management.JMException;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -164,9 +162,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-import javax.management.JMException;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm
@@ -1737,6 +1732,19 @@ public class TigerAlgorithm
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    // fix test suite and set timedout goals as timedout
+    // TODO: move this fix to a more adequate place
+    // TODO: fix for variability aware
+    Set<Goal> goals = testsuite.getGoals();
+    Set<Goal> timedout = new HashSet<>();
+    for (Goal goal : goals) {
+      try {
+        if (!testsuite.isGoalCoveredOrInfeasible(goal)) {
+          timedout.add(goal);
+        }
+      } catch (InterruptedException e) {}
+    }
+    testsuite.addTimedOutGoals(timedout);
 
     pOut.println(
         "Number of test cases:                              " + testsuite.getNumberOfTestCases());
