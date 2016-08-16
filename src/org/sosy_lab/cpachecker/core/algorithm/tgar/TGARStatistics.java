@@ -139,12 +139,21 @@ public class TGARStatistics extends AbstractStatistics {
         maxFeasible = Math.max(maxFeasible, feasibleCount);
       }
 
+      int totalTimesInfeasible = 0;
       for (Property p : timesInfeasible) {
-        int infeasibleCount = timesInfeasible.count(p);
+        final int infeasibleCount = timesInfeasible.count(p);
         maxInfeasible = Math.max(maxInfeasible, infeasibleCount);
+        totalTimesInfeasible = totalTimesInfeasible + infeasibleCount;
+      }
+      final int avgInfeasible;
+      if (timesInfeasible.size() > 0) {
+        avgInfeasible = totalTimesInfeasible / timesInfeasible.size();
+      } else {
+        avgInfeasible = 0;
       }
 
       put(out, "Max. infeasible counterexamples", maxInfeasible);
+      put(out, "Avg. infeasible counterexamples", avgInfeasible);
       put(out, "Max. infeasible counterexamples until feasible", maxInfeasibleUntilFeasible);
       put(out, "Max. feasible counterexamples", maxFeasible);
     }

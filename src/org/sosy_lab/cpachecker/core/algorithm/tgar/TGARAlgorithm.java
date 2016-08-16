@@ -205,16 +205,15 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
         while (lastTargetState.isPresent()) {
           Preconditions.checkState(AbstractStates.isTargetState(lastTargetState.get()));
           final boolean eliminated = refine(reached, lastTargetState.get());
-          Set<SafetyProperty> targetProperties =
-              AbstractStates.extractViolatedProperties(lastTargetState.get(), SafetyProperty.class);
 
+          Set<SafetyProperty> targetProperties = AbstractStates.extractViolatedProperties(lastTargetState.get(), SafetyProperty.class);
           if (eliminated) {
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
           } else {
             logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
-            testificationOp.feasibleCounterexample(lastTargetState.get()
-                .getCounterexampleInformation().get(), targetProperties);
+            testificationOp.feasibleCounterexample(lastTargetState.get().getCounterexampleInformation().get(), targetProperties);
           }
+
           lastTargetState = chooseTarget(reached);
         }
 
