@@ -193,8 +193,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     Preconditions.checkState(testificationOp != null, "A testification operator must be provided!");
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-    int initialReachedSetSize = reached.size();
-    boolean refinedInPreviousIteration = false;
+
     stats.totalTimer.start();
     try {
       // There might be unhandled target states left for refinement.
@@ -203,23 +202,23 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
       lastTargetState = chooseTarget(reached);
 
       do {
-        if (lastTargetState.isPresent()) {
+        while (lastTargetState.isPresent()) {
           Preconditions.checkState(AbstractStates.isTargetState(lastTargetState.get()));
-          boolean counterexampleEliminated = refine(reached, lastTargetState.get());
+          final boolean eliminated = refine(reached, lastTargetState.get());
           Set<SafetyProperty> targetProperties =
               AbstractStates.extractViolatedProperties(lastTargetState.get(), SafetyProperty.class);
 
-          if (counterexampleEliminated) {
+          if (eliminated) {
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
           } else {
             logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
             testificationOp.feasibleCounterexample(lastTargetState.get()
                 .getCounterexampleInformation().get(), targetProperties);
           }
+          lastTargetState = chooseTarget(reached);
         }
 
         status = status.update(algorithm.run(reached));
-
         lastTargetState = chooseTarget(reached);
 
       } while (lastTargetState.isPresent() || reached.hasWaitingState());
@@ -227,6 +226,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     } finally {
       stats.totalTimer.stop();
     }
+
     return status;
   }
 
