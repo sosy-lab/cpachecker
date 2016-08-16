@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
-import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.VariableAssignment;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
@@ -154,7 +154,11 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public int getNumberOfTimedoutTestGoals() {
-    return timedOutPresenceCondition.size();
+    if (useTigerAlgorithm_with_pc) {
+      return timedOutPresenceCondition.size();
+    } else {
+      return timedOutGoals.size();
+    }
   }
 
   public Set<Goal> getPartiallyTimedOutGoals() {
@@ -224,7 +228,8 @@ public class TestSuite implements AlgorithmResult {
     return testcaseExisted;
   }
 
-  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition, Prediction[] pGoalPrediction) {
+  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition,
+      Prediction[] pGoalPrediction) {
     if (isVariabilityAware()) {
       setRemainingPresenceCondition(pGoal, pcm().makeFalse());
 
@@ -310,9 +315,7 @@ public class TestSuite implements AlgorithmResult {
    * Summarizes the presence conditions of tests in this testsuite that cover the parameter test goal.
    */
   public PresenceCondition getGoalCoverage(Goal pGoal) {
-    if (pcm() == null) {
-      return null;
-    }
+    if (pcm() == null) { return null; }
 
     PresenceCondition totalCoverage = pcm().makeFalse();
     for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
@@ -340,9 +343,7 @@ public class TestSuite implements AlgorithmResult {
 
   public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) throws InterruptedException {
     for (Goal goal : pGoals) {
-      if (!(isGoalCovered(goal) || isGoalInfeasible(goal))) {
-        return false;
-      }
+      if (!(isGoalCovered(goal) || isGoalInfeasible(goal))) { return false; }
     }
     return true;
   }
@@ -400,7 +401,8 @@ public class TestSuite implements AlgorithmResult {
 
       List<CFAEdge> errorPath = testcase.getErrorPath();
       if (testcase.getGenerationTime() != -1) {
-        str.append("Generation Time: " + (testcase.getGenerationTime() - getGenerationStartTime()) + "\n");
+        str.append(
+            "Generation Time: " + (testcase.getGenerationTime() - getGenerationStartTime()) + "\n");
       }
       if (errorPath != null) {
         str.append("Errorpath Length: " + testcase.getErrorPath().size() + "\n");
@@ -411,7 +413,8 @@ public class TestSuite implements AlgorithmResult {
         str.append("Goal ");
         str.append(getTestGoalLabel(goal));
 
-        PresenceCondition presenceCondition = coveringPresenceConditions.get(Pair.of(testcase, goal));
+        PresenceCondition presenceCondition =
+            coveringPresenceConditions.get(Pair.of(testcase, goal));
         if (presenceCondition != null) {
           str.append(": " + pcm().dump(presenceCondition).toString().replace(" & TRUE", ""));
         }
@@ -425,7 +428,8 @@ public class TestSuite implements AlgorithmResult {
             continue;
           }
           CFANode predecessor = edge.getPredecessor();
-          if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+          if (predecessor instanceof CLabelNode
+              && !((CLabelNode) predecessor).getLabel().isEmpty()) {
             str.append(((CLabelNode) predecessor).getLabel());
             str.append(" ");
           }
@@ -454,10 +458,11 @@ public class TestSuite implements AlgorithmResult {
       str.append("\n");
     }
 
-    if (!timedOutPresenceCondition.isEmpty()) {
+    if (useTigerAlgorithm_with_pc && !timedOutPresenceCondition.isEmpty()) {
       str.append("timed out:\n");
 
-      for (Entry<Integer, Pair<Goal, PresenceCondition>> entry : timedOutPresenceCondition.entrySet()) {
+      for (Entry<Integer, Pair<Goal, PresenceCondition>> entry : timedOutPresenceCondition
+          .entrySet()) {
         str.append("Goal ");
         str.append(getTestGoalLabel(entry.getValue().getFirst()));
 
@@ -466,6 +471,18 @@ public class TestSuite implements AlgorithmResult {
           str.append(": timed out for PC ");
           str.append(pcm().dump(presenceCondition));
         }
+        str.append("\n");
+      }
+
+      str.append("\n");
+    }
+
+    if (!timedOutGoals.isEmpty()) {
+      str.append("timed out:\n");
+
+      for (Goal goal : timedOutGoals) {
+        str.append("Goal ");
+        str.append(getTestGoalLabel(goal));
         str.append("\n");
       }
 
