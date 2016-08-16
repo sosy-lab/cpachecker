@@ -1122,16 +1122,6 @@ public class ARGPathExporter {
 
     private ExpressionTree<Object> getTargetStateInvariant(String pTargetState) {
       ExpressionTree<Object> targetStateInvariant = getStateInvariant(pTargetState);
-      FluentIterable<Edge> enteringRedundantEdges =
-          FluentIterable.from(enteringEdges.get(pTargetState)).filter(isEdgeRedundant);
-      if (!enteringRedundantEdges.isEmpty()) {
-        ExpressionTree<Object> fromEnteringEdges = ExpressionTrees.getFalse();
-        for (Edge enteringEdge : enteringEdges.get(pTargetState)) {
-          fromEnteringEdges =
-              factory.or(fromEnteringEdges, getTargetStateInvariant(enteringEdge.source));
-        }
-        targetStateInvariant = factory.and(targetStateInvariant, fromEnteringEdges);
-      }
       return targetStateInvariant;
     }
 
