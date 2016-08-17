@@ -107,7 +107,7 @@ import javax.annotation.Nullable;
 import javax.management.JMException;
 
 @Options(prefix="analysis.mpa")
-public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, StatisticsProvider, Statistics {
+public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, StatisticsProvider, Statistics {
 
   @Option(secure=true, name="partition.operator",
       description = "Operator for determining the partitions of properties that have to be checked.")
