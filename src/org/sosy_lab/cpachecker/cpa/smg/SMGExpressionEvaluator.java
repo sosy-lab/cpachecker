@@ -434,7 +434,7 @@ public class SMGExpressionEvaluator {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
         if (address.getObject() == SMGObject.getNullObject()) { return SMGExplicitValueAndState.of(newState,
-            SMGKnownExpValue.valueOf(address.getOffset().getAsLong())); }
+            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / machineModel.getSizeofCharInBits())); }
       }
     }
 
