@@ -34,15 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriter
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-
-/**
- * We need the values of this options at two code sites (CFAcreator and CoreComponentsFactory).
- * Should not define the option twice.
- * Therefore we define them once here.
- * Each time this class is instantiated, the options are set and can be accessed.
- *
- * Not nice but small and obvious.
- */
 @Options(prefix = "tiger")
 public class TigerConfiguration {
 
