@@ -131,6 +131,11 @@ public class CFACreator {
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
 
+  @Option(secure=true, name="analysis.algorithm.tiger",
+      description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal "
+      + "Reachability Analyses, ESOP'13)")
+  public boolean useTigerAlgorithm = false;
+
   @Option(secure=true, name="parser.usePreprocessor",
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
@@ -443,21 +448,18 @@ private boolean classifyNodes = false;
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      TigerConfiguration tigerConfig = new TigerConfiguration(config);
-      boolean useTiger = tigerConfig.useTigerAlgorithm;
-
-      if (useTiger && (language != Language.C)) {
+      if (useTigerAlgorithm && (language != Language.C)) {
         throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
       }
 
-      if (useTiger) {
+      if (useTigerAlgorithm) {
         TigerAlgorithm.originalMainFunction = mainFunctionName;
         mainFunctionName = WrapperUtil.CPAtiger_MAIN;
       }
 
       ParseResult c = parseToCFAs(sourceFiles);
 
-      if (useTiger) {
+      if (useTigerAlgorithm) {
         c = WrapperUtil.addWrapper((CParser) parser, c, new CSourceOriginMapping());
       }
 

@@ -163,7 +163,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-@Options(prefix = "tiger")
 public class TigerAlgorithm
     implements Algorithm, AlgorithmWithResult, PrecisionCallback<PredicatePrecision>,
     StatisticsProvider, Statistics {
@@ -210,194 +209,8 @@ public class TigerAlgorithm
 
   public static String originalMainFunction = null;
 
-  @Option(
-      secure = true,
-      name = "fqlQuery",
-      description = "Coverage criterion given as an FQL query")
-  private String fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE; // default is basic block coverage
-
-  @Option(
-      secure = true,
-      name = "optimizeGoalAutomata",
-      description = "Optimize the test goal automata")
-  private boolean optimizeGoalAutomata = true;
-
-  @Option(secure = true, name = "printARGperGoal", description = "Print the ARG for each test goal")
-  private boolean dumpARGperPartition = false;
-
-  @Option(
-      secure = true,
-      name = "useAutomataCrossProduct",
-      description = "Compute the cross product of the goal automata?")
-  private boolean useAutomataCrossProduct = false;
-
-  @Option(
-      secure = true,
-      name = "useMarkingAutomata",
-      description = "Compute the cross product of the goal automata?")
-  private boolean useMarkingAutomata = false;
-
-  @Option(
-      secure = true,
-      name = "checkCoverage",
-      description = "Checks whether a test case for one goal covers another test goal")
-  private boolean checkCoverage = true;
-
-  @Option(
-      secure = true,
-      name = "usePowerset",
-      description = "Construct the powerset of automata states.")
-  private boolean usePowerset = false;
-
-  @Option(
-      secure = true,
-      name = "useComposite",
-      description = "Handle all automata CPAs as one composite CPA.")
-  private boolean useComposite = false;
-
-  @Option(
-      secure = true,
-      name = "testsuiteFile",
-      description = "Filename for output of generated test suite")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path testsuiteFile = Paths.get("testsuite.txt");
-
-  @Option(
-      secure = true,
-      name = "testcaseGeneartionTimesFile",
-      description = "Filename for output of geneartion times of test cases")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path testcaseGenerationTimesFile = Paths.get("generationTimes.csv");
-
-  @Option(
-      secure = true,
-      description = "File for saving processed goal automata in DOT format (%s will be replaced with automaton name)")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpGoalAutomataTo = PathTemplate.ofFormatString("Automaton_%s.dot");
-
-  @Option(
-      secure = true,
-      name = "useInfeasibilityPropagation",
-      description = "Map information on infeasibility of one test goal to other test goals.")
-  private boolean useInfeasibilityPropagation = false;
-
-  enum TimeoutStrategy {
-    SKIP_AFTER_TIMEOUT,
-    RETRY_AFTER_TIMEOUT
-  }
-
-  @Option(
-      secure = true,
-      name = "timeoutStrategy",
-      description = "How to proceed with timed-out goals if some time remains after processing all other goals.")
-  private TimeoutStrategy timeoutStrategy = TimeoutStrategy.SKIP_AFTER_TIMEOUT;
-
-  @Option(
-      secure = true,
-      name = "limitsPerGoal.time.cpu.increment",
-      description = "Value for which timeout gets incremented if timed-out goals are re-processed.")
-  private int timeoutIncrement = 0;
-
-  /*@Option(name = "globalCoverageCheckBeforeTimeout", description = "Perform a coverage check on all remaining coverage goals before the global time out happens.")
-  private boolean globalCoverageCheckBeforeTimeout = false;
-
-  @Option(name = "timeForGlobalCoverageCheck", description = "Time budget for coverage check before global time out.")
-  private String timeForGlobalCoverageCheck = "0s";*/
-
-  @Option(
-      secure = true,
-      name = "limitsPerGoal.time.cpu",
-      description = "Time limit per test goal in seconds (-1 for infinity).")
-  private long cpuTimelimitPerGoal = -1;
-
-  @Option(
-      secure = true,
-      name = "useDynamicTimeouts",
-      description = "Calculates the timeout for each partition depending on the time limit per goal * partition size.")
-  private boolean useDynamicTimeouts = false;
-
-  @Option(
-      secure = true,
-      name = "inverseOrder",
-      description = "Inverses the order of test goals each time a new round of re-processing of timed-out goals begins.")
-  private boolean inverseOrder = true;
-
-  @Option(
-      secure = true,
-      name = "useOrder",
-      description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
-  private boolean useOrder = true;
-
-  @Option(
-      secure = true,
-      name = "algorithmConfigurationFile",
-      description = "Configuration file for internal cpa algorithm.")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path algorithmConfigurationFile = Paths.get("config/includes/tiger-internal-algorithm-tgar.properties");
-
-  @Option(
-      secure = true,
-      name = "tiger_with_presenceConditions",
-      description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions.")
-  public boolean useTigerAlgorithm_with_pc = false;
-
-  @Option(
-      secure = true,
-      name = "useBddForPresenceCondtion",
-      description = "Use BDDCPA to model product line presence conditions.")
-  public boolean useBddForPresenceCondtion = false;
-
-  @Option(
-      secure = true,
-      name = "useOmegaLabel",
-      description = "Inserts the omega label at the end of each test goal automaton to enforce the tiger algorithm to generate only test cases from counterexamples that reach the end of the program.")
-  public boolean useOmegaLabel = true;
-
-  @Option(
-      secure = true,
-      name = "numberOfTestGoalsPerRun",
-      description = "The number of test goals processed per CPAchecker run (0: all test goals in one run).")
-  private int numberOfTestGoalsPerRun = 1;
-
-  @Option(
-      secure = true,
-      name = "allCoveredGoalsPerTestCase",
-      description = "Returns all test goals covered by a test case.")
-  private boolean allCoveredGoalsPerTestCase = false;
-
-  @Option(
-      secure = true,
-      name = "inputInterface",
-      description = "List of input variables: v1,v2,v3...")
-  private String inputInterface = "";
-
-  @Option(
-      secure = true,
-      name = "outputInterface",
-      description = "List of output variables: v1,v2,v3...")
-  private String outputInterface = "";
-
-  @Option(
-      secure = true,
-      name = "printLabels",
-      description = "Prints labels reached with the error path of a test case.")
-  private boolean printLabels = false;
-
-  @Option(
-      secure = true,
-      name = "printPathFormulasPerGoal",
-      description = "Writes all target state path formulas for a goal in a file.")
-  private boolean printPathFormulasPerGoal = false;
-
-  @Option(
-      secure = true,
-      name = "pathFormulasFile",
-      description = "Filename for output of path formulas")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path pathFormulaFile = Paths.get("pathFormulas.txt");
-
-
   private final Configuration config;
+  private final TigerConfiguration cfg;
   private final LogManager logger;
   final private ShutdownManager mainShutdownManager;
   private final MainCPAStatistics mainStats;
@@ -448,20 +261,20 @@ public class TigerAlgorithm
 
     mainShutdownManager = pShutdownManager;
     logger = pLogger;
-    config = pConfig;
-    config.inject(this);
 
+    config = pConfig;
+    cfg = new TigerConfiguration(pConfig);
     cpa = pCpa;
     cfa = pCfa;
 
-    testsuite = new TestSuite(printLabels, useTigerAlgorithm_with_pc);
+    testsuite = new TestSuite(cfg.printLabels, cfg.useTigerAlgorithm_with_pc);
     inputVariables = new TreeSet<>();
-    for (String variable : inputInterface.split(",")) {
+    for (String variable : cfg.inputInterface.split(",")) {
       inputVariables.add(variable.trim());
     }
 
     outputVariables = new TreeSet<>();
-    for (String variable : outputInterface.split(",")) {
+    for (String variable : cfg.outputInterface.split(",")) {
       outputVariables.add(variable.trim());
     }
 
@@ -481,11 +294,11 @@ public class TigerAlgorithm
     edgeToTgaMapping = new HashMap<>();
     targetStateFormulas = new HashMap<>();
 
-    testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, alphaLabel,
+    testGoalUtils = new TestGoalUtils(logger, cfg.useTigerAlgorithm_with_pc, alphaLabel,
         inverseAlphaLabel, omegaLabel);
 
     // get internal representation of FQL query
-    fqlSpecification = testGoalUtils.parseFQLQuery(fqlQuery);
+    fqlSpecification = testGoalUtils.parseFQLQuery(cfg.fqlQuery);
   }
 
   private PresenceConditionManager pcm() {
@@ -547,8 +360,8 @@ public class TigerAlgorithm
 
     Set<Goal> goalsToCover =
         testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
-            lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata,
-            useOmegaLabel, useTigerAlgorithm_with_pc);
+            lInfeasibilityPropagation, mCoverageSpecificationTranslator, cfg.optimizeGoalAutomata,
+            cfg.useOmegaLabel, cfg.useTigerAlgorithm_with_pc);
     fillEdgeToTgaMapping(goalsToCover);
 
     statistics_numberOfTestGoals = goalsToCover.size();
@@ -602,8 +415,8 @@ public class TigerAlgorithm
   }
 
   private void dumpTestSuite() {
-    if (testsuiteFile != null) {
-      try (Writer writer = MoreFiles.openOutputFile(testsuiteFile, Charset.defaultCharset())) {
+    if (cfg.testsuiteFile != null) {
+      try (Writer writer = MoreFiles.openOutputFile(cfg.testsuiteFile, Charset.defaultCharset())) {
         writer.write(testsuite.toString());
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -614,7 +427,7 @@ public class TigerAlgorithm
   private Pair<Boolean, LinkedList<Edges>> initializeInfisabilityPropagation() {
     Pair<Boolean, LinkedList<Edges>> propagation;
 
-    if (useInfeasibilityPropagation) {
+    if (cfg.useInfeasibilityPropagation) {
       propagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
     } else {
       propagation = Pair.of(Boolean.FALSE, null);
@@ -624,9 +437,9 @@ public class TigerAlgorithm
   }
 
   private ImmutableSet<Goal> nextTestGoalSet(Set<Goal> pGoalsToCover) {
-    final int testGoalSetSize = (numberOfTestGoalsPerRun <= 0)
+    final int testGoalSetSize = (cfg.numberOfTestGoalsPerRun <= 0)
         ? pGoalsToCover.size()
-        : (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun
+        : (pGoalsToCover.size() > cfg.numberOfTestGoalsPerRun) ? cfg.numberOfTestGoalsPerRun
             : pGoalsToCover.size();
 
     Builder<Goal> builder = ImmutableSet.builder();
@@ -657,15 +470,15 @@ public class TigerAlgorithm
           // retry timed-out goals
           boolean order = true;
 
-          if (timeoutIncrement > 0) {
-            long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
-            cpuTimelimitPerGoal += timeoutIncrement;
+          if (cfg.timeoutIncrement > 0) {
+            long oldCPUTimeLimitPerGoal = cfg.cpuTimelimitPerGoal;
+            cfg.cpuTimelimitPerGoal += cfg.timeoutIncrement;
             logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.",
                 oldCPUTimeLimitPerGoal,
-                cpuTimelimitPerGoal);
+                cfg.cpuTimelimitPerGoal);
             Collection<Entry<Integer, Pair<Goal, PresenceCondition>>> set;
-            if (useOrder) {
-              if (inverseOrder) {
+            if (cfg.useOrder) {
+              if (cfg.inverseOrder) {
                 order = !order;
               }
 
@@ -697,7 +510,7 @@ public class TigerAlgorithm
           statistics_numberOfProcessedTestGoals += goalsToBeProcessed.size();
           pGoalsToCover.removeAll(goalsToBeProcessed);
 
-          if (useTigerAlgorithm_with_pc) {
+          if (cfg.useTigerAlgorithm_with_pc) {
             /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
              * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
              * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
@@ -713,7 +526,7 @@ public class TigerAlgorithm
           }
           logString = logString.substring(0, logString.length() - 2);
 
-          if (useTigerAlgorithm_with_pc) {
+          if (cfg.useTigerAlgorithm_with_pc) {
             //            Region remainingPresenceCondition =
             //                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
             logger.logf(Level.FINE, "%s of %d for a PC.", logString, numberOfTestGoals);
@@ -777,7 +590,7 @@ public class TigerAlgorithm
           logger.logf(Level.INFO, "There were no timed out goals.");
           retry = false;
         } else {
-          if (!timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
+          if (!cfg.timeoutStrategy.equals(TigerConfiguration.TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
             logger.logf(Level.INFO,
                 "There were timed out goals but retry after timeout strategy is disabled.");
           } else {
@@ -861,7 +674,7 @@ public class TigerAlgorithm
 
       checkCoverageOf.removeAll(goalsCoveredByLastState);
 
-      if (!allCoveredGoalsPerTestCase) {
+      if (!cfg.allCoveredGoalsPerTestCase) {
         for (Goal goal : pCheckCoverageOf) {
           if (testsuite.isGoalCovered(goal)) {
             checkCoverageOf.remove(goal);
@@ -892,7 +705,7 @@ public class TigerAlgorithm
         }
 
         // test goal is already covered by an existing test case
-        if (useTigerAlgorithm_with_pc) {
+        if (cfg.useTigerAlgorithm_with_pc) {
 
           Pair<ARGState, PresenceCondition> critical = findStateAfterCriticalEdge(goal, pArgPath);
 
@@ -926,7 +739,7 @@ public class TigerAlgorithm
           Preconditions.checkState(statePresenceCondition != null,
               "Each critical state must be annotated with a presence condition!");
 
-          if (allCoveredGoalsPerTestCase
+          if (cfg.allCoveredGoalsPerTestCase
               || pcm().checkConjunction(testsuite.getRemainingPresenceCondition(goal),
                   statePresenceCondition)) {
 
@@ -1173,10 +986,10 @@ public class TigerAlgorithm
               dumpArgForCex(cexi);
 
               final Set<Goal> fullyCoveredGoals;
-              if (allCoveredGoalsPerTestCase) {
+              if (cfg.allCoveredGoalsPerTestCase) {
                 fullyCoveredGoals =
                     addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
-              } else if (checkCoverage) {
+              } else if (cfg.checkCoverage) {
                 fullyCoveredGoals =
                     addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi,
                         pInfeasibilityPropagation);
@@ -1194,7 +1007,7 @@ public class TigerAlgorithm
 
               if (testsuite.isGoalCoveredOrInfeasible(goal)) {
                 toBlacklist.put(goal, Optional.of(pcm().makeTrue()));
-              } else if (useTigerAlgorithm_with_pc) {
+              } else if (cfg.useTigerAlgorithm_with_pc) {
                 PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
                 PresenceCondition coveredFor = pcm().makeNegation(remainingPc);
                 toBlacklist.put(goal, Optional.of(coveredFor));
@@ -1275,7 +1088,7 @@ public class TigerAlgorithm
 
     try (StatCpuTimer t = tigerStats.runAlgorithmWithLimitTime.start()) {
       ReachabilityAnalysisResult status;
-      if (cpuTimelimitPerGoal < 0) {
+      if (cfg.cpuTimelimitPerGoal < 0) {
         // run algorithm without time limit
         if (algorithm.run(reachedSet).isSound()) {
           status = ReachabilityAnalysisResult.SOUND;
@@ -1284,13 +1097,13 @@ public class TigerAlgorithm
         }
       } else {
 
-        long timeout = cpuTimelimitPerGoal;
+        long timeout = cfg.cpuTimelimitPerGoal;
         // calculate the timeout
-        if (useDynamicTimeouts) {
-          if (numberOfTestGoalsPerRun <= 0) {
-            timeout = statistics_numberOfTestGoals * cpuTimelimitPerGoal;
+        if (cfg.useDynamicTimeouts) {
+          if (cfg.numberOfTestGoalsPerRun <= 0) {
+            timeout = statistics_numberOfTestGoals * cfg.cpuTimelimitPerGoal;
           } else {
-            timeout = numberOfGoals * cpuTimelimitPerGoal;
+            timeout = numberOfGoals * cfg.cpuTimelimitPerGoal;
           }
         }
 
@@ -1329,7 +1142,7 @@ public class TigerAlgorithm
       Algorithm algorithm;
       try {
         Configuration internalConfiguration =
-            Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
+            Configuration.builder().loadFromFile(cfg.algorithmConfigurationFile).build();
 
         CoreComponentsFactory coreFactory =
             new CoreComponentsFactory(internalConfiguration, logger, algNotifier.getNotifier());
@@ -1436,7 +1249,7 @@ public class TigerAlgorithm
 
       Set<Property> props = pCex.getTargetPath().getLastState().getViolatedProperties();
 
-      if (useTigerAlgorithm_with_pc) {
+      if (cfg.useTigerAlgorithm_with_pc) {
         logger.logf(Level.FINE, "Generated new test case %d for %s with a PC in the last state.",
             testcase.getId(), props);
       } else {
@@ -1505,7 +1318,7 @@ public class TigerAlgorithm
         lGoalPrediction[pGoal.getIndex() - 1] = Prediction.INFEASIBLE;
       }
 
-      if (useTigerAlgorithm_with_pc) {
+      if (cfg.useTigerAlgorithm_with_pc) {
         testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal),
             lGoalPrediction);
         logger.logf(Level.FINE, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
@@ -1554,9 +1367,9 @@ public class TigerAlgorithm
   }
 
   private void dumpAutomaton(Automaton pA) {
-    if (dumpGoalAutomataTo == null) { return; }
+    if (cfg.dumpGoalAutomataTo == null) { return; }
 
-    try (Writer w = MoreFiles.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()),
+    try (Writer w = MoreFiles.openOutputFile(cfg.dumpGoalAutomataTo.getPath(pA.getName()),
         Charset.defaultCharset())) {
 
       pA.writeDotFile(w);
@@ -1580,7 +1393,7 @@ public class TigerAlgorithm
 
         for (Goal goal : pGoalsToBeProcessed) {
           Automaton a = goal.createControlAutomaton();
-          if (useMarkingAutomata) {
+          if (cfg.useMarkingAutomata) {
             final Automaton markingAutomata;
             if (markingAutomataInstances.containsKey(a)) {
               markingAutomata = markingAutomataInstances.get(a);
@@ -1596,7 +1409,7 @@ public class TigerAlgorithm
           checkAutomaton(a);
         }
 
-        if (useAutomataCrossProduct) {
+        if (cfg.useAutomataCrossProduct) {
           final Automaton productAutomaton;
           try {
             logger.logf(Level.INFO, "Computing the cross product of %d automata.",
@@ -1623,7 +1436,7 @@ public class TigerAlgorithm
 
       for (Automaton componentAutomaton : componentAutomata) {
 
-        final CPAFactory automataFactory = usePowerset
+        final CPAFactory automataFactory = cfg.usePowerset
             ? PowersetAutomatonCPA.factory()
             : ControlAutomatonCPA.factory();
 
@@ -1638,7 +1451,7 @@ public class TigerAlgorithm
 
       // Add one automata CPA for each goal
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-      if (useComposite) {
+      if (cfg.useComposite) {
         ConfigurationBuilder compConfigBuilder = Configuration.builder();
         compConfigBuilder.setOption("cpa.composite.separateTargetStates", "true");
         Configuration compositeConfig = compConfigBuilder.build();
@@ -1753,7 +1566,7 @@ public class TigerAlgorithm
     pOut.println("Number of processed test goals:                    "
         + statistics_numberOfProcessedTestGoals);
 
-    if (useTigerAlgorithm_with_pc) {
+    if (cfg.useTigerAlgorithm_with_pc) {
       pOut.println("Number of feasible test goals:                     "
           + testsuite.getNumberOfFeasibleTestGoals());
       pOut.println("Number of partially feasible test goals:           "
@@ -1788,14 +1601,14 @@ public class TigerAlgorithm
 
     dumpTestSuite();
 
-    if (printPathFormulasPerGoal) {
+    if (cfg.printPathFormulasPerGoal) {
       dumpPathFormulas();
     }
 
     // write test case generation times to file system
-    if (testcaseGenerationTimesFile != null) {
+    if (cfg.testcaseGenerationTimesFile != null) {
       try (Writer writer =
-          MoreFiles.openOutputFile(testcaseGenerationTimesFile, Charset.defaultCharset())) {
+          MoreFiles.openOutputFile(cfg.testcaseGenerationTimesFile, Charset.defaultCharset())) {
 
         List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
         Collections.sort(testcases, new Comparator<TestCase>() {
@@ -1810,7 +1623,7 @@ public class TigerAlgorithm
           }
         });
 
-        if (useTigerAlgorithm_with_pc) {
+        if (cfg.useTigerAlgorithm_with_pc) {
           Set<Goal> feasible = Sets.newLinkedHashSet();
           feasible.addAll(testsuite.getFeasibleGoals());
           feasible.addAll(testsuite.getPartiallyFeasibleGoals());
@@ -1861,7 +1674,7 @@ public class TigerAlgorithm
   }
 
   private void dumpPathFormulas() {
-    if (pathFormulaFile != null) {
+    if (cfg.pathFormulaFile != null) {
       StringBuffer buffer = new StringBuffer();
       for (Goal goal : targetStateFormulas.keySet()) {
         buffer.append("GOAL " + goal + "\n");
@@ -1873,7 +1686,7 @@ public class TigerAlgorithm
         }
       }
 
-      try (Writer writer = MoreFiles.openOutputFile(pathFormulaFile, Charset.defaultCharset())) {
+      try (Writer writer = MoreFiles.openOutputFile(cfg.pathFormulaFile, Charset.defaultCharset())) {
         writer.write(buffer.toString());
       } catch (IOException e) {
         throw new RuntimeException(e);
