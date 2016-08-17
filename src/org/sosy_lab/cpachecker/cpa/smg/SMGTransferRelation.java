@@ -695,12 +695,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
                   .getValueAndStateList()) {
                 SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-                int sourceRangeOffset = sourceObject.getOffset().getAsInt();
-                int sourceSize = sourceObject.getObject().getSize();
+                int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
+                int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
                 int availableSource = sourceSize - sourceRangeOffset;
 
-                int targetRangeOffset = targetObject.getOffset().getAsInt();
-                int targetSize = targetObject.getObject().getSize();
+                int targetRangeOffset = targetObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
+                int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
                 int availableTarget = targetSize - targetRangeOffset;
 
                 if (explicitSizeValue.isUnknown()) {
@@ -2123,7 +2123,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             //TODO more precise
           }
         }
-        int size = getSizeof(edge, getRealExpressionType(exp), assignableState) * machineModel.getSizeofCharInBits();
+        int size = getSizeof(edge, getRealExpressionType(exp), assignableState);
         assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
 
