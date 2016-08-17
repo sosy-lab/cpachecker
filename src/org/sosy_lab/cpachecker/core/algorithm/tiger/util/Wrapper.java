@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.base.Preconditions;
+
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -35,20 +37,22 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 public class Wrapper {
 
-  private CFA mCFA;
-  private CFAEdge mAlphaEdge;
-  private CFAEdge mOmegaEdge;
+  private final CFA cfa;
+  private CFAEdge alphaEdge;
+  private CFAEdge omegaEdge;
 
   public Wrapper(CFA pCFA, String pOriginalEntryFunction) {
     // pCFA already contains a wrapper function in the C code! See CFACreator.CPAtiger_MAIN
 
-    mCFA = pCFA;
+    cfa = pCFA;
+    final CFANode tigerEntryFunctionHead = cfa.getFunctionHead(WrapperUtil.CPAtiger_MAIN);
+    final CFANode originalEntryFunctionHead = cfa.getFunctionHead(pOriginalEntryFunction);
 
-    determineAlphaAndOmegaEdges(mCFA.getFunctionHead(WrapperUtil.CPAtiger_MAIN), mCFA.getFunctionHead(pOriginalEntryFunction));
+    determineAlphaAndOmegaEdges(tigerEntryFunctionHead, originalEntryFunctionHead);
   }
 
   private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
-    assert(pInitialNode != null);
+    Preconditions.checkNotNull(pInitialNode);
 
     Set<CFANode> lWorklist = new LinkedHashSet<>();
     Set<CFANode> lVisitedNodes = new HashSet<>();
@@ -69,10 +73,8 @@ public class Wrapper {
       FunctionSummaryEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
 
       if (lCallToReturnEdge != null) {
-
-        if (lCFANode.getNumLeavingEdges() != 1) {
-          throw new IllegalArgumentException();
-        }
+        Preconditions.checkState(lCFANode.getNumLeavingEdges() == 1, "skipRecursion not supported! Fix it?");
+        // "skipRecursion" enables "summaryEdges" --> more than one leaving edge possble!
 
         CFAEdge lEdge = lCFANode.getLeavingEdge(0);
 
@@ -84,7 +86,7 @@ public class Wrapper {
             throw new RuntimeException();
           }
 
-          mAlphaEdge = lEdge;
+          alphaEdge = lEdge;
 
           CFAEdge lSummaryEdge = lPredecessor.getLeavingSummaryEdge();
 
@@ -98,7 +100,7 @@ public class Wrapper {
             throw new RuntimeException("Summary successor has " + lSummarySuccessor.getNumEnteringEdges() + " entering CFA edges!");
           }
 
-          mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);
+          omegaEdge = lSummarySuccessor.getEnteringEdge(0);
 
           break;
         }
@@ -117,28 +119,28 @@ public class Wrapper {
       }
     }
 
-    assert(mAlphaEdge != null);
-    assert(mOmegaEdge != null);
+    assert(alphaEdge != null);
+    assert(omegaEdge != null);
   }
 
   public CFA getCFA() {
-    return mCFA;
+    return cfa;
   }
 
   public CFAEdge getAlphaEdge() {
-    return mAlphaEdge;
+    return alphaEdge;
   }
 
   public CFAEdge getOmegaEdge() {
-    return mOmegaEdge;
+    return omegaEdge;
   }
 /*
   public FunctionEntryNode getCFA(String pFunctionName) {
-    return mCFA.getFunctionHead(pFunctionName);
+    return cfa.getFunctionHead(pFunctionName);
   }
 
   public FunctionEntryNode getEntry() {
-    return mCFA.getMainFunction();
+    return cfa.getMainFunction();
   }*/
 
 }

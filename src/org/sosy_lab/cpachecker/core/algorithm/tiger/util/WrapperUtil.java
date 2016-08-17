@@ -59,7 +59,8 @@ public class WrapperUtil {
   public static final String CPAtiger_MAIN = "__CPAtiger__main";
   public static final String CPAtiger_INPUT = "input";
 
-  public static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction) throws IOException {
+  private static FileToParse getWrapperCFunction(CFunctionEntryNode pMainFunction)
+      throws IOException {
 
     StringWriter lWrapperFunction = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lWrapperFunction);
