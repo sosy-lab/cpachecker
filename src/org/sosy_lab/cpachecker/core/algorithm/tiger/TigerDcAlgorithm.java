@@ -34,8 +34,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
@@ -45,9 +47,13 @@ import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.InitDefaultOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysisFullReset;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.AllThenSepOperator;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
@@ -72,14 +78,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-@Options
+@Options(prefix = "analysis.tigerdc")
 public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
 
   private final TGARStatistics tgarStatistics;
   private final TigerConfiguration cfg;
   private final TestGeneration tg;
+
+  @Option(secure = true, description = "test")
+  boolean test = false;
 
   private Map<Automaton, Automaton> markingAutomataInstances = Maps.newHashMap();
 
@@ -91,13 +101,13 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
     tgarStatistics = new TGARStatistics(pLogger);
     cfg = new TigerConfiguration(pConfig);
     tg = new TestGeneration(cfg, pCfa, pLogger);
+
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-    logger.log(Level.INFO, "Running TigerDC");
+    logger.log(Level.INFO, "Running TigerDC with " + partitionOperator.getClass().getSimpleName());
 
     final AlgorithmStatus result = super.run(pReachedSet);
 

@@ -101,25 +101,36 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.management.JMException;
 
-@Options(prefix="analysis.mpa")
 public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, StatisticsProvider, Statistics {
 
-  @Option(secure=true, name="partition.operator",
-      description = "Operator for determining the partitions of properties that have to be checked.")
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning")
-  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = AllThenSepOperator.class;
-  private final PartitioningOperator partitionOperator;
+  @Options(prefix="analysis.mpa")
+  public static class MultiPropertyConfiguration {
+    @Option(secure = true, name = "partition.operator",
+        description = "Operator for determining the partitions of properties that have to be checked.")
+    @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning")
+    @Nonnull
+    public Class<? extends PartitioningOperator> partitionOperatorClass = AllThenSepOperator.class;
 
-  @Option(secure=true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
-  @Nonnull private Class<? extends InitOperator> initOperatorClass = InitDefaultOperator.class;
-  private final InitOperator initOperator;
+    @Option(secure = true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
+    @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
+    @Nonnull
+    public Class<? extends InitOperator> initOperatorClass = InitDefaultOperator.class;
 
-  @Option(secure=true, description="Clear the caches of the analysis (CPA) when starting with a new partition.")
-  private boolean clearAnalysisCachesOnRestart = false;
+    @Option(secure = true, description = "Clear the caches of the analysis (CPA) when starting with a new partition.")
+    public boolean clearAnalysisCachesOnRestart = false;
 
-  @Option(secure=true, description="Call the garbage collector when starting with a new partition.")
-  private boolean callGcOnRestart = false;
+    @Option(secure = true, description = "Call the garbage collector when starting with a new partition.")
+    public boolean callGcOnRestart = false;
+
+    public MultiPropertyConfiguration(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+  }
+
+  protected final MultiPropertyConfiguration mpaConfig;
+
+  protected final PartitioningOperator partitionOperator;
+  protected final InitOperator initOperator;
 
   private final DecompositionStatistics stats = new DecompositionStatistics();
 
@@ -139,7 +150,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
       ShutdownNotifier pGlobalShutdownNotifier, InterruptProvider pShutdownNotifier, CFA pCfa, String pProgramDenotation, MainCPAStatistics pStats)
       throws InvalidConfigurationException, CPAException {
 
-    pConfig.inject(this);
+    mpaConfig = new MultiPropertyConfiguration(pConfig);
 
     analysisFactory = new AnalysisFactory(pConfig, pLogger, pCfa, pProgramDenotation, pStats);
 
@@ -152,14 +163,14 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     globalShutdownManager = pGlobalShutdownNotifier;
   }
 
-  private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(InitOperator.class, initOperatorClass, new Class[] { }, new Object[] { }, CPAException.class);
+  protected InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
+    return Classes.createInstance(InitOperator.class, mpaConfig.initOperatorClass, new Class[] {}, new Object[] { }, CPAException.class);
   }
 
-  private PartitioningOperator createPartitioningOperator(Configuration pConfig, LogManager pLogger)
+  protected PartitioningOperator createPartitioningOperator(Configuration pConfig, LogManager pLogger)
       throws CPAException, InvalidConfigurationException {
 
-    return Classes.createInstance(PartitioningOperator.class, partitionOperatorClass,
+    return Classes.createInstance(PartitioningOperator.class, mpaConfig.partitionOperatorClass,
         new Class[] { Configuration.class, LogManager.class }, new Object[] { pConfig, pLogger }, CPAException.class);
   }
 
@@ -660,7 +671,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     Partitioning result = Partitions.none();
 
     // Clear some of the caches (for experiments)
-    if (clearAnalysisCachesOnRestart) {
+    if (mpaConfig.clearAnalysisCachesOnRestart) {
       for (ConfigurableProgramAnalysis a: CPAs.asIterable(partitionAnalysis.getCpa())) {
         if (a instanceof AnalysisCache) {
           ((AnalysisCache) a).clearCaches();
@@ -668,7 +679,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
       }
     }
 
-    if (callGcOnRestart) {
+    if (mpaConfig.callGcOnRestart) {
       System.gc();
     }
 
