@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface InitOperator {
 
-  public Partitioning init(Set<Property> pAllProperties, ConfigurableProgramAnalysis pCPA,
+  public Partitioning init(
+      Set<Property> pAllProperties, Set<Property> pRemain, ConfigurableProgramAnalysis pCPA,
       ReachedSet pReached, Partitioning pPartitioning, CFA pCfa)
           throws CPAException, InterruptedException;
 

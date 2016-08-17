@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperato
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.AllThenSepOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.RelevanceThenIrrelevantThenRelevantOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -68,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -77,7 +74,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
@@ -87,13 +83,11 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
-import org.sosy_lab.solver.SolverException;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -284,7 +278,7 @@ public class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Statistics
       initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
 
       // Initialize the waitlist
-      Partitioning remainingPartitions = initReached(pReachedSet, checkPartitions, all);
+      Partitioning remainingPartitions = initReached(pReachedSet, checkPartitions, all, all);
 
       do {
         final ImmutableSortedSet<Property> runProperties = getActiveProperties(pReachedSet);
@@ -466,7 +460,7 @@ public class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Statistics
 
           // Re-initialize the sets 'waitlist' and 'reached'
           stats.numberOfRestarts++;
-          remainingPartitions = initReached(pReachedSet, checkPartitions, all);
+          remainingPartitions = initReached(pReachedSet, checkPartitions, all, remain);
           // -- Reset the resource limit checker
           initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
         }
@@ -625,7 +619,8 @@ public class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Statistics
   }
 
   private Partitioning initReached(final ReachedSet pReachedSet,
-      final Partitioning pCheckPartitions, Set<Property> pAllProperties) throws CPAException, InterruptedException {
+      final Partitioning pCheckPartitions, Set<Property> pAllProperties, Set<Property> pRemainingProperties)
+    throws CPAException, InterruptedException {
 
     Preconditions.checkState(!pCheckPartitions.isEmpty(), "A non-empty set of properties must be checked in a verification run!");
 
@@ -651,7 +646,7 @@ public class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Statistics
 
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
-      result = initOperator.init(pAllProperties, partitionCPA, pReachedSet, pCheckPartitions, cfa);
+      result = initOperator.init(pAllProperties, pRemainingProperties, partitionCPA, pReachedSet, pCheckPartitions, cfa);
 
       // Logging: inactive properties
       ImmutableSortedSet<Property> inactive = getInactiveProperties(pReachedSet);

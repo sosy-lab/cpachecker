@@ -52,7 +52,8 @@ import com.google.common.collect.Sets.SetView;
 public class InitDefaultOperator implements InitOperator {
 
   @Override
-  public Partitioning init(Set<Property> pAllProperties, ConfigurableProgramAnalysis pCPA,
+  public Partitioning init(
+      Set<Property> pAllProperties, Set<Property> pRemain, ConfigurableProgramAnalysis pCPA,
       ReachedSet pReached, Partitioning pPartitioning, CFA pCfa)
           throws CPAException, InterruptedException {
 
@@ -62,7 +63,7 @@ public class InitDefaultOperator implements InitOperator {
     Preconditions.checkState(pAllProperties.size() > 0, "There must be a set of properties that get checked!");
 
     // At the moment we check the first partition in the list
-    ImmutableSet<Property> partitionToChcek = pPartitioning.getFirstPartition();
+    Set<Property> partitionToCheck = Sets.intersection(pPartitioning.getFirstPartition(), pRemain);
 
     final CFANode initLocation = pCfa.getMainFunction();
     final AbstractState initialState = pCPA.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
@@ -74,7 +75,7 @@ public class InitDefaultOperator implements InitOperator {
     pReached.add(initialState, initialPrecision);
 
     // Modify the 'waitlist': Blacklist those properties that are not in the partition!
-    SetView<Property> toBlacklist = Sets.difference(pAllProperties, partitionToChcek);
+    SetView<Property> toBlacklist = Sets.difference(pAllProperties, partitionToCheck);
     Precisions.updatePropertyBlacklistOnWaitlist(argCpa, pReached, toBlacklist);
 
     // Perform a precision adjustment on all states of the waitlist to

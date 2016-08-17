@@ -27,6 +27,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -211,10 +212,11 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   }
 
   @Override
-  protected Partitioning initAnalysisAndReached(Partitioning pCheckPartitions,
-      Set<Property> pAllProperties) throws CPAException, InterruptedException {
+  protected Partitioning initAnalysisAndReached(
+      final Partitioning pCheckPartitions, Set<Property> pAllProperties, Set<Property> pRemain)
+      throws CPAException, InterruptedException {
 
-    final Partitioning result = super.initAnalysisAndReached(pCheckPartitions, pAllProperties);
+    final Partitioning result = super.initAnalysisAndReached(pCheckPartitions, pAllProperties, pRemain);
 
     Preconditions.checkState(partitionAnalysis.getAlgorithm() instanceof TGARAlgorithm, "Please configure 'algorithm.TGAR=true'!");
 

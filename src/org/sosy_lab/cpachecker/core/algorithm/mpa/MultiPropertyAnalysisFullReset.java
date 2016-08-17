@@ -305,7 +305,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
       }
 
       // Initialize the waitlist
-      Partitioning remainingPartitions = initAnalysisAndReached(checkPartitions, all);
+      Partitioning remainingPartitions = initAnalysisAndReached(checkPartitions, all, all);
 
       // Initialize the check for resource limits
       initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
@@ -387,7 +387,6 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
         final TargetSummary runViolated = identifyViolationsInRun(partitionAnalysis.getAlgorithm(), partitionAnalysis.getReached());
 
         if (runViolated.hasTargetStates()) {
-          
 
           // The waitlist should never be empty in this case!
           //  There might be violations of other properties after the
@@ -491,7 +490,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
           // Re-initialize the sets 'waitlist' and 'reached'
           stats.numberOfRestarts++;
-          remainingPartitions = initAnalysisAndReached(checkPartitions, all);
+          remainingPartitions = initAnalysisAndReached(checkPartitions, all, remain);
           // -- Reset the resource limit checker
           initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
         }
@@ -665,8 +664,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     }
   }
 
-  protected Partitioning initAnalysisAndReached(final Partitioning pCheckPartitions,
-        Set<Property> pAllProperties)
+  protected Partitioning initAnalysisAndReached(
+      final Partitioning pCheckPartitions, Set<Property> pAllProperties, Set<Property> pRemain)
     throws CPAException, InterruptedException {
 
     Preconditions.checkState(!pCheckPartitions.isEmpty(), "A non-empty set of properties must be checked in a verification run!");
@@ -699,7 +698,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
-      result = initOperator.init(pAllProperties, partitionAnalysis.getCpa(), partitionAnalysis.getReached(), pCheckPartitions, cfa);
+      result = initOperator.init(pAllProperties, pRemain, partitionAnalysis.getCpa(),
+          partitionAnalysis.getReached(), pCheckPartitions, cfa);
 
       logger.log(Level.WARNING, String.format("%d states in reached.", partitionAnalysis.getReached().size()));
       logger.log(Level.WARNING, String.format("%d states in waitlist.", partitionAnalysis.getReached().getWaitlist().size()));
