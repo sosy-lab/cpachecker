@@ -50,11 +50,6 @@ public class TigerConfiguration {
     config.inject(this);
   }
 
-  //@Option(secure=true, name="analysis.algorithm.tiger",
-  //    description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal "
-  //    + "Reachability Analyses, ESOP'13)")
-  //public boolean useTigerAlgorithm = false;
-
   @Option(
       secure = true,
       name = "fqlQuery",
