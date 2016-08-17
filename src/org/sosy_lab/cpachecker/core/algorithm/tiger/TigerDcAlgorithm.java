@@ -85,9 +85,6 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   private final TigerConfiguration cfg;
   private final TestGeneration tg;
 
-  @Option(secure = true, description = "test")
-  boolean test = false;
-
   private Map<Automaton, Automaton> markingAutomataInstances = Maps.newHashMap();
 
   public TigerDcAlgorithm(Configuration pConfig, LogManager pLogger, ShutdownNotifier pGlobalShutdownNotifier,
