@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
@@ -59,7 +58,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOpera
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.AllCFAEdgesGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
@@ -700,10 +698,6 @@ public class TigerAlgorithm
             // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
             testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
 
-//            logger.logf(Level.WARNING,
-//                "Covered some PCs for Goal %d (%s) for a PC %s by test case %d!",
-//                goal.getIndex(), testsuite.getTestGoalLabel(goal), PresenceConditions.dump(statePresenceCondition), pTestcase.getId());
-
             logger.logf(Level.FINE,
                 "Covered some PCs for Goal %d (%s) for a PC by test case %d!",
                 goal.getIndex(), testsuite.getTestGoalLabel(goal), pTestcase.getId());
@@ -895,12 +889,7 @@ public class TigerAlgorithm
     Preconditions.checkState(cpa.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
 
-    // TODO: enable tiger techniques for multi-goal generation in one run
-    //    if (reuseARG && (reachedSet != null)) {
-    //      reuseARG(pTestGoalsToBeProcessed, pPreviousGoalAutomaton, lARTCPA);
-    //    } else {
     initializeReachedSet(cpa);
-    //    }
 
     PresenceCondition presenceConditionToCover =
         PresenceConditions.composeRemainingPresenceConditions(
@@ -913,15 +902,14 @@ public class TigerAlgorithm
     Preconditions.checkState(algorithm instanceof TGARAlgorithm);
     TGARAlgorithm tgarAlgorithm = (TGARAlgorithm) algorithm;
 
-    return runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
-        presenceConditionToCover, shutdownManager, tgarAlgorithm);
+    return runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, pInfeasibilityPropagation,
+        shutdownManager, tgarAlgorithm);
   }
 
   private ReachabilityAnalysisResult runAlgorithm(
       Set<Goal> pUncoveredGoals,
       final Set<Goal> pTestGoalsToBeProcessed,
-      final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
-      final PresenceCondition pRemainingPresenceCondition,
+      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       final ShutdownManager pShutdownNotifier,
       final TGARAlgorithm pAlgorithm)
       throws CPAException, InterruptedException {
@@ -937,8 +925,6 @@ public class TigerAlgorithm
               throws InterruptedException {
 
             for (CounterexampleInfo cexi: pCounterexample.getAll()) {
-              dumpArgForCex(cexi);
-
               final Set<Goal> fullyCoveredGoals;
               if (cfg.allCoveredGoalsPerTestCase) {
                 fullyCoveredGoals =
@@ -989,51 +975,13 @@ public class TigerAlgorithm
         // set test goals infeasible
         for (Goal goal : pTestGoalsToBeProcessed) {
           if (!testsuite.isGoalCovered(goal)) {
-            handleInfeasibleTestGoal(goal, pInfeasibilityPropagation);
+            handleInfeasibleTestGoal(goal);
           }
         }
       }
 
       return algorithmStatus;
     }
-  }
-
-  private static Optional<CounterexampleInfo> retrieveCounterexampleInfo(
-      Algorithm pAlg, ReachedSet pReachedSet) {
-
-    if (pAlg instanceof TGARAlgorithm) {
-      TGARAlgorithm alg = (TGARAlgorithm) pAlg;
-      CounterexampleInfoResult r = (CounterexampleInfoResult) alg.getResult();
-      return r.getCounterexampleInfo();
-    } else {
-      boolean newTargetFound = (pReachedSet.getLastState() != null)
-          && ((ARGState) pReachedSet.getLastState()).isTarget();
-
-      if (pReachedSet.hasWaitingState() && newTargetFound) {
-        Preconditions.checkState(pReachedSet.getLastState() instanceof ARGState);
-        ARGState lastState = (ARGState) pReachedSet.getLastState();
-        Preconditions.checkState(lastState.isTarget());
-
-        return lastState.getCounterexampleInformation();
-      }
-    }
-
-    return Optional.absent();
-  }
-
-  private void dumpArgForCex(CounterexampleInfo cexi) {
-    //    Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId)  + ".dot");
-    //    try (Writer w = Files.openOutputFile(argFile)) {
-    //      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
-    //      allTargetPathEdges.addAll(cexi.getTargetPath().getStatePairs());
-    //
-    //      ARGToDotWriter.write(w, AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class),
-    //          ARGUtils.CHILDREN_OF_STATE,
-    //          Predicates.alwaysTrue(),
-    //          Predicates.in(allTargetPathEdges));
-    //    } catch (IOException e) {
-    //      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-    //    }
   }
 
   private ReachabilityAnalysisResult runAlgorithmWithLimit(final ShutdownManager algNotifier,
@@ -1106,12 +1054,6 @@ public class TigerAlgorithm
         Preconditions.checkState(algorithm instanceof TGARAlgorithm, "Only TGAR supported!");
         TGARAlgorithm tgar = (TGARAlgorithm) algorithm;
         tgar.setStats(tgarStatistics);
-
-//        if (algorithm instanceof TGARAlgorithm) {
-//          TGARAlgorithm tgarAlg = (TGARAlgorithm) algorithm;
-//
-//          this.refiner = tgarAlg.getRefiner();
-//        }
 
       } catch (IOException | InvalidConfigurationException e) {
         throw new RuntimeException(e);
@@ -1265,8 +1207,7 @@ public class TigerAlgorithm
     return testSteps;
   }
 
-  private void handleInfeasibleTestGoal(Goal pGoal,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+  private void handleInfeasibleTestGoal(Goal pGoal) {
     try (StatCpuTimer t = tigerStats.handleInfeasibleTestGoalTime.start()) {
 
       if (cfg.useTigerAlgorithm_with_pc) {
@@ -1294,6 +1235,7 @@ public class TigerAlgorithm
 
   private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed, boolean addBDDToHandleFeatures)
       throws CPAException, InvalidConfigurationException {
+
     try (StatCpuTimer t = tigerStats.composeCPATime.start()) {
 
       Preconditions.checkArgument(cpa instanceof ARGCPA,
@@ -1435,7 +1377,7 @@ public class TigerAlgorithm
    *
    * @param pAutomaton
    */
-  private void checkAutomaton(Automaton pAutomaton) {
+  private static void checkAutomaton(Automaton pAutomaton) {
     for (AutomatonInternalState q: pAutomaton.getStates()) {
       if (!q.isNonDetState()) {
         Set<Pair<AutomatonBoolExpr, ImmutableList<AStatement>>> distinct = Sets.newHashSet();
@@ -1607,7 +1549,7 @@ public class TigerAlgorithm
     }
   }
 
-  private TestCase getLastTestCase(List<TestCase> pTests) {
+  private static TestCase getLastTestCase(List<TestCase> pTests) {
     TestCase lastTestCase = null;
     for (TestCase testCase : pTests) {
       if (lastTestCase == null || testCase.getGenerationTime() < lastTestCase.getGenerationTime()) {
