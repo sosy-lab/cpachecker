@@ -41,15 +41,21 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ARGToDotWriter {
 
@@ -299,7 +305,38 @@ public class ARGToDotWriter {
       labelBuilder.append("PA: " + formual + "\n");
     }
 
-    labelBuilder.append("PI: " + pPi + "\n");
+    labelBuilder.append("PI: ");
+
+    CompositePrecision compPrec = Precisions.extractPrecisionByType(pPi, CompositePrecision.class);
+    if (compPrec == null) {
+      labelBuilder.append(pPi + "\n");
+    } else {
+      compPrec.getWrappedPrecisions().stream()
+          .filter(pr -> !(pr instanceof SingletonPrecision))
+          .filter(pr -> !pr.toString().equals("{}"))
+          .forEach(pr -> {
+
+            labelBuilder.append("{" + pr.getClass().getSimpleName() + "} ");
+
+            int lineLength = 100;
+            int currLength = 0;
+
+            String[] split = pr.toString().split(",");
+            for (int i = 0; i < split.length; i++) {
+              boolean last = i == split.length - 1;
+              String token = split[i];
+              if (currLength + token.length() < lineLength) {
+                currLength += token.length();
+                labelBuilder.append(token + (last ? "\n" : ","));
+              } else {
+                currLength = 0;
+                labelBuilder.append(token + (last ? "\n" : ",\n"));
+              }
+            }
+          });
+    }
+
+
 
     Collection<AutomatonState> automatonStates = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
     for (AutomatonState q: automatonStates) {
