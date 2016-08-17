@@ -100,7 +100,7 @@ import javax.annotation.Nonnull;
 import javax.management.JMException;
 
 @Options(prefix="analysis.mpa")
-public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, StatisticsProvider {
+public class MultiPropertyAnalysis implements MultiPropertyAlgorithm, StatisticsProvider {
 
   private final Algorithm wrapped;
   private final LogManager logger;
@@ -125,28 +125,11 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
   @Option(secure=true, description="Call the garbage collector when starting with a new partition.")
   private boolean callGcOnRestart = false;
 
-  @Option(secure=true, name="time.cpu.relevance.step2",
-      description="Limit for cpu time of one partition in step 2 of Relevance strategy " +
-        "(use seconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-      defaultUserUnit=TimeUnit.SECONDS,
-      min=-1)
-  private TimeSpan cpuTimeStep2 = TimeSpan.ofNanos(-1); // TODO: implement as Budgeting operator
-
-  @Option(secure=true, name="time.cpu.relevance.step3",
-      description="Limit for cpu time of one partition in step 3 of Relevance strategy " +
-        "(use seconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-      defaultUserUnit=TimeUnit.SECONDS,
-      min=-1)
-  private TimeSpan cpuTimeStep3 = TimeSpan.ofNanos(-1); // TODO: implement as Budgeting operator
-
   private final DecompositionStatistics stats = new DecompositionStatistics();
 
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;
   private ShutdownNotifier globalShutdownManager;
-  private RegionManager rm;
 
   public MultiPropertyAnalysis(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger, ShutdownNotifier pGlobalShutdownNotifier,
@@ -169,13 +152,6 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     partitionOperator = createPartitioningOperator(pConfig, pLogger);
     interruptNotifier = pShutdownNotifier;
     globalShutdownManager = pGlobalShutdownNotifier;
-
-    BDDCPA bddCpa = CPAs.retrieveCPA(pCpa, BDDCPA.class);
-    if (bddCpa != null) {
-      rm = bddCpa.getManager();
-    }
-
-
   }
 
   private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
@@ -610,8 +586,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     return lastRunPropertySummary;
   }
 
-  private synchronized void initAndStartLimitChecker(Partitioning pPartitions,
-      PartitionBudgeting pBudgeting) {
+  private synchronized void initAndStartLimitChecker(Partitioning pPartitions, PartitionBudgeting pBudgeting) {
 
     try {
       // Configure limits
@@ -619,18 +594,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
 
       Optional<TimeSpan> partCpuTimeLimit = pBudgeting.getPartitionCpuTimeLimit(pPartitions.getFirstPartition().size());
       if (partCpuTimeLimit.isPresent()) {
-        if (partitionOperator.getClass().equals(RelevanceThenIrrelevantThenRelevantOperator.class)) {
-          if (pPartitions.getStatus().equals(PartitioningStatus.ALL_IN_ONE)) {
-            limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTimeStep2));
-          } else if (pPartitions.getStatus().equals(PartitioningStatus.ONE_FOR_EACH)) {
-            limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTimeStep3));
-          } else {
-            limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
-          }
-        }
-        else {
-          limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
-        }
+        limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
       }
 
       Optional<TimeSpan> partWallTimeLimit = pBudgeting.getPartitionWallTimeLimit(pPartitions.getFirstPartition().size());
