@@ -128,7 +128,7 @@ public class PDRAlgorithm implements Algorithm {
     logger = pLogger;
 
     // re-initialized in run()
-    frameSet = new DynamicFrameSet(cfa.getMainFunction(), bfmgr);
+    frameSet = new DynamicFrameSet(cfa.getMainFunction(), fmgr, backwardTransition);
   }
 
   @Override
@@ -160,7 +160,7 @@ public class PDRAlgorithm implements Algorithm {
         reusedProver.pop();
       }
 
-      frameSet = new DynamicFrameSet(startLocation, bfmgr);
+      frameSet = new DynamicFrameSet(startLocation, fmgr, backwardTransition);
 
       /*
        * Main loop : Try to inductively strengthen highest frame set, propagate

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.pdr;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
@@ -70,7 +71,12 @@ public interface FrameSet {
   /**
    * Tries to push states forward along the local transition between locations if they
    * are inductive relative to frame states. Subsumes redundant states during the process.
+   * @throws SolverException if one of the SAT checks performed during
+   * propagation throws an exception.
+   * @throws InterruptedException if propagation was interrupted.
+   * @throws CPAException if the analysis creating the transition formula
+   * encounters an exception.
    */
   void propagate(ProverEnvironment pProver, ProverEnvironment pSubsumptionProver)
-      throws SolverException, InterruptedException;
+      throws SolverException, InterruptedException, CPAException;
 }
