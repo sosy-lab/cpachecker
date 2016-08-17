@@ -159,6 +159,9 @@ analysis.algorithm.propertyCheck = false
 # Reachability Analyses, ESOP'13)
 analysis.algorithm.tiger = false
 
+# TODO
+analysis.algorithm.tigerdc = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -260,7 +263,6 @@ analysis.mpa.partition.k = 5
 # Operator for determining the partitions of properties that have to be
 # checked.
 analysis.mpa.partition.operator = AllThenSepOperator.class
-analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
 
 # Limit for cpu time of one property (use seconds or specify a unit; -1 for
 # infinite)
@@ -289,14 +291,6 @@ analysis.mpa.partition.time.cpu = -1ns
 # Limit for wall time of one partition (use seconds or specify a unit; -1 for
 # infinite)
 analysis.mpa.partition.time.wall = -1ns
-
-# Limit for cpu time of one partition in step 2 of Relevance strategy (use
-# seconds or specify a unit; -1 for infinite)
-analysis.mpa.time.cpu.relevance.step2 = -1ns
-
-# Limit for cpu time of one partition in step 3 of Relevance strategy (use
-# seconds or specify a unit; -1 for infinite)
-analysis.mpa.time.cpu.relevance.step3 = -1ns
 
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
@@ -2877,6 +2871,7 @@ spec.transitionToStopForNegatedTokensetMatch = false
 
 # Use a powerset domain for representing the current states of the
 # specification automata.
+spec.usecomposite = false
 spec.usepowerset = false
 
 # Export the inferred specification as an automaton.
@@ -2953,7 +2948,7 @@ tgar.comparator = DeeperLevelFirstComparator.class
 tgar.refiner = no default value
 
 # Configuration file for internal cpa algorithm.
-tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
+tiger.algorithmConfigurationFile = "config/includes/tiger-internal-algorithm-tgar.properties"
 
 # Returns all test goals covered by a test case.
 tiger.allCoveredGoalsPerTestCase = false
@@ -3017,10 +3012,7 @@ tiger.tiger_with_presenceConditions = false
 # How to proceed with timed-out goals if some time remains after processing
 # all other goals.
 tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
-  enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
-
-# Compute the cross product of the goal automata?
-tiger.useAutomataCrossProduct = false
+  enum:     [SKIP_AFTER_TIMEOUT]
 
 # Use BDDCPA to model product line presence conditions.
 tiger.useBddForPresenceCondtion = false

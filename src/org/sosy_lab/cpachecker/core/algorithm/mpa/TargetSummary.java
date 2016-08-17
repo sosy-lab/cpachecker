@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceCondition;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
@@ -58,16 +59,15 @@ public class TargetSummary {
 
   private Collection<TargetStateInfo> targetStateSummaries = Lists.newArrayList();
 
-  public static TargetSummary identifyViolationsInRun(LogManager pLogger, ReachedSet pReachedSet) {
+  public static TargetSummary identifyViolationsInRun(LogManager pLogger, AbstractState pState) {
     TargetSummary result = new TargetSummary();
 
     // ASSUMPTION: no "global refinement" is used! (not yet implemented for this algorithm!)
 
-    final AbstractState e = pReachedSet.getLastState();
-    if (isTargetState(e)) {
+    if (isTargetState(pState)) {
       TargetStateInfo stateSummary = new TargetStateInfo();
-      stateSummary.violatedProperties = AbstractStates.extractViolatedProperties(e, Property.class);
-      stateSummary.presenceCondition = getPresenceCondition(e);
+      stateSummary.violatedProperties = AbstractStates.extractViolatedProperties(pState, Property.class);
+      stateSummary.presenceCondition = getPresenceCondition(pState);
 
       final String presenceConditionText;
 
@@ -80,14 +80,18 @@ public class TargetSummary {
 
       result.targetStateSummaries.add(stateSummary);
 
-      pLogger.logf(Level.INFO, "Violation of %s at %s in the configuration %s",
-          stateSummary.violatedProperties.toString(), AbstractStates.extractLocation(e).describeFileLocation(),
-          presenceConditionText);
+      pLogger.logf(Level.INFO, "Target for %s at %s in the configuration %s",
+          stateSummary.violatedProperties.toString(),
+          AbstractStates.extractLocation(pState).describeFileLocation(), presenceConditionText);
     }
 
     return result;
   }
 
+  public static TargetSummary identifyViolationsInRun(LogManager pLogger, ReachedSet pReachedSet) {
+    final AbstractState e = pReachedSet.getLastState();
+    return identifyViolationsInRun(pLogger, e);
+  }
 
   private static Optional<PresenceCondition> getPresenceCondition(AbstractState pTargetState) {
     final AbstractStateWithPresenceCondition targetStateWithPc = AbstractStates.extractStateByType(pTargetState,

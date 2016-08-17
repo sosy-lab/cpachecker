@@ -212,7 +212,8 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
           } else {
             logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
-            testificationOp.feasibleCounterexample(lastTargetState.get().getCounterexampleInformation().get(), targetProperties);
+            // testificationOp.feasibleCounterexample(lastTargetState.get().getCounterexampleInformation().get(), targetProperties);
+            return status;
           }
 
           lastTargetState = chooseTarget(reached);
@@ -297,34 +298,39 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
     logger.log(Level.FINE, "Counterexample found, performing TGAR");
     stats.beginRefinement(pReached, target);
-
-    final int targetCandidatesBeforeRefinement = filterForTargetCandidates(pReached).size();
-
-    final boolean counterexampleEliminated;
     try {
-      counterexampleEliminated = mRefiner.performRefinement(pReached, target);
-      logger.log(Level.FINE, "Refinement successful: ", counterexampleEliminated);
+      final int targetCandidatesBeforeRefinement = filterForTargetCandidates(pReached).size();
 
-      //  false: a FEASIBLE counterexample was found!
-      //  true: a SPURIOUS counterexample was found; a refinement has been performed!
+      final boolean counterexampleEliminated;
+      try {
+        counterexampleEliminated = mRefiner.performRefinement(pReached, target);
+        logger.log(Level.FINE, "Refinement successful: ", counterexampleEliminated);
 
-      if (counterexampleEliminated) {
-        // An infeasible counterexample was found and eliminated.
-        final int targetCandidatesAfterRefinement = filterForTargetCandidates(pReached).size();
-        final int removedTargets = targetCandidatesBeforeRefinement -
-            targetCandidatesAfterRefinement;
-        stats.endWithInfeasible(pReached, target, removedTargets);
-      } else {
-        feasibleStateIds.add(target.getStateId());
-        stats.endWithFeasible(pReached, target);
+        //  false: a FEASIBLE counterexample was found!
+        //  true: a SPURIOUS counterexample was found; a refinement has been performed!
+
+        if (counterexampleEliminated) {
+          // An infeasible counterexample was found and eliminated.
+          final int targetCandidatesAfterRefinement = filterForTargetCandidates(pReached).size();
+          final int removedTargets = targetCandidatesBeforeRefinement -
+              targetCandidatesAfterRefinement;
+          stats.endWithInfeasible(pReached, target, removedTargets);
+        } else {
+          feasibleStateIds.add(target.getStateId());
+          stats.endWithFeasible(pReached, target);
+        }
+
+      } catch (RefinementFailedException e) {
+        stats.endWithError(pReached);
+        throw e;
       }
 
-    } catch (RefinementFailedException e) {
+      return counterexampleEliminated;
+
+    } catch (InterruptedException e){
       stats.endWithError(pReached);
       throw e;
     }
-
-    return counterexampleEliminated;
   }
 
   @Override

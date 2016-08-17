@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerDcAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -112,6 +113,9 @@ public class CoreComponentsFactory {
       description = "Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal "
       + "Reachability Analyses, ESOP'13)")
   public boolean useTigerAlgorithm = false;
+
+  @Option(secure=true, name="algorithm.tigerdc", description = "TODO")
+  public boolean useTigerDcAlgorithm = false;
 
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
@@ -330,7 +334,9 @@ public class CoreComponentsFactory {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
       }
 
-      if (useTigerAlgorithm) {
+      if (!pInnerAlgorithmsOnly && useTigerDcAlgorithm) {
+        algorithm = new TigerDcAlgorithm(config, logger, shutdownNotifier, interruptProvider, cfa, programDenotation, stats);
+      } else if (!pInnerAlgorithmsOnly && useTigerAlgorithm) {
         algorithm = new TigerAlgorithm(cpa, shutdownManager, cfa, config, logger, programDenotation, reachedSetFactory, stats);
       }
 

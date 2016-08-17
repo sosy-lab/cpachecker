@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.Appender;
@@ -30,10 +34,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.VariableAssignment;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
@@ -49,6 +54,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.annotation.concurrent.Immutable;
+
 public class TestSuite implements AlgorithmResult {
 
   private final boolean printLabels;
@@ -58,7 +65,7 @@ public class TestSuite implements AlgorithmResult {
   private final Map<TestCase, List<Goal>> mapping;
   private final Map<Goal, List<TestCase>> coveringTestCases;
 
-  private final Set<Goal> testGoals;
+  private final ImmutableSet<Goal> testGoals;
   private final Set<Goal> feasibleGoals;
   private final Set<Goal> partiallyFeasibleGoals;
   private final Set<Goal> partiallyInfeasibleGoals;
@@ -72,11 +79,12 @@ public class TestSuite implements AlgorithmResult {
   private final Map<Goal, PresenceCondition> infeasiblePresenceConditions;
   private final Map<Integer, Pair<Goal, PresenceCondition>> timedOutPresenceCondition;
 
-  public TestSuite(boolean pPrintLabels, boolean pUseTigerAlgorithm_with_pc) {
+  private final ImmutableMap<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
+
+  public TestSuite(Set<Goal> pGoalsToCover, boolean pPrintLabels, boolean pUseTigerAlgorithm_with_pc) {
     mapping = new HashMap<>();
     coveringTestCases = new HashMap<>();
     coveringPresenceConditions = new HashMap<>();
-    testGoals = Sets.newLinkedHashSet();
     feasibleGoals = Sets.newLinkedHashSet();
     partiallyFeasibleGoals = Sets.newLinkedHashSet();
     partiallyInfeasibleGoals = Sets.newLinkedHashSet();
@@ -89,6 +97,45 @@ public class TestSuite implements AlgorithmResult {
     remainingPresenceConditions = new HashMap<>();
     remainingPresenceConditionsBeforeTimeout = new HashMap<>();
     infeasiblePresenceConditions = new HashMap<>();
+
+    if (isVariabilityAware()) {
+      for (Goal goal : pGoalsToCover) {
+        remainingPresenceConditions.remove(goal); // null equals 'true'
+      }
+    }
+
+    testGoals = ImmutableSet.copyOf(pGoalsToCover);
+    edgeToTgaMapping = createEdgeToTgaMapping(pGoalsToCover);
+  }
+
+  public Set<Goal> getUncoveredTestGoals() {
+    return Sets.difference(testGoals, Sets.union(feasibleGoals, infeasibleGoals));
+  }
+
+  private ImmutableMap<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> createEdgeToTgaMapping(Set<Goal> pGoalsToCover) {
+    final Map<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> result = Maps.newHashMap();
+    for (Goal goal : pGoalsToCover) {
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = goal.getAutomaton();
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : automaton.getEdges()) {
+        if (edge.getSource().equals(edge.getTarget())) {
+          continue;
+        }
+
+        GuardedEdgeLabel label = edge.getLabel();
+        for (CFAEdge e : label.getEdgeSet()) {
+          List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = result.get(e);
+
+          if (tgaSet == null) {
+            tgaSet = new ArrayList<>();
+            result.put(e, tgaSet);
+          }
+
+          tgaSet.add(automaton);
+        }
+      }
+    }
+
+    return ImmutableMap.copyOf(result);
   }
 
   private PresenceConditionManager pcm() {
@@ -111,18 +158,8 @@ public class TestSuite implements AlgorithmResult {
     return getTestCases().size();
   }
 
-  public Set<Goal> getGoals() {
+  public ImmutableSet<Goal> getGoals() {
     return testGoals;
-  }
-
-  public void addGoals(Collection<Goal> pGoals) {
-    if (isVariabilityAware()) {
-      for (Goal goal : pGoals) {
-        remainingPresenceConditions.remove(goal); // null equals 'true'
-      }
-    }
-
-    testGoals.addAll(pGoals);
   }
 
   public Set<Goal> getFeasibleGoals() {
@@ -487,4 +524,11 @@ public class TestSuite implements AlgorithmResult {
     return str.toString().replace("__SELECTED_FEATURE_", "");
   }
 
+  public long getTotalNumberOfGoals() {
+    return testGoals.size();
+  }
+
+  public List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> getTGAForEdge(CFAEdge pLCFAEdge) {
+    return edgeToTgaMapping.get(pLCFAEdge);
+  }
 }

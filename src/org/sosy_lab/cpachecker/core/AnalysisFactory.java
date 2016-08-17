@@ -33,8 +33,13 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositi
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class AnalysisFactory {
 
@@ -87,11 +92,17 @@ public class AnalysisFactory {
 
   public Analysis createFreshAnalysis(ShutdownManager pShutdownManager)
       throws InvalidConfigurationException, CPAException {
+    return createFreshAnalysis(pShutdownManager, null);
+  }
+
+  public Analysis createFreshAnalysis(ShutdownManager pShutdownManager,
+      @Nullable List<Automaton> pSpecificationAutomata)
+    throws InvalidConfigurationException, CPAException {
 
     SpecAutomatonCompositionType speComposition = SpecAutomatonCompositionType.TARGET_SPEC;
     CoreComponentsFactory factory = new CoreComponentsFactory(config, logger, pShutdownManager.getNotifier());
 
-    ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, speComposition, null);
+    ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, speComposition, pSpecificationAutomata);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
     Algorithm algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, mainStats, true);

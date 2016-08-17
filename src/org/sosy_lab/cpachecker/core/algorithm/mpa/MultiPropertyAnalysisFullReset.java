@@ -40,7 +40,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -57,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperato
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.AllThenSepOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.RelevanceThenIrrelevantThenRelevantOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -70,10 +68,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -82,7 +80,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
@@ -92,14 +89,12 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
-import org.sosy_lab.solver.SolverException;
 
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
@@ -129,15 +124,15 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
   private final DecompositionStatistics stats = new DecompositionStatistics();
 
   private final AnalysisFactory analysisFactory;
-  @Nullable private Analysis partitionAnalysis = null;
+  @Nullable protected Analysis partitionAnalysis = null;
 
-  private final LogManager logger;
-  private final InterruptProvider interruptNotifier;
-  private final CFA cfa;
+  protected final LogManager logger;
+  protected final InterruptProvider interruptNotifier;
+  protected final CFA cfa;
 
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;
-  private ShutdownNotifier globalShutdownManager;
+  protected ShutdownNotifier globalShutdownManager;
   private ReachedSet initialReached;
 
   public MultiPropertyAnalysisFullReset(Configuration pConfig, LogManager pLogger,
@@ -269,7 +264,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
   public AlgorithmStatus run() throws CPAException,
       CPAEnabledAnalysisPropertyViolationException, InterruptedException {
 
-    final ImmutableSortedSet<Property> all = getActiveProperties(initialReached.getFirstState(), initialReached);
+    final ImmutableSet<Property> all = getFullSetOfPropertiesToCheck(initialReached);
     stats.consideredProperties.addAll(all);
 
     logger.logf(Level.INFO, "Checking %d properties.", all.size());
@@ -298,11 +293,11 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
         throw new CPAException("Partitioning failed!", e1);
       }
 
+      // Initialize the waitlist
+      Partitioning remainingPartitions = initAnalysisAndReached(checkPartitions, all);
+
       // Initialize the check for resource limits
       initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
-
-      // Initialize the waitlist
-      Partitioning remainingPartitions = initAnalysisAndReached(partitionAnalysis.getReached(), checkPartitions, all);
 
       do {
         final Set<Property> runProperties = getActiveProperties(partitionAnalysis.getReached());
@@ -378,7 +373,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
         //    (no global refinement)
 
         // Identify the properties that were violated during the last verification run
-        final TargetSummary runViolated = TargetSummary.identifyViolationsInRun(logger, partitionAnalysis.getReached());
+        final TargetSummary runViolated = identifyViolationsInRun(partitionAnalysis.getAlgorithm(), partitionAnalysis.getReached());
 
         if (runViolated.hasTargetStates()) {
 
@@ -484,7 +479,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
           // Re-initialize the sets 'waitlist' and 'reached'
           stats.numberOfRestarts++;
-          remainingPartitions = initAnalysisAndReached(partitionAnalysis.getReached(), checkPartitions, all);
+          remainingPartitions = initAnalysisAndReached(checkPartitions, all);
           // -- Reset the resource limit checker
           initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
         }
@@ -512,6 +507,14 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     } finally {
       lastRunPropertySummary = Optional.<PropertySummary>of(createSummary(all, relevant, violated.getViolatedProperties(), satisfied, violated));
     }
+  }
+
+  protected TargetSummary identifyViolationsInRun(Algorithm pAlgorithm, ReachedSet pReached) {
+    return TargetSummary.identifyViolationsInRun(logger, partitionAnalysis.getReached());
+  }
+
+  protected ImmutableSet<Property> getFullSetOfPropertiesToCheck(ReachedSet pReachedSet) {
+    return getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
   }
 
   @Override
@@ -579,7 +582,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
   }
 
   private Partitioning partition(Partitioning pLastPartitioning,
-      ImmutableSortedSet<Property> pToCheck,
+       ImmutableSet<Property> pToCheck,
       ImmutableSortedSet<Property> pDisabledProperties)
           throws PartitioningException {
 
@@ -649,11 +652,11 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     }
   }
 
-  private Partitioning initAnalysisAndReached(final ReachedSet pReachedSet,
-      final Partitioning pCheckPartitions, Set<Property> pAllProperties) throws CPAException, InterruptedException {
+  protected Partitioning initAnalysisAndReached(final Partitioning pCheckPartitions,
+        Set<Property> pAllProperties)
+    throws CPAException, InterruptedException {
 
     Preconditions.checkState(!pCheckPartitions.isEmpty(), "A non-empty set of properties must be checked in a verification run!");
-
     Partitioning result = Partitions.none();
 
     // Clear some of the caches (for experiments)
@@ -671,7 +674,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
     // Reset the information in counterexamples, inactive properties, ...
     try {
-      partitionAnalysis = analysisFactory.createFreshAnalysis(interruptNotifier.getReversibleManager());
+      @Nullable List<Automaton> automata = getAutomataFor(pAllProperties);
+      partitionAnalysis = analysisFactory.createFreshAnalysis(interruptNotifier.getReversibleManager(), automata);
     } catch (InvalidConfigurationException e) {
       throw new CPAException("Creating the analysis failed!", e);
     }
@@ -688,14 +692,18 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
       logger.log(Level.WARNING, String.format("%d states in waitlist.", partitionAnalysis.getReached().getWaitlist().size()));
 
       // Logging: inactive properties
-      ImmutableSortedSet<Property> inactive = getInactiveProperties(pReachedSet);
-      ImmutableSortedSet<Property> active = getActiveProperties(pReachedSet);
+      ImmutableSortedSet<Property> inactive = getInactiveProperties(partitionAnalysis.getReached());
+      ImmutableSortedSet<Property> active = getActiveProperties(partitionAnalysis.getReached());
       logger.log(Level.WARNING, String.format("Waitlist with %d active (%d inactive) properties.", active.size(), inactive.size()));
       logger.logf(Level.WARNING, "Active properties: %s", active.toString());
       logger.logf(Level.WARNING, "Inactive properties: %s", inactive.toString());
     }
 
     return result;
+  }
+
+  @Nullable protected List<Automaton> getAutomataFor(Set<Property> pProperties) {
+    return null; // null: the automata that were created during CPAcheckers startup are used.
   }
 
   @Override

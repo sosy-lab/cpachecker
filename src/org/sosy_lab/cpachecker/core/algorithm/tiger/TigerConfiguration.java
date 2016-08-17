@@ -58,12 +58,6 @@ public class TigerConfiguration {
 
   @Option(
       secure = true,
-      name = "useAutomataCrossProduct",
-      description = "Compute the cross product of the goal automata?")
-  boolean useAutomataCrossProduct = false;
-
-  @Option(
-      secure = true,
       name = "useMarkingAutomata",
       description = "Compute the cross product of the goal automata?")
   boolean useMarkingAutomata = false;
@@ -113,8 +107,7 @@ public class TigerConfiguration {
   boolean useInfeasibilityPropagation = false;
 
   enum TimeoutStrategy {
-    SKIP_AFTER_TIMEOUT,
-    RETRY_AFTER_TIMEOUT
+    SKIP_AFTER_TIMEOUT
   }
 
   @Option(

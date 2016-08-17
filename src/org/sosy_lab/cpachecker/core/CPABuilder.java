@@ -27,11 +27,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -105,6 +107,10 @@ public class CPABuilder {
   @Option(secure=true, name="spec.usepowerset",
       description="Use a powerset domain for representing the current states of the specification automata.")
   private boolean powersetDomainForSpec = false;
+
+  @Option(secure=true, name="spec.usecomposite",
+      description="Use a powerset domain for representing the current states of the specification automata.")
+  private boolean compositeDomainForSpec = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -182,6 +188,8 @@ public class CPABuilder {
         cpas = new ArrayList<>();
       }
 
+      List<ConfigurableProgramAnalysis> automataCPAs = Lists.newArrayList();
+
       for (Automaton automaton : automata) {
         String cpaAlias = automaton.getName();
 
@@ -198,9 +206,27 @@ public class CPABuilder {
         factory.set(cfa, CFA.class);
         factory.set(automaton, Automaton.class);
 
-        cpas.add(factory.createInstance());
+        automataCPAs.add(factory.createInstance());
 
         logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
+      }
+
+      if (compositeDomainForSpec) {
+        ConfigurationBuilder compConfigBuilder = Configuration.builder();
+        compConfigBuilder.setOption("cpa.composite.separateTargetStates", "true");
+        Configuration compositeConfig = compConfigBuilder.build();
+
+        CPAFactory compositeCpaFactory = CompositeCPA.factory();
+        compositeCpaFactory.setChildren(automataCPAs);
+        compositeCpaFactory.setConfiguration(compositeConfig);
+        compositeCpaFactory.setLogger(logger);
+        compositeCpaFactory.set(cfa, CFA.class);
+
+        ConfigurableProgramAnalysis compositeAutomatonCPA = compositeCpaFactory.createInstance();
+        cpas.add(compositeAutomatonCPA);
+      } else {
+        // Add one automata CPA for each goal
+        cpas.addAll(automataCPAs);
       }
     }
 

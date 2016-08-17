@@ -25,13 +25,31 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 import java.util.List;
 
+import javax.management.JMException;
+
 
 public class TestCase {
+
+  private static int testCaseIdSeq = 0;
+
+  private static synchronized int getNextTestCaseId() {
+    return testCaseIdSeq++;
+  }
+
+  private static long getCurrentCpuTimeMillis()  {
+    try {
+      return (long) (ProcessCpuTime.read() / 1e6);
+    } catch (JMException pE) {
+      throw new RuntimeException(pE);
+    }
+  }
 
   private int id;
   private long generationTime;
@@ -44,14 +62,19 @@ public class TestCase {
   private PresenceConditionManager pcManager;
   private PresenceCondition presenceCondition;
 
+  public TestCase(List<TestStep> pTestSteps, ARGPath pArgPath,
+      List<CFAEdge> pList, PresenceCondition pPresenceCondition) {
+    this(getNextTestCaseId(), pTestSteps, pArgPath, pList, pPresenceCondition, getCurrentCpuTimeMillis());
+  }
+
   public TestCase(int pId, List<TestStep> pTestSteps, ARGPath pArgPath,
-      List<CFAEdge> pList, PresenceCondition pPresenceCondition,
-      PresenceConditionManager pPcManager, long pGenerationTime) {
+      List<CFAEdge> pList, PresenceCondition pPresenceCondition, long pGenerationTime) {
+
     id = pId;
     testSteps = pTestSteps;
     argPath = pArgPath;
     errorPath = pList;
-    pcManager = pPcManager;
+    pcManager = PresenceConditions.manager();
     presenceCondition = pPresenceCondition;
     generationTime = pGenerationTime;
   }

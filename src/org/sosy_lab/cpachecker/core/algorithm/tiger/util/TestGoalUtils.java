@@ -70,7 +70,6 @@ public class TestGoalUtils {
 
   public static Set<Goal> extractTestGoalPatterns(
       FQLSpecification pFqlSpecification,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator,
       boolean pOptimizeGoalAutomata,
       boolean pUseOmegaLabel,
@@ -79,17 +78,9 @@ public class TestGoalUtils {
       GuardedEdgeLabel pInverseAlphaLabel,
       GuardedLabel pOmegaLabel) {
 
-    List<ElementaryCoveragePattern> goalPatterns;
-
-    if (pInfeasibilityPropagation.getFirst()) {
-      goalPatterns = extractTestGoalPatterns_InfeasibilityPropagation(pFqlSpecification,
-          pInfeasibilityPropagation.getSecond(), pCoverageSpecificationTranslator, pAlphaLabel);
-    } else {
-      // (ii) translate query into set of test goals
-      // I didn't move this operation to the constructor since it is a potentially expensive operation.
-      goalPatterns = extractTestGoalPatterns(pFqlSpecification, pCoverageSpecificationTranslator);
-    }
-
+    // (ii) translate query into set of test goals
+    // I didn't move this operation to the constructor since it is a potentially expensive operation.
+    List<ElementaryCoveragePattern> goalPatterns = extractTestGoalPatterns(pFqlSpecification, pCoverageSpecificationTranslator);
     Set<Goal> goalsToCover = Sets.newLinkedHashSet();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
@@ -102,26 +93,6 @@ public class TestGoalUtils {
     }
 
     return goalsToCover;
-  }
-
-  private static List<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(
-      FQLSpecification pFQLQuery,
-      LinkedList<Edges> pEdges, CoverageSpecificationTranslator pCoverageSpecificationTranslator,
-      GuardedEdgeLabel pAlphaLabel) {
-
-    CFANode lInitialNode = pAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
-    ClusteringCoverageSpecificationTranslator lTranslator =
-        new ClusteringCoverageSpecificationTranslator(pCoverageSpecificationTranslator.mPathPatternTranslator, pEdges,
-            lInitialNode);
-
-    ElementaryCoveragePattern[] lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
-
-    List<ElementaryCoveragePattern> result = new LinkedList<>();
-    for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
-      result.add(lGoalPatterns[lGoalIndex]);
-    }
-
-    return result;
   }
 
   private static List<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery,
