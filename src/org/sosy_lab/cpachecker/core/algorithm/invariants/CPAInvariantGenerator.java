@@ -238,7 +238,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   }
 
   @Override
-  public void start(final CFANode initialLocation) {
+  protected void startImpl(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
     Callable<AggregatedReachedSets> task = new InvariantGenerationTask(initialLocation);

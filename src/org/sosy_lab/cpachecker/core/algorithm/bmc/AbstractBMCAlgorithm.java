@@ -230,7 +230,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           new AbstractInvariantGenerator() {
 
             @Override
-            public void start(CFANode pInitialLocation) {
+            protected void startImpl(CFANode pInitialLocation) {
               // do nothing
             }
 
