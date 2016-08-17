@@ -59,13 +59,12 @@ import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOpera
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.AllCFAEdgesGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
@@ -151,7 +150,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -162,6 +160,10 @@ import java.util.regex.Pattern;
 public class TigerAlgorithm
     implements Algorithm, AlgorithmWithResult, PrecisionCallback<PredicatePrecision>,
     StatisticsProvider, Statistics {
+
+  private final GuardedEdgeLabel alphaLabel;
+  private final InverseGuardedEdgeLabel inverseAlphaLabel;
+  private final GuardedEdgeLabel omegaLabel;
 
   private class TigerStatistics extends AbstractStatistics {
 
@@ -279,18 +281,14 @@ public class TigerAlgorithm
 
     Wrapper wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
 
-    GuardedEdgeLabel alphaLabel =
-        new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
-    InverseGuardedEdgeLabel inverseAlphaLabel = new InverseGuardedEdgeLabel(alphaLabel);
-    GuardedEdgeLabel omegaLabel =
-        new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
+    alphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
+    inverseAlphaLabel = new InverseGuardedEdgeLabel(alphaLabel);
+    omegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
     targetStateFormulas = new HashMap<>();
 
-    testGoalUtils = new TestGoalUtils(logger, cfg.useTigerAlgorithm_with_pc, alphaLabel, inverseAlphaLabel, omegaLabel);
-
-    // get internal representation of FQL query
-    fqlSpecification = testGoalUtils.parseFQLQuery(cfg.fqlQuery);
+    fqlSpecification = TestGoalUtils.parseFQLQuery(cfg.fqlQuery);
+    logger.log(Level.INFO, "FQL query", fqlSpecification);
   }
 
   private PresenceConditionManager pcm() {
@@ -353,7 +351,7 @@ public class TigerAlgorithm
     Set<Goal> goalsToCover =
         testGoalUtils.extractTestGoalPatterns(fqlSpecification,
             lInfeasibilityPropagation, mCoverageSpecificationTranslator, cfg.optimizeGoalAutomata,
-            cfg.useOmegaLabel, cfg.useTigerAlgorithm_with_pc);
+            cfg.useOmegaLabel, cfg.useTigerAlgorithm_with_pc, alphaLabel, inverseAlphaLabel, omegaLabel);
     edgeToTgaMapping = createEdgeToTgaMapping(goalsToCover);
 
     statistics_numberOfTestGoals = goalsToCover.size();

@@ -26,83 +26,64 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.AllCFAEdgesGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 public class TestGoalUtils {
 
-  private final LogManager logger;
+  public static FQLSpecification parseFQLQuery(String fqlQuery)
+      throws InvalidConfigurationException {
 
-  private GuardedEdgeLabel mAlphaLabel;
-  private GuardedEdgeLabel mOmegaLabel;
-  private InverseGuardedEdgeLabel mInverseAlphaLabel;
+    final FQLSpecification result = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
 
-  public TestGoalUtils(LogManager pLogger, boolean pUseTigerAlgorithm_with_pc,
-      GuardedEdgeLabel pAlphaLabel, InverseGuardedEdgeLabel pInverseAlphaLabel,
-      GuardedEdgeLabel pOmegaLabel) {
-    logger = pLogger;
-
-    mAlphaLabel = pAlphaLabel;
-    mInverseAlphaLabel = pInverseAlphaLabel;
-    mOmegaLabel = pOmegaLabel;
-  }
-
-  public FQLSpecification parseFQLQuery(String fqlQuery) throws InvalidConfigurationException {
-    FQLSpecification fqlSpecification = null;
-
-    logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
-
-    fqlSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
-
-    logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
-
-    // TODO fix this restriction
-    if (fqlSpecification.hasPassingClause()) {
-      logger.logf(Level.SEVERE, "No PASSING clauses supported at the moment!");
-
+    if (result.hasPassingClause()) {
+      // TODO fix this restriction
       throw new InvalidConfigurationException("No PASSING clauses supported at the moment!");
     }
 
-    // TODO fix this restriction
-    if (fqlSpecification.hasPredicate()) {
-      logger.logf(Level.SEVERE, "No predicates in FQL queries supported at the moment!");
-
+    if (result.hasPredicate()) {
+      // TODO fix this restriction
       throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
     }
 
-    return fqlSpecification;
+    return result;
   }
 
-  public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification,
+  public static Set<Goal> extractTestGoalPatterns(
+      FQLSpecification pFqlSpecification,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator,
-      boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel, boolean removeFeaturesAsTestGoals) {
-    LinkedList<ElementaryCoveragePattern> goalPatterns;
+      boolean pOptimizeGoalAutomata,
+      boolean pUseOmegaLabel,
+      boolean removeFeaturesAsTestGoals,
+      GuardedEdgeLabel pAlphaLabel,
+      GuardedEdgeLabel pInverseAlphaLabel,
+      GuardedLabel pOmegaLabel) {
+
+    List<ElementaryCoveragePattern> goalPatterns;
 
     if (pInfeasibilityPropagation.getFirst()) {
       goalPatterns = extractTestGoalPatterns_InfeasibilityPropagation(pFqlSpecification,
-          pInfeasibilityPropagation.getSecond(), pCoverageSpecificationTranslator);
+          pInfeasibilityPropagation.getSecond(), pCoverageSpecificationTranslator, pAlphaLabel);
     } else {
       // (ii) translate query into set of test goals
       // I didn't move this operation to the constructor since it is a potentially expensive operation.
@@ -113,7 +94,7 @@ public class TestGoalUtils {
 
     for (int i = 0; i < goalPatterns.size(); i++) {
       ElementaryCoveragePattern pattern = goalPatterns.get(i);
-      Goal lGoal = constructGoal(i + 1, pattern, mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+      Goal lGoal = constructGoal(i + 1, pattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel,
           pOptimizeGoalAutomata, pUseOmegaLabel, removeFeaturesAsTestGoals);
       if (lGoal != null) {
         goalsToCover.add(lGoal);
@@ -123,31 +104,28 @@ public class TestGoalUtils {
     return goalsToCover;
   }
 
-  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(
-      FQLSpecification pFQLQuery, LinkedList<Edges> pEdges,
-      CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
-    logger.logf(Level.INFO, "Extracting test goals.");
+  private static List<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(
+      FQLSpecification pFQLQuery,
+      LinkedList<Edges> pEdges, CoverageSpecificationTranslator pCoverageSpecificationTranslator,
+      GuardedEdgeLabel pAlphaLabel) {
 
-    CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
+    CFANode lInitialNode = pAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
     ClusteringCoverageSpecificationTranslator lTranslator =
         new ClusteringCoverageSpecificationTranslator(pCoverageSpecificationTranslator.mPathPatternTranslator, pEdges,
             lInitialNode);
 
     ElementaryCoveragePattern[] lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
 
-    LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
-
+    List<ElementaryCoveragePattern> result = new LinkedList<>();
     for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
-      goalPatterns.add(lGoalPatterns[lGoalIndex]);
+      result.add(lGoalPatterns[lGoalIndex]);
     }
 
-    return goalPatterns;
+    return result;
   }
 
-  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery,
-      CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
-    logger.logf(Level.INFO, "Extracting test goals.");
-
+  private static List<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery,
+               CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
     // TODO check for (temporarily) unsupported features
 
     // TODO enable use of infeasibility propagation
@@ -177,7 +155,7 @@ public class TestGoalUtils {
    * @param pRemoveFeaturesAsTestGoals
    * @return
    */
-  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
+  public static Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
       GuardedEdgeLabel pAlphaLabel,
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel,
       boolean pUseAutomatonOptimization, boolean pUseOmegaLabel, boolean pRemoveFeaturesAsTestGoals) {
@@ -193,12 +171,10 @@ public class TestGoalUtils {
 
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
-
-    return lGoal;
+    return new Goal(pIndex, pGoalPattern, automaton);
   }
 
-  private boolean isFeatureAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+  private static boolean isFeatureAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     for (State state : pAutomaton.getStates()) {
       for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton
           .getIncomingEdges(state)) {
