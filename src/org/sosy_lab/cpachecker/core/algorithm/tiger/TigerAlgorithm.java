@@ -27,6 +27,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
@@ -36,12 +37,8 @@ import com.google.common.collect.Sets;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.WeavingLocation;
@@ -59,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
@@ -236,15 +232,13 @@ public class TigerAlgorithm
 
   private Map<Automaton, Automaton> markingAutomataInstances = Maps.newHashMap();
 
-  private Prediction[] lGoalPrediction;
-
   private String programDenotation;
   private int testCaseId = 0;
 
   private Map<Goal, List<List<BooleanFormula>>> targetStateFormulas;
 
   private TestGoalUtils testGoalUtils = null;
-  private Map<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
+  private ImmutableMap<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
 
   private final ReachedSetFactory reachedSetFactory;
 
@@ -291,11 +285,9 @@ public class TigerAlgorithm
     GuardedEdgeLabel omegaLabel =
         new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
-    edgeToTgaMapping = new HashMap<>();
     targetStateFormulas = new HashMap<>();
 
-    testGoalUtils = new TestGoalUtils(logger, cfg.useTigerAlgorithm_with_pc, alphaLabel,
-        inverseAlphaLabel, omegaLabel);
+    testGoalUtils = new TestGoalUtils(logger, cfg.useTigerAlgorithm_with_pc, alphaLabel, inverseAlphaLabel, omegaLabel);
 
     // get internal representation of FQL query
     fqlSpecification = testGoalUtils.parseFQLQuery(cfg.fqlQuery);
@@ -359,10 +351,10 @@ public class TigerAlgorithm
         initializeInfisabilityPropagation();
 
     Set<Goal> goalsToCover =
-        testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
+        testGoalUtils.extractTestGoalPatterns(fqlSpecification,
             lInfeasibilityPropagation, mCoverageSpecificationTranslator, cfg.optimizeGoalAutomata,
             cfg.useOmegaLabel, cfg.useTigerAlgorithm_with_pc);
-    fillEdgeToTgaMapping(goalsToCover);
+    edgeToTgaMapping = createEdgeToTgaMapping(goalsToCover);
 
     statistics_numberOfTestGoals = goalsToCover.size();
     logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
@@ -391,7 +383,8 @@ public class TigerAlgorithm
     }
   }
 
-  private void fillEdgeToTgaMapping(Set<Goal> pGoalsToCover) {
+  private ImmutableMap<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> createEdgeToTgaMapping(Set<Goal> pGoalsToCover) {
+    final Map<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> result = Maps.newHashMap();
     for (Goal goal : pGoalsToCover) {
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = goal.getAutomaton();
       for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : automaton.getEdges()) {
@@ -401,17 +394,19 @@ public class TigerAlgorithm
 
         GuardedEdgeLabel label = edge.getLabel();
         for (CFAEdge e : label.getEdgeSet()) {
-          List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = edgeToTgaMapping.get(e);
+          List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = result.get(e);
 
           if (tgaSet == null) {
             tgaSet = new ArrayList<>();
-            edgeToTgaMapping.put(e, tgaSet);
+            result.put(e, tgaSet);
           }
 
           tgaSet.add(automaton);
         }
       }
     }
+
+    return ImmutableMap.copyOf(result);
   }
 
   private void dumpTestSuite() {
@@ -533,45 +528,6 @@ public class TigerAlgorithm
           } else {
             logger.logf(Level.FINE, "%s of %d.", logString, numberOfTestGoals);
           }
-
-          // TODO: enable tiger techniques for multi-goal generation in one run
-          //        if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
-          //          // GoalPrediction does not use the target presence condition (remainingPCforGoalCoverage)
-          //          // I think this is OK (any infeasible goal will be even more infeasible when restricted with a certain pc)
-          //          // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
-          //          logger.logf(Level.INFO, "This goal is predicted as infeasible!");
-          //          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
-          //          continue;
-          //        }
-          //
-          //        NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = goal.getAutomaton();
-          //        if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
-          //          // current goal is for sure infeasible
-          //          logger.logf(Level.INFO, "Test goal infeasible.");
-          //          if (useTigerAlgorithm_with_pc) {
-          //            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-          //                bddCpaNamedRegionManager.dumpRegion(goal.getInfeasiblePresenceCondition()));
-          //          }
-          //          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
-          //          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
-          //        }
-          //
-          //          if (checkCoverage) {
-          //            for (Goal goalToBeChecked : goalsToBeProcessed) {
-          //              if (checkAndCoverGoal(goalToBeChecked)) {
-          //                if (useTigerAlgorithm_with_pc) {
-          //                  pGoalsToCover.remove(goalToBeChecked);
-          //                }
-          //                if (lGoalPrediction != null) {
-          //                  lGoalPrediction[goalToBeChecked.getIndex() - 1] = Prediction.FEASIBLE;
-          //                }
-          //              }
-          //            }
-          //          }
-
-          //          if (testsuite.areGoalsCoveredOrInfeasible(goalsToBeProcessed)) {
-          //            continue;
-          //          }
 
           // goal is uncovered so far; run CPAchecker to cover it
           ReachabilityAnalysisResult result =
@@ -1314,54 +1270,13 @@ public class TigerAlgorithm
   private void handleInfeasibleTestGoal(Goal pGoal,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
     try (StatCpuTimer t = tigerStats.handleInfeasibleTestGoalTime.start()) {
-      if (lGoalPrediction != null) {
-        lGoalPrediction[pGoal.getIndex() - 1] = Prediction.INFEASIBLE;
-      }
 
       if (cfg.useTigerAlgorithm_with_pc) {
-        testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal),
-            lGoalPrediction);
+        testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
         logger.logf(Level.FINE, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
       } else {
         logger.logf(Level.FINE, "Goal %d is infeasible!", pGoal.getIndex());
-        testsuite.addInfeasibleGoal(pGoal, null, lGoalPrediction);
-      }
-
-      // TODO add missing soundness checks!
-      if (pInfeasibilityPropagation.getFirst()) {
-        logger.logf(Level.INFO, "Do infeasibility propagation!");
-        Set<CFAEdge> lTargetEdges = Sets.newLinkedHashSet();
-        ClusteredElementaryCoveragePattern lClusteredPattern =
-            (ClusteredElementaryCoveragePattern) pGoal.getPattern();
-        ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns =
-            lClusteredPattern.getRemainingElementsInCluster();
-        int lTmpIndex = pGoal.getIndex() - 1; // caution lIndex starts at 0
-        while (lRemainingPatterns.hasNext()) {
-          Prediction lPrediction = lGoalPrediction[lTmpIndex];
-          ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
-          if (lPrediction.equals(Prediction.UNKNOWN)) {
-            lTargetEdges.add(lRemainingPattern.getLastSingletonCFAEdge());
-          }
-
-          lTmpIndex++;
-        }
-        Collection<CFAEdge> lFoundEdges =
-            InfeasibilityPropagation.dfs2(lClusteredPattern.getCFANode(),
-                lClusteredPattern.getLastSingletonCFAEdge(), lTargetEdges);
-        lRemainingPatterns = lClusteredPattern.getRemainingElementsInCluster();
-        lTmpIndex = pGoal.getIndex() - 1;
-        while (lRemainingPatterns.hasNext()) {
-          Prediction lPrediction = lGoalPrediction[lTmpIndex];
-          ClusteredElementaryCoveragePattern lRemainingPattern = lRemainingPatterns.next();
-          if (lPrediction.equals(Prediction.UNKNOWN)) {
-            if (!lFoundEdges.contains(lRemainingPattern.getLastSingletonCFAEdge())) {
-              //mFeasibilityInformation.setStatus(lTmpIndex+1, FeasibilityInformation.FeasibilityStatus.INFEASIBLE);
-              // TODO remove ???
-              lGoalPrediction[lTmpIndex] = Prediction.INFEASIBLE;
-            }
-          }
-          lTmpIndex++;
-        }
+        testsuite.addInfeasibleGoal(pGoal, null);
       }
     }
   }

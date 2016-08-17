@@ -228,8 +228,7 @@ public class TestSuite implements AlgorithmResult {
     return testcaseExisted;
   }
 
-  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition,
-      Prediction[] pGoalPrediction) {
+  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition) {
     if (isVariabilityAware()) {
       setRemainingPresenceCondition(pGoal, pcm().makeFalse());
 
@@ -244,10 +243,6 @@ public class TestSuite implements AlgorithmResult {
       } else {
         infeasibleGoals.add(pGoal);
       }
-    }
-
-    if (pGoalPrediction != null) {
-      pGoalPrediction[pGoal.getIndex() - 1] = Prediction.INFEASIBLE;
     }
   }
 

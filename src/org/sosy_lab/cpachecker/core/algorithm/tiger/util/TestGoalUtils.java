@@ -94,7 +94,7 @@ public class TestGoalUtils {
     return fqlSpecification;
   }
 
-  public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
+  public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator,
       boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel, boolean removeFeaturesAsTestGoals) {
@@ -103,21 +103,10 @@ public class TestGoalUtils {
     if (pInfeasibilityPropagation.getFirst()) {
       goalPatterns = extractTestGoalPatterns_InfeasibilityPropagation(pFqlSpecification,
           pInfeasibilityPropagation.getSecond(), pCoverageSpecificationTranslator);
-
-      pGoalPrediction = new Prediction[goalPatterns.size()];
-
-      for (int i = 0; i < goalPatterns.size(); i++) {
-        pGoalPrediction[i] = Prediction.UNKNOWN;
-      }
     } else {
       // (ii) translate query into set of test goals
       // I didn't move this operation to the constructor since it is a potentially expensive operation.
-      goalPatterns =
-          extractTestGoalPatterns(pFqlSpecification, pCoverageSpecificationTranslator);
-      // each test goal needs to be covered in all (if possible) products.
-      // Therefore we add a "todo" presence-condition TRUE to each test goal
-      // it is the "maximum" set of products for which we try to cover this goal (could be useful to limit this set if we have feature models?)
-      pGoalPrediction = null;
+      goalPatterns = extractTestGoalPatterns(pFqlSpecification, pCoverageSpecificationTranslator);
     }
 
     Set<Goal> goalsToCover = Sets.newLinkedHashSet();
