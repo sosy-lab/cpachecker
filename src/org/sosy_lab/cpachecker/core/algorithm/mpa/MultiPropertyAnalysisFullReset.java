@@ -387,6 +387,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
         final TargetSummary runViolated = identifyViolationsInRun(partitionAnalysis.getAlgorithm(), partitionAnalysis.getReached());
 
         if (runViolated.hasTargetStates()) {
+          
 
           // The waitlist should never be empty in this case!
           //  There might be violations of other properties after the
@@ -520,7 +521,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     }
   }
 
-  protected TargetSummary identifyViolationsInRun(Algorithm pAlgorithm, ReachedSet pReached) {
+  protected TargetSummary identifyViolationsInRun(Algorithm pAlgorithm, ReachedSet pReached)
+      throws InterruptedException {
     return TargetSummary.identifyViolationsInRun(logger, partitionAnalysis.getReached());
   }
 

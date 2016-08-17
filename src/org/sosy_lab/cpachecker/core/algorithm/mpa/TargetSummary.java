@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithPresenceConditio
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -58,6 +61,20 @@ public class TargetSummary {
   }
 
   private Collection<TargetStateInfo> targetStateSummaries = Lists.newArrayList();
+
+  public static TargetSummary of(LogManager pLogger,
+      Map<SafetyProperty, Optional<PresenceCondition>> pCovered) {
+
+    TargetSummary result = new TargetSummary();
+    for (Entry<SafetyProperty, Optional<PresenceCondition>> e: pCovered.entrySet()) {
+      TargetStateInfo targetInfo = new TargetStateInfo();
+      targetInfo.violatedProperties = ImmutableSet.of(e.getKey());
+      targetInfo.presenceCondition = e.getValue();
+      result.targetStateSummaries.add(targetInfo);
+    }
+
+    return result;
+  }
 
   public static TargetSummary identifyViolationsInRun(LogManager pLogger, AbstractState pState) {
     TargetSummary result = new TargetSummary();

@@ -338,7 +338,6 @@ public class TigerAlgorithm
       ReachabilityAnalysisResult algorithmStatus;
 
       do {
-        pAlgorithm.setTestificationOp(tg.getTestifier());
         algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
 
       } while ((reachedSet.hasWaitingState()

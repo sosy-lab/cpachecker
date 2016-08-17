@@ -99,7 +99,6 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
   private final LogManager logger;
   private final Algorithm algorithm;
   private final TargetedRefiner mRefiner;
-  private TestificationOperator testificationOp = null;
 
   private final Set<Integer> feasibleStateIds = Sets.newTreeSet();
   private Optional<ARGState> lastTargetState = Optional.absent();
@@ -185,13 +184,8 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     return (TargetedRefiner)refinerObj;
   }
 
-  public void setTestificationOp(TestificationOperator pTestificationOp) {
-    testificationOp = pTestificationOp;
-  }
-
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
-    Preconditions.checkState(testificationOp != null, "A testification operator must be provided!");
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
@@ -212,7 +206,6 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
           } else {
             logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
-            // testificationOp.feasibleCounterexample(lastTargetState.get().getCounterexampleInformation().get(), targetProperties);
             return status;
           }
 

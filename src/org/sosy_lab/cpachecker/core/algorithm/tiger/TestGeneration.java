@@ -206,41 +206,35 @@ public class TestGeneration implements Statistics {
     return getActiveGoalSet();
   }
 
-  private final TestificationOperator testifier = new TestificationOperator() {
-    @Override
-    public void feasibleCounterexample(CounterexampleInfo pCounterexample, Set<SafetyProperty> pForProperties)
-        throws InterruptedException {
+  public Map<SafetyProperty, Optional<PresenceCondition>> feasibleCounterexample(CounterexampleInfo pCounterexample)
+    throws InterruptedException {
 
-      for (CounterexampleInfo cexi: pCounterexample.getAll()) {
-        if (cfg.allCoveredGoalsPerTestCase) {
-          addTestToSuite(testsuite.getGoals(), cexi);
-        } else if (cfg.checkCoverage) {
-          addTestToSuite(Sets.union(getTestSuite().getUncoveredTestGoals(), goalsUnderAnalysis()), cexi);
-        } else {
-          addTestToSuite(goalsUnderAnalysis(), cexi);
-        }
+    for (CounterexampleInfo cexi: pCounterexample.getAll()) {
+      if (cfg.allCoveredGoalsPerTestCase) {
+        addTestToSuite(testsuite.getGoals(), cexi);
+      } else if (cfg.checkCoverage) {
+        addTestToSuite(Sets.union(getTestSuite().getUncoveredTestGoals(), goalsUnderAnalysis()), cexi);
+      } else {
+        addTestToSuite(goalsUnderAnalysis(), cexi);
       }
-
-      // Exclude covered goals from further exploration
-      Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
-      for (Goal goal : goalsUnderAnalysis()) {
-        if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-          toBlacklist.put(goal, Optional.of(pcm().makeTrue()));
-        } else if (cfg.useTigerAlgorithm_with_pc) {
-          PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
-          PresenceCondition coveredFor = pcm().makeNegation(remainingPc);
-          toBlacklist.put(goal, Optional.of(coveredFor));
-        }
-      }
-
-      AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
-          .cloneAndAddBlacklisted(toBlacklist));
-
     }
-  };
 
-  public TestificationOperator getTestifier() {
-    return testifier;
+    // Exclude covered goals from further exploration
+    Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
+    for (Goal goal : goalsUnderAnalysis()) {
+      if (testsuite.isGoalCoveredOrInfeasible(goal)) {
+        toBlacklist.put(goal, Optional.of(pcm().makeTrue()));
+      } else if (cfg.useTigerAlgorithm_with_pc) {
+        PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
+        PresenceCondition coveredFor = pcm().makeNegation(remainingPc);
+        toBlacklist.put(goal, Optional.of(coveredFor));
+      }
+    }
+
+    AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
+        .cloneAndAddBlacklisted(toBlacklist));
+
+    return toBlacklist;
   }
 
   @Override

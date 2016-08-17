@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,38 +45,34 @@ import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.InitDefaultOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysisFullReset;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.AllThenSepOperator;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.MarkingAutomatonBuilder;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @Options(prefix = "analysis.tigerdc")
@@ -118,7 +112,9 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   }
 
   @Override
-  protected TargetSummary identifyViolationsInRun(Algorithm pAlgorithm, ReachedSet pReached) {
+  protected TargetSummary identifyViolationsInRun(Algorithm pAlgorithm, ReachedSet pReached)
+      throws InterruptedException {
+
     if (pAlgorithm instanceof TGARAlgorithm) {
       TGARAlgorithm tgar = (TGARAlgorithm) pAlgorithm;
       AlgorithmResult tgarResult = tgar.getResult();
@@ -128,7 +124,14 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
       if (!cexInfo.getCounterexampleInfo().isPresent()) {
         return TargetSummary.none();
       } else {
-        return TargetSummary.identifyViolationsInRun(logger, cexInfo.getCounterexampleInfo().get().getTargetPath().getLastState());
+        //
+        // TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!!
+        //
+        ARGState lastState = cexInfo.getCounterexampleInfo().get().getTargetPath().getLastState();
+        Set<SafetyProperty> violatedAtLastState = Sets.newLinkedHashSet(Iterables.filter(lastState.getViolatedProperties(), SafetyProperty.class));
+        Map<SafetyProperty, Optional<PresenceCondition>>  covered = tg.feasibleCounterexample(cexInfo.getCounterexampleInfo().get());
+
+        return TargetSummary.of(logger, covered);
       }
     } else {
       return super.identifyViolationsInRun(pAlgorithm, pReached);
@@ -217,7 +220,6 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
 
     TGARAlgorithm tgar = (TGARAlgorithm) partitionAnalysis.getAlgorithm();
     tgar.setStats(tgarStatistics);
-    tgar.setTestificationOp(tg.getTestifier());
 
     return result;
   }
