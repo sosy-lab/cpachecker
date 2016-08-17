@@ -333,7 +333,7 @@ public class TigerAlgorithm
       name = "algorithmConfigurationFile",
       description = "Configuration file for internal cpa algorithm.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path algorithmConfigurationFile = Paths.get("config/tiger-internal-algorithm.properties");
+  private Path algorithmConfigurationFile = Paths.get("config/includes/tiger-internal-algorithm-tgar.properties");
 
   @Option(
       secure = true,
