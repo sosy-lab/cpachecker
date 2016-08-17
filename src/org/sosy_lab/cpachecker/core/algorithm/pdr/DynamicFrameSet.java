@@ -70,9 +70,9 @@ public class DynamicFrameSet implements FrameSet {
   }
 
   private void initFrameSetForLocation(CFANode pLocation, boolean isStartLocation) {
-    List<ApproximationFrame> initial = new ArrayList<>(currentMaxLevel);
+    List<ApproximationFrame> initial = new ArrayList<>(currentMaxLevel + 2);
     initial.add(newDefaultFrame(isStartLocation));
-    for (int level = 1; level < currentMaxLevel; ++level) {
+    for (int level = 0; level <= currentMaxLevel; ++level) {
       initial.add(newDefaultFrame(true));
     }
     frames.put(pLocation, initial);
