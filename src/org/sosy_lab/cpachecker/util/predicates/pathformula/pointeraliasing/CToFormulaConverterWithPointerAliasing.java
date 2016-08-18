@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -134,15 +135,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
 
-  public CToFormulaConverterWithPointerAliasing(final FormulaEncodingWithPointerAliasingOptions pOptions,
-                                   final FormulaManagerView formulaManagerView,
-                                   final MachineModel pMachineModel,
-                                   final Optional<VariableClassification> pVariableClassification,
-                                   final LogManager logger,
-                                   final ShutdownNotifier pShutdownNotifier,
-                                   final TypeHandlerWithPointerAliasing pTypeHandler,
-                                   final AnalysisDirection pDirection) {
+  public CToFormulaConverterWithPointerAliasing(
+      final FormulaEncodingWithPointerAliasingOptions pOptions,
+      final FormulaManagerView formulaManagerView,
+      final MachineModel pMachineModel,
+      final Optional<VariableClassification> pVariableClassification,
+      final LogManager logger,
+      final ShutdownNotifier pShutdownNotifier,
+      final TypeHandlerWithPointerAliasing pTypeHandler,
+      final AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
     super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pDirection);
+
+    if (pDirection == AnalysisDirection.BACKWARD) {
+      throw new InvalidConfigurationException(
+          "Backward formula construction is not yet implemented for pointer aliasing.");
+    }
+
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
