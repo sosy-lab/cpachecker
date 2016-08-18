@@ -117,6 +117,13 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   }
 
   @Override
+  protected void signalSatisfied(ImmutableSet<Property> pActive) {
+    for (Goal g: Iterables.filter(pActive, Goal.class)) {
+      tg.handleInfeasibleTestGoal(g);
+    }
+  }
+
+  @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Running TigerDC with " + partitionOperator.getClass().getSimpleName());

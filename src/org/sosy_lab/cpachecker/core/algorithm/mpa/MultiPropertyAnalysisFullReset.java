@@ -428,6 +428,9 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
             final ImmutableSet<Property> active = Sets.difference(getActiveProperties(partitionAnalysis.getReached()), violated.getViolatedProperties()).immutableCopy();
             satisfied.addAll(active);
 
+            // Hook
+            signalSatisfied(active);
+
             final ImmutableSortedSet<Property> remain = remaining(all, violated.getViolatedProperties(), satisfied, unknown);
 
             // On the size of the set 'reached' (assertions and statistics)
@@ -520,6 +523,10 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     } finally {
       lastRunPropertySummary = Optional.<PropertySummary>of(createSummary(all, relevant, violated.getViolatedProperties(), satisfied, violated));
     }
+  }
+
+  protected void signalSatisfied(ImmutableSet<Property> pActive) {
+    // Hook
   }
 
   protected TargetSummary identifyViolationsInRun(Algorithm pAlgorithm, ReachedSet pReached)
