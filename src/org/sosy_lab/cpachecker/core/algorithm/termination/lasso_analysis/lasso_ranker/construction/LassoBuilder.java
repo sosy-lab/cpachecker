@@ -107,9 +107,9 @@ public class LassoBuilder {
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
 
+  private final DivAndModElimination divAndModElimination;
   private final UfElimination ufElimination;
   private final IfThenElseElimination ifThenElseElimination;
-  private final DivAndModElimination divAndModElimination;
   private final EqualElimination equalElimination;
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
   private final DnfTransformation dnfTransformation;
@@ -304,7 +304,8 @@ public class LassoBuilder {
     }
 
 
-    UfElimination.Result ufEliminationResult = ufElimination.eliminateUfs(simplified);
+    BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
+    UfElimination.Result ufEliminationResult = ufElimination.eliminateUfs(withoutDivAndMod);
     BooleanFormula withoutUfs = ufEliminationResult.getFormula();
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
     logger.logf(
@@ -313,8 +314,7 @@ public class LassoBuilder {
         ufSubstitution);
 
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, withoutUfs);
-    BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, withoutIfThenElse);
-    BooleanFormula nnf = formulaManagerView.applyTactic(withoutDivAndMod, Tactic.NNF);
+    BooleanFormula nnf = formulaManagerView.applyTactic(withoutIfThenElse, Tactic.NNF);
     BooleanFormula notEqualEliminated =
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
