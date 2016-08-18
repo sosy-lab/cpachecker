@@ -411,8 +411,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
               }
 
             } catch (UnrecognizedCCodeException e) {
-              logger.logException(
-                  Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
+              logger.logUserException(
+                  Level.INFO, e, "Could not create ranking relation from " + rankingRelation);
             }
           }
         }
