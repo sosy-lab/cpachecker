@@ -603,7 +603,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
   }
 
   private Partitioning partition(Partitioning pLastPartitioning,
-       ImmutableSet<Property> pToCheck,
+      ImmutableSet<Property> pToCheck,
       ImmutableSortedSet<Property> pDisabledProperties)
           throws PartitioningException {
 
