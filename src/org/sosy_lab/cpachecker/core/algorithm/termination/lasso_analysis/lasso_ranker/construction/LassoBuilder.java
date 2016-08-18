@@ -89,7 +89,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 @Options(prefix = "termination.lassoBuilder")
 public class LassoBuilder {
 
-  private final static Set<String> META_VARIABLES_PREFIX =
+  protected final static Set<String> META_VARIABLES_PREFIX =
       ImmutableSet.of("__VERIFIER_nondet_int", "__ADDRESS_OF___VERIFIER_successful_alloc");
 
   final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
@@ -140,6 +140,10 @@ public class LassoBuilder {
     dnfTransformation =
         new DnfTransformation(
             logger, shutdownNotifier, formulaManagerView, proverEnvironmentSupplier);
+  }
+
+  protected static boolean isMetaVariable(String variableName) {
+    return META_VARIABLES_PREFIX.stream().anyMatch(variableName::startsWith);
   }
 
   public Collection<Lasso> buildLasso(
@@ -373,8 +377,7 @@ public class LassoBuilder {
         Term originalTerm = formulaManager.extractInfo(uninstantiatedOriginalFormula);
         rankVars.put(new TermRankVar(originalTerm.toString(), originalTerm), term);
 
-      } else if (!META_VARIABLES_PREFIX.stream().anyMatch(variableName::startsWith)
-          && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
+      } else if (!isMetaVariable(variableName) && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
         logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }

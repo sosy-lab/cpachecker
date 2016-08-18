@@ -125,6 +125,14 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
     @Override
     public TraversalProcess visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      // ignore meta variables
+      if (pArgs
+          .stream()
+          .flatMap(f -> formulaManagerView.extractVariableNames(f).stream())
+          .anyMatch(LassoBuilder::isMetaVariable)) {
+        return TraversalProcess.CONTINUE;
+      }
+
       String name = pFunctionDeclaration.getName();
       Pair<String, OptionalInt> tokens = FormulaManagerView.parseName(name);
       Pair<String, List<Formula>> key = Pair.of(tokens.getFirstNotNull(), pArgs);
