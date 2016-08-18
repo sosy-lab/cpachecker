@@ -297,10 +297,10 @@ public class ARGToDotWriter {
       }
     }
 
+/*
     for (PredicateAbstractState e : AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class)) {
       final String formual = GlobalInfo
           .getInstance().getPredicateFormulaManagerView()
-          .simplify(e.getAbstractionFormula().asFormula())
           .toString();
       labelBuilder.append("PA: " + formual + "\n");
     }
@@ -335,6 +335,7 @@ public class ARGToDotWriter {
             }
           });
     }
+*/
 
 
 
