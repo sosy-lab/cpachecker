@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.logging.Level.FINER;
 
 import com.google.common.collect.ImmutableList;
 
@@ -336,7 +337,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     // than synthesizing termination arguments.
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
-      logger.logf(Level.FINE, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
+      logger.logf(FINER, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
       LassoAnalysisResult resultFromLasso = synthesizeNonTerminationArgument(lasso);
       result = result.update(resultFromLasso);
 
@@ -349,7 +350,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     // Synthesize termination arguments
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
-      logger.logf(Level.FINE, "Synthesizing termination argument for lasso:\n%s.", lasso);
+      logger.logf(FINER, "Synthesizing termination argument for lasso:\n%s.", lasso);
       LassoAnalysisResult resultFromLasso =
           synthesizeTerminationArgument(lasso, pRelevantVariables);
       result = result.update(resultFromLasso);
