@@ -636,11 +636,13 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
       Optional<TimeSpan> partCpuTimeLimit = pBudgeting.getPartitionCpuTimeLimit(pPartitions.getFirstPartition().size());
       if (partCpuTimeLimit.isPresent()) {
+        logger.log(Level.INFO, "Limiting the partition CPU time to " + partCpuTimeLimit.get());
         limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
       }
 
       Optional<TimeSpan> partWallTimeLimit = pBudgeting.getPartitionWallTimeLimit(pPartitions.getFirstPartition().size());
       if (partWallTimeLimit.isPresent()) {
+        logger.log(Level.INFO, "Limiting the partition WALL time to " + partWallTimeLimit.get());
         limits.add(WalltimeLimit.fromNowOn(partWallTimeLimit.get()));
       }
 

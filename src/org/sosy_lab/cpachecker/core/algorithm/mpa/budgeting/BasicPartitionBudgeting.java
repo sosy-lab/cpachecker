@@ -91,9 +91,8 @@ public class BasicPartitionBudgeting implements PartitionBudgeting {
 
   @Override
   public Optional<TimeSpan> getPartitionWallTimeLimit(int pForNumberOfProperties) {
-    if (pForNumberOfProperties == 1
-        && propertyWallTime.compareTo(TimeSpan.empty()) >= 0) {
-      return Optional.of(propertyWallTime.multiply(budgetFactor));
+    if (propertyWallTime.compareTo(TimeSpan.empty()) >= 0) {
+      return Optional.of(propertyWallTime.multiply(budgetFactor).multiply(pForNumberOfProperties));
     }
 
     if (wallTime.compareTo(TimeSpan.empty()) >= 0) {
@@ -105,9 +104,8 @@ public class BasicPartitionBudgeting implements PartitionBudgeting {
 
   @Override
   public Optional<TimeSpan> getPartitionCpuTimeLimit(int pForNumberOfProperties) {
-    if (pForNumberOfProperties == 1
-        && propertyCpuTime.compareTo(TimeSpan.empty()) >= 0) {
-      return Optional.of(propertyCpuTime.multiply(budgetFactor));
+    if (propertyCpuTime.compareTo(TimeSpan.empty()) >= 0) {
+      return Optional.of(propertyCpuTime.multiply(budgetFactor).multiply(pForNumberOfProperties));
     }
 
     if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
