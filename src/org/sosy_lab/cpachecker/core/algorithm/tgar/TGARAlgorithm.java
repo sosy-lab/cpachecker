@@ -34,6 +34,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -46,11 +47,13 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.DeeperLevelFirstComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -86,7 +89,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
       + "(give class name, required for TGAR) If the package name starts with "
       + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
-  private Class<? extends TargetedRefiner> refiner = null;
+  private Class<? extends TargetedRefiner> refinerClass = null;
 
   @Option(secure=true, name="comparator", required = true,
       description = "Which target state comparator to use? "
@@ -98,10 +101,27 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
   private final LogManager logger;
   private final Algorithm algorithm;
-  private final TargetedRefiner mRefiner;
+
+  private final TargetedRefiner refineOp;
+  private TestificationOperator testificationOp;
 
   private final Set<Integer> feasibleStateIds = Sets.newTreeSet();
-  private Optional<ARGState> lastTargetState = Optional.absent();
+
+  public static class TGARAlgorithmResult implements AlgorithmResult {
+    private final Set<AbstractState> feasibleTargetStates = Sets.newHashSet();
+    private TargetSummary targetSummary = TargetSummary.none();
+
+    public void addFeasibleTarget(AbstractState pTargetState, TargetSummary pTargetSummary) {
+      feasibleTargetStates.add(pTargetState);
+      targetSummary = TargetSummary.union(targetSummary, pTargetSummary);
+    }
+
+    public TargetSummary getTargetSummary() {
+      return targetSummary;
+    }
+  }
+
+  TGARAlgorithmResult result = null;
 
   public TGARAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, Configuration pConfig,
        LogManager pLogManager) throws InvalidConfigurationException, CPAException {
@@ -112,11 +132,11 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     logger = pLogManager;
 
     stats = new TGARStatistics(pLogManager);
-    mRefiner = createInstance(pCpa);
+    refineOp = createInstance(pCpa);
     comparator = createComparator();
   }
 
-  public TGARAlgorithm(Algorithm pAlgorithm, TargetedRefiner pRefiner, Configuration pConfig, LogManager pLogManager)
+  public TGARAlgorithm(Algorithm pAlgorithm, TargetedRefiner pRefinerClass, Configuration pConfig, LogManager pLogManager)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -124,7 +144,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     logger = pLogManager;
 
     stats = new TGARStatistics(pLogManager);
-    mRefiner = Preconditions.checkNotNull(pRefiner);
+    refineOp = Preconditions.checkNotNull(pRefinerClass);
     comparator = createComparator();
   }
 
@@ -147,19 +167,19 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     // get factory method
     Method factoryMethod;
     try {
-      factoryMethod = refiner.getMethod("create", ConfigurableProgramAnalysis.class);
+      factoryMethod = refinerClass.getMethod("create", ConfigurableProgramAnalysis.class);
     } catch (NoSuchMethodException e) {
-      throw new InvalidComponentException(refiner, "Refiner", "No public static method \"create\" with exactly one parameter of type ConfigurableProgramAnalysis.");
+      throw new InvalidComponentException(refinerClass, "Refiner", "No public static method \"create\" with exactly one parameter of type ConfigurableProgramAnalysis.");
     }
 
     // verify signature
     if (!Modifier.isStatic(factoryMethod.getModifiers())) {
-      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not static");
+      throw new InvalidComponentException(refinerClass, "Refiner", "Factory method is not static");
     }
 
     String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class, InvalidConfigurationException.class);
     if (exception != null) {
-      throw new InvalidComponentException(refiner, "Refiner", "Factory method declares the unsupported checked exception " + exception + ".");
+      throw new InvalidComponentException(refinerClass, "Refiner", "Factory method declares the unsupported checked exception " + exception + ".");
     }
 
     // invoke factory method
@@ -168,54 +188,63 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
       refinerObj = factoryMethod.invoke(null, pCpa);
 
     } catch (IllegalAccessException e) {
-      throw new InvalidComponentException(refiner, "Refiner", "Factory method is not public.");
+      throw new InvalidComponentException(refinerClass, "Refiner", "Factory method is not public.");
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
       Throwables.propagateIfPossible(cause, CPAException.class, InvalidConfigurationException.class);
 
-      throw new UnexpectedCheckedException("instantiation of refiner " + refiner.getSimpleName(), cause);
+      throw new UnexpectedCheckedException("instantiation of refinerClass " + refinerClass.getSimpleName(), cause);
     }
 
     if ((refinerObj == null) || !(refinerObj instanceof Refiner)) {
-      throw new InvalidComponentException(refiner, "Refiner", "Factory method did not return a Refiner instance.");
+      throw new InvalidComponentException(refinerClass, "Refiner", "Factory method did not return a Refiner instance.");
     }
 
     return (TargetedRefiner)refinerObj;
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
+
+    Preconditions.checkNotNull(testificationOp, "A testification operator must be configured!");
+    Preconditions.checkNotNull(refineOp, "A refinement operator must be configured!");
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    result = new TGARAlgorithmResult();
 
     stats.totalTimer.start();
     try {
       // There might be unhandled target states left for refinement.
       //    This might be the case if there was a feasible path
       //    for that the algorithm returned.
-      lastTargetState = chooseTarget(reached);
+      Optional<ARGState> lastTargetState = chooseTarget(pReached);
 
       do {
         while (lastTargetState.isPresent()) {
-          Preconditions.checkState(AbstractStates.isTargetState(lastTargetState.get()));
-          final boolean eliminated = refine(reached, lastTargetState.get());
+          final ARGState targetState = lastTargetState.get();
+          Preconditions.checkState(AbstractStates.isTargetState(targetState));
 
-          Set<SafetyProperty> targetProperties = AbstractStates.extractViolatedProperties(lastTargetState.get(), SafetyProperty.class);
+          final boolean eliminated = refine(pReached, targetState);
+          final Set<? extends Property> targetProperties = AbstractStates.extractViolatedProperties(targetState, Property.class);
+
           if (eliminated) {
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
           } else {
-            logger.logf(Level.INFO, "Feasible CEX for: " + targetProperties);
-            return status;
+            TargetSummary targetSummary = testificationOp.testify(pReached, targetState);
+            logger.logf(Level.INFO, "Feasible CEX for %s. Testified for %s", targetProperties, targetSummary);
+            if (targetSummary.getViolatedProperties().size() > 0) {
+              result.addFeasibleTarget(targetState, targetSummary);
+            }
           }
 
-          lastTargetState = chooseTarget(reached);
+          lastTargetState = chooseTarget(pReached);
         }
 
-        status = status.update(algorithm.run(reached));
-        lastTargetState = chooseTarget(reached);
+        status = status.update(algorithm.run(pReached));
+        lastTargetState = chooseTarget(pReached);
 
-      } while (lastTargetState.isPresent() || reached.hasWaitingState());
+      } while (lastTargetState.isPresent() || pReached.hasWaitingState());
 
     } finally {
       stats.totalTimer.stop();
@@ -226,15 +255,11 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
   @Override
   public AlgorithmResult getResult() {
-    final Optional<CounterexampleInfo> info;
-    if (lastTargetState.isPresent()) {
-      ARGState e = (ARGState) lastTargetState.get();
-      info = e.getCounterexampleInformation();
-    } else {
-      info = Optional.absent();
-    }
+    return result;
+  }
 
-    return new CounterexampleInfoResult(info);
+  public void setTestificationOp(TestificationOperator pTestificationOp) {
+    testificationOp = pTestificationOp;
   }
 
   private final Predicate<ARGState> STATE_NOT_YET_HANDLED = new Predicate<ARGState>() {
@@ -296,7 +321,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
       final boolean counterexampleEliminated;
       try {
-        counterexampleEliminated = mRefiner.performRefinement(pReached, target);
+        counterexampleEliminated = refineOp.performRefinement(pReached, target);
         logger.log(Level.FINE, "Refinement successful: ", counterexampleEliminated);
 
         //  false: a FEASIBLE counterexample was found!
@@ -331,14 +356,14 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
-    if (mRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider)mRefiner).collectStatistics(pStatsCollection);
+    if (refineOp instanceof StatisticsProvider) {
+      ((StatisticsProvider) refineOp).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }
 
-  public TargetedRefiner getRefiner() {
-    return mRefiner;
+  public TargetedRefiner getRefinerClass() {
+    return refineOp;
   }
 
 }

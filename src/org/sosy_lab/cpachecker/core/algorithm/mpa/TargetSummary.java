@@ -62,8 +62,7 @@ public class TargetSummary {
 
   private Collection<TargetStateInfo> targetStateSummaries = Lists.newArrayList();
 
-  public static TargetSummary of(LogManager pLogger,
-      Map<SafetyProperty, Optional<PresenceCondition>> pCovered) {
+  public static TargetSummary of(Map<SafetyProperty, Optional<PresenceCondition>> pCovered) {
 
     TargetSummary result = new TargetSummary();
     for (Entry<SafetyProperty, Optional<PresenceCondition>> e: pCovered.entrySet()) {

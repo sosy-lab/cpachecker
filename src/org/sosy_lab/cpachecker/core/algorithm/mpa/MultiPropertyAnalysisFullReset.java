@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperato
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.AllThenSepOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -394,7 +395,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
           //    (which is the target state, in general)
           //  Ensure that a SPLIT of states is performed before
           //    transiting to the ERROR state!
-          Preconditions.checkState(!partitionAnalysis.getReached().getWaitlist().isEmpty(),
+          Preconditions.checkState(partitionAnalysis.getAlgorithm() instanceof TGARAlgorithm
+              || !partitionAnalysis.getReached().getWaitlist().isEmpty(),
               "Potential of hidden violations must be considered!");
 
           // We have to perform another iteration of the algorithm

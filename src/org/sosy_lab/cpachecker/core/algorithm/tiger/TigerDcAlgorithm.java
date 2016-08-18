@@ -27,7 +27,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -36,7 +35,6 @@ import com.google.common.collect.Sets;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
@@ -51,8 +49,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysisFullReset
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARAlgorithm.TGARAlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.TGARStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -86,6 +87,7 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   private final TGARStatistics tgarStatistics;
   private final TigerConfiguration cfg;
   private final TestGeneration tg;
+  private final TestificationOperator testifier;
 
   private Map<Automaton, Automaton> markingAutomataInstances = Maps.newHashMap();
 
@@ -98,6 +100,20 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
     cfg = new TigerConfiguration(pConfig);
     tg = new TestGeneration(cfg, pCfa, pLogger);
 
+    testifier = new TestificationOperator() {
+      @Override
+      public TargetSummary testify(ReachedSet pCounterexample, ARGState pTargetState)
+          throws InterruptedException {
+        //
+        // TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!!
+        //
+        CounterexampleInfo cexInfo = pTargetState.getCounterexampleInformation().get();
+        Set<SafetyProperty> violatedAtLastState = Sets.newLinkedHashSet(Iterables.filter(pTargetState.getViolatedProperties(), SafetyProperty.class));
+        Map<SafetyProperty, Optional<PresenceCondition>>  covered = tg.feasibleCounterexample(cexInfo);
+
+        return TargetSummary.of(covered);
+      }
+    };
   }
 
   @Override
@@ -119,22 +135,12 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
 
     if (pAlgorithm instanceof TGARAlgorithm) {
       TGARAlgorithm tgar = (TGARAlgorithm) pAlgorithm;
-      AlgorithmResult tgarResult = tgar.getResult();
-      Preconditions.checkState(tgarResult instanceof CounterexampleInfoResult);
-      CounterexampleInfoResult cexInfo = (CounterexampleInfoResult) tgarResult;
+      AlgorithmResult algResult = tgar.getResult();
 
-      if (!cexInfo.getCounterexampleInfo().isPresent()) {
-        return TargetSummary.none();
-      } else {
-        //
-        // TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!!
-        //
-        ARGState lastState = cexInfo.getCounterexampleInfo().get().getTargetPath().getLastState();
-        Set<SafetyProperty> violatedAtLastState = Sets.newLinkedHashSet(Iterables.filter(lastState.getViolatedProperties(), SafetyProperty.class));
-        Map<SafetyProperty, Optional<PresenceCondition>>  covered = tg.feasibleCounterexample(cexInfo.getCounterexampleInfo().get());
+      Preconditions.checkState(algResult instanceof TGARAlgorithmResult);
+      TGARAlgorithmResult tgarResult = (TGARAlgorithmResult) algResult;
 
-        return TargetSummary.of(logger, covered);
-      }
+      return tgarResult.getTargetSummary();
     } else {
       return super.identifyViolationsInRun(pAlgorithm, pReached);
     }
@@ -223,6 +229,7 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
 
     TGARAlgorithm tgar = (TGARAlgorithm) partitionAnalysis.getAlgorithm();
     tgar.setStats(tgarStatistics);
+    tgar.setTestificationOp(testifier);
 
     return result;
   }
