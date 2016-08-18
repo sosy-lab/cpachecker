@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 public class TerminationUtils {
 
@@ -54,11 +57,14 @@ public class TerminationUtils {
       CSimpleDeclaration pVariableDecl) {
     CType type = pVariableDecl.getType();
     if (type instanceof CPointerType) {
+      CType innerType = ((CPointerType) type).getType();
+      checkArgument(!(innerType instanceof CVoidType));
+
       return new CVariableDeclaration(
           FileLocation.DUMMY,
           false,
           CStorageClass.AUTO,
-          ((CPointerType) type).getType(),
+          innerType,
           pVariableDecl.getName() + DEREFERENCE_POSTFIX,
           pVariableDecl.getOrigName() + DEREFERENCE_POSTFIX,
           pVariableDecl.getQualifiedName() + DEREFERENCE_POSTFIX,
