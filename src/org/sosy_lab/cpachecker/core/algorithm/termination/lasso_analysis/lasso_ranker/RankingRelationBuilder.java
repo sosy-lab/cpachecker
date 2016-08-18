@@ -57,7 +57,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -74,6 +77,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class RankingRelationBuilder {
@@ -88,15 +92,21 @@ class RankingRelationBuilder {
 
   private final IntegerFormulaManagerView ifmgr;
 
-  private final IntegerFormula zero;
+  private final NumeralFormula zero;
+
+  private final FormulaCreator<Term, ?, ?, ?> formulaCreator;
 
   public RankingRelationBuilder(
-      MachineModel pMachineModel, LogManager pLogger, FormulaManagerView pFormulaManagerView) {
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      FormulaManagerView pFormulaManagerView,
+      FormulaCreator<Term, ?, ?, ?> pFormulaCreator) {
     logger = checkNotNull(pLogger);
     binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     fmgr = checkNotNull(pFormulaManagerView);
     ifmgr = fmgr.getIntegerFormulaManager();
     zero = ifmgr.makeNumber(0L);
+    formulaCreator = checkNotNull(pFormulaCreator);
   }
 
   public RankingRelation fromTerminationArgument(
@@ -208,18 +218,17 @@ class RankingRelationBuilder {
       Set<CVariableDeclaration> pRelevantVariables) throws UnrecognizedCCodeException {
     // f(x')
     CExpression primedFunction = createLiteral(function.getConstant());
-    List<IntegerFormula> primedFormulaSummands = Lists.newArrayList();
+    List<NumeralFormula> primedFormulaSummands = Lists.newArrayList();
     primedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
     // f(x)
     CExpression unprimedFunction = createLiteral(function.getConstant());
-    List<IntegerFormula> unprimedFormulaSummands = Lists.newArrayList();
+    List<NumeralFormula> unprimedFormulaSummands = Lists.newArrayList();
     unprimedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
     for (RankVar rankVar : function.getVariables()) {
       BigInteger coefficient = function.get(rankVar);
       CLiteralExpression cCoefficient = createLiteral(coefficient);
-      String variableName = rankVar.getGloballyUniqueId();
       Pair<CIdExpression, CExpression> variables =
           getVariable(rankVar, pRelevantVariables);
 
@@ -228,13 +237,32 @@ class RankingRelationBuilder {
       primedFunction = addSummand(primedFunction, cCoefficient, primedVariable);
       unprimedFunction = addSummand(unprimedFunction, cCoefficient, variable);
 
+      NumeralFormula unprimedVariableFormula = encapsulate(rankVar.getDefinition());
       String primedVariableName = primedVariable.getDeclaration().getQualifiedName();
-      primedFormulaSummands.add(createSummand(coefficient, primedVariableName));
-      unprimedFormulaSummands.add(createSummand(coefficient, variableName));
+      FormulaType<NumeralFormula> formulaType = fmgr.getFormulaType(unprimedVariableFormula);
+      NumeralFormula primedVariableFormula = fmgr.makeVariable(formulaType, primedVariableName);
+      primedFormulaSummands.add(createSummand(coefficient, primedVariableFormula));
+      unprimedFormulaSummands.add(createSummand(coefficient, unprimedVariableFormula));
     }
 
    return new RankingRelationComponents(
             unprimedFunction, primedFunction, unprimedFormulaSummands, primedFormulaSummands);
+  }
+
+  private NumeralFormula encapsulate(Term pTerm) {
+    Sort sort = pTerm.getSort();
+    assert sort.isNumericSort();
+
+    FormulaType<? extends NumeralFormula> type;
+    if (sort.getName().equalsIgnoreCase("int")) {
+      type = FormulaType.IntegerType;
+    } else if (sort.getName().equalsIgnoreCase("real")) {
+      type = FormulaType.RationalType;
+    } else {
+      throw new AssertionError(sort);
+    }
+
+    return formulaCreator.encapsulate(type, pTerm);
   }
 
   /**
@@ -356,8 +384,8 @@ class RankingRelationBuilder {
 
   private BooleanFormula createRankingRelationFormula(RankingRelationComponents components) {
 
-    IntegerFormula primedFormula = components.getPrimedFormula();
-    IntegerFormula unprimedFormula = components.getUnprimedFormula();
+    NumeralFormula primedFormula = components.getPrimedFormula();
+    NumeralFormula unprimedFormula = components.getUnprimedFormula();
 
     BooleanFormula unprimedGreatorThanZeroFormula =
         fmgr.makeGreaterOrEqual(primedFormula, zero, true);
@@ -369,13 +397,13 @@ class RankingRelationBuilder {
     return rankingRelationFormula;
   }
 
-  private IntegerFormula createSummand(BigInteger pCoefficient, String pVariable) {
-    IntegerFormula variable = ifmgr.makeVariable(pVariable);
+  private NumeralFormula createSummand(BigInteger pCoefficient, NumeralFormula pVariable) {
+
     if (pCoefficient.equals(BigInteger.ONE)) {
-      return variable;
+      return pVariable;
     } else {
       IntegerFormula coefficient = ifmgr.makeNumber(pCoefficient);
-      return ifmgr.multiply(coefficient, variable);
+      return fmgr.makeMultiply(coefficient, pVariable);
     }
   }
 
@@ -383,14 +411,14 @@ class RankingRelationBuilder {
 
     private final CExpression unprimedExpression;
     private final CExpression primedExpression;
-    private final List<IntegerFormula> unprimedFormulaSummands;
-    private final List<IntegerFormula> primedFormulaSummands;
+    private final List<NumeralFormula> unprimedFormulaSummands;
+    private final List<NumeralFormula> primedFormulaSummands;
 
     RankingRelationComponents(
         CExpression pUnprimedExpression,
         CExpression pPrimedExpression,
-        List<IntegerFormula> pUnprimedFormulaSummands,
-        List<IntegerFormula> pPrimedFormulaSummands) {
+        List<NumeralFormula> pUnprimedFormulaSummands,
+        List<NumeralFormula> pPrimedFormulaSummands) {
           unprimedExpression = pUnprimedExpression;
           primedExpression = pPrimedExpression;
           unprimedFormulaSummands = pUnprimedFormulaSummands;
@@ -405,12 +433,16 @@ class RankingRelationBuilder {
       return unprimedExpression;
     }
 
-    public IntegerFormula getPrimedFormula() {
-      return ifmgr.sum(primedFormulaSummands);
+    public NumeralFormula getPrimedFormula() {
+      return sum(primedFormulaSummands);
     }
 
-    public IntegerFormula getUnprimedFormula() {
-      return ifmgr.sum(unprimedFormulaSummands);
+    public NumeralFormula getUnprimedFormula() {
+      return sum(unprimedFormulaSummands);
+    }
+
+    private NumeralFormula sum(Collection<NumeralFormula> operands) {
+      return operands.stream().reduce(zero, fmgr::makePlus);
     }
   }
 }

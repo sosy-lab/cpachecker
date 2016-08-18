@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.FINER;
+import static org.sosy_lab.solver.SolverContextFactory.Solvers.SMTINTERPOL;
 
 import com.google.common.collect.ImmutableList;
 
@@ -217,6 +219,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
     solverContext = checkNotNull(pSolverContext);
+    checkArgument(solverContext.getSolverName().equals(SMTINTERPOL));
     formulaManager = (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
     Configuration solverConfig = Configuration.defaultConfiguration();
     formulaManagerView = new FormulaManagerView(formulaManager, solverConfig, pLogger);
@@ -239,7 +242,11 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             pSolverContext::newProverEnvironment,
             pathFormulaManager);
     rankingRelationBuilder =
-        new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
+        new RankingRelationBuilder(
+            pCfa.getMachineModel(),
+            pLogger,
+            formulaManagerView,
+            formulaManager.getFormulaCreator());
 
     linearLassoRankerPreferences = new LassoRankerPreferences();
     linearLassoRankerPreferences.smt_solver_command = externalSolverCommand;
@@ -413,6 +420,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             } catch (UnrecognizedCCodeException e) {
               logger.logUserException(
                   Level.INFO, e, "Could not create ranking relation from " + rankingRelation);
+              return LassoAnalysisResult.unknown();
             }
           }
         }
