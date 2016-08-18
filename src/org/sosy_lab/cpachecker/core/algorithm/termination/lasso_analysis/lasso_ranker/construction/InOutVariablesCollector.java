@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -135,7 +137,9 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
       String name = pFunctionDeclaration.getName();
       Pair<String, OptionalInt> tokens = FormulaManagerView.parseName(name);
-      Pair<String, List<Formula>> key = Pair.of(tokens.getFirstNotNull(), pArgs);
+      List<Formula> uninstatiatedArgs =
+          transformedImmutableListCopy(pArgs, formulaManagerView::uninstantiate);
+      Pair<String, List<Formula>> key = Pair.of(tokens.getFirstNotNull(), uninstatiatedArgs);
       ufs.putIfAbsent(key, Maps.newTreeMap());
       Map<Integer, Formula> ufApplications = ufs.get(key);
       ufApplications.put(tokens.getSecondNotNull().getAsInt(), substitution.get(pF));
