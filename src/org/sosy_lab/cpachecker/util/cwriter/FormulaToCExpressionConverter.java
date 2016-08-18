@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import com.google.common.base.Joiner;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.basicimpl.tactics.Tactic;
+import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
 
 import java.util.List;
 

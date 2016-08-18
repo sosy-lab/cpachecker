@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
 
 import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.MUL;
-import static org.sosy_lab.solver.api.FunctionDeclarationKind.UF;
+import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MUL;
+import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.UF;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -34,13 +34,13 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.TraversalProcess;
 
 import java.util.Collection;
 import java.util.List;

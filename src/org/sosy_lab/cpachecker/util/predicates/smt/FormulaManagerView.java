@@ -53,30 +53,30 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.FloatingPointFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.FormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.java_smt.basicimpl.tactics.Tactic;
+import org.sosy_lab.java_smt.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.FormulaVisitor;
+import org.sosy_lab.java_smt.visitors.TraversalProcess;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -1686,7 +1686,7 @@ public class FormulaManagerView {
    * View wrapper for {@link #transformRecursively}.
    */
   public static class FormulaTransformationVisitor
-      extends org.sosy_lab.solver.visitors.FormulaTransformationVisitor {
+      extends org.sosy_lab.java_smt.visitors.FormulaTransformationVisitor {
 
     protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
       super(fmgr.manager);

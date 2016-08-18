@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.FINER;
-import static org.sosy_lab.solver.SolverContextFactory.Solvers.SMTINTERPOL;
+import static org.sosy_lab.java_smt.SolverContextFactory.Solvers.SMTINTERPOL;
 
 import com.google.common.collect.ImmutableList;
 
@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext;
-import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext;
+import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
 
 import java.io.IOException;
 import java.util.Collection;

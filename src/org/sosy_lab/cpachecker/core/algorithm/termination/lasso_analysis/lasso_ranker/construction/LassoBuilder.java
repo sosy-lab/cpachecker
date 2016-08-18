@@ -58,16 +58,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.basicimpl.tactics.UfElimination;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.java_smt.basicimpl.tactics.Tactic;
+import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination;
+import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination.Result;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -226,8 +226,8 @@ public class LassoBuilder {
       StemAndLoop pStemAndLoop,
       Set<String> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
-    Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Collections.emptyMap());
-    Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getSubsitution());
+    Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(formulaManager));
+    Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
     InOutVariables stemRankVars =
         extractRankVars(
             stemDnf,
@@ -294,24 +294,23 @@ public class LassoBuilder {
     return polyhedra;
   }
 
-  private Dnf toDnf(BooleanFormula path, Map<Formula, Formula> pSubstitution)
+  private Dnf toDnf(BooleanFormula path, UfElimination.Result eliminatedUfs)
       throws InterruptedException {
-
-    BooleanFormula substitutedFormula = formulaManagerView.substitute(path, pSubstitution);
 
     BooleanFormula simplified;
     if (simplify) {
-      simplified = formulaManagerView.simplify(substitutedFormula);
+      simplified = formulaManagerView.simplify(path);
     } else {
-      simplified = substitutedFormula;
+      simplified = path;
     }
-
 
     BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
     BooleanFormula withoutNonLinearMutl =
         transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
-    UfElimination.Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMutl);
-    BooleanFormula withoutUfs = ufEliminationResult.getFormula();
+    Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMutl, eliminatedUfs);
+    BooleanFormula withoutUfs =
+        formulaManagerView.makeAnd(
+            ufEliminationResult.getFormula(), ufEliminationResult.geConstraints());
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
     logger.logf(
         FINER,
@@ -327,10 +326,7 @@ public class LassoBuilder {
     Set<BooleanFormula> clauses =
         formulaManagerView.getBooleanFormulaManager().toDisjunctionArgs(dnf, true);
 
-    ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
-    substitution.putAll(pSubstitution);
-    substitution.putAll(ufSubstitution);
-    return new Dnf(clauses, substitution.build());
+    return new Dnf(clauses, ufEliminationResult);
   }
 
   private BooleanFormula transformRecursively(
@@ -342,7 +338,7 @@ public class LassoBuilder {
 
   private InOutVariables extractRankVars(
       Dnf pDnf, SSAMap inSsa, SSAMap outSsa, Set<String> pRelevantVariables) {
-    Map<Formula, Formula> subsitution = pDnf.getSubsitution();
+    Map<Formula, Formula> subsitution = pDnf.getUfEliminationResult().getSubstitution();
     InOutVariablesCollector veriablesCollector =
         new InOutVariablesCollector(formulaManagerView, inSsa, outSsa, subsitution);
     for (BooleanFormula clause : pDnf.getClauses()) {
@@ -448,19 +444,19 @@ public class LassoBuilder {
   private static class Dnf {
 
     private Collection<BooleanFormula> clauses;
-    private Map<Formula, Formula> subsitution;
+    private Result ufEliminationResult;
 
-    Dnf(Collection<BooleanFormula> pClauses, Map<Formula, Formula> pSubsitution) {
+    Dnf(Collection<BooleanFormula> pClauses, Result p) {
       clauses = checkNotNull(pClauses);
-      subsitution = checkNotNull(pSubsitution);
+      ufEliminationResult = checkNotNull(p);
     }
 
     public Collection<BooleanFormula> getClauses() {
       return clauses;
     }
 
-    public Map<Formula, Formula> getSubsitution() {
-      return subsitution;
+    public Result getUfEliminationResult() {
+      return ufEliminationResult;
     }
   }
 }

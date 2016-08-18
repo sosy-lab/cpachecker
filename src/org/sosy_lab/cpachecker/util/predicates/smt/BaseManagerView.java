@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.util.List;
 

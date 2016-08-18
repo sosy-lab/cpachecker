@@ -27,24 +27,24 @@ import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Bit
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseNotUfName;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseOrUfName;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.BitwiseXorUfName;
-import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
+import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.BitvectorType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UFManager;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.UFManager;
 
 import java.math.BigInteger;
 import java.util.Arrays;

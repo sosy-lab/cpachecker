@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.RationalFormulaManager;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.RationalFormulaManager;
 
 public class RationalFormulaManagerView
   extends NumeralFormulaManagerView<NumeralFormula, RationalFormula>

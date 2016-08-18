@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressFBWarnings({
   "NP_NONNULL_PARAM_VIOLATION",
