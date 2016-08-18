@@ -190,8 +190,8 @@ public class CPAcheckerResult {
   private String verdictWithRelevance(Property pProp, String pString, PropertySummary pPropertySummary) {
     if (pPropertySummary.getRelevantProperties().isPresent()) {
       boolean relevant = pPropertySummary.getRelevantProperties().get().contains(pProp);
-      if (!relevant) {
-        return String.format("%s (irrelevant)", pString);
+      if (relevant) {
+        return String.format("%s (relevant)", pString);
       }
     }
     return pString;
