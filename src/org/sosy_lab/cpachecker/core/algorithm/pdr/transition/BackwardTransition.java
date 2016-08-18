@@ -360,6 +360,11 @@ public class BackwardTransition {
     }
 
     @Override
+    public String toString() {
+      return BackwardTransition.toString(this);
+    }
+
+    @Override
     public Block invertDirection() {
       return new InvertedBlock();
     }
@@ -469,6 +474,11 @@ public class BackwardTransition {
       }
 
       @Override
+      public String toString() {
+        return BackwardTransition.toString(this);
+      }
+
+      @Override
       public CFANode getPredecessorLocation() {
         return AbstractStates.extractLocation(getPredecessor());
       }
@@ -478,5 +488,14 @@ public class BackwardTransition {
         return AbstractStates.extractLocation(getSuccessor());
       }
     }
+  }
+
+  private static String toString(Block pBlock) {
+    return String.format(
+        "Block from %s to %s with %s formula %s",
+        pBlock.getPredecessorLocation(),
+        pBlock.getSuccessorLocation(),
+        pBlock.getDirection() == AnalysisDirection.BACKWARD ? "backward" : "forward",
+            pBlock.getFormula());
   }
 }
