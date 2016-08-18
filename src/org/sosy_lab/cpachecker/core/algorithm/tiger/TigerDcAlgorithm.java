@@ -42,6 +42,7 @@ import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -229,6 +231,12 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
     pStatsCollection.add(tgarStatistics);
+    pStatsCollection.add(tg);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    super.printStatistics(pOut, pResult, pReached);
   }
 
   public AlgorithmResult getResult() {
