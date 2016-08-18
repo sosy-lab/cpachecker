@@ -108,7 +108,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
       if (pFunctionDeclaration.getKind().equals(DIV)
           || pFunctionDeclaration.getName().equalsIgnoreCase("div")
-          || pFunctionDeclaration.getName().equalsIgnoreCase("Integer__%_")) {
+          || pFunctionDeclaration.getName().equalsIgnoreCase("Integer__/_")) {
         assert newArgs.size() == 2;
         return transformDivision(newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
 
