@@ -124,8 +124,10 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
   }
 
   @VisibleForTesting
-  protected ImmutableList<ImmutableSet<Property>> partitionsWithAtMost(int pK, Set<Property> pInput,
-      Comparator<Property> pComp) {
+  protected ImmutableList<ImmutableSet<Property>> partitionsWithAtMost(int pK, Set<Property> pInput, Comparator<Property> pComp) {
+    if (pK <= 0) {
+      return ImmutableList.of(ImmutableSet.copyOf(pInput));
+    }
 
     final ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
 
