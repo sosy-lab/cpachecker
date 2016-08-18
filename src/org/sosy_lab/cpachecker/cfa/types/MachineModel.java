@@ -541,14 +541,14 @@ public enum MachineModel {
         } else {
           if (decl.getType().isBitField()) {
             if (previosIsBitField) {
-              size += decl.getType().getBitFieldSize();
+              bitFieldsSize += decl.getType().getBitFieldSize();
             } else {
-              size += model.getPadding(size, decl.getType()); //Should it be char or current type?
+              size += model.getPadding(size, decl.getType());
               bitFieldsSize += decl.getType().getBitFieldSize();
             }
             previosIsBitField = true;
           } else {
-            if (bitFieldsSize > 0){
+            if (bitFieldsSize > 0) {
               size += bitFieldsSize / 8;
               if (bitFieldsSize % 8 > 0) {
                 size++;
@@ -559,6 +559,12 @@ public enum MachineModel {
             size += model.getPadding(size, decl.getType());
             size += decl.getType().accept(this);
           }
+        }
+      }
+      if (bitFieldsSize > 0) {
+        size += bitFieldsSize / 8;
+        if (bitFieldsSize % 8 > 0) {
+          size++;
         }
       }
       size += model.getPadding(size, pCompositeType);
