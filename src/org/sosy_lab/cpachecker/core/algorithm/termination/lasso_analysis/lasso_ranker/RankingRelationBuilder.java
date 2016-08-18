@@ -33,10 +33,12 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.LONG_INT;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createDereferencedVariable;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createPrimedVariable;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -45,11 +47,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
-import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -58,7 +62,7 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
@@ -69,6 +73,8 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class RankingRelationBuilder {
 
@@ -200,10 +206,6 @@ class RankingRelationBuilder {
 
   private RankingRelationComponents createRankingRelationComponents(AffineFunction function,
       Set<CVariableDeclaration> pRelevantVariables) throws UnrecognizedCCodeException {
-    // x -> x'
-    Map<CVariableDeclaration, CVariableDeclaration> allVariables =
-        Maps.toMap(pRelevantVariables, TerminationUtils::createPrimedVariable);
-
     // f(x')
     CExpression primedFunction = createLiteral(function.getConstant());
     List<IntegerFormula> primedFormulaSummands = Lists.newArrayList();
@@ -218,23 +220,70 @@ class RankingRelationBuilder {
       BigInteger coefficient = function.get(rankVar);
       CLiteralExpression cCoefficient = createLiteral(coefficient);
       String variableName = rankVar.getGloballyUniqueId();
-      CVariableDeclaration variableDec =
-          pRelevantVariables
-              .stream()
-              .filter(v -> v.getQualifiedName().equals(variableName))
-              .findAny()
-              .get();
+      Pair<CIdExpression, CExpression> variables =
+          getVariable(rankVar, pRelevantVariables);
 
-      CVariableDeclaration primedVariableDec = allVariables.get(variableDec);
-      primedFunction = addSummand(primedFunction, cCoefficient, primedVariableDec);
-      unprimedFunction = addSummand(unprimedFunction, cCoefficient, variableDec);
+      CIdExpression primedVariable = variables.getFirstNotNull();
+      CExpression variable = variables.getSecondNotNull();
+      primedFunction = addSummand(primedFunction, cCoefficient, primedVariable);
+      unprimedFunction = addSummand(unprimedFunction, cCoefficient, variable);
 
-      primedFormulaSummands.add(createSummand(coefficient, primedVariableDec.getQualifiedName()));
+      String primedVariableName = primedVariable.getDeclaration().getQualifiedName();
+      primedFormulaSummands.add(createSummand(coefficient, primedVariableName));
       unprimedFormulaSummands.add(createSummand(coefficient, variableName));
     }
 
    return new RankingRelationComponents(
             unprimedFunction, primedFunction, unprimedFormulaSummands, primedFormulaSummands);
+  }
+
+  /**
+   * Returns the primed and unprimed variable represented as {@link CExpression}s
+   * for a variable of the ranking function.
+   * @param pRankVar
+   *            the variable of the ranking function to get the primed and unprimed variable for
+   * @param pRelevantVariables all variable declarations of the original program
+   * @return a Pair consisting of the primed and unprimed variable
+   */
+  private Pair<CIdExpression, CExpression> getVariable(
+      RankVar pRankVar, Set<CVariableDeclaration> pRelevantVariables) {
+    String variableName = pRankVar.getGloballyUniqueId();
+    Optional<CVariableDeclaration> variableDecl = pRelevantVariables
+        .stream()
+        .filter(v -> v.getQualifiedName().equals(variableName))
+        .findAny();
+
+    if (variableDecl.isPresent()) {
+      CVariableDeclaration primedVariableDecl = createPrimedVariable(variableDecl.get());
+      CIdExpression primedVariable = new CIdExpression(DUMMY, primedVariableDecl);
+      CIdExpression variable = new CIdExpression(DUMMY, variableDecl.get());
+      return Pair.of(primedVariable, variable);
+
+    } else {
+      Term term = pRankVar.getDefinition();
+      if (term instanceof ApplicationTerm) {
+        ApplicationTerm uf = ((ApplicationTerm) term);
+        assert !uf.getFunction().isInterpreted() : uf;
+        assert uf.getFunction().getParameterSorts().length == 1 : uf;
+        assert uf.getFunction().getName().startsWith("*"); // dereference
+
+        Term innerVariableTerm = uf.getParameters()[0];
+        String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
+        Pair<CIdExpression, CExpression> innerVariables =
+            getVariable(new TermRankVar(innerVariableName, innerVariableTerm), pRelevantVariables);
+
+        CSimpleDeclaration innerPrimedVariable = innerVariables.getFirstNotNull().getDeclaration();
+        CExpression innerVariable = innerVariables.getSecondNotNull();
+        CVariableDeclaration primedVariableDecl = createDereferencedVariable(innerPrimedVariable);
+        CExpression variable =
+            new CPointerExpression(DUMMY, primedVariableDecl.getType(), innerVariable);
+        CIdExpression primedVariable = new CIdExpression(DUMMY, primedVariableDecl);
+        return Pair.of(primedVariable, variable);
+
+      } else {
+        throw new AssertionError(term.toStringDirect());
+      }
+    }
   }
 
   private RankingRelation fromNestedRankingFunction(
@@ -289,18 +338,16 @@ class RankingRelationBuilder {
   }
 
   private CExpression addSummand(
-      CExpression sum, CLiteralExpression coefficient, CVariableDeclaration variable)
+      CExpression sum, CLiteralExpression coefficient, CExpression pVariable)
       throws UnrecognizedCCodeException {
-    CIdExpression unprimedVariable = new CIdExpression(DUMMY, variable);
 
-    CExpression unprimedSummand;
+    CExpression summand;
     if (coefficient.equals(ONE)) {
-      unprimedSummand = unprimedVariable;
+      summand = pVariable;
     } else {
-      unprimedSummand =
-          binaryExpressionBuilder.buildBinaryExpression(coefficient, unprimedVariable, MULTIPLY);
+      summand = binaryExpressionBuilder.buildBinaryExpression(coefficient, pVariable, MULTIPLY);
     }
-    return binaryExpressionBuilder.buildBinaryExpression(sum, unprimedSummand, PLUS);
+    return binaryExpressionBuilder.buildBinaryExpression(sum, summand, PLUS);
   }
 
   private static CIntegerLiteralExpression createLiteral(BigInteger value) {
