@@ -435,7 +435,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = partitionAnalysis.getReached().size();
-            logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s. %d properties remain to be checked.", reachedSetSize, active.toString(), remain.size());
+            logger.logf(Level.INFO, "Fixpoint with %d states reached. %s satisfied. %d properties remain to be checked.", reachedSetSize, active.toString(), remain.size());
             Preconditions.checkState(reachedSetSize >= 10, "The set reached has too few states for a correct analysis run! Bug?");
             stats.reachedStatesWithFixpoint.add(reachedSetSize);
             if (Sets.intersection(relevant, runProperties).size() > 0) {
