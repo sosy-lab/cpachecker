@@ -68,7 +68,7 @@ import javax.annotation.Nullable;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static class CPAStatistics implements Statistics {
+  public static class CPAStatistics implements Statistics {
 
     private Timer totalTimer         = new Timer();
     private Timer chooseTimer        = new Timer();
@@ -204,7 +204,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ForcedCovering forcedCovering;
 
-  private final CPAStatistics               stats = new CPAStatistics();
+  public static final CPAStatistics stats = new CPAStatistics();
+  public static CPAAlgorithm last = null;
 
   private final AlgorithmIterationListener algorithmIterationListener;
 
@@ -224,6 +225,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       ForcedCovering pForcedCovering,
       boolean pIsImprecise,
       AlgorithmIterationListener pAlgorithmIterationListener) {
+
+    last = this;
 
     transferRelation = cpa.getTransferRelation();
     mergeOperator = cpa.getMergeOperator();

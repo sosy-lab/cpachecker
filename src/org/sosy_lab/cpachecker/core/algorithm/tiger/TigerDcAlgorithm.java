@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysisFullReset;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
@@ -251,6 +252,7 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
     super.printStatistics(pOut, pResult, pReached);
+    CPAAlgorithm.stats.printStatistics(pOut, pResult, pReached);
   }
 
   public AlgorithmResult getResult() {

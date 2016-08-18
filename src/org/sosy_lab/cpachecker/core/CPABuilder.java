@@ -303,7 +303,10 @@ public class CPABuilder {
             throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
           }
 
-          CPAFactory factory = ControlAutomatonCPA.factory();
+          final CPAFactory factory = powersetDomainForSpec
+                                     ? PowersetAutomatonCPA.factory()
+                                     : ControlAutomatonCPA.factory();
+
           factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
           factory.setLogger(logger.withComponentName(cpaAlias));
           factory.set(cfa, CFA.class);
@@ -332,7 +335,10 @@ public class CPABuilder {
             "Name " + cpaAlias + " used twice for an " + "automaton.");
       }
 
-      CPAFactory factory = ControlAutomatonCPA.factory();
+      final CPAFactory factory = powersetDomainForSpec
+                                 ? PowersetAutomatonCPA.factory()
+                                 : ControlAutomatonCPA.factory();
+
       factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
       factory.setLogger(logger.withComponentName(cpaAlias));
       factory.set(pCFA, CFA.class);
