@@ -108,6 +108,7 @@ public class LassoBuilder {
   private final PathFormulaManager pathFormulaManager;
 
   private final DivAndModElimination divAndModElimination;
+  private final NonLinearMultiplicationElimination nonLinearMultiplicationElimination;
   private final UfElimination ufElimination;
   private final IfThenElseElimination ifThenElseElimination;
   private final EqualElimination equalElimination;
@@ -131,9 +132,11 @@ public class LassoBuilder {
     formulaManagerView = checkNotNull(pFormulaManagerView);
     pathFormulaManager = checkNotNull(pPathFormulaManager);
 
+    divAndModElimination = new DivAndModElimination(formulaManagerView, formulaManager);
+    nonLinearMultiplicationElimination =
+        new NonLinearMultiplicationElimination(formulaManagerView, formulaManager);
     ufElimination = new UfElimination(pFormulaManager);
     ifThenElseElimination = new IfThenElseElimination(formulaManagerView, formulaManager);
-    divAndModElimination = new DivAndModElimination(formulaManagerView, formulaManager);
     equalElimination = new EqualElimination(formulaManagerView);
     notEqualAndNotInequalityElimination =
         new NotEqualAndNotInequalityElimination(formulaManagerView);
@@ -305,7 +308,9 @@ public class LassoBuilder {
 
 
     BooleanFormula withoutDivAndMod = transformRecursively(divAndModElimination, simplified);
-    UfElimination.Result ufEliminationResult = ufElimination.eliminateUfs(withoutDivAndMod);
+    BooleanFormula withoutNonLinearMutl =
+        transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
+    UfElimination.Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMutl);
     BooleanFormula withoutUfs = ufEliminationResult.getFormula();
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
     logger.logf(
