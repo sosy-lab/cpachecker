@@ -90,7 +90,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 public class LassoBuilder {
 
   protected final static Set<String> META_VARIABLES_PREFIX =
-      ImmutableSet.of("__VERIFIER_nondet_int", "__ADDRESS_OF___VERIFIER_successful_alloc");
+      ImmutableSet.of("__VERIFIER_nondet_", "__ADDRESS_OF_");
 
   final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
 
