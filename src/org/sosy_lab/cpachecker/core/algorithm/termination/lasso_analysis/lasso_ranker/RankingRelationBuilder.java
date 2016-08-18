@@ -72,6 +72,10 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 
 class RankingRelationBuilder {
 
+  private final static CIntegerLiteralExpression ONE = createLiteral(BigInteger.ONE);
+
+  private final LogManager logger;
+
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   private final FormulaManagerView fmgr;
@@ -82,6 +86,7 @@ class RankingRelationBuilder {
 
   public RankingRelationBuilder(
       MachineModel pMachineModel, LogManager pLogger, FormulaManagerView pFormulaManagerView) {
+    logger = checkNotNull(pLogger);
     binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     fmgr = checkNotNull(pFormulaManagerView);
     ifmgr = fmgr.getIntegerFormulaManager();
@@ -99,12 +104,18 @@ class RankingRelationBuilder {
     return rankingRelation.withSupportingInvariants(supportingInvariants);
   }
 
-  private Collection<BooleanFormula> extractSupportingInvariants(TerminationArgument pTerminationArgument,
-      Set<CVariableDeclaration> pRelevantVariables) throws UnrecognizedCCodeException {
+  private Collection<BooleanFormula> extractSupportingInvariants(
+      TerminationArgument pTerminationArgument, Set<CVariableDeclaration> pRelevantVariables) {
     Collection<BooleanFormula> supportingInvariants = Lists.newArrayList();
     for (SupportingInvariant supportingInvariant : pTerminationArgument.getSupportingInvariants()) {
-      RankingRelationComponents components =
-          createRankingRelationComponents(supportingInvariant, pRelevantVariables);
+
+      RankingRelationComponents components;
+      try {
+        components = createRankingRelationComponents(supportingInvariant, pRelevantVariables);
+      } catch (UnrecognizedCCodeException e) {
+        logger.logDebugException(e, "Could not process " + supportingInvariant);
+        continue; // just skip this invariant
+      }
 
       BooleanFormula invariantFormula;
       if (supportingInvariant.strict) {
@@ -281,12 +292,18 @@ class RankingRelationBuilder {
       CExpression sum, CLiteralExpression coefficient, CVariableDeclaration variable)
       throws UnrecognizedCCodeException {
     CIdExpression unprimedVariable = new CIdExpression(DUMMY, variable);
-    CBinaryExpression unprimedSummand =
-        binaryExpressionBuilder.buildBinaryExpression(coefficient, unprimedVariable, MULTIPLY);
+
+    CExpression unprimedSummand;
+    if (coefficient.equals(ONE)) {
+      unprimedSummand = unprimedVariable;
+    } else {
+      unprimedSummand =
+          binaryExpressionBuilder.buildBinaryExpression(coefficient, unprimedVariable, MULTIPLY);
+    }
     return binaryExpressionBuilder.buildBinaryExpression(sum, unprimedSummand, PLUS);
   }
 
-  private CLiteralExpression createLiteral(BigInteger value) {
+  private static CIntegerLiteralExpression createLiteral(BigInteger value) {
     return CIntegerLiteralExpression.createDummyLiteral(value.longValueExact(), LONG_INT);
   }
 
@@ -307,8 +324,12 @@ class RankingRelationBuilder {
 
   private IntegerFormula createSummand(BigInteger pCoefficient, String pVariable) {
     IntegerFormula variable = ifmgr.makeVariable(pVariable);
-    IntegerFormula coefficient = ifmgr.makeNumber(pCoefficient);
-    return ifmgr.multiply(coefficient, variable);
+    if (pCoefficient.equals(BigInteger.ONE)) {
+      return variable;
+    } else {
+      IntegerFormula coefficient = ifmgr.makeNumber(pCoefficient);
+      return ifmgr.multiply(coefficient, variable);
+    }
   }
 
   private final class RankingRelationComponents {
