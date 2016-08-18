@@ -62,8 +62,14 @@ public class InitDefaultOperator implements InitOperator {
     Preconditions.checkArgument(!pPartitioning.isEmpty(), "This init operator requires at least one partition of properties!");
     Preconditions.checkState(pAllProperties.size() > 0, "There must be a set of properties that get checked!");
 
-    // At the moment we check the first partition in the list
-    Set<Property> partitionToCheck = Sets.intersection(pPartitioning.getFirstPartition(), pRemain);
+    // At the moment we check the first non-empty partition in the list
+    Set<Property> partitionToCheck = ImmutableSet.of();
+    for (Set<Property> parti: pPartitioning) {
+      partitionToCheck = Sets.intersection(parti, pRemain);
+      if (partitionToCheck.size() > 0) {
+        break;
+      }
+    }
 
     final CFANode initLocation = pCfa.getMainFunction();
     final AbstractState initialState = pCPA.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
@@ -97,7 +103,7 @@ public class InitDefaultOperator implements InitOperator {
     ImmutableSet<Property> active = MultiPropertyAnalysis.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);
     Preconditions.checkState(Sets.intersection(toBlacklist, active).size() == 0, "Blacklisted properties must not be active!");
 
-    return pPartitioning.withoutFirst();
+    return pPartitioning.withoutFirstTruncEmptyModulo(pRemain);
 
   }
 

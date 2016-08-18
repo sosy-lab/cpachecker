@@ -148,14 +148,32 @@ public class Partitions implements Partitioning {
     return partitions.iterator();
   }
 
+
   @Override
-  public Partitioning withoutFirst() {
+  public Partitioning withoutFirstTruncEmptyModulo(Set<Property> pRemain) {
     Preconditions.checkState(!this.isEmpty());
+
+    // Always skip the first to ensure progress!!
+    int index = 1;
+    while (index < partitions.size()) {
+      if (Sets.intersection(partitions.get(index), pRemain).size() > 0) {
+        break;
+      }
+      index++;
+    }
+
+    if (index >= partitions.size()) {
+      // Empty
+      return new Partitions(status,
+          propertyBudgeting,
+          partitionBudgeting,
+          ImmutableList.of(ImmutableSet.of()));
+    }
 
     return new Partitions(status,
         propertyBudgeting, // We keep the same budget here!
         partitionBudgeting,
-        partitions.subList(1, partitions.size()));
+        partitions.subList(index, partitions.size()));
   }
 
   @Override

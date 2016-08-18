@@ -34,6 +34,8 @@ import java.util.Set;
 
 public interface Partitioning extends Iterable<ImmutableSet<Property>> {
 
+  Partitioning withoutFirstTruncEmptyModulo(Set<Property> pRemain);
+
   public static enum PartitioningStatus {
     NONE,
     BREAK,
@@ -57,8 +59,6 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
   public int partitionCount();
 
   public Partitioning substract(Set<Property> pProperties);
-
-  public Partitioning withoutFirst();
 
   public ImmutableSet<Property> getFirstPartition();
 
