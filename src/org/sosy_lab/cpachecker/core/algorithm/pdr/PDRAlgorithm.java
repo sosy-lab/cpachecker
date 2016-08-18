@@ -164,9 +164,9 @@ public class PDRAlgorithm implements Algorithm {
           logger.log(Level.INFO, "Found errorpath. Program has a bug.");
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        try (ProverEnvironment propagationProver = solver.newProverEnvironment()) {
-//          frameSet.propagate(propagationProver, reusedProver); // TODO Disable propagation for now
-        }
+        //        try (ProverEnvironment propagationProver = solver.newProverEnvironment()) {
+        //          frameSet.propagate(propagationProver, reusedProver); // TODO Enable when it works
+        //        }
         if (isFrameSetConvergent()) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
