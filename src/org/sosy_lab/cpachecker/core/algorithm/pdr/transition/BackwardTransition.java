@@ -189,7 +189,7 @@ public class BackwardTransition {
     // the initial state is unambiguous and can be created with less effort
     CFANode firstSuccessorLocation = successorLocationIterator.next();
     if (!successorLocationIterator.hasNext()) {
-      return getBlocksTo(firstSuccessorLocation);
+      return getBlocksTo(firstSuccessorLocation).filter(Blocks.applyToPredecessor(pFilterPredecessors));
     }
     reachedSet = reachedSetFactory.create();
     initializeFor(reachedSet, firstSuccessorLocation);
