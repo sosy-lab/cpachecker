@@ -51,12 +51,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Collection;
 import java.util.PriorityQueue;
@@ -143,9 +143,8 @@ public class PDRAlgorithm implements Algorithm {
       // Check for 1-step counterexamples
       for (Block block : backwardTransition.getBlocksTo(errorLocations, IS_MAIN_ENTRY)) {
         reusedProver.push(block.getFormula());
-
         if (!reusedProver.isUnsat()) {
-          logger.log(Level.INFO, "Found errorpath: 1-step counterexample.");
+          logger.log(Level.INFO, "Found errorpath: 1-step counterexample.", " \nTransition : \n", block.getFormula());
           return AlgorithmStatus.SOUND_AND_PRECISE; // TODO insert violating block into reached set
         }
 
@@ -166,7 +165,7 @@ public class PDRAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         try (ProverEnvironment propagationProver = solver.newProverEnvironment()) {
-          frameSet.propagate(propagationProver, reusedProver);
+//          frameSet.propagate(propagationProver, reusedProver); // TODO Disable propagation for now
         }
         if (isFrameSetConvergent()) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -217,6 +216,7 @@ public class PDRAlgorithm implements Algorithm {
             // Transition is still possible. Get state from model and try to block it.
             if (!prover.isUnsat()) {
               Model model = prover.getModel();
+              logger.log(Level.INFO, "Generating satisfying assignment for predecessor of bad state in strengthen().");
               BooleanFormula toBeBlocked =
                   getAbstractedSatisfyingState(model, block.getUnprimedContext());
               if (!backwardblock(errorPredecessor, toBeBlocked)) {
@@ -265,7 +265,7 @@ public class PDRAlgorithm implements Algorithm {
   private boolean backwardblock(CFANode pErrorPredLocation, BooleanFormula pState)
       throws SolverException, InterruptedException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
-
+    logger.log(Level.INFO, "Entering backwardblock.");
     PriorityQueue<ProofObligation> proofObligationQueue = new PriorityQueue<>();
     proofObligationQueue.offer(
         new ProofObligation(frameSet.getMaxLevel(), pErrorPredLocation, pState));
@@ -289,26 +289,32 @@ public class PDRAlgorithm implements Algorithm {
         for (Block block : backwardTransition.getBlocksTo(p.getLocation())) {
           CFANode predLocation = block.getPredecessorLocation();
 
+          int numberPushes = 0;
+
           // Push T(predLoc -> p.loc)
           BooleanFormula localTransition = block.getFormula();
           prover.push(localTransition);
+          numberPushes++;
 
           // Push F(p.level - 1, predLoc) [unprimed]
           for (BooleanFormula frameState :
               frameSet.getStatesForLocation(predLocation, p.getFrameLevel() - 1)) {
             prover.push(fmgr.instantiate(frameState, block.getUnprimedContext().getSsa()));
+            numberPushes++;
           }
 
           // Push p.state [primed]
           BooleanFormula primedState =
               fmgr.instantiate(p.getState(), block.getPrimedContext().getSsa());
           prover.push(primedState);
+          numberPushes++;
 
           // Push not(p.state) [unprimed] if self-loop
           if (predLocation.equals(p.getLocation())) {
             BooleanFormula unprimedState =
                 fmgr.instantiate(p.getState(), block.getUnprimedContext().getSsa());
             prover.push(bfmgr.not(unprimedState));
+            numberPushes++;
           }
 
           if (!prover.isUnsat()) {
@@ -322,6 +328,8 @@ public class PDRAlgorithm implements Algorithm {
             proofObligationQueue.offer(
                 new ProofObligation(p.getFrameLevel() - 1, predLocation, predState, p));
             proofObligationQueue.offer(p); // TODO add cause ?
+            logger.log(Level.INFO, "Generating satisfying assignment for predecessor of bad state in backwardblock()."
+                , " -- Length of queue is : ", proofObligationQueue.size());
           } else {
             // The consecution check succeeded. The state can't be reached and may therefore be blocked.
 
@@ -329,8 +337,12 @@ public class PDRAlgorithm implements Algorithm {
              *  TODO Maybe refine predicates here if abstract state leads to error and the concrete one does not.
              *  The NEGATED state must be generalized and added!
              */
+            logger.log(Level.INFO, "Blocking state.");
             BooleanFormula generalizedState = generalize(p.getState(), prover);
             frameSet.blockState(generalizedState, p.getFrameLevel(), p.getLocation());
+          }
+          for(int i = 0; i < numberPushes; ++i) {
+            prover.pop();
           }
         }
       }
