@@ -29,6 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -170,21 +171,35 @@ public class CPAcheckerResult {
     out.println("\tStatus by property:");
 
     for (Property prop: sortPropertiesByStrings(propertySummary.getViolatedProperties())) {
-      out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "FALSE", propertySummary)));
+      out.println(String.format("\t\tProperty %s: %s %s", prop.toString(),
+          verdictWithRelevance(prop, "FALSE", propertySummary), detailedPropertyText(prop)));
     }
 
     if (propertySummary.getUnknownProperties().isPresent()) {
       for (Property prop: sortPropertiesByStrings(propertySummary.getUnknownProperties().get())) {
-        out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "UNKNOWN", propertySummary)));
+        out.println(String.format("\t\tProperty %s: %s %s", prop.toString(),
+            verdictWithRelevance(prop, "UNKNOWN", propertySummary), detailedPropertyText(prop)));
       }
     }
 
     if (propertySummary.getSatisfiedProperties().isPresent()) {
       for (Property prop: sortPropertiesByStrings(propertySummary.getSatisfiedProperties().get())) {
-        out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "TRUE", propertySummary)));
+        out.println(String.format("\t\tProperty %s: %s %s", prop.toString(),
+            verdictWithRelevance(prop, "TRUE", propertySummary), detailedPropertyText(prop)));
       }
     }
+  }
 
+  private String detailedPropertyText(Property pProp) {
+    if (pProp instanceof Goal) {
+      Goal goal = ((Goal) pProp);
+      return String.format("\t\t%s->%s with '%s' in line %d",
+          goal.getCriticalEdge().getPredecessor(),
+          goal.getCriticalEdge().getSuccessor(),
+          goal.getCriticalEdge().getCode(),
+          goal.getCriticalEdge().getLineNumber());
+    }
+    return "";
   }
 
   private String verdictWithRelevance(Property pProp, String pString, PropertySummary pPropertySummary) {
