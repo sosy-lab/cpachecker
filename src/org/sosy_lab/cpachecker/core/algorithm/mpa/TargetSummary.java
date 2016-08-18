@@ -212,4 +212,8 @@ public class TargetSummary {
     return new TargetSummary();
   }
 
+  @Override
+  public String toString() {
+    return getViolatedProperties().toString();
+  }
 }
