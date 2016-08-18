@@ -33,13 +33,12 @@ import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +100,7 @@ public class DynamicFrameSet implements FrameSet {
   public Set<BooleanFormula> getStatesForLocation(CFANode pLocation, int pLevel) {
     Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
     if (!frames.containsKey(pLocation)) {
-      return Collections.emptySet();
+      initFrameSetForLocation(pLocation, false);
     }
 
     /*
