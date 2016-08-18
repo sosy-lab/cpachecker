@@ -316,13 +316,23 @@ public class BackwardTransition {
     @Override
     public PathFormula getUnprimedContext() {
       PredicateAbstractState pas = getPredecessorPredicateAbstractState();
-      return pathFormulaManager.makeEmptyPathFormula(pas.getAbstractionFormula().getBlockFormula());
+      return asContext(pas.getAbstractionFormula().getBlockFormula());
     }
 
     @Override
     public PathFormula getPrimedContext() {
       PredicateAbstractState pas = getSuccessorPredicateAbstractState();
-      return pathFormulaManager.makeEmptyPathFormula(pas.getAbstractionFormula().getBlockFormula());
+      return asContext(pas.getAbstractionFormula().getBlockFormula());
+    }
+
+    private PathFormula asContext(PathFormula pPathFormula) {
+      PathFormula fullFormulaWithDefault =
+          new PathFormula(
+              pPathFormula.getFormula(),
+              pPathFormula.getSsa().withDefault(1),
+              pPathFormula.getPointerTargetSet(),
+              pPathFormula.getLength());
+      return pathFormulaManager.makeEmptyPathFormula(fullFormulaWithDefault);
     }
 
     @Override
