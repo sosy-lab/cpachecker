@@ -23,14 +23,31 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Utility class for blocks.
@@ -86,5 +103,166 @@ public final class Blocks {
             ? pBlock.getPrimedContext()
             : pBlock.getUnprimedContext();
     return Reindexer.invertIndices(pBlock.getFormula(), finalContext.getSsa(), pFormulaManager);
+  }
+
+  public static BooleanFormula conjoinBlockFormulas(
+      Iterable<Block> pBlocks, FormulaManagerView pFormulaManager)
+      throws CPATransferException, InterruptedException {
+    return conjoinFormulas(
+        pBlocks,
+        block ->
+            block.getDirection() == AnalysisDirection.FORWARD
+                ? block.getFormula()
+                : formulaWithInvertedIndices(block, pFormulaManager),
+        pFormulaManager);
+  }
+
+  public static BooleanFormula conjoinBranchingFormulas(
+      Iterable<Block> pBlocks,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager)
+      throws CPATransferException, InterruptedException {
+    return conjoinFormulas(
+        pBlocks,
+        new BlockToFormula() {
+
+          @Override
+          public BooleanFormula apply(Block pBlock)
+              throws InterruptedException, CPATransferException {
+            BooleanFormula branchingFormula =
+                pPathFormulaManager.buildBranchingFormula(
+                    FluentIterable.from(pBlock.getReachedSet())
+                        .transform(AbstractStates.toState(ARGState.class))
+                        .toSet());
+            return pBlock.getDirection() == AnalysisDirection.FORWARD
+                ? branchingFormula
+                : Reindexer.invertIndices(
+                    branchingFormula, pBlock.getUnprimedContext().getSsa(), pFormulaManager);
+          }
+        },
+        pFormulaManager);
+  }
+
+  public static BooleanFormula conjoinFormulas(
+      Iterable<Block> pBlocks, BlockToFormula pExtractFormula, FormulaManagerView pFormulaManager)
+      throws CPATransferException, InterruptedException {
+    BooleanFormulaManager booleanFormulaManager = pFormulaManager.getBooleanFormulaManager();
+    BooleanFormula formula = booleanFormulaManager.makeTrue();
+
+    if (Iterables.isEmpty(pBlocks)) {
+      return formula;
+    }
+
+    CFANode expectedPredecessorLocation = null;
+    PathFormula previousBlockSuccessorContext = null;
+
+    for (Block block : pBlocks) {
+      Preconditions.checkArgument(
+          expectedPredecessorLocation == null
+              || block.getPredecessorLocation().equals(expectedPredecessorLocation),
+          "Blocks must connect.");
+      BooleanFormula blockFormula = pExtractFormula.apply(block);
+      if (previousBlockSuccessorContext != null) {
+        final PathFormula previousContext = previousBlockSuccessorContext;
+        blockFormula =
+            Reindexer.reindex(
+                blockFormula,
+                block.getPrimedContext().getSsa(),
+                (var, i) -> previousContext.getSsa().getIndex(var) + i - 1,
+                pFormulaManager);
+      }
+      formula = booleanFormulaManager.and(formula, blockFormula);
+
+      expectedPredecessorLocation = block.getSuccessorLocation();
+      previousBlockSuccessorContext = block.getPrimedContext();
+    }
+
+    return formula;
+  }
+
+  public static ARGPath combineARGPaths(
+      Iterable<Block> pBlocks, Map<Integer, Boolean> pBranchingInformation) {
+    Preconditions.checkArgument(!Iterables.isEmpty(pBlocks), "Cannot create empty ARG path.");
+
+    ARGPathBuilder argPathBuilder = ARGPath.builder();
+    ARGState lastState = null;
+    CFANode expectedPredecessorLocation = null;
+
+    for (Block block : pBlocks) {
+      Preconditions.checkArgument(
+          expectedPredecessorLocation == null
+              || block.getPredecessorLocation().equals(expectedPredecessorLocation),
+          "Blocks must connect.");
+
+      ReachedSet reachedSet = block.getReachedSet();
+      ARGPath blockPath =
+          ARGUtils.getPathFromBranchingInformation(
+              AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class),
+              FluentIterable.from(reachedSet)
+                  .transform(AbstractStates.toState(ARGState.class))
+                  .toSet(),
+              pBranchingInformation);
+
+      List<CFAEdge> pathEdges = blockPath.getInnerEdges();
+      Iterator<CFAEdge> edgeIterator = pathEdges.iterator();
+
+      for (ARGState state : blockPath.asStatesList()) {
+        if (edgeIterator.hasNext()) {
+          argPathBuilder.add(state, edgeIterator.next());
+        } else {
+          lastState = state;
+        }
+      }
+
+      expectedPredecessorLocation = block.getSuccessorLocation();
+    }
+
+    return argPathBuilder.build(lastState);
+  }
+
+  public static void combineReachedSets(Iterable<Block> pBlocks, ReachedSet pTargetReachedSet) {
+    if (Iterables.isEmpty(pBlocks)) {
+      return;
+    }
+
+    ARGState argPreviousState = null;
+    for (Block block : pBlocks) {
+      ReachedSet reachedSet = block.getReachedSet();
+      AbstractState firstState =
+          block.getDirection() == AnalysisDirection.FORWARD
+              ? block.getPredecessor()
+              : block.getSuccessor();
+      assert reachedSet.getFirstState() == firstState;
+
+      if (argPreviousState == null) {
+        pTargetReachedSet.add(firstState, reachedSet.getPrecision(firstState));
+      } else {
+        ARGState argFirstState = AbstractStates.extractStateByType(firstState, ARGState.class);
+        for (ARGState childOfFirstState : argFirstState.getChildren()) {
+          childOfFirstState.addParent(argPreviousState);
+        }
+        argFirstState.removeFromARG();
+      }
+
+      for (AbstractState state : reachedSet) {
+        if (state != firstState) {
+          pTargetReachedSet.add(state, reachedSet.getPrecision(state));
+          pTargetReachedSet.removeOnlyFromWaitlist(state);
+        }
+      }
+
+      argPreviousState =
+          AbstractStates.extractStateByType(
+              block.getDirection() == AnalysisDirection.FORWARD
+                  ? block.getSuccessor()
+                  : block.getPredecessor(),
+              ARGState.class);
+    }
+  }
+
+  public static interface BlockToFormula {
+
+    BooleanFormula apply(Block pBlock) throws InterruptedException, CPATransferException;
+
   }
 }
