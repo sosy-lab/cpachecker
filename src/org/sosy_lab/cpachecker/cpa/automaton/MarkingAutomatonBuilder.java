@@ -136,9 +136,13 @@ public class MarkingAutomatonBuilder {
     private final AAstNode markerIncrementStatement;
     private final AAstNode markerDeclarationStatement;
 
+    private String filterInvalidCharacters(String pInput) {
+      return pInput.replace("@", "_"); // @ is used for the SSA form
+    }
+
     public MarkerCode(String pNamePrefix, int pMarkerId) {
       markerId = pMarkerId;
-      namePrefix = pNamePrefix;
+      namePrefix = filterInvalidCharacters(pNamePrefix);
 
       final String varName = String.format("__%s_MARKER_%d", namePrefix, markerId);
 
