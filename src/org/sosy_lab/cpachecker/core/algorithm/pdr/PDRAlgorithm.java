@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -83,7 +85,7 @@ import java.util.logging.Level;
  * Property-Directed Reachability algorithm, also known as IC3.
  * It can be used to check whether a program is safe or not.
  */
-public class PDRAlgorithm implements Algorithm {
+public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
   /*
    *  Simple renaming due to the different meaning of this predicate when applied during the
@@ -103,6 +105,7 @@ public class PDRAlgorithm implements Algorithm {
   private final BackwardTransition backwardTransition;
   private final Algorithm algorithm;
   private final Configuration config;
+  private final PDRStatistics stats = new PDRStatistics();
 
   private final AssignmentToPathAllocator assignmentToPathAllocator;
 
@@ -409,6 +412,14 @@ public class PDRAlgorithm implements Algorithm {
     return false;
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    }
+    pStatsCollection.add(stats);
+  }
+
   /**
    * Creates a counterexample trace based on the given proof obligation. It is the start of a chain of
    * obligations whose respective predecessors lead to the initial program location and thus represent
@@ -422,7 +433,7 @@ public class PDRAlgorithm implements Algorithm {
   private void analyzeCounterexample(List<Block> pBlocks, ReachedSet pTargetReachedSet)
       throws CPATransferException, InterruptedException {
 
-    // stats.errorPathCreation.start(); TODO: Statistics
+    stats.getErrorPathCreationTimer().start();
 
     logger.log(Level.INFO, "Error found, creating error path");
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -507,7 +518,7 @@ public class PDRAlgorithm implements Algorithm {
       counterexample.getTargetPath().getLastState().addCounterexampleInformation(counterexample);
 
     } finally {
-      // stats.errorPathCreation.stop(); TODO implement statistics
+      stats.getErrorPathCreationTimer().stop();
     }
     Blocks.combineReachedSets(pBlocks, pTargetReachedSet);
   }
