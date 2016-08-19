@@ -82,9 +82,9 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   private final ImmutableSet<AutomatonState> states;
   private final boolean containsTarget;
 
-  public PowersetAutomatonState(Set<AutomatonState> elements) {
+  public PowersetAutomatonState(ImmutableSet<AutomatonState> elements) {
     Preconditions.checkNotNull(elements);
-    states = ImmutableSet.copyOf(elements);
+    states = elements;
     containsTarget = hasTarget(states);
   }
 
@@ -168,8 +168,8 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   }
 
   @Override
-  public List<AbstractState> getWrappedStates() {
-    return ImmutableList.<AbstractState>copyOf(states);
+  public Collection<? extends AbstractState> getWrappedStates() {
+    return states;
   }
 
   public Set<AutomatonState> getAutomataStates() {

@@ -57,8 +57,8 @@ class CompositeMergePlainOperator implements MergeOperator {
     assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
     ImmutableList.Builder<AbstractState> mergedStates = ImmutableList.builder();
-    Iterator<AbstractState> iter1 = compSuccessorState.getWrappedStates().iterator();
-    Iterator<AbstractState> iter2 = compReachedState.getWrappedStates().iterator();
+    Iterator<? extends AbstractState> iter1 = compSuccessorState.getWrappedStates().iterator();
+    Iterator<? extends AbstractState> iter2 = compReachedState.getWrappedStates().iterator();
     Iterator<Precision> iterPrec = compPrecision.getWrappedPrecisions().iterator();
 
     boolean identicalStates = true;

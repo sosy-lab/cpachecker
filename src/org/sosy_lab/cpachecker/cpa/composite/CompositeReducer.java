@@ -60,12 +60,12 @@ class CompositeReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
 
-    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
-    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
+    List<? extends AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<? extends AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
 
     List<AbstractState> result = new ArrayList<>();
     int i = 0;
-    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
+    for (Pair<? extends AbstractState, ? extends AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
       result.add(wrappedReducers.get(i++).getVariableExpandedState(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);
@@ -74,12 +74,12 @@ class CompositeReducer implements Reducer {
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    List<AbstractState> elements = ((CompositeState)pElementKey).getWrappedStates();
+    List<? extends AbstractState> elements = ((CompositeState)pElementKey).getWrappedStates();
     List<Precision> precisions = ((CompositePrecision) pPrecisionKey).getWrappedPrecisions();
 
     List<Object> result = new ArrayList<>(elements.size());
     int i = 0;
-    for (Pair<AbstractState, Precision> p : Pair.zipList(elements, precisions)) {
+    for (Pair<? extends AbstractState, ? extends Precision> p : Pair.zipList(elements, precisions)) {
       result.add(wrappedReducers.get(i++).getHashCodeForState(p.getFirst(), p.getSecond()));
     }
     return result;
@@ -144,12 +144,12 @@ class CompositeReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
-    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
-    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
+    List<? extends AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<? extends AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
 
     List<AbstractState> result = new ArrayList<>();
     int i = 0;
-    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
+    for (Pair<? extends AbstractState, ? extends AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
       result.add(wrappedReducers.get(i++).getVariableExpandedStateForProofChecking(p.getFirst(), pReducedContext, p.getSecond()));
     }
     return new CompositeState(result);
@@ -158,9 +158,9 @@ class CompositeReducer implements Reducer {
   @Override
   public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
       AbstractState pExpandedState, FunctionExitNode exitLocation) {
-    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
-    List<AbstractState> entryStates = ((CompositeState)pEntryState).getWrappedStates();
-    List<AbstractState> expandedStates = ((CompositeState)pExpandedState).getWrappedStates();
+    List<? extends AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
+    List<? extends AbstractState> entryStates = ((CompositeState)pEntryState).getWrappedStates();
+    List<? extends AbstractState> expandedStates = ((CompositeState)pExpandedState).getWrappedStates();
 
     List<AbstractState> results = new ArrayList<>();
     for (int i = 0; i < rootStates.size(); i++) {

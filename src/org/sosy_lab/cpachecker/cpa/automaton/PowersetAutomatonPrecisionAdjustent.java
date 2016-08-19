@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -58,7 +60,7 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
     PowersetAutomatonState state = (PowersetAutomatonState) pState;
 
     PrecisionAdjustmentResult.Action action = Action.CONTINUE;
-    Set<AutomatonState> components = Sets.newLinkedHashSet();
+    Builder<AutomatonState> compsBuilder = ImmutableSet.builder();
 
     boolean adjusted = false;
 
@@ -79,9 +81,9 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
         if ((ePrime.get().abstractState() != e) || (ePrime.get().precision() != pPrecision)) {
           adjusted = true;
 
-          components.add((AutomatonState) ePrime.get().abstractState());
+          compsBuilder.add((AutomatonState) ePrime.get().abstractState());
         } else {
-          components.add(e);
+          compsBuilder.add(e);
         }
 
       } else {
@@ -90,7 +92,7 @@ public class PowersetAutomatonPrecisionAdjustent implements PrecisionAdjustment 
     }
 
     if (adjusted) {
-      return Optional.of(PrecisionAdjustmentResult.create(new PowersetAutomatonState(components), pPrecision, action));
+      return Optional.of(PrecisionAdjustmentResult.create(new PowersetAutomatonState(compsBuilder.build()), pPrecision, action));
     } else {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, action));
     }

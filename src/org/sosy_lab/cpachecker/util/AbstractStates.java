@@ -349,7 +349,7 @@ public final class AbstractStates {
           return ImmutableList.of(wrapped);
 
         } else if (state instanceof AbstractWrapperState) {
-          return ((AbstractWrapperState)state).getWrappedStates();
+          return (Iterable<AbstractState>) ((AbstractWrapperState)state).getWrappedStates();
         }
 
         return ImmutableList.of();

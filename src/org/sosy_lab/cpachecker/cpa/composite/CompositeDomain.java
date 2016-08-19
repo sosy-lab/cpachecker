@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import java.util.Collection;
 import java.util.List;
 
 class CompositeDomain implements AbstractDomain {
@@ -53,8 +54,8 @@ class CompositeDomain implements AbstractDomain {
     CompositeState comp1 = (CompositeState)pElement1;
     CompositeState comp2 = (CompositeState)pElement2;
 
-    List<AbstractState> comp1Elements = comp1.getWrappedStates();
-    List<AbstractState> comp2Elements = comp2.getWrappedStates();
+    List<? extends AbstractState> comp1Elements = comp1.getWrappedStates();
+    List<? extends AbstractState> comp2Elements = comp2.getWrappedStates();
 
     Preconditions.checkState(comp1Elements.size() == comp2Elements.size());
     Preconditions.checkState(comp1Elements.size() == domains.size());

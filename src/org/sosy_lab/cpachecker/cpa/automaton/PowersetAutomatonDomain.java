@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -50,8 +52,11 @@ public class PowersetAutomatonDomain implements AbstractDomain {
       return topState;
     }
 
-    SetView<AutomatonState> joined = Sets.union(e1.getAutomataStates(), e2.getAutomataStates());
-    return new PowersetAutomatonState(joined);
+    Builder<AutomatonState> joinedBuilder = ImmutableSet.builder();
+    joinedBuilder.addAll(e1.getAutomataStates());
+    joinedBuilder.addAll(e2.getAutomataStates());
+
+    return new PowersetAutomatonState(joinedBuilder.build());
   }
 
   @Override

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -431,7 +432,7 @@ public class ProofSlicer {
   }
 
   private ARGState getSlicedARGState(ARGState unslicedState, Collection<String> necessaryVars) {
-    List<AbstractState> compOldStates =
+    Collection<? extends AbstractState> compOldStates =
         ((CompositeState) unslicedState.getWrappedState()).getWrappedStates();
     List<AbstractState> newStates = new ArrayList<>(compOldStates.size());
 

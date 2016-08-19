@@ -299,7 +299,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
     String name;
     int nextId = 0;
-    Iterable<AbstractState> wrapped;
+    Iterable<? extends AbstractState> wrapped;
 
     logger.log(Level.FINE, "Add non-automaton states");
     for (ARGState root : rootNodes) {
@@ -382,7 +382,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return Pair.of(stateToPos, initialState);
   }
 
-  private Iterable<AbstractState> getWrappedStates(ARGState wrapper) {
+  private Iterable<? extends AbstractState> getWrappedStates(ARGState wrapper) {
     if (wrapper.getWrappedState() instanceof AbstractWrapperState) {
       return ((AbstractWrapperState) wrapper.getWrappedState()).getWrappedStates();
     } else {
@@ -470,7 +470,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // set every state to the top state (except for automaton states) in case we have no concrete information
     List<AbstractState> result = new ArrayList<>(pInitialStates);
 
-    Iterable<AbstractState> wrapped;
+    Iterable<? extends AbstractState> wrapped;
     int index;
 
     // replace top by more concrete information found by exploration (saved in ARGStates)

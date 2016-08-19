@@ -264,8 +264,9 @@ public final class CompositeTransferRelationNoFullCrossProd implements TransferR
       final CompositeState compositeState,
       final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
+
     int resultCount = 1;
-    List<AbstractState> componentElements = compositeState.getWrappedStates();
+    List<? extends AbstractState> componentElements = compositeState.getWrappedStates();
     checkArgument(componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
@@ -473,7 +474,7 @@ public final class CompositeTransferRelationNoFullCrossProd implements TransferR
 
     if (resultCount > pSuccessors.size()) { return false; }
 
-    HashSet<List<AbstractState>> states = new HashSet<>();
+    HashSet<List<? extends AbstractState>> states = new HashSet<>();
     for (AbstractState successor : pSuccessors) {
       states.add(((CompositeState) successor).getWrappedStates());
     }

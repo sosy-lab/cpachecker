@@ -38,31 +38,39 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 public class CompositeState implements AbstractWrapperState,
     Targetable, Partitionable, Serializable, Graphable {
+
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
+  private final boolean containsTarget;
 
   public CompositeState(List<AbstractState> elements) {
     this.states = ImmutableList.copyOf(elements);
+    this.containsTarget = hasTargetComponent(states);
   }
 
   int getNumberOfStates() {
     return states.size();
   }
 
-  @Override
-  public boolean isTarget() {
-    for (AbstractState element : states) {
+  private static boolean hasTargetComponent(List<AbstractState> pAbstractStates) {
+    for (AbstractState element : pAbstractStates) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
         return true;
       }
     }
     return false;
+  }
+
+  @Override
+  public boolean isTarget() {
+    return containsTarget;
   }
 
   @Override
@@ -127,10 +135,9 @@ public class CompositeState implements AbstractWrapperState,
   }
 
   @Override
-  public List<AbstractState> getWrappedStates() {
+  public List<? extends AbstractState> getWrappedStates() {
     return states;
   }
-
 
   @Override
   public Object getPartitionKey() {

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -93,7 +94,7 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   }
 
   @Override
-  public ImmutableList<AbstractState> getWrappedStates() {
+  public Collection<? extends AbstractState> getWrappedStates() {
     return ImmutableList.of(wrappedState);
   }
 }

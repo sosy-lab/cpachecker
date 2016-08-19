@@ -61,9 +61,9 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
   }
 
   private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
-    List<AbstractState> compositeElements = compositeState.getWrappedStates();
+    List<? extends AbstractState> compositeElements = compositeState.getWrappedStates();
     checkArgument(compositeElements.size() == stopOperators.size(), "State with wrong number of component states given");
-    List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
+    List<? extends AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
     List<Precision> compositePrecisions = compositePrecision.getWrappedPrecisions();
 
@@ -85,8 +85,8 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
     CompositeState compositeState = (CompositeState)pElement;
     CompositeState compositeOtherElement = (CompositeState)pOtherElement;
 
-    List<AbstractState> componentElements = compositeState.getWrappedStates();
-    List<AbstractState> componentOtherElements = compositeOtherElement.getWrappedStates();
+    List<? extends AbstractState> componentElements = compositeState.getWrappedStates();
+    List<? extends AbstractState> componentOtherElements = compositeOtherElement.getWrappedStates();
 
     if (componentElements.size() != cpas.size()) {
       return false;
@@ -113,8 +113,8 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
     CompositeState compositeReachedState = (CompositeState)pReachedState;
     CompositePrecision compositePrecision = (CompositePrecision)pPrecision;
 
-    List<AbstractState> compositeElements = compositeState.getWrappedStates();
-    List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
+    List<? extends AbstractState> compositeElements = compositeState.getWrappedStates();
+    List<? extends AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
     List<Precision> compositePrecisions = compositePrecision.getWrappedPrecisions();
 
     for (int idx = 0; idx < compositeElements.size(); idx++) {

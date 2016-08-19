@@ -82,7 +82,7 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
   }
 
   private PowersetAutomatonState buildSuccessorState(PowersetAutomatonState pPred,
-      Set<AutomatonState> successorElements) {
+      ImmutableSet<AutomatonState> successorElements) {
 
     PowersetAutomatonState candidateSuccessor = new PowersetAutomatonState(successorElements);
     if (candidateSuccessor.equals(pPred)) {
@@ -96,8 +96,9 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
       Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     final PowersetAutomatonState element = (PowersetAutomatonState) pElement;
-    Set<AutomatonState> nonTargetSuccessors = Sets.newLinkedHashSet();
+    Builder<AutomatonState> nonTargetSuccessors = ImmutableSet.builder();
     Set<AutomatonState> targetSuccessors = Sets.newLinkedHashSet();
+    boolean hasNonTargetSuccessors = false;
 
     // Given a composite automaton state e = [q1, q2]
     //  Successors of the states:
@@ -119,16 +120,17 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
           targetSuccessors.add(succ);
         } else {
           nonTargetSuccessors.add(succ);
+          hasNonTargetSuccessors = true;
         }
       }
     }
 
-    Builder<PowersetAutomatonState> result = ImmutableSet.<PowersetAutomatonState>builder();
+    Builder<PowersetAutomatonState> result = ImmutableSet.builder();
     for (AutomatonState e: targetSuccessors) {
       result.add(new PowersetAutomatonState(ImmutableSet.of(e)));
     }
-    if (nonTargetSuccessors.size() > 0) {
-      result.add(buildSuccessorState(element, nonTargetSuccessors));
+    if (hasNonTargetSuccessors) {
+      result.add(buildSuccessorState(element, nonTargetSuccessors.build()));
     }
     return result.build();
   }
@@ -137,7 +139,7 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
       Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     final PowersetAutomatonState element = (PowersetAutomatonState) pElement;
-    Set<AutomatonState> successors = Sets.newLinkedHashSet();
+    Builder<AutomatonState> successors = ImmutableSet.builder();
 
     // Given a composite automaton state e = [q1, q2]
     //  Successors of the states:
@@ -154,7 +156,7 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
       successors.addAll(succOfComp);
     }
 
-    return ImmutableSet.of(buildSuccessorState(element, successors));
+    return ImmutableSet.of(buildSuccessorState(element, successors.build()));
   }
 
   private Collection<PowersetAutomatonState> cartesianProductTransfer(AbstractState pElement,
@@ -216,11 +218,11 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
 
     Preconditions.checkNotNull(componentSuccessors);
 
-    Builder<PowersetAutomatonState> result = ImmutableSet.<PowersetAutomatonState>builder();
+    Builder<PowersetAutomatonState> result = ImmutableSet.builder();
 
     // The result is based on computing the CARTESIAN PRODUCT!
     for (Collection<AutomatonState> c: Cartesian.product(componentSuccessors)) {
-      PowersetAutomatonState ca = new PowersetAutomatonState(Sets.newLinkedHashSet(c));
+      PowersetAutomatonState ca = new PowersetAutomatonState(ImmutableSet.copyOf(c));
       result.add(ca);
     }
 
