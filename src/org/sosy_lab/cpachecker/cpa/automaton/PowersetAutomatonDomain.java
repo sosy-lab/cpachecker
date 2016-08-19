@@ -65,16 +65,16 @@ public class PowersetAutomatonDomain implements AbstractDomain {
     final PowersetAutomatonState newState = (PowersetAutomatonState) pNewState;
     final PowersetAutomatonState reachedState = (PowersetAutomatonState) pReachedState;
 
+    if (newState == reachedState) {
+      return true;
+    }
+
     if (reachedState.equals(topState)) {
       return true;
     }
 
     if (newState.equals(topState) && !(newState.equals(reachedState))) {
       return false;
-    }
-
-    if (newState.equals(reachedState)) {
-      return true;
     }
 
     if (reachedState.getAutomataStates().containsAll(newState.getAutomataStates())) {
