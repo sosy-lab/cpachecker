@@ -98,7 +98,7 @@ public class DynamicFrameSet implements FrameSet {
 
   @Override
   public Set<BooleanFormula> getStatesForLocation(CFANode pLocation, int pLevel) {
-    Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
+    Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
     if (!frames.containsKey(pLocation)) {
       initFrameSetForLocation(pLocation, false);
     }
@@ -117,7 +117,7 @@ public class DynamicFrameSet implements FrameSet {
 
   @Override
   public Map<CFANode, Set<BooleanFormula>> getStatesForAllLocations(int pLevel) {
-    Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
+    Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
 
     Map<CFANode, Set<BooleanFormula>> statesPerLocation = Maps.newHashMap();
     for (CFANode location : frames.keySet()) {
