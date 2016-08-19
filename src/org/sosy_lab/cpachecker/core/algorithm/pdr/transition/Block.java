@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -108,13 +109,9 @@ public interface Block {
   AnalysisDirection getDirection();
 
   /**
-   * Gets an inverted representation of this block, flipping the direction and
-   * changing the SSA indices in the formula (see {@link Block#getFormula()}
-   * accordingly.
-   * The predecessor and successor states of the resulting block remain the
-   * same as in this block, because they are independent of the direction.
+   * Gets the reached set the block was created from.
    *
-   * @return an inverted representation of this block.
+   * @return the reached set the block was created from.
    */
-  Block invertDirection();
+  ReachedSet getReachedSet();
 }

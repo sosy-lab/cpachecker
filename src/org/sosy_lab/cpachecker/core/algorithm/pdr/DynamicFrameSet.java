@@ -30,6 +30,7 @@ import com.google.common.collect.Maps;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -161,13 +162,14 @@ public class DynamicFrameSet implements FrameSet {
 
         FluentIterable<Block> blocksToLocation = backwardTransition.getBlocksTo(location);
 
-        // Invert blocks so that the SSA indices for the predecessors
-        // ("unprimed" variables) match
-        blocksToLocation = blocksToLocation.transform(block -> block.invertDirection());
-
         for (Block block : blocksToLocation) {
           CFANode predecessorLocation = block.getPredecessorLocation();
-          pProver.push(block.getFormula()); // Push transition
+
+          // Invert blocks so that the SSA indices for the predecessors
+          // ("unprimed" variables) match
+          BooleanFormula blockFormula = Blocks.formulaWithInvertedIndices(block, fmgr);
+
+          pProver.push(blockFormula); // Push transition
 
           for (BooleanFormula state : frameStates) {
 

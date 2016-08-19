@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 import com.google.common.base.Predicate;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Utility class for blocks.
@@ -73,5 +77,14 @@ public final class Blocks {
         return pPredicate.apply(pBlock.getPredecessorLocation());
       }
     };
+  }
+
+  public static BooleanFormula formulaWithInvertedIndices(
+      Block pBlock, FormulaManagerView pFormulaManager) {
+    PathFormula finalContext =
+        pBlock.getDirection() == AnalysisDirection.FORWARD
+            ? pBlock.getPrimedContext()
+            : pBlock.getUnprimedContext();
+    return Reindexer.invertIndices(pBlock.getFormula(), finalContext.getSsa(), pFormulaManager);
   }
 }
