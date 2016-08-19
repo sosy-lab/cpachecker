@@ -256,7 +256,7 @@ public final class Blocks {
    * @throws InterruptedException if the extraction of a formula from a block
    * is interrupted.
    */
-  public static BooleanFormula conjoinFormulas(
+  private static BooleanFormula conjoinFormulas(
       Iterable<Block> pBlocks,
       BlockToFormula pExtractFormula,
       FormulaManagerView pFormulaManager)
@@ -406,7 +406,7 @@ public final class Blocks {
     }
   }
 
-  public static interface BlockToFormula {
+  private static interface BlockToFormula {
 
     BooleanFormula apply(Block pBlock) throws InterruptedException, CPATransferException;
 
