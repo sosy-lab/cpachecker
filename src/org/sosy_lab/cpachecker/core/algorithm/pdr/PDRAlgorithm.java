@@ -152,6 +152,12 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     CFANode startLocation = cfa.getMainFunction();
     ImmutableSet<CFANode> errorLocations =
         FluentIterable.from(pReachedSet).transform(AbstractStates.EXTRACT_LOCATION).toSet();
+
+    // For trivially-safe tasks, no further effort is required
+    if (errorLocations.isEmpty()) {
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    }
+
     pReachedSet.clear();
 
     // Utility prover environment that will be reused for small tests
