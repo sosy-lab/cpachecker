@@ -135,7 +135,33 @@ public final class AbstractStates {
 
     } else if (pState instanceof AbstractWrapperState) {
       Collection<T> result = Lists.newArrayList();
-      for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
+      Collection<? extends AbstractState> wrappedStates = ((AbstractWrapperState) pState).getWrappedStates();
+
+      Class<?> homogenType = null;
+      boolean assumeHomogene = false;
+      if (wrappedStates.size() > 2) {
+        Iterator<? extends AbstractState> it = wrappedStates.iterator();
+        homogenType = it.next().getClass();
+        if (homogenType.isInstance(it.next())) {
+          assumeHomogene = true;
+        }
+      }
+
+      if (assumeHomogene) {
+        if (pType.isAssignableFrom(homogenType)) {
+          // Shortcut that assumes that if the first state have
+          // the type, the remaining would also have this type
+          return (Collection<T>) wrappedStates;
+        }
+
+        if (extractStatesByType(wrappedStates.iterator().next(), pType).isEmpty()) {
+          // If the first component does not have a subcomponent of the requested
+          // type, also the other (homogeneous) components will not have one!
+          return Collections.emptyList();
+        }
+      }
+
+      for (AbstractState wrapped : wrappedStates) {
         result.addAll(extractStatesByType(wrapped, pType));
       }
       return result;
