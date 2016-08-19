@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -218,13 +219,24 @@ public final class Blocks {
     ARGState argPreviousState = null;
     for (Block block : pBlocks) {
       ReachedSet reachedSet = block.getReachedSet();
-      AbstractState firstState = block.getDirection() == AnalysisDirection.FORWARD ? block.getPredecessor() : block.getSuccessor();
+      AbstractState firstState =
+          block.getDirection() == AnalysisDirection.FORWARD
+              ? block.getPredecessor()
+              : block.getSuccessor();
       assert reachedSet.getFirstState() == firstState;
 
       if (argPreviousState == null) {
         pTargetReachedSet.add(firstState, reachedSet.getPrecision(firstState));
       } else {
         ARGState argFirstState = AbstractStates.extractStateByType(firstState, ARGState.class);
+
+        Preconditions.checkArgument(
+            !Sets.intersection(
+                    FluentIterable.from(AbstractStates.extractLocations(argPreviousState)).toSet(),
+                    FluentIterable.from(AbstractStates.extractLocations(argFirstState)).toSet())
+                .isEmpty(),
+            "Blocks must connect.");
+
         for (ARGState childOfFirstState : argFirstState.getChildren()) {
           childOfFirstState.addParent(argPreviousState);
         }
