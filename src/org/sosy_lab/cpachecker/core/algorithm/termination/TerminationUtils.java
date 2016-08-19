@@ -54,8 +54,7 @@ public class TerminationUtils {
         null);
   }
 
-  public static CVariableDeclaration createDereferencedVariable(
-      CSimpleDeclaration pVariableDecl) {
+  public static CVariableDeclaration createDereferencedVariable(CSimpleDeclaration pVariableDecl) {
     CType type = pVariableDecl.getType();
     if (type instanceof CPointerType) {
       CType innerType = ((CPointerType) type).getType();

@@ -270,8 +270,7 @@ public class TerminationLoopInformation {
   private List<CStatement> createPrimedVariableAssignments() {
     ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
 
-    for (Entry<CExpression, CVariableDeclaration> relevantVariable :
-        relevantVariables.entrySet()) {
+    for (Entry<CExpression, CVariableDeclaration> relevantVariable : relevantVariables.entrySet()) {
 
       CExpression unprimedVariable = relevantVariable.getKey();
       CVariableDeclaration primedVariable = relevantVariable.getValue();
@@ -332,9 +331,7 @@ public class TerminationLoopInformation {
   private CExpressionAssignmentStatement createAssignmentStatement(
       CSimpleDeclaration pLeftHandSide, CExpression pRightHandSide) {
     return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY,
-        new CIdExpression(FileLocation.DUMMY, pLeftHandSide),
-        pRightHandSide);
+        FileLocation.DUMMY, new CIdExpression(FileLocation.DUMMY, pLeftHandSide), pRightHandSide);
   }
 
   public BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {

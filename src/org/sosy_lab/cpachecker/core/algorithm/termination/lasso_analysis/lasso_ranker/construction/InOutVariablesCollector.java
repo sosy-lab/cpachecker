@@ -159,7 +159,6 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
     }
   }
 
-
   public Set<Formula> getInVariables() {
     ImmutableSet.Builder<Formula> allInVariables = ImmutableSet.builder();
     allInVariables.addAll(inVariables);

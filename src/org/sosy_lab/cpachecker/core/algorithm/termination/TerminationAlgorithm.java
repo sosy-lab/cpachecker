@@ -364,8 +364,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
           } else {
             totalRepeatedRankingFunctions++;
             repeatedRankingFunctionsSinceSuccessfulIteration++;
-            logger.logf(
-                WARNING, "Repeated ranking relation %s for %s", rankingRelation, pLoop);
+            logger.logf(WARNING, "Repeated ranking relation %s for %s", rankingRelation, pLoop);
 
             // Do not use the first reached target state again and again
             // if we cannot synthesis new termination arguments from it.
@@ -401,8 +400,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     return result;
   }
 
-  private void addInvariantsToAggregatedReachedSet(ARGState loopHeadState,
-      RankingRelation rankingRelation) {
+  private void addInvariantsToAggregatedReachedSet(
+      ARGState loopHeadState, RankingRelation rankingRelation) {
     ReachedSet dummy = reachedSetFactory.create();
     AbstractStateWithLocation locationState =
         extractStateByType(loopHeadState, AbstractStateWithLocation.class);

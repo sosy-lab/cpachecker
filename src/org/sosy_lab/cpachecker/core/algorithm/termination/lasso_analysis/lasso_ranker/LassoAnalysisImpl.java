@@ -196,12 +196,12 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
 
   @Option(
-      secure = true,
-      description =
-          "Maximal number of functions used in a ranking function template."
-    )
-    @IntegerOption(min = 1)
-    private int maxTemplateFunctions = 3;
+    secure = true,
+    description = "Maximal number of functions used in a ranking function template."
+  )
+  @IntegerOption(min = 1)
+  private int maxTemplateFunctions = 3;
+
   private SolverContext solverContext;
 
   @SuppressWarnings("unchecked")

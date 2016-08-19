@@ -160,8 +160,7 @@ class RankingRelationBuilder {
           (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
 
     } else if (rankingFunction instanceof NestedRankingFunction) {
-      return fromNestedRankingFunction(
-          (NestedRankingFunction) rankingFunction, pRelevantVariables);
+      return fromNestedRankingFunction((NestedRankingFunction) rankingFunction, pRelevantVariables);
 
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
@@ -188,8 +187,9 @@ class RankingRelationBuilder {
     return new RankingRelation(cExpression, formula, binaryExpressionBuilder, fmgr);
   }
 
-  private RankingRelation fromAffineFunction(Set<CVariableDeclaration> pRelevantVariables,
-      AffineFunction function) throws UnrecognizedCCodeException {
+  private RankingRelation fromAffineFunction(
+      Set<CVariableDeclaration> pRelevantVariables, AffineFunction function)
+      throws UnrecognizedCCodeException {
     RankingRelationComponents components =
         createRankingRelationComponents(function, pRelevantVariables);
 
@@ -200,8 +200,8 @@ class RankingRelationBuilder {
         rankingRelation, rankingRelationFormula, binaryExpressionBuilder, fmgr);
   }
 
-  private CBinaryExpression createRankingRelationExpression(
-      RankingRelationComponents components) throws UnrecognizedCCodeException {
+  private CBinaryExpression createRankingRelationExpression(RankingRelationComponents components)
+      throws UnrecognizedCCodeException {
     CExpression unprimedFunction = components.getUnprimedExpression();
     CExpression primedFunction = components.getPrimedExpression();
     CExpression unprimedGreatorThanZero =
@@ -215,8 +215,9 @@ class RankingRelationBuilder {
     return rankingRelation;
   }
 
-  private RankingRelationComponents createRankingRelationComponents(AffineFunction function,
-      Set<CVariableDeclaration> pRelevantVariables) throws UnrecognizedCCodeException {
+  private RankingRelationComponents createRankingRelationComponents(
+      AffineFunction function, Set<CVariableDeclaration> pRelevantVariables)
+      throws UnrecognizedCCodeException {
     // f(x')
     CExpression primedFunction = createLiteral(function.getConstant());
     List<NumeralFormula> primedFormulaSummands = Lists.newArrayList();
@@ -230,8 +231,7 @@ class RankingRelationBuilder {
     for (RankVar rankVar : function.getVariables()) {
       BigInteger coefficient = function.get(rankVar);
       CLiteralExpression cCoefficient = createLiteral(coefficient);
-      Pair<CIdExpression, CExpression> variables =
-          getVariable(rankVar, pRelevantVariables);
+      Pair<CIdExpression, CExpression> variables = getVariable(rankVar, pRelevantVariables);
 
       CIdExpression primedVariable = variables.getFirstNotNull();
       CExpression variable = variables.getSecondNotNull();
@@ -246,8 +246,8 @@ class RankingRelationBuilder {
       unprimedFormulaSummands.add(createSummand(coefficient, unprimedVariableFormula));
     }
 
-   return new RankingRelationComponents(
-            unprimedFunction, primedFunction, unprimedFormulaSummands, primedFormulaSummands);
+    return new RankingRelationComponents(
+        unprimedFunction, primedFunction, unprimedFormulaSummands, primedFormulaSummands);
   }
 
   private NumeralFormula encapsulate(Term pTerm) {
@@ -278,12 +278,13 @@ class RankingRelationBuilder {
    */
   private Pair<CIdExpression, CExpression> getVariable(
       RankVar pRankVar, Set<CVariableDeclaration> pRelevantVariables)
-          throws UnsupportedCCodeException {
+      throws UnsupportedCCodeException {
     String variableName = pRankVar.getGloballyUniqueId();
-    Optional<CVariableDeclaration> variableDecl = pRelevantVariables
-        .stream()
-        .filter(v -> v.getQualifiedName().equals(variableName))
-        .findAny();
+    Optional<CVariableDeclaration> variableDecl =
+        pRelevantVariables
+            .stream()
+            .filter(v -> v.getQualifiedName().equals(variableName))
+            .findAny();
 
     if (variableDecl.isPresent()) {
       CVariableDeclaration primedVariableDecl = createPrimedVariable(variableDecl.get());
@@ -321,7 +322,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromNestedRankingFunction(
       NestedRankingFunction pRankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException {
     Preconditions.checkArgument(pRankingFunction.getComponents().length > 0);
 
     BooleanFormula phaseConditionFormula = fmgr.getBooleanFormulaManager().makeTrue();
@@ -333,8 +334,9 @@ class RankingRelationBuilder {
     for (AffineFunction component : pRankingFunction.getComponents()) {
       RankingRelation componentRelation = fromAffineFunction(pRelevantVariables, component);
 
-      CBinaryExpression componentExpression = binaryExpressionBuilder.buildBinaryExpression(
-          phaseConditionExpression, componentRelation.asCExpression(), BINARY_AND);
+      CBinaryExpression componentExpression =
+          binaryExpressionBuilder.buildBinaryExpression(
+              phaseConditionExpression, componentRelation.asCExpression(), BINARY_AND);
       componentExpressions.add(componentExpression);
       BooleanFormula componentFormula =
           fmgr.makeAnd(phaseConditionFormula, componentRelation.asFormula());
@@ -345,10 +347,8 @@ class RankingRelationBuilder {
           createRankingRelationComponents(component, pRelevantVariables);
 
       BooleanFormula unprimedLessThanZeroFormula =
-          fmgr.makeLessThan(
-              rankingRelationComponents.getUnprimedFormula(), zero, true);
-      phaseConditionFormula =
-          fmgr.makeAnd(phaseConditionFormula, unprimedLessThanZeroFormula);
+          fmgr.makeLessThan(rankingRelationComponents.getUnprimedFormula(), zero, true);
+      phaseConditionFormula = fmgr.makeAnd(phaseConditionFormula, unprimedLessThanZeroFormula);
 
       CExpression unprimedLessThanZeroExpression =
           binaryExpressionBuilder.buildBinaryExpression(
@@ -424,10 +424,10 @@ class RankingRelationBuilder {
         CExpression pPrimedExpression,
         List<NumeralFormula> pUnprimedFormulaSummands,
         List<NumeralFormula> pPrimedFormulaSummands) {
-          unprimedExpression = pUnprimedExpression;
-          primedExpression = pPrimedExpression;
-          unprimedFormulaSummands = pUnprimedFormulaSummands;
-          primedFormulaSummands = pPrimedFormulaSummands;
+      unprimedExpression = pUnprimedExpression;
+      primedExpression = pPrimedExpression;
+      unprimedFormulaSummands = pUnprimedFormulaSummands;
+      primedFormulaSummands = pPrimedFormulaSummands;
     }
 
     public CExpression getPrimedExpression() {

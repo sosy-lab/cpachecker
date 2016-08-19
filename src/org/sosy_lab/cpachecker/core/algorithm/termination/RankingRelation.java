@@ -131,14 +131,11 @@ public class RankingRelation {
       Collection<BooleanFormula> pSupportingInvariants) {
     ImmutableSet<BooleanFormula> newSupportingInvariants =
         ImmutableSet.<BooleanFormula>builder()
-          .addAll(supportingInvariants)
-          .addAll(pSupportingInvariants)
-          .build();
+            .addAll(supportingInvariants)
+            .addAll(pSupportingInvariants)
+            .build();
     return new RankingRelation(
-            rankingRelations,
-            newSupportingInvariants,
-            binaryExpressionBuilder,
-            formulaManagerView);
+        rankingRelations, newSupportingInvariants, binaryExpressionBuilder, formulaManagerView);
   }
 
   @Override

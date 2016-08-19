@@ -72,7 +72,8 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
   /**
    * Replaces non-linear multiplication by linear formulas and an auxiliary variable.
    */
-  private static class NonLinearMultiplicationTransformation extends DefaultFormulaVisitor<Formula> {
+  private static class NonLinearMultiplicationTransformation
+      extends DefaultFormulaVisitor<Formula> {
 
     private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
@@ -104,9 +105,10 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
       List<Formula> newArgs = Lists.transform(pArgs, f -> fmgrView.visit(f, this));
 
       if ((pFunctionDeclaration.getKind().equals(UF)
-          && pFunctionDeclaration.getName().equalsIgnoreCase("Integer__*_"))
+              && pFunctionDeclaration.getName().equalsIgnoreCase("Integer__*_"))
           || (pFunctionDeclaration.getKind().equals(MUL)
-              && !isConstant(newArgs.get(0)) && !isConstant(newArgs.get(1)))) {
+              && !isConstant(newArgs.get(0))
+              && !isConstant(newArgs.get(1)))) {
         assert newArgs.size() == 2;
         return transformNonLinearMultiplication(
             newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
@@ -118,20 +120,21 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
 
     private boolean isConstant(Formula pF) {
       AtomicBoolean constant = new AtomicBoolean(true);
-      fmgrView.visitRecursively(pF, new DefaultFormulaVisitor<TraversalProcess>() {
+      fmgrView.visitRecursively(
+          pF,
+          new DefaultFormulaVisitor<TraversalProcess>() {
 
-        @Override
-        protected TraversalProcess visitDefault(Formula pF) {
-          constant.set(false);
-          return TraversalProcess.ABORT;
-        }
+            @Override
+            protected TraversalProcess visitDefault(Formula pF) {
+              constant.set(false);
+              return TraversalProcess.ABORT;
+            }
 
-        @Override
-        public TraversalProcess visitConstant(Formula pF, Object pValue) {
-          return TraversalProcess.CONTINUE;
-        }
-
-      });
+            @Override
+            public TraversalProcess visitConstant(Formula pF, Object pValue) {
+              return TraversalProcess.CONTINUE;
+            }
+          });
 
       return constant.get();
     }
@@ -184,9 +187,13 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
 
       // 0 < multAux < 1, -1 < multAux < 0, multAux > 1, ...
       BooleanFormula zeroLessResultLessOne =
-          bfmgr.and(fmgrView.makeLessThan(zero, multAux, true), fmgrView.makeLessThan(multAux, one, true));
+          bfmgr.and(
+              fmgrView.makeLessThan(zero, multAux, true),
+              fmgrView.makeLessThan(multAux, one, true));
       BooleanFormula minusOneLessResultLessZero =
-          bfmgr.and(fmgrView.makeLessThan(minusOne, multAux, true), fmgrView.makeLessThan(multAux, zero, true));
+          bfmgr.and(
+              fmgrView.makeLessThan(minusOne, multAux, true),
+              fmgrView.makeLessThan(multAux, zero, true));
       BooleanFormula resultGreaterOne = bfmgr.and(fmgrView.makeGreaterThan(multAux, one, true));
       BooleanFormula resultLessMinuseOne = bfmgr.and(fmgrView.makeLessThan(multAux, one, true));
       BooleanFormula positiveResult = fmgrView.makeGreaterThan(multAux, zero, true);

@@ -222,9 +222,7 @@ public class LassoBuilder {
     return stemAndLoop;
   }
 
-  private Collection<Lasso> createLassos(
-      StemAndLoop pStemAndLoop,
-      Set<String> pRelevantVariables)
+  private Collection<Lasso> createLassos(StemAndLoop pStemAndLoop, Set<String> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
     Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(fmgr));
     Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
@@ -248,14 +246,8 @@ public class LassoBuilder {
         shutdownNotifier.shutdownIfNecessary();
         if (!isUnsat(bfmrView.and(stem, loop))) {
 
-          LinearTransition stemTransition =
-              createLinearTransition(
-                  stem,
-                  stemRankVars);
-          LinearTransition loopTransition =
-              createLinearTransition(
-                  loop,
-                  loopRankVars);
+          LinearTransition stemTransition = createLinearTransition(stem, stemRankVars);
+          LinearTransition loopTransition = createLinearTransition(loop, loopRankVars);
 
           Lasso lasso = new Lasso(stemTransition, loopTransition);
           lassos.add(lasso);
@@ -308,10 +300,7 @@ public class LassoBuilder {
     BooleanFormula withoutUfs =
         bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
-    logger.logf(
-        FINER,
-        "Subsition of Ufs in lasso formula: %s",
-        ufSubstitution);
+    logger.logf(FINER, "Subsition of Ufs in lasso formula: %s", ufSubstitution);
 
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, withoutUfs);
     BooleanFormula nnf = fmgrView.applyTactic(withoutIfThenElse, Tactic.NNF);
@@ -346,9 +335,7 @@ public class LassoBuilder {
   }
 
   private Map<RankVar, Term> createRankVars(
-      Set<Formula> variables,
-      Set<String> pRelevantVariables,
-      Map<Formula, Formula> substitution) {
+      Set<Formula> variables, Set<String> pRelevantVariables, Map<Formula, Formula> substitution) {
     ImmutableMap.Builder<RankVar, Term> rankVars = ImmutableMap.builder();
     for (Formula variable : variables) {
       Term term = fmgr.extractInfo(variable);
@@ -360,18 +347,20 @@ public class LassoBuilder {
         rankVars.put(new TermRankVar(variableName, term), term);
 
       } else if (substitution.containsValue(variable)) {
-        Formula originalFormula = substitution
-            .entrySet()
-            .stream()
-            .filter(e -> e.getValue().equals(variable))
-            .map(Entry::getKey)
-            .findAny()
-            .get();
+        Formula originalFormula =
+            substitution
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue().equals(variable))
+                .map(Entry::getKey)
+                .findAny()
+                .get();
         Formula uninstantiatedOriginalFormula = fmgrView.uninstantiate(originalFormula);
         Term originalTerm = fmgr.extractInfo(uninstantiatedOriginalFormula);
         rankVars.put(new TermRankVar(originalTerm.toString(), originalTerm), term);
 
-      } else if (!isMetaVariable(variableName) && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
+      } else if (!isMetaVariable(variableName)
+          && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
         logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }
@@ -404,9 +393,9 @@ public class LassoBuilder {
     private final SSAMap loopInVars;
 
     public StemAndLoop(PathFormula pStem, PathFormula pLoop, SSAMap pLoopInVars) {
-      stem =checkNotNull(pStem);
-      loop =checkNotNull(pLoop);
-      loopInVars =checkNotNull(pLoopInVars);
+      stem = checkNotNull(pStem);
+      loop = checkNotNull(pLoop);
+      loopInVars = checkNotNull(pLoopInVars);
     }
 
     public BooleanFormula getStem() {
