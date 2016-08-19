@@ -268,18 +268,40 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
                                  : Optional.of(longestPrefix.get(longestPrefix.size() - 1));
   }
 
-  private static Optional<Long> computeDepthOfHighestNonTrueAbstractionInCallstack(
-      ReachedSet
-          reached) {
+  private void computeDepthOfHighestNonTrueAbstractionInCallstack(
+      ReachedSet reached) {
     long depth = Long.MAX_VALUE;
+    long withUsedDepth = Long.MAX_VALUE;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      if (asNonTrueAbstractionState(absSt).isPresent()) {
+      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
+      Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
+      if (absState.isPresent()) {
+        if (!onlyUnusedVarsInAbstraction(absState.get(), csSt.getCurrentFunction(),
+            funcToUsedVars)) {
+          withUsedDepth = Math.min(csSt.getDepth(), withUsedDepth);
+        }
         depth = Math.min(csSt.getDepth(), depth);
       }
     }
 
-    return depth != Long.MAX_VALUE ? Optional.of(depth) : Optional.empty();
+    String highestUsedStackKey =
+        "Highest point in callstack with non-true abs. and vars used in func.";
+    if (withUsedDepth == Long.MAX_VALUE) {
+      addKeyValueStatistic(highestUsedStackKey, "<unknown>");
+    } else {
+      addKeyValueStatistic(highestUsedStackKey, withUsedDepth);
+    }
+
+    String highestStackKey = "Highest point in callstack with non-true abstraction formula";
+    if (depth == Long.MAX_VALUE) {
+      addKeyValueStatistic(highestStackKey, "<unknown>");
+    } else {
+      addKeyValueStatistic(highestStackKey, depth);
+    }
+
+
+
   }
 
   private static <T> List<T> longestPrefixOf(List<T> list1, List<T> list2) {
@@ -399,13 +421,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("Number of non-true abstraction states",
         countNonTrueAbstractionStates(pReached));
 
-    Optional<Long> highestStack = computeDepthOfHighestNonTrueAbstractionInCallstack(pReached);
-    String highestStackKey = "Highest point in callstack with non-true abstraction formula";
-    if (highestStack.isPresent()) {
-      addKeyValueStatistic(highestStackKey, highestStack.get());
-    } else {
-      addKeyValueStatistic(highestStackKey, "<unknown>");
-    }
+    computeDepthOfHighestNonTrueAbstractionInCallstack(pReached);
 
     addKeyValueStatistic("Global observer automaton reached target count",
         ControlAutomatonCPA.getglobalObserverTargetReachCount());
