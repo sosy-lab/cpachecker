@@ -102,7 +102,12 @@ public class ProofObligation implements Comparable<ProofObligation> {
    */
   @Override
   public int compareTo(ProofObligation pOther) {
-    return Integer.compare(frameLevel, pOther.frameLevel);
+    return Integer.compare(frameLevel, pOther.getFrameLevel());
+  }
+
+  @Override
+  public String toString() {
+    return String.format("Level = %s, Location = %s, State = %s", frameLevel, location, state);
   }
 
   @Override
