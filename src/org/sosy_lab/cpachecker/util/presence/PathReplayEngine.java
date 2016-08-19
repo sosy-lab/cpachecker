@@ -28,10 +28,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import org.junit.Assume;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 public class PathReplayEngine implements VariabilityAwarePathReplay {
 
@@ -54,6 +56,7 @@ public class PathReplayEngine implements VariabilityAwarePathReplay {
     logger = Preconditions.checkNotNull(pLogger);
   }
 
+  @Override
   public ARGPathWithPresenceConditions replayPath(ARGPath pARGPath)
       throws CPATransferException, InterruptedException {
 
@@ -74,6 +77,13 @@ public class PathReplayEngine implements VariabilityAwarePathReplay {
 
     while (it.hasNext()) {
       final CFAEdge edge = it.getOutgoingEdge();
+
+      CFANode predecessor = edge.getPredecessor();
+      if (predecessor instanceof CLabelNode
+          && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+        logger.log(Level.INFO, "Covered label " + ((CLabelNode) predecessor).getLabel());
+      }
+
       edges.add(edge);
       it.advance();
       final ARGState inputPathSuccessor = it.getAbstractState();

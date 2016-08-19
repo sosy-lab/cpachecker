@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -44,7 +43,6 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -53,8 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import javax.annotation.concurrent.Immutable;
 
 public class TestSuite implements AlgorithmResult {
 
