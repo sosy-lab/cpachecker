@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterp
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
@@ -55,6 +54,7 @@ import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -256,9 +256,10 @@ public final class Solver implements AutoCloseable {
   }
 
   public OptimizationProverEnvironment newCachedOptEnvironment() {
-    OptimizationProverEnvironment environment = solvingContext.newCachedOptimizationProverEnvironment();
-    environment = new OptimizationProverEnvironmentView(environment, fmgr);
-    return environment;
+    throw new UnsupportedOperationException("Java-SMT does not support cached prover enviroments.");
+    // OptimizationProverEnvironment environment = solvingContext.newCachedOptimizationProverEnvironment();
+    // environment = new OptimizationProverEnvironmentView(environment, fmgr);
+    // return environment;
   }
 
   /**

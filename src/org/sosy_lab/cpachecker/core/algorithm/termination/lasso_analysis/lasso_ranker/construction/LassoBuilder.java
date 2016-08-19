@@ -63,8 +63,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.java_smt.basicimpl.tactics.Tactic;
 import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination;
 import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination.Result;
 
@@ -308,7 +308,7 @@ public class LassoBuilder {
         transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
     Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMutl, eliminatedUfs);
     BooleanFormula withoutUfs =
-        bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.geConstraints());
+        bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
     logger.logf(
         FINER,
