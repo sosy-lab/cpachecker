@@ -119,7 +119,10 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
       final List<ARGState> errorStates;
       if (lastState != null && lastState.isTarget()) {
-        errorStates = ImmutableList.of(lastState);
+        errorStates =
+            checkedTargetStates.contains(lastState)
+                ? ImmutableList.of()
+                : ImmutableList.of(lastState);
       } else {
         errorStates =
             from(reached)
