@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
@@ -101,11 +102,17 @@ public class Goal implements SafetyProperty {
     return getName();
   }
 
+  /**
+   * Provide a UNIQUE name for the goal!
+   *
+   * @return Unique name of the goal.
+   */
   public String getName() {
     CFAEdge ce = getCriticalEdge();
     CFANode pred = ce.getPredecessor();
     if (pred instanceof CLabelNode && !((CLabelNode) pred).getLabel().isEmpty()) {
-      return ((CLabelNode) pred).getLabel();
+      String lbl = ((CLabelNode) pred).getLabel();
+      return String.format("%d@%s", getIndex(), lbl);
     } else {
       return Integer.toString(getIndex());
     }
