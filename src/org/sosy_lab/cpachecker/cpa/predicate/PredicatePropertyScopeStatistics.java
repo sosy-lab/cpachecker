@@ -28,12 +28,16 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.*
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.asNonTrueAbstractionState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -42,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
+import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.holder.Holder;
 import org.sosy_lab.cpachecker.util.holder.HolderLong;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -60,7 +65,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -111,6 +116,36 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     merge = pMerge;
     transfer = pTransfer;
     predPrec = pPredPrec;
+  }
+
+  private Multimap<String, String> generateFuncToUsedVars() {
+    Set<Partition> partitions = cfa.getVarClassification().get().getPartitions();
+    return partitions.stream().collect(Collector.of(LinkedHashMultimap::create,
+        (mumap, part) -> {
+          for (CFAEdge edge : part.getEdges().keySet()) {
+            if (edge instanceof CDeclarationEdge &&
+                ((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
+              part.getVars().forEach(var -> mumap.put("", var));
+            } else {
+              String functionName = edge.getSuccessor().getFunctionName();
+              part.getVars().forEach(var -> mumap.put(functionName, var));
+            }
+          }
+
+        }, (mumap1, mumap2) -> {
+          mumap1.putAll(mumap2);
+          return mumap1;
+        }));
+  }
+
+  private boolean onlyUnusedVarsInAbstraction(PredicateAbstractState state,
+                                   String function, Multimap<String,String> funcToUsedVars) {
+    BooleanFormula formula = state.getAbstractionFormula().asFormula();
+    return !fmgr.extractAtoms(formula, false).stream()
+        .filter(atom -> fmgr.extractVariableNames(atom).stream()
+            .anyMatch(var -> funcToUsedVars.containsEntry(function, var)))
+        .findAny().isPresent();
+
   }
 
   private static long summedLengthOfTailsUntilNontrue(Stream<List<ARGState>> paths) {
@@ -213,11 +248,14 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   }
 
 
-  private static Optional<String> computeNewEntryFunction(ReachedSet reached) {
+  private Optional<String> computeNewEntryFunction(ReachedSet reached) {
     List<String> longestPrefix = null;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      if (asNonTrueAbstractionState(absSt).isPresent()) {
+      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
+      Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
+      if (absState.isPresent() && !onlyUnusedVarsInAbstraction(absState.get(), csSt
+          .getCurrentFunction(), funcToUsedVars)) {
         if (longestPrefix == null) {
           longestPrefix = getStack(csSt);
         } else {
@@ -281,6 +319,9 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         .filter(as -> asNonTrueAbstractionState(as).isPresent())
         .count();
   }
+
+
+
 
   private void handleFormulaAtoms(ReachedSet pReached) {
     HolderLong globalAtomSum = Holder.of(0L);
