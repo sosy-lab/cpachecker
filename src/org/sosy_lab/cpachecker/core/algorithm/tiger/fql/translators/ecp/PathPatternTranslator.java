@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Nodes;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Paths;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Predicate;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Identity;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.Concatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.PathPatternVisitor;
@@ -241,10 +242,10 @@ public class PathPatternTranslator {
       if (lPattern == null) {
         TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pEdges.getFilter());
 
-        Set<CFAEdge> lCFAEdges = new HashSet<>();
+
 
         Set<ElementaryCoveragePattern> lToBeUnited = new HashSet<>();
-
+        Set<CFAEdge> lCFAEdges = new HashSet<>();
         for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
           if (!lEdge.getSource().getPredicates().isEmpty() || !lEdge.getTarget().getPredicates().isEmpty()) {
             lToBeUnited.add(translate(lEdge));
@@ -254,8 +255,11 @@ public class PathPatternTranslator {
           }
         }
 
-        //lPattern = new ECPEdgeSet(lCFAEdges);
-        lPattern = StandardECPEdgeSet.create(lCFAEdges);
+        if (pEdges.getFilter() instanceof Identity) {
+          lPattern = StandardECPEdgeSet.createContainsAll(lCFAEdges);
+        } else {
+          lPattern = StandardECPEdgeSet.create(lCFAEdges);
+        }
 
         for (ElementaryCoveragePattern lSubpattern : lToBeUnited) {
           lPattern = new ECPUnion(lPattern, lSubpattern);

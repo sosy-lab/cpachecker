@@ -34,6 +34,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class StandardECPEdgeSet implements ECPEdgeSet {
 
+  static class ContainsAllEcpEdgeSet extends StandardECPEdgeSet {
+
+    public ContainsAllEcpEdgeSet(Collection<CFAEdge> pEdgeSet) {
+      super(pEdgeSet);
+    }
+
+    @Override
+    public boolean contains(CFAEdge pCFAEdge) {
+      return true;
+    }
+  }
+
+  private final ImmutableSet<CFAEdge> mCFAEdges;
+
   public static ECPEdgeSet create(CFAEdge pCFAEdge) {
     return new SingletonECPEdgeSet(pCFAEdge);
   }
@@ -52,7 +66,9 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
     return new StandardECPEdgeSet(pCFAEdges);
   }
 
-  private final ImmutableSet<CFAEdge> mCFAEdges;
+  public static ElementaryCoveragePattern createContainsAll(Collection<CFAEdge> pAllEdgesForIteration) {
+    return new ContainsAllEcpEdgeSet(pAllEdgesForIteration);
+  }
 
   private StandardECPEdgeSet(Collection<CFAEdge> pCFAEdges) {
     mCFAEdges = ImmutableSet.copyOf(pCFAEdges);
