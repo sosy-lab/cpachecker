@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
@@ -272,9 +273,12 @@ class RankingRelationBuilder {
    *            the variable of the ranking function to get the primed and unprimed variable for
    * @param pRelevantVariables all variable declarations of the original program
    * @return a Pair consisting of the primed and unprimed variable
+   * @throws UnsupportedCCodeException
+   *          if it is not possible ot create a {@link CExpression} from <code>pRankVar</code>code
    */
   private Pair<CIdExpression, CExpression> getVariable(
-      RankVar pRankVar, Set<CVariableDeclaration> pRelevantVariables) {
+      RankVar pRankVar, Set<CVariableDeclaration> pRelevantVariables)
+          throws UnsupportedCCodeException {
     String variableName = pRankVar.getGloballyUniqueId();
     Optional<CVariableDeclaration> variableDecl = pRelevantVariables
         .stream()
@@ -309,7 +313,8 @@ class RankingRelationBuilder {
         return Pair.of(primedVariable, variable);
 
       } else {
-        throw new AssertionError(term.toStringDirect());
+        // e.g. array are not supported
+        throw new UnsupportedCCodeException("Cannot create CExpression from " + variableName, null);
       }
     }
   }
