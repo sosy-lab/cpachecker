@@ -340,29 +340,7 @@ final class CompositeTransferRelation implements TransferRelation {
     }
 
     // create cartesian product
-    Collection<List<AbstractState>> strengthenedStates =
-        createCartesianProduct(lStrengthenResults, resultCount);
-
-    // If state was not a target state before but a target state was found during strengthening,
-    // we call strengthen again such that the other CPAs can act on this information.
-    // Note that this terminates because in the inner call the input state
-    // is already a target state and this branch won't be taken.
-    // TODO Generalize this into a full fixpoint algorithm.
-    if (!any(reachedState, IS_TARGET_STATE)) {
-      Collection<List<AbstractState>> newStrengthenedStates = new ArrayList<>(resultCount);
-
-      for (List<AbstractState> strengthenedState : strengthenedStates) {
-        if (any(strengthenedState, IS_TARGET_STATE)) {
-          newStrengthenedStates.addAll(callStrengthen(strengthenedState, compositePrecision, cfaEdge));
-        } else {
-          newStrengthenedStates.add(strengthenedState);
-        }
-      }
-      return newStrengthenedStates;
-
-    } else {
-      return strengthenedStates;
-    }
+    return createCartesianProduct(lStrengthenResults, resultCount);
   }
 
   protected static Collection<List<AbstractState>> createCartesianProduct(
