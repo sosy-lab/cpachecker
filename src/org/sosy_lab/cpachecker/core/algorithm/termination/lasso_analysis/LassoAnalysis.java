@@ -38,6 +38,16 @@ import java.util.Set;
 
 public interface LassoAnalysis {
 
+  /**
+   * Tries to prove (non)-termination of a lasso given as {@link CounterexampleInfo}.
+   * @param pCounterexample
+   *           the {@link CounterexampleInfo} representing the potentially non-terminating lasso
+   * @param pRelevantVariables
+   *           all variables that might be relevant to prove (non-)termination
+   * @return the {@link LassoAnalysisResult}
+   * @throws CPATransferException if the extraction of stem or loop fails
+   * @throws InterruptedException if a shutdown was requested
+   */
   LassoAnalysisResult checkTermination(
       CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException;
