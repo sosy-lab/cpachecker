@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -208,8 +209,8 @@ public class TerminationLoopInformation {
       CType type = relevantVariable.getType();
       while (type instanceof CPointerType) {
         type = ((CPointerType) type).getType();
-        if (type instanceof CVoidType) {
-          break; // Cannot declare variable of type void.
+        if (type instanceof CVoidType || type instanceof CFunctionType) {
+          break; // Cannot declare variable of type void or of function type.
         }
 
         unprimedVariable = new CPointerExpression(DUMMY, type, unprimedVariable);
