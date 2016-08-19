@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
@@ -112,9 +111,14 @@ class RankingRelationBuilder {
 
   public RankingRelation fromTerminationArgument(
       TerminationArgument pTerminationArgument, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException {
-    RankingRelation rankingRelation =
-        fromRankingFunction(pRelevantVariables, pTerminationArgument.getRankingFunction());
+      throws RankingRelationException {
+    RankingRelation rankingRelation;
+    try {
+      rankingRelation =
+          fromRankingFunction(pRelevantVariables, pTerminationArgument.getRankingFunction());
+    } catch (UnrecognizedCCodeException e) {
+      throw new RankingRelationException(e);
+    }
 
     Collection<BooleanFormula> supportingInvariants =
         extractSupportingInvariants(pTerminationArgument, pRelevantVariables);
@@ -129,7 +133,7 @@ class RankingRelationBuilder {
       RankingRelationComponents components;
       try {
         components = createRankingRelationComponents(supportingInvariant, pRelevantVariables);
-      } catch (UnrecognizedCCodeException e) {
+      } catch (UnrecognizedCCodeException | RankingRelationException e) {
         logger.logDebugException(e, "Could not process " + supportingInvariant);
         continue; // just skip this invariant
       }
@@ -149,8 +153,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromRankingFunction(
       Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
-      throws UnrecognizedCCodeException {
-
+      throws UnrecognizedCCodeException, RankingRelationException {
     if (rankingFunction instanceof LinearRankingFunction) {
       AffineFunction function = ((LinearRankingFunction) rankingFunction).getComponent();
       return fromAffineFunction(pRelevantVariables, function);
@@ -165,11 +168,12 @@ class RankingRelationBuilder {
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
     }
+
   }
 
   private RankingRelation fromLexicographicRankingFunction(
       LexicographicRankingFunction rankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, RankingRelationException {
 
     CExpression cExpression = CIntegerLiteralExpression.ZERO;
     List<BooleanFormula> formulas = Lists.newArrayList();
@@ -189,7 +193,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromAffineFunction(
       Set<CVariableDeclaration> pRelevantVariables, AffineFunction function)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, RankingRelationException {
     RankingRelationComponents components =
         createRankingRelationComponents(function, pRelevantVariables);
 
@@ -217,7 +221,7 @@ class RankingRelationBuilder {
 
   private RankingRelationComponents createRankingRelationComponents(
       AffineFunction function, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, RankingRelationException {
     // f(x')
     CExpression primedFunction = createLiteral(function.getConstant());
     List<NumeralFormula> primedFormulaSummands = Lists.newArrayList();
@@ -273,12 +277,12 @@ class RankingRelationBuilder {
    *            the variable of the ranking function to get the primed and unprimed variable for
    * @param pRelevantVariables all variable declarations of the original program
    * @return a Pair consisting of the primed and unprimed variable
-   * @throws UnsupportedCCodeException
-   *          if it is not possible ot create a {@link CExpression} from <code>pRankVar</code>code
+   * @throws RankingRelationException
+   *          if it is not possible to create a {@link CExpression} from <code>pRankVar</code>code
    */
   private Pair<CIdExpression, CExpression> getVariable(
       RankVar pRankVar, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnsupportedCCodeException {
+      throws RankingRelationException {
     String variableName = pRankVar.getGloballyUniqueId();
     Optional<CVariableDeclaration> variableDecl =
         pRelevantVariables
@@ -315,14 +319,14 @@ class RankingRelationBuilder {
 
       } else {
         // e.g. array are not supported
-        throw new UnsupportedCCodeException("Cannot create CExpression from " + variableName, null);
+        throw new RankingRelationException("Cannot create CExpression from " + variableName);
       }
     }
   }
 
   private RankingRelation fromNestedRankingFunction(
       NestedRankingFunction pRankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, RankingRelationException {
     Preconditions.checkArgument(pRankingFunction.getComponents().length > 0);
 
     BooleanFormula phaseConditionFormula = fmgr.getBooleanFormulaManager().makeTrue();
@@ -449,5 +453,19 @@ class RankingRelationBuilder {
     private NumeralFormula sum(Collection<NumeralFormula> operands) {
       return operands.stream().reduce(zero, fmgr::makePlus);
     }
+  }
+
+  public static class RankingRelationException extends Exception {
+
+    private static final long serialVersionUID = 1L;
+
+    public RankingRelationException(String message) {
+      super(message);
+    }
+
+    public RankingRelationException(Exception e) {
+      super(e);
+    }
+
   }
 }
