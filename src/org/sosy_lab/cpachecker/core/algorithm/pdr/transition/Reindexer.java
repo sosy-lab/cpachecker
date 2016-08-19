@@ -52,7 +52,18 @@ final class Reindexer {
         Maps.newHashMapWithExpectedSize(allVariables.size());
     for (String variableName : allVariables) {
       int highIndex = pFormulaSSAMap.getIndex(variableName);
-      substitution.put(variableName, index -> highIndex - index + pLowIndex);
+      String highVariableName =
+          pFormulaManager
+              .instantiate(Collections.singleton(variableName), pFormulaSSAMap)
+              .iterator()
+              .next();
+      final int realHighIndex;
+      if (pFormulaManager.extractVariableNames(pOldFormula).contains(highVariableName)) {
+        realHighIndex = highIndex;
+      } else {
+        realHighIndex = highIndex - 1;
+      }
+      substitution.put(variableName, index -> realHighIndex - index + pLowIndex);
     }
     return reindex(
         pOldFormula,
@@ -109,4 +120,5 @@ final class Reindexer {
           return substitute != null ? substitute : oldName;
         });
   }
+
 }
