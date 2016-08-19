@@ -178,6 +178,7 @@ public final class Blocks {
     CFANode expectedPredecessorLocation = null;
 
     for (Block block : pBlocks) {
+      Preconditions.checkArgument(block.getDirection() == AnalysisDirection.BACKWARD);
       Preconditions.checkArgument(
           expectedPredecessorLocation == null || block.getPredecessorLocation().equals(expectedPredecessorLocation),
           "Blocks must connect.");
