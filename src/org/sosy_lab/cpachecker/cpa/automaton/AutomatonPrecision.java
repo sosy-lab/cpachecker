@@ -54,8 +54,11 @@ public class AutomatonPrecision implements Precision {
 
   private ImmutableMap<SafetyProperty, Optional<PresenceCondition>> blacklist = ImmutableMap.of();
 
+  private final int cachedHashCode;
+
   private AutomatonPrecision(ImmutableMap<SafetyProperty, Optional<PresenceCondition>> pBlacklist) {
     blacklist = pBlacklist;
+    cachedHashCode = blacklist.hashCode();
   }
 
   public static AutomatonPrecision emptyBlacklist() {
@@ -198,7 +201,7 @@ public class AutomatonPrecision implements Precision {
 
   @Override
   public int hashCode() {
-    return blacklist.hashCode();
+    return cachedHashCode;
   }
 
   @Override
