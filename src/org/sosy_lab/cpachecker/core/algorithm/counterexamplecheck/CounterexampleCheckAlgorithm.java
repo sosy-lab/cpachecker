@@ -147,18 +147,22 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             continue;
           }
 
-          status =
-              AlgorithmStatus.SOUND_AND_PRECISE.withSound(
-                  checkCounterexample(errorState, reached, status.isSound(), infeasibleErrorPaths));
-          if (!infeasibleErrorPaths.contains(errorState)) {
+          boolean counterexampleProvedFeasible = checkCounterexample(errorState, reached);
+          if (counterexampleProvedFeasible) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
+          } else {
+            infeasibleErrorPaths.add(errorState);
           }
+          status =
+              AlgorithmStatus.SOUND_AND_PRECISE.withSound(
+                  status.isSound() && counterexampleProvedFeasible);
         }
 
         if (foundCounterexample) {
           break;
-        } else if (!infeasibleErrorPaths.isEmpty()) {
+        } else {
+          assert !infeasibleErrorPaths.isEmpty();
           throw new InfeasibleCounterexampleException(
               "Error path found, but identified as infeasible by counterexample check with "
                   + checkerType
@@ -172,34 +176,29 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return status;
   }
 
-  private boolean checkCounterexample(
-      ARGState errorState, ReachedSet reached, boolean sound, List<ARGState> pInfeasibleErrorStates)
+  private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
       throws InterruptedException {
     ARGState rootState = (ARGState)reached.getFirstState();
 
     Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
 
     logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
-    boolean feasibility;
+    final boolean feasibility;
     try {
       feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
     } catch (CPAException e) {
       logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
-      pInfeasibleErrorStates.add(errorState);
       return false;
     }
 
     if (feasibility) {
       logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerType + ".");
-      return sound;
 
     } else {
       numberOfInfeasiblePaths++;
       logger.log(Level.INFO, "Error path found but identified as infeasible.");
-      pInfeasibleErrorStates.add(errorState);
     }
-
-    return false;
+    return feasibility;
   }
 
   @Override
