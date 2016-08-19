@@ -57,6 +57,15 @@ public final class Blocks {
 
   private Blocks() {}
 
+  /**
+   * Create a new predicate for blocks that applies the given predicate to the
+   * successor state of a block.
+   *
+   * @param pPredicate the predicate to be applied to block successor states.
+   *
+   * @return a new predicate for blocks that applies the given predicate to the
+   * successor state of a block.
+   */
   public static Predicate<Block> applyToSuccessor(Predicate<AbstractState> pPredicate) {
     return new Predicate<Block>() {
 
@@ -67,6 +76,16 @@ public final class Blocks {
     };
   }
 
+  /**
+   * Create a new predicate for blocks that applies the given predicate to the
+   * successor location of a block.
+   *
+   * @param pPredicate the predicate to be applied to block successor
+   * locations.
+   *
+   * @return a new predicate for blocks that applies the given predicate to the
+   * successor location of a block.
+   */
   public static Predicate<Block> applyToSuccessorLocation(Predicate<CFANode> pPredicate) {
     return new Predicate<Block>() {
 
@@ -77,6 +96,15 @@ public final class Blocks {
     };
   }
 
+  /**
+   * Create a new predicate for blocks that applies the given predicate to the
+   * predecessor state of a block.
+   *
+   * @param pPredicate the predicate to be applied to block predecessor states.
+   *
+   * @return a new predicate for blocks that applies the given predicate to the
+   * predecessor state of a block.
+   */
   public static Predicate<Block> applyToPredecessor(Predicate<AbstractState> pPredicate) {
     return new Predicate<Block>() {
 
@@ -87,6 +115,16 @@ public final class Blocks {
     };
   }
 
+  /**
+   * Create a new predicate for blocks that applies the given predicate to the
+   * predecessor location of a block.
+   *
+   * @param pPredicate the predicate to be applied to block predecessor
+   * locations.
+   *
+   * @return a new predicate for blocks that applies the given predicate to the
+   * predecessor location of a block.
+   */
   public static Predicate<Block> applyToPredecessorLocation(Predicate<CFANode> pPredicate) {
     return new Predicate<Block>() {
 
@@ -97,7 +135,25 @@ public final class Blocks {
     };
   }
 
-  public static BooleanFormula formulaWithInvertedIndices(Block pBlock, FormulaManagerView pFormulaManager) {
+  /**
+   * Changes all variable indices of the block formula of the given block such
+   * that where previously a variable appeared with the highest index, it now
+   * appears with the lowest index, and vice versa, and the same concept
+   * applies to variables with the next-highest and next-lowest indices, and so
+   * on.
+   *
+   * For example, {@code x_2 = x_1 + 1} thus becomes {@code x_1 = x_2 + 1}.
+   *
+   * The satisfiability of the block formula remains unchanged.
+   *
+   * @param pBlock the block to take the formula from.
+   * @param pFormulaManager the formula manager to be used to change the
+   * indices.
+   *
+   * @return the changed formula.
+   */
+  public static BooleanFormula formulaWithInvertedIndices(
+      Block pBlock, FormulaManagerView pFormulaManager) {
     PathFormula finalContext = pBlock.getDirection() == AnalysisDirection.FORWARD
         ? pBlock.getPrimedContext()
         : pBlock.getUnprimedContext();
@@ -107,14 +163,59 @@ public final class Blocks {
         pFormulaManager);
   }
 
-  public static BooleanFormula conjoinBlockFormulas(Iterable<Block> pBlocks, FormulaManagerView pFormulaManager) throws CPATransferException, InterruptedException {
+  /**
+   * The conjunction of the block formulas of the given blocks.
+   *
+   * @param pBlocks the blocks. The order of the blocks is expected to be
+   * 'forward', e.g. from the program entry to a target state.
+   * @param pFormulaManager the formula manager to be used for adjusting the
+   * variable indices.
+   *
+   * @return the conjunction of the block formulas of the given blocks,
+   * in the provided order of the blocks and with the variable SSA indices for
+   * each block formula adapted to the final SSA map of the preceding block.
+   *
+   * @throws CPATransferException if a CPATransferException occurs during the
+   * extraction of a block formula from a block.
+   * @throws InterruptedException if the extraction of a block formula from a
+   * block is interrupted.
+   */
+  public static BooleanFormula conjoinBlockFormulas(
+      Iterable<Block> pBlocks, FormulaManagerView pFormulaManager)
+      throws CPATransferException, InterruptedException {
     return conjoinFormulas(
         pBlocks,
-        block -> block.getDirection() == AnalysisDirection.FORWARD ? block.getFormula() : formulaWithInvertedIndices(block, pFormulaManager),
+        block ->
+            block.getDirection() == AnalysisDirection.FORWARD
+                ? block.getFormula()
+                : formulaWithInvertedIndices(block, pFormulaManager),
         pFormulaManager);
   }
 
-  public static BooleanFormula conjoinBranchingFormulas(Iterable<Block> pBlocks, FormulaManagerView pFormulaManager, PathFormulaManager pPathFormulaManager) throws CPATransferException, InterruptedException {
+  /**
+   * The conjunction of the branching formulas for the given blocks.
+   *
+   * @param pBlocks the blocks. The order of the blocks is expected to be
+   * 'forward', e.g. from the program entry to a target state.
+   * @param pFormulaManager the formula manager to be used for adjusting the
+   * variable indices.
+   * @param pPathFormulaManager the path formula manager to be used for
+   * creating the branching formulas.
+   *
+   * @return the conjunction of the branching formulas for the given blocks,
+   * in the provided order of the blocks and with the variable SSA indices for
+   * each block formula adapted to the final SSA map of the preceding block.
+   *
+   * @throws CPATransferException if a CPATransferException occurs during the
+   * creation of a branching formula for a block.
+   * @throws InterruptedException if the creation of a branching formula for a
+   * block is interrupted.
+   */
+  public static BooleanFormula conjoinBranchingFormulas(
+      Iterable<Block> pBlocks,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager)
+      throws CPATransferException, InterruptedException {
     return conjoinFormulas(
         pBlocks,
         new BlockToFormula() {
@@ -137,7 +238,29 @@ public final class Blocks {
         pFormulaManager);
   }
 
-  public static BooleanFormula conjoinFormulas(Iterable<Block> pBlocks, BlockToFormula pExtractFormula, FormulaManagerView pFormulaManager) throws CPATransferException, InterruptedException {
+  /**
+   * The conjunction of the formulas extracted from the given blocks.
+   *
+   * @param pBlocks the blocks. The order of the blocks is expected to be
+   * 'forward', e.g. from the program entry to a target state.
+   * @param pExtractFormula a function for creating a formula for a block.
+   * @param pFormulaManager the formula manager to be used for adjusting the
+   * variable indices.
+   *
+   * @return the conjunction of the formulas extracted from the given blocks,
+   * in the provided order of the blocks and with the variable SSA indices for
+   * each block formula adapted to the final SSA map of the preceding block.
+   *
+   * @throws CPATransferException if a CPATransferException occurs during the
+   * extraction of a formula from a block.
+   * @throws InterruptedException if the extraction of a formula from a block
+   * is interrupted.
+   */
+  public static BooleanFormula conjoinFormulas(
+      Iterable<Block> pBlocks,
+      BlockToFormula pExtractFormula,
+      FormulaManagerView pFormulaManager)
+      throws CPATransferException, InterruptedException {
     BooleanFormulaManager booleanFormulaManager = pFormulaManager.getBooleanFormulaManager();
     BooleanFormula formula = booleanFormulaManager.makeTrue();
 
@@ -170,7 +293,19 @@ public final class Blocks {
     return formula;
   }
 
-  public static ARGPath combineARGPaths(Iterable<Block> pBlocks, Map<Integer, Boolean> pBranchingInformation) {
+  /**
+   * Build a combined ARGPath for the given blocks.
+   *
+   * @param pBlocks the blocks. The order of the blocks is expected to be
+   * 'forward', e.g. from the program entry to a target state.
+   * The blocks themselves are assumed to have been created with a backward analysis.
+   * @param pBranchingInformation the target reached set.
+   *
+   * @return the ARG path.
+   */
+  public static ARGPath combineARGPaths(
+      Iterable<Block> pBlocks,
+      Map<Integer, Boolean> pBranchingInformation) {
     Preconditions.checkArgument(!Iterables.isEmpty(pBlocks), "Cannot create empty ARG path.");
 
     ARGPathBuilder argPathBuilder = ARGPath.reverseBuilder();
@@ -212,7 +347,18 @@ public final class Blocks {
     return argPathBuilder.build(firstState);
   }
 
-  public static void combineReachedSets(Iterable<Block> pBlocks, ReachedSet pTargetReachedSet) {
+  /**
+   * Combine the reached sets of the given blocks and insert their states into
+   * the given target reached set.
+   *
+   * @param pBlocks the blocks. The order of the blocks is expected to be
+   * 'forward', e.g. from the program entry to a target state.
+   *
+   * @param pTargetReachedSet the target reached set.
+   */
+  public static void combineReachedSets(
+      Iterable<Block> pBlocks,
+      ReachedSet pTargetReachedSet) {
     if (Iterables.isEmpty(pBlocks)) {
       return;
     }
