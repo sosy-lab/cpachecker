@@ -151,12 +151,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
           if (counterexampleProvedFeasible) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
+            status = status.withPrecise(true);
           } else {
             infeasibleErrorPaths.add(errorState);
+            status = status.withSound(false);
           }
-          status =
-              AlgorithmStatus.SOUND_AND_PRECISE.withSound(
-                  status.isSound() && counterexampleProvedFeasible);
         }
 
         if (foundCounterexample) {
