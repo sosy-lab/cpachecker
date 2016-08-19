@@ -109,9 +109,8 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
         // TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!! TEST GENERATION!!!!
         //
         CounterexampleInfo cexInfo = pTargetState.getCounterexampleInformation().get();
-        Map<SafetyProperty, Optional<PresenceCondition>>  covered = tg.feasibleCounterexample(cexInfo);
 
-        return TargetSummary.of(covered);
+        return tg.feasibleCounterexample(cexInfo);
       }
     };
   }

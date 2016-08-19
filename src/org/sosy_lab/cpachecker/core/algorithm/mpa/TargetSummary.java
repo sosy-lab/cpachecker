@@ -63,7 +63,6 @@ public class TargetSummary {
   private Collection<TargetStateInfo> targetStateSummaries = Lists.newArrayList();
 
   public static TargetSummary of(Map<SafetyProperty, Optional<PresenceCondition>> pCovered) {
-
     TargetSummary result = new TargetSummary();
     for (Entry<SafetyProperty, Optional<PresenceCondition>> e: pCovered.entrySet()) {
       TargetStateInfo targetInfo = new TargetStateInfo();
@@ -71,6 +70,17 @@ public class TargetSummary {
       targetInfo.presenceCondition = e.getValue();
       result.targetStateSummaries.add(targetInfo);
     }
+
+    return result;
+  }
+
+  public static TargetSummary of(Iterable<Property> pProperties) {
+    TargetSummary result = new TargetSummary();
+    TargetStateInfo targetInfo = new TargetStateInfo();
+
+    targetInfo.violatedProperties = ImmutableSet.copyOf(pProperties);
+    targetInfo.presenceCondition = Optional.absent();
+    result.targetStateSummaries.add(targetInfo);
 
     return result;
   }

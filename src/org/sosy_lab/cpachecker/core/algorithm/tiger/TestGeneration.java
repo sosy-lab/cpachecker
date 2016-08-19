@@ -29,6 +29,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -206,16 +208,17 @@ public class TestGeneration implements Statistics {
     return getActiveGoalSet();
   }
 
-  public Map<SafetyProperty, Optional<PresenceCondition>> feasibleCounterexample(CounterexampleInfo pCounterexample)
+  public TargetSummary feasibleCounterexample(CounterexampleInfo pCounterexample)
     throws InterruptedException {
 
+    final Set<Property> covered = Sets.newHashSet(); // TODO: Use TargetSummary
     for (CounterexampleInfo cexi: pCounterexample.getAll()) {
       if (cfg.allCoveredGoalsPerTestCase) {
-        addTestToSuite(testsuite.getGoals(), cexi);
+        covered.addAll(addTestToSuite(testsuite.getGoals(), cexi));
       } else if (cfg.checkCoverage) {
-        addTestToSuite(Sets.union(getTestSuite().getUncoveredTestGoals(), goalsUnderAnalysis()), cexi);
+        covered.addAll(addTestToSuite(Sets.union(getTestSuite().getUncoveredTestGoals(), goalsUnderAnalysis()), cexi));
       } else {
-        addTestToSuite(goalsUnderAnalysis(), cexi);
+        covered.addAll(addTestToSuite(goalsUnderAnalysis(), cexi));
       }
     }
 
@@ -234,7 +237,7 @@ public class TestGeneration implements Statistics {
     AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision()
         .cloneAndAddBlacklisted(toBlacklist));
 
-    return toBlacklist;
+    return TargetSummary.of(Iterables.filter(covered, Property.class));
   }
 
   @Override
@@ -418,6 +421,7 @@ public class TestGeneration implements Statistics {
         }
       }
 
+      // TODO: Return a TargetSummary that also encodes the presence condition
       return coveredGoals;
     }
   }
