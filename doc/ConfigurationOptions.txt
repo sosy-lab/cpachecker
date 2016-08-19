@@ -320,9 +320,6 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
-# test
-analysis.tigerdc.test = false
-
 # traverse in the order defined by the values of an automaton variable
 analysis.traversal.byAutomatonVariable = no default value
 
