@@ -142,10 +142,6 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         boolean foundCounterexample = false;
         while (!errorStates.isEmpty()) {
           ARGState errorState = errorStates.pollFirst();
-          if (!reached.contains(errorState)) {
-            // errorState was already removed due to earlier loop iterations
-            continue;
-          }
 
           boolean counterexampleProvedFeasible = checkCounterexample(errorState, reached);
           if (counterexampleProvedFeasible) {
