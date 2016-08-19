@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -138,18 +139,23 @@ public final class AbstractStates {
       Collection<? extends AbstractState> wrappedStates = ((AbstractWrapperState) pState).getWrappedStates();
 
       Class<?> homogenType = null;
-      boolean assumeHomogene = false;
-      if (wrappedStates.size() > 2) {
-        Iterator<? extends AbstractState> it = wrappedStates.iterator();
-        homogenType = it.next().getClass();
-        if (homogenType.isInstance(it.next())) {
-          assumeHomogene = true;
+      if (wrappedStates.size() > 3) {
+        Class<?> firstType = Iterables.getFirst(wrappedStates, null).getClass();
+        if (wrappedStates instanceof Set) {
+          if (firstType.isAssignableFrom(AutomatonState.class)) {
+            homogenType = firstType;
+          }
+        } else {
+          Class<?> lastType = Iterables.getLast(wrappedStates, null).getClass();
+          if (firstType.equals(lastType)) {
+            homogenType = firstType;
+          }
         }
       }
 
-      if (assumeHomogene) {
+      if (homogenType != null) {
         if (pType.isAssignableFrom(homogenType)) {
-          // Shortcut that assumes that if the first state have
+          // Shortcut that assumes that if the first state has
           // the type, the remaining would also have this type
           return (Collection<T>) wrappedStates;
         }
