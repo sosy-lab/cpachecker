@@ -243,24 +243,22 @@ public class LassoBuilder {
 
     ImmutableList.Builder<Lasso> lassos = ImmutableList.builder();
     for (BooleanFormula stem : stemDnf.getClauses()) {
-      if (!isUnsat(stem)) {
+      for (BooleanFormula loop : loopDnf.getClauses()) {
 
-        for (BooleanFormula loop : loopDnf.getClauses()) {
-          shutdownNotifier.shutdownIfNecessary();
-          if (!isUnsat(loop)) {
+        shutdownNotifier.shutdownIfNecessary();
+        if (!isUnsat(bfmrView.and(stem, loop))) {
 
-            LinearTransition stemTransition =
-                createLinearTransition(
-                    stem,
-                    stemRankVars);
-            LinearTransition loopTransition =
-                createLinearTransition(
-                    loop,
-                    loopRankVars);
+          LinearTransition stemTransition =
+              createLinearTransition(
+                  stem,
+                  stemRankVars);
+          LinearTransition loopTransition =
+              createLinearTransition(
+                  loop,
+                  loopRankVars);
 
-            Lasso lasso = new Lasso(stemTransition, loopTransition);
-            lassos.add(lasso);
-          }
+          Lasso lasso = new Lasso(stemTransition, loopTransition);
+          lassos.add(lasso);
         }
       }
     }
