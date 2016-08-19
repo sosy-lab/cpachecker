@@ -225,6 +225,25 @@ public class DynamicFrameSet implements FrameSet {
     }
   }
 
+  @Override
+  public String toString() {
+    StringBuilder stringRepresentation = new StringBuilder("Frame set : ");
+
+    for (CFANode location : frames.keySet()) {
+      stringRepresentation.append("\n").append(location).append(" ->");
+
+      for (int level = 0; level <= currentMaxLevel + 1; ++level) {
+        Set<BooleanFormula> states = getStatesForLocation(location, level);
+        stringRepresentation
+            .append("\n   Level : ")
+            .append(level)
+            .append("\n      ")
+            .append(states);
+      }
+    }
+    return stringRepresentation.toString();
+  }
+
   /** Holds an over-approximation of reached states for a frame. */
   private static final class ApproximationFrame {
 
@@ -244,6 +263,11 @@ public class DynamicFrameSet implements FrameSet {
 
     private Set<BooleanFormula> getStates() {
       return states;
+    }
+
+    @Override
+    public String toString() {
+      return states.toString();
     }
   }
 }
