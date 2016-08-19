@@ -31,10 +31,13 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowCode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
@@ -48,8 +51,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 public class PowersetAutomatonState implements AbstractWrapperState,
-    Targetable, IntermediateTargetable, AbstractStateWithAssumptions,
+    Targetable, IntermediateTargetable, AbstractStateWithAssumptions, AbstractStateWithShadowCode,
     Serializable, Graphable, Iterable<AutomatonState> {
 
   private static class TopPowersetAutomatonState extends PowersetAutomatonState {
@@ -214,6 +219,15 @@ public class PowersetAutomatonState implements AbstractWrapperState,
     Builder<Pair<AStatement, Boolean>> builder = ImmutableList.builder();
     for (AbstractStateWithAssumptions e : states) {
       builder.addAll(e.getAssumptions());
+    }
+    return builder.build();
+  }
+
+  @Override
+  public List<AAstNode> getOutgoingShadowCode(@Nonnull CFANode pContinueTo) {
+    Builder<AAstNode> builder = ImmutableList.builder();
+    for (AbstractStateWithShadowCode e : states) {
+      builder.addAll(e.getOutgoingShadowCode(pContinueTo));
     }
     return builder.build();
   }
