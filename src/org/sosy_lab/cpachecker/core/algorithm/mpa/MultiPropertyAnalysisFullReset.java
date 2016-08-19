@@ -406,6 +406,9 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
           // Add the properties that were violated in this run.
           violated = TargetSummary.union(violated, runViolated);
 
+          Preconditions.checkState(Sets.intersection(satisfied, violated.getViolatedProperties()).isEmpty(),
+              "A property cannot be both satisfied a violated!");
+
           // The partitioning operator might remove the violated properties
           //  if we have found sufficient counterexamples
           //
