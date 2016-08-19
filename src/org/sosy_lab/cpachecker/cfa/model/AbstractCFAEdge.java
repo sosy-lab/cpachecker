@@ -38,6 +38,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   private final CFANode successor;
   private final String rawStatement;
   private final FileLocation fileLocation;
+  private final int cachedHashCode;
 
   public AbstractCFAEdge(String pRawStatement, FileLocation pFileLocation,
       CFANode pPredecessor, CFANode pSuccessor) {
@@ -50,6 +51,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
     successor = pSuccessor;
     rawStatement = pRawStatement;
     fileLocation = checkNotNull(pFileLocation);
+
+    cachedHashCode = 31 * predecessor.hashCode() + successor.hashCode();
   }
 
   @Override
@@ -89,7 +92,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public int hashCode() {
-    return 31 * predecessor.hashCode() + successor.hashCode();
+    return cachedHashCode;
   }
 
   @Override

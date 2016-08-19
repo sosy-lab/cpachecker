@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,10 +52,10 @@ public class StandardECPEdgeSet implements ECPEdgeSet {
     return new StandardECPEdgeSet(pCFAEdges);
   }
 
-  private Set<CFAEdge> mCFAEdges = new HashSet<>();
+  private final ImmutableSet<CFAEdge> mCFAEdges;
 
   private StandardECPEdgeSet(Collection<CFAEdge> pCFAEdges) {
-    mCFAEdges.addAll(pCFAEdges);
+    mCFAEdges = ImmutableSet.copyOf(pCFAEdges);
   }
 
   /** copy constructor */
