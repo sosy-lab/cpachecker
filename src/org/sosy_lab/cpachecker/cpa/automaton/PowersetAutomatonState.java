@@ -79,12 +79,24 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   final static TopPowersetAutomatonState TOP = new TopPowersetAutomatonState();
 
   private static final long serialVersionUID = -8033111447137153782L;
-  private final Set<AutomatonState> states;
+  private final ImmutableSet<AutomatonState> states;
+  private final boolean containsTarget;
 
   public PowersetAutomatonState(Set<AutomatonState> elements) {
     Preconditions.checkNotNull(elements);
-    this.states = ImmutableSet.copyOf(elements);
+    states = ImmutableSet.copyOf(elements);
+    containsTarget = hasTarget(states);
   }
+
+  private static boolean hasTarget(Collection<AutomatonState> pStates) {
+    for (AutomatonState e : pStates) {
+      if (e.isTarget()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 
   public boolean containsAtLeast(int pNumberOfStates) {
     return states.size() >= pNumberOfStates ;
@@ -92,12 +104,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
 
   @Override
   public boolean isTarget() {
-    for (AutomatonState e : states) {
-      if (e.isTarget()) {
-        return true;
-      }
-    }
-    return false;
+    return containsTarget;
   }
 
   @Override
