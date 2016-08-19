@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,11 +51,9 @@ import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.PrintStream;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -118,15 +117,16 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
       ARGState lastState = (ARGState)reached.getLastState();
 
-      Deque<ARGState> errorStates = new ArrayDeque<>();
+      final List<ARGState> errorStates;
       if (lastState != null && lastState.isTarget()) {
-        errorStates.add(lastState);
+        errorStates = ImmutableList.of(lastState);
       } else {
-        from(reached)
-          .transform(AbstractStates.toState(ARGState.class))
-          .filter(AbstractStates.IS_TARGET_STATE)
-          .filter(Predicates.not(Predicates.in(checkedTargetStates)))
-          .copyInto(errorStates);
+        errorStates =
+            from(reached)
+                .transform(AbstractStates.toState(ARGState.class))
+                .filter(AbstractStates.IS_TARGET_STATE)
+                .filter(Predicates.not(Predicates.in(checkedTargetStates)))
+                .toList();
       }
 
       if (errorStates.isEmpty()) {
@@ -138,11 +138,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       checkTime.start();
       try {
         List<ARGState> infeasibleErrorPaths = new ArrayList<>();
-
         boolean foundCounterexample = false;
-        while (!errorStates.isEmpty()) {
-          ARGState errorState = errorStates.pollFirst();
 
+        for (ARGState errorState : errorStates) {
           boolean counterexampleProvedFeasible = checkCounterexample(errorState, reached);
           if (counterexampleProvedFeasible) {
             checkedTargetStates.add(errorState);
