@@ -221,7 +221,7 @@ public enum PropertyStats implements Statistics {
     }
   }
 
-  public synchronized StatHandle startRefinement(final Set<Property> pProperties) {
+  public synchronized StatHandle startRefinement(final Set<? extends Property> pProperties) {
 
     final List<StatCpuTimer> timers = Lists.newArrayList();
 

@@ -45,4 +45,8 @@ public enum InfinitePropertyBudgeting implements PropertyBudgeting {
     return false;
   }
 
+  @Override
+  public String toString() {
+    return this.getClass().getSimpleName();
+  }
 }

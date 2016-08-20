@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 import java.util.Collection;
 
@@ -55,7 +57,8 @@ import java.util.Collection;
  * Represents one automaton.
  *  One abstract state consists of a set of different automata states (power set).
  */
-public class PowersetAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM {
+public class PowersetAutomatonCPA implements WrapperCPA, ConfigurableProgramAnalysis,
+       StatisticsProvider, ConfigurableProgramAnalysisWithBAM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PowersetAutomatonCPA.class);
@@ -127,4 +130,18 @@ public class PowersetAutomatonCPA implements ConfigurableProgramAnalysis, Statis
     return NoOpReducer.getInstance();
   }
 
+  @Override
+  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
+    return CPAs.retrieveCPA(automatonCpa, type);
+  }
+
+  @Override
+  public <T extends ConfigurableProgramAnalysis> Collection<T> retrieveWrappedCpas(Class<T> type) {
+    return CPAs.retrieveCPAs(automatonCpa, type);
+  }
+
+  @Override
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return CPAs.asIterable(automatonCpa);
+  }
 }

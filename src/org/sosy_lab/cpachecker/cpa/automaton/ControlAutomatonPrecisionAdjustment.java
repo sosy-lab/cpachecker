@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
@@ -56,6 +57,7 @@ import org.sosy_lab.solver.SolverException;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
@@ -69,6 +71,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
    *  this is used, for example, in context of verifying several properties.
    */
   private final Supplier<PropertyBudgeting> budgeting;
+  private final LogManager logger;
 
   @Option(secure=true, name="limit.violations",
       description="Handle at most k (> 0) violation of one property.")
@@ -86,6 +89,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private Action onExhaustedBudget = Action.CONTINUE;
 
   public ControlAutomatonPrecisionAdjustment(
+      LogManager pLogger,
       Configuration pConfig,
       ControlAutomatonOptions pOptions,
       Supplier<PropertyBudgeting> pBudgeting,
@@ -101,6 +105,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       throw new InvalidConfigurationException("Splitting to INACTIVE requires an adjustment of handled target states to either SIGNAL or BOTTOM!");
     }
 
+    this.logger = pLogger;
     this.bottomState = pBottomState;
     this.inactiveState = pInactiveState;
     this.budgeting = pBudgeting;
@@ -201,6 +206,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     }
 
     if (exhaustedProperties.size() > 0) {
+      logger.logf(Level.INFO, "Exhausted: %s", exhaustedProperties);
       final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
       signalDisablingProperties(exhaustedProperties.keySet()); // FIXME: Make it variability aware!
 

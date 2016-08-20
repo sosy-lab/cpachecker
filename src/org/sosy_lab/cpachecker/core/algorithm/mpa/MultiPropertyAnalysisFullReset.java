@@ -613,15 +613,18 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     Partitioning result = partitionOperator.partition(pLastPartitioning, pToCheck,
         pDisabledProperties, PropertyStats.INSTANCE.getPropertyRefinementComparator());
 
-    logger.log(Level.WARNING, String.format("New partitioning (%s) with %d partitions.",
+    logger.log(Level.INFO, String.format("New partitioning (%s) with %d partitions.",
         result.getStatus(), result.partitionCount()));
     {
       int nth = 0;
       for (ImmutableSet<Property> p: result) {
         nth++;
-        logger.logf(Level.WARNING, "Partition %d with %d elements: %s", nth, p.size(), p.toString());
+        logger.logf(Level.INFO, "Partition %d with %d elements: %s", nth, p.size(), p.toString());
       }
     }
+
+    logger.logf(Level.INFO, "Partition budget: " + result.getPartitionBudgeting());
+    logger.logf(Level.INFO, "Property budget: " + result.getPropertyBudgeting());
 
     // Check the partition and the budget for feasibility...
     Preconditions.checkState(pToCheck.size() <= 1

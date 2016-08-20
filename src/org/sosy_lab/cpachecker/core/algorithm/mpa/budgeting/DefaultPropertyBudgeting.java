@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 
@@ -128,9 +129,13 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
       }
     }
 
-    if (refinementsLimit > 0
-        && maxInfeasibleCexs.getFirst() >= (refinementsLimit * budgetFactor)) {
-      return true;
+    if (refinementsLimit > 0) {
+      Optional<StatCounter> refCount = PropertyStats.INSTANCE.getRefinementCount(pProperty);
+      if (refCount.isPresent()) {
+        if (refCount.get().getValue() > (refinementsLimit * budgetFactor)) {
+          return true;
+        }
+      }
     }
 
     if (loopRelatedPrecisionElementsLimit > 0) {
@@ -194,4 +199,17 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
     return false;
   }
 
+  @Override
+  public String toString() {
+    StringBuilder result = new StringBuilder();
+    result.append(this.getClass().getSimpleName());
+    result.append(" {");
+    if (refinementsLimit > -1) {
+      result.append("Ref.limit: ");
+      result.append(refinementsLimit);
+      result.append(" ");
+    }
+    result.append("}");
+    return result.toString();
+  }
 }

@@ -31,7 +31,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
@@ -47,6 +50,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats.StatHandle;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.DeeperLevelFirstComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
@@ -225,8 +230,12 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
           final ARGState targetState = lastTargetState.get();
           Preconditions.checkState(AbstractStates.isTargetState(targetState));
 
-          final boolean eliminated = refine(pReached, targetState);
           final Set<? extends Property> targetProperties = AbstractStates.extractViolatedProperties(targetState, Property.class);
+
+          final boolean eliminated;
+          try (StatHandle stat = PropertyStats.INSTANCE.startRefinement(targetProperties)) {
+            eliminated = refine(pReached, targetState);
+          }
 
           if (eliminated) {
             logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
@@ -296,6 +305,14 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
             .filter(PROPERTY_NOT_BLACKLISTED);
   }
 
+  private static Multiset<Property> targetProperties(Iterable<ARGState> pStates) {
+    Multiset result = HashMultiset.create();
+    for (ARGState e : pStates) {
+      result.addAll(AbstractStates.extractViolatedProperties(e, Property.class));
+    }
+    return result;
+  }
+
   private Optional<ARGState> chooseTarget(ReachedSet pReached) {
     ImmutableList<ARGState> rankedCandidates = filterForTargetCandidates(pReached)
             .toSortedList(comparator);
@@ -303,6 +320,9 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
     if (rankedCandidates.isEmpty()) {
       return Optional.absent();
     }
+
+    logger.logf(Level.INFO, "Choosing a target from %d candidates.", rankedCandidates.size());
+    logger.logf(Level.INFO, "Candidates and their frequency: %s", targetProperties(rankedCandidates));
 
     return Optional.of(rankedCandidates.get(0));
   }

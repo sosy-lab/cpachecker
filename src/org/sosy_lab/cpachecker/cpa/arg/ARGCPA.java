@@ -269,18 +269,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     cexSummary.addFeasibleCounterexample(pTargetState, pCounterexample);
   }
 
-  public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {
-    cexSummary.countInfeasibleCounterexample(pPath, pTargetState);
-  }
-
-  public void removeInfeasibleState(Set<ARGState> pToRemove) {
-    cexSummary.removeInfeasibleState(pToRemove);
-  }
-
-  public void clearCounterexamples(Set<ARGState> pToRemove) {
-    cexSummary.clearCounterexamples(pToRemove);
-  }
-
   ARGToDotWriter getRefinementGraphWriter() {
     return stats.getRefinementGraphWriter();
   }

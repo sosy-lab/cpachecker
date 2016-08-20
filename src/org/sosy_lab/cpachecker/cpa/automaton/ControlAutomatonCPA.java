@@ -169,7 +169,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     budgeting = InfinitePropertyBudgeting.INSTANCE;
 
     this.transferRelation = new AutomatonTransferRelation(this, pLogger, intermediateTargetBeforeInactiveState, options);
-    this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
+    this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig, pLogger);
     this.mergeOperator = new AutomatonMergeOperator(pConfig, this, automatonDomain, topState);
 
     if (pAutomaton != null) {
@@ -215,8 +215,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return lst.get(0);
   }
 
-  private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
-      throws InvalidConfigurationException {
+  private PrecisionAdjustment composePrecisionAdjustmentOp(
+      Configuration pConfig, LogManager pLogger)
+    throws InvalidConfigurationException {
 
     Supplier<PropertyBudgeting> supplier = new Supplier<PropertyBudgeting>() {
       @Override
@@ -225,7 +226,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       }
     };
 
-    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(pConfig, options,
+    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(pLogger, pConfig, options,
         supplier, bottomState, inactiveState);
 
     result = new AdjustAutomatonPrecisionAdjustment(result, pConfig);

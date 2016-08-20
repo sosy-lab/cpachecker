@@ -129,11 +129,6 @@ public class CounterexamplesSummary implements Statistics {
     return Pair.of(result, resultOther);
   }
 
-
-  public Multiset<AutomatonInternalState> getFeasibleReachedAcceptingStates() {
-    return feasibleReachedAcceptingStates;
-  }
-
   public ImmutableMultiset<Property> getFeasiblePropertyViolations() {
     return ImmutableMultiset.<Property>copyOf(feasibleCexFor);
   }
@@ -356,33 +351,9 @@ public class CounterexamplesSummary implements Statistics {
     return "Counterexamples";
   }
 
-  public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {
-
-    for (AutomatonState ee: Iterables.filter(AbstractStates.extractsActiveTargets(pTargetState), AutomatonState.class)) {
-      AutomatonState qe = (AutomatonState) ee;
-      for (Property prop: qe.getViolatedProperties()) {
-        infeasibleCexFor.add(prop);
-      }
-    }
-
-    // Collect coverage information
-    if (pPath != null) {
-      for (CFAEdge t: pPath.getInnerEdges()) {
-        if (t != null) {
-          CoverageData cd = CoverageCPA.getCoverageData();
-          if (cd != null) {
-            CoverageCPA.getCoverageData().handleEdgeCoverage(t, CoverageCountMode.ONINFEASIBLE_PATH);
-          }
-        }
-      }
-    }
-
-  }
-
   public void signalPropertyDisabled(Property pProperty) {
     disabledProperties.add(pProperty);
   }
-
 
   public ImmutableSet<Property> getDisabledProperties() {
     return ImmutableSet.copyOf(disabledProperties);
