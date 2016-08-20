@@ -872,6 +872,9 @@ public final class InterpolationManager {
         formulasWithStatesAndGroupdIds = new ArrayList<>(Collections.<Triple<BooleanFormula, AbstractState, T>>nCopies(f.size(), null));
 
         // ask solver for satisfiability
+        Preconditions.checkState(orderedFormulas.size() > 0,
+            "List of formulas for SAT check must not be empty!");
+
         spurious = checkInfeasabilityOfTrace(orderedFormulas, formulasWithStatesAndGroupdIds);
         assert formulasWithStatesAndGroupdIds.size() == f.size();
         assert !formulasWithStatesAndGroupdIds.contains(null); // has to be filled completely
