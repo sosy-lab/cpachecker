@@ -28,31 +28,31 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
 
 public class GuardedState {
 
-  private NondeterministicFiniteAutomaton.State mState;
+  private NFA.State mState;
   private Set<ECPGuard> mGuards;
 
-  public GuardedState(NondeterministicFiniteAutomaton.State pCurrentState) {
+  public GuardedState(NFA.State pCurrentState) {
     mState = pCurrentState;
     mGuards = Collections.emptySet();
   }
 
-  public GuardedState(NondeterministicFiniteAutomaton.State pState, Set<ECPGuard> pGuards) {
+  public GuardedState(NFA.State pState, Set<ECPGuard> pGuards) {
     mState = pState;
     mGuards = pGuards;
   }
 
-  public GuardedState(NondeterministicFiniteAutomaton.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
+  public GuardedState(NFA.State pState, GuardedState pPreceedingState, Set<ECPGuard> pGuards) {
     mState = pState;
     mGuards = new HashSet<>();
     mGuards.addAll(pPreceedingState.mGuards);
     mGuards.addAll(pGuards);
   }
 
-  public NondeterministicFiniteAutomaton.State getState() {
+  public NFA.State getState() {
     return mState;
   }
 

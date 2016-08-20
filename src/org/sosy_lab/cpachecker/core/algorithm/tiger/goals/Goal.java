@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -57,17 +56,15 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
+import org.sosy_lab.cpachecker.util.automaton.NFA.State;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
@@ -75,11 +72,11 @@ public class Goal implements SafetyProperty {
 
   private final int mIndex;
   private final ElementaryCoveragePattern mPattern;
-  private final NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
+  private final NFA<GuardedEdgeLabel> mAutomaton;
   @Nullable private Automaton mCheckedWithAutomaton;
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern,
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+      NFA<GuardedEdgeLabel> pAutomaton) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
@@ -93,7 +90,7 @@ public class Goal implements SafetyProperty {
     return mPattern;
   }
 
-  public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
+  public NFA<GuardedEdgeLabel> getAutomaton() {
     return mAutomaton;
   }
 
@@ -331,7 +328,7 @@ public class Goal implements SafetyProperty {
   }
 
   /**
-   * Converts the NondeterministicFiniteAutomaton<GuardedEdgeLabel>
+   * Converts the NFA<GuardedEdgeLabel>
    *    into a ControlAutomaton
    *
    * @return  A control automaton
@@ -358,7 +355,7 @@ public class Goal implements SafetyProperty {
       final List<AutomatonTransition> transitions = Lists.newArrayList();
       final List<AutomatonTransition> stutterTransitions = Lists.newArrayList();
 
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t : mAutomaton.getOutgoingEdges(q)) {
+      for (NFA<GuardedEdgeLabel>.Edge t : mAutomaton.getOutgoingEdges(q)) {
 
         final String sucessorStateName = Integer.toString(t.getTarget().ID);
         final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
@@ -432,7 +429,7 @@ public class Goal implements SafetyProperty {
     }
   }
 
-  private boolean isMatchAnythingTransition(NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge pT) {
+  private boolean isMatchAnythingTransition(NFA<GuardedEdgeLabel>.Edge pT) {
     // TODO: This is a hack because we have not yet a better way if all edges get matched.
     if (pT.getLabel() instanceof InverseGuardedEdgeLabel) {
       return false;

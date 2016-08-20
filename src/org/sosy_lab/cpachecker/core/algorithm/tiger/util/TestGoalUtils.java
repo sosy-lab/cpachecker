@@ -26,22 +26,17 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.AllCFAEdgesGuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
+import org.sosy_lab.cpachecker.util.automaton.NFA.State;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -131,7 +126,7 @@ public class TestGoalUtils {
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel,
       boolean pUseAutomatonOptimization, boolean pUseOmegaLabel, boolean pRemoveFeaturesAsTestGoals) {
 
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
+    NFA<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
             pOmegaLabel, pUseOmegaLabel);
 
@@ -145,9 +140,9 @@ public class TestGoalUtils {
     return new Goal(pIndex, pGoalPattern, automaton);
   }
 
-  private static boolean isFeatureAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+  private static boolean isFeatureAutomaton(NFA<GuardedEdgeLabel> pAutomaton) {
     for (State state : pAutomaton.getStates()) {
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton
+      for (NFA<GuardedEdgeLabel>.Edge edge : pAutomaton
           .getIncomingEdges(state)) {
         String label = edge.getLabel().toString();
         if (label.contains("__SELECTED_FEATURE_")) { return true; }

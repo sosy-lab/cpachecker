@@ -62,7 +62,7 @@ public class GoalReordering {
       //lGoalWeight = Integer.MAX_VALUE;
       lGoalWeight = 0;
 
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : lGoal.getAutomaton().getEdges()) {
+      for (NFA<GuardedEdgeLabel>.Edge lEdge : lGoal.getAutomaton().getEdges()) {
         GuardedEdgeLabel lLabel = lEdge.getLabel();
 
         if (lLabel.getClass().equals(GuardedEdgeLabel.class)) {

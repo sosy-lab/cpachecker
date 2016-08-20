@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
+import org.sosy_lab.cpachecker.util.automaton.NFA.State;
 import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.ARGPathWithPresenceConditions.ForwardPathIteratorWithPresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.PathReplayEngine;
@@ -275,8 +275,8 @@ public class TestGeneration implements Statistics {
   private class AcceptStatus {
 
     private Goal goal;
-    private NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton;
-    private Set<NondeterministicFiniteAutomaton.State> currentStates;
+    private NFA<GuardedEdgeLabel> automaton;
+    private Set<NFA.State> currentStates;
     boolean hasPredicates;
     private ThreeValuedAnswer answer;
 
@@ -329,15 +329,9 @@ public class TestGeneration implements Statistics {
       Set<Goal> checkCoverageOf = new HashSet<>();
       checkCoverageOf.addAll(pCheckCoverageOf);
 
-      Set<Goal> coveredGoals = Sets.newLinkedHashSet();
-      Set<Goal> goalsCoveredByLastState = Sets.newLinkedHashSet();
-
-      ARGState lastState = pTestcase.getArgPath().getLastState();
-
-      for (Property p : lastState.getViolatedProperties()) {
-        Preconditions.checkState(p instanceof Goal);
-        goalsCoveredByLastState.add((Goal) p);
-      }
+      final ARGState lastState = pTestcase.getArgPath().getLastState();
+      final Set<Goal> goalsCoveredByLastState = ImmutableSet.copyOf(AbstractStates
+          .extractViolatedProperties(lastState, Goal.class));
 
       checkCoverageOf.removeAll(goalsCoveredByLastState);
 
@@ -349,8 +343,10 @@ public class TestGeneration implements Statistics {
         }
       }
 
-      Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, AcceptStatus> acceptStati =
+      Map<NFA<GuardedEdgeLabel>, AcceptStatus> acceptStati =
           accepts(checkCoverageOf, pTestcase.getErrorPath());
+
+      Set<Goal> coveredGoals = Sets.newLinkedHashSet();
 
       for (Goal goal : goalsCoveredByLastState) {
         AcceptStatus acceptStatus = new AcceptStatus(goal);
@@ -358,14 +354,12 @@ public class TestGeneration implements Statistics {
         acceptStati.put(goal.getAutomaton(), acceptStatus);
       }
 
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton : acceptStati.keySet()) {
-        AcceptStatus acceptStatus = acceptStati.get(automaton);
-        Goal goal = acceptStatus.goal;
+      for (NFA<GuardedEdgeLabel> automaton : acceptStati.keySet()) {
+        final AcceptStatus acceptStatus = acceptStati.get(automaton);
+        final Goal goal = acceptStatus.goal;
 
         if (acceptStatus.answer.equals(ThreeValuedAnswer.UNKNOWN)) {
-          logger.logf(Level.WARNING,
-              "Coverage check for goal %d could not be performed in a precise way!",
-              goal.getIndex());
+          logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goal.getIndex());
           continue;
         } else if (acceptStatus.answer.equals(ThreeValuedAnswer.REJECT)) {
           continue;
@@ -373,7 +367,6 @@ public class TestGeneration implements Statistics {
 
         // test goal is already covered by an existing test case
         if (cfg.useTigerAlgorithm_with_pc) {
-
           Pair<ARGState, PresenceCondition> critical = findStateAfterCriticalEdge(goal, pArgPath);
           if (critical == null) {
             throw new RuntimeException(String.format(
@@ -424,56 +417,56 @@ public class TestGeneration implements Statistics {
     return PresenceConditions.manager();
   }
 
-  private Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, AcceptStatus> accepts(
-      Collection<Goal> pGoals, List<CFAEdge> pErrorPath) {
+  private Map<NFA<GuardedEdgeLabel>, AcceptStatus> accepts(Collection<Goal> pGoals, List<CFAEdge> pErrorPath) {
+
+    final Map<NFA<GuardedEdgeLabel>, AcceptStatus> result = Maps.newHashMap();
 
     try (StatCpuTimer t = stats.acceptsTime.start()) {
-      Map<NondeterministicFiniteAutomaton<GuardedEdgeLabel>, AcceptStatus> map = new HashMap<>();
-      Set<NondeterministicFiniteAutomaton.State> lNextStates = Sets.newLinkedHashSet();
 
-      Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automataWithResult = new HashSet<>();
+      Set<NFA<GuardedEdgeLabel>> automataWithResult = Sets.newHashSet();
 
       for (Goal goal : pGoals) {
-        AcceptStatus acceptStatus = new AcceptStatus(goal);
-        map.put(goal.getAutomaton(), acceptStatus);
-        if (acceptStatus.automaton.getFinalStates()
-            .contains(acceptStatus.automaton.getInitialState())) {
+        final AcceptStatus acceptStatus = new AcceptStatus(goal);
+        result.put(goal.getAutomaton(), acceptStatus);
+
+        if (acceptStatus.automaton.getFinalStates().contains(acceptStatus.automaton.getInitialState())) {
           acceptStatus.answer = ThreeValuedAnswer.ACCEPT;
           automataWithResult.add(acceptStatus.automaton);
         }
       }
 
-      for (CFAEdge lCFAEdge : pErrorPath) {
-        List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> automata = testsuite.getTGAForEdge(lCFAEdge);
-        if (automata == null) {
+      for (CFAEdge cfaEdge : pErrorPath) {
+        List<NFA<GuardedEdgeLabel>> relevantTGAs = testsuite.getTGAForEdge(cfaEdge);
+        if (relevantTGAs == null) {
           continue;
         }
 
-        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton : automata) {
+        for (NFA<GuardedEdgeLabel> automaton : relevantTGAs) {
           if (automataWithResult.contains(automaton)) {
             continue;
           }
 
-          AcceptStatus acceptStatus = map.get(automaton);
+          AcceptStatus acceptStatus = result.get(automaton);
           if (acceptStatus == null) {
             continue;
           }
-          for (NondeterministicFiniteAutomaton.State lCurrentState : acceptStatus.currentStates) {
-            for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : automaton
-                .getOutgoingEdges(lCurrentState)) {
-              GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
 
-              if (lLabel.hasGuards()) {
+          Set<NFA.State> succStates = Sets.newLinkedHashSet();
+
+          for (NFA.State automatonState : acceptStatus.currentStates) {
+            for (NFA<GuardedEdgeLabel>.Edge outgoingTrans : automaton.getOutgoingEdges(automatonState)) {
+              final GuardedEdgeLabel transLabel = outgoingTrans.getLabel();
+
+              if (transLabel.hasGuards()) {
                 acceptStatus.hasPredicates = true;
               } else {
-                if (lLabel.contains(lCFAEdge)) {
-                  lNextStates.add(lOutgoingEdge.getTarget());
-                  lNextStates.addAll(
-                      getSuccsessorsOfEmptyTransitions(automaton, lOutgoingEdge.getTarget()));
+                if (transLabel.contains(cfaEdge)) {
+                  succStates.add(outgoingTrans.getTarget());
+                  succStates.addAll(getSuccsessorsOfEmptyTransitions(automaton, outgoingTrans.getTarget()));
 
-                  for (State nextState : lNextStates) {
+                  for (State succ : succStates) {
                     // Automaton accepts as soon as it sees a final state (implicit self-loop)
-                    if (automaton.getFinalStates().contains(nextState)) {
+                    if (automaton.getFinalStates().contains(succ)) {
                       acceptStatus.answer = ThreeValuedAnswer.ACCEPT;
                       automataWithResult.add(automaton);
                     }
@@ -483,32 +476,32 @@ public class TestGeneration implements Statistics {
             }
           }
 
-          acceptStatus.currentStates.addAll(lNextStates);
-          lNextStates.clear();
+          acceptStatus.currentStates.clear();
+          acceptStatus.currentStates.addAll(succStates);
         }
       }
 
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel> autom : map.keySet()) {
+      for (NFA<GuardedEdgeLabel> autom : result.keySet()) {
         if (automataWithResult.contains(autom)) {
           continue;
         }
 
-        AcceptStatus accepts = map.get(autom);
+        AcceptStatus accepts = result.get(autom);
         if (accepts.hasPredicates) {
           accepts.answer = ThreeValuedAnswer.UNKNOWN;
         } else {
           accepts.answer = ThreeValuedAnswer.REJECT;
         }
       }
-
-      return map;
     }
+
+    return result;
   }
 
   private static Collection<? extends State> getSuccsessorsOfEmptyTransitions(
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, State pState) {
+      NFA<GuardedEdgeLabel> pAutomaton, State pState) {
     Set<State> states = new HashSet<>();
-    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton
+    for (NFA<GuardedEdgeLabel>.Edge edge : pAutomaton
         .getOutgoingEdges(pState)) {
       GuardedEdgeLabel label = edge.getLabel();
       if (Pattern.matches("E\\d+ \\[\\]", label.toString())) {

@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class NondeterministicFiniteAutomaton<T> {
+public class NFA<T> {
 
   public static class State {
 
@@ -45,9 +45,9 @@ public class NondeterministicFiniteAutomaton<T> {
 
     private static class StateIterable implements Iterable<State> {
 
-      private final NondeterministicFiniteAutomaton<?> mAutomaton;
+      private final NFA<?> mAutomaton;
 
-      public StateIterable(NondeterministicFiniteAutomaton<?> pAutomaton) {
+      public StateIterable(NFA<?> pAutomaton) {
         mAutomaton = pAutomaton;
       }
 
@@ -98,7 +98,7 @@ public class NondeterministicFiniteAutomaton<T> {
       mPool = new ArrayList<>();
     }
 
-    public State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
+    public State get(NFA<?> pAutomaton) {
       State lState;
 
       if (pAutomaton.mStatesCounter == mPool.size()) {
@@ -183,7 +183,7 @@ public class NondeterministicFiniteAutomaton<T> {
   private int mStatesCounter;
   private final StatePool.StateIterable mStateIterable;
 
-  public NondeterministicFiniteAutomaton() {
+  public NFA() {
     mStateIterable = new StatePool.StateIterable(this);
 
     mFinalStates = new HashSet<>();
@@ -262,8 +262,8 @@ public class NondeterministicFiniteAutomaton<T> {
     return mIncomingEdges.get(pState.ID);
   }
 
-  public NondeterministicFiniteAutomaton<T> getLambdaFreeAutomaton() {
-    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<>();
+  public NFA<T> getLambdaFreeAutomaton() {
+    NFA<T> lLambdaFreeAutomaton = new NFA<>();
 
     // mStatesCounter - 1 because the initial state of lLambdaFreeAutomaton
     // exists already

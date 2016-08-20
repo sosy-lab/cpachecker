@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedE
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestStep.VariableAssignment;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
 import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
@@ -75,7 +75,7 @@ public class TestSuite implements AlgorithmResult {
   private final Map<Goal, PresenceCondition> infeasiblePresenceConditions;
   private final Map<Integer, Pair<Goal, PresenceCondition>> timedOutPresenceCondition;
 
-  private final ImmutableMap<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> edgeToTgaMapping;
+  private final ImmutableMap<CFAEdge, List<NFA<GuardedEdgeLabel>>> edgeToTgaMapping;
 
   public TestSuite(Set<Goal> pGoalsToCover, boolean pPrintLabels, boolean pUseTigerAlgorithm_with_pc) {
     mapping = new HashMap<>();
@@ -108,18 +108,18 @@ public class TestSuite implements AlgorithmResult {
     return Sets.difference(testGoals, Sets.union(feasibleGoals, infeasibleGoals));
   }
 
-  private ImmutableMap<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> createEdgeToTgaMapping(Set<Goal> pGoalsToCover) {
-    final Map<CFAEdge, List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>>> result = Maps.newHashMap();
+  private ImmutableMap<CFAEdge, List<NFA<GuardedEdgeLabel>>> createEdgeToTgaMapping(Set<Goal> pGoalsToCover) {
+    final Map<CFAEdge, List<NFA<GuardedEdgeLabel>>> result = Maps.newHashMap();
     for (Goal goal : pGoalsToCover) {
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton = goal.getAutomaton();
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : automaton.getEdges()) {
+      NFA<GuardedEdgeLabel> automaton = goal.getAutomaton();
+      for (NFA<GuardedEdgeLabel>.Edge edge : automaton.getEdges()) {
         if (edge.getSource().equals(edge.getTarget())) {
           continue;
         }
 
         GuardedEdgeLabel label = edge.getLabel();
         for (CFAEdge e : label.getEdgeSet()) {
-          List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> tgaSet = result.get(e);
+          List<NFA<GuardedEdgeLabel>> tgaSet = result.get(e);
 
           if (tgaSet == null) {
             tgaSet = new ArrayList<>();
@@ -524,7 +524,7 @@ public class TestSuite implements AlgorithmResult {
     return testGoals.size();
   }
 
-  public List<NondeterministicFiniteAutomaton<GuardedEdgeLabel>> getTGAForEdge(CFAEdge pLCFAEdge) {
+  public List<NFA<GuardedEdgeLabel>> getTGAForEdge(CFAEdge pLCFAEdge) {
     return edgeToTgaMapping.get(pLCFAEdge);
   }
 }

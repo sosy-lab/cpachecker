@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
 
 
 public class FQLSpecificationUtil {
@@ -43,25 +43,25 @@ public class FQLSpecificationUtil {
     return lFQLSpecification;
   }
 
-  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> optimizeAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, boolean pUseAutomatonOptimization) {
+  public static NFA<GuardedEdgeLabel> optimizeAutomaton(NFA<GuardedEdgeLabel> pAutomaton, boolean pUseAutomatonOptimization) {
     if (pUseAutomatonOptimization) {
       // TODO: fix for condition coverage
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(pAutomaton);
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeEmptySelfLoops(lGoalAutomaton3);
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton4);
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton5);
-//      NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton7 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton6);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(pAutomaton);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeDeadEnds(pAutomaton);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton2);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeEmptySelfLoops(lGoalAutomaton3);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton4);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton5);
+//      NFA<GuardedEdgeLabel> lGoalAutomaton7 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton6);
 
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeEmptySelfLoops(pAutomaton);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeNotMainSelfLoop(lGoalAutomaton1);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lGoalAutomaton2);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton3);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton4);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton5);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton7 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton6);
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lGoalAutomaton8 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton7);
+    NFA<GuardedEdgeLabel> lGoalAutomaton1 = ToGuardedAutomatonTranslator.removeEmptySelfLoops(pAutomaton);
+    NFA<GuardedEdgeLabel> lGoalAutomaton2 = ToGuardedAutomatonTranslator.removeNotMainSelfLoop(lGoalAutomaton1);
+    NFA<GuardedEdgeLabel> lGoalAutomaton3 = ToGuardedAutomatonTranslator.removeInfeasibleTransitions(lGoalAutomaton2);
+    NFA<GuardedEdgeLabel> lGoalAutomaton4 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton3);
+    NFA<GuardedEdgeLabel> lGoalAutomaton5 = ToGuardedAutomatonTranslator.reduceEdgeSets(lGoalAutomaton4);
+    NFA<GuardedEdgeLabel> lGoalAutomaton6 = ToGuardedAutomatonTranslator.removeDeadEnds(lGoalAutomaton5);
+    NFA<GuardedEdgeLabel> lGoalAutomaton7 = ToGuardedAutomatonTranslator.removeRedundantEdges(lGoalAutomaton6);
+    NFA<GuardedEdgeLabel> lGoalAutomaton8 = ToGuardedAutomatonTranslator.removeSingleStutterEdges(lGoalAutomaton7);
 
       return lGoalAutomaton8;
     }

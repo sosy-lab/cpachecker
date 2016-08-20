@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
@@ -78,6 +79,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -240,8 +242,15 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
           if (eliminated) {
             logger.logf(Level.INFO, "Spurious CEX for: %s", targetProperties);
           } else {
+            final List<CFAEdge> cexEdges = targetState.getCounterexampleInformation().get()
+                .getTargetPath()
+                .getInnerEdges();
+            final CFAEdge lastEdge = Iterables.getLast(cexEdges);
+            final int cexPathLen = cexEdges.size();
+
             TargetSummary targetSummary = testificationOp.testify(pReached, targetState);
-            logger.logf(Level.INFO, "Feasible CEX for %s. Testified for %s", targetProperties, targetSummary);
+            logger.logf(Level.INFO, "Feasible CEX for %s in line %d, len %d. Testified for %s",
+                targetProperties, lastEdge.getLineNumber(), cexPathLen, targetSummary);
             if (targetSummary.getViolatedProperties().size() > 0) {
               result.addFeasibleTarget(targetState, targetSummary);
             }

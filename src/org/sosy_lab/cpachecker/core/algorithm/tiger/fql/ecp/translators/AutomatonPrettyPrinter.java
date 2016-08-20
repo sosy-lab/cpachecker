@@ -30,17 +30,17 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NFA;
 
 public class AutomatonPrettyPrinter {
 
-  public static String print(NondeterministicFiniteAutomaton<? extends GuardedLabel> pAutomaton) {
+  public static String print(NFA<? extends GuardedLabel> pAutomaton) {
     AutomatonPrettyPrinter lPrettyPrinter = new AutomatonPrettyPrinter();
 
     return lPrettyPrinter.printPretty(pAutomaton);
   }
 
-  private Map<NondeterministicFiniteAutomaton.State, String> mStateIds;
+  private Map<NFA.State, String> mStateIds;
   private Map<ECPEdgeSet, String> mEdgeSetIds;
   private Map<ECPNodeSet, String> mNodeSetIds;
   private Visitor mVisitor;
@@ -52,7 +52,7 @@ public class AutomatonPrettyPrinter {
     mVisitor = new Visitor();
   }
 
-  private String getId(NondeterministicFiniteAutomaton.State pState) {
+  private String getId(NFA.State pState) {
     if (!mStateIds.containsKey(pState)) {
       mStateIds.put(pState, "S" + mStateIds.size());
     }
@@ -76,21 +76,21 @@ public class AutomatonPrettyPrinter {
     return mNodeSetIds.get(pNodeSet);
   }
 
-  public String printPretty(NondeterministicFiniteAutomaton<? extends GuardedLabel>.Edge pEdge) {
+  public String printPretty(NFA<? extends GuardedLabel>.Edge pEdge) {
     return printPretty(pEdge.getSource()) + " -[" + pEdge.getLabel().accept(mVisitor) + "]> " + printPretty(pEdge.getTarget());
   }
 
-  public String printPretty(NondeterministicFiniteAutomaton.State pState) {
+  public String printPretty(NFA.State pState) {
     return getId(pState);
   }
 
-  public String printPretty(NondeterministicFiniteAutomaton<? extends GuardedLabel> pAutomaton) {
+  public String printPretty(NFA<? extends GuardedLabel> pAutomaton) {
     StringBuffer lBuffer = new StringBuffer();
 
     boolean lIsFirst = true;
 
     lBuffer.append("States: {");
-    for (NondeterministicFiniteAutomaton.State lState : pAutomaton.getStates()) {
+    for (NFA.State lState : pAutomaton.getStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -109,7 +109,7 @@ public class AutomatonPrettyPrinter {
 
     lIsFirst = true;
 
-    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+    for (NFA.State lFinalState : pAutomaton.getFinalStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -124,7 +124,7 @@ public class AutomatonPrettyPrinter {
 
     StringBuffer lTmpBuffer = new StringBuffer();
 
-    for (NondeterministicFiniteAutomaton<? extends GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
+    for (NFA<? extends GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
       //lTmpBuffer.append(getId(lEdge.getSource()) + " -[" + lEdge.getLabel().accept(mVisitor) + "]> " + getId(lEdge.getTarget()));
       lTmpBuffer.append(printPretty(lEdge));
       lTmpBuffer.append("\n");
