@@ -238,7 +238,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
           }
 
           if (eliminated) {
-            logger.logf(Level.INFO, "Spurious CEX for: " + targetProperties);
+            logger.logf(Level.INFO, "Spurious CEX for: %s", targetProperties);
           } else {
             TargetSummary targetSummary = testificationOp.testify(pReached, targetState);
             logger.logf(Level.INFO, "Feasible CEX for %s. Testified for %s", targetProperties, targetSummary);
@@ -250,6 +250,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
           lastTargetState = chooseTarget(pReached);
         }
 
+        logger.logf(Level.INFO, "Running %s", algorithm.getClass().getSimpleName());
         status = status.update(algorithm.run(pReached));
         lastTargetState = chooseTarget(pReached);
 
@@ -352,7 +353,8 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
           final int targetCandidatesAfterRefinement = filterForTargetCandidates(pReached).size();
           final int removedTargets = targetCandidatesBeforeRefinement -
               targetCandidatesAfterRefinement;
-          stats.endWithInfeasible(pReached, target, removedTargets);
+          final boolean allCandidatesEliminated = (targetCandidatesAfterRefinement == 0);
+          stats.endWithInfeasible(pReached, target, removedTargets, allCandidatesEliminated);
         } else {
           feasibleStateIds.add(target.getStateId());
           stats.endWithFeasible(pReached, target);

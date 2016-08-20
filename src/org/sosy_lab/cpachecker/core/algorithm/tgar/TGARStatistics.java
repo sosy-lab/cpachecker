@@ -89,6 +89,8 @@ public class TGARStatistics extends AbstractStatistics {
 
   int maxRemovedTargets = 0;
   int totalRemovedTargets = 0;
+  int timesAllTargetCandidatesRemoved = 0;
+  int timesNotAllTargetCandidatesRemoved = 0;
 
   volatile int sizeOfReachedSetBeforeRefinement = 0;
 
@@ -163,6 +165,8 @@ public class TGARStatistics extends AbstractStatistics {
 
       put(out, "Max. removed targets", maxRemovedTargets);
       put(out, "Avg. removed targets", totalRemovedTargets / countRefinements);
+      put(out, "Times all target candidates removed", timesAllTargetCandidatesRemoved);
+      put(out, "Times not all target candidates removed", timesNotAllTargetCandidatesRemoved);
     }
   }
 
@@ -187,7 +191,7 @@ public class TGARStatistics extends AbstractStatistics {
   void endWithInfeasible(
       ReachedSet pReachedSetAfterRefine,
       ARGState pTargetState,
-      int pRemovedTargets) {
+      int pRemovedTargets, boolean pAllCandidatesEliminated) {
     countSuccessfulRefinements++;
     totalReachedSizeAfterRefinement += pReachedSetAfterRefine.size();
     maxReachedSizeAfterRefinement = Math.max(maxReachedSizeAfterRefinement, pReachedSetAfterRefine.size());
@@ -195,6 +199,11 @@ public class TGARStatistics extends AbstractStatistics {
     timesInfeasible.addAll(pTargetState.getViolatedProperties());
     maxRemovedTargets = Math.max(maxRemovedTargets, pRemovedTargets);
     totalRemovedTargets = totalRemovedTargets + maxRemovedTargets;
+    if (pAllCandidatesEliminated) {
+      timesAllTargetCandidatesRemoved++;
+    } else {
+      timesNotAllTargetCandidatesRemoved++;
+    }
   }
 
 }
