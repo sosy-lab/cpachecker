@@ -44,17 +44,17 @@ public class BreakOnTargetsPrecisionAdjustment extends WrappingPrecisionAdjustme
   /**
    * the counter for targets found so far
    */
-  private int foundTargetCounter      = 0;
+  static private int foundTargetCounter      = 0;
 
   /**
    * the counter for iterations since the first target found
    */
-  private int extraIterations         = 0;
+  static private int extraIterations         = 0;
 
   /**
    * the size of the reached set in the previous call to {@link #prec}.
    */
-  private int previousReachedSetSize  = 0;
+  static private int previousReachedSetSize  = 0;
 
   /**
    * the predefined limit determining at which number of found target states the analysis should receive a signal of
@@ -134,6 +134,7 @@ public class BreakOnTargetsPrecisionAdjustment extends WrappingPrecisionAdjustme
       foundTargetCounter++;
 
       if (foundTargetLimitReached()) {
+        resetCounters();
         return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
       }
     }
