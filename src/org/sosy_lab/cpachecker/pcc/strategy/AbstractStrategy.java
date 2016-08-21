@@ -97,6 +97,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.max(1, numThreads);
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
+    logger.log(Level.INFO, "PCC approaches may use up to ", numThreads, " concurrent threads.");
     proofInfo = new ProofStatesInfoCollector(pConfig);
     genStats = new PCGenerationStatistics();
     stats = new PCStrategyStatistics(proofFile);
