@@ -73,6 +73,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -146,42 +147,57 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, cfa.getMachineModel());
   }
 
+  private boolean checkBaseCases(
+      CFANode pStartLocation,
+      ImmutableSet<CFANode> pErrorLocations,
+      ReachedSet pReachedSet,
+      ProverEnvironment pProver)
+      throws CPATransferException, CPAException, InterruptedException, SolverException {
+
+    // For trivially-safe tasks, no further effort is required
+    if (pErrorLocations.isEmpty()) {
+      return false;
+    }
+
+    // Check for 0-step counterexample
+    for (CFANode errorLocation : pErrorLocations) {
+      if (pStartLocation.equals(errorLocation)) {
+        logger.log(Level.INFO, "Found errorpath: 0-step counterexample.");
+        return false;
+      }
+    }
+
+    // Check for 1-step counterexamples
+    for (Block block : backwardTransition.getBlocksTo(pErrorLocations, IS_MAIN_ENTRY)) {
+      pProver.push(block.getFormula());
+      if (!pProver.isUnsat()) {
+        logger.log(
+            Level.INFO,
+            "Found errorpath: 1-step counterexample.",
+            " \nTransition : \n",
+            block.getFormula());
+        analyzeCounterexample(Collections.singletonList(block), pReachedSet);
+        return false;
+      }
+
+      pProver.pop();
+    }
+    return true;
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
     CFANode startLocation = cfa.getMainFunction();
     ImmutableSet<CFANode> errorLocations =
         FluentIterable.from(pReachedSet).transform(AbstractStates.EXTRACT_LOCATION).toSet();
-
-    // For trivially-safe tasks, no further effort is required
-    if (errorLocations.isEmpty()) {
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    }
-
     pReachedSet.clear();
 
     // Utility prover environment that will be reused for small tests
     try (ProverEnvironment reusedProver =
         solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-      // Check for 0-step counterexample
-      for (CFANode errorLocation : errorLocations) {
-        if (startLocation.equals(errorLocation)) {
-          logger.log(Level.INFO, "Found errorpath: 0-step counterexample.");
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-      }
-
-      // Check for 1-step counterexamples
-      for (Block block : backwardTransition.getBlocksTo(errorLocations, IS_MAIN_ENTRY)) {
-        reusedProver.push(block.getFormula());
-        if (!reusedProver.isUnsat()) {
-          logger.log(Level.INFO, "Found errorpath: 1-step counterexample.", " \nTransition : \n", block.getFormula());
-          analyzeCounterexample(Collections.singletonList(block), pReachedSet);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-
-        reusedProver.pop();
+      if (!checkBaseCases(startLocation, errorLocations, pReachedSet, reusedProver)) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
       frameSet = new DynamicFrameSet(startLocation, fmgr, backwardTransition);
@@ -228,18 +244,21 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         try (ProverEnvironment prover =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-          boolean isCurrentPathStillSatisfiable = true;
+          boolean isTransitionStillPossible = true;
 
           /*
            * Try to block states until the transition from current error predecessor to error
            * location is longer possible.
            */
-          while (isCurrentPathStillSatisfiable) {
+          while (isTransitionStillPossible) {
+
+            int numberPushes = 0;
 
             // Push frame states of error predecessor location.
             for (BooleanFormula frameState :
                 frameSet.getStatesForLocation(errorPredecessor, frameSet.getMaxLevel())) {
               prover.push(fmgr.instantiate(frameState, block.getUnprimedContext().getSsa()));
+              numberPushes++;
             }
 
             // Push transition from error predecessor to corresponding error location.
@@ -249,7 +268,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             // Transition is still possible. Get state from model and try to block it.
             if (!prover.isUnsat()) {
               Model model = prover.getModel();
-              logger.log(Level.INFO, "Generating satisfying assignment for predecessor of bad state in strengthen().");
+              logger.log(Level.INFO, "Generating predecessor of bad state in strengthen().");
               BooleanFormula toBeBlocked =
                   getAbstractedSatisfyingState(model, block.getUnprimedContext());
               if (!backwardblock(errorPredecessor, toBeBlocked)) {
@@ -260,7 +279,10 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
                *  Transition from current predecessor location to error location is no longer possible.
                *  Continue with next one.
                */
-              isCurrentPathStillSatisfiable = false;
+              isTransitionStillPossible = false;
+            }
+            for (int i = 0; i < numberPushes; ++i) { // Pop frame states
+              prover.pop();
             }
             shutdownNotifier.shutdownIfNecessary();
           }
@@ -270,7 +292,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  // TODO Predicate abstraction
+  // TODO Predicate abstraction, no need for instantiation ?!
   /** Extract values for all variables to build formula for blocking. */
   private BooleanFormula getAbstractedSatisfyingState(Model pModel, PathFormula pUnprimedContext) {
     BooleanFormula toBeBlocked = bfmgr.makeTrue();
@@ -298,7 +320,6 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   private boolean backwardblock(CFANode pErrorPredLocation, BooleanFormula pState)
       throws SolverException, InterruptedException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
-    logger.log(Level.INFO, "Entering backwardblock.");
     PriorityQueue<ProofObligation> proofObligationQueue = new PriorityQueue<>();
     proofObligationQueue.offer(
         new ProofObligation(frameSet.getMaxLevel(), pErrorPredLocation, pState));
@@ -307,6 +328,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     while (!proofObligationQueue.isEmpty()) {
       ProofObligation p =
           proofObligationQueue.poll(); // Inspect proof obligation with lowest frame level.
+      logger.log(Level.INFO, "Current obligation : ", p);
 
       // Frame level 0 implies that the program start location is reached. Thus a counterexample is found.
       if (p.getFrameLevel() == 0) {
@@ -361,8 +383,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             proofObligationQueue.offer(
                 new ProofObligation(p.getFrameLevel() - 1, predLocation, predState, p));
             proofObligationQueue.offer(p); // TODO add cause ?
-            logger.log(Level.INFO, "Generating satisfying assignment for predecessor of bad state in backwardblock()."
-                , " -- Length of queue is : ", proofObligationQueue.size());
+            logger.log(Level.INFO, "Generating predecessor of bad state in backwardblock().");
+            logger.log(Level.INFO, "Queue : ", proofObligationQueue);
           } else {
             // The consecution check succeeded. The state can't be reached and may therefore be blocked.
 
@@ -370,11 +392,25 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
              *  TODO Maybe refine predicates here if abstract state leads to error and the concrete one does not.
              *  The NEGATED state must be generalized and added!
              */
-            logger.log(Level.INFO, "Blocking state.");
-            BooleanFormula generalizedState = generalize(p.getState(), prover);
+            logger.log(
+                Level.INFO,
+                "Blocking state at location ",
+                p.getLocation(),
+                ", level ",
+                p.getFrameLevel());
+            BooleanFormula generalizedState = generalize(p.getState(), prover.getUnsatCore());
             frameSet.blockState(generalizedState, p.getFrameLevel(), p.getLocation());
+            logger.log(
+                Level.INFO,
+                "Frame",
+                "[",
+                p.getFrameLevel(),
+                ",",
+                p.getLocation(),
+                "]",
+                frameSet.getStatesForLocation(p.getLocation(), p.getFrameLevel()));
           }
-          for(int i = 0; i < numberPushes; ++i) {
+          for (int i = 0; i < numberPushes; ++i) { // Clean prover environment
             prover.pop();
           }
         }
@@ -384,12 +420,12 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * Tries to generalize the given clause by dropping literals that are not needed for the unsatisfiability
-   * of the formulas on the given ProverEnvironment.
+   * Tries to generalize the given clause by dropping literals that don't show up in the unsat core.
    */
-  @SuppressWarnings("unused")
-  private BooleanFormula generalize(BooleanFormula pClause, ProverEnvironment pProver) {
-    return pClause; // TODO implement
+  @SuppressWarnings("unused") // TODO predicate abstraction, remove negation at beginning?
+  private BooleanFormula generalize(BooleanFormula pClause, List<BooleanFormula> pUnsatCore)
+      throws InterruptedException {
+    return pClause; // TODO Implement
   }
 
   /**
@@ -398,13 +434,13 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    */
   private boolean isFrameSetConvergent() {
     for (int currentLevel = 1;
-        currentLevel < frameSet.getMaxLevel();
+        currentLevel <= frameSet.getMaxLevel();
         ++currentLevel) { // TODO bounds ok ?
       Collection<Set<BooleanFormula>> statesAtCurrentLevel =
           frameSet.getStatesForAllLocations(currentLevel).values();
       Collection<Set<BooleanFormula>> statesAtNextLevel =
           frameSet.getStatesForAllLocations(currentLevel + 1).values();
-      if (statesAtCurrentLevel.equals(statesAtNextLevel)) {
+      if (areEqual(statesAtCurrentLevel, statesAtNextLevel)) {
         logger.log(
             Level.INFO,
             "Frames converge at level ",
@@ -416,6 +452,23 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     return false;
+  }
+
+  /** Checks if both collections are equal with respect to the definition of equality for sets. */
+  private static boolean areEqual(
+      Collection<Set<BooleanFormula>> pC1, Collection<Set<BooleanFormula>> pC2) {
+    assert pC1.size() == pC2.size();
+    Iterator<Set<BooleanFormula>> itc1 = pC1.iterator();
+    Iterator<Set<BooleanFormula>> itc2 = pC2.iterator();
+
+    while (itc1.hasNext()) {
+      Set<BooleanFormula> s1 = itc1.next();
+      Set<BooleanFormula> s2 = itc2.next();
+      if (!(s1.containsAll(s2) && s2.containsAll(s1))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
