@@ -242,8 +242,9 @@ public class TerminationLoopInformation {
     resetCfa();
   }
 
-  public CFAEdge createNegatedRankingRelationAssumeEdge(CFANode startNode, CFANode endNode) {
-    return createAssumeEdge(getRankingRelationAsCExpression(), startNode, endNode, false);
+  public CFAEdge createRankingRelationAssumeEdge(
+      CFANode startNode, CFANode endNode, boolean postive) {
+    return createAssumeEdge(getRankingRelationAsCExpression(), startNode, endNode, postive);
   }
 
   public List<CFAEdge> createStemToLoopTransition(CFANode startNode, CFANode endNode) {
@@ -321,7 +322,7 @@ public class TerminationLoopInformation {
 
   public CFAEdge createNegatedRankingRelationAssumeEdgeToTargetNode(CFANode pLoopHead) {
     Preconditions.checkState(targetNode.isPresent());
-    return createNegatedRankingRelationAssumeEdge(pLoopHead, targetNode.get());
+    return createRankingRelationAssumeEdge(pLoopHead, targetNode.get(), false);
   }
 
   private CFANode creatCfaNode(String functionName) {
