@@ -75,7 +75,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -439,11 +438,11 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     for (int currentLevel = 1;
         currentLevel <= frameSet.getMaxLevel();
         ++currentLevel) { // TODO bounds ok ?
-      Collection<Set<BooleanFormula>> statesAtCurrentLevel =
-          frameSet.getStatesForAllLocations(currentLevel).values();
-      Collection<Set<BooleanFormula>> statesAtNextLevel =
-          frameSet.getStatesForAllLocations(currentLevel + 1).values();
-      if (areEqual(statesAtCurrentLevel, statesAtNextLevel)) {
+      Map<CFANode, Set<BooleanFormula>> statesAtCurrentLevel =
+          frameSet.getStatesForAllLocations(currentLevel);
+      Map<CFANode, Set<BooleanFormula>> statesAtNextLevel =
+          frameSet.getStatesForAllLocations(currentLevel + 1);
+      if (statesAtCurrentLevel.equals(statesAtNextLevel)) {
         logger.log(
             Level.INFO,
             "Frames converge at level ",
@@ -455,23 +454,6 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     return false;
-  }
-
-  /** Checks if both collections are equal with respect to the definition of equality for sets. */
-  private static boolean areEqual(
-      Collection<Set<BooleanFormula>> pC1, Collection<Set<BooleanFormula>> pC2) {
-    assert pC1.size() == pC2.size();
-    Iterator<Set<BooleanFormula>> itc1 = pC1.iterator();
-    Iterator<Set<BooleanFormula>> itc2 = pC2.iterator();
-
-    while (itc1.hasNext()) {
-      Set<BooleanFormula> s1 = itc1.next();
-      Set<BooleanFormula> s2 = itc2.next();
-      if (!(s1.containsAll(s2) && s2.containsAll(s1))) {
-        return false;
-      }
-    }
-    return true;
   }
 
   @Override
