@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -170,7 +171,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     this.transferRelation = new AutomatonTransferRelation(this, pLogger, intermediateTargetBeforeInactiveState, options);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig, pLogger);
-    this.mergeOperator = new AutomatonMergeOperator(pConfig, this, automatonDomain, topState);
+    this.mergeOperator = MergeSepOperator.getInstance();
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;

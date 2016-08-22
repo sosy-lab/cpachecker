@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite2.Composite2CPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
@@ -204,7 +205,7 @@ public class CPABuilder {
       compConfigBuilder.setOption("cpa.composite.separateTargetStates", "true");
       Configuration compositeConfig = compConfigBuilder.build();
 
-      CPAFactory compositeCpaFactory = CompositeCPA.factory();
+      CPAFactory compositeCpaFactory = Composite2CPA.factory();
       compositeCpaFactory.setChildren(automataCPAs);
       compositeCpaFactory.setConfiguration(compositeConfig);
       compositeCpaFactory.setLogger(logger);
@@ -369,7 +370,7 @@ public class CPABuilder {
       throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
     }
     if (optionName.equals(CPA_OPTION_NAME)
-        && cpaClass.equals(CompositeCPA.class)
+        && (cpaClass.equals(CompositeCPA.class) || cpaClass.equals(Composite2CPA.class))
         && !hasChildren) {
       // This is the top-level CompositeCPA that is the default,
       // but without any children. This means that the user did not specify any
@@ -478,7 +479,7 @@ public class CPABuilder {
 
     if (childrenCpaNames == null
         && childCpaName == null
-        && cpaAlias.equals("CompositeCPA")
+        && (cpaAlias.equals("CompositeCPA") || cpaAlias.equals("Composite2CPA"))
         && cpas != null && !cpas.isEmpty()) {
       // if a specification was given, but no CPAs, insert a LocationCPA
       childrenCpaNames = LocationCPA.class.getCanonicalName();
