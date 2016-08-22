@@ -7,11 +7,11 @@
 
   <propertyfile>../programs/benchmarks/termination-numeric/ALL.prp</propertyfile>
 
-  <tasks name="Termination-SV-COMP">
+  <tasks>  <!--  name="Termination-SV-COMP" -->
     <includesfile>../programs/benchmarks/Termination.set</includesfile>
   </tasks>
   
-  <!--  
+  <!--
   <tasks name="Termination-Loop-SV-COMP">
     <include>../programs/benchmarks/*loop*/*.i</include>
   </tasks>
@@ -20,7 +20,7 @@
   </tasks>
   -->
 
-  <rundefinition name0="termination-predicate-default">
+  <rundefinition> <!--  name="termination-predicate-default" -->
     <option name="-terminationAnalysis"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -31,8 +31,8 @@
   <columns>
     <column title="time for safety analysis">Total time for safety analysis</column>
     <column title="time for lasso construction">Time for lassos construction</column>
-    <column title="time for non-termiantion analysis">Total time for non-termination analysis</column>
-    <column title="time for termiantion analysis">Total time for termination analysis</column>
+    <column title="time for non-termination analysis">Total time for non-termination analysis</column>
+    <column title="time for termination analysis">Total time for termination analysis</column>
     <column title="lassos">Number of analysed lassos</column>
   </columns>
  
