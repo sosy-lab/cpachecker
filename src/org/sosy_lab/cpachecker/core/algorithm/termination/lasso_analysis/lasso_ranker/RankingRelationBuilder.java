@@ -335,9 +335,9 @@ class RankingRelationBuilder {
 
     } else {
       Term term = pRankVar.getDefinition();
-      if (term instanceof ApplicationTerm) {
+      if (term instanceof ApplicationTerm
+          && !((ApplicationTerm) term).getFunction().isInterpreted()) {
         ApplicationTerm uf = ((ApplicationTerm) term);
-        assert !uf.getFunction().isInterpreted() : uf;
         assert uf.getFunction().getParameterSorts().length == 1 : uf;
         assert uf.getFunction().getName().startsWith("*"); // dereference
 
