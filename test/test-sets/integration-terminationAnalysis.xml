@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="5 GB" cpuCores="2">
-  <option name="-heap">10000M</option>
+  <option name="-heap">4000M</option>
   <option name="-noout"/>
   <option name="-64"/>
 
@@ -17,7 +17,7 @@
     <include>../programs/benchmarks/*/*unknown-termination*.i</include>
   </tasks>
 
-  <rundefinition name="termination-predicate-default">
+  <rundefinition name0="termination-predicate-default">
     <option name="-terminationAnalysis"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
