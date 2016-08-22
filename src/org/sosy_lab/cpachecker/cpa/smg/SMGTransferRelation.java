@@ -564,7 +564,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             allocation_label);
 
         if (zeroingMemoryAllocation.contains(functionName)) {
-          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size),
+          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
               SMGKnownSymValue.ZERO, cfaEdge);
         }
         possibleMallocFail = true;
