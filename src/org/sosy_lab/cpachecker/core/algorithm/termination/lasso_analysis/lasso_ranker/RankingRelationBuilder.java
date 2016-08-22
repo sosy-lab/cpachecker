@@ -149,7 +149,7 @@ class RankingRelationBuilder {
         invariantFormula = fmgr.makeGreaterOrEqual(components.getUnprimedFormula(), zero, true);
       }
 
-      supportingInvariants.add(invariantFormula);
+      supportingInvariants.add(fmgr.uninstantiate(invariantFormula));
     }
 
     return supportingInvariants;
