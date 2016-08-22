@@ -47,6 +47,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * A structure that contains an over-approximation of reachable states for any number of steps
+ * at any location.
+ */
 public class DynamicFrameSet implements FrameSet {
   /*
    * This implementation uses the so called "delta encoding" of frames as described
@@ -69,6 +73,13 @@ public class DynamicFrameSet implements FrameSet {
   private final FormulaManagerView fmgr;
   private final BackwardTransition backwardTransition;
 
+  /**
+   * Creates a new DynamicFrameSet.
+   * @param pStartLocation the program start location
+   * @param pFmgr the formula manager used as basis for most internal operations
+   * @param pBackwardTransition the backward transition used to calculate predecessor blocks and
+   * path formulas
+   */
   public DynamicFrameSet(
       CFANode pStartLocation, FormulaManagerView pFmgr, BackwardTransition pBackwardTransition) {
     currentMaxLevel = 0;
@@ -84,6 +95,10 @@ public class DynamicFrameSet implements FrameSet {
     frames.put(pStartLocation, initial);
   }
 
+  /**
+   * Creates a new map entry in {@code frames} for pLocation and initializes the list of
+   * approximation frames to the currently expected number of frames.
+   */
   private void initFrameSetForLocation(CFANode pLocation) {
     List<ApproximationFrame> initial = new ArrayList<>(currentMaxLevel + 2);
     ApproximationFrame frameAtLevel0 = new ApproximationFrame();

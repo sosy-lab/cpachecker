@@ -113,6 +113,17 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
   private FrameSet frameSet;
 
+  /**
+   * Creates a new PDRAlgorithm instance.
+   * @param pReachedSetFactory used for creating temporary reached sets for backwards analysis
+   * @param pCPA the composite CPA that contains all needed CPAs
+   * @param pAlgorithm the algorithm used for traversing the cfa
+   * @param pCFA the control flow automaton of the program
+   * @param pConfig the configuration that contains the components and options for this algorithm
+   * @param pLogger the logging component
+   * @param pShutdownNotifier the component that is used to shutdown this algorithm if necessary
+   * @throws InvalidConfigurationException if the configuration file is invalid or incomplete
+   */
   public PDRAlgorithm(
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
@@ -148,6 +159,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, cfa.getMachineModel());
   }
 
+  /** Checks for trivial cases and 0-/1-step counterexamples. */
   private boolean checkBaseCases(
       CFANode pStartLocation,
       ImmutableSet<CFANode> pErrorLocations,
@@ -233,7 +245,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
   /**
    * Tries to prove that an error location cannot be reached with a number of steps
-   * equal to {@link FrameSet#getMaxLevel()}.
+   * less or equal to {@link FrameSet#getMaxLevel()}.
    */
   private boolean strengthen(ImmutableSet<CFANode> pErrorLocations, ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAEnabledAnalysisPropertyViolationException,
@@ -473,8 +485,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * During the analysis, it populates the given reached set with the states
    * along the error trace.
    *
-   * @param pFinalFailingObligation the proof obligation failing at the error
-   * state.
+   * @param pFinalFailingObligation the proof obligation failing at the start location.
    * @param pTargetReachedSet the reached set to copy the states towards the
    * error state into.
    *

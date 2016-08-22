@@ -31,17 +31,18 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import java.util.Objects;
 
 /**
- * Represents the attempt to prove that a state is unreachable from a location at a certain frame level.
+ * Represents the attempt to prove that a state is unreachable from a location at a certain frame
+ * level.
  */
 public class ProofObligation implements Comparable<ProofObligation> {
 
   /** The state to be blocked. */
   private final BooleanFormula state;
 
-  /** The location the state should be blocked in. */
+  /** The location the state should be blocked at. */
   private final CFANode location;
 
-  /** The frame level the state should be blocked in. */
+  /** The frame level the state should be blocked at. */
   private final int frameLevel;
 
   /** The obligation that caused this one to be created. */
@@ -49,11 +50,15 @@ public class ProofObligation implements Comparable<ProofObligation> {
 
   /**
    * Creates a new ProofObligation that says: Try to prove that {@code pState} can't be reached
-   * from {@code pLocation} in at most {@code pFrameLevel} steps.
-   * @param pFrameLevel The level where the state should be blocked.
-   * @param pLocation The location where the state should be blocked.
-   * @param pState The state to be blocked.
-   * @param pCause The ProofObligation that lead to the creation of this one.
+   * from {@code pLocation} in at most {@code pFrameLevel} steps. The ProofObligation {@code pCause}
+   * is one that could not be resolved previously and lead to the creation of this one.
+   * <p>
+   * If the created ProofObligation should not have a cause associated with it, use
+   * {@link #ProofObligation(int, CFANode, BooleanFormula)} instead.
+   * @param pFrameLevel the level the state should be blocked at
+   * @param pLocation the location the state should be blocked at
+   * @param pState the state to be blocked
+   * @param pCause the ProofObligation that lead to the creation of this one
    */
   public ProofObligation(
       int pFrameLevel, CFANode pLocation, BooleanFormula pState, ProofObligation pCause) {
@@ -62,10 +67,14 @@ public class ProofObligation implements Comparable<ProofObligation> {
 
   /**
    * Creates a new ProofObligation that says: Try to prove that {@code pState} can't be reached
-   * from {@code pLocation} in at most {@code pFrameLevel} steps.
-   * @param pFrameLevel The level where the state should be blocked.
-   * @param pLocation The location where the state should be blocked.
-   * @param pState The state to be blocked.
+   * from {@code pLocation} in at most {@code pFrameLevel} steps. It doesn't have a cause associated
+   * with it (see {@link #getCause()}).
+   * <p>
+   * If the created ProofObligation should have a cause, use
+   * {@link #ProofObligation(int, CFANode, BooleanFormula, ProofObligation)} instead.
+   * @param pFrameLevel the level the state should be blocked at
+   * @param pLocation the location the state should be blocked at
+   * @param pState the state to be blocked
    */
   public ProofObligation(int pFrameLevel, CFANode pLocation, BooleanFormula pState) {
     this(pFrameLevel, pLocation, pState, Optional.<ProofObligation>absent());
@@ -79,25 +88,49 @@ public class ProofObligation implements Comparable<ProofObligation> {
     cause = pCause;
   }
 
+  /**
+   * Returns the frame level component of this ProofObligation. It defines the level the state
+   * should be blocked at.
+   * @return the frame level
+   */
   public int getFrameLevel() {
     return frameLevel;
   }
 
+  /**
+   * Returns the location component of this ProofObligation. It defines the location the state
+   * should be blocked at.
+   * @return the CFANode representing the program location
+   */
   public CFANode getLocation() {
     return location;
   }
 
+  /**
+   * Returns the state component of this ProofObligation. It defines the state that should be
+   * blocked.
+   * @return the BooleanFormula representing the state to be blocked
+   */
   public BooleanFormula getState() {
     return state;
   }
 
+  /**
+   * Returns the ProofObligation that is the predecessor of this one. It is the cause for the
+   * creation of this one. There may not exist such a predecessor if this ProofObligation is
+   * the initial one.
+   * @return an Optional containing the ProofObligation representing the cause for the creation
+   * of this one, or an empty Optional if a cause doesn't exist
+   */
   public Optional<ProofObligation> getCause() {
     return cause;
   }
 
   /**
    * Compares this ProofObligation to another one based on the difference of their frame levels.
-   * This method returns precisely returns this.getFrameLevel() - pOther.getFrameLevel().
+   * This method precisely returns {@code this.getFrameLevel() - pOther.getFrameLevel()}.
+   * @param pOther the ProofObligation this one should be compared to
+   * @return the difference of frame levels between this ProofObligation and the other one
    * @see #getFrameLevel()
    */
   @Override
