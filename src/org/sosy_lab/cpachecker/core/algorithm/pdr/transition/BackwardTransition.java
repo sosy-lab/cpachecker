@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 public class BackwardTransition {
 
@@ -156,7 +157,11 @@ public class BackwardTransition {
         .transform(
             (blockStartState) ->
                 new BlockImpl(
-                    initialState, blockStartState, AnalysisDirection.BACKWARD, reachedSet));
+                    initialState,
+                    blockStartState,
+                    AnalysisDirection.BACKWARD,
+                    getReachedSet(
+                        initialState, blockStartState, reachedSet, asAbstractState(reachedSet))));
   }
 
   public FluentIterable<Block> getBlocksTo(Iterable<CFANode> pSuccessorLocations)
@@ -192,8 +197,7 @@ public class BackwardTransition {
     Set<AbstractState> allInitialStates = FluentIterable.from(reachedSet).toSet();
 
     algorithm.run(reachedSet);
-    Map<ARGState, AbstractState> statesByARGState =
-        FluentIterable.from(reachedSet).uniqueIndex(AbstractStates.toState(ARGState.class));
+    Function<ARGState, AbstractState> asAbstractState = asAbstractState(reachedSet);
 
     Set<Block> computedBlocks =
         FluentIterable.from(reachedSet)
@@ -204,7 +208,7 @@ public class BackwardTransition {
             .transformAndConcat(
                 (blockStartState) ->
                     FluentIterable.from(
-                            getInitialStates(blockStartState, allInitialStates, statesByARGState))
+                            getInitialStates(blockStartState, allInitialStates, asAbstractState))
                         .transform(
                             (initialState) ->
                                 (Block)
@@ -216,7 +220,7 @@ public class BackwardTransition {
                                             initialState,
                                             blockStartState,
                                             reachedSet,
-                                            statesByARGState))))
+                                            asAbstractState))))
             .toSet();
 
     for (Map.Entry<CFANode, Collection<Block>> entry : Multimaps.index(computedBlocks, block -> block.getSuccessorLocation()).asMap().entrySet()) {
@@ -229,10 +233,22 @@ public class BackwardTransition {
         computedBlocks));
   }
 
+  private Function<ARGState, AbstractState> asAbstractState(ReachedSet reachedSet) {
+    Function<ARGState, AbstractState> asAbstractState;
+    if (!reachedSet.isEmpty() && reachedSet.getFirstState() instanceof ARGState) {
+      asAbstractState = a -> a;
+    } else {
+      Map<ARGState, AbstractState> statesByARGState =
+          FluentIterable.from(reachedSet).uniqueIndex(AbstractStates.toState(ARGState.class));
+      asAbstractState = a -> statesByARGState.get(a);
+    }
+    return asAbstractState;
+  }
+
   private Iterable<AbstractState> getInitialStates(
       AbstractState pBlockStartState,
       Set<AbstractState> pAllInitialStates,
-      Map<ARGState, AbstractState> pStatesByARGState) {
+      Function<ARGState, AbstractState> pAsAbstractState) {
     Set<AbstractState> visited = Sets.newHashSet();
     visited.add(pBlockStartState);
     Deque<AbstractState> waitlist = Queues.newArrayDeque();
@@ -246,7 +262,7 @@ public class BackwardTransition {
       } else {
         ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
         for (ARGState parentARGState : currentARGState.getParents()) {
-          AbstractState parentAbstractState = pStatesByARGState.get(parentARGState);
+          AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
           assert parentAbstractState != null;
           if (visited.add(parentAbstractState)) {
             waitlist.push(parentAbstractState);
@@ -392,50 +408,10 @@ public class BackwardTransition {
       AbstractState pInitialState,
       AbstractState pTargetState,
       ReachedSet pOriginalReachedSet,
-      Map<ARGState, AbstractState> pStatesByARGState) {
+      Function<ARGState, AbstractState> pAsAbstractState) {
     ReachedSet reachedSet = reachedSetFactory.create();
 
-    Deque<AbstractState> waitlist = Queues.newArrayDeque();
-    waitlist.push(pInitialState);
-
-    Set<AbstractState> forward = Sets.newHashSet();
-    forward.add(pInitialState);
-
-    while (!waitlist.isEmpty()) {
-      AbstractState currentState = waitlist.pop();
-      if (pTargetState != currentState) {
-        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
-        for (ARGState childARGState : currentARGState.getChildren()) {
-          AbstractState childAbstractState = pStatesByARGState.get(childARGState);
-          assert childAbstractState != null;
-          if (forward.add(childAbstractState)) {
-            waitlist.push(childAbstractState);
-          }
-        }
-      }
-    }
-
-    waitlist.clear();
-    waitlist.push(pTargetState);
-
-    Set<AbstractState> backward = Sets.newHashSet();
-    backward.add(pTargetState);
-
-    while (!waitlist.isEmpty()) {
-      AbstractState currentState = waitlist.pop();
-      if (pTargetState != currentState) {
-        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
-        for (ARGState parentARGState : currentARGState.getParents()) {
-          AbstractState parentAbstractState = pStatesByARGState.get(parentARGState);
-          assert parentAbstractState != null;
-          if (backward.add(parentAbstractState)) {
-            waitlist.push(parentAbstractState);
-          }
-        }
-      }
-    }
-
-    for (AbstractState state : Sets.intersection(forward, backward)) {
+    for (AbstractState state : getBlockStates(pInitialState, pTargetState, pAsAbstractState)) {
       reachedSet.add(state, pOriginalReachedSet.getPrecision(state));
       reachedSet.removeOnlyFromWaitlist(state);
     }
@@ -449,6 +425,53 @@ public class BackwardTransition {
         pBlock.getPredecessorLocation(),
         pBlock.getSuccessorLocation(),
         pBlock.getDirection() == AnalysisDirection.BACKWARD ? "backward" : "forward",
-            pBlock.getFormula());
+        pBlock.getFormula());
+  }
+
+  private static Set<AbstractState> getBlockStates(
+      AbstractState pInitialState,
+      AbstractState pBlockStartState,
+      Function<ARGState, AbstractState> pAsAbstractState) {
+    Deque<AbstractState> waitlist = Queues.newArrayDeque();
+    waitlist.push(pInitialState);
+
+    Set<AbstractState> forward = Sets.newHashSet();
+    forward.add(pInitialState);
+
+    while (!waitlist.isEmpty()) {
+      AbstractState currentState = waitlist.pop();
+      if (pBlockStartState != currentState) {
+        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
+        for (ARGState childARGState : currentARGState.getChildren()) {
+          AbstractState childAbstractState = pAsAbstractState.apply(childARGState);
+          assert childAbstractState != null;
+          if (forward.add(childAbstractState)) {
+            waitlist.push(childAbstractState);
+          }
+        }
+      }
+    }
+
+    waitlist.clear();
+    waitlist.push(pBlockStartState);
+
+    Set<AbstractState> backward = Sets.newHashSet();
+    backward.add(pBlockStartState);
+
+    while (!waitlist.isEmpty()) {
+      AbstractState currentState = waitlist.pop();
+      if (pInitialState != currentState) {
+        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
+        for (ARGState parentARGState : currentARGState.getParents()) {
+          AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
+          assert parentAbstractState != null;
+          if (backward.add(parentAbstractState)) {
+            waitlist.push(parentAbstractState);
+          }
+        }
+      }
+    }
+
+    return Sets.intersection(forward, backward);
   }
 }

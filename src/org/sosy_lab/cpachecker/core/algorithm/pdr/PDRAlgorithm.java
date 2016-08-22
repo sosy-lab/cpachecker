@@ -27,6 +27,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -209,7 +211,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       while (!shutdownNotifier.shouldShutdown()) {
         frameSet.openNextFrameSet();
         logger.log(Level.INFO, "Increasing frontier to : ", frameSet.getMaxLevel());
-        if (!strengthen(errorLocations)) {
+        if (!strengthen(errorLocations, pReachedSet)) {
           logger.log(Level.INFO, "Found errorpath. Program has a bug.");
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -233,7 +235,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * Tries to prove that an error location cannot be reached with a number of steps
    * equal to {@link FrameSet#getMaxLevel()}.
    */
-  private boolean strengthen(ImmutableSet<CFANode> pErrorLocations)
+  private boolean strengthen(ImmutableSet<CFANode> pErrorLocations, ReachedSet pReachedSet)
       throws InterruptedException, SolverException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
 
@@ -271,7 +273,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
               logger.log(Level.INFO, "Generating predecessor of bad state in strengthen().");
               BooleanFormula toBeBlocked =
                   getAbstractedSatisfyingState(model, block.getUnprimedContext());
-              if (!backwardblock(errorPredecessor, toBeBlocked)) {
+              if (!backwardblock(errorPredecessor, toBeBlocked, pReachedSet)) {
                 return false;
               }
             } else {
@@ -317,7 +319,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * Recursively blocks bad states until either the initial one can be blocked or a counterexample
    * trace is found.
    */
-  private boolean backwardblock(CFANode pErrorPredLocation, BooleanFormula pState)
+  private boolean backwardblock(
+      CFANode pErrorPredLocation, BooleanFormula pState, ReachedSet pReachedSet)
       throws SolverException, InterruptedException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
     PriorityQueue<ProofObligation> proofObligationQueue = new PriorityQueue<>();
@@ -332,7 +335,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
       // Frame level 0 implies that the program start location is reached. Thus a counterexample is found.
       if (p.getFrameLevel() == 0) {
-        createCounterexampleTrace(p);
+        analyzeCounterexample(p, pReachedSet);
         return false;
       }
 
@@ -480,15 +483,57 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
-   * Creates a counterexample trace based on the given proof obligation. It is the start of a chain of
-   * obligations whose respective predecessors lead to the initial program location and thus represent
-   * a proof that the program is not safe.
+   * Analyzes the counterexample trace represented by the given proof
+   * obligation, which is the start of a chain of obligations whose respective
+   * predecessors lead to the target location.
+   *
+   * During the analysis, it populates the given reached set with the states
+   * along the error trace.
+   *
+   * @param pFinalFailingObligation the proof obligation failing at the error
+   * state.
+   * @param pTargetReachedSet the reached set to copy the states towards the
+   * error state into.
+   *
+   * @throws InterruptedException if the analysis of the counterexample is
+   * interrupted.
+   * @throws CPAException if an exception occurs during the analysis of the
+   * counterexample.
    */
-  @SuppressWarnings("unused")
-  private void createCounterexampleTrace(ProofObligation pFinalFailingObligation) {
-    // TODO implement
+  private void analyzeCounterexample(
+      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet)
+      throws CPAException, InterruptedException {
+    List<Block> blocks = Lists.newArrayList();
+    CFANode previousSuccessorLocation = pFinalFailingObligation.getLocation();
+    ProofObligation currentObligation = pFinalFailingObligation;
+    while (currentObligation.getCause().isPresent()) {
+      currentObligation = currentObligation.getCause().get();
+      CFANode predecessorLocation = previousSuccessorLocation;
+      CFANode successorLocation = currentObligation.getLocation();
+      FluentIterable<Block> connectingBlocks =
+          backwardTransition
+              .getBlocksTo(successorLocation)
+              .filter(Blocks.applyToPredecessorLocation(l -> l.equals(predecessorLocation)));
+      blocks.add(Iterables.getOnlyElement(connectingBlocks));
+      previousSuccessorLocation = successorLocation;
+    }
+    analyzeCounterexample(blocks, pTargetReachedSet);
   }
 
+  /**
+   * Analyzes the counterexample trace represented by the given list of blocks
+   * from the program start to an error state and populates the given reached
+   * set with the states along the error trace.
+   *
+   * @param pBlocks the blocks from the program start to the error state.
+   * @param pTargetReachedSet the reached set to copy the states towards the
+   * error state into.
+   *
+   * @throws InterruptedException if the analysis of the counterexample is
+   * interrupted.
+   * @throws CPATransferException if an exception occurs during the analysis of
+   * the counterexample.
+   */
   private void analyzeCounterexample(List<Block> pBlocks, ReachedSet pTargetReachedSet)
       throws CPATransferException, InterruptedException {
 
