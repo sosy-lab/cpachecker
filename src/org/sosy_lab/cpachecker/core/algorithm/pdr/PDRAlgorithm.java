@@ -273,7 +273,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
               logger.log(Level.INFO, "Generating predecessor of bad state in strengthen().");
               BooleanFormula toBeBlocked =
                   getAbstractedSatisfyingState(model, block.getUnprimedContext());
-              if (!backwardblock(errorPredecessor, toBeBlocked, pReachedSet)) {
+              if (!backwardblock(errorPredecessor, toBeBlocked, pReachedSet, errorLoc)) {
                 return false;
               }
             } else {
@@ -320,7 +320,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * trace is found.
    */
   private boolean backwardblock(
-      CFANode pErrorPredLocation, BooleanFormula pState, ReachedSet pReachedSet)
+      CFANode pErrorPredLocation, BooleanFormula pState, ReachedSet pReachedSet, CFANode pErrorLoc)
       throws SolverException, InterruptedException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
     PriorityQueue<ProofObligation> proofObligationQueue = new PriorityQueue<>();
@@ -335,7 +335,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
       // Frame level 0 implies that the program start location is reached. Thus a counterexample is found.
       if (p.getFrameLevel() == 0) {
-        analyzeCounterexample(p, pReachedSet);
+        analyzeCounterexample(p, pReachedSet, pErrorLoc);
         return false;
       }
 
@@ -501,8 +501,10 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * counterexample.
    */
   private void analyzeCounterexample(
-      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet)
+      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet, CFANode pErrorLocation)
       throws CPAException, InterruptedException {
+
+    // Reconstruct error trace from start location to direct error predecessor.
     List<Block> blocks = Lists.newArrayList();
     CFANode previousSuccessorLocation = pFinalFailingObligation.getLocation();
     ProofObligation currentObligation = pFinalFailingObligation;
@@ -517,6 +519,15 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       blocks.add(Iterables.getOnlyElement(connectingBlocks));
       previousSuccessorLocation = successorLocation;
     }
+
+    // Add block from direct error predecessor to error location to complete error trace.
+    CFANode directErrorPredecessor = previousSuccessorLocation;
+    FluentIterable<Block> blockToErrorLocation =
+        backwardTransition
+            .getBlocksTo(pErrorLocation)
+            .filter(Blocks.applyToPredecessorLocation(l -> l.equals(directErrorPredecessor)));
+    blocks.add(Iterables.getOnlyElement(blockToErrorLocation));
+
     analyzeCounterexample(blocks, pTargetReachedSet);
   }
 
