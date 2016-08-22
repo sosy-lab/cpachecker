@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +67,12 @@ public interface FrameSet {
    * location at all levels up till the provided maximum.
    */
   void blockState(BooleanFormula pState, int pMaxLevel, CFANode pLocation);
+
+  /**
+   * Checks if there exists any level <i>i</i> so that two neighboring frames F(i,l)
+   * and F(i+1,l) are equal for all locations <i>l</i>.
+   */
+  boolean isConvergent();
 
   /**
    * Tries to push states forward along the local transition between locations if they

@@ -41,6 +41,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,28 +76,30 @@ public class DynamicFrameSet implements FrameSet {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     backwardTransition = pBackwardTransition;
-    initFrameSetForLocation(pStartLocation, true);
+
+    // Initialize frames for start location
+    List<ApproximationFrame> initial = new ArrayList<>(2);
+    initial.add(new ApproximationFrame());
+    initial.add(new ApproximationFrame());
+    frames.put(pStartLocation, initial);
   }
 
-  private void initFrameSetForLocation(CFANode pLocation, boolean isStartLocation) {
+  private void initFrameSetForLocation(CFANode pLocation) {
     List<ApproximationFrame> initial = new ArrayList<>(currentMaxLevel + 2);
-    initial.add(newDefaultFrame(isStartLocation));
-    for (int level = 0; level <= currentMaxLevel; ++level) {
-      initial.add(newDefaultFrame(true));
+    ApproximationFrame frameAtLevel0 = new ApproximationFrame();
+    frameAtLevel0.addState(bfmgr.makeFalse());
+    initial.add(frameAtLevel0);
+
+    for (int level = 1; level <= currentMaxLevel + 1; ++level) {
+      initial.add(new ApproximationFrame());
     }
     frames.put(pLocation, initial);
-  }
-
-  private ApproximationFrame newDefaultFrame(boolean pInitialValue) {
-    ApproximationFrame f = new ApproximationFrame();
-    f.addState(bfmgr.makeBoolean(pInitialValue));
-    return f;
   }
 
   @Override
   public void openNextFrameSet() {
     for (List<ApproximationFrame> frameList : frames.values()) {
-      frameList.add(newDefaultFrame(true));
+      frameList.add(new ApproximationFrame());
     }
     currentMaxLevel++;
   }
@@ -110,7 +113,7 @@ public class DynamicFrameSet implements FrameSet {
   public Set<BooleanFormula> getStatesForLocation(CFANode pLocation, int pLevel) {
     Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
     if (!frames.containsKey(pLocation)) {
-      initFrameSetForLocation(pLocation, false);
+      initFrameSetForLocation(pLocation);
     }
 
     /*
@@ -141,7 +144,7 @@ public class DynamicFrameSet implements FrameSet {
   public void blockState(BooleanFormula pState, int pMaxLevel, CFANode pLocation) {
     Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel);
     if (!frames.containsKey(pLocation)) {
-      initFrameSetForLocation(pLocation, false);
+      initFrameSetForLocation(pLocation);
     }
 
     // TODO subsume here too?
@@ -216,6 +219,24 @@ public class DynamicFrameSet implements FrameSet {
         .findFirst()
         .get()
         .removeState(pState);
+  }
+
+  @Override
+  public boolean isConvergent() { // TODO Use only when subsumption is fully implemented
+
+    // Check if one delta layer is empty for all locations at the same level
+    Iterator<CFANode> it = frames.keySet().iterator();
+    for (int currentLevel = 1; currentLevel <= currentMaxLevel; ++currentLevel) {
+      boolean isLayerEmpty = true;
+
+      while (isLayerEmpty && it.hasNext()) {
+        isLayerEmpty = frames.get(it.next()).get(currentLevel).isEmpty();
+      }
+      if (isLayerEmpty) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Adds a state to a frame while also removing all redundant states. */
@@ -304,6 +325,10 @@ public class DynamicFrameSet implements FrameSet {
 
     private boolean contains(BooleanFormula pState) {
       return states.contains(pState);
+    }
+
+    private boolean isEmpty() {
+      return states.isEmpty();
     }
 
     @Override

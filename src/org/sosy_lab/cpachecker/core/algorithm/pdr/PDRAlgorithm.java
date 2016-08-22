@@ -217,6 +217,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         //        try (ProverEnvironment propagationProver = solver.newProverEnvironment()) {
         //          frameSet.propagate(propagationProver, reusedProver); // TODO Enable when it works
         //        }
+        // TODO Use frameSet.isConvergent() when subsumption is fully implemented
         if (isFrameSetConvergent()) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
