@@ -10,12 +10,15 @@
   <tasks name="Termination-SV-COMP">
     <includesfile>../programs/benchmarks/Termination.set</includesfile>
   </tasks>
-  <tasks name="Termination-Loop-SV-COMP"> -->
+  
+  <!--  
+  <tasks name="Termination-Loop-SV-COMP">
     <include>../programs/benchmarks/*loop*/*.i</include>
   </tasks>
-  <tasks name="Unknown-SV-COMP"> -->
+  <tasks name="Unknown-SV-COMP">
     <include>../programs/benchmarks/*/*unknown-termination*.i</include>
   </tasks>
+  -->
 
   <rundefinition name0="termination-predicate-default">
     <option name="-terminationAnalysis"/>
