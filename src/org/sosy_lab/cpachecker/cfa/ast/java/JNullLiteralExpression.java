@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
 /**
  * This class represents the null literal AST node type.
  */
-public class JNullLiteralExpression extends ALiteralExpression implements JLiteralExpression {
+public final class JNullLiteralExpression extends ALiteralExpression implements JLiteralExpression {
 
   public JNullLiteralExpression(FileLocation pFileLocation) {
     super(pFileLocation, new JNullType());

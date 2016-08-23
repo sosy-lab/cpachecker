@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * into a infix expression in the CFA and also be represented by this class.
  *
  */
-public class JBinaryExpression extends ABinaryExpression implements JExpression {
+public final class JBinaryExpression extends ABinaryExpression implements JExpression {
 
   public JBinaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
       BinaryOperator pOperator) {

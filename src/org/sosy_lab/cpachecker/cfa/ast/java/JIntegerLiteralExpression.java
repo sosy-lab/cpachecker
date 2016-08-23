@@ -33,7 +33,8 @@ import java.math.BigInteger;
 /**
  * This class represents the integer number literal AST node type.
  */
-public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JLiteralExpression {
+public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
+    implements JLiteralExpression {
 
   public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {
     super(pFileLocation, JSimpleType.getInt(), pValue);

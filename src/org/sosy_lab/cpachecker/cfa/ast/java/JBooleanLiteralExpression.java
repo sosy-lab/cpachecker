@@ -39,10 +39,10 @@ import java.util.Objects;
  *   false
  *
  */
-public class JBooleanLiteralExpression extends ALiteralExpression implements JLiteralExpression {
+public final class JBooleanLiteralExpression extends ALiteralExpression
+    implements JLiteralExpression {
 
-
-  final Boolean value;
+  private final Boolean value;
 
   public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {
     super(pFileLocation, JSimpleType.getBoolean());

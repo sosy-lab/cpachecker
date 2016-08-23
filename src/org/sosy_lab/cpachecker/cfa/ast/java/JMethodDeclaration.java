@@ -56,7 +56,9 @@ import java.util.Objects;
  */
 public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 
- // TODO Type Variables, Exceptions, Annotations
+  // TODO refactor to be either abstract or final
+
+  // TODO Type Variables, Exceptions, Annotations
 
   private final boolean isFinal;
   private final boolean isAbstract;

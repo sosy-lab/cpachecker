@@ -40,7 +40,8 @@ import java.util.Objects;
  * the array cell is initialized with from left to right.
  *
  */
-public class JArrayInitializer extends AbstractExpression implements JAstNode, JInitializer, JExpression {
+public final class JArrayInitializer extends AbstractExpression
+    implements JAstNode, JInitializer, JExpression {
 
   private final List<JExpression> initializerExpressions;
 

@@ -38,7 +38,10 @@ import javax.annotation.Nullable;
  */
 public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
-  public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
+  // TODO refactor to be either abstract or final
+
+  public JIdExpression(
+      FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
     // TODO Refactor, so we do not need null for declaration.
     // (Insert extra classes or objects for unresolvable declarations)

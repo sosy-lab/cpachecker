@@ -34,7 +34,7 @@ import java.util.Objects;
  *
  *
  */
-public class JEnumConstantExpression extends AbstractExpression implements JExpression {
+public final class JEnumConstantExpression extends AbstractExpression implements JExpression {
 
   // TODO Change the representation of the constantName from String to JIdExpression
 
