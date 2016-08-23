@@ -24,10 +24,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.pdr;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -49,11 +54,16 @@ public class DynamicFrameSet implements FrameSet {
   private int currentMaxLevel;
 
   private final BooleanFormulaManager bfmgr;
+  private final FormulaManagerView fmgr;
+  private final BackwardTransition backwardTransition;
 
-  public DynamicFrameSet(CFANode pStartLocation, BooleanFormulaManager pBfmgr) {
+  public DynamicFrameSet(
+      CFANode pStartLocation, FormulaManagerView pFMGR, BackwardTransition pBackwardTransition) {
     currentMaxLevel = 0;
     frames = Maps.newHashMap();
-    bfmgr = pBfmgr;
+    fmgr = pFMGR;
+    bfmgr = pFMGR.getBooleanFormulaManager();
+    backwardTransition = pBackwardTransition;
     initFrameSetForLocation(pStartLocation, true);
   }
 
@@ -127,10 +137,9 @@ public class DynamicFrameSet implements FrameSet {
     frames.get(pLocation).get(pMaxLevel).addState(bfmgr.not(pState));
   }
 
-  // TODO Implement properly !!
   @Override
   public void propagate(ProverEnvironment pProver, ProverEnvironment pSubsumptionProver)
-      throws SolverException, InterruptedException {
+      throws InterruptedException, CPAException, SolverException {
     /*
      * For all levels i till max, for all locations l, for all states s in F(i,l),
      * for all successors ls of l, check if s is inductive and add/subsume if so.
@@ -142,37 +151,36 @@ public class DynamicFrameSet implements FrameSet {
         Set<BooleanFormula> frameStates = getStatesForLocation(location, level);
         int numberFrameStates = frameStates.size();
 
-        for (BooleanFormula state : frameStates) { // Push F(i,l)
-          pProver.push(state);
+        for (BooleanFormula state : frameStates) { // Push (unprimed) F(i,l)
+          pProver.push(fmgr.instantiate(state, SSAMap.emptySSAMap().withDefault(1)));
         }
 
-        for (BooleanFormula state : frameStates) {
-          pProver.push(bfmgr.not(state)); // TODO Push not(state')
+        FluentIterable<Block> blocksToLocation = backwardTransition.getBlocksTo(location);
+        // Invert blocks so that the SSA indices for the predecessors
+        // ("unprimed" variables) match
+        blocksToLocation = blocksToLocation.transform(block -> block.invertDirection());
 
-          for (CFANode successorLocation : CFAUtils.successorsOf(location)) {
+        for (Block block : blocksToLocation) {
+          CFANode predecessorLocation = block.getPredecessorLocation();
 
-            // TODO Push local transition.
+          // Push transition
+          pProver.push(block.getFormula());
 
-            // Can push state if local transition to itself.
-            if (location.equals(successorLocation)) {
-              pProver.push(state);
-            }
+          for (BooleanFormula state : frameStates) {
+            // Push primed state
+            pProver.push(bfmgr.not(fmgr.instantiate(state, block.getPrimedContext().getSsa())));
 
             if (pProver.isUnsat()) {
-              if (location.equals(successorLocation)) {
+              if (location.equals(predecessorLocation)) {
                 mapEntry.getValue().get(level).removeState(state);
               }
               addWithSubsumption(
-                  state, frames.get(successorLocation).get(level + 1), pSubsumptionProver);
+                  state, frames.get(predecessorLocation).get(level + 1), pSubsumptionProver);
             }
 
-            // Pop state (if it was pushed)
-            if (location.equals(successorLocation)) {
-              pProver.pop();
-            }
-            pProver.pop(); // Pop transition
+            pProver.pop(); // Pop state'
           }
-          pProver.pop(); // Pop state-prime
+          pProver.pop(); // Pop transition
         }
         for (int i = 0; i < numberFrameStates; ++i) { // Pop F(i,l)
           pProver.pop();
