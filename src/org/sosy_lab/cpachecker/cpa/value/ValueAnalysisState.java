@@ -30,18 +30,26 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
+import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorFactory;
+import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -49,6 +57,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -58,6 +70,8 @@ import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 
@@ -65,6 +79,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.text.Normalizer.Form;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -99,6 +114,9 @@ public class ValueAnalysisState
 
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
+  private static FormulaCreatorFactory formulaCreatorFactory;
+  private static CtoFormulaTypeHandler formulaTypeHandler;
+
   public ValueAnalysisState(MachineModel pMachineModel) {
     this(
         checkNotNull(pMachineModel),
@@ -124,6 +142,17 @@ public class ValueAnalysisState
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
     return new ValueAnalysisState(state.machineModel, state.constantsMap, state.memLocToType);
+  }
+
+  public static void setUtils(
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final MachineModel pMachineModel,
+      final ShutdownNotifier pShutdownNotifier
+  ) throws InvalidConfigurationException {
+    formulaCreatorFactory = new FormulaCreatorFactory(pMachineModel, pLogger, pConfig,
+        pShutdownNotifier);
+    formulaTypeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
   }
 
   /**
@@ -590,15 +619,54 @@ public class ValueAnalysisState
     }
 
     List<BooleanFormula> result = new ArrayList<>();
+    final FormulaCreator formulaCreator = formulaCreatorFactory.create(manager, "");
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
       MemoryLocation memLoc = entry.getKey();
       Value value = entry.getValue();
 
-      result.add(getFormulaApproximationForExplicit(memLoc, value, manager));
+      if (value instanceof SymbolicValue) {
+        result.add(getFormulaApproximationForSymbolic(
+            memLoc,
+            (SymbolicValue) value,
+            formulaCreator,
+            manager));
+      } else {
+        result.add(getFormulaApproximationForExplicit(memLoc, value, manager));
+      }
     }
 
     return bfmgr.and(result);
+  }
+
+  private BooleanFormula getFormulaApproximationForSymbolic(
+      final MemoryLocation pMemLoc,
+      final SymbolicValue pValue,
+      final FormulaCreator pFormulaCreator,
+      final FormulaManagerView pManager
+  ) {
+    final BooleanFormula trueFormula = pManager.getBooleanFormulaManager().makeTrue();
+
+    try {
+
+      // Do this first so that no boolean formula gets created unnecessarily
+      Type type = getTypeForMemoryLocation(pMemLoc);
+      if (!(type instanceof CType)) {
+        return trueFormula;
+      }
+
+      BooleanFormula val = pFormulaCreator.createFormula(pValue);
+      FormulaType<?> formulaType = formulaTypeHandler.getFormulaTypeFromCType((CType) type);
+      Formula var = pManager.makeVariable(formulaType, pMemLoc.getAsSimpleString());
+
+      return pManager.makeEqual(var, val);
+
+    } catch (UnrecognizedCCodeException pE) {
+      return trueFormula;
+
+    } catch (InterruptedException pE) {
+      throw new AssertionError(pE);
+    }
   }
 
   private BooleanFormula getFormulaApproximationForExplicit(
