@@ -590,57 +590,70 @@ public class ValueAnalysisState
     }
 
     List<BooleanFormula> result = new ArrayList<>();
-    BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
-    FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
-      NumericValue num = entry.getValue().asNumericValue();
+      MemoryLocation memLoc = entry.getKey();
+      Value value = entry.getValue();
 
-      if (num != null) {
-        MemoryLocation memoryLocation = entry.getKey();
-        Type type = getTypeForMemoryLocation(memoryLocation);
-        if (!memoryLocation.isReference() && type instanceof CSimpleType) {
-          CSimpleType simpleType = (CSimpleType) type;
-          if (simpleType.getType().isIntegerType()) {
-            int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
-            BitvectorFormula var =
-                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
-
-            Number value = num.getNumber();
-            final BitvectorFormula val;
-            if (value instanceof BigInteger) {
-              val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
-            } else {
-              val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
-            }
-            result.add(bitvectorFMGR.equal(var, val));
-          } else if (simpleType.getType().isFloatingPointType()) {
-            final FloatingPointType fpType;
-            switch (simpleType.getType()) {
-            case FLOAT:
-              fpType = FormulaType.getSinglePrecisionFloatingPointType();
-              break;
-            case DOUBLE:
-              fpType = FormulaType.getDoublePrecisionFloatingPointType();
-              break;
-            default:
-              throw new AssertionError("Unsupported floating point type: " + simpleType);
-            }
-            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
-            FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
-            result.add(floatFMGR.equalWithFPSemantics(var, val));
-          } else {
-            // ignore in formula-approximation
-          }
-        } else {
-          // ignore in formula-approximation
-        }
-      } else {
-        // ignore in formula-approximation
-      }
+      result.add(getFormulaApproximationForExplicit(memLoc, value, manager));
     }
 
     return bfmgr.and(result);
+  }
+
+  private BooleanFormula getFormulaApproximationForExplicit(
+      final MemoryLocation pMemLoc,
+      final Value pValue,
+      final FormulaManagerView pManager
+  ) {
+    BitvectorFormulaManagerView bitvectorFMGR = pManager.getBitvectorFormulaManager();
+    FloatingPointFormulaManagerView floatFMGR = pManager.getFloatingPointFormulaManager();
+
+    NumericValue num = pValue.asNumericValue();
+
+    if (num != null) {
+      Type type = getTypeForMemoryLocation(pMemLoc);
+      if (!pMemLoc.isReference() && type instanceof CSimpleType) {
+        CSimpleType simpleType = (CSimpleType) type;
+        if (simpleType.getType().isIntegerType()) {
+          int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
+          BitvectorFormula var =
+              bitvectorFMGR.makeVariable(bitSize, pMemLoc.getAsSimpleString());
+
+          Number value = num.getNumber();
+          final BitvectorFormula val;
+          if (value instanceof BigInteger) {
+            val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+          } else {
+            val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
+          }
+          return bitvectorFMGR.equal(var, val);
+        } else if (simpleType.getType().isFloatingPointType()) {
+          final FloatingPointType fpType;
+          switch (simpleType.getType()) {
+          case FLOAT:
+            fpType = FormulaType.getSinglePrecisionFloatingPointType();
+            break;
+          case DOUBLE:
+            fpType = FormulaType.getDoublePrecisionFloatingPointType();
+            break;
+          default:
+            throw new AssertionError("Unsupported floating point type: " + simpleType);
+          }
+          FloatingPointFormula var = floatFMGR.makeVariable(pMemLoc.getAsSimpleString(), fpType);
+          FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
+          return floatFMGR.equalWithFPSemantics(var, val);
+        } else {
+          // ignore other simple value types in formula-approximation
+        }
+      } else {
+        // ignore non-simple types and memlocs that are a reference in formula-approximation
+      }
+    } else {
+      // ignore explicit values that have no numerical representation in formula-approximation
+    }
+
+    return pManager.getBooleanFormulaManager().makeTrue();
   }
 
   /**
