@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -59,7 +60,7 @@ import java.util.Set;
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements AbstractState, Set<Constraint> {
+public class ConstraintsState implements AbstractState, Set<Constraint>, FormulaReportingState {
 
   /**
    * Stores identifiers and their corresponding constraints
@@ -500,6 +501,19 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     }
 
     return sb.append("] size->  ").append(constraints.size()).toString();
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(final FormulaManagerView pManager) {
+    try {
+      return getFullFormula();
+
+    } catch (UnrecognizedCCodeException pE) {
+      return pManager.getBooleanFormulaManager().makeTrue();
+
+    } catch (InterruptedException pE) {
+      throw new AssertionError(pE);
+    }
   }
 
   private class ConstraintIterator implements Iterator<Constraint> {
