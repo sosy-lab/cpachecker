@@ -260,6 +260,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     Set<MatchInfo> matches = ControlAutomatonCPA.getGlobalMatchInfo();
     List<String> longestPrefix = null;
     List<String> matchLongestPrefix = null;
+
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
       Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
@@ -301,8 +302,10 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
   private void computeDepthOfHighestNonTrueAbstractionInCallstack(
       ReachedSet reached) {
+    Set<MatchInfo> matches = ControlAutomatonCPA.getGlobalMatchInfo();
     long depth = Long.MAX_VALUE;
     long withUsedDepth = Long.MAX_VALUE;
+    long matchDepth = Long.MAX_VALUE;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
       Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
@@ -314,7 +317,23 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         }
         depth = Math.min(csSt.getDepth(), depth);
       }
+
+      FluentIterable<AutomatonState> automStates =
+          AbstractStates.asIterable(absSt).filter(AutomatonState.class);
+
+      LocationState locst = extractStateByType(absSt, LocationState.class);
+      Set<CFAEdge> outgoingEdges = stream(locst.getOutgoingEdges().spliterator(), false)
+          .collect(Collectors.toSet());
+
+      if(matches.stream()
+          .anyMatch(mi -> outgoingEdges.contains(mi.edge) && automStates.contains(mi.state))) {
+
+        matchDepth = Math.min(csSt.getDepth(), matchDepth);
+      }
+
     }
+
+
 
     String highestUsedStackKey =
         "Highest point in callstack with non-true abs. and vars used in func.";
@@ -331,6 +350,23 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
       addKeyValueStatistic(highestStackKey, depth);
     }
 
+    String highestMatchStackKey = "Highest automaton match point in callstack";
+    if (matchDepth == Long.MAX_VALUE) {
+      addKeyValueStatistic(highestMatchStackKey, "<unknown>");
+    } else {
+      addKeyValueStatistic(highestMatchStackKey, matchDepth);
+    }
+
+    String fallbackStackKey = "Highest point in callstack with automaton fallback";
+    if (withUsedDepth == Long.MAX_VALUE) {
+      if (matchDepth == Long.MAX_VALUE) {
+        addKeyValueStatistic(highestStackKey, "<unknown>");
+      } else {
+        addKeyValueStatistic(fallbackStackKey, matchDepth);
+      }
+    } else {
+      addKeyValueStatistic(fallbackStackKey, withUsedDepth);
+    }
 
 
   }

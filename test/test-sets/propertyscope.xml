@@ -239,6 +239,8 @@
     <column title="avg_global_var_in_abs_formula_atoms">Average ratio of formula atoms with global variable:</column>
     <column title="highest_callstack_point_non_true_abs">Highest point in callstack with non-true abstraction formula:</column>
     <column title="highest_callstack_point_non_true_abs_used">Highest point in callstack with non-true abs. and vars used in func.:</column>
+    <column title="highest_callstack_point_match_only">Highest automaton match point in callstack:</column>
+    <column title="highest_callstack_point_autom_fallback">Highest point in callstack with automaton fallback:</column>
     <column title="global_observer_target_reach_count">Global observer automaton reached target count:</column>
     <column title="num_trivialy_used_predicates">Number of trivially used predicates:</column>
     <column title="nontrue_true_nontrue_seq_num">NONTRUE-TRUE-NONTRUE sequences:</column>
