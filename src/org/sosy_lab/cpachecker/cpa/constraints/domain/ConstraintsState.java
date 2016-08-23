@@ -505,6 +505,11 @@ public class ConstraintsState implements AbstractState, Set<Constraint>, Formula
 
   @Override
   public BooleanFormula getFormulaApproximation(final FormulaManagerView pManager) {
+    if (!isInitialized()) {
+      assert constraints.isEmpty();
+      return pManager.getBooleanFormulaManager().makeTrue();
+    }
+
     try {
       return getFullFormula();
 
