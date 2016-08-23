@@ -224,6 +224,10 @@ public class TargetSummary {
 
   @Override
   public String toString() {
+    final int numViolated = getViolatedProperties().size();
+    if (numViolated > 100) { // The sets can get reallllly huge!
+      return String.format("%d violated properties!", numViolated);
+    }
     return getViolatedProperties().toString();
   }
 }

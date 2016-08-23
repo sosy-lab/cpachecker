@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -438,7 +439,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = partitionAnalysis.getReached().size();
-            logger.logf(Level.INFO, "Fixpoint with %d states reached. %s satisfied. %d properties remain to be checked.", reachedSetSize, active.toString(), remain.size());
+            logger.logf(Level.INFO, "Fixpoint with %d states reached. %s satisfied. %d properties"
+                + " remain to be checked.", reachedSetSize, asString(active), remain.size());
             Preconditions.checkState(reachedSetSize >= 10, "The set reached has too few states for a correct analysis run! Bug?");
             stats.reachedStatesWithFixpoint.add(reachedSetSize);
             if (Sets.intersection(relevant, runProperties).size() > 0) {
@@ -473,9 +475,9 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
               ImmutableSortedSet<Property> disabledProperties = PropertySets.makeDifference(runProperties,
                   getInactiveProperties(partitionAnalysis.getReached()));
 
-              logger.log(Level.INFO, "All properties: " + all.toString());
-              logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
-              logger.log(Level.INFO, "Satisfied properties: " + satisfied.toString());
+              logger.log(Level.INFO, "All properties: " + asString(all));
+              logger.log(Level.INFO, "Disabled properties: " + asString(disabledProperties));
+              logger.log(Level.INFO, "Satisfied properties: " + asString(satisfied));
               logger.log(Level.INFO, "Violated properties: " + violated.toString());
 
               checkPartitions = partition(lastPartitioning, remain, disabledProperties);
@@ -619,7 +621,7 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
       int nth = 0;
       for (ImmutableSet<Property> p: result) {
         nth++;
-        logger.logf(Level.INFO, "Partition %d with %d elements: %s", nth, p.size(), p.toString());
+        logger.logf(Level.INFO, "Partition %d with %d elements: %s", nth, p.size(), asString(p));
       }
     }
 
@@ -725,8 +727,8 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
       ImmutableSortedSet<Property> inactive = getInactiveProperties(partitionAnalysis.getReached());
       ImmutableSortedSet<Property> active = getActiveProperties(partitionAnalysis.getReached());
       logger.log(Level.WARNING, String.format("Waitlist with %d active (%d inactive) properties.", active.size(), inactive.size()));
-      logger.logf(Level.WARNING, "Active properties: %s", active.toString());
-      logger.logf(Level.WARNING, "Inactive properties: %s", inactive.toString());
+      logger.logf(Level.WARNING, "Active properties: %s", asString(active));
+      logger.logf(Level.WARNING, "Inactive properties: %s", asString(inactive));
     }
 
     return result;
@@ -763,6 +765,14 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
     if (partitionAnalysis.getAlgorithm() instanceof Statistics) {
       ((Statistics) partitionAnalysis.getAlgorithm()).printStatistics(pOut, pResult, pReached);
     }
+  }
+
+  public String asString(Collection<Property> pProperties) {
+    final int numViolated = pProperties.size();
+    if (numViolated > 100) { // The sets can get reallllly huge!
+      return String.format("[set with %d properties]", numViolated);
+    }
+    return pProperties.toString();
   }
 
   @Override
