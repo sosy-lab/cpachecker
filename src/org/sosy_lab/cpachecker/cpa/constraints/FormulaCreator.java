@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -37,24 +38,26 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 public interface FormulaCreator {
 
   /**
-   * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
+   * Creates a {@link BooleanFormula} representing the given {@link SymbolicValue symbolic value}.
    *
-   * @param pConstraint the constraint to create a formula of
+   * @param pValue the symbolic value to create a formula of
    * @return a <code>Formula</code> representing the given constraint
    */
-  BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCCodeException, InterruptedException;
+  BooleanFormula createFormula(SymbolicValue pValue) throws UnrecognizedCCodeException,
+                                                                 InterruptedException;
 
   /**
-   * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
+   * Creates a {@link BooleanFormula} representing the given {@link SymbolicValue symbolic value}.
    * Symbolic Identifiers in constraints are replaced by their known definite assignments, if
    * one exists.
    *
-   * @param pConstraint the constraint to create a formula of
+   * @param pValue the symbolic value to create a formula of
    * @param pDefiniteAssignment the known definite assignments of symbolic identifiers
    *
    * @return a <code>Formula</code> representing the given constraint
    */
-  BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssignment) throws UnrecognizedCCodeException, InterruptedException;
+  BooleanFormula createFormula(SymbolicValue pValue, IdentifierAssignment pDefiniteAssignment)
+      throws UnrecognizedCCodeException, InterruptedException;
 
   /**
    * Creates a {@link BooleanFormula} representing the given term-value assignment.

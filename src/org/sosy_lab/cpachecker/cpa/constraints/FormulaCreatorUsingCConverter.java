@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -79,23 +80,23 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   }
 
   @Override
-  public BooleanFormula createFormula(final Constraint pConstraint)
+  public BooleanFormula createFormula(final SymbolicValue pValue)
       throws UnrecognizedCCodeException, InterruptedException {
 
-    return createFormula(pConstraint, new IdentifierAssignment());
+    return createFormula(pValue, new IdentifierAssignment());
   }
 
 
   @Override
   public BooleanFormula createFormula(
-      final Constraint pConstraint,
+      final SymbolicValue pValue,
       final IdentifierAssignment pDefiniteAssignment
   ) throws UnrecognizedCCodeException, InterruptedException {
 
     final SymbolicExpressionTransformer toExpressionTransformer =
         new SymbolicExpressionTransformer(pDefiniteAssignment);
 
-    CExpression constraintExpression = pConstraint.accept(toExpressionTransformer);
+    CExpression constraintExpression = pValue.accept(toExpressionTransformer);
 
     return toFormulaTransformer.makePredicate(
         constraintExpression, getDummyEdge(), functionName, getSsaMapBuilder());
