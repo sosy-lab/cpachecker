@@ -87,15 +87,15 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   }
 
   @Override
-  public BooleanFormula createFormula(final SymbolicValue pValue)
+  public BooleanFormula createPredicate(final SymbolicValue pValue)
       throws UnrecognizedCCodeException, InterruptedException {
 
-    return createFormula(pValue, new IdentifierAssignment());
+    return createPredicate(pValue, new IdentifierAssignment());
   }
 
 
   @Override
-  public BooleanFormula createFormula(
+  public BooleanFormula createPredicate(
       final SymbolicValue pValue,
       final IdentifierAssignment pDefiniteAssignment
   ) throws UnrecognizedCCodeException, InterruptedException {

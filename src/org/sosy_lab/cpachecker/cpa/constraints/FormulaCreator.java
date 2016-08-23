@@ -38,25 +38,50 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 public interface FormulaCreator {
 
   /**
-   * Creates a {@link BooleanFormula} representing the given {@link SymbolicValue symbolic value}.
+   * Creates a {@link BooleanFormula} representing the boolean meaning of the given
+   * {@link SymbolicValue symbolic value}.
+   *
+   * <p>
+   * Examples:<br />
+   * <ul>
+   * <li>Symbolic value <tt>s1</tt> is transformed to <tt>s1 != 0</tt> with type
+   * <code>BooleanFormula</code></li>
+   * <li>Symbolic value <tt>s1 > 0</tt> is transformed to <tt>s1 > 0</tt> (meaning stays the
+   * same, since it already is a boolean expression) with type <code>BooleanFormula</code></li>
+   * </ul>
+   * </p>
    *
    * @param pValue the symbolic value to create a formula of
    * @return a <code>Formula</code> representing the given constraint
+   * @see #createPredicate(SymbolicValue, IdentifierAssignment)
    */
-  BooleanFormula createFormula(SymbolicValue pValue) throws UnrecognizedCCodeException,
-                                                                 InterruptedException;
+  BooleanFormula createPredicate(SymbolicValue pValue) throws UnrecognizedCCodeException,
+                                                              InterruptedException;
 
   /**
-   * Creates a {@link BooleanFormula} representing the given {@link SymbolicValue symbolic value}.
+   * Creates a {@link BooleanFormula} representing the boolean meaning of the given
+   * {@link SymbolicValue symbolic value}.
    * Symbolic Identifiers in constraints are replaced by their known definite assignments, if
    * one exists.
    *
-   * @param pValue the symbolic value to create a formula of
+   * <p>
+   * Examples:<br />
+   * <ul>
+   * <li>Symbolic value <tt>s1</tt> is transformed to <tt>s1 != 0</tt> with type
+   * <code>BooleanFormula</code></li>
+   * <li>Symbolic value <tt>s1 > 0</tt> is transformed to <tt>s1 > 0</tt> (meaning stays the
+   * same, since it already is a boolean expression) with type <code>BooleanFormula</code></li>
+   * </ul>
+   * </p>
+   *
+   * @param pValue the symbolic value to create a boolean formula of
    * @param pDefiniteAssignment the known definite assignments of symbolic identifiers
    *
-   * @return a <code>Formula</code> representing the given constraint
+   * @return a <code>BooleanFormula</code> representing the boolean meaning of the given symbolic
+   *    value
+   * @see #createPredicate(SymbolicValue)
    */
-  BooleanFormula createFormula(SymbolicValue pValue, IdentifierAssignment pDefiniteAssignment)
+  BooleanFormula createPredicate(SymbolicValue pValue, IdentifierAssignment pDefiniteAssignment)
       throws UnrecognizedCCodeException, InterruptedException;
 
   /**

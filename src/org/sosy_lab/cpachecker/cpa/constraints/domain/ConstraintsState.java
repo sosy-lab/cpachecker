@@ -361,7 +361,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
       // if the constraint contains any identifier we now know a definite assignment for,
       // we replace the constraint's formula by a new formula using these definite assignments.
       if (!Collections.disjoint(newlyKnownIdentifiers, identifiers)) {
-        BooleanFormula newFormula = formulaCreator.createFormula(entry.getKey(), pNewDefinites);
+        BooleanFormula newFormula = formulaCreator.createPredicate(entry.getKey(), pNewDefinites);
 
         assert !newFormula.equals(entry.getValue())
             || formulaManager.getBooleanFormulaManager().isTrue(entry.getValue())
@@ -445,7 +445,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
       assert !constraintFormulas.containsKey(newConstraint)
           : "Trying to add a formula that already exists!";
 
-      BooleanFormula newFormula = formulaCreator.createFormula(newConstraint, definiteAssignment);
+      BooleanFormula newFormula = formulaCreator.createPredicate(newConstraint, definiteAssignment);
       constraintFormulas.put(newConstraint, newFormula);
     }
 
