@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,23 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
+public interface JAstNodeVisitor<R, X extends Exception>
+    extends JRightHandSideVisitor<R, X>, JStatementVisitor<R, X> {
 
+  R visit(JInitializerExpression pJInitializerExpression) throws X;
 
-/**
- * Interface of Side effect free Expressions.
- */
-public interface JExpression extends JRightHandSide, AExpression {
+  R visit(JMethodDeclaration pJMethodDeclaration) throws X;
 
-  public  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
+  R visit(JParameterDeclaration pJParameterDeclaration) throws X;
 
-  @Override
-  default <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> pV) throws X {
-    return accept((JExpressionVisitor<R, X>) pV);
-  }
+  R visit(JReturnStatement pJReturnStatement) throws X;
 
-  @Override
-  public JType getExpressionType();
-
+  R visit(JVariableDeclaration pJVariableDeclaration) throws X;
 }

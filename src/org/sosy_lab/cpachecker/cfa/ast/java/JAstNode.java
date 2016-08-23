@@ -31,4 +31,5 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
  */
 public interface JAstNode extends AAstNode {
 
+  <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X;
 }
