@@ -44,9 +44,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +69,7 @@ public class CounterexampleInfo extends AbstractAppender {
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
-  private Set<ErrorCause> possibleFaults;
+  private Set<ErrorCause> possibleFaults = new HashSet<>();
 
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
@@ -181,6 +183,7 @@ public class CounterexampleInfo extends AbstractAppender {
     checkState(!spurious);
     int pathLength = targetPath.getFullPath().size();
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
+    Map<ErrorCause, Integer> causeIndices = getCauseIndices();
 
     PathIterator iterator = targetPath.fullPathIterator();
     while (iterator.hasNext()) {
@@ -206,10 +209,42 @@ public class CounterexampleInfo extends AbstractAppender {
         elem.put("val", edgeWithAssignment.printForHTML());
       }
 
+      if (possibleFaults != null) {
+        Set<Integer> partOfCauses = getCausesPartOf(edge, causeIndices);
+        if (!partOfCauses.isEmpty()) {
+          elem.put("faulty_for", Arrays.toString(partOfCauses.toArray()));
+        }
+      }
+
       path.add(elem);
       iterator.advance();
     }
     JSON.writeJSONString(path, sb);
+  }
+
+  private Map<ErrorCause, Integer> getCauseIndices() {
+    Map<ErrorCause, Integer> indices = new HashMap<>();
+    int idx = 0;
+    for (ErrorCause c : possibleFaults) {
+      indices.put(c, idx);
+      idx++;
+    }
+
+    return indices;
+  }
+
+  private Set<Integer> getCausesPartOf(
+      final CFAEdge pEdge,
+      final Map<ErrorCause, Integer> causeIndices
+  ) {
+    Set<Integer> causeIndicesPartOf = new HashSet<>();
+    for (ErrorCause e : possibleFaults) {
+      if (e.contains(pEdge)) {
+        causeIndicesPartOf.add(causeIndices.get(e));
+      }
+    }
+
+    return causeIndicesPartOf;
   }
 
   @Override
