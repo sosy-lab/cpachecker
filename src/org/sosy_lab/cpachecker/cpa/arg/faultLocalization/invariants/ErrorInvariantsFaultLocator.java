@@ -34,20 +34,23 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.FaultLocator;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 
 /**
  * {@link FaultLocator} based on Error Invariants.
@@ -55,7 +58,6 @@ import java.util.Optional;
  */
 public class ErrorInvariantsFaultLocator implements FaultLocator {
 
-  private final Solver solver;
   private final FormulaManagerView manager;
   private final CtoFormulaConverter converter;
 
@@ -64,15 +66,14 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
   private final LogManager logger;
 
   public ErrorInvariantsFaultLocator(
-      final Solver pSolver,
+      final FormulaManagerView pManager,
       final CtoFormulaConverter pConverter,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final InterpolationManager pInterpolator
   ) throws InvalidConfigurationException {
-    solver = pSolver;
-    manager = pSolver.getFormulaManager();
+    manager = pManager;
     converter = pConverter;
     interpolator = pInterpolator;
 
@@ -81,7 +82,7 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
 
   @Override
   public void performLocalization(final CounterexampleInfo pInfo, final ARGPath pErrorPath)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException, SolverException {
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     BooleanFormula postCondition = getPostCondition(pErrorPath, ssa);
     locateAll(pInfo, pErrorPath, postCondition, ssa);
@@ -112,16 +113,36 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
       final ARGPath pErrorPath,
       final BooleanFormula pPostCondition,
       final SSAMapBuilder pSsa
-  ) throws SolverException, InterruptedException, CPATransferException {
+  ) throws SolverException, InterruptedException, CPAException {
     Optional<List<CFAEdge>> newEdges = Optional.of(pErrorPath.getFullPath());
     List<CFAEdge> oldEdges;
     do {
       oldEdges = newEdges.get();
-      try (InterpolatingProverEnvironment<?> itpProver =
-               solver.newProverEnvironmentWithInterpolation()) {
-        newEdges = locate(pInfo, oldEdges, pPostCondition, itpProver, pSsa);
-      }
+      newEdges = locate(pInfo, oldEdges, pPostCondition, pSsa);
     } while (newEdges.isPresent());
+  }
+
+  private Optional<List<CFAEdge>> locate(
+      final CounterexampleInfo pInfo,
+      final List<CFAEdge> pErrorPathEdges,
+      final BooleanFormula pPostCondition,
+      final SSAMapBuilder pSsa
+  ) throws InterruptedException, CPAException {
+    List<BooleanFormula> pathFormula = getPathFormula(pErrorPathEdges, pSsa);
+    pathFormula.add(manager.instantiate(pPostCondition, pSsa.build()));
+
+    CounterexampleTraceInfo traceInfo = interpolator.buildCounterexampleTrace(pathFormula);
+
+    if (traceInfo.isSpurious()) {
+      List<BooleanFormula> interpolants = traceInfo.getInterpolants();
+      List<Integer> relevantOpIndices = getFaultRelevantIndices(interpolants);
+      List<CFAEdge> cleanedErrorPath = cleanErrorPath(pErrorPathEdges, relevantOpIndices);
+
+      return Optional.of(cleanedErrorPath);
+    } else {
+      return Optional.empty();
+    }
+  }
 
   private List<BooleanFormula> getPathFormula(final List<CFAEdge> pErrorPath, final SSAMapBuilder
       pSsa)
@@ -137,36 +158,6 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
     }
 
     return formulas;
-  }
-
-  private <T> Optional<List<CFAEdge>> locate(
-      final CounterexampleInfo pInfo,
-      final List<CFAEdge> pErrorPathEdges,
-      BooleanFormula pPostCondition,
-      final InterpolatingProverEnvironment<T> pItpProver,
-      final SSAMapBuilder pSsa
-  ) throws CPATransferException, InterruptedException, SolverException {
-
-    List<T> itpStack = new ArrayList<>(pErrorPathEdges.size());
-    List<BooleanFormula> pathFormula = getPathFormula(pErrorPathEdges, pSsa);
-
-    for (BooleanFormula formula : pathFormula) {
-      itpStack.add(pItpProver.push(formula));
-    }
-    pPostCondition = manager.instantiate(pPostCondition, pSsa.build());
-    itpStack.add(pItpProver.push(pPostCondition));
-
-    if (!pItpProver.isUnsat()) {
-      return Optional.empty();
-    } else {
-
-      List<BooleanFormula> interpolants = interpolate(pInfo, itpStack, pErrorPathEdges, pItpProver);
-
-      List<Integer> relevantOpIndices = getFaultRelevantIndices(interpolants);
-      assert relevantOpIndices.size() > 0 && relevantOpIndices.size() <= pErrorPathEdges.size();
-
-      return Optional.of(cleanErrorPath(pErrorPathEdges, relevantOpIndices));
-    }
   }
 
   private List<CFAEdge> cleanErrorPath(
