@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -51,9 +52,14 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -68,6 +74,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Optional;
 
 /**
  * Refiner for value analysis using symbolic values.
@@ -133,6 +140,13 @@ public class SymbolicValueAnalysisRefiner
                                     shutdownNotifier,
                                     cfa);
 
+    final FormulaManagerView formulaManager = solver.getFormulaManager();
+    final PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(formulaManager,
+        config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+
+    final MachineModel machineModel = cfa.getMachineModel();
+    final Optional<VariableClassification> varClassification = cfa.getVarClassification();
+
     return AbstractARGBasedRefiner.forARGBasedRefiner(
         new SymbolicValueAnalysisRefiner(argCpa,
             feasibilityChecker,
@@ -142,19 +156,26 @@ public class SymbolicValueAnalysisRefiner
             logger).asARGBasedRefiner(),
         pCpa,
         new ErrorInvariantsFaultLocator(
-            solver,
+            formulaManager,
             new CtoFormulaConverter(new FormulaEncodingOptions(config),
-                solver.getFormulaManager(),
-                cfa.getMachineModel(),
-                cfa.getVarClassification(),
+                formulaManager,
+                machineModel,
+                varClassification,
                 logger,
                 shutdownNotifier,
-                new CtoFormulaTypeHandler(logger, cfa.getMachineModel()),
+                new CtoFormulaTypeHandler(logger, machineModel),
                 AnalysisDirection.FORWARD)
             ,
             config,
             logger,
-            shutdownNotifier, null)
+            shutdownNotifier,
+            new InterpolationManager(
+                pathFormulaManager,
+                solver,
+                cfa.getLoopStructure(),
+                varClassification,
+                config, shutdownNotifier, logger
+            ))
     );
   }
 
