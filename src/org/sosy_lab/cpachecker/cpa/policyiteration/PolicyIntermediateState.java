@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 import java.util.Objects;
 

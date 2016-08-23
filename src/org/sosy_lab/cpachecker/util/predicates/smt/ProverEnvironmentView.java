@@ -27,11 +27,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 import java.util.Collection;
 import java.util.List;

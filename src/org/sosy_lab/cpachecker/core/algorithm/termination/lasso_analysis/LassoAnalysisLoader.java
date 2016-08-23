@@ -37,9 +37,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
-import org.sosy_lab.solver.SolverContextFactory;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.api.SolverContext;
+import org.sosy_lab.java_smt.SolverContextFactory;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.SolverContext;
 
 import java.io.File;
 import java.net.MalformedURLException;

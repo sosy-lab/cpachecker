@@ -28,10 +28,10 @@ import java.math.BigInteger;
 import java.util.List;
 
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 
 public class NumeralFormulaManagerView
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>

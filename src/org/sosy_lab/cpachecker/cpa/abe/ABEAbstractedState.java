@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.abe;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Optional;
 

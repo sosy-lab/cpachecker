@@ -44,16 +44,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType.NumeralType;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 import java.util.Set;
 

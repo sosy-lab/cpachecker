@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg.faultLocalization;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Provides means to locate error sources for a given feasible error path.

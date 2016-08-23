@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.math.BigInteger;
 import java.util.ArrayList;

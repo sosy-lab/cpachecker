@@ -42,11 +42,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.FaultLocator;
-import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.invariants.ErrorInvariantsFaultLocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Collection;
 import java.util.logging.Level;

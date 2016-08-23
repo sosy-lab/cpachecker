@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface Block {
 

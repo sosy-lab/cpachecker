@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;

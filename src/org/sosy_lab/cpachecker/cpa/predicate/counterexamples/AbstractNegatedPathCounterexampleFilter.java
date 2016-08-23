@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Optional;
 import com.google.common.collect.Lists;

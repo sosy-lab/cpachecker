@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Interface to implement in order for an abstract state to be able to

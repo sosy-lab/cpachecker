@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 import java.util.Collection;
 import java.util.HashSet;

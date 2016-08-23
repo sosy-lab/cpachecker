@@ -37,9 +37,9 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.truth.Truth;

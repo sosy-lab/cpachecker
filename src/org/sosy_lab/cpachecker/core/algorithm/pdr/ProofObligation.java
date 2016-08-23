@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr;
 import com.google.common.base.Optional;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Objects;
 
