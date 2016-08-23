@@ -122,6 +122,21 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
         newEdges = locate(pInfo, oldEdges, pPostCondition, itpProver, pSsa);
       }
     } while (newEdges.isPresent());
+
+  private List<BooleanFormula> getPathFormula(final List<CFAEdge> pErrorPath, final SSAMapBuilder
+      pSsa)
+      throws InterruptedException, CPATransferException {
+    List<BooleanFormula> formulas = new ArrayList<>(pErrorPath.size());
+    for (CFAEdge e : pErrorPath) {
+      Formula f = converter.makeTerm(e, pSsa);
+      if (f instanceof BooleanFormula) {
+        formulas.add((BooleanFormula) f);
+      } else {
+        logger.log(Level.WARNING, "Edge ", e, " ignored in fault localization.");
+      }
+    }
+
+    return formulas;
   }
 
   private <T> Optional<List<CFAEdge>> locate(
@@ -133,9 +148,9 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
   ) throws CPATransferException, InterruptedException, SolverException {
 
     List<T> itpStack = new ArrayList<>(pErrorPathEdges.size());
+    List<BooleanFormula> pathFormula = getPathFormula(pErrorPathEdges, pSsa);
 
-    for (CFAEdge e : pErrorPathEdges) {
-      BooleanFormula formula = (BooleanFormula) converter.makeTerm(e, pSsa);
+    for (BooleanFormula formula : pathFormula) {
       itpStack.add(pItpProver.push(formula));
     }
     pPostCondition = manager.instantiate(pPostCondition, pSsa.build());
@@ -147,28 +162,41 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
 
       List<BooleanFormula> interpolants = interpolate(pInfo, itpStack, pErrorPathEdges, pItpProver);
 
-      BooleanFormula previousInterpolant = interpolants.get(0);
-      assert manager.getBooleanFormulaManager().isTrue(previousInterpolant);
-      List<Integer> relevantOpIndices = new ArrayList<>(5);
-      int currentOpIndex = 0;
-      for (BooleanFormula i : interpolants) {
-        if (!previousInterpolant.equals(i)) {
-          relevantOpIndices.add(currentOpIndex);
-          previousInterpolant = i;
-        }
-        currentOpIndex++;
-      }
+      List<Integer> relevantOpIndices = getFaultRelevantIndices(interpolants);
       assert relevantOpIndices.size() > 0 && relevantOpIndices.size() <= pErrorPathEdges.size();
 
-      List<CFAEdge> cleanedErrorPath = new ArrayList<>(pErrorPathEdges);
-      for (int idx : relevantOpIndices) {
-        CFAEdge faultyEdge = cleanedErrorPath.get(idx);
-        cleanedErrorPath.set(
-            idx,
-            BlankEdge.buildNoopEdge(faultyEdge.getPredecessor(), faultyEdge.getSuccessor()));
-      }
-      return Optional.of(cleanedErrorPath);
+      return Optional.of(cleanErrorPath(pErrorPathEdges, relevantOpIndices));
     }
+  }
+
+  private List<CFAEdge> cleanErrorPath(
+      final List<CFAEdge> pErrorPathEdges,
+      final List<Integer> pRelevantOpIndices
+  ) {
+    List<CFAEdge> cleanedErrorPath = new ArrayList<>(pErrorPathEdges);
+    for (int idx : pRelevantOpIndices) {
+      CFAEdge faultyEdge = cleanedErrorPath.get(idx);
+      cleanedErrorPath.set(
+          idx,
+          BlankEdge.buildNoopEdge(faultyEdge.getPredecessor(), faultyEdge.getSuccessor()));
+    }
+    return cleanedErrorPath;
+  }
+
+  private List<Integer> getFaultRelevantIndices(final List<BooleanFormula> pInterpolants) {
+    BooleanFormula previousInterpolant = pInterpolants.get(0);
+    assert manager.getBooleanFormulaManager().isTrue(previousInterpolant);
+    List<Integer> relevantOpIndices = new ArrayList<>(5);
+    int currentOpIndex = 0;
+    for (BooleanFormula i : pInterpolants) {
+      if (!previousInterpolant.equals(i)) {
+        relevantOpIndices.add(currentOpIndex);
+        previousInterpolant = i;
+      }
+      currentOpIndex++;
+    }
+
+    return relevantOpIndices;
   }
 
   private <T> List<BooleanFormula> interpolate(

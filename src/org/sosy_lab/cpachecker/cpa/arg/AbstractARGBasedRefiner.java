@@ -204,7 +204,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private void performErrorLocalization(
       final CounterexampleInfo pCounterexampleInfo,
       final ARGPath pFullErrorPath
-  ) throws CPATransferException, InterruptedException, SolverException {
+  ) throws CPAException, InterruptedException, SolverException {
     faultLocator.performLocalization(pCounterexampleInfo, pFullErrorPath);
   }
 
