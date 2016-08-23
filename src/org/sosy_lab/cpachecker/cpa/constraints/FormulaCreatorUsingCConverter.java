@@ -136,9 +136,6 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     FormulaType<?> variableType = formulaManager.getFormulaType(pVariable);
     Formula rightFormula = null;
 
-    final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
-        rationalFormulaManager = formulaManager.getRationalFormulaManager();
-
     if (pTermAssignment instanceof Number) {
 
       BigInteger integerValue = null;
@@ -178,7 +175,9 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
         }
 
       } else if (pTermAssignment instanceof Rational) {
-        rightFormula = rationalFormulaManager.makeNumber((Rational) pTermAssignment);
+        rightFormula = formulaManager
+            .getRationalFormulaManager()
+            .makeNumber((Rational) pTermAssignment);
       } else {
         throw new AssertionError("Unhandled assignment number " + pTermAssignment);
       }
@@ -189,7 +188,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       } else if (decimalValue != null) {
 
         if (variableType.isRationalType()) {
-          rightFormula = rationalFormulaManager.makeNumber(decimalValue);
+          rightFormula = formulaManager.getRationalFormulaManager().makeNumber(decimalValue);
         } else {
           assert variableType.isFloatingPointType();
           FormulaType.FloatingPointType variableTypeCastToFloatType =
