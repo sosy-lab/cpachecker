@@ -23,9 +23,9 @@
  */
 
 /**
- * Property-Directed Reachability (PDR) algorithm. Also known as IC3.
+ * Transition computation for Property-Directed Reachability.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;

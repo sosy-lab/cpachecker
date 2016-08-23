@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,13 +35,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.blockcount.BlockCountState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -50,7 +48,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -62,20 +59,16 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.PriorityQueue;
 import java.util.Set;
 
 // TODO mind LBA for getting pred/succ locations, counterexample, logging, shutdown, refinement,
 // generalization, build correct reachedSet in the end
 /**
- * Property Directed Reachability algorithm, also known as IC3.
+ * Property-Directed Reachability algorithm, also known as IC3.
  * It can be used to check whether a program is safe or not.
  */
 public class PDRAlgorithm implements Algorithm {
-
-  private static final Predicate<AbstractState> IS_BLOCK_START =
-      pInput -> AbstractStates.extractStateByType(pInput, BlockCountState.class).isStopState();
 
   /*
    *  Simple renaming due to the different meaning of this predicate when applied during the
@@ -98,6 +91,8 @@ public class PDRAlgorithm implements Algorithm {
 
   private final ShutdownNotifier shutdownNotifier;
 
+  private final BackwardTransition backwardTransition;
+
   private FrameSet frameSet; // TODO final ?
 
   public PDRAlgorithm(
@@ -116,6 +111,8 @@ public class PDRAlgorithm implements Algorithm {
     alg = pAlgorithm;
     cpa = pCPA;
     cfa = pCFA;
+
+    backwardTransition = new BackwardTransition(reachedSetFactory, cpa, alg);
 
     PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predCpa == null) {
@@ -140,6 +137,7 @@ public class PDRAlgorithm implements Algorithm {
     CFANode startLocation = cfa.getMainFunction();
     ImmutableSet<CFANode> errorLocations =
         FluentIterable.from(pReachedSet).transform(AbstractStates.EXTRACT_LOCATION).toSet();
+    pReachedSet.clear();
 
     // Utility prover environment that will be reused for small tests
     try (ProverEnvironment reusedProver = solver.newProverEnvironment()) {
@@ -152,16 +150,13 @@ public class PDRAlgorithm implements Algorithm {
       }
 
       // Check for 1-step counterexamples
-      alg.run(pReachedSet);
-      for (AbstractState as : FluentIterable.from(pReachedSet).filter(IS_MAIN_ENTRY)) {
-        PredicateAbstractState pas =
-            AbstractStates.extractStateByType(
-                as, PredicateAbstractState.class); // TODO throw exception if null
-        reusedProver.push(pas.getAbstractionFormula().getBlockFormula().getFormula());
+      for (Block block : backwardTransition.getBlocksTo(errorLocations, IS_MAIN_ENTRY)) {
+        reusedProver.push(block.getFormula());
 
         if (!reusedProver.isUnsat()) {
-          return AlgorithmStatus.SOUND_AND_PRECISE;
+          return AlgorithmStatus.SOUND_AND_PRECISE; // TODO insert violating block into reached set
         }
+
         reusedProver.pop();
       }
 
@@ -192,15 +187,6 @@ public class PDRAlgorithm implements Algorithm {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  /** Fills the reached set with the predecessor states of the specified location. */
-  private void fillWithPredecessors(ReachedSet pReachedSet, CFANode pLoc)
-      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
-    AbstractState errorState = cpa.getInitialState(pLoc, StateSpacePartition.getDefaultPartition());
-    pReachedSet.add(
-        errorState, cpa.getInitialPrecision(pLoc, StateSpacePartition.getDefaultPartition()));
-    alg.run(pReachedSet);
-  }
-
   /**
    * Tries to prove that an error location cannot be reached with a number of steps
    * equal to {@link FrameSet#getMaxLevel()}.
@@ -208,53 +194,46 @@ public class PDRAlgorithm implements Algorithm {
   private boolean strengthen(ImmutableSet<CFANode> pErrorLocations)
       throws InterruptedException, SolverException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
-    ReachedSet reach = reachedSetFactory.create();
 
     for (CFANode errorLoc : pErrorLocations) {
-      reach.clear();
-      fillWithPredecessors(reach, errorLoc);
-      Iterator<CFANode> it =
-          FluentIterable.from(reach)
-              .filter(IS_BLOCK_START)
-              .transform(AbstractStates.EXTRACT_LOCATION)
-              .iterator();
-      CFANode errorPredLoc = it.next();
 
-      /*
-       * While there is a location so that F(maxLevel,l) AND T(l -> errorloc) is satisfiable, get
-       * predecessor state and try to block it.
-       */
-      while (it.hasNext()) {
+      for (Block block : backwardTransition.getBlocksTo(errorLoc)) {
         try (ProverEnvironment prover =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-          // Push frame states of error predecessor location.
-          for (BooleanFormula f :
-              frameSet.getStatesForLocation(errorPredLoc, frameSet.getMaxLevel())) {
-            prover.push(f); // TODO instantiate as unprimed formula
-          }
+          boolean stillSatisfiable = true;
 
-          // Push transition from errorPred to corresponding errorLoc.
-          PathFormula pf = getTransitionPathFormula(reach, errorPredLoc);
-          BooleanFormula localTransition = pf.getFormula();
-          prover.push(localTransition);
+          while (stillSatisfiable) {
 
-          // Transition is still possible. Get state from model and try to block it.
-          if (!prover.isUnsat()) {
-            Model model = prover.getModel();
-            BooleanFormula toBeBlocked = getAbstractedPredecessorState(model, pf);
-            if (!backwardblock(errorPredLoc, toBeBlocked)) {
-              return false;
+            // Push frame states of error predecessor location.
+            for (BooleanFormula f :
+                frameSet.getStatesForLocation(
+                    block.getPredecessorLocation(), frameSet.getMaxLevel())) {
+              prover.push(fmgr.instantiate(f, block.getUnprimedContext().getSsa()));
             }
-          } else {
-            /*
-             *  Transition from current predecessor location to error location is no longer possible.
-             *  Continue with next one.
-             */
-            errorPredLoc = it.next();
+
+            // Push transition from errorPred to corresponding errorLoc.
+            BooleanFormula localTransition = block.getFormula();
+            prover.push(localTransition);
+
+            // Transition is still possible. Get state from model and try to block it.
+            if (!prover.isUnsat()) {
+              Model model = prover.getModel();
+              BooleanFormula toBeBlocked =
+                  getAbstractedPredecessorState(model, block.getUnprimedContext());
+              if (!backwardblock(block.getPredecessorLocation(), toBeBlocked)) {
+                return false;
+              }
+            } else {
+              /*
+               *  Transition from current predecessor location to error location is no longer possible.
+               *  Continue with next one.
+               */
+              stillSatisfiable = false;
+            }
+            shutdownNotifier.shutdownIfNecessary();
           }
         }
-        shutdownNotifier.shutdownIfNecessary();
       }
     }
     return true;
@@ -262,13 +241,13 @@ public class PDRAlgorithm implements Algorithm {
 
   // TODO Predicate abstraction
   /** Extract values for all variables to build formula for blocking. */
-  private BooleanFormula getAbstractedPredecessorState(Model pModel, PathFormula pContext) {
+  private BooleanFormula getAbstractedPredecessorState(Model pModel, PathFormula pUnprimedContext) {
     BooleanFormula toBeBlocked = bfmgr.makeTrue();
 
-    for (String variableName : pContext.getSsa().allVariables()) {
-      CType type = pContext.getSsa().getType(variableName);
+    for (String variableName : pUnprimedContext.getSsa().allVariables()) {
+      CType type = pUnprimedContext.getSsa().getType(variableName);
       BitvectorFormula unprimedVar =
-          (BitvectorFormula) pfmgr.makeFormulaForVariable(pContext, variableName, type);
+          (BitvectorFormula) pfmgr.makeFormulaForVariable(pUnprimedContext, variableName, type);
       BitvectorFormula value =
           fmgr.getBitvectorFormulaManager()
               .makeBitvector(fmgr.getFormulaType(unprimedVar), pModel.evaluate(unprimedVar));
@@ -279,16 +258,6 @@ public class PDRAlgorithm implements Algorithm {
     }
 
     return toBeBlocked;
-  }
-
-  /** Gets the path formula for the transition to the specified location. */
-  private PathFormula getTransitionPathFormula(ReachedSet pReach, CFANode pPredLocation) {
-    FluentIterable<PredicateAbstractState> predecessors =
-        FluentIterable.from(AbstractStates.filterLocation(pReach, pPredLocation))
-            .transform(AbstractStates.toState(PredicateAbstractState.class));
-    PathFormula pf =
-        Iterables.getOnlyElement(predecessors).getAbstractionFormula().getBlockFormula();
-    return pf;
   }
 
   /**
@@ -318,46 +287,31 @@ public class PDRAlgorithm implements Algorithm {
           solver.newProverEnvironment(
               ProverOptions.GENERATE_UNSAT_CORE, ProverOptions.GENERATE_MODELS)) {
 
-        // Initialize new reached set to contain predecessor locations of p.location
-        ReachedSet reach = reachedSetFactory.create();
-        AbstractState startState =
-            cpa.getInitialState(p.getLocation(), StateSpacePartition.getDefaultPartition());
-        reach.add(
-            startState,
-            cpa.getInitialPrecision(p.getLocation(), StateSpacePartition.getDefaultPartition()));
-        alg.run(reach);
-
-        PredicateAbstractState predicateErrorState =
-            AbstractStates.extractStateByType(startState, PredicateAbstractState.class);
-        SSAMap errorStateSSAMap =
-            predicateErrorState.getAbstractionFormula().getBlockFormula().getSsa();
-
         /*
          * Checks if p.state is relative inductive to states known in predecessor locations.
          */
-        for (CFANode predLocation :
-            FluentIterable.from(reach)
-                .filter(IS_BLOCK_START)
-                .transform(AbstractStates.EXTRACT_LOCATION)) {
+        for (Block block : backwardTransition.getBlocksTo(p.getLocation())) {
+          CFANode predLocation = block.getPredecessorLocation();
 
           // Push T(predLoc -> p.loc)
-          PathFormula pf = getTransitionPathFormula(reach, predLocation);
-          BooleanFormula localTransition = pf.getFormula();
+          BooleanFormula localTransition = block.getFormula();
           prover.push(localTransition);
 
           // Push F(p.level - 1, predLoc)
           for (BooleanFormula frameState :
               frameSet.getStatesForLocation(predLocation, p.getFrameLevel() - 1)) {
-            prover.push(fmgr.instantiate(frameState, pf.getSsa()));
+            prover.push(fmgr.instantiate(frameState, block.getUnprimedContext().getSsa()));
           }
 
           // Push p.state'
-          BooleanFormula primedState = fmgr.instantiate(p.getState(), errorStateSSAMap);
+          BooleanFormula primedState =
+              fmgr.instantiate(p.getState(), block.getPrimedContext().getSsa());
           prover.push(primedState);
 
           // Push not(p.state) if self-loop
           if (predLocation.equals(p.getLocation())) {
-            BooleanFormula unprimedState = fmgr.instantiate(p.getState(), pf.getSsa());
+            BooleanFormula unprimedState =
+                fmgr.instantiate(p.getState(), block.getUnprimedContext().getSsa());
             prover.push(bfmgr.not(unprimedState));
           }
 
@@ -367,7 +321,8 @@ public class PDRAlgorithm implements Algorithm {
              * it to be reached. Add new obligation to block predState at predLocation at one level lower.
              * Re-add old obligation for future re-inspection.
              */
-            BooleanFormula predState = getAbstractedPredecessorState(prover.getModel(), pf);
+            BooleanFormula predState =
+                getAbstractedPredecessorState(prover.getModel(), block.getUnprimedContext());
             proofObligationQueue.offer(
                 new ProofObligation(p.getFrameLevel() - 1, predLocation, predState, p));
             proofObligationQueue.offer(p); // TODO add cause ?
