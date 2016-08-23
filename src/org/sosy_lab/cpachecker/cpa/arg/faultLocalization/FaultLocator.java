@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.arg.faultLocalization;
 
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.solver.SolverException;
 
 /**
  * Provides means to locate error sources for a given feasible error path.
  */
 public interface FaultLocator {
 
-  void performLocalization(CounterexampleInfo pInfo, ARGPath pErrorPath);
+  void performLocalization(CounterexampleInfo pInfo, ARGPath pErrorPath)
+      throws CPATransferException, InterruptedException, SolverException;
 }

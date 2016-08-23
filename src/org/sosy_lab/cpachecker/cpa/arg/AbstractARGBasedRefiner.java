@@ -41,9 +41,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.FaultLocator;
+import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.invariants.ErrorInvariantsFaultLocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.solver.SolverException;
 
 import java.util.Collection;
 import java.util.logging.Level;
@@ -64,17 +67,32 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private final ARGBasedRefiner refiner;
   private final ARGCPA argCpa;
   private final LogManager logger;
+  private final FaultLocator faultLocator;
 
   protected AbstractARGBasedRefiner(AbstractARGBasedRefiner pAbstractARGBasedRefiner) {
     refiner = pAbstractARGBasedRefiner.refiner;
     argCpa = pAbstractARGBasedRefiner.argCpa;
     logger = pAbstractARGBasedRefiner.logger;
+    faultLocator = pAbstractARGBasedRefiner.faultLocator;
   }
 
   protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
     refiner = pRefiner;
     argCpa = pCpa;
     logger = pLogger;
+    faultLocator = null;
+  }
+
+  protected AbstractARGBasedRefiner(
+      ARGBasedRefiner pRefiner,
+      ARGCPA pCpa,
+      LogManager pLogger,
+      FaultLocator pFaultLocator
+  ) {
+    refiner = pRefiner;
+    argCpa = pCpa;
+    logger = pLogger;
+    faultLocator = pFaultLocator;
   }
 
   /**
@@ -83,6 +101,14 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   public static Refiner forARGBasedRefiner(
       final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
+        return forARGBasedRefiner(pRefiner, pCpa, null);
+  }
+
+  public static Refiner forARGBasedRefiner(
+      final ARGBasedRefiner pRefiner,
+      final ConfigurableProgramAnalysis pCpa,
+      final FaultLocator pFaultLocator
+  ) throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
@@ -94,7 +120,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger());
+    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger(), pFaultLocator);
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
@@ -144,6 +170,12 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
+      try {
+        performErrorLocalization(counterexample, targetPath);
+      } catch (SolverException pE) {
+        throw new CPAException(pE.getMessage());
+      }
+
       lastElement.addCounterexampleInformation(counterexample);
 
       logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
@@ -167,6 +199,13 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
     return refiner.performRefinementForPath(pReached, pPath);
+  }
+
+  private void performErrorLocalization(
+      final CounterexampleInfo pCounterexampleInfo,
+      final ARGPath pFullErrorPath
+  ) throws CPATransferException, InterruptedException, SolverException {
+    faultLocator.performLocalization(pCounterexampleInfo, pFullErrorPath);
   }
 
   /**

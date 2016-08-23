@@ -33,12 +33,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.invariants.ErrorInvariantsFaultLocator;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
@@ -47,6 +51,9 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -72,7 +79,7 @@ public class SymbolicValueAnalysisRefiner
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
-  public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
     final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
@@ -126,12 +133,29 @@ public class SymbolicValueAnalysisRefiner
                                     shutdownNotifier,
                                     cfa);
 
-    return new SymbolicValueAnalysisRefiner(argCpa,
-        feasibilityChecker,
-        pathInterpolator,
-        new PathExtractor(logger, config),
-        config,
-        logger);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        new SymbolicValueAnalysisRefiner(argCpa,
+            feasibilityChecker,
+            pathInterpolator,
+            new PathExtractor(logger, config),
+            config,
+            logger).asARGBasedRefiner(),
+        pCpa,
+        new ErrorInvariantsFaultLocator(
+            solver,
+            new CtoFormulaConverter(new FormulaEncodingOptions(config),
+                solver.getFormulaManager(),
+                cfa.getMachineModel(),
+                cfa.getVarClassification(),
+                logger,
+                shutdownNotifier,
+                new CtoFormulaTypeHandler(logger, cfa.getMachineModel()),
+                AnalysisDirection.FORWARD)
+            ,
+            config,
+            logger,
+            shutdownNotifier, null)
+    );
   }
 
   public SymbolicValueAnalysisRefiner(final ARGCPA pCpa,
