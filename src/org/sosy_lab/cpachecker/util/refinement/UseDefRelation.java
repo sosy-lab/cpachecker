@@ -31,12 +31,12 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.DeclarationCollectingVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.ArrayList;
@@ -364,39 +364,18 @@ public class UseDefRelation {
         || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS));
   }
 
-
-  /**
-   * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptexpressions
-   * we do only want the IdExpressions inside the ArrayExpression.
-   */
-  private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
-    @Override
-    public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
-      return pE.getArrayExpression().<Set<ASimpleDeclaration>,
-          Set<ASimpleDeclaration>,
-          Set<ASimpleDeclaration>,
-          RuntimeException,
-          RuntimeException,
-          UseDefRelation.LeftHandSideIdExpressionVisitor>accept_(this);
-    }
-  }
-
-  private static Set<ASimpleDeclaration> acceptLeft(AExpression exp) {
-    return exp.<Set<ASimpleDeclaration>,
-        Set<ASimpleDeclaration>,
-        Set<ASimpleDeclaration>,
-        RuntimeException,
-        RuntimeException,
-        UseDefRelation.LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
+  private static Set<ASimpleDeclaration> acceptLeft(ALeftHandSide exp) {
+    return CFAUtils.traverseLeftHandSideRecursively(exp)
+        .filter(AIdExpression.class)
+        .transform(AIdExpression::getDeclaration)
+        .toSet();
   }
 
   private static Set<ASimpleDeclaration> acceptAll(AExpression exp) {
-    return exp.<Set<ASimpleDeclaration>,
-        Set<ASimpleDeclaration>,
-        Set<ASimpleDeclaration>,
-        RuntimeException,
-        RuntimeException,
-        DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
+    return CFAUtils.traverseRecursively(exp)
+        .filter(AIdExpression.class)
+        .transform(AIdExpression::getDeclaration)
+        .toSet();
   }
 
 
