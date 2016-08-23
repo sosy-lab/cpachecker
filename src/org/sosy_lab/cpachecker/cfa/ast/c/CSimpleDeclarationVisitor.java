@@ -31,7 +31,7 @@ public interface CSimpleDeclarationVisitor<R, X extends Exception> {
 
   R visit(CComplexTypeDeclaration pDecl) throws X;
 
-  R visit(CTypeDeclaration pDecl) throws X;
+  R visit(CTypeDefDeclaration pDecl) throws X;
 
   R visit(CVariableDeclaration pDecl) throws X;
 
