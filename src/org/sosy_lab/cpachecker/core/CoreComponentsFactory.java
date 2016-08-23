@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -84,6 +85,9 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="algorithm.conditionAdjustment",
       description="use adjustable conditions algorithm")
   private boolean useAdjustableConditions = false;
+
+  @Option(secure = true, name = "algorithm.pdr", description = "use PDR algorithm")
+  private boolean usePDR = false;
 
   @Option(secure=true, name="algorithm.CEGAR",
       description = "use CEGAR algorithm for lazy counter-example guided analysis"
@@ -282,6 +286,12 @@ public class CoreComponentsFactory {
 
       if (useCEGAR) {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (usePDR) {
+        algorithm =
+            new PDRAlgorithm(
+                reachedSetFactory, cpa, algorithm, cfa, config, logger, shutdownNotifier);
       }
 
       if (useBMC) {

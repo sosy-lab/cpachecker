@@ -129,6 +129,9 @@ analysis.algorithm.conditionAdjustment = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# use PDR algorithm
+analysis.algorithm.pdr = false
+
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
 
