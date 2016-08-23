@@ -268,7 +268,7 @@ public class AutomatonGraphmlParser {
       } else if (graphTypeText.size() > 1) {
         throw new WitnessParseException("Only one graph type is allowed.");
       } else {
-        String graphTypeToParse = graphTypeText.iterator().next();
+        String graphTypeToParse = graphTypeText.iterator().next().trim();
         Optional<GraphType> parsedGraphType = GraphType.tryParse(graphTypeToParse);
         if (parsedGraphType.isPresent()) {
           graphType = parsedGraphType.get();
