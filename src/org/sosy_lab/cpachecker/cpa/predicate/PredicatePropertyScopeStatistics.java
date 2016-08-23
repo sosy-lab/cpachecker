@@ -24,10 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 
+import static java.util.stream.StreamSupport.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.asNonTrueAbstractionState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -43,9 +45,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.MatchInfo;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.holder.Holder;
 import org.sosy_lab.cpachecker.util.holder.HolderLong;
@@ -62,12 +68,14 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
@@ -249,7 +257,9 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
 
   private Optional<String> computeNewEntryFunction(ReachedSet reached) {
+    Set<MatchInfo> matches = ControlAutomatonCPA.getGlobalMatchInfo();
     List<String> longestPrefix = null;
+    List<String> matchLongestPrefix = null;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
       Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
@@ -262,6 +272,27 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           longestPrefix = longestPrefixOf(longestPrefix, getStack(csSt));
         }
       }
+
+      FluentIterable<AutomatonState> automStates =
+          AbstractStates.asIterable(absSt).filter(AutomatonState.class);
+
+      LocationState locst = extractStateByType(absSt, LocationState.class);
+      Set<CFAEdge> outgoingEdges = stream(locst.getOutgoingEdges().spliterator(), false)
+          .collect(Collectors.toSet());
+
+      if(matches.stream()
+          .anyMatch(mi -> outgoingEdges.contains(mi.edge) && automStates.contains(mi.state))) {
+        if (matchLongestPrefix == null) {
+          matchLongestPrefix = getStack(csSt);
+        } else {
+          matchLongestPrefix = longestPrefixOf(matchLongestPrefix, getStack(csSt));
+        }
+
+      }
+    }
+
+    if (longestPrefix == null) {
+      longestPrefix = matchLongestPrefix;
     }
 
     return longestPrefix == null ? Optional.empty()
@@ -470,6 +501,8 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
             .stream().map(pInteger -> (long) pInteger)
             .reduce(Long::sum)
             .orElse(0L) / (double) trueGlobalOtherSwitch.size());
+
+
 
     super.printStatistics(pOut, pResult, pReached);
   }
