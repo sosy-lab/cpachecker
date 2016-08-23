@@ -47,6 +47,8 @@ import java.util.Set;
 
 public class DynamicFrameSet implements FrameSet {
 
+  private static final int DEFAULT_LOWEST_SSA_INDEX = 1;
+
   /** The frames per location. */
   private final Map<CFANode, List<ApproximationFrame>> frames;
 
@@ -58,11 +60,11 @@ public class DynamicFrameSet implements FrameSet {
   private final BackwardTransition backwardTransition;
 
   public DynamicFrameSet(
-      CFANode pStartLocation, FormulaManagerView pFMGR, BackwardTransition pBackwardTransition) {
+      CFANode pStartLocation, FormulaManagerView pFmgr, BackwardTransition pBackwardTransition) {
     currentMaxLevel = 0;
     frames = Maps.newHashMap();
-    fmgr = pFMGR;
-    bfmgr = pFMGR.getBooleanFormulaManager();
+    fmgr = pFmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
     backwardTransition = pBackwardTransition;
     initFrameSetForLocation(pStartLocation, true);
   }
@@ -133,6 +135,7 @@ public class DynamicFrameSet implements FrameSet {
       initFrameSetForLocation(pLocation, false);
     }
 
+    // TODO subsume here too?
     // Only need to add to highest level (delta encoding)
     frames.get(pLocation).get(pMaxLevel).addState(bfmgr.not(pState));
   }
@@ -140,10 +143,11 @@ public class DynamicFrameSet implements FrameSet {
   @Override
   public void propagate(ProverEnvironment pProver, ProverEnvironment pSubsumptionProver)
       throws InterruptedException, CPAException, SolverException {
+
     /*
-     * For all levels i till max, for all locations l, for all states s in F(i,l),
-     * for all successors ls of l, check if s is inductive and add/subsume if so.
-     * Inductivity means : F(i,l) AND T(l->ls) AND not(s') is unsatisfiable.
+     * For all levels i till max, for all locations l', for all predecessors l of l'
+     * for all states s in F(i,l), check if s is inductive an add/subsume if it is
+     * the case. Inductivity means: F(i,l) & T(l->l') & not(s_prime) is unsatisfiable.
      */
     for (int level = 1; level <= currentMaxLevel - 1; ++level) { // TODO bounds ok ?
       for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
@@ -151,23 +155,24 @@ public class DynamicFrameSet implements FrameSet {
         Set<BooleanFormula> frameStates = getStatesForLocation(location, level);
         int numberFrameStates = frameStates.size();
 
-        for (BooleanFormula state : frameStates) { // Push (unprimed) F(i,l)
-          pProver.push(fmgr.instantiate(state, SSAMap.emptySSAMap().withDefault(1)));
+        for (BooleanFormula state : frameStates) { // Push F(i,l) [unprimed]
+          pProver.push(
+              fmgr.instantiate(state, SSAMap.emptySSAMap().withDefault(DEFAULT_LOWEST_SSA_INDEX)));
         }
 
         FluentIterable<Block> blocksToLocation = backwardTransition.getBlocksTo(location);
+
         // Invert blocks so that the SSA indices for the predecessors
         // ("unprimed" variables) match
         blocksToLocation = blocksToLocation.transform(block -> block.invertDirection());
 
         for (Block block : blocksToLocation) {
           CFANode predecessorLocation = block.getPredecessorLocation();
-
-          // Push transition
-          pProver.push(block.getFormula());
+          pProver.push(block.getFormula()); // Push transition
 
           for (BooleanFormula state : frameStates) {
-            // Push primed state
+
+            // Push state [primed]
             pProver.push(bfmgr.not(fmgr.instantiate(state, block.getPrimedContext().getSsa())));
 
             if (pProver.isUnsat()) {
@@ -177,12 +182,11 @@ public class DynamicFrameSet implements FrameSet {
               addWithSubsumption(
                   state, frames.get(predecessorLocation).get(level + 1), pSubsumptionProver);
             }
-
-            pProver.pop(); // Pop state'
+            pProver.pop(); // Pop state [primed]
           }
           pProver.pop(); // Pop transition
         }
-        for (int i = 0; i < numberFrameStates; ++i) { // Pop F(i,l)
+        for (int i = 0; i < numberFrameStates; ++i) { // Pop F(i,l) [unprimed]
           pProver.pop();
         }
       }
