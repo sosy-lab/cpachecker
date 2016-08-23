@@ -348,11 +348,11 @@ public class BackwardTransition {
                 int lowIndex = 1;
                 int highIndex = originalSSAMap.getIndex(variableName);
                 for (int index = lowIndex; index <= highIndex; ++index) {
-                  int oldIndex = highIndex - index + lowIndex;
+                  int newIndex = highIndex - index + lowIndex;
                   SSAMap oldSSAMap =
                       SSAMap.emptySSAMap().builder().setIndex(variableName, type, index).build();
                   SSAMap newSSAMap =
-                      SSAMap.emptySSAMap().builder().setIndex(variableName, type, oldIndex).build();
+                      SSAMap.emptySSAMap().builder().setIndex(variableName, type, newIndex).build();
                   String oldVariableName =
                       formulaManager
                           .instantiate(Collections.singleton(variableName), oldSSAMap)
