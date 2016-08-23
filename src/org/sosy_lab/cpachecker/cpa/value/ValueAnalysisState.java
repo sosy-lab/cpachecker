@@ -614,7 +614,7 @@ public class ValueAnalysisState
     }
 
     List<BooleanFormula> result = new ArrayList<>();
-    final FormulaCreator formulaCreator = formulaCreatorFactory.create(manager, "");
+    final FormulaCreator formulaCreator = formulaCreatorFactory.create(manager, "main");
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
       MemoryLocation memLoc = entry.getKey();
