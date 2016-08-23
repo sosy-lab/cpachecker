@@ -47,6 +47,31 @@ body {
 #err_table td:hover{
     font-weight: bold;
 }
+#err_table td:first-child{
+    border-radius: 6px;
+}
+#err_table td pre {
+    padding: 0px;
+    margin: 0px;
+}
+#err_table tr:nth-child(odd) td pre.prettyprint {
+    background-color: #f3f3f3;
+}
+#err_table .valueButton pre {
+  display: block;
+  margin-top: 2px;
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+  font-size: 0.8em;
+}
+#err_table .valueButton.disabled {
+  background-color: #efefef;
+}
+#err_table .valueButton.active {
+  border: solid 2px;
+  border-color: #00d415;
+}
 .edge{
     cursor: pointer;
 }
@@ -184,17 +209,6 @@ table {
 td:first-child {
     background-color: #ccc;
 }
-#err_table td:first-child{
-    border-radius: 6px;
-}
-#err_table td pre {
-    padding: 0px;
-    margin: 0px;
-    border: none;
-}
-#err_table tr:nth-child(odd) td pre.prettyprint {
-    background-color: #f3f3f3;
-}
 .sourceContent td pre {
     padding: 0px;
     margin: 0px;
@@ -229,10 +243,6 @@ td:first-child {
 
 .markedARGNode polygon{
     fill: #df80ff;
-}
-.markedTableElement{
-    border: solid 2px;
-    border-color: #00d415;
 }
 .markedValueElement pre{
     background-color: #83d480 !important;
@@ -619,10 +629,10 @@ div pre{
         //gets called when '-V-'button in errorpath is clicked
         $scope.showValues = function($event){
             var element = $event.currentTarget;
-            if (element.classList.contains("markedTableElement")) {
-                element.classList.remove("markedTableElement");
+            if (element.classList.contains("active")) {
+                element.classList.remove("active");
             } else {
-                element.classList.add("markedTableElement");
+                element.classList.add("active");
             }
         };
     }]);
@@ -1140,8 +1150,12 @@ function init(){
       <table id="err_table">
         <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
           <td ng-click="showValues($event)" data-toggle="popover" data-placement="right"
-              data-trigger="click" data-content="{{line.valString}}">
-            <pre>-V-</pre>
+              data-trigger="click" data-content="{{line.valString}}"
+              class="valueButton" ng-if="line.valString">
+            <pre>&thinsp;V&thinsp;</pre>
+          </td>
+          <td class="valueButton disabled" ng-if="!line.valString">
+            <pre></pre>
           </td>
           <td ng-click="clickedErrpathElement($event)">
             <pre class="prettyprint">{{line.desc}}</pre>
