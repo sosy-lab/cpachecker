@@ -332,19 +332,24 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
-              ExpressionTreeSupplier tmp;
-              try {
-                if (invariantGenerator instanceof KInductionInvariantGenerator) {
-                  tmp =
-                      ((KInductionInvariantGenerator) invariantGenerator)
-                          .getExpressionTreeSupplier();
-                } else {
-                  tmp = new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+              ExpressionTreeSupplier tmpExpressionTreeSupplier =
+                  ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+              if (invariantGenerator.isStarted()) {
+                try {
+                  if (invariantGenerator instanceof KInductionInvariantGenerator) {
+                    tmpExpressionTreeSupplier =
+                        ((KInductionInvariantGenerator) invariantGenerator)
+                            .getExpressionTreeSupplier();
+                  } else {
+                    tmpExpressionTreeSupplier =
+                        new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+                  }
+                } catch (CPAException | InterruptedException e1) {
+                  tmpExpressionTreeSupplier =
+                      ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
                 }
-              } catch (CPAException | InterruptedException e1) {
-                tmp = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
               }
-              final ExpressionTreeSupplier expSup = tmp;
+              final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
 
               try (Writer w = MoreFiles.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
                 argPathExporter.writeProofWitness(

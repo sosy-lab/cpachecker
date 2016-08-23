@@ -364,7 +364,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   }
 
   @Override
-  public void start(final CFANode initialLocation) {
+  protected void startImpl(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
     Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> task =
