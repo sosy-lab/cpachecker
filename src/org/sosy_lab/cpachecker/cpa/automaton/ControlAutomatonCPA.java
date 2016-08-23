@@ -343,4 +343,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   public static Set<CFAEdge> getGlobalTargetCFAEdges() {
     return Collections.unmodifiableSet(AutomatonTransferRelation.globalTargetCFAEdges);
   }
+
+  /** @see AutomatonTransferRelation#globalMatches */
+  public static Set<MatchInfo> getGlobalMatchInfo() {
+    return Collections.unmodifiableSet(AutomatonTransferRelation.globalMatches);
+  }
 }

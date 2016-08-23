@@ -95,6 +95,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   /** Globally, stores the #CFAEdge s which lead the automaton into a target state */
   static Set<CFAEdge> globalTargetCFAEdges = new LinkedHashSet<>();
 
+  /** Globally, stores the #{CFAEdge}s and {@link AutomatonState}s where the automaton matched */
+  static Set<MatchInfo> globalMatches = new LinkedHashSet<>();
+
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa,
       LogManager pLogger, AutomatonState pIntermediateState, ControlAutomatonOptions pOptions)
           throws InvalidConfigurationException {
@@ -256,11 +259,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
       } else if (match.getValue()) {
         // Transition MATCHES ................................................
+
+        // statistics
         statNumberOfMatches++;
+
         atLeastOneMatch = true;
 
         // Collect information on relevant properties
-        collectStatisticsForMatchedTransition(automaton, pState.getInternalState(), t);
+        collectStatisticsForMatchedTransition(automaton, pState.getInternalState(), t, pEdge,
+            pState);
 
         // Check if the ASSERTION holds
         assertionsTime.start();
@@ -398,8 +405,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private void collectStatisticsForMatchedTransition(Automaton pAutomaton, AutomatonInternalState pQ,
-      AutomatonTransition pT) {
+  private void collectStatisticsForMatchedTransition(
+      Automaton pAutomaton, AutomatonInternalState pQ,
+      AutomatonTransition pT, CFAEdge pEdge, AutomatonState pState) {
 
     // TODO: Refactor
     //    Hacky code to get the research done...
@@ -412,6 +420,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     if (matchesIndependentOfProperty) {
       return;
     }
+
+
+    globalMatches.add(new MatchInfo(pEdge, pState));
 
     ImmutableSet<? extends SafetyProperty> relevantFor = pAutomaton.getIsRelevantForProperties(pT);
     PropertyStats.INSTANCE.signalRelevancesOfProperties(relevantFor);
