@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,13 +64,7 @@ public class InitDefaultOperator implements InitOperator {
     Preconditions.checkState(pAllProperties.size() > 0, "There must be a set of properties that get checked!");
 
     // At the moment we check the first non-empty partition in the list
-    Set<Property> partitionToCheck = ImmutableSet.of();
-    for (Set<Property> parti: pPartitioning) {
-      partitionToCheck = Sets.intersection(parti, pRemain);
-      if (partitionToCheck.size() > 0) {
-        break;
-      }
-    }
+    Set<Property> partitionToCheck = Partitions.getNextNotEmptyPartition(pRemain, pPartitioning);
 
     final CFANode initLocation = pCfa.getMainFunction();
     final AbstractState initialState = pCPA.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
@@ -106,7 +101,6 @@ public class InitDefaultOperator implements InitOperator {
     return pPartitioning.withoutFirstTruncEmptyModulo(pRemain);
 
   }
-
 
 
 }

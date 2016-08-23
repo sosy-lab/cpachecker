@@ -212,4 +212,14 @@ public class Partitions implements Partitioning {
     return partitionBudgeting;
   }
 
+  public static Set<Property> getNextNotEmptyPartition(Set<Property> pRemain, Partitioning pPartitioning) {
+    Set<Property> partitionToCheck = ImmutableSet.of();
+    for (Set<Property> parti: pPartitioning) {
+      partitionToCheck = Sets.intersection(parti, pRemain);
+      if (partitionToCheck.size() > 0) {
+        break;
+      }
+    }
+    return partitionToCheck;
+  }
 }
