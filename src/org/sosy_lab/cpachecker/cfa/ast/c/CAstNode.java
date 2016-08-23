@@ -34,6 +34,7 @@ public interface CAstNode extends AAstNode {
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
+  @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
   @Override
   default <
           R,
