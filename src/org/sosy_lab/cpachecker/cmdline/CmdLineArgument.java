@@ -38,15 +38,15 @@ import java.util.Map.Entry;
 abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
 
   private final ImmutableSet<String> names;
-  private final String description;
-
-  private CmdLineArgument(String[] pNames, String pDescription) {
-    names = ImmutableSet.copyOf(pNames);
-    description = pDescription;
-  }
+  private String description = ""; // changed later, if needed
 
   CmdLineArgument(String... pNames) {
-    this(pNames, "");
+    names = ImmutableSet.copyOf(pNames);
+  }
+
+  CmdLineArgument withDescription(String pDescription) {
+    description = pDescription;
+    return this;
   }
 
   @Override
@@ -73,7 +73,8 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     if (description.isEmpty()) {
       return s;
     } else {
-      return s + "\t" + description;
+      // we rjust the description at column 20.
+      return String.format("%1$-20s %2$s", s, description);
     }
   }
 
