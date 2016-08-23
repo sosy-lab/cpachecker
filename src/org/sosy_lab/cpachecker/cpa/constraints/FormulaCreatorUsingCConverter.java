@@ -28,10 +28,6 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -39,8 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
@@ -48,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
@@ -86,6 +79,17 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     functionName = pFunctionName;
   }
 
+  private CExpression getExpression(
+      final SymbolicValue pValue,
+      final IdentifierAssignment pDefiniteAssignment
+  ) {
+    final SymbolicExpressionTransformer toExpressionTransformer =
+        new SymbolicExpressionTransformer(pDefiniteAssignment);
+
+    return pValue.accept(toExpressionTransformer);
+  }
+
+
   @Override
   public BooleanFormula createPredicate(final SymbolicValue pValue)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -100,13 +104,28 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       final IdentifierAssignment pDefiniteAssignment
   ) throws UnrecognizedCCodeException, InterruptedException {
 
-    final SymbolicExpressionTransformer toExpressionTransformer =
-        new SymbolicExpressionTransformer(pDefiniteAssignment);
-
-    CExpression constraintExpression = pValue.accept(toExpressionTransformer);
-
     return toFormulaTransformer.makePredicate(
-        constraintExpression, getDummyEdge(), functionName, getSsaMapBuilder());
+        getExpression(pValue, pDefiniteAssignment),
+        getDummyEdge(),
+        functionName,
+        getSsaMapBuilder());
+  }
+
+  @Override
+  public Formula createTerm(SymbolicValue pValue) throws UnrecognizedCCodeException {
+    return createTerm(pValue, new IdentifierAssignment());
+  }
+
+  @Override
+  public Formula createTerm(
+      SymbolicValue pValue, IdentifierAssignment pDefiniteAssignment)
+      throws UnrecognizedCCodeException {
+    return toFormulaTransformer.makeTerm(
+        getExpression(pValue, pDefiniteAssignment),
+        getDummyEdge(),
+        functionName,
+        getSsaMapBuilder()
+    );
   }
 
   @Override

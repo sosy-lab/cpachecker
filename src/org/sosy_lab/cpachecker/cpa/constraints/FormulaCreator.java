@@ -84,6 +84,25 @@ public interface FormulaCreator {
   BooleanFormula createPredicate(SymbolicValue pValue, IdentifierAssignment pDefiniteAssignment)
       throws UnrecognizedCCodeException, InterruptedException;
 
+
+  /**
+   * Creates a {@link Formula} representing the given {@link SymbolicValue}.
+   *
+   * @param pValue the symbolic value to create a formula of
+   * @return a <code>Formula</code> representing the given symbolic value
+   */
+  Formula createTerm(SymbolicValue pValue) throws UnrecognizedCCodeException;
+
+  /**
+   * Creates a {@link Formula} representing the given {@link SymbolicValue}.
+   *
+   * @param pValue the symbolic value to create a formula of
+   * @param pDefiniteAssignment the known definite assignments of symbolic identifiers
+   * @return a <code>Formula</code> representing the given symbolic value
+   */
+  Formula createTerm(SymbolicValue pValue, IdentifierAssignment pDefiniteAssignment)
+      throws UnrecognizedCCodeException;
+
   /**
    * Creates a {@link BooleanFormula} representing the given term-value assignment.
    *

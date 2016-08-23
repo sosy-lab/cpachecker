@@ -1324,6 +1324,14 @@ public class CtoFormulaConverter {
     return bfmgr.and(f, constraints.get());
   }
 
+  public Formula makeTerm(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
+      throws UnrecognizedCCodeException {
+    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
+    Constraints constraints = new Constraints(bfmgr);
+    ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
+    return buildTerm(exp, edge, function, ssa, pts, constraints, errorConditions);
+  }
+
   /**
    * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
    * @param pts the pointer target set to use initially
