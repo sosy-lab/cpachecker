@@ -100,7 +100,7 @@ public class ConstraintsTransferRelation
 
   private Solver solver;
   private FormulaManagerView formulaManager;
-  private CtoFormulaConverter converter;
+  private final FormulaCreatorFactory formulaCreatorFactory;
   private StateSimplifier simplifier;
 
   public ConstraintsTransferRelation(
@@ -119,25 +119,12 @@ public class ConstraintsTransferRelation
 
     solver = pSolver;
     formulaManager = solver.getFormulaManager();
-    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
+    formulaCreatorFactory = new FormulaCreatorFactory(
+        machineModel,
+        pLogger,
+        pConfig,
+        pShutdownNotifier);
   }
-
-  // Can only be called after machineModel and formulaManager are set
-  private void initializeCToFormulaConverter(LogManager pLogger, Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-
-    FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, machineModel);
-
-    converter = new CtoFormulaConverter(options,
-                                        formulaManager,
-                                        machineModel,
-                                        Optional.empty(),
-                                        pLogger,
-                                        pShutdownNotifier,
-                                        typeHandler,
-                                        AnalysisDirection.FORWARD);
-}
 
   @Override
   protected ConstraintsState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,
@@ -239,11 +226,7 @@ public class ConstraintsTransferRelation
   }
 
   private FormulaCreator getFormulaCreator(String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pFunctionName);
-  }
-
-  private CtoFormulaConverter getConverter() {
-    return converter;
+    return formulaCreatorFactory.create(formulaManager, pFunctionName);
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
