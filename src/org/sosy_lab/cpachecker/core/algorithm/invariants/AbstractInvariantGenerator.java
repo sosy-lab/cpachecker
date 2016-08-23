@@ -35,6 +35,7 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
   @Override
   public final void start(CFANode pInitialLocation) {
+    startImpl(pInitialLocation);
     started.set(true);
   }
 
