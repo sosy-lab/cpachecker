@@ -478,9 +478,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else if (baseType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) baseType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
+        final int offset = typeHandler.getOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
@@ -493,9 +493,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                     fields,
                                     ssa,
                                     constraints);
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += getSizeof(memberType);
         }
       }
     } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {

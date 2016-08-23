@@ -335,18 +335,15 @@ public interface PointerTargetSetBuilder {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
         final String type = CTypeUtils.typeToString(compositeType);
-        int offset = 0;
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+          final int offset = typeHandler.getOffset(compositeType, memberDeclaration.getName());
           if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
             addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
             targets = ptsMgr.addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
-          }
-          if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-            offset += typeHandler.getSizeof(memberDeclaration.getType());
           }
         }
       }

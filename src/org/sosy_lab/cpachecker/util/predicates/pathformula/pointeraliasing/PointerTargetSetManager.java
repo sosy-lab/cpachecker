@@ -566,9 +566,9 @@ class PointerTargetSetManager {
     if (variableType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) variableType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
+        final int offset = typeHandler.getOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
@@ -588,9 +588,6 @@ class PointerTargetSetManager {
                   ssa
               )
           );
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += typeHandler.getSizeof(memberType);
         }
       }
     } else {
@@ -721,13 +718,10 @@ class PointerTargetSetManager {
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       final String type = CTypeUtils.typeToString(compositeType);
       typeHandler.addCompositeTypeToCache(compositeType);
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        final int offset = typeHandler.getOffset(compositeType, memberDeclaration.getName());
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
           targets = addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += typeHandler.getSizeof(memberDeclaration.getType());
         }
       }
     } else {
