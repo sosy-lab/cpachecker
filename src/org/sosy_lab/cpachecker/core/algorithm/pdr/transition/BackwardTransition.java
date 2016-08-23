@@ -437,7 +437,7 @@ public class BackwardTransition {
             Iterator<T> underlyingIterator = pIterable.iterator();
             return new Iterator<T>() {
 
-              private T next = null;
+              @javax.annotation.Nullable private T next = null;
 
               private boolean nextComputed = false;
 
