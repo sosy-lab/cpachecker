@@ -26,9 +26,15 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
@@ -58,14 +64,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -83,6 +90,19 @@ public class BackwardTransition {
   private final FormulaManagerView formulaManager;
 
   private final PathFormulaManager pathFormulaManager;
+
+  private final LoadingCache<CFANode, Iterable<Block>> cache =
+      CacheBuilder.newBuilder()
+          .weakKeys()
+          .weakValues()
+          .<CFANode, Iterable<Block>>build(
+              new CacheLoader<CFANode, Iterable<Block>>() {
+
+                @Override
+                public Iterable<Block> load(CFANode pCacheKey) throws CPAException, InterruptedException {
+                  return getBlocksTo0(pCacheKey);
+                }
+              });
 
   public BackwardTransition(
       ReachedSetFactory pReachedSetFactory, ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm)
@@ -126,6 +146,17 @@ public class BackwardTransition {
    */
   public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation)
       throws CPAException, InterruptedException {
+    try {
+      return FluentIterable.from(cache.get(pSuccessorLocation));
+    } catch (ExecutionException e) {
+      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+      Throwables.propagate(e.getCause());
+      throw new AssertionError("The above statement should always throw and never return.");
+    }
+  }
+
+  private FluentIterable<Block> getBlocksTo0(CFANode pSuccessorLocation)
+      throws CPAException, InterruptedException {
     ReachedSet reachedSet = reachedSetFactory.create();
     initializeFor(reachedSet, pSuccessorLocation);
     AbstractState initialState = reachedSet.getFirstState();
@@ -145,7 +176,11 @@ public class BackwardTransition {
   public FluentIterable<Block> getBlocksTo(
       Iterable<CFANode> pSuccessorLocations, Predicate<AbstractState> pFilterPredecessors)
       throws CPAException, InterruptedException {
-    Iterator<CFANode> successorLocationIterator = pSuccessorLocations.iterator();
+
+    Map<CFANode, Iterable<Block>> cached = cache.getAllPresent(pSuccessorLocations);
+
+    Iterable<CFANode> uncachedSuccessorLocations = Iterables.filter(pSuccessorLocations, node -> !cached.containsKey(node));
+    Iterator<CFANode> successorLocationIterator = uncachedSuccessorLocations.iterator();
     if (!successorLocationIterator.hasNext()) {
       return FluentIterable.from(Collections.emptyList());
     }
@@ -169,20 +204,28 @@ public class BackwardTransition {
     Map<ARGState, AbstractState> statesByARGState =
         FluentIterable.from(reachedSet).uniqueIndex(AbstractStates.toState(ARGState.class));
 
-    return distinct(
-        FluentIterable.from(reachedSet)
-            // Only consider abstract states where a block starts
-            .filter(IS_BLOCK_START)
-            // Apply the client-provided filter
-            .filter(pFilterPredecessors)
-            .transformAndConcat(
-                (blockStartState) ->
-                    FluentIterable.from(
-                            getInitialStates(blockStartState, allInitialStates, statesByARGState))
-                        .transform(
-                            (initialState) ->
-                                new BlockImpl(
-                                    initialState, blockStartState, AnalysisDirection.BACKWARD))));
+    Set<Block> computedBlocks = FluentIterable.from(reachedSet)
+      // Only consider abstract states where a block starts
+      .filter(IS_BLOCK_START)
+      // Apply the client-provided filter
+      .filter(pFilterPredecessors)
+      .transformAndConcat(
+          (blockStartState) ->
+              FluentIterable.from(
+                      getInitialStates(blockStartState, allInitialStates, statesByARGState))
+                  .transform(
+                      (initialState) ->
+                          (Block) new BlockImpl(
+                              initialState, blockStartState, AnalysisDirection.BACKWARD))).toSet();
+
+    for (Map.Entry<CFANode, Collection<Block>> entry : Multimaps.index(computedBlocks, block -> block.getSuccessorLocation()).asMap().entrySet()) {
+      cache.put(entry.getKey(), entry.getValue());
+      assert !cached.keySet().contains(entry.getKey());
+    }
+
+    return FluentIterable.from(Iterables.concat(
+        Iterables.concat(cached.values()),
+        computedBlocks));
   }
 
   private Iterable<AbstractState> getInitialStates(
@@ -425,45 +468,5 @@ public class BackwardTransition {
         return AbstractStates.extractLocation(getSuccessor());
       }
     }
-  }
-
-  private static <T> FluentIterable<T> distinct(Iterable<T> pIterable) {
-    return FluentIterable.from(
-        new Iterable<T>() {
-
-          @Override
-          public Iterator<T> iterator() {
-            Set<T> visited = Sets.newHashSet();
-            Iterator<T> underlyingIterator = pIterable.iterator();
-            return new Iterator<T>() {
-
-              @javax.annotation.Nullable private T next = null;
-
-              private boolean nextComputed = false;
-
-              @Override
-              public boolean hasNext() {
-                boolean hasNext = nextComputed;
-                while (!nextComputed && underlyingIterator.hasNext()) {
-                  T candidate = underlyingIterator.next();
-                  if (visited.add(candidate)) {
-                    nextComputed = true;
-                    next = candidate;
-                  }
-                }
-                return hasNext;
-              }
-
-              @Override
-              public T next() {
-                if (!hasNext()) {
-                  throw new NoSuchElementException();
-                }
-                nextComputed = false;
-                return next;
-              }
-            };
-          }
-        });
   }
 }
