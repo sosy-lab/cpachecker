@@ -33,9 +33,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.ErrorCause;
 import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.FaultLocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -48,9 +50,12 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * {@link FaultLocator} based on Error Invariants.
@@ -81,11 +86,15 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
   }
 
   @Override
-  public void performLocalization(final CounterexampleInfo pInfo, final ARGPath pErrorPath)
-      throws CPAException, InterruptedException, SolverException {
+  public CounterexampleInfo performLocalization(
+      final CounterexampleInfo pInfo,
+      final ARGPath pErrorPath
+  ) throws CPAException, InterruptedException, SolverException {
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     BooleanFormula postCondition = getPostCondition(pErrorPath, ssa);
-    locateAll(pInfo, pErrorPath, postCondition, ssa);
+    Set<ErrorCause> possibleCauses = locateAll(pErrorPath, postCondition, ssa);
+
+    return CounterexampleInfo.withFaultAnnotation(pInfo, possibleCauses);
   }
 
   private BooleanFormula getPostCondition(final ARGPath pErrorPath, final SSAMapBuilder pSsa)
@@ -108,22 +117,33 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
     return manager.makeNot(lastAssumption);
   }
 
-  private void locateAll(
-      final CounterexampleInfo pInfo,
+  private Set<ErrorCause> locateAll(
       final ARGPath pErrorPath,
       final BooleanFormula pPostCondition,
       final SSAMapBuilder pSsa
   ) throws SolverException, InterruptedException, CPAException {
-    Optional<List<CFAEdge>> newEdges = Optional.of(pErrorPath.getFullPath());
+    List<CFAEdge> newEdges = pErrorPath.getFullPath();
     List<CFAEdge> oldEdges;
+    Optional<List<Integer>> causingEdgeIndices;
+    Set<ErrorCause> errorCauses = new HashSet<>();
     do {
-      oldEdges = newEdges.get();
-      newEdges = locate(pInfo, oldEdges, pPostCondition, pSsa);
-    } while (newEdges.isPresent());
+      oldEdges = newEdges;
+      causingEdgeIndices = locate(oldEdges, pPostCondition, pSsa);
+
+      if (causingEdgeIndices.isPresent()) {
+        List<CFAEdge> causingEdges = causingEdgeIndices.get()
+            .stream()
+            .map(oldEdges::get)
+            .collect(Collectors.toList());
+        errorCauses.add(new ErrorCause(pErrorPath, causingEdges));
+        newEdges = cleanErrorPath(oldEdges, causingEdgeIndices.get());
+      }
+    } while (causingEdgeIndices.isPresent());
+
+    return errorCauses;
   }
 
-  private Optional<List<CFAEdge>> locate(
-      final CounterexampleInfo pInfo,
+  private Optional<List<Integer>> locate(
       final List<CFAEdge> pErrorPathEdges,
       final BooleanFormula pPostCondition,
       final SSAMapBuilder pSsa
@@ -136,9 +156,8 @@ public class ErrorInvariantsFaultLocator implements FaultLocator {
     if (traceInfo.isSpurious()) {
       List<BooleanFormula> interpolants = traceInfo.getInterpolants();
       List<Integer> relevantOpIndices = getFaultRelevantIndices(interpolants);
-      List<CFAEdge> cleanedErrorPath = cleanErrorPath(pErrorPathEdges, relevantOpIndices);
 
-      return Optional.of(cleanedErrorPath);
+      return Optional.of(relevantOpIndices);
     } else {
       return Optional.empty();
     }

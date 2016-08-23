@@ -23,17 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.faultLocalization;
 
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
+
+import java.util.List;
+import java.util.Set;
 
 /**
- * Provides means to locate error sources for a given feasible error path.
+ * Possible cause of a property violation in a program.
  */
-public interface FaultLocator {
+public class ErrorCause {
 
-  CounterexampleInfo performLocalization(CounterexampleInfo pInfo, ARGPath pErrorPath)
-      throws CPAException, InterruptedException, SolverException;
+  private ARGPath fullErrorPath;
+  private Set<CFAEdge> relevantEdges;
+
+  public ErrorCause(
+      final ARGPath pErrorPath,
+      final List<CFAEdge> pFaultCausingEdges
+  ) {
+    fullErrorPath = pErrorPath;
+    relevantEdges = ImmutableSet.copyOf(pFaultCausingEdges);
+  }
+
+  public boolean contains(final CFAEdge pEdge) {
+    return relevantEdges.contains(pEdge);
+  }
 }

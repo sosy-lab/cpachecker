@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.faultLocalization.ErrorCause;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.IOException;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class CounterexampleInfo extends AbstractAppender {
 
@@ -65,6 +67,7 @@ public class CounterexampleInfo extends AbstractAppender {
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
+  private Set<ErrorCause> possibleFaults;
 
   private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
       CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
@@ -79,6 +82,18 @@ public class CounterexampleInfo extends AbstractAppender {
     } else {
       furtherInfo = null;
     }
+  }
+
+  private CounterexampleInfo(
+      boolean pSpurious,
+      ARGPath pTargetPath,
+      CFAPathWithAssumptions pAssignments,
+      boolean pIsPreciseCEX,
+      Set<ErrorCause> pPossibleFaults
+  ) {
+    this(pSpurious, pTargetPath, pAssignments, pIsPreciseCEX);
+
+    possibleFaults = pPossibleFaults;
   }
 
   public static CounterexampleInfo spurious() {
@@ -108,6 +123,18 @@ public class CounterexampleInfo extends AbstractAppender {
     checkArgument(!pAssignments.isEmpty());
     checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
     return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
+  }
+
+  public static CounterexampleInfo withFaultAnnotation(
+      CounterexampleInfo pCounterexample,
+      Set<ErrorCause> pPossibleFaults
+  ) {
+    return new CounterexampleInfo(
+        pCounterexample.spurious,
+        pCounterexample.targetPath,
+        pCounterexample.assignments,
+        pCounterexample.isPreciseCounterExample,
+        pPossibleFaults);
   }
 
   public boolean isSpurious() {

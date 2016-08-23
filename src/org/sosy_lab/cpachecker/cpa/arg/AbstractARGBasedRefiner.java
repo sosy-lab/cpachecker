@@ -170,12 +170,6 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
-      try {
-        performErrorLocalization(counterexample, targetPath);
-      } catch (SolverException pE) {
-        throw new CPAException(pE.getMessage());
-      }
-
       lastElement.addCounterexampleInformation(counterexample);
 
       logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
@@ -198,14 +192,25 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    */
   protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
-    return refiner.performRefinementForPath(pReached, pPath);
+    CounterexampleInfo cex = refiner.performRefinementForPath(pReached, pPath);
+
+    if (!cex.isSpurious()) {
+      try {
+        return performErrorLocalization(cex, pPath);
+      } catch (SolverException pE) {
+        throw new CPAException(pE.getMessage());
+      }
+
+    } else {
+      return cex;
+    }
   }
 
-  private void performErrorLocalization(
+  private CounterexampleInfo performErrorLocalization(
       final CounterexampleInfo pCounterexampleInfo,
       final ARGPath pFullErrorPath
   ) throws CPAException, InterruptedException, SolverException {
-    faultLocator.performLocalization(pCounterexampleInfo, pFullErrorPath);
+    return faultLocator.performLocalization(pCounterexampleInfo, pFullErrorPath);
   }
 
   /**
