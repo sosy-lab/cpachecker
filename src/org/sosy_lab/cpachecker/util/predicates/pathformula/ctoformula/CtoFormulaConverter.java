@@ -1332,6 +1332,16 @@ public class CtoFormulaConverter {
     return buildTerm(exp, edge, function, ssa, pts, constraints, errorConditions);
   }
 
+  public Formula makeTerm(CFAEdge edge, SSAMapBuilder ssa)
+      throws InterruptedException, UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
+    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
+    Constraints constraints = new Constraints(bfmgr);
+    ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
+    String function = (edge.getPredecessor() != null)
+                      ? edge.getPredecessor().getFunctionName() : null;
+    return createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
+  }
+
   /**
    * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
    * @param pts the pointer target set to use initially
