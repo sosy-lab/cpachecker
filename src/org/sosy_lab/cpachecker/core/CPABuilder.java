@@ -104,6 +104,8 @@ public class CPABuilder {
     List<ConfigurableProgramAnalysis> cpas =
         new ArrayList<>(specAutomata.size() + additionalAutomata.size());
 
+    AnalysisNotifier.getInstance().onSpecificationAutomatonCreate(specAutomata);
+
     for (Automaton automaton : Iterables.concat(specAutomata, additionalAutomata)) {
       String cpaAlias = automaton.getName();
 

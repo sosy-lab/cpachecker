@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -209,8 +208,8 @@ public class TerminationLoopInformation {
       CType type = relevantVariable.getType();
       while (type instanceof CPointerType) {
         type = ((CPointerType) type).getType();
-        if (type instanceof CVoidType || type instanceof CFunctionType) {
-          break; // Cannot declare variable of type void or of function type.
+        if (type instanceof CVoidType) {
+          break; // Cannot declare variable of type void.
         }
 
         unprimedVariable = new CPointerExpression(DUMMY, type, unprimedVariable);
@@ -242,9 +241,8 @@ public class TerminationLoopInformation {
     resetCfa();
   }
 
-  public CFAEdge createRankingRelationAssumeEdge(
-      CFANode startNode, CFANode endNode, boolean postive) {
-    return createAssumeEdge(getRankingRelationAsCExpression(), startNode, endNode, postive);
+  public CFAEdge createNegatedRankingRelationAssumeEdge(CFANode startNode, CFANode endNode) {
+    return createAssumeEdge(getRankingRelationAsCExpression(), startNode, endNode, false);
   }
 
   public List<CFAEdge> createStemToLoopTransition(CFANode startNode, CFANode endNode) {
@@ -271,7 +269,8 @@ public class TerminationLoopInformation {
   private List<CStatement> createPrimedVariableAssignments() {
     ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
 
-    for (Entry<CExpression, CVariableDeclaration> relevantVariable : relevantVariables.entrySet()) {
+    for (Entry<CExpression, CVariableDeclaration> relevantVariable :
+        relevantVariables.entrySet()) {
 
       CExpression unprimedVariable = relevantVariable.getKey();
       CVariableDeclaration primedVariable = relevantVariable.getValue();
@@ -322,7 +321,7 @@ public class TerminationLoopInformation {
 
   public CFAEdge createNegatedRankingRelationAssumeEdgeToTargetNode(CFANode pLoopHead) {
     Preconditions.checkState(targetNode.isPresent());
-    return createRankingRelationAssumeEdge(pLoopHead, targetNode.get(), false);
+    return createNegatedRankingRelationAssumeEdge(pLoopHead, targetNode.get());
   }
 
   private CFANode creatCfaNode(String functionName) {
@@ -332,7 +331,9 @@ public class TerminationLoopInformation {
   private CExpressionAssignmentStatement createAssignmentStatement(
       CSimpleDeclaration pLeftHandSide, CExpression pRightHandSide) {
     return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY, new CIdExpression(FileLocation.DUMMY, pLeftHandSide), pRightHandSide);
+        FileLocation.DUMMY,
+        new CIdExpression(FileLocation.DUMMY, pLeftHandSide),
+        pRightHandSide);
   }
 
   public BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {

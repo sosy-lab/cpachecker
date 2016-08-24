@@ -30,7 +30,6 @@ import com.google.common.collect.Maps;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -41,25 +40,11 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-/**
- * A structure that contains an over-approximation of reachable states for any number of steps
- * at any location.
- */
 public class DynamicFrameSet implements FrameSet {
-  /*
-   * This implementation uses the so called "delta encoding" of frames as described
-   * in "Efficient Implementation of Property Directed Reachability" by Niklas Een,
-   * Alan Mishchenko and Robert Brayton. Since each frame at level 'i' is a subset
-   * of frame 'i - 1', each state is only stored in the highest frame where it holds.
-   * Thus, the set of states in a frame at level 'i' is computed by adding all states
-   * at level 'j' for j from i to current maximum level.
-   */
 
   private static final int DEFAULT_LOWEST_SSA_INDEX = 1;
 
@@ -73,13 +58,6 @@ public class DynamicFrameSet implements FrameSet {
   private final FormulaManagerView fmgr;
   private final BackwardTransition backwardTransition;
 
-  /**
-   * Creates a new DynamicFrameSet.
-   * @param pStartLocation the program start location
-   * @param pFmgr the formula manager used as basis for most internal operations
-   * @param pBackwardTransition the backward transition used to calculate predecessor blocks and
-   * path formulas
-   */
   public DynamicFrameSet(
       CFANode pStartLocation, FormulaManagerView pFmgr, BackwardTransition pBackwardTransition) {
     currentMaxLevel = 0;
@@ -87,34 +65,28 @@ public class DynamicFrameSet implements FrameSet {
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     backwardTransition = pBackwardTransition;
-
-    // Initialize frames for start location
-    List<ApproximationFrame> initial = new ArrayList<>(2);
-    initial.add(new ApproximationFrame());
-    initial.add(new ApproximationFrame());
-    frames.put(pStartLocation, initial);
+    initFrameSetForLocation(pStartLocation, true);
   }
 
-  /**
-   * Creates a new map entry in {@code frames} for pLocation and initializes the list of
-   * approximation frames to the currently expected number of frames.
-   */
-  private void initFrameSetForLocation(CFANode pLocation) {
+  private void initFrameSetForLocation(CFANode pLocation, boolean isStartLocation) {
     List<ApproximationFrame> initial = new ArrayList<>(currentMaxLevel + 2);
-    ApproximationFrame frameAtLevel0 = new ApproximationFrame();
-    frameAtLevel0.addState(bfmgr.makeFalse());
-    initial.add(frameAtLevel0);
-
-    for (int level = 1; level <= currentMaxLevel + 1; ++level) {
-      initial.add(new ApproximationFrame());
+    initial.add(newDefaultFrame(isStartLocation));
+    for (int level = 0; level <= currentMaxLevel; ++level) {
+      initial.add(newDefaultFrame(true));
     }
     frames.put(pLocation, initial);
+  }
+
+  private ApproximationFrame newDefaultFrame(boolean pInitialValue) {
+    ApproximationFrame f = new ApproximationFrame();
+    f.addState(bfmgr.makeBoolean(pInitialValue));
+    return f;
   }
 
   @Override
   public void openNextFrameSet() {
     for (List<ApproximationFrame> frameList : frames.values()) {
-      frameList.add(new ApproximationFrame());
+      frameList.add(newDefaultFrame(true));
     }
     currentMaxLevel++;
   }
@@ -126,9 +98,9 @@ public class DynamicFrameSet implements FrameSet {
 
   @Override
   public Set<BooleanFormula> getStatesForLocation(CFANode pLocation, int pLevel) {
-    Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
+    Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
     if (!frames.containsKey(pLocation)) {
-      initFrameSetForLocation(pLocation);
+      initFrameSetForLocation(pLocation, false);
     }
 
     /*
@@ -145,7 +117,7 @@ public class DynamicFrameSet implements FrameSet {
 
   @Override
   public Map<CFANode, Set<BooleanFormula>> getStatesForAllLocations(int pLevel) {
-    Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
+    Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
 
     Map<CFANode, Set<BooleanFormula>> statesPerLocation = Maps.newHashMap();
     for (CFANode location : frames.keySet()) {
@@ -159,7 +131,7 @@ public class DynamicFrameSet implements FrameSet {
   public void blockState(BooleanFormula pState, int pMaxLevel, CFANode pLocation) {
     Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel);
     if (!frames.containsKey(pLocation)) {
-      initFrameSetForLocation(pLocation);
+      initFrameSetForLocation(pLocation, false);
     }
 
     // TODO subsume here too?
@@ -173,148 +145,84 @@ public class DynamicFrameSet implements FrameSet {
 
     /*
      * For all levels i till max, for all locations l', for all predecessors l of l'
-     * for all states s in F(i,l), check if s is inductive an add to F(i+1,l') if it is
+     * for all states s in F(i,l), check if s is inductive an add/subsume if it is
      * the case. Inductivity means: F(i,l) & T(l->l') & not(s_prime) is unsatisfiable.
      */
     for (int level = 1; level <= currentMaxLevel - 1; ++level) { // TODO bounds ok ?
-
-      // For each location
       for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
         CFANode location = mapEntry.getKey();
+        Set<BooleanFormula> frameStates = getStatesForLocation(location, level);
+        int numberFrameStates = frameStates.size();
+
+        for (BooleanFormula state : frameStates) { // Push F(i,l) [unprimed]
+          pProver.push(
+              fmgr.instantiate(state, SSAMap.emptySSAMap().withDefault(DEFAULT_LOWEST_SSA_INDEX)));
+        }
+
         FluentIterable<Block> blocksToLocation = backwardTransition.getBlocksTo(location);
 
-        // For each predecessor location
-        for (Block predBlock : blocksToLocation) {
-          CFANode predLocation = predBlock.getPredecessorLocation();
-          Set<BooleanFormula> predFrameStates = getStatesForLocation(predLocation, level);
-          int numberFrameStates = predFrameStates.size();
+        // Invert blocks so that the SSA indices for the predecessors
+        // ("unprimed" variables) match
+        blocksToLocation = blocksToLocation.transform(block -> block.invertDirection());
 
-          for (BooleanFormula state : predFrameStates) { // Push F(i,l) [unprimed]
-            pProver.push(
-                fmgr.instantiate(
-                    state, SSAMap.emptySSAMap().withDefault(DEFAULT_LOWEST_SSA_INDEX)));
-          }
+        for (Block block : blocksToLocation) {
+          CFANode predecessorLocation = block.getPredecessorLocation();
+          pProver.push(block.getFormula()); // Push transition
 
-          // Invert blocks so that the SSA indices for the predecessors
-          // ("unprimed" variables) match
-          BooleanFormula transitionFormula = Blocks.formulaWithInvertedIndices(predBlock, fmgr);
-          pProver.push(transitionFormula); // Push transition
+          for (BooleanFormula state : frameStates) {
 
-          for (BooleanFormula state : predFrameStates) {
-
-            // Push state [primed] // TODO SSA correct ? must be highest ones
-            pProver.push(bfmgr.not(fmgr.instantiate(state, predBlock.getPrimedContext().getSsa())));
+            // Push state [primed]
+            pProver.push(bfmgr.not(fmgr.instantiate(state, block.getPrimedContext().getSsa())));
 
             if (pProver.isUnsat()) {
-              if (location.equals(predLocation)) {
-                removeStateFromDeltaLayers(state, predLocation, level);
+              if (location.equals(predecessorLocation)) {
+                mapEntry.getValue().get(level).removeState(state);
               }
-
-              // Add state to location at level + 1
-              addWithSubsumption(state, location, level + 1, pSubsumptionProver);
+              addWithSubsumption(
+                  state, frames.get(predecessorLocation).get(level + 1), pSubsumptionProver);
             }
             pProver.pop(); // Pop state [primed]
           }
           pProver.pop(); // Pop transition
-          for (int i = 0; i < numberFrameStates; ++i) { // Pop F(i,l) [unprimed]
-            pProver.pop();
-          }
+        }
+        for (int i = 0; i < numberFrameStates; ++i) { // Pop F(i,l) [unprimed]
+          pProver.pop();
         }
       }
     }
   }
 
-  /** Searches the frames of pLocation starting at pLevel for pState and removes it. */
-  private void removeStateFromDeltaLayers(BooleanFormula pState, CFANode pLocation, int pLevel) {
-    frames
-        .get(pLocation)
-        .stream()
-        .skip(pLevel) // pState is at pLevel or higher
-        .filter(frame -> frame.contains(pState))
-        .findFirst()
-        .get()
-        .removeState(pState);
-  }
-
-  @Override
-  public boolean isConvergent() { // TODO Use only when subsumption is fully implemented
-
-    // Check if one delta layer is empty for all locations at the same level
-    Iterator<CFANode> it = frames.keySet().iterator();
-    for (int currentLevel = 1; currentLevel <= currentMaxLevel; ++currentLevel) {
-      boolean isLayerEmpty = true;
-
-      while (isLayerEmpty && it.hasNext()) {
-        isLayerEmpty = frames.get(it.next()).get(currentLevel).isEmpty();
-      }
-      if (isLayerEmpty) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /** Adds a state to a frame while also removing all redundant states. */
   private void addWithSubsumption(
-      BooleanFormula pState, CFANode pLocation, int pLevel, ProverEnvironment pProver)
+      BooleanFormula pState, ApproximationFrame pTargetFrame, ProverEnvironment pProver)
       throws SolverException, InterruptedException {
 
     boolean addState = true;
+    for (BooleanFormula stateInTargetFrame : pTargetFrame.getStates()) {
 
-    for (int level = 0; level <= currentMaxLevel; ++level) {
-      ApproximationFrame currentFrame = frames.get(pLocation).get(level);
-
-      for (BooleanFormula stateInFrame :
-          currentFrame
-              .getStates()
-              .stream()
-              .filter(bf -> !bfmgr.isFalse(bf))
-              .collect(Collectors.toList())) {
-
-        /*
-         * Check if other state is stronger than pState. If implication holds :
-         * Do not add.
-         */
-        pProver.push(bfmgr.implication(stateInFrame, pState));
-        if (!pProver.isUnsat()) {
-          addState = false;
-        }
-        pProver.pop();
-
-        /*
-         * Check if pState state is stronger than other one. If implication holds :
-         * Remove other one and add pState later.
-         */
-        pProver.push(bfmgr.implication(pState, stateInFrame));
-        if (!pProver.isUnsat()) {
-          currentFrame.removeState(stateInFrame);
-        }
-        pProver.pop();
+      /*
+       * Check if other state is stronger than pState. If implication holds :
+       * Do not add.
+       */
+      pProver.push(bfmgr.implication(stateInTargetFrame, pState));
+      if (!pProver.isUnsat()) {
+        addState = false;
       }
+      pProver.pop();
+
+      /*
+       * Check if pState state is stronger than other one. If implication holds :
+       * Remove other one and add pState later.
+       */
+      pProver.push(bfmgr.implication(pState, stateInTargetFrame));
+      if (!pProver.isUnsat()) {
+        pTargetFrame.removeState(stateInTargetFrame);
+      }
+      pProver.pop();
     }
 
     if (addState) {
-      frames.get(pLocation).get(pLevel).addState(pState);
+      pTargetFrame.addState(pState);
     }
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder stringRepresentation = new StringBuilder("Frame set : ");
-
-    for (CFANode location : frames.keySet()) {
-      stringRepresentation.append("\n").append(location).append(" ->");
-
-      for (int level = 0; level <= currentMaxLevel + 1; ++level) {
-        Set<BooleanFormula> states = getStatesForLocation(location, level);
-        stringRepresentation
-            .append("\n   Level : ")
-            .append(level)
-            .append("\n      ")
-            .append(states);
-      }
-    }
-    return stringRepresentation.toString();
   }
 
   /** Holds an over-approximation of reached states for a frame. */
@@ -336,19 +244,6 @@ public class DynamicFrameSet implements FrameSet {
 
     private Set<BooleanFormula> getStates() {
       return states;
-    }
-
-    private boolean contains(BooleanFormula pState) {
-      return states.contains(pState);
-    }
-
-    private boolean isEmpty() {
-      return states.isEmpty();
-    }
-
-    @Override
-    public String toString() {
-      return states.toString();
     }
   }
 }

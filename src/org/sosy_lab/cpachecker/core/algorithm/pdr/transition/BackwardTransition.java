@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
@@ -32,12 +33,14 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,6 +60,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Collection;
@@ -68,6 +73,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 public class BackwardTransition {
@@ -80,6 +86,8 @@ public class BackwardTransition {
   private final ConfigurableProgramAnalysis cpa;
 
   private final ReachedSetFactory reachedSetFactory;
+
+  private final FormulaManagerView formulaManager;
 
   private final PathFormulaManager pathFormulaManager;
 
@@ -110,6 +118,7 @@ public class BackwardTransition {
           "PredicateCPA required for transitions in the PDRAlgorithm");
     }
     pathFormulaManager = predicateCPA.getPathFormulaManager();
+    formulaManager = predicateCPA.getSolver().getFormulaManager();
 
     BlockCountCPA blockCountCPA = CPAs.retrieveCPA(cpa, BlockCountCPA.class);
     if (blockCountCPA == null) {
@@ -156,12 +165,7 @@ public class BackwardTransition {
         .filter(IS_BLOCK_START)
         .transform(
             (blockStartState) ->
-                new BlockImpl(
-                    initialState,
-                    blockStartState,
-                    AnalysisDirection.BACKWARD,
-                    getReachedSet(
-                        initialState, blockStartState, reachedSet, asAbstractState(reachedSet))));
+                new BlockImpl(initialState, blockStartState, AnalysisDirection.BACKWARD));
   }
 
   public FluentIterable<Block> getBlocksTo(Iterable<CFANode> pSuccessorLocations)
@@ -197,31 +201,22 @@ public class BackwardTransition {
     Set<AbstractState> allInitialStates = FluentIterable.from(reachedSet).toSet();
 
     algorithm.run(reachedSet);
-    Function<ARGState, AbstractState> asAbstractState = asAbstractState(reachedSet);
+    Map<ARGState, AbstractState> statesByARGState =
+        FluentIterable.from(reachedSet).uniqueIndex(AbstractStates.toState(ARGState.class));
 
-    Set<Block> computedBlocks =
-        FluentIterable.from(reachedSet)
-            // Only consider abstract states where a block starts
-            .filter(IS_BLOCK_START)
-            // Apply the client-provided filter
-            .filter(pFilterPredecessors)
-            .transformAndConcat(
-                (blockStartState) ->
-                    FluentIterable.from(
-                            getInitialStates(blockStartState, allInitialStates, asAbstractState))
-                        .transform(
-                            (initialState) ->
-                                (Block)
-                                    new BlockImpl(
-                                        initialState,
-                                        blockStartState,
-                                        AnalysisDirection.BACKWARD,
-                                        getReachedSet(
-                                            initialState,
-                                            blockStartState,
-                                            reachedSet,
-                                            asAbstractState))))
-            .toSet();
+    Set<Block> computedBlocks = FluentIterable.from(reachedSet)
+      // Only consider abstract states where a block starts
+      .filter(IS_BLOCK_START)
+      // Apply the client-provided filter
+      .filter(pFilterPredecessors)
+      .transformAndConcat(
+          (blockStartState) ->
+              FluentIterable.from(
+                      getInitialStates(blockStartState, allInitialStates, statesByARGState))
+                  .transform(
+                      (initialState) ->
+                          (Block) new BlockImpl(
+                              initialState, blockStartState, AnalysisDirection.BACKWARD))).toSet();
 
     for (Map.Entry<CFANode, Collection<Block>> entry : Multimaps.index(computedBlocks, block -> block.getSuccessorLocation()).asMap().entrySet()) {
       cache.put(entry.getKey(), entry.getValue());
@@ -233,22 +228,10 @@ public class BackwardTransition {
         computedBlocks));
   }
 
-  private Function<ARGState, AbstractState> asAbstractState(ReachedSet reachedSet) {
-    Function<ARGState, AbstractState> asAbstractState;
-    if (!reachedSet.isEmpty() && reachedSet.getFirstState() instanceof ARGState) {
-      asAbstractState = a -> a;
-    } else {
-      Map<ARGState, AbstractState> statesByARGState =
-          FluentIterable.from(reachedSet).uniqueIndex(AbstractStates.toState(ARGState.class));
-      asAbstractState = a -> statesByARGState.get(a);
-    }
-    return asAbstractState;
-  }
-
   private Iterable<AbstractState> getInitialStates(
       AbstractState pBlockStartState,
       Set<AbstractState> pAllInitialStates,
-      Function<ARGState, AbstractState> pAsAbstractState) {
+      Map<ARGState, AbstractState> pStatesByARGState) {
     Set<AbstractState> visited = Sets.newHashSet();
     visited.add(pBlockStartState);
     Deque<AbstractState> waitlist = Queues.newArrayDeque();
@@ -262,7 +245,7 @@ public class BackwardTransition {
       } else {
         ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
         for (ARGState parentARGState : currentARGState.getParents()) {
-          AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
+          AbstractState parentAbstractState = pStatesByARGState.get(parentARGState);
           assert parentAbstractState != null;
           if (visited.add(parentAbstractState)) {
             waitlist.push(parentAbstractState);
@@ -289,17 +272,11 @@ public class BackwardTransition {
 
     private final AnalysisDirection direction;
 
-    private final ReachedSet reachedSet;
-
     private BlockImpl(
-        AbstractState pFirstState,
-        AbstractState pLastState,
-        AnalysisDirection pDirection,
-        ReachedSet pReachedSet) {
+        AbstractState pFirstState, AbstractState pLastState, AnalysisDirection pDirection) {
       firstState = Objects.requireNonNull(pFirstState);
       lastState = Objects.requireNonNull(pLastState);
       direction = Objects.requireNonNull(pDirection);
-      reachedSet = Objects.requireNonNull(pReachedSet);
       assert AbstractStates.extractStateByType(pFirstState, PredicateAbstractState.class) != null
               && AbstractStates.extractStateByType(pLastState, PredicateAbstractState.class) != null
           : "PredicateAbstractState required for extracting the block formula.";
@@ -372,20 +349,24 @@ public class BackwardTransition {
         BlockImpl other = (BlockImpl) pObj;
         return direction == other.direction
             && firstState.equals(other.firstState)
-            && lastState.equals(other.lastState)
-            && reachedSet.equals(other.reachedSet);
+            && lastState.equals(other.lastState);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(direction, firstState, lastState, reachedSet);
+      return Objects.hash(direction, firstState, lastState);
     }
 
     @Override
     public String toString() {
       return BackwardTransition.toString(this);
+    }
+
+    @Override
+    public Block invertDirection() {
+      return new InvertedBlock();
     }
 
     @Override
@@ -398,25 +379,115 @@ public class BackwardTransition {
       return AbstractStates.extractLocation(getSuccessor());
     }
 
-    @Override
-    public ReachedSet getReachedSet() {
-      return reachedSet;
+    private class InvertedBlock implements Block {
+
+      private final AtomicReference<BooleanFormula> formula = new AtomicReference<>();
+
+      @Override
+      public AbstractState getPredecessor() {
+        return BlockImpl.this.getPredecessor();
+      }
+
+      @Override
+      public AbstractState getSuccessor() {
+        return BlockImpl.this.getSuccessor();
+      }
+
+      @Override
+      public BooleanFormula getFormula() {
+        Function<BooleanFormula, BooleanFormula> delegate =
+            (oldFormula) -> {
+              SSAMap originalSSAMap = BlockImpl.this.getPathFormula().getSsa();
+              Set<String> allVariables = originalSSAMap.allVariables();
+              Map<String, String> substitution =
+                  Maps.newHashMapWithExpectedSize(allVariables.size());
+              for (String variableName : allVariables) {
+                CType type = originalSSAMap.getType(variableName);
+                int lowIndex = 1;
+                int highIndex = originalSSAMap.getIndex(variableName);
+                for (int index = lowIndex; index <= highIndex; ++index) {
+                  int newIndex = highIndex - index + lowIndex;
+                  SSAMap oldSSAMap =
+                      SSAMap.emptySSAMap().builder().setIndex(variableName, type, index).build();
+                  SSAMap newSSAMap =
+                      SSAMap.emptySSAMap().builder().setIndex(variableName, type, newIndex).build();
+                  String oldVariableName =
+                      formulaManager
+                          .instantiate(Collections.singleton(variableName), oldSSAMap)
+                          .iterator()
+                          .next();
+                  String newVariableName =
+                      formulaManager
+                          .instantiate(Collections.singleton(variableName), newSSAMap)
+                          .iterator()
+                          .next();
+                  substitution.put(oldVariableName, newVariableName);
+                }
+              }
+              return formulaManager.renameFreeVariablesAndUFs(
+                  oldFormula, Functions.forMap(substitution));
+            };
+        BooleanFormula result = formula.get();
+        if (result == null) {
+          return formula.updateAndGet(
+              f -> f == null ? delegate.apply(BlockImpl.this.getFormula()) : f);
+        }
+        return result;
+      }
+
+      @Override
+      public AnalysisDirection getDirection() {
+        return direction == AnalysisDirection.FORWARD
+            ? AnalysisDirection.BACKWARD
+            : AnalysisDirection.FORWARD;
+      }
+
+      @Override
+      public Block invertDirection() {
+        return BlockImpl.this;
+      }
+
+      @Override
+      public PathFormula getUnprimedContext() {
+        return BlockImpl.this.getPrimedContext();
+      }
+
+      @Override
+      public PathFormula getPrimedContext() {
+        return BlockImpl.this.getUnprimedContext();
+      }
+
+      @Override
+      public boolean equals(Object pObj) {
+        if (this == pObj) {
+          return true;
+        }
+        if (pObj instanceof InvertedBlock) {
+          return BlockImpl.this.equals(((Block) pObj).invertDirection());
+        }
+        return false;
+      }
+
+      @Override
+      public int hashCode() {
+        return ~BlockImpl.this.hashCode();
+      }
+
+      @Override
+      public String toString() {
+        return BackwardTransition.toString(this);
+      }
+
+      @Override
+      public CFANode getPredecessorLocation() {
+        return AbstractStates.extractLocation(getPredecessor());
+      }
+
+      @Override
+      public CFANode getSuccessorLocation() {
+        return AbstractStates.extractLocation(getSuccessor());
+      }
     }
-  }
-
-  private ReachedSet getReachedSet(
-      AbstractState pInitialState,
-      AbstractState pTargetState,
-      ReachedSet pOriginalReachedSet,
-      Function<ARGState, AbstractState> pAsAbstractState) {
-    ReachedSet reachedSet = reachedSetFactory.create();
-
-    for (AbstractState state : getBlockStates(pInitialState, pTargetState, pAsAbstractState)) {
-      reachedSet.add(state, pOriginalReachedSet.getPrecision(state));
-      reachedSet.removeOnlyFromWaitlist(state);
-    }
-
-    return reachedSet;
   }
 
   private static String toString(Block pBlock) {
@@ -425,53 +496,6 @@ public class BackwardTransition {
         pBlock.getPredecessorLocation(),
         pBlock.getSuccessorLocation(),
         pBlock.getDirection() == AnalysisDirection.BACKWARD ? "backward" : "forward",
-        pBlock.getFormula());
-  }
-
-  private static Set<AbstractState> getBlockStates(
-      AbstractState pInitialState,
-      AbstractState pBlockStartState,
-      Function<ARGState, AbstractState> pAsAbstractState) {
-    Deque<AbstractState> waitlist = Queues.newArrayDeque();
-    waitlist.push(pInitialState);
-
-    Set<AbstractState> forward = Sets.newHashSet();
-    forward.add(pInitialState);
-
-    while (!waitlist.isEmpty()) {
-      AbstractState currentState = waitlist.pop();
-      if (pBlockStartState != currentState) {
-        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
-        for (ARGState childARGState : currentARGState.getChildren()) {
-          AbstractState childAbstractState = pAsAbstractState.apply(childARGState);
-          assert childAbstractState != null;
-          if (forward.add(childAbstractState)) {
-            waitlist.push(childAbstractState);
-          }
-        }
-      }
-    }
-
-    waitlist.clear();
-    waitlist.push(pBlockStartState);
-
-    Set<AbstractState> backward = Sets.newHashSet();
-    backward.add(pBlockStartState);
-
-    while (!waitlist.isEmpty()) {
-      AbstractState currentState = waitlist.pop();
-      if (pInitialState != currentState) {
-        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
-        for (ARGState parentARGState : currentARGState.getParents()) {
-          AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
-          assert parentAbstractState != null;
-          if (backward.add(parentAbstractState)) {
-            waitlist.push(parentAbstractState);
-          }
-        }
-      }
-    }
-
-    return Sets.intersection(forward, backward);
+            pBlock.getFormula());
   }
 }

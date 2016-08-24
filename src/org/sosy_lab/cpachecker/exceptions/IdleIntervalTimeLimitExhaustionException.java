@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,20 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.interfaces;
+package org.sosy_lab.cpachecker.exceptions;
 
-import java.util.List;
 
-public interface AbstractWrapperState extends AbstractState {
+public class IdleIntervalTimeLimitExhaustionException extends CPAException {
 
-  /**
-   * Retrieve all wrapped abstract states contained directly in this object.
-   * @return A non-empty list of abstract states.
-   */
-  public Iterable<AbstractState> getWrappedStates();
-  /**
-   * Retrieve all wrapped target abstract states.
-   * @return
-  */
-  public List<AbstractState> getTargetLeaves();
+  private static final long serialVersionUID = 6846683924964869550L;
+
+  public IdleIntervalTimeLimitExhaustionException(String pMsg) {
+    super(pMsg);
+  }
+
 }

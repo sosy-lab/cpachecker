@@ -44,17 +44,17 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.RankingRelationBuilder.RankingRelationException;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
 
 import java.io.IOException;
@@ -196,12 +196,12 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
 
   @Option(
-    secure = true,
-    description = "Maximal number of functions used in a ranking function template."
-  )
-  @IntegerOption(min = 1)
-  private int maxTemplateFunctions = 3;
-
+      secure = true,
+      description =
+          "Maximal number of functions used in a ranking function template."
+    )
+    @IntegerOption(min = 1)
+    private int maxTemplateFunctions = 3;
   private SolverContext solverContext;
 
   @SuppressWarnings("unchecked")
@@ -417,7 +417,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
                 return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
               }
 
-            } catch (RankingRelationException e) {
+            } catch (UnrecognizedCCodeException e) {
               logger.logUserException(
                   Level.INFO, e, "Could not create ranking relation from " + terminationArgument);
               return LassoAnalysisResult.unknown();

@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -54,12 +53,12 @@ public class TerminationUtils {
         null);
   }
 
-  public static CVariableDeclaration createDereferencedVariable(CSimpleDeclaration pVariableDecl) {
+  public static CVariableDeclaration createDereferencedVariable(
+      CSimpleDeclaration pVariableDecl) {
     CType type = pVariableDecl.getType();
     if (type instanceof CPointerType) {
       CType innerType = ((CPointerType) type).getType();
       checkArgument(!(innerType instanceof CVoidType));
-      checkArgument(!(innerType instanceof CFunctionType));
 
       return new CVariableDeclaration(
           FileLocation.DUMMY,

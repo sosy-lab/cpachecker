@@ -135,16 +135,6 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
         return TraversalProcess.CONTINUE;
       }
 
-      int argIndexes =
-          pArgs
-              .stream()
-              .flatMap(f -> formulaManagerView.extractFunctionNames(f).stream())
-              .map(FormulaManagerView::parseName)
-              .map(Pair::getSecondNotNull)
-              .filter(OptionalInt::isPresent)
-              .mapToInt(OptionalInt::getAsInt)
-              .sum();
-
       String name = pFunctionDeclaration.getName();
       Pair<String, OptionalInt> tokens = FormulaManagerView.parseName(name);
       List<Formula> uninstatiatedArgs =
@@ -152,12 +142,12 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
       Pair<String, List<Formula>> key = Pair.of(tokens.getFirstNotNull(), uninstatiatedArgs);
       ufs.putIfAbsent(key, Maps.newTreeMap());
       Map<Integer, Formula> ufApplications = ufs.get(key);
-      int functionIndex = tokens.getSecondNotNull().getAsInt();
-      ufApplications.put(functionIndex + argIndexes, substitution.get(pF));
+      ufApplications.put(tokens.getSecondNotNull().getAsInt(), substitution.get(pF));
 
       return TraversalProcess.CONTINUE;
     }
   }
+
 
   public Set<Formula> getInVariables() {
     ImmutableSet.Builder<Formula> allInVariables = ImmutableSet.builder();

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
+import com.google.common.collect.ImmutableList;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,7 +32,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 import java.util.Optional;
-import com.google.common.collect.ImmutableList;
 
 /**
  * A {@link CounterexampleFilter} that defines paths as similar

@@ -56,15 +56,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.java_smt.basicimpl.tactics.Tactic;
 import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination;
 import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination.Result;
 
@@ -103,10 +102,9 @@ public class LassoBuilder {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  private final AbstractFormulaManager<Term, ?, ?, ?> fmgr;
+  private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
   private final Supplier<ProverEnvironment> proverEnvironmentSupplier;
-  private final FormulaManagerView fmgrView;
-  private final BooleanFormulaManagerView bfmrView;
+  private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
 
   private final DivAndModElimination divAndModElimination;
@@ -129,20 +127,22 @@ public class LassoBuilder {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
-    fmgr = checkNotNull(pFormulaManager);
+    formulaManager = checkNotNull(pFormulaManager);
     proverEnvironmentSupplier = checkNotNull(pProverEnvironmentSupplier);
-    fmgrView = checkNotNull(pFormulaManagerView);
-    bfmrView = fmgrView.getBooleanFormulaManager();
+    formulaManagerView = checkNotNull(pFormulaManagerView);
     pathFormulaManager = checkNotNull(pPathFormulaManager);
 
-    divAndModElimination = new DivAndModElimination(fmgrView, fmgr);
-    nonLinearMultiplicationElimination = new NonLinearMultiplicationElimination(fmgrView, fmgr);
+    divAndModElimination = new DivAndModElimination(formulaManagerView, formulaManager);
+    nonLinearMultiplicationElimination =
+        new NonLinearMultiplicationElimination(formulaManagerView, formulaManager);
     ufElimination = new UfElimination(pFormulaManager);
-    ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
-    equalElimination = new EqualElimination(fmgrView);
-    notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
+    ifThenElseElimination = new IfThenElseElimination(formulaManagerView, formulaManager);
+    equalElimination = new EqualElimination(formulaManagerView);
+    notEqualAndNotInequalityElimination =
+        new NotEqualAndNotInequalityElimination(formulaManagerView);
     dnfTransformation =
-        new DnfTransformation(logger, shutdownNotifier, fmgrView, proverEnvironmentSupplier);
+        new DnfTransformation(
+            logger, shutdownNotifier, formulaManagerView, proverEnvironmentSupplier);
   }
 
   protected static boolean isMetaVariable(String variableName) {
@@ -222,9 +222,11 @@ public class LassoBuilder {
     return stemAndLoop;
   }
 
-  private Collection<Lasso> createLassos(StemAndLoop pStemAndLoop, Set<String> pRelevantVariables)
+  private Collection<Lasso> createLassos(
+      StemAndLoop pStemAndLoop,
+      Set<String> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
-    Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(fmgr));
+    Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(formulaManager));
     Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
     InOutVariables stemRankVars =
         extractRankVars(
@@ -241,16 +243,24 @@ public class LassoBuilder {
 
     ImmutableList.Builder<Lasso> lassos = ImmutableList.builder();
     for (BooleanFormula stem : stemDnf.getClauses()) {
-      for (BooleanFormula loop : loopDnf.getClauses()) {
+      if (!isUnsat(stem)) {
 
-        shutdownNotifier.shutdownIfNecessary();
-        if (!isUnsat(bfmrView.and(stem, loop))) {
+        for (BooleanFormula loop : loopDnf.getClauses()) {
+          shutdownNotifier.shutdownIfNecessary();
+          if (!isUnsat(loop)) {
 
-          LinearTransition stemTransition = createLinearTransition(stem, stemRankVars);
-          LinearTransition loopTransition = createLinearTransition(loop, loopRankVars);
+            LinearTransition stemTransition =
+                createLinearTransition(
+                    stem,
+                    stemRankVars);
+            LinearTransition loopTransition =
+                createLinearTransition(
+                    loop,
+                    loopRankVars);
 
-          Lasso lasso = new Lasso(stemTransition, loopTransition);
-          lassos.add(lasso);
+            Lasso lasso = new Lasso(stemTransition, loopTransition);
+            lassos.add(lasso);
+          }
         }
       }
     }
@@ -273,11 +283,12 @@ public class LassoBuilder {
 
   private List<List<LinearInequality>> extractPolyhedra(BooleanFormula pathInDnf)
       throws TermException {
-    Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(pathInDnf, true);
+    Set<BooleanFormula> clauses =
+        formulaManagerView.getBooleanFormulaManager().toDisjunctionArgs(pathInDnf, true);
 
     List<List<LinearInequality>> polyhedra = Lists.newArrayListWithCapacity(clauses.size());
     for (BooleanFormula clause : clauses) {
-      Term term = fmgr.extractInfo(clause);
+      Term term = formulaManager.extractInfo(clause);
       polyhedra.add(InequalityConverter.convert(term, EXCEPTION));
     }
     return polyhedra;
@@ -288,7 +299,7 @@ public class LassoBuilder {
 
     BooleanFormula simplified;
     if (simplify) {
-      simplified = fmgrView.simplify(path);
+      simplified = formulaManagerView.simplify(path);
     } else {
       simplified = path;
     }
@@ -298,17 +309,22 @@ public class LassoBuilder {
         transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
     Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMutl, eliminatedUfs);
     BooleanFormula withoutUfs =
-        bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
+        formulaManagerView.makeAnd(
+            ufEliminationResult.getFormula(), ufEliminationResult.geConstraints());
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
-    logger.logf(FINER, "Subsition of Ufs in lasso formula: %s", ufSubstitution);
+    logger.logf(
+        FINER,
+        "Subsition of Ufs in lasso formula: %s",
+        ufSubstitution);
 
     BooleanFormula withoutIfThenElse = transformRecursively(ifThenElseElimination, withoutUfs);
-    BooleanFormula nnf = fmgrView.applyTactic(withoutIfThenElse, Tactic.NNF);
+    BooleanFormula nnf = formulaManagerView.applyTactic(withoutIfThenElse, Tactic.NNF);
     BooleanFormula notEqualEliminated =
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
     BooleanFormula dnf = transformRecursively(dnfTransformation, equalEliminated);
-    Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(dnf, true);
+    Set<BooleanFormula> clauses =
+        formulaManagerView.getBooleanFormulaManager().toDisjunctionArgs(dnf, true);
 
     return new Dnf(clauses, ufEliminationResult);
   }
@@ -317,15 +333,17 @@ public class LassoBuilder {
       BooleanFormulaTransformationVisitor visitor, BooleanFormula formula)
       throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
-    return fmgrView.getBooleanFormulaManager().transformRecursively(formula, visitor);
+    return formulaManagerView.getBooleanFormulaManager().transformRecursively(formula, visitor);
   }
 
   private InOutVariables extractRankVars(
       Dnf pDnf, SSAMap inSsa, SSAMap outSsa, Set<String> pRelevantVariables) {
     Map<Formula, Formula> subsitution = pDnf.getUfEliminationResult().getSubstitution();
     InOutVariablesCollector veriablesCollector =
-        new InOutVariablesCollector(fmgrView, inSsa, outSsa, subsitution);
-    fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), veriablesCollector);
+        new InOutVariablesCollector(formulaManagerView, inSsa, outSsa, subsitution);
+    for (BooleanFormula clause : pDnf.getClauses()) {
+      formulaManagerView.visitRecursively(clause, veriablesCollector);
+    }
 
     Map<RankVar, Term> inRankVars =
         createRankVars(veriablesCollector.getInVariables(), pRelevantVariables, subsitution);
@@ -335,32 +353,32 @@ public class LassoBuilder {
   }
 
   private Map<RankVar, Term> createRankVars(
-      Set<Formula> variables, Set<String> pRelevantVariables, Map<Formula, Formula> substitution) {
+      Set<Formula> variables,
+      Set<String> pRelevantVariables,
+      Map<Formula, Formula> substitution) {
     ImmutableMap.Builder<RankVar, Term> rankVars = ImmutableMap.builder();
     for (Formula variable : variables) {
-      Term term = fmgr.extractInfo(variable);
-      Formula uninstantiatedVariable = fmgrView.uninstantiate(variable);
-      Set<String> variableNames = fmgrView.extractVariableNames(uninstantiatedVariable);
+      Term term = formulaManager.extractInfo(variable);
+      Formula uninstantiatedVariable = formulaManagerView.uninstantiate(variable);
+      Set<String> variableNames = formulaManagerView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
 
       if (pRelevantVariables.contains(variableName)) {
         rankVars.put(new TermRankVar(variableName, term), term);
 
       } else if (substitution.containsValue(variable)) {
-        Formula originalFormula =
-            substitution
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue().equals(variable))
-                .map(Entry::getKey)
-                .findAny()
-                .get();
-        Formula uninstantiatedOriginalFormula = fmgrView.uninstantiate(originalFormula);
-        Term originalTerm = fmgr.extractInfo(uninstantiatedOriginalFormula);
+        Formula originalFormula = substitution
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue().equals(variable))
+            .map(Entry::getKey)
+            .findAny()
+            .get();
+        Formula uninstantiatedOriginalFormula = formulaManagerView.uninstantiate(originalFormula);
+        Term originalTerm = formulaManager.extractInfo(uninstantiatedOriginalFormula);
         rankVars.put(new TermRankVar(originalTerm.toString(), originalTerm), term);
 
-      } else if (!isMetaVariable(variableName)
-          && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
+      } else if (!isMetaVariable(variableName) && !variableName.startsWith(TERMINATION_AUX_VARS_PREFIX)) {
         logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }
@@ -393,9 +411,9 @@ public class LassoBuilder {
     private final SSAMap loopInVars;
 
     public StemAndLoop(PathFormula pStem, PathFormula pLoop, SSAMap pLoopInVars) {
-      stem = checkNotNull(pStem);
-      loop = checkNotNull(pLoop);
-      loopInVars = checkNotNull(pLoopInVars);
+      stem =checkNotNull(pStem);
+      loop =checkNotNull(pLoop);
+      loopInVars =checkNotNull(pLoopInVars);
     }
 
     public BooleanFormula getStem() {

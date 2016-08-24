@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public abstract class RefinablePrecision extends VariableTrackingPrecision {
 
-  private final VariableTrackingPrecision baseline;
+  protected final VariableTrackingPrecision baseline;
 
   protected RefinablePrecision(VariableTrackingPrecision pBaseline) {
     super();

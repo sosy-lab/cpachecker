@@ -34,8 +34,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -115,5 +117,19 @@ public abstract class AbstractSingleWrapperState
   @Override
   public ImmutableList<AbstractState> getWrappedStates() {
     return ImmutableList.of(wrappedState);
+  }
+  @Override
+  public List<AbstractState> getTargetLeaves() {
+    if (wrappedState instanceof AutomatonState)
+    {
+      return ImmutableList.of(wrappedState);
+    }
+    else if (wrappedState instanceof AbstractWrapperState)
+    {
+      return ((AbstractWrapperState)wrappedState).getTargetLeaves();
+    }
+    else {
+      return ImmutableList.of();
+    }
   }
 }

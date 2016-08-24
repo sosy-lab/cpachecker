@@ -144,30 +144,23 @@ public class ToCodeFormulaVisitor
       int size = bitVectorInfo.getSize();
       BigInteger value = (BigInteger) pValue;
       // Get only the [size] least significant bits
-      BigInteger upperExclusive = BigInteger.valueOf(2).pow(size - 1);
+      BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
       boolean negative = value.signum() < 0;
-      if (negative && !value.equals(upperExclusive.negate())) {
+      if (negative && !value.equals(upperExclusive.shiftRight(1).negate())) {
         value = value.negate();
         value =
             value.and(BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.valueOf(1))).negate();
       } else if (!negative) {
         value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
       }
-      String typeSuffix = "";
+      String result = value.toString();
       if (!bitVectorInfo.isSigned()) {
-        typeSuffix += "U";
+        result += "U";
       }
       if (bitVectorInfo.getSize() > 32) {
-        typeSuffix += "LL";
+        result += "LL";
       }
-
-      // Handle min-int: must not write e.g. "-9223372036854775808", because
-      // that is a unary negation of a value exceeding the range of the type;
-      // instead write e.g. (-9223372036854775807LL - 1)
-      if (bitVectorInfo.isSigned() && value.equals(upperExclusive.negate())) {
-        return "(" + value.add(BigInteger.ONE).toString() + typeSuffix + " - 1)";
-      }
-      return value.toString() + typeSuffix;
+      return result;
     }
     throw new AssertionError("Unsupported type: " + pInfo);
   }

@@ -120,6 +120,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private int matches = 0;
   private int failedMatches = 0;
   private final AutomatonSafetyProperty violatedPropertyDescription;
+  private String transitionName;
 
   static AutomatonState automatonStateFactory(
       Map<String, AutomatonVariable> pVars,
@@ -184,6 +185,18 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     } else {
       violatedPropertyDescription = null;
     }
+  }
+
+  public void setTransitionName(String transitionName) {
+    this.transitionName = transitionName;
+  }
+
+  public String getTransitionName() {
+    return transitionName;
+  }
+
+  public ControlAutomatonCPA getAutomaton() {
+    return automatonCPA;
   }
 
   @Override
