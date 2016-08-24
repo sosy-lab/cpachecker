@@ -161,7 +161,9 @@ public class ValueAnalysisState
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
-
+    if (value == null) {
+      return;
+    }
     addToConstantsMap(pMemoryLocation, value);
     memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
   }

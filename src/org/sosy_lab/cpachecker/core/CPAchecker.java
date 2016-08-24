@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.IdleIntervalTimeLimitExhaustionException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -297,6 +298,8 @@ public class CPAchecker {
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
+        AnalysisNotifier.getInstance().onStartAnalysis(cfa);
+
         ConfigurableProgramAnalysis cpa;
         Specification specification;
         stats.cpaCreationTime.start();
@@ -390,6 +393,8 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
+    result = AnalysisNotifier.getInstance().updateResult(result);
+
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
@@ -459,7 +464,8 @@ public class CPAchecker {
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return status;
-
+    } catch (IdleIntervalTimeLimitExhaustionException e) {
+      return AnalysisNotifier.getInstance().restartInOneRun(status, algorithm, reached);
     } finally {
       stats.stopAnalysisTimer();
 

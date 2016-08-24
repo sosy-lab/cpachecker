@@ -197,8 +197,20 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return new ControlAutomatonPrecisionAdjustment(pConfig, topState, lPrecisionAdjustment);
   }
 
-  Automaton getAutomaton() {
+  public Automaton getAutomaton() {
     return this.automaton;
+  }
+
+  public void disable() {
+    transferRelation.disable();
+  }
+
+  public void disable(String violatedPropertyDescription) {
+    for(AutomatonInternalState s : automaton.getStates()) {
+      for (AutomatonTransition transition : s.getTransitions()) {
+        transition.disable(violatedPropertyDescription);
+      }
+    }
   }
 
   public void registerInAutomatonInfo(AutomatonInfo info) {
