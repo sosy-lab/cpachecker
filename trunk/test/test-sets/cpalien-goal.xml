@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpalien" timelimit="60 s">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">12000M</option>
+  <option name="-preprocess" />
+
+  <tasks name="cpalien-goal">
+    <includesfile>../programs/cpalien/cpalien-goal.set</includesfile>
+    <option name="-CPAlien"/>
+    <option name="-setprop">memorysafety.config=config/CPAlien.properties</option>
+    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+  </tasks>
+
+  <tasks name="cpalien-label-goal">
+    <includesfile>../programs/cpalien/cpalien-label-goal.set</includesfile>
+    <option name="-CPAlien-label"/>
+    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+  </tasks>
+
+  <rundefinition name="cpalien">
+  </rundefinition>
+</benchmark>
+

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
+<project name="CPAchecker" basedir="." default="build"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+    <!-- Include a file in which all properties can be overridden.
+         This file won't get checked in and can be used to change properties
+         locally for one machine if necessary. -->
+    <property file="build.properties"/>
+    <property environment="env"/>
+
+    <property name="version.base" value="1.6.1-svn"/> <!-- change here for a release -->
+
+    <!-- Customization of build process. -->
+    <property name="jar.file" value="cpachecker.jar"/>
+    <property name="ivy.settings.file" value="lib/ivysettings.xml"/>
+    <property name="junit.dir" value="output/junit"/>
+    <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+    <property name="jar.excludes" value=""/>
+    <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
+    <property name="ivy.configurations" value="build, runtime, test, format-source, findbugs"/>
+    <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
+
+    <import file="build/build-ivy.xml"/>
+    <import file="build/build-version.xml"/>
+    <import file="build/build-compile.xml"/>
+    <import file="build/build-jar.xml"/>
+    <import file="build/build-documentation.xml"/>
+    <import file="build/build-dist.xml"/>
+    <import file="build/build-junit.xml"/>
+    <import file="build/build-format-source.xml"/>
+    <import file="build/build-findbugs.xml"/>
+
+    <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+    <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
+    <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
+
+    <path id="classpath">
+        <pathelement location="${class.dir}"/>
+        <fileset dir="lib" includes="*.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
+    </path>
+
+
+    <!-- Main targets -->
+
+    <target name="clean">
+        <delete includeEmptyDirs="true">
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+        </delete>
+
+        <!-- Clean subprojects -->
+        <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
+    </target>
+
+    <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
+
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
+        <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
+        <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="tests" depends="unit-tests, python-unit-tests" description="Run all tests"/>
+
+    <target name="all-checks" description="Run all tests and checks">
+        <!-- We have to use antcall here to run clean twice. -->
+        <antcall target="clean"/>
+        <antcall target="build-project-ecj"/>
+        <antcall target="clean"/>
+        <antcall target="standard-checks"/>
+    </target>
+
+    <!-- Auxiliary targets -->
+
+    <target name="init" depends="create-version-file">
+        <echo message="Building ${ant.project.name} ${version.base}"/>
+    </target>
+
+    <target name="build-subprojects">
+            <echo message="Generate automaton parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <echo message="Generate precision-rewriting parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
+    </target>
+
+    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
+
+    <available file=".factorypath" property="factorypath.present"/>
+    <target name="-warn-factorypath" unless="factorypath.present">
+        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
+    </target>
+
+    <target name="standard-checks" depends="tests, findbugs"/>
+
+    <target name="python-unit-tests" description="Run unit tests of python scripts">
+        <!-- Tests are only executed if python is available, ignored otherwise. -->
+        <exec executable="python"
+            failonerror="true"
+            failifexecutionfails="false">
+            <arg line="-m unittest discover scripts"/>
+        </exec>
+    </target>
+
+    <!-- Targets for downloading CPAchecker instead of building it.
+         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
+         Warning: this might overwrite local changes. -->
+    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
+        <script language="javascript"><![CDATA[
+            var revision = project.getProperty("version.revision");
+            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
+        ]]></script>
+        <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
+            <patternset>
+                <include name="cpachecker.jar"/>
+            </patternset>
+        </unzip>
+    </target>
+
+</project>

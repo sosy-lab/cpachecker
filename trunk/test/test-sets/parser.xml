@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" memlimit="1 GB" cpuCores="1">
+  <!-- Test the parser frontend of CPAchecker. -->
+
+  <rundefinition>
+    <tasks>
+      <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+      <includesfile>../programs/benchmarks/DriverChallenges.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
+      <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    </tasks>
+    <tasks>
+      <include>../programs/simple/*.i</include>
+      <include>../programs/simple/*/*.i</include>
+    </tasks>
+    <tasks>
+      <include>../programs/simple/*.c</include>
+      <include>../programs/simple/*/*.c</include>
+      <option name="-preprocess"/>
+    </tasks>
+
+    <option name="-heap">500m</option>
+    <option name="-noout"/>
+    <option name="-generateCFA"/>
+  </rundefinition>
+</benchmark>

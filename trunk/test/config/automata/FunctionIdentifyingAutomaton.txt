@@ -1,0 +1,13 @@
+OBSERVER AUTOMATON FunctionIdentifyingAutomaton
+// This Automaton is meant to work on the file "functionCall.c"
+// it requires the LocationAnalysis
+
+/* This Automaton basically prints which function the locationCPA thinks it is in. */
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  CHECK(location, "functionName==main") -> PRINT "i'm in Main after Edge " PRINT "$RawStatement" GOTO Init;
+  CHECK(location, "functionName==f") -> PRINT "i'm in f after Edge " PRINT "$RawStatement" GOTO Init;
+
+END AUTOMATON

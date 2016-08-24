@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="AutomatonParserGeneration" default="generate-parser" basedir="./../../../../../../../">
+    <!-- basedir should be the "CPAchecker" directory -->
+
+    <property name="dir.parser" location="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/" />
+    <property name="scanner.target" value="FormulaScanner"/>
+    <property name="parser.target" value="FormulaParser"/>
+    <property name="symbols.target" value="FormulaSymbols"/>
+
+    <import file="${basedir}/build/build-parser.xml"/>
+</project>

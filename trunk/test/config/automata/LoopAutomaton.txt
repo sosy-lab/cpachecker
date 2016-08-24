@@ -1,0 +1,16 @@
+// simple automaton that counts how many "while" statements he encounters before a goto
+// it is assumed that the loop is exited by goto as in loop1.c
+
+OBSERVER AUTOMATON LoopAutomaton
+LOCAL int whileSeen = 0;
+
+INITIAL STATE NotInLoop;
+
+STATE USEFIRST NotInLoop :
+  MATCH  "while" -> DO whileSeen = whileSeen + 1 PRINT "loop entered" GOTO InLoop;
+
+STATE USEFIRST InLoop :
+  MATCH  "while" -> DO whileSeen = whileSeen + 1 PRINT "while seen:" PRINT whileSeen GOTO InLoop; // unnecessary line
+  MATCH  [Goto: .*]  -> PRINT "LoopExited, whileSeen:" PRINT whileSeen GOTO NotInLoop;
+
+END AUTOMATON

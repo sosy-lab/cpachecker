@@ -1,0 +1,17 @@
+  MathSAT is copyrighted 2007-2009 by FBK-IRST and University of Trento,
+  Italy. All rights reserved.
+
+  MathSAT is available for research and evaluation purposes in an academic
+  environment only. It can not be used in a commercial environment,
+  particularly as part of a commercial product, without written
+  permission. MathSAT is provided as is, without any warranty.
+
+  Please write to mathsat@fbk.eu for additional questions regarding
+  licensing MathSAT or obtaining more up-to-date versions.
+
+
+  ------------------------------------------------------------------------
+
+  The MathSAT version available here (libmathsatj.so) can be used only
+  from within CPAChecker. For any other use, please visit
+  http://mathsat.fbk.eu or write to mathsat@fbk.eu

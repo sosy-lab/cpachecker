@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <option name="-heap">13000M</option>
+  <option name="-noout"/>
+  <option name="-disable-java-assertions"/>
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <tasks name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+  </tasks>
+  <tasks name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+  </tasks>
+  <tasks name="HeapManipulation">
+    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+  </tasks>
+
+  <option name="-bmc"/>
+
+  <rundefinition name="k1">
+    <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
+  </rundefinition>
+
+  <rundefinition name="k10">
+    <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+    <column title="targets">Number of target states</column>
+    <column title="sat check time">Time for final sat check</column>
+    <column title="assertions check time">Time for bounding assertions check</column>
+  </columns>
+</benchmark>

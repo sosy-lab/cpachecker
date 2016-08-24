@@ -1,0 +1,11 @@
+OBSERVER AUTOMATON InteractionAutomatonB
+LOCAL int y = 1;
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+// the second trigger is to check the "check all" functionality
+  CHECK(AutomatonAnalysis_InteractionAutomatonA, "x==$$y") && CHECK("x==$$y")
+  -> DO y=y+1 PRINT "B: A increased to " PRINT y-1 PRINT " And i followed"
+  GOTO Init;
+
+END AUTOMATON

@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="600 s" hardtimelimit="900 s" memlimit="8 GB" cpuCores="2">
+    <option name="-noout" />
+
+    <option name="-heap">8000m</option>
+    <option name="-64" /> <!-- 64-bit -->
+    <option name="-disable-java-assertions"/> <!-- Speed-up -->
+
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+    <tasks name="DeviceDriversHard">
+        <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+    </tasks>
+
+    <rundefinition name="intervals">
+        <option name="-policy-intervals"/>
+    </rundefinition>
+
+    <rundefinition name="intervals_w_slicing">
+        <option name="-policy-slicing"/>
+    </rundefinition>
+
+    <rundefinition name="intervals_w_syntactic_slicing">
+        <option name="-policy-slicing"/>
+        <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
+    </rundefinition>
+
+    <rundefinition name="slicing-k-induction">
+        <option name="-formula-slicing-k-induction"/>
+        <option name="-setprop">solver.solver=z3</option>
+        <option name="-setprop">invariantGeneration.async=false</option>
+        <option name="-setprop">cpa.callstack.skipRecursion=true</option>
+    </rundefinition>
+
+    <rundefinition name="k-induction-w-invariants">
+        <!-- Proves 45 programs, 13 of which -formula-slicing can not prove -->
+        <option name="-bmc-induction" />
+    </rundefinition>
+
+    <rundefinition name="predicateAnalysis">
+        <option name="-predicateAnalysis"/>
+    </rundefinition>
+
+    <rundefinition name="predicateAnalysis-w-slicing-invariants">
+        <option name="-formula-slicing-w-predicate"/>
+    </rundefinition>
+
+    <rundefinition name="just-slicing">
+        <option name="-formula-slicing"/>
+    </rundefinition>
+
+    <rundefinition name="just-slicing-syntactic">
+        <option name="-formula-slicing"/>
+        <option name="-setprop">cpa.slicing.weakeningStrategy=syntactic</option>
+    </rundefinition>
+
+    <rundefinition name="just-slicing-destructive">
+        <option name="-formula-slicing"/>
+        <option name="-setprop">cpa.slicing.weakeningStrategy=destructive</option>
+    </rundefinition>
+</benchmark>

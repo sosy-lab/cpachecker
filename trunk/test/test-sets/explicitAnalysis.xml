@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="1800 s" memlimit="2 GB">
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+
+  <tasks name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </tasks>
+  <tasks name="Nested">
+    <includesfile>nested.set</includesfile>
+  </tasks>
+
+  <rundefinition name="without-cbmc">
+    <option name="-valueAnalysis-no-cbmc"/>
+  </rundefinition>
+
+  <rundefinition name="with-cbmc">
+    <option name="-valueAnalysis"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="memory">Heap memory usage</column>
+  </columns>
+</benchmark>

@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="1500 MB" cpuCores="2">
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <resultfiles>dummy</resultfiles>
+
+  <option name="-noout"/>
+  <option name="-heap">1000M</option>
+
+  <tasks name="value">
+    <include>../programs/benchmarks/recursive-simple/a*.c</include>
+    <include>../programs/benchmarks/recursive-simple/f*.c</include>
+    <option name="-valueAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="interval">
+    <include>../programs/benchmarks/recursive-simple/i*.c</include>
+    <option name="-intervalAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="valuePredicate">
+    <include>../programs/benchmarks/recursive-simple/s*.c</include>
+    <option name="-valuePredicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree">
+    <include>../programs/benchmarks/recursive/*.c</include>
+    <exclude>../programs/benchmarks/recursive/*1_*.c</exclude>
+    <exclude>../programs/benchmarks/recursive/*2_*.c</exclude>
+    <exclude>../programs/benchmarks/recursive/*3_*.c</exclude>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_nested">
+    <include>../programs/benchmarks/recursive/*3_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_cpachecker">
+    <include>../programs/benchmarks/recursive/*2_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_wellscoped">
+    <include>../programs/benchmarks/recursive/*1_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <rundefinition/>
+</benchmark>

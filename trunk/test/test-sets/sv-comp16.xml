@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+  <option name="-heap">10000M</option>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  <!-- Witness files are several GB in total, ignore them for now.
+  <resultfiles>**.graphml</resultfiles>
+  -->
+
+  <tasks name="ArraysReach">
+    <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+  </tasks>
+  <tasks name="ArraysMemSafety">
+    <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+  </tasks>
+  <tasks name="BitVectorsReach">
+    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+  </tasks>
+  <tasks name="BitVectorsOverflows">
+    <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="HeapReach">
+    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+  </tasks>
+  <tasks name="HeapMemSafety">
+    <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
+  </tasks>
+  <tasks name="Floats">
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+<!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
+  </tasks>
+  <tasks name="ControlFlow">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+<!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </tasks>
+  <tasks name="Recursive">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </tasks>
+  <tasks name="Termination">
+    <includesfile>../programs/benchmarks/Termination.set</includesfile>
+<!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
+    <option name="-64" />
+  </tasks>
+  <tasks name="Concurrency">
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+  </tasks>
+  <tasks name="DeviceDriversLinux64">
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+<!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
+    <option name="-64"/>
+  </tasks>
+  <tasks name="BusyBox">
+    <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+
+  <rundefinition name="sv-comp16">
+    <option name="-sv-comp16"/>
+  </rundefinition>
+</benchmark>

@@ -1,0 +1,16 @@
+# 1 "./implicitunsignedconversion_safe.c"
+# 1 "<eingebaut>"
+# 1 "<Kommandozeile>"
+# 1 "./implicitunsignedconversion_safe.c"
+int main() {
+  unsigned int plus_one = 1;
+  int minus_one = -1;
+
+  if(plus_one > minus_one) {
+    goto ERROR;
+  }
+
+  return (0);
+  ERROR:
+  return (-1);
+}

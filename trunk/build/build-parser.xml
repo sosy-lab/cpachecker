@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="Base script for parser generation" default="generate-parser" basedir=".">
+    <!-- basedir should be the "CPAchecker" directory -->
+    <dirname property="dir.base" file="${ant.file.imported}"/>
+    <property name="dir.src" location="${dir.base}/src" />
+    <property name="dir.lib" location="${dir.base}/lib/java/build" />
+
+    <!-- the following properties will be used as default
+         if the importing file does not overwrite them -->
+    <property name="scanner.source" value="Scanner.jflex"/>
+    <property name="skeleton.source" value="skeleton.nested"/>
+    <property name="parser.source" value="parser.cup"/>
+
+    <taskdef name="jflex"
+        classname="jflex.anttask.JFlexTask"
+        classpath="${dir.lib}/jflex.jar"
+    />
+    <taskdef name="cup"
+        classname="java_cup.anttask.CUPTask"
+        classpath="${dir.lib}/java-cup.jar"
+    />
+
+    <target name="echos">
+        <echo>${dir.base}</echo>
+        <echo>${dir.lib}</echo>
+        <echo>${dir.src}</echo>
+        <echo>${dir.parser}</echo>
+    </target>
+
+    <target name="clean" description="Delete generated files">
+        <delete>
+            <fileset dir="${dir.parser}" includes="${scanner.target}.java ${parser.target}.java ${symbols.target}.java"/>
+        </delete>
+    </target>
+
+    <uptodate property="scanner.uptodate" srcfile="${dir.parser}/${scanner.source}" targetfile="${dir.parser}/${scanner.target}.java"/>
+
+    <condition property="parser.uptodate">
+        <and>
+            <isset property="scanner.uptodate"/>
+            <uptodate srcfile="${dir.parser}/${parser.source}" targetfile="${dir.parser}/${parser.target}.java"/>
+        </and>
+    </condition>
+
+    <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
+        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}"/>
+    </target>
+
+    <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate automaton parser">
+        <cup srcfile="${dir.parser}/${parser.source}"
+            destdir="${dir.src}"
+            interface="true"
+            parser="${parser.target}"
+            symbols="${symbols.target}"
+            nopositions="true"
+            nosummary="true"
+        />
+
+        <!-- place a more general suppressWarnings-tag in front of the generated class -->
+        <property name="annotation" value="@javax.annotation.Generated(&quot;JFlex&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;, &quot;MissingOverride&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
+        <replace file="${dir.parser}/${parser.target}.java" token="@SuppressWarnings({&quot;rawtypes&quot;})" value="${annotation}"/>
+    </target>
+</project>

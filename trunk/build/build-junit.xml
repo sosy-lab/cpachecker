@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="junit" basedir="."
+         xmlns:jacoco="antlib:org.jacoco.ant">
+
+    <!-- Targets for running JUnit. -->
+
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+
+    <!-- Can be overridden from including file. -->
+    <property name="junit.dir" value="junit"/>
+
+    <!-- Define property that contains the Ant version for getting the matching ant-junit version. -->
+    <antversion property="ant.version.exact"/>
+
+    <!-- Load the JUnit plugin for Ant if it's not installed. -->
+    <condition property="ant.junit.available">
+        <typefound name="junit"/>
+    </condition>
+    <target name="load-junit" depends="resolve-dependencies" unless="ant.junit.available">
+        <taskdef name="junit"
+                 classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
+                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+        <taskdef name="junitreport"
+                 classname="org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator"
+                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+    </target>
+
+    <target name="init-unit-tests">
+        <!-- Provide default classpath if none is specified. -->
+        <path id="classpath.junit">
+            <path refid="classpath"/>
+        </path>
+
+        <mkdir dir="${junit.dir}"/>
+    </target>
+
+    <target name="unit-tests" depends="build, load-junit, init-unit-tests" description="Run all JUnit tests">
+        <delete dir="{junit.dir}"/>
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
+            <assertions><enable/></assertions>
+            <formatter type="xml"/>
+            <classpath refid="classpath.junit"/>
+            <batchtest fork="true" todir="${junit.dir}">
+                <fileset dir="${class.dir}">
+                    <include name="**/*Test.*"/>
+                    <exclude name="**/*$*Test.*"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <junitreport todir="${junit.dir}">
+            <fileset dir="${junit.dir}" includes="TEST-*.xml"/>
+            <report format="noframes"/>
+        </junitreport>
+        <move file="junit-noframes.html" tofile="JUnit.html"/>
+        <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
+    </target>
+
+    <target name="load-jacoco" depends="resolve-dependencies">
+        <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+            <classpath><fileset dir="${ivy.jar.dir}" includes="org.jacoco.*.jar asm-debug-all.jar"/></classpath>
+        </taskdef>
+    </target>
+
+    <target name="unit-tests-coverage" depends="build, load-junit, load-jacoco, init-unit-tests" description="Run all JUnit tests with coverage report">
+        <jacoco:coverage destfile="${junit.dir}/jacoco.exec" excludes="**/*Test*:**/Dummy*">
+            <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
+                <assertions><enable/></assertions>
+                <formatter type="xml"/>
+                <classpath refid="classpath.junit"/>
+                <batchtest fork="true" todir="${junit.dir}">
+                    <fileset dir="${class.dir}">
+                        <include name="**/*Test.*"/>
+                        <exclude name="**/*$*Test.*"/>
+                    </fileset>
+                </batchtest>
+            </junit>
+        </jacoco:coverage>
+        <jacoco:report>
+            <executiondata><file file="${junit.dir}/jacoco.exec"/></executiondata>
+            <structure name="${ant.project.name}">
+                <classfiles><fileset dir="${class.dir}" excludes="**/*Test*,**/Dummy*/"/></classfiles>
+                <sourcefiles encoding="UTF-8"><fileset dir="${source.dir}" excludes="**/*Test*,**/Dummy*/"/></sourcefiles>
+            </structure>
+            <html destdir="JUnit-coverage"/>
+        </jacoco:report>
+        <junitreport todir="${junit.dir}">
+            <fileset dir="${junit.dir}" includes="TEST-*.xml"/>
+            <report format="noframes"/>
+        </junitreport>
+        <move file="junit-noframes.html" tofile="JUnit.html"/>
+        <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
+    </target>
+</project>

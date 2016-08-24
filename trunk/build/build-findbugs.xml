@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="findbugs" basedir=".">
+
+    <!-- Targets for running FindBugs. -->
+
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+    <property name="findbugs.output" value="xml:withMessages"/>
+
+    <path id="findbugs.classpath">
+        <fileset dir="${ivy.lib.dir}/findbugs" includes="*.jar"/>
+    </path>
+
+    <target name="run-findbugs" depends="jar">
+        <delete file="FindBugs.html"/>
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="findbugs.classpath"/>
+        <findbugs
+                output="${findbugs.output}"
+                outputFile="FindBugs.xml"
+                excludeFilter=".settings/FindBugs.exclude.xml"
+                warningsProperty="findbugs.warnings">
+            <auxClasspath refid="classpath" />
+            <sourcePath path="${source.dir}" />
+            <class location="${jar.file}" />
+            <classpath refid="findbugs.classpath" />
+        </findbugs>
+    </target>
+
+    <target name="findbugs-report" if="findbugs.warnings">
+        <echo>FindBugs found warnings, generating report.</echo>
+        <xslt in="FindBugs.xml" out="FindBugs.html">
+            <style><javaresource classpathref="findbugs.classpath" name="fancy.xsl"/></style>
+        </xslt>
+    </target>
+
+    <target name="findbugs" depends="run-findbugs, findbugs-report" description="Run FindBugs and generate report."/>
+
+    <target name="run-findbugs-diff" depends="jar">
+        <delete file="FindBugs.diff.html"/>
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="findbugs.classpath"/>
+        <findbugs
+                output="${findbugs.output}"
+                outputFile="FindBugs.diff.xml"
+                excludeFilter=".settings/FindBugs.exclude.xml"
+                warningsProperty="findbugs.newwarnings"
+                baselineBugs="FindBugs.known.xml">
+            <auxClasspath refid="classpath" />
+            <sourcePath path="${source.dir}" />
+            <class location="${jar.file}" />
+            <classpath refid="findbugs.classpath" />
+        </findbugs>
+    </target>
+
+    <target name="findbugs-diff-report" if="findbugs.newwarnings">
+        <echo>FindBugs found new warnings, generating report.</echo>
+        <xslt in="FindBugs.diff.xml" out="FindBugs.diff.html">
+            <style><javaresource classpathref="findbugs.classpath" name="fancy.xsl"/></style>
+        </xslt>
+    </target>
+
+    <target name="findbugs-diff" depends="run-findbugs-diff, findbugs-diff-report" description="Run FindBugs and generate report with newly found warnings."/>
+
+    <target name="findbugs-full" depends="findbugs, findbugs-diff" description="Run FindBugs and generate full report and report with newly found warnings."/>
+</project>

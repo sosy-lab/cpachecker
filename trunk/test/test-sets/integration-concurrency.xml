@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="3 GB" cpuCores="2">
+
+  <option name="-heap">2000M</option>
+  <option name="-noout"/>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <!-- result files are not needed for buildbot.
+  <resultfiles>**.graphml</resultfiles>
+  -->
+  <resultfiles>dummy</resultfiles>
+
+  <tasks name="value-concurrency">
+    <option name="-valueAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-atomic/*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix000_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix054_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/podwr*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*opt_true-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe007_*opt_true-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_*opt_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe028_*opt_true-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036_*opt_true-unreach-call.i</include>
+    <include>../programs/benchmarks/ldv-races/*_true-unreach-call*.i</include>
+  </tasks>
+
+  <tasks name="value-concurrency-Refinement">
+    <option name="-valueAnalysis-concurrency"/>
+    <option name="-setprop">analysis.algorithm.CEGAR=true</option>
+    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
+
+    <include>../programs/benchmarks/pthread-wmm/mix000_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix054_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/podwr*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*oepc_true-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_*oepc_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036_*oepc_true-unreach-call.i</include>
+  </tasks>
+  
+  <tasks name="bdd-concurrency">
+    <option name="-bddAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-wmm/rfi005_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi010_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/safe014_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/thin000_*_false-unreach-call.i</include>
+    <include>../programs/benchmarks/ldv-races/*_false-unreach-call*.i</include>
+  </tasks>
+
+  <rundefinition/>
+
+  <columns>
+    <column title="#reached">Size of reached set</column>
+  </columns>
+
+</benchmark>

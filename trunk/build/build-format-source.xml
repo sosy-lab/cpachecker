@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="format-source" basedir=".">
+
+    <!-- Targets for formatting source code. -->
+
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+
+    <target name="format-source" depends="resolve-dependencies"
+        description="Reformat the whole source">
+        <fileset dir="${source.dir}" id="source.files">
+            <include name="**/*.java" />
+        </fileset>
+        <pathconvert property="source.files" refid="source.files" pathsep="' '"/>
+        <java fork="true" classname="com.google.googlejavaformat.java.Main">
+            <classpath>
+                <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
+            </classpath>
+            <arg value="-i"/>
+            <arg line="'${source.files}'"/>
+        </java>
+    </target>
+
+    <target name="format-diff" depends="resolve-dependencies"
+        description="Reformat all lines that are currently changed but not yet committed">
+        <exec executable="svn"
+                outputproperty="svn.diff"
+                failonerror="false" failifexecutionfails="false"
+                logError="false" error="/dev/null">
+            <arg value="diff"/>
+            <arg value="--diff-cmd"/>
+            <arg value="diff"/>
+            <arg value="-x"/>
+            <arg value="-u0"/>
+            <arg value="${source.dir}"/>
+        </exec>
+        <exec executable="git"
+                outputproperty="git.diff"
+                failonerror="false" failifexecutionfails="false"
+                logError="false" error="/dev/null">
+            <arg value="diff"/>
+            <arg value="--cached"/>
+            <arg value="-U0"/>
+            <arg value="--no-prefix"/>
+            <arg value="${source.dir}"/>
+        </exec>
+
+        <condition property="diff" value="${svn.diff}" else="${git.diff}">
+            <not><equals arg1="${svn.diff}" arg2=""/></not>
+        </condition>
+
+        <exec executable="build/google-java-format-diff.py"
+                inputstring="${diff}">
+            <arg value="-i"/>
+        </exec>
+    </target>
+</project>

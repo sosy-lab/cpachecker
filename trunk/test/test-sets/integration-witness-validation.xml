@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
+<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="120 s" memlimit="7 GB" cpuCores="2">
+  <option name="-heap">6000M</option>
+
+  <!--
+  The benchmarks "integration-error-witness-generation" and
+  "integration-error-witness-validation" depend on each other.
+  If one file is changed, please also update the other one.
+  -->
+
+  <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
+  <resultfiles>**.graphml</resultfiles>
+
+  <rundefinition name="witness-validation">
+    <!-- special directory to search for witnesses -->
+    <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</requiredfiles>
+  </rundefinition>
+
+  <option name="-witness-validation"/>
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">10000m</option>
+  <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</option>
+
+  <tasks name="BitVectorsReach">
+    <includesfile>../programs/benchmarks/BitVectorsReach-validate.set</includesfile>
+  </tasks>
+  <tasks name="BitVectorsOverflows">
+    <includesfile>../programs/benchmarks/BitVectorsOverflows-validate.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+    <tasks name="HeapReach">
+    <includesfile>../programs/benchmarks/HeapReach-validate.set</includesfile>
+  </tasks>
+  <tasks name="HeapMemSafety">
+    <includesfile>../programs/benchmarks/HeapMemSafety-validate.set</includesfile>
+  </tasks>
+  <tasks name="Floats">
+    <includesfile>../programs/benchmarks/Floats-validate.set</includesfile>
+  </tasks>
+  <tasks name="ControlFlow">
+    <includesfile>../programs/benchmarks/ControlFlow-validate.set</includesfile>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple-validate.set</includesfile>
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../programs/benchmarks/ECA-validate.set</includesfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/Loops-validate.set</includesfile>
+  </tasks>
+  <tasks name="Recursive">
+    <includesfile>../programs/benchmarks/Recursive-validate.set</includesfile>
+    <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines-validate.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized-validate.set</includesfile>
+  </tasks>
+  <tasks name="DeviceDriversLinux64">
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64-validate.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="BusyBox">
+    <includesfile>../programs/benchmarks/BusyBox-validate.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+
+</benchmark>

@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="100 s" hardtimelimit="120 s" memlimit="2 GB" cpuCores="1">
+    <option name="-noout" />
+
+    <option name="-formula-slicing"/>
+    <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
+
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+    <rundefinition>
+        <tasks>
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <columns>
+        <column title="total">time for CPAchecker</column>
+        <column title="cpa time">time for CPA algorithm</column>
+    </columns>
+</benchmark>

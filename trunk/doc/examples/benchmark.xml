@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<!-- Example file that demonstrates all available options. -->
+
+<!--
+  "tool" is the tool to verify.
+  All tools for which a corresponding module in scripts/benchmark/tool exists are supported.
+  Examples are "cbmc" and "cpachecker".
+
+  "timelimit" is an optional cpu-time limit in seconds.
+  "hardtimelimit" is an optional cpu-time limit after which the tool will be killed forcefully
+    equal to "timelimit" if not specified).
+  "memlimit" is an optional memory limit in SI units (i.e., 1 MB = 1,000,000 Bytes).
+  "cpuCores" is an optional number of CPU cores to use per run (otherwise all available cores are used).
+  "threads" is the number of parallel executions of verification runs.
+  This values can be overriden on the command line when running benchmark.py
+-->
+<benchmark tool="cbmc" timelimit="1800s" hardtimelimit="2000s" memlimit="200 MB">
+
+  <!--
+    There are two important top-level tags:
+    <rundefinition>
+    <tasks>
+
+    A <rundefinition> tag defines a set of runs of the tool which will be executed
+    for all files mentioned in all <tasks> tags.
+    Both tags may appear arbitrarily often and
+    support an optional attribute "name" in order to distinguish them.
+
+    Inside a <tasks> tag, the tags <include>, <exclude>, <includesfile>, and <excludesfile>
+    may appear. All take a file name (supporting wildcards, variables, etc.) as content.
+    <include> and <exclude> may be used to include or exclude files for verification runs directly.
+    <includesfile> and <excludesfile> needs to reference text files which may contain
+    further file name patterns (each pattern on one line) of files that will be used for verification.
+    All relative paths specified here are relative to the directory of this file.
+    Relative paths specified inside a file referenced with <includesfile>
+    are relative to the directory of that file.
+
+    Another tag is <option> which defines a command-line argument
+    for the verification tool.
+    This tag may appear as a top-level tag, inside <rundefinition> tags,
+    and inside <tasks> tags, and the argument is used for all files,
+    only in the specific set of runs, or only for the specific set of files,
+    respectively.
+    The tag has a required attribute "name" and optionally takes some text content.
+
+    Both the file name patterns as well as the values of options
+    may contain variables in a "${VAR}" syntax that will be replaced by the script.
+    This list of allowed variables is:
+    benchmark_name
+    benchmark_date
+    benchmark_path
+    benchmark_path_abs
+    benchmark_file
+    benchmark_file_abs
+    rundefinition_name
+    logfile_path
+    logfile_path_abs
+    sourcefile_name
+    sourcefile_path
+    sourcefile_path_abs
+    C.f. benchmark-cpachecker.xml for an example of variable usage.
+
+    Furthermore, a <columns> tag may appear as a top-level tag
+    with a list of <column> tags inside. The script will then try to find values
+    for the specified columns in the output of the verification tool.
+    This is currently only supported for CPAchecker
+    and not guaranteed to be supported in the future at all.
+    C.f. benchmark-cpachecker.xml for an example.
+
+    The tag <propertyfile> defines the specification to be checked.
+    This will be given to the verifier and will be used for the score calculations.
+    This tag can appear also within a <tasks> tag.
+    The variables defined above are allowed inside this tag.
+
+    There are three more top-level tags that are used only when the verifier cloud is used:
+
+    <requiredfiles> can be used to specify additional files that are needed
+    for executing the benchmark. The tag may contain a path to a file or directory
+    that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
+    The tag may appear several times, and can be placed inside the <benchmark>,
+    <rundefinition>, and <tasks> tags.
+
+    <require> can be used to select a specific set of worker machines. The attributes
+    "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
+    "cpuCores" (giving the minimal number of CPU cores), and
+    "memory" (giving the minimal amount of memory in MB) can be specified (all optional).
+    The tag may appear several times, but each attribute may appear at most once
+    (so you can specify all attributes in a single tag or spread over several occurrences).
+
+    <resultfiles> can be used to specify a file-name pattern matching all the result
+    files created by the tool that should be transported back after executing the run
+    from the worker to the user's machine. Paths must be specified relative to
+    the longest common parent of the scripts directory and the specified files.
+    For example,
+    /home/user/workspace/CPAchecker/scripts and
+    /home/user/files/test.c
+    has /home/user/ as the common path. So, a file produced in
+    /home/user/workspace/CPAchecker/output/foo.bar can be referenced with
+    workspace/CPAchecker/output/foo.bar
+  -->
+
+  <!-- Example: -->
+
+  <!-- Define some global options. -->
+  <option name="--error-label">ERROR</option>
+
+  <!-- Define a set of tasks that will be used with all run definitions. -->
+  <tasks name="small_locks">
+    <include>../../test/programs/benchmarks/locks/*.c</include>
+    <exclude>../../test/programs/benchmarks/locks/test_locks_1?*.c</exclude>
+  </tasks>
+
+  <!-- Define a run definition with one specific option. -->
+  <rundefinition name="small_locks">
+    <option name="--unwind">10</option>
+  </rundefinition>
+
+  <!-- Define another run definition with one other specific option and some more files. -->
+  <rundefinition name="all_locks">
+    <option name="--unwind">1</option>
+
+    <tasks name="big_locks">
+      <include>../../test/programs/benchmarks/locks/test_locks_1?*.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Yet another run definition, this time using an <includesfile>
+       and a command-line option which is specific for some files. -->
+  <rundefinition name="locks+drivers">
+    <option name="--unwind">1</option>
+
+    <tasks name="drivers">
+      <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+      <option name="-64"/>
+    </tasks>
+  </rundefinition>
+
+  <!-- Some requirements for the worker machine. -->
+  <require memory="512 MB" cpuCores="2"/>
+</benchmark>

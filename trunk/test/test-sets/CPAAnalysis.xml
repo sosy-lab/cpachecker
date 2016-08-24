@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s">
+<option name="-heap">3000M</option>
+<option name="-noout"/>
+<option name="-spec">sv-comp</option>
+<option name="-disable-java-assertions"/>
+<option name="-setprop">statistics.memory=false</option>
+
+<rundefinition name="ReachDef_ValueDF">
+	<option name="-reachingdef-value"/>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
+		<tasks name="BFS">
+			<option name="-setprop">analysis.traversal.order=BFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
+		</tasks>
+</rundefinition>
+
+<rundefinition name="ReachDef_ValueJOINSEP">
+	<option name="-reachingdef-value"/>
+		<tasks name="BFS">
+			<option name="-setprop">analysis.traversal.order=BFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
+		</tasks>
+</rundefinition>
+
+<rundefinition name="ReachDef_ValueSEPJOIN">
+	<option name="-reachingdef-value"/>
+	<option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.reachdef.ReachingDefCPA, cpa.value.ValueAnalysisCPA, cpa.conditions.global.GlobalConditionsCPA</option>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
+	<option name="-setprop">cpa.reachdef.merge=SEP</option>
+		<tasks name="BFS">
+			<option name="-setprop">analysis.traversal.order=BFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
+		</tasks>
+</rundefinition>
+
+<rundefinition name="ReachDef_ValueMC">
+	<option name="-reachingdef-value"/>
+	<option name="-setprop">cpa.reachdef.merge=SEP</option>
+		<tasks name="DFS">
+			<option name="-setprop">analysis.traversal.order=DFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
+		</tasks>
+</rundefinition>
+
+<rundefinition name="ReachDefDF">
+	<option name="-reachingdefinition"/>
+		<tasks name="BFS">
+			<option name="-setprop">analysis.traversal.order=BFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
+		</tasks>
+</rundefinition>
+
+<rundefinition name="ValueDF">
+	<option name="-valueAnalysis-pcc-trac-all"/>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
+		<tasks name="BFS">
+			<option name="-setprop">analysis.traversal.order=BFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_6_true.c</include>
+			<include>../programs/benchmarks/locks/test_locks_7_true.c</include>
+			<include>../programs/benchmarks/bitvector/s3*_true.BV.c.cil.c</include>
+		</tasks>
+</rundefinition>
+
+<rundefinition name="StructureTest">
+	<option name="-reachingdef-value"/>
+	<option name="-setprop">cpa.value.merge=JOIN</option>
+		<tasks name="BFS">
+			<option name="-setprop">analysis.traversal.order=BFS</option>
+			<include>../programs/benchmarks/locks/test_locks_5_true.c</include>
+			<include>../programs/nestedLocks/test_locks_while_seq_5_safe.c</include>
+			<include>../programs/nestedLocks/test_locks_while_mix_5_safe.c</include>
+			<include>../programs/nestedLocks/test_locks_while_nest_5_safe.c</include>
+		</tasks>
+</rundefinition>
+
+<columns>
+<column title="Total time">Total time for CPAchecker</column>
+<column title="Set up time">Time for analysis setup</column>
+<column title="Analysis time">Time for Analysis</column>
+<column title="Precision time">Time for precision adjustment</column>
+<column title="Transfer time">Time for transfer relation</column>
+<column title="Merge time">Time for merge operator</column>
+<column title="Stop time">Time for stop operator</column>
+<column title="#Removed Elems">Number of times merged</column>
+</columns>
+</benchmark>

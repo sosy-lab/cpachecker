@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+  <option name="-valueAnalysis"/>
+  <!-- SV-Comp files assume that malloc always succeeds (needed for counterexample check) -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <resultfiles>dummy</resultfiles>
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <rundefinition>
+    <tasks>
+      <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <!-- exclude tasks from Sequentialized set -->
+      <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+      <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+
+      <!-- exclude close-to-timeout tasks -->
+      <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
+    </tasks>
+    <tasks>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
+      <option name="-skipRecursion"/>
+      <option name="-64"/>
+    </tasks>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="refinements_succ">Number of successful refinements</column>
+    <column title="refinements_fail">Number of failed refinements</column>
+    <column title="time_refinements">Time for refinements</column>
+  </columns>
+</benchmark>

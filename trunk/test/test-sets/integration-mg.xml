@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+
+<!--
+     In the future, these integration tests are meant to test smgcpa as well as
+     smgcpa with ValueAnalysisCPA without any kind of abstraction.
+      -->
+
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+  <option name="-preprocess" />
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <rundefinition>
+
+    <tasks name ="label">
+      <option name="-smg-label"/>
+      <option name="-setprop">cpa.smg.handleUnknownFunctions=assume_safe</option>
+
+      <include>../programs/smg_Explicity_Test/lists/*.c</include>
+    </tasks>
+
+    <tasks name="memsafety">
+      <option name="-smg"/>
+      <option name="-setprop">memorysafety.config=config/smg.properties</option>
+
+      <include>../programs/smg_Explicity_Test/heap-memory/*.c</include>
+    </tasks>
+  </rundefinition>
+</benchmark>

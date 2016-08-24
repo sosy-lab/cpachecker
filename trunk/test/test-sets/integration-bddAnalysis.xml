@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+
+  <!--
+  This is a small benchmark-file to check the BDDCPA with its most-used option-combinations.
+  Some results are FALSE POSITIVES, however there should not be any FALSE NEGATIVES.
+  The rundefinition needs a runtime of 45 minutes.
+  -->
+
+  <resultfiles>dummy</resultfiles>
+
+  <option name="-noout"/>
+  <option name="-heap">1800M</option>
+
+  <rundefinition>
+
+    <tasks name="va-bdd-bool">
+      <option name="-valueAnalysis-BDD-bool"/>
+      <include>../programs/benchmarks/ssh/*clnt*.c</include>
+      <exclude>../programs/benchmarks/ssh/*clnt*1*.c</exclude>
+      <include>../programs/benchmarks/ssh-simplified/*clnt*.c</include>
+      <exclude>../programs/benchmarks/ssh-simplified/*clnt*1*.c</exclude>
+      <include>../programs/benchmarks/product-lines/*product0*.c</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    </tasks>
+
+    <tasks name="va-bdd-eq">
+      <option name="-valueAnalysis-BDD-bool-intEQ"/>
+      <include>../programs/benchmarks/ssh/*clnt*1*.c</include>
+      <include>../programs/benchmarks/ssh-simplified/*clnt*1*.c</include>
+      <include>../programs/benchmarks/product-lines/*product1*.c</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    </tasks>
+
+    <tasks name="va-bdd-add">
+      <option name="-valueAnalysis-BDD-bool-intEQ-intADD"/>
+      <include>../programs/benchmarks/ssh/*srvr*.c</include>
+      <exclude>../programs/benchmarks/ssh/*srvr*1*.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.06_true-unreach-call.i.cil.c</exclude>
+      <include>../programs/benchmarks/ssh-simplified/*srvr*.c</include>
+      <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*.c</exclude>
+      <include>../programs/benchmarks/product-lines/*product2*.c</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+    </tasks>
+
+    <tasks name="plain-bdd">
+      <option name="-bddAnalysis"/>
+      <option name="-setprop">cpa.bdd.compressIntEqual=false</option>
+      <include>../programs/benchmarks/ssh/*srvr*1*.c</include>
+      <include>../programs/benchmarks/ssh-simplified/*srvr*1*.c</include>
+      <include>../programs/benchmarks/product-lines/*product3*.c</include>
+      <exclude>../programs/benchmarks/product-lines/email*</exclude>
+      <exclude>../programs/benchmarks/product-lines/elevator_spec3_product30_true-unreach-call.cil.c</exclude>
+    </tasks>
+
+    <tasks name="Loops">
+      <option name="-bddAnalysis"/>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <exclude>../programs/benchmarks/loops/matrix*</exclude>
+      <exclude>../programs/benchmarks/loops/for*</exclude>
+      <exclude>../programs/benchmarks/loops/bubble*</exclude>
+      <exclude>../programs/benchmarks/loops/n.*</exclude>
+      <exclude>../programs/benchmarks/loops/sum*</exclude>
+      <exclude>../programs/benchmarks/loops/eureka*</exclude>
+      <exclude>../programs/benchmarks/loops/*string*</exclude>
+    </tasks>
+
+  </rundefinition>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+</benchmark>

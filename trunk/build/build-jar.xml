@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="jar" basedir=".">
+
+    <!-- Targets for generating JAR files. -->
+
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+
+    <!-- These properties can and should be overridden from including file. -->
+    <property name="class.main" value=""/>
+    <property name="project.url" value=""/>
+    <property name="jar.excludes" value="**/*Test.class **/*Test$*.class"/>
+
+    <target name="jar" depends="determine-version,build" description="Create a runnable JAR file">
+        <property name="jar.file" value="${ivy.module}-${version}.jar"/>
+        <copy todir="${class.dir}"><fileset dir="." includes="META-INF/**"/></copy>
+        <manifestclasspath property="classpath.jar" jarfile="${ivy.lib.dir}/runtime/${jar.file}" maxParentLevels="0">
+            <classpath><fileset dir="${ivy.lib.dir}/runtime" includes="*.jar"/></classpath>
+        </manifestclasspath>
+        <jar basedir="${class.dir}/"
+                destfile="${jar.file}"
+                includes="**"
+                excludes="${jar.excludes}"
+                whenmanifestonly="fail">
+            <manifest>
+                <attribute name="Class-Path" value="${classpath.jar}"/>
+                <attribute name="Main-Class" value="${class.main}"/>
+                <attribute name="Implementation-Title" value="${ant.project.name}"/>
+                <attribute name="Implementation-Version" value="${version}"/>
+                <attribute name="Implementation-URL" value="${project.url}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="sources" depends="determine-version, resolve-dependencies">
+        <jar destfile="${ivy.module}-${version}-sources.jar"
+                whenmanifestonly="fail">
+            <fileset dir="${source.dir}/" includes="**/*.java"/>
+            <fileset dir="${source.generated.dir}/" includes="**/*.java"/>
+            <manifest>
+                    <attribute name="Implementation-Title" value="${ant.project.name}"/>
+                    <attribute name="Implementation-Version" value="${version}"/>
+            </manifest>
+        </jar>
+    </target>
+</project>

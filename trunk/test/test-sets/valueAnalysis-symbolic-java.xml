@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="10 s" hardtimelimit="30 s" memlimit="500 MB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">150M</option>
+  <option name="-valueAnalysis-symbolic-java"/>
+
+  <rundefinition/>
+
+  <tasks>
+    <requiredfiles>../programs/java/Symbolic</requiredfiles>
+    <option name="-cp">test/programs/java/Symbolic</option>
+    <withoutfile>ContradictiveIf_true_assert</withoutfile>
+    <withoutfile>NondetAssignment_false_assert</withoutfile>
+    <withoutfile>NondetAssignment_true_assert</withoutfile>
+    <withoutfile>NondetDeclaration_true_assert</withoutfile>
+    <withoutfile>NondetExpressionValue_true_assert</withoutfile>
+  </tasks>
+
+  <tasks>
+    <requiredfiles>../programs/java/CallTests</requiredfiles>
+    <option name="-cp">test/programs/java/CallTests</option>
+    <withoutfile>pack1.BooleanOperators</withoutfile>
+    <withoutfile>pack1.CreateObjects_true_assert</withoutfile>
+    <withoutfile>pack1.Arrays1</withoutfile>
+    <withoutfile>pack1.DynamicBindingCall_true_assert</withoutfile>
+    <withoutfile>pack1.FunctionCall_true_assert</withoutfile>
+    <withoutfile>pack3.SimplestRTTTest_true_assert</withoutfile>
+    <withoutfile>pack3.RTTBaExample1_true_assert</withoutfile>
+    <withoutfile>pack3.RTTTest1_true_assert</withoutfile>
+    <withoutfile>pack5.SwitchTest_true_assert</withoutfile>
+    <withoutfile>pack5.CallTests_true_assert</withoutfile>
+  </tasks>
+
+  <tasks>
+    <requiredfiles>../programs/java/Misc</requiredfiles>
+    <option name="-cp">test/programs/java/Misc</option>
+    <withoutfile>pack4.CastTest_true_assert</withoutfile>
+    <withoutfile>pack4.Class1_true_assert</withoutfile>
+    <withoutfile>pack4.Class2_true_assert</withoutfile>
+    <withoutfile>pack4.SubType1_true_assert</withoutfile>
+    <withoutfile>pack4.TestContin_true_assert</withoutfile>
+  </tasks>
+
+  <tasks>
+    <requiredfiles>../programs/java/Statements</requiredfiles>
+    <option name="-cp">test/programs/java/Statements</option>
+    <withoutfile>Arrays_true_assert</withoutfile>
+    <withoutfile>Assert1_true_assert</withoutfile>
+    <withoutfile>Assert2_true_assert</withoutfile>
+    <withoutfile>BigDouble_true_assert</withoutfile>
+    <withoutfile>BooleanOperators_true_assert</withoutfile>
+    <withoutfile>CastMixedExpression_true_assert</withoutfile>
+    <withoutfile>Casts_true_assert</withoutfile>
+    <withoutfile>CompareObjectReferences_true_assert</withoutfile>
+    <withoutfile>ConditionalExpression1_true_assert</withoutfile>
+    <withoutfile>ExceptionCatch_true_assert</withoutfile>
+    <withoutfile>ForEach_true_assert</withoutfile>
+    <withoutfile>FunctionCall2_true_assert</withoutfile>
+    <withoutfile>FunctionCall3_true_assert</withoutfile>
+    <withoutfile>FunctionCall4_true_assert</withoutfile>
+    <withoutfile>FunctionCall5_true_assert</withoutfile>
+    <withoutfile>FunctionCall_true_assert</withoutfile>
+    <withoutfile>IfStatement2_true_assert</withoutfile>
+    <withoutfile>IfStatement3_true_assert</withoutfile>
+    <withoutfile>IfStatement4_true_assert</withoutfile>
+    <withoutfile>IfStatement5_true_assert</withoutfile>
+    <withoutfile>IfStatement_true_assert</withoutfile>
+    <withoutfile>InitialValue_true_assert</withoutfile>
+    <withoutfile>InnerClass_true_assert</withoutfile>
+    <withoutfile>IntegerOverflow_true_assert</withoutfile>
+    <withoutfile>Label2_true_assert</withoutfile>
+    <withoutfile>Label_true_assert</withoutfile>
+    <withoutfile>LazyBooleanEvaluation_true_assert</withoutfile>
+    <withoutfile>Loop3_true_assert</withoutfile>
+    <withoutfile>Loop4_false_assert</withoutfile>
+    <withoutfile>Loop5_true_assert</withoutfile>
+    <withoutfile>Loop6_true_assert</withoutfile>
+    <withoutfile>Loop7_true_assert</withoutfile>
+    <withoutfile>Loop8_true_assert</withoutfile>
+    <withoutfile>NumberOperators_true_assert</withoutfile>
+    <withoutfile>Readable</withoutfile>
+    <withoutfile>StaticInitializer_true_assert</withoutfile>
+    <withoutfile>SuperClass</withoutfile>
+    <withoutfile>Switch2_false_assert</withoutfile>
+    <withoutfile>Switch_true_assert</withoutfile>
+    <withoutfile>SyntaxError</withoutfile>
+    <withoutfile>Type_true_assert</withoutfile>
+    <withoutfile>TypeParameter_true_assert</withoutfile>
+    <withoutfile>UnallowedCast_false_assert</withoutfile>
+    <withoutfile>UnaryNumberOperators_true_assert</withoutfile>
+    <withoutfile>WhileLoop1_true_assert</withoutfile>
+    <withoutfile>WhileLoop2_true_assert</withoutfile>
+    <withoutfile>pack.AssertCondition_true_assert</withoutfile>
+    <withoutfile>pack.Const</withoutfile>
+    <withoutfile>pack.Declaration</withoutfile>
+    <withoutfile>pack.DoWhileAnweisung</withoutfile>
+    <withoutfile>pack.Expression2</withoutfile>
+    <withoutfile>pack.Expression</withoutfile>
+    <withoutfile>pack.IFE</withoutfile>
+    <withoutfile>pack.IfAnweisung</withoutfile>
+    <withoutfile>pack.IfStatement2_true_assert</withoutfile>
+    <withoutfile>pack.LabeledAnweisung</withoutfile>
+    <withoutfile>pack.MethodCall</withoutfile>
+    <withoutfile>pack.SimpleExample_false_assert</withoutfile>
+    <withoutfile>pack.SubType</withoutfile>
+    <withoutfile>pack.SwitchAnweisung</withoutfile>
+    <withoutfile>pack.WhileAnweisung</withoutfile>
+    <withoutfile>pack.forAnweisung</withoutfile>
+  </tasks>
+</benchmark>

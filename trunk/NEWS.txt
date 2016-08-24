@@ -1,0 +1,288 @@
+Changes since CPAchecker 1.6.1
+------------------------------
+* CPAchecker requires Java 8.
+
+
+Changes from CPAchecker 1.6 to CPAchecker 1.6.1
+-----------------------------------------------
+* Important bug fix for all configurations that use a sequential combination
+  of analyses, for the example the -sv-comp16 configuration
+  (internal time limits were not handled correctly).
+
+
+Changes from CPAchecker 1.4 to CPAchecker 1.6
+---------------------------------------------
+* Local Policy Iteration
+  A new analysis has been added to CPAchecker
+  that derives numerical invariants from linear templates
+  with policy iteration in an efficient manner.
+
+* Formula Slicing Analysis
+  A new analysis was developed for CPAchecker that derives inductive invariants
+  from loop-free traces from the analyzed program.
+
+* Refinement Selection
+  The value analysis and the predicate analysis can now use
+  refinement selection for choosing well-suited ways to refine
+  the analysis for an infeasible counterexample.
+
+* Symbolic Execution
+  CPAchecker now supports symbolic execution
+  by enhancing the value analysis to not only track explicit,
+  but also symbolic values.
+
+* Improved Heap Support for Predicate Analysis
+  The predicate analysis now supports a heap analysis
+  with unbounded memory regions by using the SMT theory of arrays.
+  This can be enabled with cpa.predicate.handleHeapArray=true.
+
+* Concurrency Support
+  CPAchecker now supports the analysis of concurrent programs
+  with a limited number of threads
+  by using value analysis or BDD-based analysis.
+
+* Witness Export and Validation
+  After an analysis, CPAchecker exports witnesses
+  that contain information about found counterexamples or correctness-proofs.
+  The format of the witnesses is standardized and 
+  a description is available at
+  https://sv-comp.sosy-lab.org/2016/witnesses
+
+* Support for Verification Tasks with Multiple Source Files
+  Multiple C source files can be given as input to CPAchecker,
+  and they will be linked together and analyzed as a single program.
+
+* BenchExec
+  The benchmarking script (scripts/benchmark.py) of CPAchecker
+  evolved into the independent project BenchExec
+  (https://github.com/sosy-lab/benchexec).
+  It provides reliable benchmarking and resource measurement
+  for arbitrary tools.
+
+* JavaSMT
+  The SMT interface layer of CPAchecker got refactored into its own library
+  JavaSMT (https://github.com/sosy-lab/java-smt)
+  and can now be used by other projects as well.
+  Because of this, a lot of configuration options related to solver usage
+  were renamed from "cpa.predicate.*" to "solver.*",
+  so please check your configuration if necessary.
+
+* 32bit binaries of native libraries and tools removed
+  If you need to run CPAchecker on a 32bit system with a configuration
+  that relies on native libraries, you need to compile them yourself
+  and put them in the directory "lib/native/x86-linux/"
+  (cf. documentation of JavaSMT).
+
+
+Changes from CPAchecker 1.3.4 to CPAchecker 1.4
+-----------------------------------------------
+* Sliced Interpolation for Value Analysis
+  The refinement for value analysis now uses an improved interpolation procedure
+  that allows to choose better interpolants
+  and thus increases the performance of the analysis.
+
+* Continuously-Refined Invariants for k-Induction
+  The k-induction-based analysis can now be supplied
+  with a sequence of increasingly precise invariants throughout the analysis,
+  leading to a more efficient and effective combination
+  of k-induction and invariant generation.
+
+* Counterexample Checks
+  CPAchecker provides the ability to double-check a counterexample
+  found by one analysis with a different analysis,
+  in order to decrease the number of false alarms with only little overhead.
+  The second analysis can usually be more precise,
+  because it is only used for loop-free paths of the original program.
+  This is now enabled by default for the predicate analysis
+  (the counterexample check is done by the value analysis)
+  and the value analysis (the counterexample check is done by
+  a bitprecise configuration of the predicate analysis).
+  This combines the respective advantages of both analyses.
+
+* Floating-Point Arithmetic with Predicate Analysis
+  The predicate analysis has got support for precise modeling
+  of floating-point arithmetic (in config -predicateAnalyis-bitprecise),
+  thanks to the addition of support for this in the SMT solver MathSAT5.
+
+* The default configuration of the predicate analysis is now more precise:
+  it uses integers to approximate int variables instead of rationals.
+  Overflows and bit operators like shifts are still not handled,
+  the (slower) configuration -predicateAnalysis-bitprecise
+  can be used for this.
+
+* The default SMT solver is now SMTInterpol,
+  which is written in Java and available on all platforms.
+  MathSAT5 continues to be used for configurations
+  that SMTInterpol does not support.
+
+* The SMT solver Princess (http://www.philipp.ruemmer.org/princess.shtml)
+  has been integrated into CPAchecker's predicate analysis
+  and can be selected with cpa.predicate.solver=princess.
+
+* The configuration files for value analysis have been renamed.
+  Instead of -explicitAnalysis or similar,
+  you now need to use -valueAnalysis.
+
+
+Changes from CPAchecker 1.2 to CPAchecker 1.3.4
+-----------------------------------------------
+
+Main changes:
+
+* Conditional Model Checking (CMC)
+  The flexibility of sequential combinations of analyses inside CPAchecker has been extended.
+  A configuration based on this won two categories of SV-COMP'14
+  and a silver medal in the category Overall
+  (cf. http://sv-comp.sosy-lab.org/2014/results/).
+
+* Symbolic Memory Graphs (SMG)
+  An analysis that models the heap precisely as SMGs has been added
+  and can be used for finding memory violations.
+  It won the category MemorySafety of SV-COMP'14
+  (cf. http://sv-comp.sosy-lab.org/2014/results/).
+
+* Precision Reuse
+  The explicit-value analysis and the predicate analysis have gained support for precision reuse,
+  a technique that allows much faster regression verification,
+  i.e., verification of a new version of a program
+  (cf. "Precision Reuse for Efficient Regression Verification".
+  Dirk Beyer, Stefan Löwe, Evgeny Novikov, Andreas Stahlbauer, and Philipp Wendler.
+  In Proc. ESEC/FSE, ACM, 2013).
+
+* Domain Types
+  A suitable abstract domain can be selected automatically
+  depending on the usage pattern of each variable,
+  for example a BDD or explicit-value analysis
+  (cf. "Domain Types: Abstract-Domain Selection Based on Variable Usage".
+  Sven Apel, Dirk Beyer, Karlheinz Friedberger, Franco Raimondi, and Alexander von Rhein.
+  In Proc. HVC, LNCS 8244, Springer, 2013).
+
+* k-Induction
+  A proof method based on k-Induction (using an SMT solver) has been added
+  and can be combined with our bounded-model-checking implementation
+  (config -bmc-induction).
+
+* Predicate Analysis
+  A much improved pointer handling is implemented and enabled by default.
+  Furthermore, support for a bitprecise handling of all int variables has been added
+  (including overflows and bitwise operators).
+  This configuration is available as -predicateAnalysis-bitprecise.
+
+* Google App Engine
+  CPAchecker has been successfully ported to the Google App Engine,
+  accessible via a web frontend (http://cpachecker.appspot.com) and a JSON API.
+
+* Improved C Frontend
+  Support for many additional C features has been added to CPAchecker.
+  Pre-processing with CIL is not necessary any more.
+  CPAchecker can be given several C files at once
+  and links them together before verifying them as a single program.
+  This simplifies verification of programs consisting of multiple source files.
+
+* Experimental Java Support
+  A Java frontend has been added to CPAchecker,
+  and some analyses were extended to support verification of Java programs.
+  This is still experimental and several language features are still missing
+  (e.g., exceptions).
+
+
+Further changes:
+
+* Java 7 is required now.
+
+* Specification
+  Support for property files of the SV-COMP added, specify them with -spec <FILE.prp>
+  (cf. http://sv-comp.sosy-lab.org/2014/rules.php)
+
+* Configuration-File Changes:
+  File names are now relative to the file in which they are given,
+  several CPAs have been renamed (ABMCPA -> BAMCPA, ExplicitCPA -> ValueAnalysisCPA),
+  many changes to other configuration options as well.
+  If you use your own configuration files, you will need to adjust them
+  (cf. doc/ConfigurationOptions.txt)
+
+* Error Paths
+  Multiple error paths can be searched and written to disk
+  with the option "analysis.stopAfterError = false".
+  More information about variable assignments has been added to the error paths.
+  The use of the report generator has been simplified,
+  just call scripts/report-generator.py (cf. doc/BuildReport.txt).
+
+* SMT solvers for Predicate Analysis:
+  SMTInterpol (http://ultimate.informatik.uni-freiburg.de/smtinterpol/index.html)
+  is now well integrated.
+  The support for MathSAT4 was dropped (MathSAT5 continues to be the default solver).
+
+* Benchmarking Support
+  CPAchecker provides scripts for benchmarking with large sets of programs.
+  These have been extended and now provide more precise time and memory measurement
+  (using Linux cgroups). Also the generated HTML tables have more features now.
+  (cf. doc/Benchmark.txt)
+
+
+Changes from CPAchecker 1.1 to CPAchecker 1.2
+---------------------------------------------
+
+CPAchecker now supports several new analyses:
+
+* CEGAR for ExplicitCPA (as submitted to SV-COMP'13)
+  (c.f. "Explicit-State Software Model Checking Based on CEGAR and Interpolation", to appear in FASE'13)
+  This can be enabled with the "explicitAnalysis" and "explicitAnalysis-ItpRefiner*" configurations
+  (explicitAnalysis-ItpRefiner-ABElf is recommended)
+
+* Conditional Model Checking (CMC)
+  (c.f. "Conditional Model Checking: A Technique to Pass Information between Verifiers", FSE'12)
+  To use two or more CMC-enabled configurations, use the "-cmc" command-line argument:
+  Example: -cmc explicitAnalysis-100s-generate-cmc-condition -cmc predicateAnalysis-use-cmc-condition
+
+* Sequential composition of analyses (as submitted to SV-COMP'13)
+  The "-cmc" command-line argument can be used for this, too.
+  Example: -cmc explicitAnalysis-100s -cmc predicateAnalysis
+
+* Predicate-based analysis using the Impact refinement strategy
+  (c.f. "Algorithms for Software Model Checking: Predicate Abstraction vs. IMPACT", FMCAD'12)
+  This can be enabled with the "predicateAnalysis-ImpactRefiner-*" configurations.
+
+* BDD-based analysis tracking a subset of variables,
+  with ExplicitCPA tracking the remaining variables.
+  This can be enabled with the "explicit-BDD-*" configurations.
+
+Other changes to CPAchecker:
+* Pre-processing of C files with CIL is no longer needed.
+* MathSAT5 is now used as as SMT solver by default.
+  MathSAT4 can still be selected by setting the option
+  cpa.predicate.solver=Mathsat4
+* In configuration files, #include directives can be used
+  to include other configuration files.
+* The file format of the file with the initial set of predicates
+  (option cpa.predicate.abstraction.initialPredicates) and
+  the final set of predicates (option cpa.predicate.predmap.file) was changed.
+  It is now the same format for both files, and based on the SMTlib2 format.
+  See doc/examples/predmap.txt for an example.
+* The option cpa.predicate.machineModel was renamed to analysis.machineModel.
+* The Cudd BDD library was removed, now JavaBDD's implementation is used by default
+  (it has similar performance, but more features).
+* The ARTCPA was renamed to ARGCPA.
+  Replace cpa.art with cpa.arg and ARTCPA with ARGCPA in existing configuration files.
+* The option analysis.traversal.useTopsort (used in most configuration files)
+  was renamed to analysis.traversal.useReversePostorder as this name is more precise.
+* SMTInterpol, an SMT solver written in Java, is now integrated into CPAchecker.
+  With this solver, predicate analysis works on all platforms.
+  Some configuration options were renamed in order to not be MathSAT-specific.
+* The log level for the console can now be adjusted during runtime.
+  Use a JMX client to do that, e.g., jconsole or VisualVM.
+  Connect to the CPAchecker process,
+  locate the MXBean "org.sosy_lab.common:type=LogManager",
+  and set the attribute.
+* The option "cpa.removeIrrelevantForErrorLocations" was renamed to
+  "cfa.removeIrrelevantForSpecification", as this name is more appropriate.
+* A time limit of 15 minutes is now enabled by default in most configurations.
+  If the analysis is not yet finished, CPAchecker will stop after this time and report UNKNOWN.
+  The time limit can be controlled with the "cpa.conditions.global.time.wall" option
+  and the "-timelimit" command-line argument.
+  Example:
+  scripts/cpa.sh -predicateAnalysis -timelimit 1min test.c
+* If the #include directive of specification automata is used with relative paths,
+  the base directory of the relative path is now the directory of the file which contains the #include,
+  not the CPAchecker root directory.
+  If #include is used with relative paths in a specification file, it most probably needs adjustment.

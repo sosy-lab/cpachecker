@@ -1,0 +1,8 @@
+OBSERVER AUTOMATON InteractionAutomatonA
+LOCAL int x = 0;
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH {i = $?; } || MATCH {i++;} -> DO x=x+1 PRINT "A: Matched i in line $line x=" PRINT x GOTO Init;
+
+END AUTOMATON

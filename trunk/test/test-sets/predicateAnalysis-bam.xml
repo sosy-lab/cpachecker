@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="2 GB">
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+
+  <tasks name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="Nested">
+    <includesfile>nested.set</includesfile>
+  </tasks>
+  <tasks name="Linux-Kernel">
+    <include>../programs/linux-kernel/*.cil.c</include>
+  </tasks>
+
+  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+
+  <rundefinition name="bam">
+    <option name="-predicateAnalysis-bam"/>
+  </rundefinition>
+
+  <rundefinition name="bam-auxiliaryPredicates">
+    <option name="-predicateAnalysis-bam-auxiliaryPredicates"/>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Total size of all ARGs</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="cpa time">time for CPA algorithm</column>
+    <column title="cache hits">full cache hits</column>
+    <column title="partial cache hits">partial cache hits</column>
+    <column title="cache misses">cache misses</column>
+  </columns>
+</benchmark>

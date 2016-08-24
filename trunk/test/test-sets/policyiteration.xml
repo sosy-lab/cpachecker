@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="500 s" hardtimelimit="1000 s" memlimit="16 GB" cpuCores="1">
+    <option name="-noout" />
+
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+    <rundefinition name="lpi-svcomp-loops">
+        <tasks name="loops">
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
+        <option name="-lpi-svcomp16"/>
+        <option name="-heap">10000m</option>
+        <option name="-disable-java-assertions"/>
+    </rundefinition>
+
+    <rundefinition name="lpi-svcomp-loops-annotated">
+        <tasks name="loops">
+            <includesfile>../programs/benchmarks/LoopsFrama.set</includesfile>
+        </tasks>
+        <option name="-lpi-svcomp16"/>
+        <option name="-heap">10000m</option>
+        <option name="-disable-java-assertions"/>
+    </rundefinition>
+
+    <rundefinition name="lpi-loops-issues">
+        <option name="-policy-k-induction"/>
+        <option name="-heap">10000m</option>
+        <option name="-disable-java-assertions"/>
+        <tasks name="loops">
+            <include>../programs/benchmarks/loop-invgen/heapsort_true-unreach-call.i</include>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="lpi-loops">
+        <tasks name="loops">
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
+        <option name="-policy-refinement"/>
+        <option name="-heap">10000m</option>
+        <option name="-disable-java-assertions"/>
+    </rundefinition>
+
+    <!-- VMCAI'16 Configuration -->
+    <rundefinition name="lpi-old">
+        <tasks name="loops">
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
+        <option name="-policy-refinement"/>
+
+        <option name="-setprop">cpa.stator.policy.usePreviousBounds=true</option>
+        <option name="-setprop">cpa.stator.policy.unrollingRefinementThreshold=2</option>
+        <option name="-setprop">cpa.stator.policy.generateTemplatesUsingConvexHull=false</option>
+        <option name="-setprop">cpa.loopstack.loopIterationsBeforeAbstraction=1</option>
+        <option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option>
+
+        <option name="-disable-java-assertions" />
+        <option name="-heap">1000m</option>
+    </rundefinition>
+
+    <rundefinition name="lpi-old-no-join">
+        <tasks name="loops">
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
+        <option name="-policy-refinement"/>
+
+        <option name="-setprop">cpa.stator.policy.joinOnMerge=false</option>
+
+        <!-- TODO:
+             do not think it makes too much sense together with the !joinOnMerge.
+        -->
+        <option name="-setprop">cpa.stator.policy.usePreviousBounds=true</option>
+        <option name="-setprop">cpa.stator.policy.unrollingRefinementThreshold=2</option>
+        <option name="-setprop">cpa.stator.policy.generateTemplatesUsingConvexHull=false</option>
+        <option name="-setprop">cpa.loopstack.loopIterationsBeforeAbstraction=1</option>
+        <option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option>
+
+        <option name="-disable-java-assertions" />
+        <option name="-heap">1000m</option>
+    </rundefinition>
+
+    <rundefinition name="lpi-control-flow">
+        <option name="-policy-k-induction"/>
+        <tasks name="ECA">
+            <includesfile>../programs/benchmarks/ECA.set</includesfile>
+        </tasks>
+        <tasks name="ControlFlowInteger">
+            <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+        </tasks>
+        <tasks name="ProductLines">
+            <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+        </tasks>
+        <tasks name="Recursive">
+            <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+        </tasks>
+        <tasks name="Sequentialized">
+            <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+        </tasks>
+        <tasks name="Simple">
+            <includesfile>../programs/benchmarks/Simple.set</includesfile>
+            <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="standard-k-induction">
+        <tasks name="DeviceDrivers64">
+            <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <option name="-bmc-induction" />
+    </rundefinition>
+
+    <rundefinition name="lpi-device-drivers">
+        <option name="-lpi-svcomp16"/>
+        <tasks name="DeviceDrivers64">
+            <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <option name="-heap">10000m</option>
+    </rundefinition>
+
+    <rundefinition name="lpi-device-drivers-no-induction">
+        <option name="-policy-intervals"/>
+        <option name="-setprop">cpa.stator.policy.joinOnMerge=false</option>
+        <option name="-setprop">cfa.findErrorNodes=true</option>
+        <option name="-setprop">cpa.location.skipNoTargetEdges=true</option>
+        <!--<option name="-setprop">cpa.loopstack.loopIterationsBeforeAbstraction=2</option>-->
+        <!--<option name="-setprop">cpa.loopstack.loopIterationsBeforeAbstraction=2</option>-->
+        <!--<option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option>-->
+        <tasks name="DeviceDrivers64">
+            <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <option name="-heap">16000m</option>
+    </rundefinition>
+
+    <rundefinition name="lpi-device-drivers-value">
+        <option name="-policy-value"/>
+        <option name="-disable-java-assertions"/>
+        <tasks name="DeviceDrivers64">
+            <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <option name="-heap">16000m</option>
+        <option name="-64"/>
+    </rundefinition>
+
+    <rundefinition name="device-drivers-value">
+        <option name="-valueAnalysis"/>
+        <option name="-disable-java-assertions"/>
+        <tasks name="DeviceDrivers64">
+            <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <option name="-heap">16000m</option>
+        <option name="-64"/>
+    </rundefinition>
+
+    <rundefinition name="lpi-productlines-value">
+        <option name="-policy-value"/>
+        <option name="-disable-java-assertions"/>
+        <tasks name="ProductLines">
+            <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+        </tasks>
+        <option name="-heap">16000m</option>
+    </rundefinition>
+
+    <rundefinition name="productlines-value">
+        <option name="-valueAnalysis"/>
+        <option name="-disable-java-assertions"/>
+        <tasks name="ProductLines">
+            <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+        </tasks>
+        <option name="-heap">16000m</option>
+    </rundefinition>
+
+    <rundefinition name="lpi-device-drivers-intervals">
+        <option name="-policy-intervals"/>
+        <tasks name="DeviceDrivers64">
+            <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <option name="-heap">10000m</option>
+    </rundefinition>
+
+    <rundefinition name="lpi-busybox">
+        <option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=false</option>
+        <tasks name="BusyBox">
+            <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="lpi-productlines">
+        <!--<option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=false</option>-->
+        <option name="-policy-k-induction"/>
+        <tasks name="ProductLines">
+            <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="lpi-svcomp-all-control-flow">
+        <option name="-policy-k-induction"/>
+        <option name="-heap">10000m</option>
+        <option name="-disable-java-assertions"/>
+        <tasks name="ECA">
+            <includesfile>../programs/benchmarks/ECA.set</includesfile>
+        </tasks>
+        <tasks name="ControlFlowInteger">
+            <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+        </tasks>
+        <tasks name="ProductLines">
+            <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+        </tasks>
+        <tasks name="Recursive">
+            <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+        </tasks>
+        <tasks name="Sequentialized">
+            <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+        </tasks>
+        <tasks name="Simple">
+            <includesfile>../programs/benchmarks/Simple.set</includesfile>
+            <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+        </tasks>
+        <tasks name="Loops">
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        </tasks>
+    </rundefinition>
+</benchmark>

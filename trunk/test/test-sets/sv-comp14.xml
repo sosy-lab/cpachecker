@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" memlimit="15 GB" cpuCores="4">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">10000M</option>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <tasks name="Simple">
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+  </tasks>
+  <tasks name="BitVectors">
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+  </tasks>
+  <tasks name="Concurrency">
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+  </tasks>
+  <tasks name="ControlFlowInteger">
+    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  </tasks>
+  <tasks name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+  <!-- Demonstration Category
+  <tasks name="DriverChallenges">
+    <includesfile>../programs/benchmarks/DriverChallenges.set</includesfile>
+    <option name="-64"/>
+  </tasks>
+  -->
+  <tasks name="HeapManipulation">
+    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </tasks>
+  <tasks name="MemorySafety">
+    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="Recursive">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+  </tasks>
+
+  <rundefinition name="sv-comp14">
+    <option name="-sv-comp14"/>
+  </rundefinition>
+</benchmark>

@@ -1,0 +1,4 @@
+../programs/VeriSec/*_BUG.cil.c
+../programs/VeriSec/*_BUG.i
+../programs/VeriSec/*[!G].cil.c
+../programs/VeriSec/*[!G].i
