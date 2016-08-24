@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -59,9 +58,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationARGPath;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationTransferRelation;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -117,7 +113,8 @@ public class TerminationLoopInformation {
   /**
    * Mapping of relevant variables to the corresponding primed variable.
    */
-  private Map<CExpression, CVariableDeclaration> relevantVariables = Collections.emptyMap();
+  private Map<CVariableDeclaration, CVariableDeclaration> relevantVariables =
+      Collections.emptyMap();
 
   // reusing of intermediate location is required to build counter examples
   private List<CFANode> relevantVariablesInitializationIntermediateLocations =
@@ -196,28 +193,12 @@ public class TerminationLoopInformation {
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
-    Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
+    Builder<CVariableDeclaration, CVariableDeclaration> builder = ImmutableMap.builder();
 
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
-      CExpression unprimedVariable = new CIdExpression(DUMMY, relevantVariable);
       CVariableDeclaration primedVariable = TerminationUtils.createPrimedVariable(relevantVariable);
-      builder.put(unprimedVariable, primedVariable);
+      builder.put(relevantVariable, primedVariable);
       intermediateStates.add(new CFANode(functionName));
-
-      // x__TERMINATION_PRIMED__TERMINATION_DEREFERENCED = *x;
-      CType type = relevantVariable.getType();
-      while (type instanceof CPointerType) {
-        type = ((CPointerType) type).getType();
-        if (type instanceof CVoidType) {
-          break; // Cannot declare variable of type void.
-        }
-
-        unprimedVariable = new CPointerExpression(DUMMY, type, unprimedVariable);
-        primedVariable = TerminationUtils.createDereferencedVariable(primedVariable);
-
-        builder.put(unprimedVariable, primedVariable);
-        intermediateStates.add(new CFANode(functionName));
-      }
     }
 
     // Create a unique target node for each loop
@@ -269,10 +250,10 @@ public class TerminationLoopInformation {
   private List<CStatement> createPrimedVariableAssignments() {
     ImmutableList.Builder<CStatement> builder = ImmutableList.builder();
 
-    for (Entry<CExpression, CVariableDeclaration> relevantVariable :
+    for (Entry<CVariableDeclaration, CVariableDeclaration> relevantVariable :
         relevantVariables.entrySet()) {
 
-      CExpression unprimedVariable = relevantVariable.getKey();
+      CVariableDeclaration unprimedVariable = relevantVariable.getKey();
       CVariableDeclaration primedVariable = relevantVariable.getValue();
       CStatement assignment = createAssignmentStatement(primedVariable, unprimedVariable);
 
@@ -329,11 +310,11 @@ public class TerminationLoopInformation {
   }
 
   private CExpressionAssignmentStatement createAssignmentStatement(
-      CSimpleDeclaration pLeftHandSide, CExpression pRightHandSide) {
+      CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide) {
     return new CExpressionAssignmentStatement(
         FileLocation.DUMMY,
         new CIdExpression(FileLocation.DUMMY, pLeftHandSide),
-        pRightHandSide);
+        new CIdExpression(FileLocation.DUMMY, pRightHandSide));
   }
 
   public BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {

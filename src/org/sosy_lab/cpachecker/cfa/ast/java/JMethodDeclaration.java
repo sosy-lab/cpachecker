@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
-import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,9 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import com.google.common.base.Strings;
 
 /**
  *
@@ -56,9 +55,7 @@ import java.util.Objects;
  */
 public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 
-  // TODO refactor to be either abstract or final
-
-  // TODO Type Variables, Exceptions, Annotations
+ // TODO Type Variables, Exceptions, Annotations
 
   private final boolean isFinal;
   private final boolean isAbstract;
@@ -190,11 +187,6 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
 
   public JClassOrInterfaceType getDeclaringClass() {
     return declaringClass;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   /* (non-Javadoc)

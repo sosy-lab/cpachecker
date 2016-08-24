@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.List;
-
 public interface AbstractWrapperState extends AbstractState {
 
   /**
@@ -32,9 +30,5 @@ public interface AbstractWrapperState extends AbstractState {
    * @return A non-empty list of abstract states.
    */
   public Iterable<AbstractState> getWrappedStates();
-  /**
-   * Retrieve all wrapped target abstract states.
-   * @return
-  */
-  public List<AbstractState> getTargetLeaves();
+
 }

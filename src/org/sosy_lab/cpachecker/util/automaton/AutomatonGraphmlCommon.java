@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
@@ -57,7 +58,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
@@ -104,7 +104,7 @@ public class AutomatonGraphmlCommon {
     ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean", false),
     ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean", false),
     ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean", false),
-    ENTERLOOPHEAD("enterLoopHead", ElementType.EDGE, "enterLoopHead", "boolean", false),
+    ISLOOPSTART("loopHead", ElementType.NODE, "isLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
@@ -177,7 +177,8 @@ public class AutomatonGraphmlCommon {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
-    ISSINKNODE(KeyDef.ISSINKNODE);
+    ISSINKNODE(KeyDef.ISSINKNODE),
+    ISLOOPSTART(KeyDef.ISLOOPSTART);
 
     public final KeyDef key;
 

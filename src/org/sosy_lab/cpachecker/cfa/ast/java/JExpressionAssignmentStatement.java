@@ -40,8 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  *
  *
  */
-public final class JExpressionAssignmentStatement extends AExpressionAssignmentStatement
-    implements JAssignment, JStatement {
+public class JExpressionAssignmentStatement extends AExpressionAssignmentStatement implements JAssignment, JStatement {
 
   public JExpressionAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
       JExpression pRightHandSide) {

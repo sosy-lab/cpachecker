@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class DoNothingInvariantGenerator extends AbstractInvariantGenerator {
 
   @Override
-  protected void startImpl(CFANode pInitialLocation) {}
+  public void start(CFANode pInitialLocation) { }
 
   @Override
   public void cancel() { }

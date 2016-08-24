@@ -24,84 +24,120 @@
 package org.sosy_lab.cpachecker.cpa.livevar;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.LiveVariables;
-
-import java.util.BitSet;
+import java.util.Collection;
 import java.util.Objects;
 
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 
-class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 
-  private final BitSet liveVars;
-  private final LiveVariablesTransferRelation manager;
 
-  private LiveVariablesState(
-      BitSet pLiveVariables,
-      LiveVariablesTransferRelation pManager) {
-    manager = pManager;
+public class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {
+
+  private final ImmutableSet<Wrapper<ASimpleDeclaration>> liveVars;
+
+  public LiveVariablesState() {
+    liveVars = ImmutableSet.of();
+  }
+
+  public LiveVariablesState(final ImmutableSet<Wrapper<ASimpleDeclaration>> pLiveVariables) {
     checkNotNull(pLiveVariables);
     liveVars = pLiveVariables;
   }
 
-  static LiveVariablesState empty(
-      int totalNoVars,
-      LiveVariablesTransferRelation pManager) {
-    return new LiveVariablesState(new BitSet(totalNoVars), pManager);
+  public LiveVariablesState union(LiveVariablesState pState2) {
+    if (isSubsetOf(pState2)) {
+      return pState2;
+    } else if (pState2.isSubsetOf(this)) {
+      return this;
+    }
+
+    Builder<Wrapper<ASimpleDeclaration>> builder = ImmutableSet.builder();
+    builder.addAll(liveVars);
+    builder.addAll(pState2.liveVars);
+
+    return new LiveVariablesState(builder.build());
   }
 
-  static LiveVariablesState of(
-      BitSet pLiveVars,
-      LiveVariablesTransferRelation pManager
-  ) {
-    return new LiveVariablesState((BitSet) pLiveVars.clone(), pManager);
+  public boolean isSubsetOf(LiveVariablesState pState2) {
+    return pState2.liveVars.containsAll(liveVars);
   }
 
-  /**
-   * Create new LiveVariablesState, but do not defensively copy the data:
-   * the caller has to ensure that no other copies of {@code pLiveVars} exist.
-   *
-   * <p>Use at your own risk.
-   */
-  static LiveVariablesState ofUnique(
-      BitSet pLiveVars,
-      LiveVariablesTransferRelation pManager
-  ) {
-    return new LiveVariablesState(pLiveVars, pManager);
+  public boolean contains(Wrapper<ASimpleDeclaration> variableName) {
+    return liveVars.contains(variableName);
   }
 
-  LiveVariablesState(int totalNoVars, LiveVariablesTransferRelation pManager) {
-    liveVars = new BitSet(totalNoVars);
-    manager = pManager;
+  public LiveVariablesState addLiveVariables(Collection<Wrapper<ASimpleDeclaration>> pLiveVariables) {
+    checkNotNull(pLiveVariables);
+
+    if (pLiveVariables.isEmpty()
+        || liveVars.containsAll(pLiveVariables)) {
+      return this;
+    }
+
+    Builder<Wrapper<ASimpleDeclaration>> builder = ImmutableSet.builder();
+    builder.addAll(liveVars);
+    builder.addAll(pLiveVariables);
+
+    return new LiveVariablesState(builder.build());
   }
 
-  boolean isSubsetOf(LiveVariablesState pState2) {
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.or(pState2.liveVars);
-    return copy.equals(pState2.liveVars);
+  public LiveVariablesState removeLiveVariables(Collection<Wrapper<ASimpleDeclaration>> pNonLiveVariables) {
+    checkNotNull(pNonLiveVariables);
+
+    if (pNonLiveVariables.isEmpty()) {
+      return this;
+    }
+
+    Builder<Wrapper<ASimpleDeclaration>> builder = ImmutableSet.builder();
+    for (Wrapper<ASimpleDeclaration> liveVar : liveVars) {
+      if (!pNonLiveVariables.contains(liveVar)) {
+        builder.add(liveVar);
+      }
+    }
+
+    return new LiveVariablesState(builder.build());
   }
 
-  boolean contains(int variableIdx) {
-    return liveVars.get(variableIdx);
+  public LiveVariablesState removeAndAddLiveVariables(Collection<Wrapper<ASimpleDeclaration>> pNonLiveVariables,
+                                                      Collection<Wrapper<ASimpleDeclaration>> pLiveVariables) {
+    checkNotNull(pLiveVariables);
+    checkNotNull(pNonLiveVariables);
+
+    if (pLiveVariables.isEmpty()) {
+      return removeLiveVariables(pNonLiveVariables);
+    }
+
+    if (pNonLiveVariables.isEmpty()
+        || pLiveVariables.containsAll(pNonLiveVariables)) {
+      return addLiveVariables(pLiveVariables);
+    }
+
+    Builder<Wrapper<ASimpleDeclaration>> builder = ImmutableSet.builder();
+    for (Wrapper<ASimpleDeclaration> liveVar : liveVars) {
+      if (!pNonLiveVariables.contains(liveVar) || pLiveVariables.contains(liveVar)) {
+        builder.add(liveVar);
+      }
+    }
+
+    builder.addAll(pLiveVariables);
+
+    return new LiveVariablesState(builder.build());
   }
 
-  boolean containsAny(BitSet data) {
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.and(data);
-    return !copy.isEmpty();
+  @Override
+  public String toString() {
+    return liveVars.toString();
   }
-
-  LiveVariablesState removeLiveVariable(int posToRemove) {
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.clear(posToRemove);
-    return LiveVariablesState.ofUnique(copy, manager);
-  }
-
 
   @Override
   public int hashCode() {
@@ -125,16 +161,11 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
 
   @Override
   public LiveVariablesState join(LiveVariablesState pOther) {
-    BitSet copy = (BitSet)liveVars.clone();
-    copy.or(pOther.liveVars);
-    if (copy.equals(pOther.liveVars)) {
-      return pOther;
-    }
-    return ofUnique(copy, manager);
+    return union(pOther);
   }
 
   @Override
-  public boolean isLessOrEqual(LiveVariablesState pOther) {
+  public boolean isLessOrEqual(LiveVariablesState pOther) throws CPAException, InterruptedException {
     return isSubsetOf(pOther);
   }
 
@@ -143,24 +174,10 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(", ").appendTo(sb, toStringIterable());
+    Joiner.on(", ").appendTo(sb, from(liveVars).transform(LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING));
     sb.append("]");
+
     return sb.toString();
-  }
-
-  @Override
-  public String toString() {
-    return Joiner.on(", ").join(toStringIterable());
-  }
-
-  private Iterable<String> toStringIterable() {
-    return FluentIterable.from(manager.dataToVars(liveVars)).transform(
-        LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING
-    );
-  }
-
-  BitSet getDataCopy() {
-    return (BitSet) liveVars.clone();
   }
 
   @Override
@@ -168,4 +185,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
     return false;
   }
 
+  public Iterable<Wrapper<ASimpleDeclaration>> getLiveVariables() {
+    return liveVars;
+  }
 }

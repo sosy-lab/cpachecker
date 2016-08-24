@@ -1,4 +1,0 @@
-benchexec
-
-# For push notifications from VerifierCloud WebClient instead of polling.
-sseclient

@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -224,8 +223,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private AlgorithmStatus run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     while (reachedSet.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
-
-      AnalysisNotifier.getInstance().beforeAbstractionStep(reachedSet);
 
       stats.countIterations++;
 

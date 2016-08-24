@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
 
@@ -76,19 +77,19 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     return AutomaticCPAFactory.forType(PolicyCPA.class);
   }
 
-  @SuppressWarnings("unused")
   private PolicyCPA(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
-      CFA cfa)
-      throws InvalidConfigurationException, CPAException {
+      CFA cfa,
+      SolverFactory pSolverFactory
+  ) throws InvalidConfigurationException {
     pConfig.inject(this);
 
     logger = pLogger;
     config = pConfig;
 
-    Solver solver = Solver.create(config, pLogger, shutdownNotifier);
+    Solver solver = pSolverFactory.getSolverCached(pConfig, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
@@ -266,10 +267,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public Reducer getReducer() {
-    return new PolicyReducer(logger);
+    return new PolicyReducer();
   }
 
-  @Override
   public void setPartitioning(BlockPartitioning pPartitioning) {
     policyIterationManager.setPartitioning(pPartitioning);
   }

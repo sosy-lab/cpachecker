@@ -32,18 +32,16 @@ import com.google.common.collect.TreeMultimap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collection;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
   /**
    * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
    */
-  private ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
+  private final ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
 
   LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline) {
     super(pBaseline);
@@ -111,46 +109,6 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
     return super.isTracking(pVariable, pType, pLocation)
         && rawPrecision.containsEntry(pLocation, pVariable);
-  }
-
-  @Override
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
-    return join((VariableTrackingPrecision) otherPrecision);
-  }
-
-  @Override
-  public boolean subtract(AdjustablePrecision otherPrecision) {
-    assert otherPrecision.getClass().equals(this.getClass());
-    Multimap<CFANode, MemoryLocation> newPrecision = TreeMultimap.create();
-    Multimap<CFANode, MemoryLocation> removeable = TreeMultimap.create(
-      ((LocalizedRefinablePrecision)otherPrecision).rawPrecision);
-    for (CFANode cfaNode: rawPrecision.keySet()) {
-      Collection<MemoryLocation> currentLocations = rawPrecision.get(cfaNode);
-      if (!(removeable.containsKey(cfaNode) &&
-        rawPrecision.get(cfaNode).equals(currentLocations)))
-      {
-        newPrecision.putAll(cfaNode, currentLocations);
-      }
-    }
-    rawPrecision = ImmutableMultimap.copyOf(newPrecision);
-    return false;
-  }
-
-  @Override
-  public LocalizedRefinablePrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> increment) {
-    if (this.rawPrecision.entries().containsAll(increment.entries())) {
-      return null;
-    } else {
-      // sorted multimap so that we have deterministic output
-      SetMultimap<CFANode, MemoryLocation> refinedPrec = TreeMultimap.create();
-      refinedPrec.putAll(increment);
-      return new LocalizedRefinablePrecision(super.baseline, ImmutableMultimap.copyOf(refinedPrec));
-    }
-  }
-
-  @Override
-  public void clear() {
-    rawPrecision = ImmutableMultimap.of();
   }
 
   @Override

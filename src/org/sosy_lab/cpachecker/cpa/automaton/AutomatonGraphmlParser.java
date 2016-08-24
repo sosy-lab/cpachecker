@@ -129,7 +129,6 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -268,7 +267,7 @@ public class AutomatonGraphmlParser {
       } else if (graphTypeText.size() > 1) {
         throw new WitnessParseException("Only one graph type is allowed.");
       } else {
-        String graphTypeToParse = graphTypeText.iterator().next().trim();
+        String graphTypeToParse = graphTypeText.iterator().next();
         Optional<GraphType> parsedGraphType = GraphType.tryParse(graphTypeToParse);
         if (parsedGraphType.isPresent()) {
           graphType = parsedGraphType.get();
@@ -456,26 +455,11 @@ public class AutomatonGraphmlParser {
         AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
 
         // Match a loop start
-        boolean enterLoopHead = false;
-        Set<String> loopHeadFlags =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ENTERLOOPHEAD);
-        if (!loopHeadFlags.isEmpty()) {
-          Set<Boolean> loopHeadFlagValues =
-              loopHeadFlags.stream().map(Boolean::parseBoolean).collect(Collectors.toSet());
-          if (loopHeadFlagValues.size() > 1) {
-            throw new WitnessParseException(
-                "Conflicting values for the flag "
-                    + KeyDef.ENTERLOOPHEAD
-                    + ": "
-                    + loopHeadFlags.toString());
-          }
-          if (loopHeadFlagValues.iterator().next()) {
-            conjunctedTriggers =
-                and(
-                    conjunctedTriggers,
-                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-            enterLoopHead = true;
-          }
+        if (targetNodeFlags.contains(NodeFlag.ISLOOPSTART)) {
+          conjunctedTriggers =
+              and(
+                  conjunctedTriggers,
+                  AutomatonBoolExpr.EpsilonMatch.of(AutomatonBoolExpr.MatchLoopStart.INSTANCE));
         }
 
         // Add assumptions to the transition
@@ -529,9 +513,6 @@ public class AutomatonGraphmlParser {
                 new OriginLineMatcher(matchOriginFileName, matchOriginLineNumber);
 
             AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-            if (enterLoopHead) {
-              startingLineMatchingExpr = AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(startingLineMatchingExpr, true);
-            }
             conjunctedTriggers = and(conjunctedTriggers, startingLineMatchingExpr);
           }
 
@@ -557,9 +538,6 @@ public class AutomatonGraphmlParser {
             OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset);
 
             AutomatonBoolExpr offsetMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-            if (enterLoopHead) {
-              offsetMatchingExpr = AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
-            }
             conjunctedTriggers = and(conjunctedTriggers, offsetMatchingExpr);
           }
 
@@ -609,9 +587,6 @@ public class AutomatonGraphmlParser {
 
             AutomatonBoolExpr assumeCaseMatchingExpr =
                 new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
-            if (enterLoopHead) {
-              assumeCaseMatchingExpr = AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(assumeCaseMatchingExpr, true);
-            }
 
             conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }

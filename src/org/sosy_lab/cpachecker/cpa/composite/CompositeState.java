@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -83,18 +82,6 @@ public class CompositeState
       }
     }
     return properties;
-  }
-
-  @Override
-  public List<AbstractState> getTargetLeaves() {
-    List<AbstractState> result = new ArrayList<>();
-    for (AbstractState abstractState : states) {
-      if (abstractState instanceof Targetable && ((Targetable)abstractState).isTarget())
-      {
-        result.add(abstractState);
-      }
-    }
-    return result;
   }
 
   @Override

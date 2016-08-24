@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.IdleIntervalTimeLimitExhaustionException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -84,7 +83,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -299,8 +297,6 @@ public class CPAchecker {
         GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
 
-        AnalysisNotifier.getInstance().onStartAnalysis(cfa);
-
         ConfigurableProgramAnalysis cpa;
         Specification specification;
         stats.cpaCreationTime.start();
@@ -394,8 +390,6 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    result = AnalysisNotifier.getInstance().updateResult(result);
-
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
@@ -465,8 +459,7 @@ public class CPAchecker {
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return status;
-    } catch (IdleIntervalTimeLimitExhaustionException e) {
-      return AnalysisNotifier.getInstance().restartInOneRun(status, algorithm, reached);
+
     } finally {
       stats.stopAnalysisTimer();
 
@@ -567,8 +560,7 @@ public class CPAchecker {
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
 
-    if (!pReached.hasWaitingState()
-        && !(initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET)))) {
+    if (!pReached.hasWaitingState()) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(

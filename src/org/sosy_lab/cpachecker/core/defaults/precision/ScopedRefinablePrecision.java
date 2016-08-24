@@ -32,13 +32,11 @@ import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -47,7 +45,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
   /**
    * the collection that determines which variables are tracked within a specific scope
    */
-  private ImmutableSortedSet<MemoryLocation> rawPrecision;
+  private final ImmutableSortedSet<MemoryLocation> rawPrecision;
 
   ScopedRefinablePrecision(VariableTrackingPrecision pBaseline) {
     super(pBaseline);
@@ -69,43 +67,6 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
       refinedPrec.addAll(increment.values());
 
       return new ScopedRefinablePrecision(super.getBaseline(), ImmutableSortedSet.copyOf(refinedPrec));
-    }
-  }
-
-  @Override
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
-    return join((VariableTrackingPrecision) otherPrecision);
-  }
-
-  @Override
-  public boolean subtract(AdjustablePrecision otherPrecision) {
-    assert otherPrecision.getClass().equals(this.getClass());
-    Collection<MemoryLocation> newPrecision = new ArrayList<>();
-    Collection<MemoryLocation> removeable = ((ScopedRefinablePrecision)
-      otherPrecision).rawPrecision;
-    for (MemoryLocation memoryLocation : rawPrecision) {
-      if (!removeable.contains(memoryLocation))
-      {
-        newPrecision.add(memoryLocation);
-      }
-    }
-    rawPrecision = ImmutableSortedSet.copyOf(newPrecision);
-    return false;
-  }
-
-  @Override
-  public void clear() {
-    rawPrecision = ImmutableSortedSet.of();
-  }
-
-  @Override
-  public ScopedRefinablePrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> increment) {
-    if (this.rawPrecision.containsAll(increment.values())) {
-      return null;
-    } else {
-      SortedSet<MemoryLocation> refinedPrec = new TreeSet<>();
-      refinedPrec.addAll(increment.values());
-      return new ScopedRefinablePrecision(super.baseline, ImmutableSortedSet.copyOf(refinedPrec));
     }
   }
 

@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import java.util.Objects;
 
@@ -27,7 +27,7 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * Meta-information for determining the coverage.
    */
-  private @Nullable transient PolicyIntermediateState mergedInto = null;
+  private transient PolicyIntermediateState mergedInto;
   private transient int hashCache = 0;
 
   private PolicyIntermediateState(

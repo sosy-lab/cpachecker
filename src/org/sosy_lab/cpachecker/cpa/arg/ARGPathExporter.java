@@ -100,9 +100,6 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -117,7 +114,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
@@ -378,8 +374,6 @@ public class ARGPathExporter {
     private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
     private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
 
-    private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
-
     private final String defaultSourcefileName;
     private final GraphType graphType;
 
@@ -412,12 +406,6 @@ public class ARGPathExporter {
       TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
       Edge edge = new Edge(pFrom, pTo, desc);
-      if (desc.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
-        Optional<CFANode> loopHead = entersLoop(pEdge);
-        if (loopHead.isPresent()) {
-          loopHeadEnteringEdges.put(edge, loopHead.get());
-        }
-      }
 
       putEdge(edge);
     }
@@ -459,7 +447,7 @@ public class ARGPathExporter {
 
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-        if (exportInvariant(pEdge)) {
+        if (exportInvariant(pEdge.getSuccessor())) {
           invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
         }
         putStateInvariant(pTo, invariant);
@@ -467,12 +455,12 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
-        return result;
+      if (pEdge.getSuccessor().isLoopStart()) {
+        nodeFlags.put(pTo, NodeFlag.ISLOOPSTART);
       }
 
-      if (entersLoop(pEdge).isPresent()) {
-        result = result.putAndCopy(KeyDef.ENTERLOOPHEAD, "true");
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+        return result;
       }
 
       if (exportFunctionCallsAndReturns) {
@@ -910,8 +898,6 @@ public class ARGPathExporter {
         while (!waitlist.isEmpty()) {
           String source = waitlist.pop();
           for (Edge edge : leavingEdges.get(source)) {
-            setLoopHeadInvariantIfApplicable(edge.target);
-
             Element targetNode = nodes.get(edge.target);
             if (targetNode == null) {
               targetNode = createNewNode(doc, edge.target);
@@ -926,41 +912,6 @@ public class ARGPathExporter {
         }
       }
       doc.appendTo(pTarget);
-    }
-
-    private void setLoopHeadInvariantIfApplicable(String pTarget) {
-      if (!ExpressionTrees.getTrue().equals(getStateInvariant(pTarget))) {
-        return;
-      }
-      ExpressionTree<Object> loopHeadInvariant = ExpressionTrees.getFalse();
-      String scope = null;
-      for (Edge enteringEdge : enteringEdges.get(pTarget)) {
-        if (enteringEdge.label.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
-          CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
-          if (loopHead != null) {
-            String functionName = loopHead.getFunctionName();
-            if (scope == null) {
-              scope = functionName;
-            } else if (!scope.equals(functionName)) {
-              return;
-            }
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
-              loopHeadInvariant =
-                  Or.of(
-                      loopHeadInvariant,
-                      invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
-            }
-          } else {
-            return;
-          }
-        } else {
-          return;
-        }
-      }
-      stateInvariants.put(pTarget, loopHeadInvariant);
-      if (scope != null) {
-        stateScopes.put(pTarget, scope);
-      }
     }
 
     private ExpressionTree<Object> addInvariantsData(
@@ -1086,13 +1037,7 @@ public class ARGPathExporter {
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
         TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
-        Edge replacementEdge = new Edge(source, leavingEdge.target, label);
-        putEdge(replacementEdge);
-        CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
-        if (loopHead != null) {
-          loopHeadEnteringEdges.remove(leavingEdge);
-          loopHeadEnteringEdges.put(replacementEdge, loopHead);
-        }
+        putEdge(new Edge(source, leavingEdge.target, label));
       }
 
       // Move the entering edges
@@ -1108,21 +1053,10 @@ public class ARGPathExporter {
       for (Edge enteringEdge : enteringEdgesToMove) {
         if (!pEdge.equals(enteringEdge)) {
           TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
-          Edge replacementEdge = new Edge(enteringEdge.source, source, label);
-          putEdge(replacementEdge);
-          CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
-          if (loopHead != null) {
-            loopHeadEnteringEdges.remove(enteringEdge);
-            loopHeadEnteringEdges.put(replacementEdge, loopHead);
-          }
+          putEdge(new Edge(enteringEdge.source, source, label));
         }
       }
 
-    }
-
-    private ExpressionTree<Object> getTargetStateInvariant(String pTargetState) {
-      ExpressionTree<Object> targetStateInvariant = getStateInvariant(pTargetState);
-      return targetStateInvariant;
     }
 
     /** Merge two expressionTrees for source and target.
@@ -1136,7 +1070,10 @@ public class ARGPathExporter {
       if (ExpressionTrees.getTrue().equals(targetTree)
           && !ExpressionTrees.getTrue().equals(sourceTree)
           && (targetScope == null || targetScope.equals(sourceScope))) {
-        ExpressionTree<Object> newTargetTree = getTargetStateInvariant(target);
+        ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
+        for (Edge e : enteringEdges.get(target)) {
+          newTargetTree = factory.or(newTargetTree, getStateInvariant(e.source));
+        }
         newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
         stateInvariants.put(target, newTargetTree);
         targetTree = newTargetTree;
@@ -1285,25 +1222,17 @@ public class ARGPathExporter {
     }
   }
 
-  private boolean exportInvariant(CFAEdge pEdge) {
-    if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
-      return false;
-    }
-    if (entersLoop(pEdge).isPresent()) {
-      return true;
-    }
-
-    CFANode referenceNode = pEdge.getSuccessor();
+  private boolean exportInvariant(CFANode pReferenceNode) {
     Queue<CFANode> waitlist = Queues.newArrayDeque();
     Set<CFANode> visited = Sets.newHashSet();
-    waitlist.offer(referenceNode);
-    visited.add(referenceNode);
-    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(referenceNode).filter(AssumeEdge.class)) {
+    waitlist.offer(pReferenceNode);
+    visited.add(pReferenceNode);
+    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
       if (visited.add(assumeEdge.getPredecessor())) {
         waitlist.offer(assumeEdge.getPredecessor());
       }
     }
-    Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
+    Predicate<CFAEdge> epsilonEdge = pEdge -> !(pEdge instanceof AssumeEdge);
     Predicate<CFANode> loopProximity =
         cfa.getAllLoopHeads().isPresent()
             ? pNode -> cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart()
@@ -1459,38 +1388,6 @@ public class ARGPathExporter {
       });
     }
 
-  }
-
-  private Optional<CFANode> entersLoop(CFAEdge pEdge) {
-    class EnterLoopVisitor implements CFAVisitor {
-
-      private CFANode loopHead;
-
-      @Override
-      public TraversalProcess visitNode(CFANode pNode) {
-        if (pNode.isLoopStart()) {
-          loopHead = pNode;
-          return TraversalProcess.ABORT;
-        }
-        if (pNode.getNumLeavingEdges() > 1) {
-          return TraversalProcess.SKIP;
-        }
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitEdge(CFAEdge pEdge) {
-        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)
-            ? TraversalProcess.CONTINUE
-            : TraversalProcess.SKIP;
-      }
-    }
-    EnterLoopVisitor enterLoopVisitor = new EnterLoopVisitor();
-    CFATraversal.dfs()
-        .ignoreFunctionCalls()
-        .ignoreSummaryEdges()
-        .traverse(pEdge.getSuccessor(), enterLoopVisitor);
-    return Optional.ofNullable(enterLoopVisitor.loopHead);
   }
 
 }

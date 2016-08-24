@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -46,7 +45,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Optional;
 
-public abstract class VariableTrackingPrecision implements Precision, AdjustablePrecision {
+public abstract class VariableTrackingPrecision implements Precision {
 
   /**
    * This method creates a precision which cannot be refined, all decisions about
@@ -80,12 +79,6 @@ public abstract class VariableTrackingPrecision implements Precision, Adjustable
     }
     return joinedPrecision;
   }
-
-  /** This method creates Precision by the given increment.
-   * @param pIncrement
-   * @return
-   */
-  public abstract VariableTrackingPrecision createPrecisionByIncrement(Multimap<CFANode, MemoryLocation> pIncrement);
 
   /**
    * This method creates a refinable precision. The baseline should usually be

@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
-import java.util.List;
-import java.util.Objects;
+import com.google.common.collect.ImmutableList;
 
 /**
  *  Array creation expression AST node type.
@@ -52,7 +52,7 @@ import java.util.Objects;
  *   There is an expression in the list for each array dimension from left to right.
  *
  */
-public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
+public class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
   private final List<JExpression> length;
   private final JArrayInitializer initializer;
@@ -68,6 +68,11 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   @Override
   public JArrayType getExpressionType() {
     return (JArrayType) super.getExpressionType();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override

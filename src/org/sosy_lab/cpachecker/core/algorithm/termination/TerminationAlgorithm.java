@@ -32,7 +32,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -67,15 +66,12 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -84,7 +80,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -156,15 +151,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private final Set<CVariableDeclaration> globalDeclaration;
   private final SetMultimap<String, CVariableDeclaration> localDeclarations;
 
-  private final AggregatedReachedSetManager aggregatedReachedSetManager;
-
   public TerminationAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       ReachedSetFactory pReachedSetFactory,
-      AggregatedReachedSetManager pAggregatedReachedSetManager,
       Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
@@ -172,11 +164,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
-    cfa = checkNotNull(pCfa);
-    reachedSetFactory = checkNotNull(pReachedSetFactory);
-    aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
+    cfa = checkNotNull(pCfa);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
 
     Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
     Preconditions.checkArgument(
@@ -293,7 +284,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // We did not find a non-terminating loop.
     logger.log(Level.INFO, "Termination algorithm did not find a non-terminating loop.");
-    while (status.isSound() && pReachedSet.hasWaitingState()) {
+    while (pReachedSet.hasWaitingState()) {
       pReachedSet.popFromWaitlist();
     }
     return status;
@@ -356,7 +347,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
             terminationInformation.addRankingRelation(rankingRelation);
             // Prepare reached set for next iteration.
             prepareForNextIteration(pReachedSet, targetState, initialLocation);
-            addInvariantsToAggregatedReachedSet(loopHeadState, rankingRelation);
             // a ranking relation was synthesized and the reached set was reseted
             result = Result.TRUE;
             repeatedRankingFunctionsSinceSuccessfulIteration = 0;
@@ -399,21 +389,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return result;
-  }
-
-  private void addInvariantsToAggregatedReachedSet(ARGState loopHeadState,
-      RankingRelation rankingRelation) {
-    ReachedSet dummy = reachedSetFactory.create();
-    AbstractStateWithLocation locationState =
-        extractStateByType(loopHeadState, AbstractStateWithLocation.class);
-    rankingRelation
-        .getSupportingInvariants()
-        .stream()
-        .map(s -> ImmutableList.of(locationState, s))
-        .map(CompositeState::new)
-        .forEach(s -> dummy.add(s, SingletonPrecision.getInstance()));
-
-    aggregatedReachedSetManager.addReachedSet(dummy);
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {

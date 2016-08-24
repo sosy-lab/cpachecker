@@ -26,13 +26,12 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
 import java.util.List;
 
-public class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
+class CompositePrecision implements WrapperPrecision {
 
   private final ImmutableList<Precision> precisions;
 
@@ -63,45 +62,6 @@ public class CompositePrecision implements WrapperPrecision, AdjustablePrecision
   @Override
   public String toString() {
     return precisions.toString();
-  }
-
-  @Override
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
-    Class<?> requiredClass = otherPrecision.getClass();
-    for (Precision precision : precisions) {
-      Class<?> currentClass = precision.getClass();
-      if (requiredClass.equals(currentClass))
-      {
-        AdjustablePrecision currentPrecision = (AdjustablePrecision) precision;
-        return currentPrecision.add(otherPrecision);
-      }
-    }
-    return otherPrecision;
-  }
-
-  @Override
-  public boolean subtract(AdjustablePrecision otherPrecision) {
-    Class<?> requiredClass = otherPrecision.getClass();
-    for (Precision precision : precisions) {
-      Class<?> currentClass = precision.getClass();
-      if (requiredClass.equals(currentClass))
-      {
-        AdjustablePrecision currentPrecision = (AdjustablePrecision) precision;
-        return currentPrecision.subtract(otherPrecision);
-      }
-    }
-    return false;
-  }
-
-  @Override
-  public void clear() {
-    for (Precision precision : precisions) {
-      if (precision instanceof AdjustablePrecision)
-      {
-        AdjustablePrecision currentPrecision = (AdjustablePrecision) precision;
-        currentPrecision.clear();
-      }
-    }
   }
 
   @Override

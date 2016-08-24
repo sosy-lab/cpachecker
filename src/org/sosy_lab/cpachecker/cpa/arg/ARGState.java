@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -48,6 +49,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -149,10 +151,12 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // first try to get a normal edge
     // consider only the actual analysis direction
     Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
-    for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-      if (ingoingEdgesOfChild.contains(edge)) {
-        return edge;
-      }
+    Iterable<CFAEdge> outgoingEdgesOfParent = currentLocs.getOutgoingEdges();
+    Iterator<CFAEdge> edges =
+        Iterables.filter(outgoingEdgesOfParent, ingoingEdgesOfChild::contains).iterator();
+
+    if (edges.hasNext()) {
+      return edges.next();
     }
 
     // then try to get a special edge, just to have some edge.
@@ -161,6 +165,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
         if (currentLoc.getLeavingSummaryEdge() != null
             && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
           return currentLoc.getLeavingSummaryEdge();
+
+        } else if (currentLoc.getEnteringSummaryEdge() != null
+            && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
+          return currentLoc.getEnteringSummaryEdge();
+
         }
       }
     }

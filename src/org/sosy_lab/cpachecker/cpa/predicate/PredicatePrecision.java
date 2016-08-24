@@ -28,24 +28,20 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -60,7 +56,7 @@ import java.util.Set;
  *
  * All instances of this class are immutable.
  */
-public class PredicatePrecision implements Precision, AdjustablePrecision {
+public class PredicatePrecision implements Precision {
 
   /**
    * This class identifies a position in the ARG where predicates can be applied.
@@ -125,11 +121,11 @@ public class PredicatePrecision implements Precision, AdjustablePrecision {
     }
   }
 
-  private ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
+  private final ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
       mLocationInstancePredicates;
-  private ImmutableSetMultimap<CFANode, AbstractionPredicate> mLocalPredicates;
-  private ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
-  private ImmutableSet<AbstractionPredicate> mGlobalPredicates;
+  private final ImmutableSetMultimap<CFANode, AbstractionPredicate> mLocalPredicates;
+  private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
+  private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
 
   private static final PredicatePrecision EMPTY =
       new PredicatePrecision(
@@ -418,6 +414,13 @@ public class PredicatePrecision implements Precision, AdjustablePrecision {
     return difference;
   }
 
+  public boolean isEmpty() {
+    return getGlobalPredicates().isEmpty()
+        && getFunctionPredicates().isEmpty()
+        && getLocalPredicates().isEmpty()
+        && getLocationInstancePredicates().isEmpty();
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(getGlobalPredicates(),
@@ -441,91 +444,6 @@ public class PredicatePrecision implements Precision, AdjustablePrecision {
           && getFunctionPredicates().equals(other.getFunctionPredicates())
           && getGlobalPredicates().equals(other.getGlobalPredicates());
     }
-  }
-
-  @Override
-  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
-    return mergeWith((PredicatePrecision)otherPrecision);
-  }
-
-  @Override
-  public void clear() {
-    mLocalPredicates = ImmutableSetMultimap.of();
-    mLocationInstancePredicates = ImmutableSetMultimap.of();
-    mFunctionPredicates = ImmutableSetMultimap.of();
-    mGlobalPredicates = ImmutableSet.of();
-  }
-
-  @Override
-  public boolean subtract(AdjustablePrecision otherPrecision) {
-    assert otherPrecision.getClass().equals(this.getClass());
-    if (!mLocalPredicates.isEmpty())
-    {
-      SetMultimap<CFANode,AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getLocalPredicates();
-      SetMultimap<CFANode, AbstractionPredicate> localPredicates =
-         HashMultimap.create(mLocalPredicates);
-      for (CFANode cfaNode : mLocalPredicates.keys()) {
-        ImmutableSet<AbstractionPredicate> tmpAbstractionPredicates = mLocalPredicates.get(cfaNode);
-        if (removed.containsKey(cfaNode) && removed.get(cfaNode).equals(tmpAbstractionPredicates))
-        {
-          localPredicates.removeAll(cfaNode);
-        }
-      }
-      mLocalPredicates = ImmutableSetMultimap.copyOf(localPredicates);
-    }
-    if (!mLocationInstancePredicates.isEmpty())
-    {
-      SetMultimap<LocationInstance, AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getLocationInstancePredicates();
-      SetMultimap<LocationInstance, AbstractionPredicate> localPredicates =
-        HashMultimap.create(mLocationInstancePredicates);
-      for (LocationInstance key : mLocationInstancePredicates.keys()) {
-        ImmutableSet<AbstractionPredicate> tmpAbstractionPredicates = mLocationInstancePredicates.get(key);
-        if (removed.containsKey(key) && removed.get(key).equals(tmpAbstractionPredicates))
-        {
-          localPredicates.removeAll(key);
-        }
-      }
-      mLocationInstancePredicates = ImmutableSetMultimap.copyOf(localPredicates);
-    }
-    if (!mFunctionPredicates.isEmpty())
-    {
-      SetMultimap<String, AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getFunctionPredicates();
-      SetMultimap<String, AbstractionPredicate> localPredicates =
-        HashMultimap.create(mFunctionPredicates);
-      for (String key : mFunctionPredicates.keys()) {
-        ImmutableSet<AbstractionPredicate> tmpAbstractionPredicates = mFunctionPredicates.get(key);
-        if (removed.containsKey(key) && removed.get(key).equals(tmpAbstractionPredicates))
-        {
-          localPredicates.removeAll(key);
-        }
-      }
-      mFunctionPredicates = ImmutableSetMultimap.copyOf(localPredicates);
-    }
-    if (!mGlobalPredicates.isEmpty())
-    {
-      Set<AbstractionPredicate> removed =
-        ((PredicatePrecision)otherPrecision).getGlobalPredicates();
-      Set<AbstractionPredicate> localPredicates = new HashSet<>(mGlobalPredicates);
-      for (AbstractionPredicate abstractionPredicate : mGlobalPredicates.asList()) {
-        if (removed.contains(abstractionPredicate))
-        {
-          localPredicates.remove(abstractionPredicate);
-        }
-      }
-      mGlobalPredicates = ImmutableSet.copyOf(localPredicates);
-    }
-
-    return false;
-  }
-
-  public boolean isEmpty() {
-    return mLocationInstancePredicates.isEmpty() &&
-        mGlobalPredicates.isEmpty() &&
-        mFunctionPredicates.isEmpty() &&
-        mLocalPredicates.isEmpty();
   }
 
   @Override

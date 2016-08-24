@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import java.util.Set;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-import java.util.Set;
 
 
 /**
@@ -45,19 +45,19 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected boolean isBlockEntry(CFANode pNode) {
-    return functionPartitioning.isBlockEntry(pNode) || loopPartitioning.isBlockEntry(pNode);
+  protected boolean shouldBeCached(CFANode pNode) {
+    return functionPartitioning.shouldBeCached(pNode) || loopPartitioning.shouldBeCached(pNode);
   }
 
   @Override
-  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+  protected Set<CFANode> getBlockForNode(CFANode pNode) {
     // TODO what to do if both want to cache it?
-    if (functionPartitioning.isBlockEntry(pBlockHead)) {
-      return functionPartitioning.getBlockForNode(pBlockHead);
-    } else if (loopPartitioning.isBlockEntry(pBlockHead)) {
-      return loopPartitioning.getBlockForNode(pBlockHead);
+    if (functionPartitioning.shouldBeCached(pNode)) {
+      return functionPartitioning.getBlockForNode(pNode);
+    } else if (loopPartitioning.shouldBeCached(pNode)) {
+      return loopPartitioning.getBlockForNode(pNode);
     } else {
-      throw new AssertionError("node should not be cached: " + pBlockHead);
+      throw new AssertionError("node should not be cached: " + pNode);
     }
   }
 }

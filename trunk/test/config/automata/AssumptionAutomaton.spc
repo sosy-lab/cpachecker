@@ -1,8 +1,0 @@
-CONTROL AUTOMATON AssumptionAutomaton
-
-INITIAL STATE Init;
-
-STATE USEFIRST Init :
-  TRUE -> GOTO Init;
-
-END AUTOMATON

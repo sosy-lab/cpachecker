@@ -31,7 +31,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -43,8 +42,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -197,26 +194,12 @@ public class ValueAnalysisRefiner
 
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
-      Multimap<CFANode, MemoryLocation> increment = pInterpolationTree.extractPrecisionIncrement(root);
-      VariableTrackingPrecision oldPrecision = mergeValuePrecisionsForSubgraph(root, pReached);
-      precisions.add(oldPrecision.withIncrement(increment));
-      // Process Variable Precision in MAVNotifier.
-      VariableTrackingPrecision variablePrecision =
-          oldPrecision.createPrecisionByIncrement(increment);
-      if (variablePrecision != null)
-      {
-        AnalysisNotifier.getInstance().onPrecisionIncrementCreate(variablePrecision);
-      }
+      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
+          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
         precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
-        // Process Predicate Precision in MAVNotifier
-        PredicatePrecision predicatePrecision = (PredicatePrecision) precisions.get(1);
-        if (!predicatePrecision.isEmpty())
-        {
-          AnalysisNotifier.getInstance().onPrecisionIncrementCreate(predicatePrecision);
-        }
       }
 
       refinementInformation.put(root, precisions);

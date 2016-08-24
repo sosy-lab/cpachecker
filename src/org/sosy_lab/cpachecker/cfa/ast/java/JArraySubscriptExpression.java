@@ -37,8 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *  The subscript Expression gives the index of the arraycell to be read.
  *
  */
-public final class JArraySubscriptExpression extends AArraySubscriptExpression
-    implements JLeftHandSide {
+public class JArraySubscriptExpression extends AArraySubscriptExpression implements JLeftHandSide {
 
   public JArraySubscriptExpression(FileLocation pFileLocation, JType pType, JExpression pArrayExpression,
       JExpression pSubscriptExpression) {
@@ -58,6 +57,16 @@ public final class JArraySubscriptExpression extends AArraySubscriptExpression
   @Override
   public JExpression getSubscriptExpression() {
     return (JExpression) super.getSubscriptExpression();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override

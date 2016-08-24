@@ -47,14 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSuppl
 public interface InvariantGenerator {
 
   /**
-   * Checks if the invariant generator has already been started.
-   *
-   * @return {@code true} if the invariant generator has already been started,
-   * {@code false} otherwise.
-   */
-  boolean isStarted();
-
-  /**
    * Prepare invariant generation, and optionally start the algorithm.
    * May be called only once.
    */

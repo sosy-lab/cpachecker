@@ -355,19 +355,22 @@ public class ToCodeFormulaVisitor
     // Check not equals
     ExpressionTree<String> inversion = ExpressionTrees.getTrue();
     CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
-    // TODO check changes, possibly have to be reverted
     if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
-      return
+      inversion =
+          And.of(
+              inversion,
               not(
                   Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
-                      .accept(this, pEnvironment));
+                      .accept(this, pEnvironment)));
     }
     CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
     if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
-      return
+      inversion =
+          And.of(
+              inversion,
               not(
                   Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
-                      .accept(this, pEnvironment));
+                      .accept(this, pEnvironment)));
     }
 
     // General case

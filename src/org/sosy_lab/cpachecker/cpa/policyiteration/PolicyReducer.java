@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.templates.Template;
 
 import java.util.HashMap;
@@ -42,19 +41,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
  * BAM reduction for LPI.
  */
 public class PolicyReducer implements Reducer {
-
-  private final LogManager logger;
-
-  public PolicyReducer(LogManager pLogger) {
-    logger = pLogger;
-  }
 
   /**
    * Remove all information from the {@code expandedState} which is not
@@ -74,59 +66,51 @@ public class PolicyReducer implements Reducer {
         template -> blockVars.containsAll(
             template.getUsedVars().collect(Collectors.toSet()))
     );
-    return aState.withNewAbstractionAndSSA(
-        newAbstraction,
-        SSAMap.emptySSAMap().withDefault(1)
-    );
+    return aState.withNewAbstraction(newAbstraction);
   }
 
   @Override
   public PolicyState getVariableExpandedState(
-      AbstractState entryState,
+      AbstractState rootState,
       Block reducedContext,
-      AbstractState returnState) {
-    PolicyState pEntryState = (PolicyState) entryState;
-    PolicyState pReturnState = (PolicyState) returnState;
+      AbstractState reducedState) {
+    PolicyState pRootState = (PolicyState) rootState;
+    PolicyState pReducedState = (PolicyState) reducedState;
 
-    if (!pReturnState.isAbstract()) {
+    if (!pReducedState.isAbstract()) {
       // BAM-specific hack: intermediate states come from target states,
       // but this information can not be expressed by having only a PolicyState.
-      return pReturnState;
+      return pReducedState;
     }
-    Preconditions.checkState(pEntryState.isAbstract());
-    Preconditions.checkState(pReturnState.isAbstract());
+    Preconditions.checkState(pRootState.isAbstract());
+    Preconditions.checkState(pReducedState.isAbstract());
 
-    PolicyAbstractedState aEntryState = pEntryState.asAbstracted();
-    PolicyAbstractedState aReturnState = pReturnState.asAbstracted();
+    Set<String> reducedUsedVars = pReducedState.asAbstracted().getAbstraction().keySet()
+        .stream()
+        .flatMap(t -> t.getUsedVars())
+        .collect(Collectors.toSet());
 
-    // Enrich the {@code pReturnState} with bounds obtained from {@code
-    // pEntryState} which were dropped during the reduction.
+    // Enrich the {@code pReducedState} with bounds obtained from {@code
+    // pRootState} which were dropped during the reduction.
     Map<Template, PolicyBound> rootAbstraction =
-        aEntryState.getAbstraction();
+        pRootState.asAbstracted().getAbstraction();
     Map<Template, PolicyBound> fullAbstraction =
-        new HashMap<>(aReturnState.getAbstraction());
+        new HashMap<>(pReducedState.asAbstracted().getAbstraction());
     for (Entry<Template, PolicyBound> e : rootAbstraction.entrySet()) {
       Template t = e.getKey();
 
-      if (staysInvariantUnderBlock(t, aReturnState)) {
-        fullAbstraction.put(t, e.getValue());
-      } else {
-        logger.log(Level.INFO, "Not inserting the bound for the template",
-            t, "which is", e.getValue().getBound());
+      // todo: look @ efficiency.
+      Set<String> templateVars = t.getUsedVars().collect(Collectors.toSet());
+      if (!Sets.intersection(reducedUsedVars, templateVars).isEmpty()) {
+        continue;
       }
+
+      // Re-add only those variables which have zero intersection
+      // with the constraints already present in the reduced set.
+      fullAbstraction.put(t, e.getValue());
     }
 
-    return pReturnState.asAbstracted().withNewAbstraction(fullAbstraction);
-  }
-
-  private boolean staysInvariantUnderBlock(
-      Template t,
-      PolicyAbstractedState returnState) {
-
-    // todo: unsound handling for pointed-to variables.
-    return t.getUsedVars().allMatch(v ->
-        !returnState.getBound(t).isPresent()
-        && !(returnState.getSSA().getIndex(v) > 1));
+    return pReducedState.asAbstracted().withNewAbstraction(fullAbstraction);
   }
 
   @Override

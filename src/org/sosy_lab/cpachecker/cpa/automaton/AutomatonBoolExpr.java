@@ -46,9 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
@@ -169,99 +166,42 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     private final AutomatonBoolExpr expr;
 
-    private final boolean forward;
-
-    private final boolean continueAtBranching;
-
-    private EpsilonMatch(AutomatonBoolExpr pExpr, boolean pForward, boolean pContinueAtBranching) {
+    private EpsilonMatch(AutomatonBoolExpr pExpr) {
       Preconditions.checkArgument(!(pExpr instanceof EpsilonMatch));
       expr = Objects.requireNonNull(pExpr);
-      forward = pForward;
-      continueAtBranching = pContinueAtBranching;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
-      ResultValue<Boolean> eval = expr.eval(pArgs);
-      if (Boolean.TRUE.equals(eval.getValue())) {
-        return eval;
-      }
+      ResultValue<Boolean> evaluation = expr.eval(pArgs);
       CFAEdge edge = pArgs.getCfaEdge();
-      CFATraversal traversal = CFATraversal.dfs().ignoreSummaryEdges();
-      final CFANode startNode;
-      if (forward) {
-        startNode = edge.getSuccessor();
-      } else {
-        traversal = traversal.backwards();
-        startNode = edge.getPredecessor();
+      while (!Boolean.TRUE.equals(evaluation.getValue())
+          && edge.getSuccessor().getNumLeavingEdges() == 1
+          && AutomatonGraphmlCommon.handleAsEpsilonEdge(edge.getSuccessor().getLeavingEdge(0))) {
+        edge = edge.getSuccessor().getLeavingEdge(0);
+        AutomatonExpressionArguments args =
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                edge,
+                pArgs.getLogger());
+        evaluation = expr.eval(args);
       }
-      class EpsilonMatchVisitor implements CFAVisitor {
-
-        private ResultValue<Boolean> evaluation;
-
-        private CPATransferException transferException;
-
-        public EpsilonMatchVisitor(ResultValue<Boolean> pEvaluation) {
-          this.evaluation = pEvaluation;
-        }
-
-        @Override
-        public TraversalProcess visitEdge(CFAEdge pEdge) {
-          AutomatonExpressionArguments args =
-              new AutomatonExpressionArguments(
-                  pArgs.getState(),
-                  pArgs.getAutomatonVariables(),
-                  pArgs.getAbstractStates(),
-                  pEdge,
-                  pArgs.getLogger());
-          try {
-            evaluation = expr.eval(args);
-          } catch (CPATransferException e) {
-            transferException = e;
-            return TraversalProcess.ABORT;
-          }
-          if (Boolean.TRUE.equals(evaluation.getValue())) {
-            return TraversalProcess.ABORT;
-          }
-          return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge) ? TraversalProcess.CONTINUE : TraversalProcess.SKIP;
-        }
-
-        @Override
-        public TraversalProcess visitNode(CFANode pNode) {
-          return continueAtBranching || pNode.getNumEnteringEdges() < 2 ? TraversalProcess.CONTINUE : TraversalProcess.SKIP;
-        }
-
-      }
-      EpsilonMatchVisitor epsilonMatchVisitor = new EpsilonMatchVisitor(eval);
-      traversal.traverse(startNode, epsilonMatchVisitor);
-      if (epsilonMatchVisitor.transferException != null) {
-        throw epsilonMatchVisitor.transferException;
-      }
-      return epsilonMatchVisitor.evaluation;
+      return evaluation;
     }
 
     @Override
     public String toString() {
-      if (!continueAtBranching) {
-        return (forward ? "~>" : "<~") + expr;
-      }
-      return (forward ? "~>>" : "<<~") + expr;
+      return "~" + expr;
     }
 
-    static AutomatonBoolExpr forwardEpsilonMatch(AutomatonBoolExpr pExpr, boolean pContinueAtBranching) {
-      return of(pExpr, true, pContinueAtBranching);
-    }
-
-    static AutomatonBoolExpr backwardEpsilonMatch(AutomatonBoolExpr pExpr, boolean pContinueAtBranching) {
-      return of(pExpr, false, pContinueAtBranching);
-    }
-
-    private static AutomatonBoolExpr of(AutomatonBoolExpr pExpr, boolean pForward, boolean pContinueAtBranching) {
-      if (pExpr instanceof EpsilonMatch && ((EpsilonMatch) pExpr).forward == pForward) {
+    static AutomatonBoolExpr of(AutomatonBoolExpr pExpr) {
+      if (pExpr instanceof EpsilonMatch) {
         return pExpr;
       }
-      return new EpsilonMatch(pExpr, pForward, pContinueAtBranching);
+      return new EpsilonMatch(pExpr);
     }
 
   }
