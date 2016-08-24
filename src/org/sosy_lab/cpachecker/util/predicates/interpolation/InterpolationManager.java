@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import java.util.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -66,13 +65,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -80,6 +79,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -332,38 +332,46 @@ public final class InterpolationManager {
             Level.FINEST,
             itpException,
             "Interpolation failed, attempting to solve without interpolation");
-
-        // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        // (this happens for example for MathSAT).
-        // If solving works but creating the model for the error path not,
-        // we at least return an empty model.
-        try (ProverEnvironment prover =
-            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-          for (BooleanFormula block : f) {
-            prover.push(block);
-          }
-          if (!prover.isUnsat()) {
-            try {
-              return getErrorPath(f, prover, elementsOnPath);
-            } catch (SolverException modelException) {
-              logger.log(
-                  Level.WARNING,
-                  "Solver could not produce model, variable assignment of error path can not be dumped.");
-              logger.logDebugException(modelException);
-              return CounterexampleTraceInfo.feasible(
-                  f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
-            }
-          }
-        } catch (SolverException solvingException) {
-          // in case of exception throw original one below but do not forget e2
-          itpException.addSuppressed(solvingException);
-        }
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+        return fallbackWithoutInterpolation(elementsOnPath, f, itpException);
       }
 
     } finally {
       cexAnalysisTimer.stop();
     }
+  }
+
+  /**
+   * Attempt to check feasibility of the current counterexample without interpolation
+   * in case of a failure with interpolation.
+   * Maybe the solver can handle the formulas if we do not attempt to interpolate
+   * (this happens for example for MathSAT).
+   * If solving works but creating the model for the error path not,
+   * we at least return an empty model.
+   */
+  private CounterexampleTraceInfo fallbackWithoutInterpolation(
+      final Set<ARGState> elementsOnPath, List<BooleanFormula> f, SolverException itpException)
+      throws InterruptedException, CPATransferException, RefinementFailedException {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      for (BooleanFormula block : f) {
+        prover.push(block);
+      }
+      if (!prover.isUnsat()) {
+        try {
+          return getErrorPath(f, prover, elementsOnPath);
+        } catch (SolverException modelException) {
+          logger.log(
+              Level.WARNING,
+              "Solver could not produce model, variable assignment of error path can not be dumped.");
+          logger.logDebugException(modelException);
+          return CounterexampleTraceInfo.feasible(
+              f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
+        }
+      }
+    } catch (SolverException solvingException) {
+      // in case of exception throw original one below but do not forget e2
+      itpException.addSuppressed(solvingException);
+    }
+    throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
   }
 
   /**
