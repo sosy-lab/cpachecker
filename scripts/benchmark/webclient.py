@@ -535,7 +535,8 @@ class WebInterface:
                 .format(run.options, invalidOption))
 
         params.append(('groupId', str(self._group_id)))
-        params.append(('metaInformation', meta_information))
+        if meta_information:
+            params.append(('metaInformation', meta_information))
 
         # prepare request
         headers = {"Accept": "text/plain"}
