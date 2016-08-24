@@ -2129,21 +2129,23 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
 
           assignableState = writeValue(assignableState, addressOfField.getObject(),
-              addressOfField.getOffset().getAsInt(), getRealExpressionType(exp), rSymValue, edge);
+              addressOfField.getOffset().getAsInt(), getRealExpressionType(lValue), rSymValue, edge);
         }
-
+        int size = getSizeof(edge, getRealExpressionType(lValue), assignableState);
         if (truthValue) {
           if (op == BinaryOperator.EQUALS) {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+          } else {
+            assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
           }
         } else {
           if (op == BinaryOperator.NOT_EQUALS) {
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
             //TODO more precise
+          } else {
+            assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
           }
         }
-        int size = getSizeof(edge, getRealExpressionType(exp), assignableState);
-        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
 
       @Override
