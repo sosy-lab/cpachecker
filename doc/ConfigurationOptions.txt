@@ -1278,7 +1278,7 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
-# which merge operator to use for InvariantCPA
+# which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
