@@ -16,8 +16,8 @@ import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.Tactic;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.HashMap;

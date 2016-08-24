@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.TraversalProcess;
 
 import java.util.List;
 import java.util.Map;

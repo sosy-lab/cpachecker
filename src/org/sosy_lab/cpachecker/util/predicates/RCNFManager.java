@@ -46,9 +46,9 @@ import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
-import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.visitors.TraversalProcess;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
