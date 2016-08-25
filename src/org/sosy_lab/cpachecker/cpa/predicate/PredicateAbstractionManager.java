@@ -323,11 +323,14 @@ public class PredicateAbstractionManager {
       return makeTrueAbstractionFormula(pathFormula);
     }
 
+    final Function<BooleanFormula, BooleanFormula> instantiator =
+        pred -> fmgr.instantiate(pred, ssa);
+
     // This is the (mutable) set of remaining predicates that still need to be handled.
     // Each step of our abstraction computation may be able to handle some predicates,
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
-        getRelevantPredicates(pPredicates, f, ssa);
+        getRelevantPredicates(pPredicates, f, instantiator);
 
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
@@ -402,9 +405,7 @@ public class PredicateAbstractionManager {
       }
 
     } else {
-      abs =
-          rmgr.makeAnd(
-              abs, computeAbstraction(f, remainingPredicates, pred -> fmgr.instantiate(pred, ssa)));
+      abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -563,13 +564,13 @@ public class PredicateAbstractionManager {
    *
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
-   * @param ssa The SSA map to use for instantiating predicates.
+   * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A subset of pPredicates.
    */
   private Collection<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
-      final SSAMap ssa) {
+      final Function<BooleanFormula, BooleanFormula> instantiator) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
@@ -584,7 +585,7 @@ public class PredicateAbstractionManager {
         continue;
       }
 
-      BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
+      BooleanFormula instantiatedPredicate = instantiator.apply(predicateTerm);
       Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (predVariables.isEmpty()
