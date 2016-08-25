@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -366,13 +367,6 @@ public class PredicateAbstractionManager {
     }
 
 
-
-    // We update statistics here because we want to ignore calls
-    // where the result was in the cache.
-    stats.numTotalPredicates += pPredicates.size();
-    stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
-    stats.numIrrelevantPredicates += pPredicates.size() - remainingPredicates.size();
-
     // Compute result for those predicates
     // where we can trivially identify their truthness in the result
     Region abs = rmgr.makeTrue();
@@ -430,6 +424,55 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  /**
+   * Compute an abstraction of a formula.
+   * This is a low-level version of
+   * {@link #buildAbstraction(CFANode, BooleanFormula, PathFormula, Collection)}:
+   * it does not handle instantiation and does not return an {@link AbstractionFormula}
+   * but just a {@link BooleanFormula}.
+   * It also misses several of the optimizations and features of
+   * {@link #buildAbstraction(CFANode, BooleanFormula, PathFormula, Collection)},
+   * so if possible use that method.
+   *
+   * @param pF The formula to be abstracted. Must not be instantiated.
+   * @param pPredicates The set of predicates to use for abstraction.
+   * @return An over-approximation of pF using the predicates from pPredicates.
+   */
+  public BooleanFormula computeAbstraction(
+      final BooleanFormula pF, final Collection<AbstractionPredicate> pPredicates)
+      throws InterruptedException, SolverException {
+    stats.numCallsAbstraction++;
+
+    if (pPredicates.isEmpty()) {
+      stats.numSymbolicAbstractions++;
+      return bfmgr.makeTrue();
+    }
+
+    if (unsatisfiabilityCache.contains(pF)) {
+      stats.numCallsAbstractionCached++;
+      return bfmgr.makeFalse();
+    }
+
+    final Function<BooleanFormula, BooleanFormula> dummyInstantiator = Functions.identity();
+
+    final Collection<AbstractionPredicate> predicates =
+        getRelevantPredicates(pPredicates, pF, dummyInstantiator);
+
+    Region abs = computeAbstraction(pF, predicates, dummyInstantiator);
+
+    BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
+
+    if (simplifyAbstractionFormula) {
+      symbolicAbs = fmgr.simplify(symbolicAbs);
+    }
+
+    if (bfmgr.isFalse(symbolicAbs)) {
+      unsatisfiabilityCache.add(pF);
+    }
+
+    return symbolicAbs;
   }
 
   private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
@@ -599,6 +642,10 @@ public class PredicateAbstractionManager {
       }
     }
 
+    stats.numTotalPredicates += pPredicates.size();
+    stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
+    stats.numIrrelevantPredicates += pPredicates.size() - relevantPredicates.size();
+
     return relevantPredicates;
   }
 
@@ -669,6 +716,16 @@ public class PredicateAbstractionManager {
     return region;
   }
 
+  /**
+   * Actually compute an abstraction of a formula, without fancy caching etc.
+   *
+   * @param f The formula to be abstracted.
+   * @param remainingPredicates The set of predicates.
+   *     Each predicate that is handled will be removed from the set.
+   * @param instantiator A function that will be applied to instantiate each abstraction predicate,
+   *     should yield the same SSA indices that f has (or none, if f has no SSA indices).
+   * @return An over-approximation of f using the predicates from remainingPredicates.
+   */
   private Region computeAbstraction(
       final BooleanFormula f,
       final Collection<AbstractionPredicate> remainingPredicates,
