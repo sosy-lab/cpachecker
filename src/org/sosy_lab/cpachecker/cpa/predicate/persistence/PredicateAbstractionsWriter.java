@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
@@ -79,15 +80,20 @@ public class PredicateAbstractionsWriter {
     Map<ARGState, String> stateToAssert = Maps.newHashMap();
 
     // Get list of all abstraction states in the set reached
-    ARGState rootState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-    SetMultimap<ARGState, ARGState> successors =
-        ARGUtils.projectARG(
-            rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
-
-    Set<ARGState> done = Sets.newHashSet();
     Deque<ARGState> worklist = Queues.newArrayDeque();
+    SetMultimap<ARGState, ARGState> successors;
+    if (!reached.isEmpty()) {
+      ARGState rootState =
+          AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
+      successors =
+          ARGUtils.projectARG(
+              rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
 
-    worklist.add(rootState);
+      worklist.add(rootState);
+    } else {
+      successors = ImmutableSetMultimap.of();
+    }
+    Set<ARGState> done = Sets.newHashSet();
 
     // Write abstraction formulas of the abstraction states to the file
     try (Writer writer = MoreFiles.openOutputFile(abstractionsFile, Charset.defaultCharset())) {
