@@ -61,7 +61,9 @@ import java.util.Collection;
  */
 @Options(prefix="cpa.congruence")
 public class CongruenceCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider {
+    implements ConfigurableProgramAnalysis,
+               StatisticsProvider,
+               AutoCloseable {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
@@ -69,6 +71,7 @@ public class CongruenceCPA
 
   private final CongruenceStatistics statistics;
   private final ABECPA<CongruenceState, TemplatePrecision> abeCPA;
+  private final Solver solver;
 
   public CongruenceCPA(Configuration pConfiguration,
                        LogManager pLogger,
@@ -76,7 +79,7 @@ public class CongruenceCPA
                        CFA pCFA)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
+    solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
 
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
@@ -141,5 +144,10 @@ public class CongruenceCPA
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(statistics);
+  }
+
+  @Override
+  public void close() throws Exception {
+    solver.close();
   }
 }
