@@ -302,7 +302,7 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    final BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
+    final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
     final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
@@ -431,7 +431,8 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private BooleanFormula buildFormula(BooleanFormula symbFormula) {
+  private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
+    BooleanFormula symbFormula = pathFormula.getFormula();
 
     if (fmgr.useBitwiseAxioms()) {
       BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
@@ -1013,7 +1014,7 @@ public class PredicateAbstractionManager {
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2)
       throws SolverException, InterruptedException {
     BooleanFormula absFormula = a1.asInstantiatedFormula();
-    BooleanFormula symbFormula = buildFormula(p1.getFormula());
+    BooleanFormula symbFormula = getFormulaFromPathFormula(p1);
     BooleanFormula a = bfmgr.and(absFormula, symbFormula);
 
     // get formula of a2 with the indices of p1
@@ -1032,7 +1033,7 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
 
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
+    BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
 
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
