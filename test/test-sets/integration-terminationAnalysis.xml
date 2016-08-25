@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="100 s" memlimit="5 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="70 s" memlimit="5 GB" cpuCores="2">
   <option name="-heap">4000M</option>
   <option name="-noout"/>
   <option name="-64"/>
