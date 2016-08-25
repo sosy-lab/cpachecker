@@ -64,10 +64,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -298,7 +298,7 @@ public class PredicateAbstractionManager {
     // Each step of our abstraction computation may be able to handle some predicates,
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
-        getRelevantPredicates(pPredicates, f, ssa, location);
+        getRelevantPredicates(pPredicates, f, ssa);
 
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
@@ -583,14 +583,12 @@ public class PredicateAbstractionManager {
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
    * @param ssa The SSA map to use for instantiating predicates.
-   * @param pLocation the location that should be used
    * @return A subset of pPredicates.
    */
   private Collection<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
-      final SSAMap ssa,
-      final CFANode pLocation) {
+      final SSAMap ssa) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
