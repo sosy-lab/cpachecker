@@ -47,6 +47,7 @@ import org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
+import org.eclipse.cdt.core.dom.ast.IASTFieldDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTForStatement;
@@ -1652,6 +1653,7 @@ class ASTConverter {
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
+    //TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d, niceFileNameFunction);
     }
@@ -1737,6 +1739,21 @@ class ASTConverter {
       IASTDeclarator currentDecl = d;
       while (currentDecl != null) {
         // TODO handle bitfields by checking for instanceof IASTFieldDeclarator
+
+        if (currentDecl instanceof IASTFieldDeclarator) {
+          if (specifier instanceof CSimpleType) {
+            IASTExpression bitFieldSize = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
+            if (bitFieldSize instanceof CASTLiteralExpression) {
+              CExpression cExpression = convertExpressionWithoutSideEffects(bitFieldSize);
+              if (cExpression instanceof CIntegerLiteralExpression) {
+                ((CSimpleType) specifier).setBitFieldSize(((CIntegerLiteralExpression)
+                    cExpression).getValue().intValue());
+              } else {
+                throw  new CFAGenerationRuntimeException("Unsupported bitfield specifier", d, niceFileNameFunction);
+              }
+            }
+          }
+        }
 
         if (currentDecl instanceof IASTFunctionDeclarator) {
           throw new CFAGenerationRuntimeException("Unsupported declaration nested function declarations", d, niceFileNameFunction);

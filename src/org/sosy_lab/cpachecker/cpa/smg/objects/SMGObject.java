@@ -24,12 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
+import java.util.Comparator;
 
 public abstract class SMGObject {
   private final int size;
   private final String label;
   private final int level;
   private final SMGObjectKind kind;
+  private static int count;
+  private final int id;
 
 
 
@@ -72,6 +75,7 @@ public abstract class SMGObject {
     label = pLabel;
     level = 0;
     kind = pKind;
+    id = getNewId();
   }
 
   protected SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
@@ -79,6 +83,7 @@ public abstract class SMGObject {
     label = pLabel;
     level = pLevel;
     kind = pKind;
+    id = getNewId();
   }
 
   protected SMGObject(SMGObject pOther) {
@@ -86,6 +91,7 @@ public abstract class SMGObject {
     label = pOther.label;
     level = pOther.level;
     kind = pOther.kind;
+    id = pOther.id;
   }
 
   public abstract SMGObject copy();
@@ -140,5 +146,22 @@ public abstract class SMGObject {
 
   public int getLevel() {
     return level;
+  }
+
+  private int getNewId() {
+    count++;
+    return count;
+  }
+
+  public int getId() {
+    return id;
+  }
+
+  static public class SMGObjectComparator implements Comparator<SMGObject> {
+
+    @Override
+    public int compare(SMGObject o1, SMGObject o2) {
+      return Integer.compare(o1.getId(), o2.getId());
+    }
   }
 }

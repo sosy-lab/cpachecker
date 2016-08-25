@@ -114,6 +114,16 @@ public final class CVoidType implements CType {
     return create(isConst || pForceConst, isVolatile || pForceVolatile);
   }
 
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
+
   private Object readResolve() {
     return create(isConst, isVolatile);
   }

@@ -133,4 +133,14 @@ public final class CTypedefType implements CType, Serializable {
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
   }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
 }

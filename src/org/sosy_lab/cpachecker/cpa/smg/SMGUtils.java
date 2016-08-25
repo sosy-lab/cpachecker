@@ -155,7 +155,7 @@ public final class SMGUtils {
 
     @Override
     public CType visit(CArrayType pArrayType) {
-      if (fieldOffset % model.getSizeof(pArrayType) == 0) {
+      if (fieldOffset % model.getBitSizeof(pArrayType) == 0) {
         return pArrayType.getType();
       } else {
         return UNKNOWN;
@@ -175,7 +175,7 @@ public final class SMGUtils {
         } else if (memberOffset > fieldOffset) {
           return UNKNOWN;
         } else {
-          memberOffset = memberOffset + model.getSizeof(member.getType());
+          memberOffset = memberOffset + model.getBitSizeof(member.getType());
         }
       }
 

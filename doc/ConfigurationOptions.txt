@@ -184,9 +184,52 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# time limit for each assert in MAV
+analysis.mav.assertTimeLimit = 0
+
+# time limit for all intervals in MAV algorithm
+analysis.mav.basicIntervalTimeLimit = 0
+
+# time limit for idle intervals in MAV (hard time limit)
+analysis.mav.firstIntervalTimeLimit = 0
+analysis.mav.idleIntervalTimeLimit = 0
+
+# Specify states set in which precision will be cleaned on specification
+# disable (NONE - do not clean at all, WAITLIST - clean precisions in
+# waitlist,ALL - clean precisions in all abstract states)
+analysis.mav.precisionCleanSet = WAITLIST
+  enum:     [NONE, WAITLIST, ALL]
+
+# Clean starategy for precisions for specification disable (NONE - do not
+# clean precisions, FULL - clean all precisions,BY_SPECIFICATION - clean all
+# precisions for current specification)
+analysis.mav.precisionCleanStrategy = BY_SPECIFICATION
+  enum:     [NONE, FULL, BY_SPECIFICATION]
+
+# DEPRECATED: precision clearing time limit
+analysis.mav.precisionClearingTimeLimit = 0
+
+# Relaunch MAV inside one verification run
+analysis.mav.relaunchInOneRun = false
+
+# file for information reuse
+analysis.mav.resultsFile = no default value
+
+# comparator for Specification Id. Possible values - AUTOMATON (automaton
+# name), VIOLATED_PROPERTY (violated property description)
+analysis.mav.specificationComparator = AUTOMATON
+  enum:     [AUTOMATON, VIOLATED_PROPERTY]
+
+# Stop checking for current specification after the first error was found(for
+# Multi-Aspect Verification only)
+analysis.mav.stopAfterError = true
+
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
 analysis.memorizeReachedAfterRestart = false
+
+# use Multi-Aspect Verification
+analysis.multiAspectVerification = false
 
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
@@ -1902,6 +1945,9 @@ cpa.slicing.timeForLoopGeneration = 0s
 # Inductive weakening strategy
 cpa.slicing.weakeningStrategy = CEX
   enum:     [SYNTACTIC, DESTRUCTIVE, CEX]
+
+# Enable GCC extension 'Arrays of Length Zero'.
+cpa.smg.GCCZeroLengthArray = false
 
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {
