@@ -200,8 +200,6 @@ public class PredicateAbstractionManager {
 
   private final PredicateAbstractionsStorage abstractionStorage;
 
-  private final Configuration config;
-
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       PathFormulaManager pPfmgr,
@@ -212,9 +210,8 @@ public class PredicateAbstractionManager {
       InvariantSupplier pInvariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
-    config = pConfig;
 
-    config.inject(this, PredicateAbstractionManager.class);
+    pConfig.inject(this, PredicateAbstractionManager.class);
 
     logger = pLogger;
     fmgr = pSolver.getFormulaManager();
