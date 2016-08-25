@@ -431,7 +431,7 @@ public class PredicateAbstractionManager {
         }
 
         Set<AbstractionNode> candidateAbstractions =
-            getSuccessorsInAbstractionTree(tryBasedOnAbstractionId);
+            abstractionStorage.getSuccessorAbstractions(tryBasedOnAbstractionId);
         Preconditions.checkNotNull(candidateAbstractions);
 
         //logger.log(Level.WARNING, "Raw candidates based on", tryBasedOnAbstractionId, ":", candidateAbstractions);
@@ -1194,10 +1194,4 @@ public class PredicateAbstractionManager {
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
-
-  private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {
-    Preconditions.checkNotNull(reuseAbstractionsFrom);
-    return abstractionStorage.getSuccessorAbstractions(pIdOfLastAbstractionReused);
-  }
-
 }
