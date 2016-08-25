@@ -59,7 +59,7 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormula number,
       FormulaType<T> targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return wrap(targetType, manager.castTo(number, unwrapType(targetType), pFloatingPointRoundingMode));
   }
 
   @Override
@@ -75,7 +75,7 @@ public class FloatingPointFormulaManagerView
       boolean signed,
       FloatingPointType targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return manager.castFrom(unwrap(number), signed, targetType, pFloatingPointRoundingMode);
   }
 
   @Override
@@ -93,7 +93,7 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return manager.add(number1, number2, pFloatingPointRoundingMode);
   }
 
   @Override
@@ -106,7 +106,7 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return manager.subtract(number1, number2, pFloatingPointRoundingMode);
   }
 
   @Override
@@ -119,7 +119,7 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return manager.divide(number1, number2, pFloatingPointRoundingMode);
   }
 
   @Override
@@ -132,7 +132,7 @@ public class FloatingPointFormulaManagerView
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return manager.multiply(number1, number2, pFloatingPointRoundingMode);
   }
 
   @Override
