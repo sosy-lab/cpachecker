@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -373,7 +374,9 @@ public class PredicateAbstractionManager {
       }
 
     } else {
-      abs = rmgr.makeAnd(abs, buildAbstraction(f, ssa, remainingPredicates));
+      abs =
+          rmgr.makeAnd(
+              abs, buildAbstraction(f, remainingPredicates, pred -> fmgr.instantiate(pred, ssa)));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -684,8 +687,8 @@ public class PredicateAbstractionManager {
 
   private Region buildAbstraction(
       final BooleanFormula f,
-      final SSAMap ssa,
-      final Collection<AbstractionPredicate> remainingPredicates)
+      final Collection<AbstractionPredicate> remainingPredicates,
+      final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
 
@@ -714,7 +717,8 @@ public class PredicateAbstractionManager {
           try {
             abs =
                 rmgr.makeAnd(
-                    abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
+                    abs,
+                    buildCartesianAbstraction(f, thmProver, remainingPredicates, instantiator));
           } finally {
             stats.cartesianAbstractionTime.stop();
           }
@@ -725,7 +729,9 @@ public class PredicateAbstractionManager {
           stats.numBooleanAbsPredicates += remainingPredicates.size();
           stats.booleanAbstractionTime.start();
           try {
-            abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
+            abs =
+                rmgr.makeAnd(
+                    abs, buildBooleanAbstraction(thmProver, remainingPredicates, instantiator));
           } finally {
             stats.booleanAbstractionTime.stop();
           }
@@ -744,16 +750,16 @@ public class PredicateAbstractionManager {
    * The abstracted formula is expected to have been pushed onto the solver stack already.
    *
    * @param f The (instantiated) formula to abstract, only used as cache key.
-   * @param ssa The SSAMap for instantiating predicates such that it matches f.
    * @param thmProver The solver to use with the input formula on the stack.
    * @param pPredicates The set of predicates. Each predicate that is handled will be removed from the set.
+   * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */
   private Region buildCartesianAbstraction(
       final BooleanFormula f,
-      final SSAMap ssa,
       final ProverEnvironment thmProver,
-      final Collection<AbstractionPredicate> pPredicates)
+      final Collection<AbstractionPredicate> pPredicates,
+      final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
 
     stats.abstractionSolveTime.start();
@@ -805,7 +811,7 @@ public class PredicateAbstractionManager {
               "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
           // instantiate the definition of the predicate
-          BooleanFormula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
+          BooleanFormula predTrue = instantiator.apply(p.getSymbolicAtom());
           BooleanFormula predFalse = bfmgr.not(predTrue);
 
           // check whether this predicate has a truth value in the next
@@ -875,17 +881,17 @@ public class PredicateAbstractionManager {
    * Compute a Boolean abstraction of a formula given a set of predicates.
    * The abstracted formula is expected to have been pushed onto the solver stack already.
    *
-   * @param ssa The SSAMap for instantiating predicates such that it matches f.
    * @param thmProver The solver to use with the input formula on the stack.
    * @param predicates The set of predicates.
    *    Each predicate that is handled will be removed from the set
    *    (and Boolean abstraction handles all predicates so the set is empty afterwards!).
+   * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */
   private Region buildBooleanAbstraction(
-      final SSAMap ssa,
       final ProverEnvironment thmProver,
-      final Collection<AbstractionPredicate> predicates)
+      final Collection<AbstractionPredicate> predicates,
+      final Function<BooleanFormula, BooleanFormula> instantiator)
       throws InterruptedException, SolverException {
 
     // build the definition of the predicates, and instantiate them
@@ -897,9 +903,8 @@ public class PredicateAbstractionManager {
     for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
       BooleanFormula var = p.getSymbolicVariable();
-      BooleanFormula def = p.getSymbolicAtom();
+      final BooleanFormula def = instantiator.apply(p.getSymbolicAtom());
       assert !bfmgr.isFalse(def);
-      def = fmgr.instantiate(def, ssa);
 
       // build the formula (var <-> def) and add it to the list of definitions
       BooleanFormula equiv = bfmgr.equivalence(var, def);
