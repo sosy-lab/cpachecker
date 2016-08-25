@@ -32,6 +32,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
@@ -49,7 +50,6 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final BooleanFormulaManager booleanManager;
   private final UFManager functionManager;
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
-  private final FormulaType<T> formulaType;
 
   private final FunctionDeclaration<BooleanFormula> isSubnormalUfDecl;
   private final T zero;
@@ -67,7 +67,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     booleanManager = pBooleaManager;
     functionManager = rawFunctionManager;
 
-    formulaType = numericFormulaManager.getFormulaType();
+    FormulaType<T> formulaType = numericFormulaManager.getFormulaType();
     isSubnormalUfDecl = functionManager.declareUF("__isSubnormal__", FormulaType.BooleanType,
         formulaType);
 
@@ -90,10 +90,27 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public <T extends Formula> T castTo(
+      FloatingPointFormula number,
+      FormulaType<T> targetType,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return null;
+  }
+
+  @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
     // This method needs to handle only wrapping of FloatingPointFormulas,
     // wrapping of other types is handled by FloatingPointFormulaManagerView.
     return wrap(pTargetType, genericCast(pNumber, unwrapType(pTargetType)));
+  }
+
+  @Override
+  public FloatingPointFormula castFrom(
+      Formula number,
+      boolean signed,
+      FloatingPointType targetType,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return null;
   }
 
   private <T2 extends Formula> T2 genericCast(Formula pNumber, FormulaType<T2> pTargetType) {
@@ -125,9 +142,26 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public FloatingPointFormula add(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return null;
+  }
+
+  @Override
   public FloatingPointFormula subtract(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return wrap(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
+
+  @Override
+  public FloatingPointFormula subtract(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return null;
+  }
+
   @Override
   public FloatingPointFormula divide(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     T number1 = unwrap(pNumber1);
@@ -147,10 +181,29 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     }
     return wrap(targetType, numericFormulaManager.divide(number1, number2));
   }
+
+  @Override
+  public FloatingPointFormula divide(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return divide(number1, number2);
+  }
+
   @Override
   public FloatingPointFormula multiply(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
   }
+
+  @Override
+  public FloatingPointFormula multiply(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return wrap(getFormulaType(number1),
+        numericFormulaManager.multiply(unwrap(number1), unwrap(number2)));
+  }
+
   @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
@@ -203,8 +256,20 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public FloatingPointFormula makeNumber(
+      double n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return wrap(type, numericFormulaManager.makeNumber(n));
+  }
+
+  @Override
   public FloatingPointFormula makeNumber(BigDecimal pN, FormulaType.FloatingPointType type) {
     return wrap(type, numericFormulaManager.makeNumber(pN));
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(
+      BigDecimal n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return wrap(type, numericFormulaManager.makeNumber(n));
   }
 
   @Override
@@ -213,7 +278,19 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
+  public FloatingPointFormula makeNumber(
+      String n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return wrap(type, numericFormulaManager.makeNumber(n));
+  }
+
+  @Override
   public FloatingPointFormula makeNumber(Rational n, FloatingPointType type) {
+    return wrap(type, numericFormulaManager.makeNumber(n));
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(
+      Rational n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return wrap(type, numericFormulaManager.makeNumber(n));
   }
 

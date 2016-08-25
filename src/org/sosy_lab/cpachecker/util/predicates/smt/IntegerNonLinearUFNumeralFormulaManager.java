@@ -26,17 +26,24 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.UFManager;
 
-public class IntegerFormulaManagerView
-    extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
-    implements IntegerFormulaManager {
+/**
+ * Replacing non-linear arithmetics with UF
+ * for formulas over integers.
+ */
+class IntegerNonLinearUFNumeralFormulaManager
+  extends NonLinearUFNumeralFormulaManager<IntegerFormula, IntegerFormula>
+  implements IntegerFormulaManager  {
+
   private final IntegerFormulaManager integerFormulaManager;
 
-  IntegerFormulaManagerView(
+  IntegerNonLinearUFNumeralFormulaManager(
       FormulaWrappingHandler pWrappingHandler,
-      IntegerFormulaManager pManager) {
-    super(pWrappingHandler, pManager);
-    integerFormulaManager = pManager;
+      IntegerFormulaManager numeralFormulaManager,
+      UFManager pFunctionManager) {
+    super(pWrappingHandler, numeralFormulaManager, pFunctionManager);
+    integerFormulaManager = numeralFormulaManager;
   }
 
   @Override

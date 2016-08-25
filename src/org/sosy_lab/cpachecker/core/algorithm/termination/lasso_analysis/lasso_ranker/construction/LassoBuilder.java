@@ -37,6 +37,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
+import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
+import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
+import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,8 +73,9 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination;
-import org.sosy_lab.java_smt.basicimpl.tactics.UfElimination.Result;
+import org.sosy_lab.java_smt.utils.SolverUtils;
+import org.sosy_lab.java_smt.utils.UfElimination;
+import org.sosy_lab.java_smt.utils.UfElimination.Result;
 
 import java.util.Collection;
 import java.util.List;
@@ -75,14 +84,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearInequality;
-import de.uni_freiburg.informatik.ultimate.lassoranker.LinearTransition;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
-import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /**
  * Creates {@link Lasso}s from {@link CounterexampleInfo}.
@@ -137,7 +138,7 @@ public class LassoBuilder {
 
     divAndModElimination = new DivAndModElimination(fmgrView, fmgr);
     nonLinearMultiplicationElimination = new NonLinearMultiplicationElimination(fmgrView, fmgr);
-    ufElimination = new UfElimination(pFormulaManager);
+    ufElimination = SolverUtils.ufElimination(pFormulaManager);
     ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);

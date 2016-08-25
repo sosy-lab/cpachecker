@@ -42,7 +42,7 @@ import org.sosy_lab.java_smt.api.UFManager;
  * if they support more or less operations.
  * </p>
  */
-public class NonLinearUFNumeralFormulaManager
+class NonLinearUFNumeralFormulaManager
     <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
     extends NumeralFormulaManagerView<ParamFormulaType, ResultFormulaType>  {
 

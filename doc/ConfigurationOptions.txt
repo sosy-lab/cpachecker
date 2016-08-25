@@ -46,6 +46,11 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# Default rounding mode for floating point operations.
+solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
+  enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
+             TOWARD_ZERO]
+
 # Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
