@@ -182,7 +182,7 @@ analysis.interprocedural = true
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
+  enum:     [LINUX32, LINUX64, LINUX32_BITFIELD, LINUX64_BITFIELD]
 
 # time limit for each assert in MAV
 analysis.mav.assertTimeLimit = 0

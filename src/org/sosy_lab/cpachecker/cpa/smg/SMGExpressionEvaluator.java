@@ -316,7 +316,7 @@ public class SMGExpressionEvaluator {
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      if (typeMember.getType().isBitField()) {
+      if (machineModel.isBitFieldsSupportEnabled() && typeMember.getType().isBitField()) {
         int padding = 0;
         if (!previousIsBitField) {
           padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
@@ -434,7 +434,7 @@ public class SMGExpressionEvaluator {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
         if (address.getObject() == SMGObject.getNullObject()) { return SMGExplicitValueAndState.of(newState,
-            SMGKnownExpValue.valueOf(address.getOffset().getAsLong())); }
+            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / machineModel.getSizeofCharInBits())); }
       }
     }
 
@@ -955,7 +955,7 @@ public class SMGExpressionEvaluator {
           }
 
           SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer,
-              newState, address) / machineModel.getSizeofCharInBits());
+              newState, address));
 
           SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -1044,8 +1044,7 @@ public class SMGExpressionEvaluator {
                 int size = arrayAddress.getObject().getSize();
                 int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
                 int index = (size / typeSize) + 1;
-                int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp)
-                    * machineModel.getSizeofCharInBits();
+                int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp);
                 newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
                     subscriptSize, cfaEdge);
               }
@@ -1391,10 +1390,8 @@ public class SMGExpressionEvaluator {
                 //TODO: separate modifiable and unmodifiable visitor
                 int leftSideTypeSize = getSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
                 int rightSideTypeSize = getSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
-                newState.addPredicateRelation(leftSideVal,
-                    leftSideTypeSize * machineModel.getSizeofCharInBits(),
-                    rightSideVal, rightSideTypeSize * machineModel.getSizeofCharInBits(),
-                    binaryOperator, cfaEdge);
+                newState.addPredicateRelation(leftSideVal, leftSideTypeSize,
+                    rightSideVal, rightSideTypeSize, binaryOperator, cfaEdge);
                 result.add(SMGValueAndState.of(newState, resultValue));
               }
           }

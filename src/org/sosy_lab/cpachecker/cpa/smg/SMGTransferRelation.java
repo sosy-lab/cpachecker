@@ -109,6 +109,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -301,7 +302,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGAddressValueAndState.of(currentState);
       }
 
-      int count = countValue.getAsInt() * machineModel.getSizeofCharInBits();
+      int count = countValue.getAsInt();
 
       if (ch.isUnknown()) {
         // If the symbolic value is not known create a new one.
@@ -314,12 +315,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (ch.equals(SMGKnownSymValue.ZERO)) {
         // Create one large edge
-        currentState = writeValue(currentState, bufferMemory, offset, count, ch, cfaEdge);
+        currentState = writeValue(currentState, bufferMemory, offset, count * machineModel.getSizeofCharInBits(), ch, cfaEdge);
       } else {
         // We need to create many edges, one for each character written
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
-          currentState = writeValue(currentState, bufferMemory, offset + c, CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
+          currentState = writeValue(currentState, bufferMemory, offset + (c  * machineModel.getSizeofCharInBits()),
+              CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
         }
 
         if (!expValue.isUnknown()) {
@@ -562,7 +564,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             allocation_label);
 
         if (zeroingMemoryAllocation.contains(functionName)) {
-          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size),
+          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
               SMGKnownSymValue.ZERO, cfaEdge);
         }
         possibleMallocFail = true;
@@ -694,12 +696,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
                   .getValueAndStateList()) {
                 SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-                int sourceRangeOffset = sourceObject.getOffset().getAsInt();
-                int sourceSize = sourceObject.getObject().getSize();
+                int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
+                int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
                 int availableSource = sourceSize - sourceRangeOffset;
 
-                int targetRangeOffset = targetObject.getOffset().getAsInt();
-                int targetSize = targetObject.getObject().getSize();
+                int targetRangeOffset = targetObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
+                int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
                 int availableTarget = targetSize - targetRangeOffset;
 
                 if (explicitSizeValue.isUnknown()) {
@@ -1717,7 +1719,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of(pNewState);
   }
 
-  private Pair<Integer, Integer> calculateOffsetAndPostionOfFieldFromDesignator(
+  private Triple<Integer, Integer, Boolean> calculateOffsetAndPostionOfFieldAndIsPrevBitfieldFromDesignator(
       int offsetAtStartOfStruct,
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
@@ -1731,18 +1733,27 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
 
     int offset = offsetAtStartOfStruct;
+    boolean isPrevbitfield = false;
 
     for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
 
       CCompositeTypeMemberDeclaration memberDcl = pMemberTypes.get(listCounter);
 
       if (memberDcl.getName().equals(fieldDesignator)) {
-        return Pair.of(offset, listCounter);
+        return Triple.of(offset, listCounter, isPrevbitfield);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
-          offset = offset + expressionEvaluator.getSizeof(pEdge, memberDcl.getType(), pNewState);
+          offset += machineModel.getBitSizeof(memberDcl.getType());
+          if (!(isPrevbitfield && memberDcl.getType().isBitField())) {
+            int overByte = offset % machineModel.getSizeofCharInBits();
+            if (overByte > 0) {
+              offset += machineModel.getSizeofCharInBits() - overByte;
+            }
+            offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberDcl.getType()) * machineModel.getSizeofCharInBits();
+          }
         }
       }
+      isPrevbitfield = memberDcl.getType().isBitField();
     }
     throw new UnrecognizedCCodeException("CDesignator field name not in struct.", pInitializer);
   }
@@ -1786,15 +1797,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
 
+    boolean isPrevBitfield = false;
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
       if (initializer instanceof CDesignatedInitializer) {
-        Pair<Integer, Integer> offsetAndPosition =
-            calculateOffsetAndPostionOfFieldFromDesignator(pOffset, memberTypes,
+        Triple<Integer, Integer, Boolean> offsetAndPositionAndIsPrevBitfield =
+            calculateOffsetAndPostionOfFieldAndIsPrevBitfieldFromDesignator(pOffset, memberTypes,
                 (CDesignatedInitializer) initializer, pEdge, pNewState, pLValueType);
-
-        int offset = offsetAndPosition.getFirst();
-        listCounter = offsetAndPosition.getSecond();
+        int offset = offsetAndPositionAndIsPrevBitfield.getFirst();
+        listCounter = offsetAndPositionAndIsPrevBitfield.getSecond();
+        isPrevBitfield = offsetAndPositionAndIsPrevBitfield.getThird();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
 
         List<Pair<SMGState, Integer>> resultOffsetAndStatesDesignated = new ArrayList<>();
@@ -1819,12 +1831,20 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
 
         int offset = offsetAndState.getSecond();
+        if (!(isPrevBitfield && memberType.isBitField())) {
+          int overByte = offset % machineModel.getSizeofCharInBits();
+          if (overByte > 0) {
+            offset += machineModel.getSizeofCharInBits() - overByte;
+          }
+          offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType) * machineModel.getSizeofCharInBits();
+        }
         SMGState newState = offsetAndState.getFirst();
 
         List<SMGState> pNewStates =
             handleInitializer(pNewState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
-        offset = offset + expressionEvaluator.getSizeof(pEdge, memberType, newState);
+        isPrevBitfield = memberType.isBitField();
+        offset = offset + machineModel.getBitSizeof(memberType);
 
         List<? extends Pair<SMGState, Integer>> newStatesAndOffset =
             FluentIterable.from(pNewStates).transform(new ListToListOfPairFunction<SMGState, Integer>(offset))
@@ -2109,21 +2129,25 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
 
           assignableState = writeValue(assignableState, addressOfField.getObject(),
-              addressOfField.getOffset().getAsInt(), getRealExpressionType(exp), rSymValue, edge);
+              addressOfField.getOffset().getAsInt(), getRealExpressionType(lValue), rSymValue, edge);
         }
-
+        int size = getSizeof(edge, getRealExpressionType(lValue), assignableState);
         if (truthValue) {
           if (op == BinaryOperator.EQUALS) {
+            assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+          } else {
+            assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
           }
         } else {
           if (op == BinaryOperator.NOT_EQUALS) {
+            assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
             //TODO more precise
+          } else {
+            assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
           }
         }
-        int size = getSizeof(edge, getRealExpressionType(exp), assignableState) * machineModel.getSizeofCharInBits();
-        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
       }
 
       @Override

@@ -81,7 +81,10 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4  //pointer
+      4, //pointer
+
+      //bitfields support
+      false
   ),
 
   /**
@@ -114,9 +117,82 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8  // pointer
+      8, // pointer
+
+      //bitfields support
+      false
+  ),
+
+  LINUX32_BITFIELD(
+      // numeric types
+      2,  // short
+      4,  // int
+      4,  // long int
+      8,  // long long int
+      4,  // float
+      8,  // double
+      12, // long double
+
+      // other
+      1, // void
+      1, // bool
+      4, // pointer
+
+      // alignof numeric types
+      2, // short
+      4, //int
+      4, //long int
+      8, // long long int
+      4, //float
+      4, //double
+      4, //long double
+
+      // alignof other
+      1, // void
+      1, //bool
+      4, //pointer
+
+      //bitfields support
+      true
+  ),
+
+  /**
+   * Machine model representing a 64bit Linux machine with alignment:
+   */
+  LINUX64_BITFIELD(
+      // numeric types
+      2,  // short
+      4,  // int
+      8,  // long int
+      8,  // long long int
+      4,  // float
+      8,  // double
+      16, // long double
+
+      // other
+      1, // void
+      1, // bool
+      8, // pointer
+
+      //  alignof numeric types
+      2,  // short
+      4,  // int
+      8,  // long int
+      8,  // long long int
+      4,  // float
+      8,  // double
+      16, // long double
+
+      // alignof other
+      1, // void
+      1, // bool
+      8, // pointer
+
+      //bitfields support
+      true
   );
 
+  private final boolean isBitFieldsSupportEnabled;
   // numeric types
   private final int     sizeofShort;
   private final int     sizeofInt;
@@ -174,7 +250,9 @@ public enum MachineModel {
       int pAlignofLongDouble,
       int pAlignofVoid,
       int pAlignofBool,
-      int pAlignofPtr) {
+      int pAlignofPtr,
+      boolean pBitFieldsEnabled) {
+    isBitFieldsSupportEnabled = pBitFieldsEnabled;
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -208,6 +286,10 @@ public enum MachineModel {
     } else {
       throw new AssertionError("No ptr-Equivalent found");
     }
+  }
+
+  public boolean isBitFieldsSupportEnabled() {
+    return isBitFieldsSupportEnabled;
   }
 
   public CSimpleType getPointerEquivalentSimpleType() {
@@ -539,16 +621,16 @@ public enum MachineModel {
                 "Cannot compute size of incomplete type " + decl.getType());
           }
         } else {
-          if (decl.getType().isBitField()) {
+          if (model.isBitFieldsSupportEnabled() && decl.getType().isBitField()) {
             if (previosIsBitField) {
-              size += decl.getType().getBitFieldSize();
+              bitFieldsSize += decl.getType().getBitFieldSize();
             } else {
-              size += model.getPadding(size, decl.getType()); //Should it be char or current type?
+              size += model.getPadding(size, decl.getType());
               bitFieldsSize += decl.getType().getBitFieldSize();
             }
             previosIsBitField = true;
           } else {
-            if (bitFieldsSize > 0){
+            if (bitFieldsSize > 0) {
               size += bitFieldsSize / 8;
               if (bitFieldsSize % 8 > 0) {
                 size++;
@@ -559,6 +641,12 @@ public enum MachineModel {
             size += model.getPadding(size, decl.getType());
             size += decl.getType().accept(this);
           }
+        }
+      }
+      if (bitFieldsSize > 0) {
+        size += bitFieldsSize / 8;
+        if (bitFieldsSize % 8 > 0) {
+          size++;
         }
       }
       size += model.getPadding(size, pCompositeType);
