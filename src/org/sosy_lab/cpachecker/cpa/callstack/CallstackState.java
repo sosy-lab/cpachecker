@@ -41,8 +41,19 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-public class CallstackState implements AbstractState, Partitionable,
-AbstractQueryableState, Serializable {
+/**
+ * Abstract state that stores callstack information by maintaning a single-linked list of states
+ * that represents the current callstack.
+ *
+ * Note that whenever a new state is created, this represents a new, unique, entry of a function.
+ * Two separate entries of the same function are not considered equal,
+ * even if the function names and call nodes of the two callstacks match.
+ * Cf. {@link CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example.
+ * (Because of this this class must inherit the identity-based
+ * {@link #equals(Object)} and {@link #hashCode()} from Object.)
+ */
+public class CallstackState
+    implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
 

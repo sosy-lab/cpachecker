@@ -98,7 +98,7 @@ public class PredicateCPATest {
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
       factory.set(new AggregatedReachedSets(), AggregatedReachedSets.class);
-      factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
+      factory.set(TestDataTools.makeCFA(config, "void main() { }"), CFA.class);
       factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);
 

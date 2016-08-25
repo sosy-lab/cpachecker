@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Predicates.instanceOf;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -107,6 +106,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -306,7 +306,7 @@ private boolean classifyNodes = false;
   }
 
   /**
-   * Parse a file and create a CFA, including all post-processing etc.
+   * Parse a program given as String and create a CFA, including all post-processing etc.
    *
    * @param program  The program represented as String to parse.
    * @return A representation of the CFA.
@@ -314,7 +314,7 @@ private boolean classifyNodes = false;
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseFileAndCreateCFA(String program)
+  public CFA parseSourceAndCreateCFA(String program)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     stats.totalTime.start();
@@ -331,7 +331,7 @@ private boolean classifyNodes = false;
   }
 
   /**
-   * Parse a file and create a CFA, including all post-processing etc.
+   * Parse some files and create a CFA, including all post-processing etc.
    *
    * @param sourceFiles  The files to parse.
    * @return A representation of the CFA.

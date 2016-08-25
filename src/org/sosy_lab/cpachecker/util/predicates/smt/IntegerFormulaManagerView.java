@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import org.sosy_lab.solver.api.IntegerFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 
 public class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>

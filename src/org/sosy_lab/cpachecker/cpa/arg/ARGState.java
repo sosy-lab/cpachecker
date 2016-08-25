@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.Sets;
 
@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -140,35 +141,30 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // by an analysis. Possible traces might be 'interrupted' by covered states.
     // Covered states do not have children, so we expect the return value null in this case.
 
-    final Iterable<CFANode> currentLocs = extractLocations(this);
-    final Iterable<CFANode> childLocs = extractLocations(pChild);
+    final AbstractStateWithLocations currentLocs =
+        extractStateByType(this, AbstractStateWithLocations.class);
+    final AbstractStateWithLocations childLocs =
+        extractStateByType(pChild, AbstractStateWithLocations.class);
 
     // first try to get a normal edge
-    for (CFANode currentLoc : currentLocs) {
-      for (CFANode childLoc : childLocs) {
-        if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
-          return currentLoc.getEdgeTo(childLoc);
-
-        } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
-          return childLoc.getEdgeTo(currentLoc);
-        }
+    // consider only the actual analysis direction
+    Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
+    for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
+      if (ingoingEdgesOfChild.contains(edge)) {
+        return edge;
       }
     }
 
     // then try to get a special edge, just to have some edge.
-    for (CFANode currentLoc : currentLocs) {
-      for (CFANode childLoc : childLocs) {
+    for (CFANode currentLoc : currentLocs.getLocationNodes()) {
+      for (CFANode childLoc : childLocs.getLocationNodes()) {
         if (currentLoc.getLeavingSummaryEdge() != null
             && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
           return currentLoc.getLeavingSummaryEdge();
-
-        } else if (currentLoc.getEnteringSummaryEdge() != null
-            && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
-          return currentLoc.getEnteringSummaryEdge();
-
         }
       }
     }
+
 
     // check for dummy location
     AbstractStateWithDummyLocation stateWithDummyLocation =
@@ -176,7 +172,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (stateWithDummyLocation != null && stateWithDummyLocation.isDummyLocation()) {
 
       for (CFAEdge enteringEdge : stateWithDummyLocation.getEnteringEdges()) {
-        for (CFANode currentLocation : currentLocs) {
+        for (CFANode currentLocation : currentLocs.getLocationNodes()) {
           if (enteringEdge.getPredecessor().equals(currentLocation)) {
             return enteringEdge;
           }

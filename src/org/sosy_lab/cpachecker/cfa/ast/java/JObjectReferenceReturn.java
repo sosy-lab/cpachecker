@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -41,7 +40,7 @@ import java.util.Optional;
  *
  *
  */
-public class JObjectReferenceReturn extends JReturnStatement {
+public final class JObjectReferenceReturn extends JReturnStatement {
 
   private final JClassType classReference;
 

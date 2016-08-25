@@ -35,6 +35,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
@@ -78,11 +78,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -234,40 +231,31 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final Path pSingleConfigFileName,
       final int analysisNumber) {
-    return () -> {
-      final Algorithm algorithm;
-      final ReachedSet reached;
-      final LogManager singleLogger;
-      final ConfigurableProgramAnalysis cpa;
-      final boolean supplyReached;
-      final boolean supplyRefinableReached;
-      final CoreComponentsFactory coreComponents;
-      Path singleConfigFileName = null;
 
-      Iterable<String> parts =
-          CONFIG_FILE_CONDITION_SPLITTER.split(pSingleConfigFileName.toString());
-      int size = Iterables.size(parts);
+    Iterable<String> parts =
+        CONFIG_FILE_CONDITION_SPLITTER.split(pSingleConfigFileName.toString());
+    int size = Iterables.size(parts);
 
-      Iterator<String> configIt = parts.iterator();
-      singleConfigFileName = Paths.get(configIt.next());
-      supplyReached = Iterables.contains(parts, "supply-reached");
-      supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
+    Iterator<String> configIt = parts.iterator();
+    Path singleConfigFileName = Paths.get(configIt.next());
 
+    final boolean supplyReached = Iterables.contains(parts, "supply-reached");
+    final boolean supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
+
+    final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
+    if (singleConfig == null) {
+      return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
+    }
+    final ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownManager.getNotifier());
+
+    final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
+    final ResourceLimitChecker singleAnalysisOverallLimit;
+    final CoreComponentsFactory coreComponents;
+    try {
       checkIsValidConfig(supplyReached, supplyRefinableReached, singleConfigFileName, size);
 
-      final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
-      if (singleConfig == null) {
-        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
-      }
-
-      singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
-
-      ShutdownManager singleShutdownManager =
-          ShutdownManager.createWithParent(shutdownManager.getNotifier());
-
-      ResourceLimitChecker singleAnalysisOverallLimit =
+      singleAnalysisOverallLimit =
           ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
-      singleAnalysisOverallLimit.start();
 
       coreComponents =
           new CoreComponentsFactory(
@@ -275,6 +263,25 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               singleLogger,
               singleShutdownManager.getNotifier(),
               aggregatedReachedSetManager.asView());
+    } catch (InvalidConfigurationException e) {
+      return () -> { throw e; };
+    }
+
+    final ReachedSet reached = coreComponents.createReachedSet();
+
+    Collection<Statistics> subStats =
+        stats.getNewSubStatistics(
+            reached,
+            singleConfigFileName.toString(),
+            Iterables.getOnlyElement(
+                FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
+                    .filter(ThreadCpuTimeLimit.class),
+                null));
+    return () -> {
+      final Algorithm algorithm;
+      final ConfigurableProgramAnalysis cpa;
+      singleAnalysisOverallLimit.start();
+
       cpa = coreComponents.createCPA(cfa, specification);
 
       // TODO global info will not work correctly with parallel analyses
@@ -282,17 +289,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
-
-      reached = coreComponents.createReachedSet();
-
-      Collection<Statistics> subStats =
-          stats.getNewSubStatistics(
-              reached,
-              singleConfigFileName.toString(),
-              Iterables.getOnlyElement(
-                  FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
-                      .filter(ThreadCpuTimeLimit.class),
-                  null));
 
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider) cpa).collectStatistics(subStats);
@@ -519,15 +515,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ParallelAlgorithmStatistics implements Statistics {
 
-    private final Map<Collection<Statistics>, Triple<ReachedSet, String, ThreadCpuTimeLimit>>
-        allAnalysesStats = new HashMap<>();
+    private final List<StatisticsEntry> allAnalysesStats = Lists.newArrayList();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
 
     public synchronized Collection<Statistics> getNewSubStatistics(
-        ReachedSet pReached, String name, @Nullable ThreadCpuTimeLimit rLimit) {
+        ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit) {
       Collection<Statistics> subStats = new ArrayList<>();
-      allAnalysesStats.put(subStats, Triple.of(pReached, name, rLimit));
+      StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit);
+      allAnalysesStats.add(entry);
       return subStats;
     }
 
@@ -546,19 +542,18 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     private void printSubStatistics(PrintStream out, Result result) {
-      for (Entry<Collection<Statistics>, Triple<ReachedSet, String, ThreadCpuTimeLimit>> subStats :
-          allAnalysesStats.entrySet()) {
+      for (StatisticsEntry subStats : allAnalysesStats) {
         out.println();
         out.println();
-        String title = "Statistics for: " + subStats.getValue().getSecond();
+        String title = "Statistics for: " + subStats.name;
         out.println(title);
         out.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
-        if (subStats.getValue().getThird() != null) {
+        if (subStats.rLimit != null) {
           out.println(
               "Time spent in analysis thread: "
-                  + subStats.getValue().getThird().getOverallUsedTime().formatAs(TimeUnit.SECONDS));
+                  + subStats.rLimit.getOverallUsedTime().formatAs(TimeUnit.SECONDS));
         }
-        for (Statistics s : subStats.getKey()) {
+        for (Statistics s : subStats.subStatistics) {
           String name = s.getName();
           if (!isNullOrEmpty(name)) {
             name = name + " statistics";
@@ -566,7 +561,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             out.println(name);
             out.println(Strings.repeat("-", name.length()));
           }
-          s.printStatistics(out, result, subStats.getValue().getFirst());
+          s.printStatistics(out, result, subStats.reachedSet);
         }
       }
       out.println("\n");
@@ -578,5 +573,24 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+  }
+
+  private static class StatisticsEntry {
+
+    private final Collection<Statistics> subStatistics;
+
+    private final ReachedSet reachedSet;
+
+    private final String name;
+
+    private final @Nullable ThreadCpuTimeLimit rLimit;
+
+    public StatisticsEntry(Collection<Statistics> pSubStatistics, ReachedSet pReachedSet, String pName, @Nullable ThreadCpuTimeLimit pRLimit) {
+      subStatistics = pSubStatistics;
+      reachedSet = pReachedSet;
+      name = pName;
+      rLimit = pRLimit;
+    }
+
   }
 }

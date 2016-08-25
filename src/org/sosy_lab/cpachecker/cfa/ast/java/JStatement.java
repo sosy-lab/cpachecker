@@ -34,4 +34,8 @@ public interface JStatement extends AStatement, JAstNode {
 
   public <R, X extends Exception> R accept(JStatementVisitor<R, X> pV) throws X;
 
+  @Override
+  default <R, X extends Exception> R accept(JAstNodeVisitor<R, X> pV) throws X {
+    return accept((JStatementVisitor<R, X>) pV);
+  }
 }

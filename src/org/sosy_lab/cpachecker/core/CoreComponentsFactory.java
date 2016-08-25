@@ -55,9 +55,11 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -83,6 +85,9 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="algorithm.conditionAdjustment",
       description="use adjustable conditions algorithm")
   private boolean useAdjustableConditions = false;
+
+  @Option(secure = true, name = "algorithm.pdr", description = "use PDR algorithm")
+  private boolean usePDR = false;
 
   @Option(secure=true, name="algorithm.CEGAR",
       description = "use CEGAR algorithm for lazy counter-example guided analysis"
@@ -172,6 +177,7 @@ public class CoreComponentsFactory {
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
+  private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -192,8 +198,16 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
+    if (useTerminationAlgorithm) {
+      aggregatedReachedSetManager = new AggregatedReachedSetManager();
+      aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
+      aggregatedReachedSets = aggregatedReachedSetManager.asView();
+    } else {
+      aggregatedReachedSetManager = null;
+      aggregatedReachedSets = pAggregatedReachedSets;
+    }
+
     reachedSetFactory = new ReachedSetFactory(config);
-    aggregatedReachedSets = pAggregatedReachedSets;
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
 
     if (checkCounterexamplesWithBDDCPARestriction) {
@@ -274,6 +288,12 @@ public class CoreComponentsFactory {
         algorithm = new CEGARAlgorithm(algorithm, cpa, config, logger);
       }
 
+      if (usePDR) {
+        algorithm =
+            new PDRAlgorithm(
+                reachedSetFactory, cpa, algorithm, cfa, config, logger, shutdownNotifier);
+      }
+
       if (useBMC) {
         verifyNotNull(shutdownManager);
         algorithm =
@@ -339,6 +359,7 @@ public class CoreComponentsFactory {
             shutdownNotifier,
             cfa,
             reachedSetFactory,
+            aggregatedReachedSetManager,
             specification,
             algorithm,
             cpa);

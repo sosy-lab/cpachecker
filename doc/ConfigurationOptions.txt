@@ -129,6 +129,9 @@ analysis.algorithm.conditionAdjustment = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# use PDR algorithm
+analysis.algorithm.pdr = false
+
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
 
@@ -877,6 +880,10 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 # mergeType
 cpa.bdd.merge = "join"
 
+# Threshold for unrolling blocks before stopping. A value of 0 disables the
+# threshold.
+cpa.blockcount.threshold = 1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.bounds.loopIterationsBeforeAbstraction = 0
@@ -1229,6 +1236,9 @@ cpa.lpi.useCachingOptSolver = false
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
 
+# Use the new SSA after the merge operation.
+cpa.lpi.useNewSSAAfterMerge = false
+
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
 
@@ -1268,7 +1278,7 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
-# which merge operator to use for InvariantCPA
+# which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 

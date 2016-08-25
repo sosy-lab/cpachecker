@@ -78,10 +78,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -332,19 +332,24 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
-              ExpressionTreeSupplier tmp;
-              try {
-                if (invariantGenerator instanceof KInductionInvariantGenerator) {
-                  tmp =
-                      ((KInductionInvariantGenerator) invariantGenerator)
-                          .getExpressionTreeSupplier();
-                } else {
-                  tmp = new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+              ExpressionTreeSupplier tmpExpressionTreeSupplier =
+                  ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+              if (invariantGenerator.isStarted()) {
+                try {
+                  if (invariantGenerator instanceof KInductionInvariantGenerator) {
+                    tmpExpressionTreeSupplier =
+                        ((KInductionInvariantGenerator) invariantGenerator)
+                            .getExpressionTreeSupplier();
+                  } else {
+                    tmpExpressionTreeSupplier =
+                        new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+                  }
+                } catch (CPAException | InterruptedException e1) {
+                  tmpExpressionTreeSupplier =
+                      ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
                 }
-              } catch (CPAException | InterruptedException e1) {
-                tmp = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
               }
-              final ExpressionTreeSupplier expSup = tmp;
+              final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
 
               try (Writer w = MoreFiles.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
                 argPathExporter.writeProofWitness(

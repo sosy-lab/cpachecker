@@ -266,10 +266,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public Reducer getReducer() {
-    // todo: option to return null?
-    return new PolicyReducer();
+    return new PolicyReducer(logger);
   }
 
+  @Override
   public void setPartitioning(BlockPartitioning pPartitioning) {
     policyIterationManager.setPartitioning(pPartitioning);
   }

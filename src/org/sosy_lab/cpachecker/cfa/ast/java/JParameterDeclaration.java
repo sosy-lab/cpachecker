@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * This class contains Parameter Declarations for methods.
  * It contains a type and a name.
  */
-public class JParameterDeclaration extends AParameterDeclaration implements JSimpleDeclaration {
+public final class JParameterDeclaration extends AParameterDeclaration
+    implements JSimpleDeclaration {
 
   private final String qualifiedName;
   private final boolean isFinal;
@@ -57,6 +58,11 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
   @Override
   public String getQualifiedName() {
     return qualifiedName;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   /* (non-Javadoc)

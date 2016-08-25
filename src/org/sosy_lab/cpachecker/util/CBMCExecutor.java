@@ -25,19 +25,19 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableMap;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 
-import com.google.common.collect.ImmutableMap;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
 

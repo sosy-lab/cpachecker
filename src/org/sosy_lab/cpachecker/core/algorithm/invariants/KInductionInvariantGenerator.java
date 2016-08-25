@@ -95,7 +95,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -364,7 +364,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   }
 
   @Override
-  public void start(final CFANode initialLocation) {
+  protected void startImpl(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
     Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> task =

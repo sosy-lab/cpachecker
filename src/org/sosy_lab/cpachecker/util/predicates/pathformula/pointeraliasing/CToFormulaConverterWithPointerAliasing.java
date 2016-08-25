@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -89,10 +90,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -134,15 +135,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
 
-  public CToFormulaConverterWithPointerAliasing(final FormulaEncodingWithPointerAliasingOptions pOptions,
-                                   final FormulaManagerView formulaManagerView,
-                                   final MachineModel pMachineModel,
-                                   final Optional<VariableClassification> pVariableClassification,
-                                   final LogManager logger,
-                                   final ShutdownNotifier pShutdownNotifier,
-                                   final TypeHandlerWithPointerAliasing pTypeHandler,
-                                   final AnalysisDirection pDirection) {
+  public CToFormulaConverterWithPointerAliasing(
+      final FormulaEncodingWithPointerAliasingOptions pOptions,
+      final FormulaManagerView formulaManagerView,
+      final MachineModel pMachineModel,
+      final Optional<VariableClassification> pVariableClassification,
+      final LogManager logger,
+      final ShutdownNotifier pShutdownNotifier,
+      final TypeHandlerWithPointerAliasing pTypeHandler,
+      final AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
     super(pOptions, formulaManagerView, pMachineModel, pVariableClassification, logger, pShutdownNotifier, pTypeHandler, pDirection);
+
+    if (pDirection == AnalysisDirection.BACKWARD) {
+      throw new InvalidConfigurationException(
+          "Backward formula construction is not yet implemented for pointer aliasing.");
+    }
+
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
@@ -469,9 +478,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else if (baseType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) baseType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
+        final int offset = typeHandler.getOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
@@ -484,9 +493,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                     fields,
                                     ssa,
                                     constraints);
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += getSizeof(memberType);
         }
       }
     } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {

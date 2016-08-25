@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+
+import javax.annotation.Nullable;
 
 /**
  * Class for expressions that represent names of declared constructs.
@@ -38,7 +38,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
-  public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
+  // TODO refactor to be either abstract or final
+
+  public JIdExpression(
+      FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
     // TODO Refactor, so we do not need null for declaration.
     // (Insert extra classes or objects for unresolvable declarations)
@@ -54,16 +57,6 @@ public class JIdExpression extends AIdExpression implements JLeftHandSide {
   @Override
   public JType getExpressionType() {
     return (JType) super.getExpressionType();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

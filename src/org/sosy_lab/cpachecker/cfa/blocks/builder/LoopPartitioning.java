@@ -23,12 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -41,8 +37,12 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -70,7 +70,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected boolean shouldBeCached(CFANode pNode) {
+  protected boolean isBlockEntry(CFANode pNode) {
     if (isMainFunction(pNode)) {
       Preconditions.checkArgument(cfa.getMainFunction().getFunctionName().equals(pNode.getFunctionName()));
       //main function
@@ -101,24 +101,24 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    Preconditions.checkArgument(shouldBeCached(pNode));
+  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+    Preconditions.checkArgument(isBlockEntry(pBlockHead));
 
-    if (isMainFunction(pNode)) {
-      return CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pNode);
+    if (isMainFunction(pBlockHead)) {
+      return CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pBlockHead);
     }
 
     if (loopHeaderToLoopBody == null) {
       initLoopMap();
     }
 
-    if (!loopHeaderToLoopBody.containsKey(pNode)) {
+    if (!loopHeaderToLoopBody.containsKey(pBlockHead)) {
       // loopStructure is missing in CFA or loop with multiple headers
       return null;
     }
 
-    Set<CFANode> loopBody = new HashSet<>(loopHeaderToLoopBody.get(pNode));
-    insertLoopStartState(loopBody, pNode);
+    Set<CFANode> loopBody = new HashSet<>(loopHeaderToLoopBody.get(pBlockHead));
+    insertLoopStartState(loopBody, pBlockHead);
     insertLoopReturnStates(loopBody);
     return loopBody;
   }

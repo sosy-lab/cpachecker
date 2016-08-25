@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -185,12 +187,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       boolean refinementSuccessful;
       do {
         refinementSuccessful = false;
+        final AbstractState previousLastState = reached.getLastState();
 
         // run algorithm
         status = status.update(algorithm.run(reached));
 
         // if there is any target state do refinement
-        if (refinementNecessary(reached)) {
+        if (refinementNecessary(reached, previousLastState)) {
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
@@ -220,14 +223,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     return status;
   }
 
-  private boolean refinementNecessary(ReachedSet reached) {
+  private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     if (globalRefinement) {
       // check other states
       return from(reached).anyMatch(IS_TARGET_STATE);
 
     } else {
-      // check only last state
-      return isTargetState(reached.getLastState());
+      // Check only last state, but only if it is different from the last iteration.
+      // Otherwise we would attempt to refine the same state twice if CEGARAlgorithm.run
+      // is called again but this time the inner algorithm does not find any successor states.
+      return !Objects.equals(reached.getLastState(), previousLastState)
+          && isTargetState(reached.getLastState());
     }
   }
 

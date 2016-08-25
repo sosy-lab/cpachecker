@@ -42,17 +42,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * into a infix expression in the CFA and also be represented by this class.
  *
  */
-public class JBinaryExpression extends ABinaryExpression implements JExpression {
+public final class JBinaryExpression extends ABinaryExpression implements JExpression {
 
   public JBinaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
       BinaryOperator pOperator) {
     super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
 
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

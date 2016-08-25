@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
@@ -321,5 +322,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
+  }
+
+  @Override
+  public void setPartitioning(BlockPartitioning partitioning) {
+    cpas.forEach(e -> {
+      assert e instanceof ConfigurableProgramAnalysisWithBAM;
+      ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
+    });
   }
 }

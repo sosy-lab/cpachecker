@@ -57,10 +57,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -560,9 +560,9 @@ class AssignmentHandler {
             + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
       }
       result = bfmgr.makeBoolean(true);
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
+        final int offset = typeHandler.getOffset(lvalueCompositeType, memberName);
         final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
         // Optimizing away the assignments from uninitialized fields
         if (conv.isRelevantField(lvalueCompositeType, memberName)
@@ -596,10 +596,6 @@ class AssignmentHandler {
                                                        useOldSSAIndices,
                                                        updatedTypes,
                                                        updatedVariables));
-        }
-
-        if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += conv.getSizeof(memberDeclaration.getType());
         }
       }
       return result;
