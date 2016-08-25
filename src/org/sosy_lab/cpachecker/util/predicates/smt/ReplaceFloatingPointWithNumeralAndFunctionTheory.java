@@ -90,11 +90,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public <T extends Formula> T castTo(
+  public <T2 extends Formula> T2 castTo(
       FloatingPointFormula number,
-      FormulaType<T> targetType,
+      FormulaType<T2> targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return genericCast(unwrap(number), targetType);
   }
 
   @Override
@@ -110,7 +110,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       boolean signed,
       FloatingPointType targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return wrap(targetType, genericCast(number, unwrapType(targetType)));
   }
 
   private <T2 extends Formula> T2 genericCast(Formula pNumber, FormulaType<T2> pTargetType) {
@@ -146,7 +146,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return wrap(getFormulaType(number1),
+        numericFormulaManager.add(unwrap(number1), unwrap (number2)));
   }
 
   @Override
@@ -159,7 +160,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return null;
+    return wrap(getFormulaType(number1), numericFormulaManager.subtract(unwrap(number1), unwrap(number2)));
   }
 
   @Override
