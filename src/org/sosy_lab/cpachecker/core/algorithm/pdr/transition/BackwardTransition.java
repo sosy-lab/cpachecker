@@ -458,7 +458,7 @@ public class BackwardTransition {
     Deque<AbstractState> waitlist = Queues.newArrayDeque();
     waitlist.push(pInitialState);
 
-    Set<AbstractState> forward = Sets.newHashSet();
+    Set<AbstractState> forward = Sets.newLinkedHashSet();
     forward.add(pInitialState);
 
     while (!waitlist.isEmpty()) {
