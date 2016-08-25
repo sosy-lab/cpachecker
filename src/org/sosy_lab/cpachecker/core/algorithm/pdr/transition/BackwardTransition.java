@@ -129,6 +129,9 @@ public class BackwardTransition {
   /**
    * Gets all blocks from predecessors to the given successor location.
    *
+   * A cache will be used to store results and retrieve previously computed
+   * blocks from.
+   *
    * @param pSuccessorLocation the successor location of the resulting blocks.
    * @return all blocks from predecessors to the given successor location.
    * @throws CPAException if the analysis creating the blocks encounters an
@@ -137,6 +140,26 @@ public class BackwardTransition {
    */
   public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation)
       throws CPAException, InterruptedException {
+    return getBlocksTo(pSuccessorLocation, true);
+  }
+
+  /**
+   * Gets all blocks from predecessors to the given successor location.
+   *
+   * @param pSuccessorLocation the successor location of the resulting blocks.
+   * @param pUseCache whether to store the results in or retrieve them from a
+   * cache.
+   *
+   * @return all blocks from predecessors to the given successor location.
+   * @throws CPAException if the analysis creating the blocks encounters an
+   * exception.
+   * @throws InterruptedException if block creation was interrupted.
+   */
+  public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation, boolean pUseCache)
+      throws CPAException, InterruptedException {
+    if (!pUseCache) {
+      return getBlocksTo0(pSuccessorLocation);
+    }
     try {
       return FluentIterable.from(cache.get(pSuccessorLocation));
     } catch (ExecutionException e) {

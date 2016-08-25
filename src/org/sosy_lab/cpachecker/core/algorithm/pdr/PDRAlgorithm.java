@@ -508,7 +508,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       CFANode successorLocation = currentObligation.getLocation();
       FluentIterable<Block> connectingBlocks =
           backwardTransition
-              .getBlocksTo(successorLocation)
+              .getBlocksTo(successorLocation, false)
               .filter(Blocks.applyToPredecessorLocation(l -> l.equals(predecessorLocation)));
       blocks.add(Iterables.getOnlyElement(connectingBlocks));
       previousSuccessorLocation = successorLocation;
@@ -550,15 +550,24 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       BooleanFormula blockFormulaConjunctions = Blocks.conjoinBlockFormulas(pBlocks, fmgr);
       prover.push(blockFormulaConjunctions);
 
-      // get the branchingFormula
-      // this formula contains predicates for all branches we took
-      // this way we can figure out which branches make a feasible path
-      BooleanFormula branchingFormula = Blocks.conjoinBranchingFormulas(pBlocks, fmgr, pfmgr);
-
-      prover.push(branchingFormula);
-
       List<ValueAssignment> model;
       try {
+
+        boolean satisfiable = !prover.isUnsat();
+        if (!satisfiable) {
+          // should not occur
+          logger.log(
+              Level.WARNING,
+              "Counterexample export failed because the counterexample is spurious!");
+          return;
+        }
+
+        // get the branchingFormula
+        // this formula contains predicates for all branches we took
+        // this way we can figure out which branches make a feasible path
+        BooleanFormula branchingFormula = Blocks.conjoinBranchingFormulas(pBlocks, fmgr, pfmgr);
+
+        prover.push(branchingFormula);
         // need to ask solver for satisfiability again,
         // otherwise model doesn't contain new predicates
         boolean stillSatisfiable = !prover.isUnsat();
