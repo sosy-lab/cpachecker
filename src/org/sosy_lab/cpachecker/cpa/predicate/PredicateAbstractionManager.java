@@ -363,60 +363,17 @@ public class PredicateAbstractionManager {
       }
     }
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
-      thmProver.push(f);
-
-      if (remainingPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
-        stats.numSatCheckAbstractions++;
-
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
-
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
-
-      } else if (abstractionType == AbstractionType.ELIMINATION) {
-        stats.quantifierEliminationTime.start();
-        try {
-          abs = rmgr.makeAnd(abs,
-              eliminateIrrelevantVariablePropositions(f, ssa));
-        } finally {
-          stats.quantifierEliminationTime.stop();
-        }
-      } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
-          stats.cartesianAbstractionTime.start();
-          try {
-            abs =
-                rmgr.makeAnd(
-                    abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
-          } finally {
-            stats.cartesianAbstractionTime.stop();
-          }
-        }
-
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
-          // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates += remainingPredicates.size();
-          stats.booleanAbstractionTime.start();
-          try {
-            abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
-          } finally {
-            stats.booleanAbstractionTime.stop();
-          }
-
-          // Warning:
-          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
-          // remainingPredicates is now empty.
-        }
+    if (abstractionType == AbstractionType.ELIMINATION) {
+      stats.quantifierEliminationTime.start();
+      try {
+        BooleanFormula eliminationResult = fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
+        abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(eliminationResult));
+      } finally {
+        stats.quantifierEliminationTime.stop();
       }
+
+    } else {
+      abs = rmgr.makeAnd(abs, buildAbstraction(f, ssa, remainingPredicates));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -559,15 +516,6 @@ public class PredicateAbstractionManager {
       stats.abstractionReuseTime.stop();
     }
     return null; //no abstraction could be reused
-  }
-
-  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, SSAMap pSsa) throws InterruptedException, SolverException {
-
-    BooleanFormula eliminationResult = fmgr.uninstantiate(
-        fmgr.eliminateDeadVariables(pF, pSsa));
-
-    return amgr.convertFormulaToRegion(eliminationResult);
-
   }
 
   /**
@@ -732,6 +680,63 @@ public class PredicateAbstractionManager {
       final PathFormula blockFormula) throws InterruptedException {
     Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
+  }
+
+  private Region buildAbstraction(
+      final BooleanFormula f,
+      final SSAMap ssa,
+      final Collection<AbstractionPredicate> remainingPredicates)
+      throws SolverException, InterruptedException {
+    Region abs = rmgr.makeTrue();
+
+    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+      thmProver.push(f);
+
+      if (remainingPredicates.isEmpty()) {
+        stats.numSatCheckAbstractions++;
+
+        stats.abstractionSolveTime.start();
+        boolean feasibility;
+        try {
+          feasibility = !thmProver.isUnsat();
+        } finally {
+          stats.abstractionSolveTime.stop();
+        }
+
+        if (!feasibility) {
+          abs = rmgr.makeFalse();
+        }
+
+      } else {
+        if (abstractionType != AbstractionType.BOOLEAN) {
+          // First do cartesian abstraction if desired
+          stats.cartesianAbstractionTime.start();
+          try {
+            abs =
+                rmgr.makeAnd(
+                    abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
+          } finally {
+            stats.cartesianAbstractionTime.stop();
+          }
+        }
+
+        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+          // Last do boolean abstraction if desired and necessary
+          stats.numBooleanAbsPredicates += remainingPredicates.size();
+          stats.booleanAbstractionTime.start();
+          try {
+            abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
+          } finally {
+            stats.booleanAbstractionTime.stop();
+          }
+
+          // Warning:
+          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+          // remainingPredicates is now empty.
+        }
+      }
+    }
+    return abs;
   }
 
   /**
