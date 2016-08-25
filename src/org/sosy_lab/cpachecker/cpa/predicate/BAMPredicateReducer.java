@@ -304,10 +304,10 @@ public class BAMPredicateReducer implements Reducer {
 
     // De-serialized AbstractionFormula are missing the Regions which we need for expand(),
     // so we re-create them here.
-    rootAbstraction = pamgr.buildAbstraction(
-        rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
-    reducedAbstraction = pamgr.buildAbstraction(
-        reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
+    rootAbstraction =
+        pamgr.asAbstraction(rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
+    reducedAbstraction =
+        pamgr.asAbstraction(reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
 
     Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =

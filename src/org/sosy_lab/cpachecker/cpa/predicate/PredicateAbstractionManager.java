@@ -404,7 +404,7 @@ public class PredicateAbstractionManager {
     } else {
       abs =
           rmgr.makeAnd(
-              abs, buildAbstraction(f, remainingPredicates, pred -> fmgr.instantiate(pred, ssa)));
+              abs, computeAbstraction(f, remainingPredicates, pred -> fmgr.instantiate(pred, ssa)));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -667,7 +667,7 @@ public class PredicateAbstractionManager {
     return region;
   }
 
-  private Region buildAbstraction(
+  private Region computeAbstraction(
       final BooleanFormula f,
       final Collection<AbstractionPredicate> remainingPredicates,
       final Function<BooleanFormula, BooleanFormula> instantiator)
@@ -700,7 +700,7 @@ public class PredicateAbstractionManager {
             abs =
                 rmgr.makeAnd(
                     abs,
-                    buildCartesianAbstraction(f, thmProver, remainingPredicates, instantiator));
+                    computeCartesianAbstraction(f, thmProver, remainingPredicates, instantiator));
           } finally {
             stats.cartesianAbstractionTime.stop();
           }
@@ -713,7 +713,7 @@ public class PredicateAbstractionManager {
           try {
             abs =
                 rmgr.makeAnd(
-                    abs, buildBooleanAbstraction(thmProver, remainingPredicates, instantiator));
+                    abs, computeBooleanAbstraction(thmProver, remainingPredicates, instantiator));
           } finally {
             stats.booleanAbstractionTime.stop();
           }
@@ -737,7 +737,7 @@ public class PredicateAbstractionManager {
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */
-  private Region buildCartesianAbstraction(
+  private Region computeCartesianAbstraction(
       final BooleanFormula f,
       final ProverEnvironment thmProver,
       final Collection<AbstractionPredicate> pPredicates,
@@ -856,7 +856,7 @@ public class PredicateAbstractionManager {
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */
-  private Region buildBooleanAbstraction(
+  private Region computeBooleanAbstraction(
       final ProverEnvironment thmProver,
       final Collection<AbstractionPredicate> predicates,
       final Function<BooleanFormula, BooleanFormula> instantiator)
@@ -1055,7 +1055,7 @@ public class PredicateAbstractionManager {
    * @return An AbstractionFormula instance representing f
    *          with blockFormula as the block formula.
    */
-  public AbstractionFormula buildAbstraction(final BooleanFormula f, final PathFormula blockFormula)
+  public AbstractionFormula asAbstraction(final BooleanFormula f, final PathFormula blockFormula)
       throws InterruptedException {
     Region r = amgr.convertFormulaToRegion(f);
     return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
