@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -269,28 +271,59 @@ public final class Blocks {
     }
 
     CFANode expectedPredecessorLocation = null;
-    PathFormula previousBlockSuccessorContext = null;
+    SSAMap previousBlockSuccessorContext = null;
 
     for (Block block : pBlocks) {
       Preconditions.checkArgument(
           expectedPredecessorLocation == null || block.getPredecessorLocation().equals(expectedPredecessorLocation),
           "Blocks must connect.");
       BooleanFormula blockFormula = pExtractFormula.apply(block);
+      SSAMap blockSuccessorContext =
+          (block.getDirection() == AnalysisDirection.FORWARD
+                  ? block.getPrimedContext()
+                  : block.getUnprimedContext())
+              .getSsa();
       if (previousBlockSuccessorContext != null) {
-        final PathFormula previousContext = previousBlockSuccessorContext;
-        blockFormula = Reindexer.reindex(
-            blockFormula,
-            block.getPrimedContext().getSsa(),
-            (var, i) -> previousContext.getSsa().getIndex(var) + i - 1,
-            pFormulaManager);
+        final SSAMap previousContext = previousBlockSuccessorContext;
+        blockFormula =
+            Reindexer.reindex(
+                blockFormula,
+                blockSuccessorContext,
+                (var, i) -> previousContext.getIndex(var) + i - 1,
+                pFormulaManager);
+        previousBlockSuccessorContext =
+            combine(
+                previousBlockSuccessorContext,
+                blockSuccessorContext,
+                blockFormula,
+                pFormulaManager);
+      } else {
+        previousBlockSuccessorContext =
+            Reindexer.adjustToFormula(blockFormula, blockSuccessorContext, pFormulaManager);
       }
       formula = booleanFormulaManager.and(formula, blockFormula);
 
       expectedPredecessorLocation = block.getSuccessorLocation();
-      previousBlockSuccessorContext = block.getPrimedContext();
     }
 
     return formula;
+  }
+
+  private static SSAMap combine(
+      SSAMap pPreviousBlockSuccessorContext,
+      SSAMap pBlockSuccessorContext,
+      BooleanFormula pBlockFormula,
+      FormulaManagerView pFormulaManager) {
+    SSAMapBuilder builder = pPreviousBlockSuccessorContext.builder();
+    SSAMap blockSuccessorContext =
+        Reindexer.adjustToFormula(pBlockFormula, pBlockSuccessorContext, pFormulaManager);
+    for (String variable : blockSuccessorContext.allVariables()) {
+      int previousIndex = pPreviousBlockSuccessorContext.getIndex(variable);
+      int blockIndex = blockSuccessorContext.getIndex(variable);
+      builder.setIndex(
+          variable, blockSuccessorContext.getType(variable), previousIndex - 1 + blockIndex);
+    }
+    return builder.build();
   }
 
   /**

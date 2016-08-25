@@ -27,6 +27,7 @@ import com.google.common.collect.Maps;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -50,6 +51,7 @@ final class Reindexer {
     Set<String> allVariables = pFormulaSSAMap.allVariables();
     Map<String, IntUnaryOperator> substitution =
         Maps.newHashMapWithExpectedSize(allVariables.size());
+    Set<String> formulaVariables = pFormulaManager.extractVariableNames(pOldFormula);
     for (String variableName : allVariables) {
       int highIndex = pFormulaSSAMap.getIndex(variableName);
       String highVariableName =
@@ -58,7 +60,7 @@ final class Reindexer {
               .iterator()
               .next();
       final int realHighIndex;
-      if (pFormulaManager.extractVariableNames(pOldFormula).contains(highVariableName)) {
+      if (formulaVariables.contains(highVariableName)) {
         realHighIndex = highIndex;
       } else {
         realHighIndex = highIndex - 1;
@@ -70,6 +72,34 @@ final class Reindexer {
         pFormulaSSAMap,
         (var, i) -> substitution.get(var).applyAsInt(i),
         pFormulaManager);
+  }
+
+  public static <F extends Formula> SSAMap adjustToFormula(
+      F pFormula, SSAMap pFormulaSSAMap, FormulaManagerView pFormulaManager) {
+    Set<String> formulaVariables = pFormulaManager.extractVariableNames(pFormula);
+    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+    for (String variableName : pFormulaSSAMap.allVariables()) {
+      CType type = pFormulaSSAMap.getType(variableName);
+      int highIndex = pFormulaSSAMap.getIndex(variableName);
+      String highVariableName =
+          pFormulaManager
+              .instantiate(Collections.singleton(variableName), pFormulaSSAMap)
+              .iterator()
+              .next();
+      while (highIndex > 1 && !formulaVariables.contains(highVariableName)) {
+        --highIndex;
+        highVariableName =
+            pFormulaManager
+                .instantiate(
+                    Collections.singleton(variableName),
+                    SSAMap.emptySSAMap().builder().setIndex(variableName, type, highIndex).build())
+                .iterator()
+                .next();
+      }
+      final int realHighIndex = highIndex;
+      builder.setIndex(variableName, type, realHighIndex);
+    }
+    return builder.build();
   }
 
   public static <F extends Formula> F reindex(
