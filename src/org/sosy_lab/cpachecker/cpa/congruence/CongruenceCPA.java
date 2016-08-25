@@ -147,7 +147,7 @@ public class CongruenceCPA
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     solver.close();
   }
 }
