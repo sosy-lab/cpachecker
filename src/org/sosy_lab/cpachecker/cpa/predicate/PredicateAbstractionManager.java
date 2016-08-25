@@ -129,10 +129,13 @@ public class PredicateAbstractionManager {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final PredicateAbstractionsStorage abstractionStorage;
   private final AbstractionManager amgr;
   private final RegionCreator rmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
+  private final InvariantSupplier invariantSupplier;
   private final ShutdownNotifier shutdownNotifier;
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
@@ -194,12 +197,6 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
-  private final InvariantSupplier invariantSupplier;
-
-  private final BooleanFormulaManagerView bfmgr;
-
-  private final PredicateAbstractionsStorage abstractionStorage;
-
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       PathFormulaManager pPfmgr,
@@ -244,6 +241,40 @@ public class PredicateAbstractionManager {
     }
 
     abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr, null);
+  }
+
+  /**
+   * Compute an abstraction of a single boolean formula.
+   * @param f The formula to be abstracted. Needs to be instantiated
+   *         with the indices from <code>blockFormula.getSssa()</code>.
+   * @param blockFormula A path formula that is not used for the abstraction,
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   * @param predicates The set of predicates used for abstraction.
+   * @return An AbstractionFormula instance representing an abstraction of f
+   *          with blockFormula as the block formula.
+   */
+  public AbstractionFormula buildAbstraction(
+      final CFANode location,
+      final BooleanFormula f,
+      final PathFormula blockFormula,
+      final Collection<AbstractionPredicate> predicates)
+      throws SolverException, InterruptedException {
+
+    PathFormula pf =
+        new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
+
+    AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
+    AbstractionFormula newAbstraction =
+        buildAbstraction(location, emptyAbstraction, pf, predicates);
+
+    // fix block formula in result
+    return new AbstractionFormula(
+        fmgr,
+        newAbstraction.asRegion(),
+        newAbstraction.asFormula(),
+        newAbstraction.asInstantiatedFormula(),
+        blockFormula,
+        noAbstractionReuse);
   }
 
   /**
@@ -398,6 +429,20 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  private BooleanFormula buildFormula(BooleanFormula symbFormula) {
+
+    if (fmgr.useBitwiseAxioms()) {
+      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
+      if (!bfmgr.isTrue(bitwiseAxioms)) {
+        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
+
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+      }
+    }
+
+    return symbFormula;
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -622,53 +667,6 @@ public class PredicateAbstractionManager {
     return region;
   }
 
-  /**
-   * Compute an abstraction of a single boolean formula.
-   * @param f The formula to be abstracted. Needs to be instantiated
-   *         with the indices from <code>blockFormula.getSssa()</code>.
-   * @param blockFormula A path formula that is not used for the abstraction,
-   *         but will be used as the block formula in the resulting AbstractionFormula instance.
-   * @param predicates The set of predicates used for abstraction.
-   * @return An AbstractionFormula instance representing an abstraction of f
-   *          with blockFormula as the block formula.
-   */
-  public AbstractionFormula buildAbstraction(
-      final CFANode location,
-      final BooleanFormula f,
-      final PathFormula blockFormula,
-      final Collection<AbstractionPredicate> predicates)
-          throws SolverException, InterruptedException {
-
-    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
-
-    AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
-    AbstractionFormula newAbstraction = buildAbstraction(location, emptyAbstraction, pf, predicates);
-
-    // fix block formula in result
-    return new AbstractionFormula(fmgr, newAbstraction.asRegion(),
-        newAbstraction.asFormula(), newAbstraction.asInstantiatedFormula(),
-        blockFormula, noAbstractionReuse);
-  }
-
-  /**
-   * Create an abstraction from a single boolean formula without actually
-   * doing any abstraction computation. The formula is just converted into a
-   * region, but the result is equivalent to the input.
-   * This can be used to simply view the formula as a region.
-   * If BDDs are used, the result of this method is a minimized form of the input.
-   * @param f The formula to be converted to a region. Must NOT be instantiated!
-   * @param blockFormula A path formula that is not used for the abstraction,
-   *         but will be used as the block formula in the resulting AbstractionFormula instance.
-   *         Also it's SSAMap will be used for instantiating the result.
-   * @return An AbstractionFormula instance representing f
-   *          with blockFormula as the block formula.
-   */
-  public AbstractionFormula buildAbstraction(final BooleanFormula f,
-      final PathFormula blockFormula) throws InterruptedException {
-    Region r = amgr.convertFormulaToRegion(f);
-    return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
-  }
-
   private Region buildAbstraction(
       final BooleanFormula f,
       final Collection<AbstractionPredicate> remainingPredicates,
@@ -845,20 +843,6 @@ public class PredicateAbstractionManager {
     } finally {
       stats.abstractionEnumTime.stopOuter();
     }
-  }
-
-  private BooleanFormula buildFormula(BooleanFormula symbFormula) {
-
-    if (fmgr.useBitwiseAxioms()) {
-      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bfmgr.isTrue(bitwiseAxioms)) {
-        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-
-    return symbFormula;
   }
 
   /**
@@ -1056,6 +1040,27 @@ public class PredicateAbstractionManager {
     return solver.isUnsat(f);
   }
 
+  // syntactic creation and manipulation of AbstractionFormulas
+
+  /**
+   * Create an abstraction from a single boolean formula without actually
+   * doing any abstraction computation. The formula is just converted into a
+   * region, but the result is equivalent to the input.
+   * This can be used to simply view the formula as a region.
+   * If BDDs are used, the result of this method is a minimized form of the input.
+   * @param f The formula to be converted to a region. Must NOT be instantiated!
+   * @param blockFormula A path formula that is not used for the abstraction,
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   *         Also it's SSAMap will be used for instantiating the result.
+   * @return An AbstractionFormula instance representing f
+   *          with blockFormula as the block formula.
+   */
+  public AbstractionFormula buildAbstraction(final BooleanFormula f, final PathFormula blockFormula)
+      throws InterruptedException {
+    Region r = amgr.convertFormulaToRegion(f);
+    return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
+  }
+
   public AbstractionFormula makeTrueAbstractionFormula(PathFormula pPreviousBlockFormula) {
     if (pPreviousBlockFormula == null) {
       pPreviousBlockFormula = pfmgr.makeEmptyPathFormula();
@@ -1091,6 +1096,8 @@ public class PredicateAbstractionManager {
 
     return new AbstractionFormula(fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
+
+  // reduce & expand of AbstractionFormulas
 
   /**
    * Remove a set of predicates from an abstraction.
@@ -1136,6 +1143,8 @@ public class PredicateAbstractionManager {
     return makeAbstractionFormula(expandedRegion, newSSA, blockFormula);
   }
 
+  // Creating AbstractionPredicates
+
   /**
    * Extract all atoms from a formula and create predicates for them.
    * If instead a single predicate should be created for the whole formula,
@@ -1174,8 +1183,6 @@ public class PredicateAbstractionManager {
 
     return amgr.makePredicate(fmgr.uninstantiate(pFormula));
   }
-
-  // delegate methods
 
   public AbstractionPredicate makeFalsePredicate() {
     return amgr.makeFalsePredicate();
