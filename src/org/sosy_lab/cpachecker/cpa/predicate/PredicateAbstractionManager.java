@@ -397,20 +397,7 @@ public class PredicateAbstractionManager {
 
     if (dumpHardAbstractions && abstractionTime > 10000) {
       // we want to dump "hard" problems...
-      Path dumpFile;
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-      fmgr.dumpFormulaToFile(f, dumpFile);
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
-        Joiner.on('\n').appendTo(w, pPredicates);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
-      }
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
-      fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
+      dumpAbstractionProblem(f, pPredicates, result);
     }
 
     return result;
@@ -1005,6 +992,30 @@ public class PredicateAbstractionManager {
     private int getCount() {
       return count;
     }
+  }
+
+  /**
+   * Write input and result of an abstraction problem to disk.
+   */
+  private void dumpAbstractionProblem(
+      final BooleanFormula f,
+      final Collection<AbstractionPredicate> predicates,
+      final AbstractionFormula result) {
+    Path dumpFile;
+
+    dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+    fmgr.dumpFormulaToFile(f, dumpFile);
+
+    dumpFile =
+        fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
+    try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
+      Joiner.on('\n').appendTo(w, predicates);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
+    }
+
+    dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
+    fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
   }
 
   /**
