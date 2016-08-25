@@ -60,8 +60,8 @@ public class SMGStateTest {
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 
-  static private final CType mockType16b = AnonymousTypes.createTypeWithLength(16);
-  static private final CType mockType8b = AnonymousTypes.createTypeWithLength(8);
+  static private final CType mockType16b = AnonymousTypes.createTypeWithLength(128);
+  static private final CType mockType8b = AnonymousTypes.createTypeWithLength(64);
 
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
@@ -92,11 +92,11 @@ public class SMGStateTest {
     SMGValueFactory.getNewValue();
     SMGValueFactory.getNewValue();
 
-    SMGRegion l1 = new SMGRegion(12, "l1");
-    SMGRegion l2 = new SMGRegion(12, "l2");
-    SMGRegion l3 = new SMGRegion(12, "l3");
-    SMGRegion l4 = new SMGRegion(12, "l4");
-    SMGRegion l5 = new SMGRegion(12, "l5");
+    SMGRegion l1 = new SMGRegion(96, "l1");
+    SMGRegion l2 = new SMGRegion(96, "l2");
+    SMGRegion l3 = new SMGRegion(96, "l3");
+    SMGRegion l4 = new SMGRegion(96, "l4");
+    SMGRegion l5 = new SMGRegion(96, "l5");
 
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 7);
     SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
@@ -104,11 +104,11 @@ public class SMGStateTest {
     SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
     SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 5);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 4, l1, 5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 4, l2, 6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 4, l3, 7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 4, l4, 8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 4, l5, 9);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 32, l1, 5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 32, l2, 6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 32, l3, 7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 32, l4, 8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 32, l5, 9);
 
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(6, l1, 0);
     SMGEdgePointsTo l2t = new SMGEdgePointsTo(7, l2, 0);
@@ -156,13 +156,13 @@ public class SMGStateTest {
     Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
     SMGState smg1State = new SMGState(logger, true,
         true, SMGRuntimeCheck.NONE, smg1,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+        new AtomicInteger(1), 0, empty, 32, false, false);
 
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 32, pointerType, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -193,9 +193,9 @@ public class SMGStateTest {
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
 
-   SMGObject dls = new SMGDoublyLinkedList(12, 0, 0, 4, 0, 0);
+   SMGObject dls = new SMGDoublyLinkedList(96, 0, 0, 32, 0, 0);
    SMGEdgeHasValue dlsN = new SMGEdgeHasValue(pointerType, 0, dls, 5);
-   SMGEdgeHasValue dlsP = new SMGEdgeHasValue(pointerType, 4, dls, 5);
+   SMGEdgeHasValue dlsP = new SMGEdgeHasValue(pointerType, 32, dls, 5);
    heap.addHeapObject(dls);
    heap.setValidity(dls, true);
    heap.addValue(5);
@@ -206,24 +206,24 @@ public class SMGStateTest {
    heap.addPointsToEdge(new SMGEdgePointsTo(6, dls, 0, SMGTargetSpecifier.FIRST));
    heap.addPointsToEdge(new SMGEdgePointsTo(7, dls, 0, SMGTargetSpecifier.LAST));
 
-   SMGRegion l1 = new SMGRegion(12, "l1", 1);
-   SMGRegion l2 = new SMGRegion(12, "l2", 1);
-   SMGRegion l3 = new SMGRegion(12, "l3", 1);
-   SMGRegion l4 = new SMGRegion(12, "l4", 1);
-   SMGRegion l5 = new SMGRegion(12, "l5", 1);
+   SMGRegion l1 = new SMGRegion(96, "l1", 1);
+   SMGRegion l2 = new SMGRegion(96, "l2", 1);
+   SMGRegion l3 = new SMGRegion(96, "l3", 1);
+   SMGRegion l4 = new SMGRegion(96, "l4", 1);
+   SMGRegion l5 = new SMGRegion(96, "l5", 1);
 
    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 13);
    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, 9);
    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 11);
-   SMGEdgeHasValue dlsSub = new SMGEdgeHasValue(pointerType, 8, dls, 12);
+   SMGEdgeHasValue dlsSub = new SMGEdgeHasValue(pointerType, 64, dls, 12);
 
-   SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 4, l1, 11);
-   SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 4, l2, 12);
-   SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 4, l3, 13);
-   SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 4, l4, 8);
-   SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 4, l5, 9);
+   SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 32, l1, 11);
+   SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 32, l2, 12);
+   SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 32, l3, 13);
+   SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 32, l4, 8);
+   SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 32, l5, 9);
 
    SMGEdgePointsTo l1t = new SMGEdgePointsTo(12, l1, 0);
    SMGEdgePointsTo l2t = new SMGEdgePointsTo(13, l2, 0);
@@ -275,11 +275,11 @@ public class SMGStateTest {
         new AtomicInteger(1), 0, empty, 4, false, false);
 
     smg1State.addStackFrame(functionDeclaration3);
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, pointerType, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 32, pointerType, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -304,7 +304,7 @@ public class SMGStateTest {
   public void setUp() throws SMGInconsistentException {
     consistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
-    SMGAddressValue pt = inconsistent_state.addNewHeapAllocation(8, "label");
+    SMGAddressValue pt = inconsistent_state.addNewHeapAllocation(64, "label");
 
     consistent_state.addGlobalObject((SMGRegion)pt.getObject());
     inconsistent_state.addGlobalObject((SMGRegion)pt.getObject());
@@ -386,7 +386,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b value into it
-    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(128, "OBJECT");
     SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
@@ -422,7 +422,8 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv8at0));
 
     // Write a 8b value at index 8 and see that the old value did *not* get overwritten
-    SMGEdgeHasValue hv8at8 = state.writeValue(pt.getObject(), 8, mockType8b, new_value).getNewEdge();
+    SMGEdgeHasValue hv8at8 = state.writeValue(pt.getObject(), 64, mockType8b, new_value)
+        .getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(2, values_for_obj.size());
@@ -430,7 +431,8 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv8at8));
 
     // Write a 8b value at index 4 and see that the old value got overwritten
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, new_value).getNewEdge();
+    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 32, mockType8b, new_value)
+        .getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
@@ -446,7 +448,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b zero value into it
-    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(128, "OBJECT");
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, SMGKnownSymValue.ZERO).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -457,13 +459,14 @@ public class SMGStateTest {
 
     // Write a 8b value at index 4
     // We should see three Has-Value edges: 4b zero, 8b just written, 4b zero
-    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, SMGUnknownValue.getInstance()).getNewEdge();
+    SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 32, mockType8b, SMGUnknownValue
+        .getInstance()).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     Assert.assertEquals(3, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv8at4));
-    Assert.assertTrue(values_for_obj.contains(new SMGEdgeHasValue(4, 0, pt.getObject(), 0)));
-    Assert.assertTrue(values_for_obj.contains(new SMGEdgeHasValue(4, 12, pt.getObject(), 0)));
+    Assert.assertTrue(values_for_obj.contains(new SMGEdgeHasValue(32, 0, pt.getObject(), 0)));
+    Assert.assertTrue(values_for_obj.contains(new SMGEdgeHasValue(32, 96, pt.getObject(), 0)));
 
 
     SMGEdgeHasValueFilter nullFilter = SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0);
@@ -471,7 +474,7 @@ public class SMGStateTest {
     Assert.assertEquals(2, nulls_for_value.size());
 
     Assert.assertEquals(1, state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0).filterAtOffset(0)).size());
-    Assert.assertEquals(1, state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0).filterAtOffset(12)).size());
+    Assert.assertEquals(1, state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(0).filterAtOffset(96)).size());
 
   }
 
@@ -482,7 +485,7 @@ public class SMGStateTest {
         0, false, false);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(128, "OBJECT");
 
     Integer pointer = pt.getValue().intValue();
 
@@ -496,7 +499,7 @@ public class SMGStateTest {
         0, false, false);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
+    SMGAddressValue pt = state.addNewHeapAllocation(128, "OBJECT");
     SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 

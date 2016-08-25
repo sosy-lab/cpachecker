@@ -105,7 +105,8 @@ public class CLangStackFrameTest {
   @Test
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
-    Assert.assertEquals(usedMachineModel.getSizeof(CNumericTypes.UNSIGNED_LONG_INT), retval.getSize());
+    Assert.assertEquals(usedMachineModel.getBitSizeof(CNumericTypes.UNSIGNED_LONG_INT), retval
+        .getSize());
   }
 
   @Test(expected=IllegalArgumentException.class)
