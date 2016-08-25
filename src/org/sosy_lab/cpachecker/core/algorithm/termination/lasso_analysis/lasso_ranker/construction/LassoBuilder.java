@@ -324,13 +324,14 @@ public class LassoBuilder {
       Dnf pDnf, SSAMap inSsa, SSAMap outSsa, Set<String> pRelevantVariables) {
     Map<Formula, Formula> subsitution = pDnf.getUfEliminationResult().getSubstitution();
     InOutVariablesCollector veriablesCollector =
-        new InOutVariablesCollector(fmgrView, inSsa, outSsa, subsitution);
+        new InOutVariablesCollector(fmgrView, inSsa, outSsa, pRelevantVariables, subsitution);
     fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), veriablesCollector);
 
     Map<RankVar, Term> inRankVars =
         createRankVars(veriablesCollector.getInVariables(), pRelevantVariables, subsitution);
     Map<RankVar, Term> outRankVars =
         createRankVars(veriablesCollector.getOutVariables(), pRelevantVariables, subsitution);
+
     return new InOutVariables(inRankVars, outRankVars);
   }
 

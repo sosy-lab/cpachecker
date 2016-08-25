@@ -54,16 +54,20 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
   private final SSAMap outVariablesSsa;
   private final SSAMap inVariablesSsa;
+  private final Set<String> relevantVariables;
   private final Map<Formula, Formula> substitution;
+
 
   public InOutVariablesCollector(
       FormulaManagerView pFormulaManagerView,
       SSAMap pInVariablesSsa,
       SSAMap pOutVariablesSsa,
+      Set<String> pRelevantVariables,
       Map<Formula, Formula> pSubstitution) {
     formulaManagerView = pFormulaManagerView;
     outVariablesSsa = pOutVariablesSsa;
     inVariablesSsa = pInVariablesSsa;
+    relevantVariables = pRelevantVariables;
     substitution = pSubstitution;
     ufs = Maps.newLinkedHashMap();
   }
@@ -127,11 +131,12 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
     @Override
     public TraversalProcess visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-      // ignore meta variables
-      if (pArgs
+      // ignore meta variables and variables that are not in the current scope
+      if (!pArgs
           .stream()
+          .map(formulaManagerView::uninstantiate)
           .flatMap(f -> formulaManagerView.extractVariableNames(f).stream())
-          .anyMatch(LassoBuilder::isMetaVariable)) {
+          .allMatch(relevantVariables::contains)) {
         return TraversalProcess.CONTINUE;
       }
 
@@ -152,7 +157,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
       Pair<String, List<Formula>> key = Pair.of(tokens.getFirstNotNull(), uninstatiatedArgs);
       ufs.putIfAbsent(key, Maps.newTreeMap());
       Map<Integer, Formula> ufApplications = ufs.get(key);
-      int functionIndex = tokens.getSecondNotNull().getAsInt();
+      int functionIndex = tokens.getSecondNotNull().orElse(0);
       ufApplications.put(functionIndex + argIndexes, substitution.get(pF));
 
       return TraversalProcess.CONTINUE;
