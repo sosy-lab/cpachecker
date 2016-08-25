@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -88,7 +87,7 @@ public class RankingRelation {
   }
 
   public CExpression asCExpression() {
-    Preconditions.checkState(!rankingRelations.isEmpty());
+    assert !rankingRelationFormulas.isEmpty();
     return rankingRelations
         .stream()
         .reduce((a, b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
@@ -96,6 +95,7 @@ public class RankingRelation {
   }
 
   public BooleanFormula asFormula() {
+    assert !rankingRelationFormulas.isEmpty();
     return formulaManagerView.getBooleanFormulaManager().or(rankingRelationFormulas);
   }
 
