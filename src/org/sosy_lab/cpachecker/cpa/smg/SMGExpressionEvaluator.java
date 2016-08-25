@@ -316,7 +316,7 @@ public class SMGExpressionEvaluator {
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      if (typeMember.getType().isBitField()) {
+      if (machineModel.isBitFieldsSupportEnabled() && typeMember.getType().isBitField()) {
         int padding = 0;
         if (!previousIsBitField) {
           padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
