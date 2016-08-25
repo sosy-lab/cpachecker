@@ -25,19 +25,17 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -48,9 +46,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 /**
  * Utility class for blocks.
@@ -327,60 +325,6 @@ public final class Blocks {
   }
 
   /**
-   * Build a combined ARGPath for the given blocks.
-   *
-   * @param pBlocks the blocks. The order of the blocks is expected to be
-   * 'forward', e.g. from the program entry to a target state.
-   * The blocks themselves are assumed to have been created with a backward analysis.
-   * @param pBranchingInformation the target reached set.
-   *
-   * @return the ARG path.
-   */
-  public static ARGPath combineARGPaths(
-      Iterable<Block> pBlocks,
-      Map<Integer, Boolean> pBranchingInformation) {
-    Preconditions.checkArgument(!Iterables.isEmpty(pBlocks), "Cannot create empty ARG path.");
-
-    ARGPathBuilder argPathBuilder = ARGPath.reverseBuilder();
-    ARGState firstState = null;
-    CFANode expectedPredecessorLocation = null;
-
-    for (Block block : pBlocks) {
-      Preconditions.checkArgument(block.getDirection() == AnalysisDirection.BACKWARD);
-      Preconditions.checkArgument(
-          expectedPredecessorLocation == null || block.getPredecessorLocation().equals(expectedPredecessorLocation),
-          "Blocks must connect.");
-
-      ReachedSet reachedSet = block.getReachedSet();
-      ARGPath blockPath = ARGUtils.getPathFromBranchingInformation(
-          AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class),
-          FluentIterable
-            .from(reachedSet)
-            .transform(AbstractStates.toState(ARGState.class))
-            .toSet(),
-          pBranchingInformation);
-
-      List<CFAEdge> pathEdges = blockPath.getInnerEdges();
-      List<ARGState> pathStates = blockPath.asStatesList();
-      ListIterator<ARGState> stateIterator = pathStates.listIterator(pathStates.size());
-      ListIterator<CFAEdge> edgeIterator = pathEdges.listIterator(pathEdges.size());
-
-      while (stateIterator.hasPrevious()) {
-        ARGState state = stateIterator.previous();
-        if (edgeIterator.hasPrevious()) {
-          argPathBuilder.add(state, edgeIterator.previous());
-        } else if (firstState == null) {
-          firstState = state;
-        }
-      }
-
-      expectedPredecessorLocation = block.getSuccessorLocation();
-    }
-
-    return argPathBuilder.build(firstState);
-  }
-
-  /**
    * Combine the reached sets of the given blocks and insert their states into
    * the given target reached set.
    *
@@ -396,17 +340,16 @@ public final class Blocks {
       return;
     }
 
+    AbstractState previousState = null;
     ARGState argPreviousState = null;
+    List<Iterable<StateWithPrecision>> blockStates = new ArrayList<>();
     for (Block block : pBlocks) {
       ReachedSet reachedSet = block.getReachedSet();
-      AbstractState firstState =
-          block.getDirection() == AnalysisDirection.FORWARD
-              ? block.getPredecessor()
-              : block.getSuccessor();
-      assert reachedSet.getFirstState() == firstState;
+      AbstractState firstState = block.getPredecessor();
 
+      final AbstractState removed;
       if (argPreviousState == null) {
-        pTargetReachedSet.add(firstState, reachedSet.getPrecision(firstState));
+        removed = null;
       } else {
         ARGState argFirstState = AbstractStates.extractStateByType(firstState, ARGState.class);
 
@@ -417,26 +360,52 @@ public final class Blocks {
                 .isEmpty(),
             "Blocks must connect.");
 
-        for (ARGState childOfFirstState : argFirstState.getChildren()) {
-          childOfFirstState.addParent(argPreviousState);
+        if (block.getDirection() == AnalysisDirection.FORWARD) {
+          for (ARGState childOfFirstState : argFirstState.getChildren()) {
+            childOfFirstState.addParent(argPreviousState);
+          }
+          argFirstState.removeFromARG();
+          removed = firstState;
+        } else {
+          for (ARGState childOfPreviousState : argPreviousState.getChildren()) {
+            childOfPreviousState.addParent(argFirstState);
+          }
+          argPreviousState.removeFromARG();
+          removed = argPreviousState;
         }
-        argFirstState.removeFromARG();
       }
 
-      for (AbstractState state : reachedSet) {
-        if (state != firstState) {
-          pTargetReachedSet.add(state, reachedSet.getPrecision(state));
-          pTargetReachedSet.removeOnlyFromWaitlist(state);
-        }
-      }
+      Iterable<StateWithPrecision> remainingStates =
+          FluentIterable.from(reachedSet)
+              .filter(Predicates.not(Predicates.equalTo(removed)))
+              .filter(as -> !AbstractStates.extractStateByType(as, ARGState.class).isDestroyed())
+              .transform(as -> new StateWithPrecision(as, reachedSet.getPrecision(as)));
+      blockStates.add(remainingStates);
 
-      argPreviousState = AbstractStates.extractStateByType(
-          block.getDirection() == AnalysisDirection.FORWARD
-              ? block.getSuccessor()
-              : block.getPredecessor(),
-          ARGState.class);
-
+      previousState = block.getSuccessor();
+      argPreviousState = AbstractStates.extractStateByType(previousState, ARGState.class);
     }
+    ListIterator<Iterable<StateWithPrecision>> blockStatesIterator =
+        blockStates.listIterator(blockStates.size());
+    while (blockStatesIterator.hasPrevious()) {
+      for (StateWithPrecision stateWithPrecision : blockStatesIterator.previous()) {
+        pTargetReachedSet.add(stateWithPrecision.state, stateWithPrecision.precision);
+        pTargetReachedSet.removeOnlyFromWaitlist(stateWithPrecision.state);
+      }
+    }
+  }
+
+  private static class StateWithPrecision {
+
+    private final AbstractState state;
+
+    private final Precision precision;
+
+    public StateWithPrecision(AbstractState pState, Precision pPrecision) {
+      state = pState;
+      precision = pPrecision;
+    }
+
   }
 
   private static interface BlockToFormula {

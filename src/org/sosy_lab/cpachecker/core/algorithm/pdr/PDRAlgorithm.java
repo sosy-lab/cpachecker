@@ -50,6 +50,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -595,7 +597,15 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       Map<Integer, Boolean> branchingInformation =
           pfmgr.getBranchingPredicateValuesFromModel(model);
 
-      ARGPath targetPath = Blocks.combineARGPaths(pBlocks, branchingInformation);
+      Blocks.combineReachedSets(pBlocks, pTargetReachedSet);
+      ARGPath targetPath =
+          ARGUtils.getPathFromBranchingInformation(
+              AbstractStates.extractStateByType(pTargetReachedSet.getFirstState(), ARGState.class),
+              FluentIterable.from(pTargetReachedSet)
+                  .transform(AbstractStates.toState(ARGState.class))
+                  .filter(argState -> !argState.isDestroyed())
+                  .toSet(),
+              branchingInformation);
 
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker;
@@ -638,6 +648,5 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.getErrorPathCreationTimer().stop();
     }
-    Blocks.combineReachedSets(pBlocks, pTargetReachedSet);
   }
 }
