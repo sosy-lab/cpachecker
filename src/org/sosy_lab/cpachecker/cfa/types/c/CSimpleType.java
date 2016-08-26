@@ -216,13 +216,10 @@ public final class CSimpleType implements CType, Serializable {
       parts.add("_Complex");
     }
 
-    if(isBitField()) {
-      parts.add("BitField : " + getBitFieldSize());
-    }
     parts.add(Strings.emptyToNull(type.toASTString()));
     parts.add(Strings.emptyToNull(pDeclarator));
 
-    return Joiner.on(' ').skipNulls().join(parts);
+    return Joiner.on(' ').skipNulls().join(parts) + (isBitField() ? " : " + getBitFieldSize() : "");
   }
 
   @Override

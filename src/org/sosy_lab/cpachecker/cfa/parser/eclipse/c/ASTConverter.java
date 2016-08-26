@@ -1741,18 +1741,23 @@ class ASTConverter {
         // TODO handle bitfields by checking for instanceof IASTFieldDeclarator
 
         if (currentDecl instanceof IASTFieldDeclarator) {
-          if (specifier instanceof CSimpleType) {
             IASTExpression bitFieldSize = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
             if (bitFieldSize instanceof CASTLiteralExpression) {
               CExpression cExpression = convertExpressionWithoutSideEffects(bitFieldSize);
               if (cExpression instanceof CIntegerLiteralExpression) {
-                ((CSimpleType) specifier).setBitFieldSize(((CIntegerLiteralExpression)
-                    cExpression).getValue().intValue());
+                if (specifier instanceof CSimpleType) {
+                  ((CSimpleType) specifier).setBitFieldSize(((CIntegerLiteralExpression)cExpression).getValue().intValue());
+                } else {
+                  if (specifier instanceof CTypedefType) {
+                    ((CTypedefType) specifier).setBitFieldSize(((CIntegerLiteralExpression)cExpression).getValue().intValue());
+                  } else {
+                    throw  new CFAGenerationRuntimeException("Unsupported bitfield specifier class", d, niceFileNameFunction);
+                  }
+                }
               } else {
                 throw  new CFAGenerationRuntimeException("Unsupported bitfield specifier", d, niceFileNameFunction);
               }
             }
-          }
         }
 
         if (currentDecl instanceof IASTFunctionDeclarator) {

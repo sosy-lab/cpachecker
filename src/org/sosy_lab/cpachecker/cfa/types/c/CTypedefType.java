@@ -40,6 +40,8 @@ public final class CTypedefType implements CType, Serializable {
   private final CType realType; // the real type this typedef points to
   private boolean   isConst;
   private boolean   isVolatile;
+  private Integer   bitFieldSize;
+  private int hashCache = 0;
 
   public CTypedefType(final boolean pConst, final boolean pVolatile,
       final String pName, CType pRealType) {
@@ -50,6 +52,11 @@ public final class CTypedefType implements CType, Serializable {
     realType = checkNotNull(pRealType);
   }
 
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    bitFieldSize = pBitFieldSize;
+    final int prime = 31;
+    hashCache = prime * hashCode() + Objects.hashCode(bitFieldSize);
+  }
   public String getName() {
     return name;
   }
@@ -69,7 +76,8 @@ public final class CTypedefType implements CType, Serializable {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + name
-        + " " + pDeclarator;
+        + " " + pDeclarator
+        + (isBitField() ? " : " + getBitFieldSize() : "");
   }
 
   @Override
@@ -94,13 +102,16 @@ public final class CTypedefType implements CType, Serializable {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(name);
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(realType);
-    return result;
+    if (hashCache == 0) {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(realType);
+      hashCache = result;
+    }
+    return hashCache;
   }
 
   /**
@@ -136,11 +147,11 @@ public final class CTypedefType implements CType, Serializable {
 
   @Override
   public boolean isBitField() {
-    return false;
+    return bitFieldSize != null;
   }
 
   @Override
   public int getBitFieldSize() {
-    return 0;
+    return bitFieldSize == null ? 0 : bitFieldSize;
   }
 }
