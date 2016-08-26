@@ -405,7 +405,7 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
-    if (type.isBitField()) {
+    if (isBitFieldsSupportEnabled() && type.isBitField()) {
       int size = type.getBitFieldSize() / mSizeofCharInBits;
       if (type.getBitFieldSize() % mSizeofCharInBits > 0) {
         size++;
