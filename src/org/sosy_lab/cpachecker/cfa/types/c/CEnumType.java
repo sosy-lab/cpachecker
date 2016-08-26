@@ -53,6 +53,8 @@ public final class CEnumType implements CComplexType {
   private final String origName;
   private boolean isConst;
   private boolean isVolatile;
+  private Integer bitFieldSize;
+  private int hashCache = 0;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName, final String pOrigName) {
@@ -122,7 +124,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 
-    return lASTString.toString();
+    return lASTString.toString() + (isBitField() ? " : " + getBitFieldSize() : "");
   }
 
   @Override
@@ -130,6 +132,23 @@ public final class CEnumType implements CComplexType {
     return (isConst() ? "const " : "") +
            (isVolatile() ? "volatile " : "") +
            "enum " + name;
+  }
+
+  @Override
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    bitFieldSize = pBitFieldSize;
+    final int prime = 31;
+    hashCache = prime * hashCode() + Objects.hashCode(bitFieldSize);
+  }
+
+  @Override
+  public boolean isBitField() {
+    return bitFieldSize != null;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return bitFieldSize == null ? 0 : bitFieldSize;
   }
 
   @SuppressFBWarnings(
@@ -270,12 +289,15 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(name);
-    return result;
+    if (hashCache == 0) {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(name);
+      hashCache = result;
+    }
+    return hashCache;
   }
 
   /**
@@ -328,15 +350,5 @@ public final class CEnumType implements CComplexType {
       return this;
     }
     return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
-  }
-
-  @Override
-  public boolean isBitField() {
-    return false;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return 0;
   }
 }

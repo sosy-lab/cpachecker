@@ -124,6 +124,12 @@ public final class CVoidType implements CType {
     return 0;
   }
 
+  @Override
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    //Unsupported operation
+    assert(false);
+  }
+
   private Object readResolve() {
     return create(isConst, isVolatile);
   }

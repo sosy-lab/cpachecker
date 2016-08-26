@@ -120,4 +120,10 @@ public final class CProblemType implements CType {
   public int getBitFieldSize() {
     return 0;
   }
+
+  @Override
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    //Unsupported operation
+    assert(false);
+  }
 }

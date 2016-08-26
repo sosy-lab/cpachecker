@@ -170,6 +170,12 @@ public final class CArrayType extends AArrayType implements CType {
     return 0;
   }
 
+  @Override
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    //Unsupported operation
+    assert(false);
+  }
+
   private Object writeReplace() {
     return new SerializationProxy(this);
   }

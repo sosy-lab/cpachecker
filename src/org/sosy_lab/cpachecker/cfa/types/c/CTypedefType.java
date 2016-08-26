@@ -52,6 +52,7 @@ public final class CTypedefType implements CType, Serializable {
     realType = checkNotNull(pRealType);
   }
 
+  @Override
   public void setBitFieldSize(Integer pBitFieldSize) {
     bitFieldSize = pBitFieldSize;
     final int prime = 31;
