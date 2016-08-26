@@ -237,4 +237,10 @@ public final class CElaboratedType implements CComplexType {
   public int getBitFieldSize() {
     return 0;
   }
+
+  @Override
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    //Unsupported operation
+    assert(false);
+  }
 }

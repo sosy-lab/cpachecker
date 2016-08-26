@@ -71,6 +71,7 @@ public final class CSimpleType implements CType, Serializable {
     isLongLong = pIsLongLong;
   }
 
+  @Override
   public void setBitFieldSize(Integer pBitFieldSize) {
     bitFieldSize = pBitFieldSize;
     final int prime = 31;

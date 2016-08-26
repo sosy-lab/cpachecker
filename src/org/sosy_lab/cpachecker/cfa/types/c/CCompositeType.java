@@ -319,6 +319,12 @@ public final class CCompositeType implements CComplexType {
     return 0;
   }
 
+  @Override
+  public void setBitFieldSize(Integer pBitFieldSize) {
+    //Unsupported operation
+    assert(false);
+  }
+
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
 
