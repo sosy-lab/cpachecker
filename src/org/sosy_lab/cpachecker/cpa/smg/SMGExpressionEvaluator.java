@@ -337,7 +337,7 @@ public class SMGExpressionEvaluator {
         if (bitFieldsSize > 0) {
           offset += bitFieldsSize;
           if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
-            offset += machineModel.getSizeofCharInBits();
+            offset += machineModel.getSizeofCharInBits() - (bitFieldsSize % machineModel.getSizeofCharInBits());
           }
           bitFieldsSize = 0;
         }
