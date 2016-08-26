@@ -133,7 +133,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           for (CFAEdge edge : part.getEdges().keySet()) {
             if (edge instanceof CDeclarationEdge &&
                 ((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
-              part.getVars().forEach(var -> mumap.put("", var));
+              mumap.put("", ((CDeclarationEdge) edge).getDeclaration().getQualifiedName());
             } else {
               String functionName = edge.getSuccessor().getFunctionName();
               part.getVars().forEach(var -> mumap.put(functionName, var));
