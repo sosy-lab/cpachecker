@@ -65,9 +65,13 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);
-    algorithm = new AlgorithmWithPropertyCheck(
-        CPAAlgorithm.create(pCpa, pLogger, pConfig, pShutdownNotifier),
-        pLogger, pCpa);
+    if (pCpa != null) {
+      algorithm = new AlgorithmWithPropertyCheck(
+          CPAAlgorithm.create(pCpa, pLogger, pConfig, pShutdownNotifier),
+          pLogger, pCpa);
+    } else {
+      algorithm = null;
+    }
   }
 
   @Override
