@@ -263,8 +263,7 @@
 
     <column title="abs_formula_glob_other_sw_avg">Abs formula glob->other switch avg:</column>
     <column title="abs_formula_true_glob_other_sw_avg">Abs formula TRUE->glob->other switch avg</column>
-
-
+    <column title="multi_entry_func_candids">Multiple Entry Function Candidates:</column>
 
 
  </columns>
