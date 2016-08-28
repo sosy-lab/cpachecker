@@ -5,6 +5,10 @@
   <rundefinition name="base">
   </rundefinition>
 
+  <rundefinition name="onlynewentry">
+      <option name="-setprop">cpa.predicate.propertyscope.onlyFindNewEntryFunction=true</option>
+  </rundefinition>
+
   <rundefinition name="loc_inst">
     <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
   </rundefinition>

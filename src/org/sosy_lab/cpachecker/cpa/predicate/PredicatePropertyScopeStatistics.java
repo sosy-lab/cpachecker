@@ -36,6 +36,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -77,7 +80,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+@Options(prefix="cpa.predicate.propertyscope")
 public class PredicatePropertyScopeStatistics extends AbstractStatistics {
+
+  @Option(secure=true, description="Do not collect additional statistics but only try to find a "
+      + "new entry function and closely related statistics")
+  private boolean onlyFindNewEntryFunction = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -108,9 +116,10 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
       PredicateAbstractDomain pDomain,
       MergeOperator pMerge,
       PredicateTransferRelation pTransfer,
-      PredicatePrecisionAdjustment pPredPrec) {
+      PredicatePrecisionAdjustment pPredPrec) throws InvalidConfigurationException {
 
     config = pConfig;
+    config.inject(this, this.getClass());
     logger = pLogger;
     cfa = pCfa;
     solver = pSolver;
@@ -468,77 +477,80 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   public void printStatistics(
       PrintStream pOut, Result pResult, ReachedSet pReached) {
 
-
-    Set<String> functionsInScope = collectFunctionsWithNonTrueAbsState(pReached);
-
-
-    addKeyValueStatistic("Functions with non-true abstraction",
-        "[" + String.join(":", functionsInScope) + "]");
-
-    addKeyValueStatistic("Non-true abstraction function count", functionsInScope.size());
-
     String newEntry = computeNewEntryFunction(pReached).orElse("<unknown>");
     addKeyValueStatistic("New entry Function Candidate", newEntry);
 
-    Set<FormulaVariableResult> globalVariablesInAbstractionFormulas =
-        getGlobalVariablesInAbstractionFormulas(pReached, fmgr);
-    addKeyValueStatistic("Number of global variables in abstraction formulas",
-        globalVariablesInAbstractionFormulas.size());
-
-    addKeyValueStatistic("Number of non-true abstraction states",
-        countNonTrueAbstractionStates(pReached));
-
     computeDepthOfHighestNonTrueAbstractionInCallstack(pReached);
 
-    addKeyValueStatistic("Global observer automaton reached target count",
-        ControlAutomatonCPA.getglobalObserverTargetReachCount());
+    if (!onlyFindNewEntryFunction) {
 
-    ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
-    List<List<ARGState>> paths = allPathStream(root).collect(Collectors.toList());
-    Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(paths.stream());
-    List<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
+      Set<String> functionsInScope = collectFunctionsWithNonTrueAbsState(pReached);
 
 
-    addKeyValueStatistic("NONTRUE-TRUE-NONTRUE sequences",
-        findNontrueTrueNontrueSequences(tntSeqs));
+      addKeyValueStatistic("Functions with non-true abstraction",
+          "[" + String.join(":", functionsInScope) + "]");
 
-    addKeyValueStatistic("Number of extracted ARG Paths", paths.size());
-
-    addKeyValueStatistic("Sum. length of paths tails until first nontrue abs. st.",
-        summedLengthOfTailsUntilNontrue(paths.stream()));
-
-    addKeyValueStatistic("Sum. length of paths heads until first nontrue abs. st.",
-        summedLengthOfHeadsUntilNontrue(paths.stream()));
-
-    addKeyValueStatistic("Sum. path length",
-        paths.stream().map(path -> (long) path.size()).reduce(Long::sum).orElse(0L));
-
-    String globTargetLineNumbers = ControlAutomatonCPA.getGlobalTargetCFAEdges().stream()
-        .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(":"));
-    addKeyValueStatistic("Global target state line numbers", "[" + globTargetLineNumbers + "]");
-
-    handleFormulaAtoms(pReached);
-
-    List<Integer> globalOtherSwitch =
-        depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), false);
-    List<Integer> trueGlobalOtherSwitch =
-        depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), true);
-
-    addKeyValueStatistic("Abs formula glob->other switch avg",
-        globalOtherSwitch
-            .isEmpty() ? "<unknown>" : globalOtherSwitch
-            .stream().map(pInteger -> (long) pInteger).reduce(Long::sum).orElse(0L) / (double)
-            globalOtherSwitch.size());
-
-    addKeyValueStatistic("Abs formula TRUE->glob->other switch avg",
-        trueGlobalOtherSwitch
-            .isEmpty() ? "<unknown>" :
-        trueGlobalOtherSwitch
-            .stream().map(pInteger -> (long) pInteger)
-            .reduce(Long::sum)
-            .orElse(0L) / (double) trueGlobalOtherSwitch.size());
+      addKeyValueStatistic("Non-true abstraction function count", functionsInScope.size());
 
 
+      Set<FormulaVariableResult> globalVariablesInAbstractionFormulas =
+          getGlobalVariablesInAbstractionFormulas(pReached, fmgr);
+      addKeyValueStatistic("Number of global variables in abstraction formulas",
+          globalVariablesInAbstractionFormulas.size());
+
+      addKeyValueStatistic("Number of non-true abstraction states",
+          countNonTrueAbstractionStates(pReached));
+
+
+      addKeyValueStatistic("Global observer automaton reached target count",
+          ControlAutomatonCPA.getglobalObserverTargetReachCount());
+
+      ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
+      List<List<ARGState>> paths = allPathStream(root).collect(Collectors.toList());
+      Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(paths.stream());
+      List<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
+
+
+      addKeyValueStatistic("NONTRUE-TRUE-NONTRUE sequences",
+          findNontrueTrueNontrueSequences(tntSeqs));
+
+      addKeyValueStatistic("Number of extracted ARG Paths", paths.size());
+
+      addKeyValueStatistic("Sum. length of paths tails until first nontrue abs. st.",
+          summedLengthOfTailsUntilNontrue(paths.stream()));
+
+      addKeyValueStatistic("Sum. length of paths heads until first nontrue abs. st.",
+          summedLengthOfHeadsUntilNontrue(paths.stream()));
+
+      addKeyValueStatistic("Sum. path length",
+          paths.stream().map(path -> (long) path.size()).reduce(Long::sum).orElse(0L));
+
+      String globTargetLineNumbers = ControlAutomatonCPA.getGlobalTargetCFAEdges().stream()
+          .map(CFAEdge::getLineNumber).map(Object::toString).collect(Collectors.joining(":"));
+      addKeyValueStatistic("Global target state line numbers", "[" + globTargetLineNumbers + "]");
+
+      handleFormulaAtoms(pReached);
+
+      List<Integer> globalOtherSwitch =
+          depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), false);
+      List<Integer> trueGlobalOtherSwitch =
+          depthOfFormulaSwitchAfterFirstGlobalEncounter(paths.stream(), true);
+
+      addKeyValueStatistic("Abs formula glob->other switch avg",
+          globalOtherSwitch
+              .isEmpty() ? "<unknown>" : globalOtherSwitch
+              .stream().map(pInteger -> (long) pInteger).reduce(Long::sum).orElse(0L) / (double)
+              globalOtherSwitch.size());
+
+      addKeyValueStatistic("Abs formula TRUE->glob->other switch avg",
+          trueGlobalOtherSwitch
+              .isEmpty() ? "<unknown>" :
+          trueGlobalOtherSwitch
+              .stream().map(pInteger -> (long) pInteger)
+              .reduce(Long::sum)
+              .orElse(0L) / (double) trueGlobalOtherSwitch.size());
+
+    }
 
     super.printStatistics(pOut, pResult, pReached);
   }
