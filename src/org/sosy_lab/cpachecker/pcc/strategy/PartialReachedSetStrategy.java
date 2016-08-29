@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,12 +47,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   private final PartialReachedConstructionAlgorithm certificateConstructor;
   @Option(secure=true,
+      name="stopAddingAtReachedSetSize",
       description = "Enables proper PCC but may not work correctly for heuristics. Stops adding newly computed elements to reached set if size saved in proof is reached. If another element must be added, stops certificate checking and returns false.")
   protected boolean stopAddingAtReachedSetSize = false;
 
