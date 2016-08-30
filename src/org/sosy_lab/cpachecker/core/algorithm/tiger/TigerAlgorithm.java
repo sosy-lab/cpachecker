@@ -1798,6 +1798,10 @@ public class TigerAlgorithm
       }
     }
 
+    pOut.println("--- Test Suite - Begin ---");
+    pOut.println(testsuite.toString());
+    pOut.println("--- Test Suite - End ---");
+
     tigerStats.printStatistics(pOut, pResult, pReached);
 
     dumpTestSuite();
