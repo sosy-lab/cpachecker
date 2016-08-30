@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
@@ -72,7 +73,11 @@ public class TerminationStatistics implements Statistics {
 
   private final AtomicInteger lassosCurrentIteration = new AtomicInteger();
 
-  public TerminationStatistics(int pTotalNumberOfLoops) {
+  private final TerminationAlgorithm terminationAlgorithm;
+
+  public TerminationStatistics(
+      TerminationAlgorithm pTerminationAlgorithm, int pTotalNumberOfLoops) {
+    terminationAlgorithm = checkNotNull(pTerminationAlgorithm);
     totalLoops = pTotalNumberOfLoops;
   }
 
@@ -164,6 +169,8 @@ public class TerminationStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    terminationAlgorithm.writeOutputFiles();
+
     pOut.println("Total time :                                        " + totalTime);
     pOut.println("Time for recursion analysis:                        " + recursionTime);
     pOut.println();

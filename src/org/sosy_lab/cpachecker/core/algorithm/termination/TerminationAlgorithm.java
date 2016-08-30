@@ -209,7 +209,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       throw new InvalidConfigurationException(
           "Loop structure is not present, but required for termination analysis.");
     }
-    statistics = new TerminationStatistics(loopStructure.get().getAllLoops().size());
+    statistics = new TerminationStatistics(this, loopStructure.get().getAllLoops().size());
 
     // ugly class loader hack
     LassoAnalysisLoader lassoAnalysisLoader =
@@ -228,6 +228,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return terminationSpecification;
+  }
+
+  void writeOutputFiles() {
+    lassoAnalysis.writeOutputFiles();
   }
 
   @Override
@@ -342,7 +346,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CounterexampleInfo counterexample =
             removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
         LassoAnalysisResult lassoAnalysisResult =
-            lassoAnalysis.checkTermination(counterexample, relevantVariables);
+            lassoAnalysis.checkTermination(pLoop, counterexample, relevantVariables);
 
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);

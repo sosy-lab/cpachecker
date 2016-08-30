@@ -2823,6 +2823,10 @@ termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
 # non-termination arguments.
 termination.lassoAnalysis.nonlinear.externalSolver = false
 
+# A human readable representation of the synthesized (non-)termination
+# arguments is exported to this file.
+termination.lassoAnalysis.resultFile = "terminationAnalysisResult.txt"
+
 # Number of strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
 termination.lassoAnalysis.strictInvariants = 2

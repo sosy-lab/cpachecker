@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.java_smt.api.SolverContext;
 
 import java.util.Set;
@@ -40,6 +41,7 @@ public interface LassoAnalysis {
 
   /**
    * Tries to prove (non)-termination of a lasso given as {@link CounterexampleInfo}.
+   * @param pLoop the Loop the is currently analyzed
    * @param pCounterexample
    *           the {@link CounterexampleInfo} representing the potentially non-terminating lasso
    * @param pRelevantVariables
@@ -49,10 +51,18 @@ public interface LassoAnalysis {
    * @throws InterruptedException if a shutdown was requested
    */
   LassoAnalysisResult checkTermination(
-      CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
+      Loop pLoop, CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException;
 
+  /**
+   * Frees all created resources and the solver context.
+   */
   void close();
+
+  /**
+   * Writes termination and non-termination arguments into output files.
+   */
+  void writeOutputFiles();
 
   public interface Factory {
 
