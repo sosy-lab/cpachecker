@@ -2796,6 +2796,10 @@ termination.check = false
 # instead of the current one.
 termination.config = no default value
 
+# Number of generalized eigenvectors in the geometric nontermination
+# argument.
+termination.lassoAnalysis.eigenvectors = 3
+
 # Shell command used to call the external SMT solver.
 termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
 

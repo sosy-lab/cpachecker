@@ -160,13 +160,21 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
 
   @Option(
+      secure = true,
+      description =
+          "Number of non-strict supporting invariants for each Motzkin transformation "
+              + "during synthesis of termination arguments."
+    )
+    @IntegerOption(min = 1)
+    private int nonStrictInvariants = 3;
+
+  @Option(
     secure = true,
     description =
-        "Number of non-strict supporting invariants for each Motzkin transformation "
-            + "during synthesis of termination arguments."
+        "Number of generalized eigenvectors in the geometric nontermination argument."
   )
   @IntegerOption(min = 0)
-  private int nonStrictInvariants = 3;
+  private int eigenvectors = 3;
 
   @Option(
     secure = true,
@@ -283,6 +291,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     nonlinearLassoRankerPreferences.externalSolver = nonlinearExternalSolver;
 
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
+    nonTerminationAnalysisSettings.number_of_gevs = eigenvectors;
 
     linearTerminationAnalysisSettings = new TerminationAnalysisSettings();
     linearTerminationAnalysisSettings.analysis = linearAnalysisType.toAnalysisType();
