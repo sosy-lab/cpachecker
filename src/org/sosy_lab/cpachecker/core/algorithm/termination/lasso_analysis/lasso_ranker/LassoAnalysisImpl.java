@@ -160,18 +160,17 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
 
   @Option(
-      secure = true,
-      description =
-          "Number of non-strict supporting invariants for each Motzkin transformation "
-              + "during synthesis of termination arguments."
-    )
-    @IntegerOption(min = 1)
-    private int nonStrictInvariants = 3;
+    secure = true,
+    description =
+        "Number of non-strict supporting invariants for each Motzkin transformation "
+            + "during synthesis of termination arguments."
+  )
+  @IntegerOption(min = 1)
+  private int nonStrictInvariants = 3;
 
   @Option(
     secure = true,
-    description =
-        "Number of generalized eigenvectors in the geometric nontermination argument."
+    description = "Number of generalized eigenvectors in the geometric nontermination argument."
   )
   @IntegerOption(min = 0)
   private int eigenvectors = 3;
@@ -233,7 +232,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     secure = true,
     description =
         "A human readable representation of the synthesized (non-)termination arguments is "
-        + "exported to this file."
+            + "exported to this file."
   )
   @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Paths.get("terminationAnalysisResult.txt");

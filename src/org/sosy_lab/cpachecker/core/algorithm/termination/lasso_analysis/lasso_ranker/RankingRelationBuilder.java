@@ -171,7 +171,6 @@ class RankingRelationBuilder {
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
     }
-
   }
 
   private RankingRelation fromLexicographicRankingFunction(
@@ -497,6 +496,5 @@ class RankingRelationBuilder {
     public RankingRelationException(Exception e) {
       super(e);
     }
-
   }
 }

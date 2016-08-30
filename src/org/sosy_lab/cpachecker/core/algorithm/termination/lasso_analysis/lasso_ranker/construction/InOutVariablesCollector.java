@@ -57,7 +57,6 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
   private final Set<String> relevantVariables;
   private final Map<Formula, Formula> substitution;
 
-
   public InOutVariablesCollector(
       FormulaManagerView pFormulaManagerView,
       SSAMap pInVariablesSsa,
