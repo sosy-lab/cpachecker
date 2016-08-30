@@ -277,13 +277,13 @@ public abstract class VariableTrackingPrecision implements Precision {
       String bdpvwl = config.getProperty("BDDCPA.precision.variableWhitelist");
       bdpvwl = bdpvwl.replaceAll("%28", "(");
       bdpvwl = bdpvwl.replaceAll("%29", ")");
-      bdpvwl = bdpvwl.replaceAll("%5C", "\\");
+      bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
       bdpvwl = bdpvwl.replaceAll("%2A", "*");
 
       String vacpapvbl = config.getProperty("ValueAnalysisCPA.precision.variableBlacklist");
       vacpapvbl = vacpapvbl.replaceAll("%28", "(");
       vacpapvbl = vacpapvbl.replaceAll("%29", ")");
-      vacpapvbl = vacpapvbl.replaceAll("%5C", "\\");
+      vacpapvbl = vacpapvbl.replaceAll("%5C", "\\\\");
       vacpapvbl = vacpapvbl.replaceAll("%2A", "*");
 
       this.cpaClass = cpaClass;
