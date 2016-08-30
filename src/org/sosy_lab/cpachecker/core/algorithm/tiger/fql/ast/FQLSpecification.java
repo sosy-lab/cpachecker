@@ -165,6 +165,16 @@ public class FQLSpecification {
   }
 
   public static FQLSpecification parse(String pFQLSpecificationString) throws Exception {
+    if (pFQLSpecificationString.startsWith("URL")) {
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("URL", "");
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("\\+%22", "\"");
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("%28", "(");
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("%29", ")");
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("%2A", "*");
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("%40", "@");
+      pFQLSpecificationString = pFQLSpecificationString.replaceAll("%2C", ",");
+    }
+
     FQLParser lParser = new FQLParser(pFQLSpecificationString);
 
     Object pParseResult;
