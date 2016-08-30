@@ -31,7 +31,9 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.LONG_INT;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createDereferencedVariable;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createPrimedVariable;
@@ -46,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -82,8 +83,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 class RankingRelationBuilder {
-
-  private final static CIntegerLiteralExpression ONE = createLiteral(BigInteger.ONE);
 
   private final LogManager logger;
 
@@ -234,29 +233,29 @@ class RankingRelationBuilder {
       AffineFunction function, Set<CVariableDeclaration> pRelevantVariables)
       throws RankingRelationException {
     // f(x')
-    Optional<CExpression> primedFunction = Optional.of(createLiteral(function.getConstant()));
+    Optional<CExpression> primedFunction = createLiteral(function.getConstant());
     List<NumeralFormula> primedFormulaSummands = Lists.newArrayList();
     primedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
     // f(x)
-    Optional<CExpression> unprimedFunction = Optional.of(createLiteral(function.getConstant()));
+    Optional<CExpression> unprimedFunction = createLiteral(function.getConstant());
     List<NumeralFormula> unprimedFormulaSummands = Lists.newArrayList();
     unprimedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
     for (RankVar rankVar : function.getVariables()) {
       BigInteger coefficient = function.get(rankVar);
-      CLiteralExpression cCoefficient = createLiteral(coefficient);
+      Optional<CExpression> cCoefficient = createLiteral(coefficient);
       Pair<CIdExpression, CExpression> variables = getVariable(rankVar, pRelevantVariables);
 
       CIdExpression primedVariable = variables.getFirstNotNull();
       CExpression variable = variables.getSecondNotNull();
 
-      if (primedFunction.isPresent() && unprimedFunction.isPresent()) {
+      if (primedFunction.isPresent() && unprimedFunction.isPresent() && cCoefficient.isPresent()) {
         try {
           primedFunction =
-              Optional.of(addSummand(primedFunction.get(), cCoefficient, primedVariable));
+              Optional.of(addSummand(primedFunction.get(), cCoefficient.get(), primedVariable));
           unprimedFunction =
-              Optional.of(addSummand(unprimedFunction.get(), cCoefficient, variable));
+              Optional.of(addSummand(unprimedFunction.get(), cCoefficient.get(), variable));
 
         } catch (UnrecognizedCCodeException e) {
           // some ranking function cannot be represented by C expressions
@@ -264,6 +263,10 @@ class RankingRelationBuilder {
           primedFunction = Optional.empty();
           unprimedFunction = Optional.empty();
         }
+
+      } else {
+        primedFunction = Optional.empty();
+        unprimedFunction = Optional.empty();
       }
 
       NumeralFormula unprimedVariableFormula = encapsulate(rankVar.getDefinition());
@@ -278,17 +281,16 @@ class RankingRelationBuilder {
         unprimedFunction, primedFunction, unprimedFormulaSummands, primedFormulaSummands);
   }
 
-  private CExpression addSummand(
-      CExpression sum, CLiteralExpression coefficient, CExpression pVariable)
+  private CExpression addSummand(CExpression pSum, CExpression pCoefficient, CExpression pVariable)
       throws UnrecognizedCCodeException {
 
     CExpression summand;
-    if (coefficient.equals(ONE)) {
+    if (pCoefficient.equals(ONE)) {
       summand = pVariable;
     } else {
-      summand = binaryExpressionBuilder.buildBinaryExpression(coefficient, pVariable, MULTIPLY);
+      summand = binaryExpressionBuilder.buildBinaryExpression(pCoefficient, pVariable, MULTIPLY);
     }
-    return binaryExpressionBuilder.buildBinaryExpression(sum, summand, PLUS);
+    return binaryExpressionBuilder.buildBinaryExpression(pSum, summand, PLUS);
   }
 
   private NumeralFormula encapsulate(Term pTerm) {
@@ -411,8 +413,13 @@ class RankingRelationBuilder {
     return new RankingRelation(expression, formula, binaryExpressionBuilder, fmgr);
   }
 
-  private static CIntegerLiteralExpression createLiteral(BigInteger value) {
-    return CIntegerLiteralExpression.createDummyLiteral(value.longValueExact(), LONG_INT);
+  private static Optional<CExpression> createLiteral(BigInteger value) {
+    if (value.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0
+        && value.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0) {
+      return Optional.of(createDummyLiteral(value.longValueExact(), LONG_INT));
+    } else {
+      return Optional.empty();
+    }
   }
 
   private BooleanFormula createRankingRelationFormula(RankingRelationComponents components) {
