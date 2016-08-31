@@ -224,6 +224,12 @@ public class ReachingDefState implements AbstractState, Serializable,
     Vector<ReachingDefState> statesToMerge = new Vector<>();
     do {
       if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null) {
+        if(e1.stateOnLastFunctionCall == e2.stateOnLastFunctionCall) {
+          statesToMerge.add(e1);
+          statesToMerge.add(e2);
+          e1=e2=null;
+          break;
+        }
         return topElement;
       }
       statesToMerge.add(e1);
