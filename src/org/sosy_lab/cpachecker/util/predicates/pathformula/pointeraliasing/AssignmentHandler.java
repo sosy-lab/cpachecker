@@ -642,22 +642,7 @@ class AssignmentHandler {
     Preconditions.checkArgument(isSimpleType(rvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
 
-    final Formula value;
-    switch (rvalue.getKind()) {
-    case ALIASED_LOCATION:
-      value = conv.makeDereference(rvalueType, rvalue.asAliasedLocation().getAddress(), ssa, errorConditions);
-      break;
-    case UNALIASED_LOCATION:
-      value = conv.makeVariable(rvalue.asUnaliasedLocation().getVariableName(), rvalueType, ssa);
-      break;
-    case DET_VALUE:
-      value = rvalue.asValue().getValue();
-      break;
-    case NONDET:
-      value = null;
-      break;
-    default: throw new AssertionError();
-    }
+    final Formula value = getValueFormula(rvalueType, rvalue);
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
@@ -697,6 +682,22 @@ class AssignmentHandler {
     }
 
     return result;
+  }
+
+  private Formula getValueFormula(CType pRValueType, Expression pRValue) throws AssertionError {
+    switch (pRValue.getKind()) {
+      case ALIASED_LOCATION:
+        return conv.makeDereference(
+            pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions);
+      case UNALIASED_LOCATION:
+        return conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa);
+      case DET_VALUE:
+        return pRValue.asValue().getValue();
+      case NONDET:
+        return null;
+      default:
+        throw new AssertionError();
+    }
   }
 
   /**
