@@ -204,12 +204,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
     globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclarations);
 
-    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-    if (!loopStructure.isPresent()) {
-      throw new InvalidConfigurationException(
-          "Loop structure is not present, but required for termination analysis.");
-    }
-    statistics = new TerminationStatistics(this, loopStructure.get().getAllLoops().size());
+    LoopStructure loopStructure =
+        cfa.getLoopStructure()
+            .orElseThrow(
+                () ->
+                    new InvalidConfigurationException(
+                        "Loop structure is not present, but required for termination analysis."));
+    statistics = new TerminationStatistics(this, loopStructure.getAllLoops().size());
 
     // ugly class loader hack
     LassoAnalysisLoader lassoAnalysisLoader =

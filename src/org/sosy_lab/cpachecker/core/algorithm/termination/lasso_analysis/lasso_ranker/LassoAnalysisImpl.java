@@ -134,31 +134,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
   }
 
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final TerminationStatistics statistics;
-
-  private final SolverContext solverContext;
-  private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
-  private final FormulaManagerView formulaManagerView;
-  private final PathFormulaManager pathFormulaManager;
-
-  private final LassoBuilder lassoBuilder;
-  private final RankingRelationBuilder rankingRelationBuilder;
-
-  private final LassoRankerPreferences linearLassoRankerPreferences;
-  private final LassoRankerPreferences nonlinearLassoRankerPreferences;
-  private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
-  private final TerminationAnalysisSettings linearTerminationAnalysisSettings;
-  private final TerminationAnalysisSettings nonlinearTerminationAnalysisSettings;
-
-  private final LassoRankerToolchainStorage toolchainStorage;
-
-  private final Collection<RankingTemplate> rankingTemplates;
-
-  private final SetMultimap<Loop, TerminationArgument> terminationArguments;
-  private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
-
   @Option(
     secure = true,
     description =
@@ -237,6 +212,28 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Paths.get("terminationAnalysisResult.txt");
 
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final TerminationStatistics statistics;
+
+  private final SolverContext solverContext;
+
+  private final LassoBuilder lassoBuilder;
+  private final RankingRelationBuilder rankingRelationBuilder;
+
+  private final LassoRankerPreferences linearLassoRankerPreferences;
+  private final LassoRankerPreferences nonlinearLassoRankerPreferences;
+  private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
+  private final TerminationAnalysisSettings linearTerminationAnalysisSettings;
+  private final TerminationAnalysisSettings nonlinearTerminationAnalysisSettings;
+
+  private final LassoRankerToolchainStorage toolchainStorage;
+
+  private final Collection<RankingTemplate> rankingTemplates;
+
+  private final SetMultimap<Loop, TerminationArgument> terminationArguments;
+  private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
+
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
       LogManager pLogger,
@@ -253,10 +250,12 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     statistics = checkNotNull(pStatistics);
     solverContext = checkNotNull(pSolverContext);
     checkArgument(solverContext.getSolverName().equals(SMTINTERPOL));
-    formulaManager = (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
+    AbstractFormulaManager<Term, ?, ?, ?> formulaManager =
+        (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
     Configuration solverConfig = Configuration.defaultConfiguration();
-    formulaManagerView = new FormulaManagerView(formulaManager, solverConfig, pLogger);
-    pathFormulaManager =
+    FormulaManagerView formulaManagerView =
+        new FormulaManagerView(formulaManager, solverConfig, pLogger);
+    PathFormulaManager pathFormulaManager =
         new PathFormulaManagerImpl(
             formulaManagerView,
             pConfig,
@@ -334,7 +333,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   @Override
   public void writeOutputFiles() {
     if (resultFile != null) {
-      logger.logf(FINER, "Writing result of termination analysis into %s", resultFile);
+      logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
 
       try (Writer writer = MoreFiles.openOutputFile(resultFile, UTF_8)) {
         writer.append("Non-termination arguments:\n");
@@ -385,7 +384,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       statistics.lassosConstructed(lassos.size());
 
     } catch (TermException | SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
+      logger.logUserException(Level.WARNING, e, "Could not extract lasso (" + pLoop + ").");
       return LassoAnalysisResult.unknown();
     } finally {
       statistics.lassoConstructionFinished();
@@ -395,7 +394,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       return checkTermination(pLoop, lassos, pRelevantVariables);
 
     } catch (IOException | SMTLIBException | TermException | SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
+      logger.logUserException(
+          WARNING, e, "Could not check (non)-termination of lasso (" + pLoop + ").");
       return LassoAnalysisResult.unknown();
     } catch (ToolchainCanceledException e) {
       throw new InterruptedException(e.getMessage());

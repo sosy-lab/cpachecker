@@ -116,11 +116,11 @@ public class RankingRelation {
   @CheckReturnValue
   public RankingRelation merge(RankingRelation other) {
     ImmutableSet.Builder<CExpression> newRankingRelations = ImmutableSet.builder();
-    ImmutableSet.Builder<BooleanFormula> newRankingRelationFormulas = ImmutableSet.builder();
     newRankingRelations.addAll(rankingRelations);
-    newRankingRelationFormulas.addAll(rankingRelationFormulas);
-
     newRankingRelations.addAll(other.rankingRelations);
+
+    ImmutableSet.Builder<BooleanFormula> newRankingRelationFormulas = ImmutableSet.builder();
+    newRankingRelationFormulas.addAll(rankingRelationFormulas);
     newRankingRelationFormulas.addAll(other.rankingRelationFormulas);
 
     ImmutableSet.Builder<BooleanFormula> newSupportingInvariants = ImmutableSet.builder();
