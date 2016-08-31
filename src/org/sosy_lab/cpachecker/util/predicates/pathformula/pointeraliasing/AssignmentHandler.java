@@ -67,6 +67,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -642,7 +643,7 @@ class AssignmentHandler {
     Preconditions.checkArgument(isSimpleType(rvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
 
-    final Formula value = getValueFormula(rvalueType, rvalue);
+    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
@@ -654,7 +655,10 @@ class AssignmentHandler {
             conv.getFreshIndex(targetName, lvalueType, ssa);
     final BooleanFormula result;
 
-    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, constraints, edge) : null;
+    final Formula rhs =
+        value.isPresent()
+            ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
+            : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
@@ -683,17 +687,20 @@ class AssignmentHandler {
     return result;
   }
 
-  private Formula getValueFormula(CType pRValueType, Expression pRValue) throws AssertionError {
+  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
+      throws AssertionError {
     switch (pRValue.getKind()) {
       case ALIASED_LOCATION:
-        return conv.makeDereference(
-            pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions);
+        return Optional.of(
+            conv.makeDereference(
+                pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions));
       case UNALIASED_LOCATION:
-        return conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa);
+        return Optional.of(
+            conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
       case DET_VALUE:
-        return pRValue.asValue().getValue();
+        return Optional.of(pRValue.asValue().getValue());
       case NONDET:
-        return null;
+        return Optional.empty();
       default:
         throw new AssertionError();
     }
