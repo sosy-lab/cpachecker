@@ -656,9 +656,6 @@ class KInductionProver implements AutoCloseable {
       }
       return false;
     }
-    if (pCandidateInvariant instanceof CandidateInvariantConjunction) {
-      return false;
-    }
     return true;
   }
 
