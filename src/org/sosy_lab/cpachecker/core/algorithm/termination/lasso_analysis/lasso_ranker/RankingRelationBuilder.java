@@ -394,7 +394,7 @@ class RankingRelationBuilder {
 
       CExpression unprimedLessThanZeroExpression =
           binaryExpressionBuilder.buildBinaryExpression(
-              rankingRelationComponents.getUnprimedExpression().orElse(ZERO), ZERO, GREATER_EQUAL);
+              rankingRelationComponents.getUnprimedExpression().orElse(ZERO), ZERO, LESS_THAN);
       phaseConditionExpression =
           binaryExpressionBuilder.buildBinaryExpression(
               phaseConditionExpression, unprimedLessThanZeroExpression, BINARY_AND);
