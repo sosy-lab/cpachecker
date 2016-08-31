@@ -648,8 +648,6 @@ class AssignmentHandler {
     Preconditions.checkArgument(isSimpleType(rvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
 
-    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
-
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
     final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
@@ -660,6 +658,7 @@ class AssignmentHandler {
             conv.getFreshIndex(targetName, lvalueType, ssa);
     final BooleanFormula result;
 
+    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
     final Formula rhs =
         value.isPresent()
             ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
