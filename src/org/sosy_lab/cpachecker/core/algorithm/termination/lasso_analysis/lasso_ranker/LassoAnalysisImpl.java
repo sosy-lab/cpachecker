@@ -462,7 +462,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       Loop pLoop, Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
 
-    RankingRelation rankingRelation = null;
     statistics.terminationAnalysisOfLassoStarted();
     try {
       for (RankingTemplate rankingTemplate : rankingTemplates) {
@@ -477,7 +476,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
 
             try (ProverEnvironment proover = solverContext.newProverEnvironment()) {
-              rankingRelation =
+              RankingRelation rankingRelation =
                   rankingRelationBuilder.fromTerminationArgument(
                       terminationArgument, pRelevantVariables);
 
@@ -493,8 +492,17 @@ public class LassoAnalysisImpl implements LassoAnalysis {
               return LassoAnalysisResult.unknown();
             }
           }
+
+        } catch (AssertionError e) {
+          // Workaround for a bug in LassoRanker (terminationArgumentSynthesizer.synthesize()):
+          // An assertion is violated if the time limit is reached.
+          if (e.getMessage().equals("not yet implemented")) {
+            shutdownNotifier.shutdownIfNecessary();
+          }
+          throw e;
         }
       }
+
     } finally {
       statistics.terminationAnalysisOfLassoFinished();
     }
