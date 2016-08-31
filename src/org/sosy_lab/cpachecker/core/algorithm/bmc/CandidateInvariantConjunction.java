@@ -125,7 +125,7 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
 
     private final FluentIterable<? extends LocationFormulaInvariant> elements;
 
-    public LocationCandidateInvariantConjunction(
+    private LocationCandidateInvariantConjunction(
         FluentIterable<? extends LocationFormulaInvariant> pElements) {
       super(pElements);
       elements = pElements;
@@ -134,6 +134,18 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
     @Override
     public Set<CFANode> getLocations() {
       return elements.transformAndConcat(lfi -> lfi.getLocations()).toSet();
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      // equals of superclass is fine here
+      return super.equals(pObj);
+    }
+
+    @Override
+    public int hashCode() {
+      // hash code of superclass is fine here
+      return super.hashCode();
     }
 
   }
