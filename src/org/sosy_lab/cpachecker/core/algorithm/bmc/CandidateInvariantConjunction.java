@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -33,6 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -100,7 +104,38 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
   }
 
   public static CandidateInvariantConjunction of(Iterable<? extends CandidateInvariant> pElements) {
+    if (areMatchingLocationInvariants(pElements)) {
+      return new LocationCandidateInvariantConjunction(
+          FluentIterable.from(pElements).filter(LocationFormulaInvariant.class));
+    }
     return new CandidateInvariantConjunction(pElements);
+  }
+
+  private static boolean areMatchingLocationInvariants(
+      Iterable<? extends CandidateInvariant> pElements) {
+    FluentIterable<? extends CandidateInvariant> elements = FluentIterable.from(pElements);
+    if (elements.isEmpty()) {
+      return false;
+    }
+    return elements.allMatch(lfi -> lfi instanceof LocationFormulaInvariant);
+  }
+
+  private static class LocationCandidateInvariantConjunction extends CandidateInvariantConjunction
+      implements LocationFormulaInvariant {
+
+    private final FluentIterable<? extends LocationFormulaInvariant> elements;
+
+    public LocationCandidateInvariantConjunction(
+        FluentIterable<? extends LocationFormulaInvariant> pElements) {
+      super(pElements);
+      elements = pElements;
+    }
+
+    @Override
+    public Set<CFANode> getLocations() {
+      return elements.transformAndConcat(lfi -> lfi.getLocations()).toSet();
+    }
+
   }
 
 }
