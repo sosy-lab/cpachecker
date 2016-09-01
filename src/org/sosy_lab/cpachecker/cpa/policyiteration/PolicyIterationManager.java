@@ -8,7 +8,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -43,8 +42,6 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningMa
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -207,27 +204,10 @@ public class PolicyIterationManager {
     vdfmgr = pValueDeterminationFormulaManager;
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
-
-    // Compute the cache for loops.
-    Builder<CFANode, Loop> loopStructureBuilder =
-        ImmutableMap.builder();
-    LoopStructure loopStructure1 = pCfa.getLoopStructure().get();
-    for (Loop l : loopStructure1.getAllLoops()) {
-      for (CFANode n : l.getLoopHeads()) {
-        loopStructureBuilder.put(n, l);
-      }
-    }
-    loopStructure = loopStructureBuilder.build();
     rcnfManager = new RCNFManager(pConfig);
     initialPrecision = new TemplatePrecision(
         logger, pConfig, cfa, templateToFormulaConversionManager);
   }
-
-  /**
-   * Static caches
-   */
-  // Mapping from loop-heads to the associated loops.
-  private final ImmutableMap<CFANode, Loop> loopStructure;
 
   /**
    * The concept of a "location" is murky in a CPA.
