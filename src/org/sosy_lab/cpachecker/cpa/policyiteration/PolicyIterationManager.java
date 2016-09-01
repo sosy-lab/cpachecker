@@ -552,6 +552,12 @@ public class PolicyIterationManager {
     return locationID;
   }
 
+  /**
+   * Emulate the JOIN step, while generating an ARG:
+   *
+   * <p>The produced successor will be produced as if it was afterwards joined with
+   * the {@code latestSibling} state.
+   */
   private PolicyAbstractedState emulateLargeStep(
       PolicyAbstractedState abstraction,
       PolicyAbstractedState latestSibling,
@@ -1367,10 +1373,24 @@ public class PolicyIterationManager {
         if (filteredSiblings.contains(aState)) {
           return Optional.of(aState);
         } else {
-          if (!aState.getGeneratingState().isPresent()) {
+          Optional<PolicyIntermediateState> genState = aState.getGeneratingState();
+          if (!genState.isPresent()) {
             return Optional.empty();
           }
-          a = aState.getGeneratingState().get().getBackpointerState();
+          PolicyAbstractedState backpointer = genState.get().getBackpointerState();
+          if (aState.getAbstraction()
+              .entrySet()
+              .stream()
+              .map(e -> e.getValue())
+              .anyMatch(bound -> bound.getPredecessor() == backpointer
+                  && !bound.getDependencies().isEmpty()
+              )) {
+
+            // At least one template depends on backpointer.
+            a = backpointer;
+          } else {
+            return Optional.empty();
+          }
         }
 
       } else {
