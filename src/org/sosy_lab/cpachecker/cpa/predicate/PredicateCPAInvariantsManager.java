@@ -925,9 +925,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   invCandidates.add(
                       makeLocationInvariant(
                           nodeAndFormula.getFirst(),
-                          solver
-                              .getFormulaManager()
-                              .dumpFormula(nodeAndFormula.getSecond())
+                          fmgr.dumpFormula(fmgr.uninstantiate(nodeAndFormula.getSecond()))
                               .toString()));
                 }
                 return invCandidates;
