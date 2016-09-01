@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -2271,13 +2272,22 @@ class ASTConverter {
 
     String fileName = l.getFileName();
     int startingLineInInput = l.getStartingLineNumber();
-    int startingLineInOrigin = startingLineInInput;
+    int endingLineInInput = l.getEndingLineNumber();
 
     Pair<String, Integer> startingInOrigin = sourceOriginMapping.getOriginLineFromAnalysisCodeLine(
         fileName, startingLineInInput);
-
     fileName = startingInOrigin.getFirst();
-    startingLineInOrigin = startingInOrigin.getSecond();
+    int startingLineInOrigin = startingInOrigin.getSecond();
+
+    Pair<String, Integer> endingInOrigin =
+        sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, endingLineInInput);
+    verify(
+        fileName.equals(endingInOrigin.getFirst()),
+        "Unexpected token '%s' spanning files %s and %s",
+        n,
+        fileName,
+        endingInOrigin.getFirst());
+    int endingLineInOrigin = endingInOrigin.getSecond();
 
     return new FileLocation(
         fileName,
@@ -2285,8 +2295,9 @@ class ASTConverter {
         l.getNodeOffset(),
         l.getNodeLength(),
         startingLineInInput,
-        l.getEndingLineNumber(),
-        startingLineInOrigin);
+        endingLineInInput,
+        startingLineInOrigin,
+        endingLineInOrigin);
   }
 
   static String convert(IASTName n) {

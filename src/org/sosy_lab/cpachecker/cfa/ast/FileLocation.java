@@ -46,10 +46,19 @@ public class FileLocation implements Serializable {
   private final int endingLine;
 
   private final int startingLineInOrigin;
+  private final int endingLineInOrigin;
 
   public FileLocation(
       String pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
-    this(pFileName, pFileName, pOffset, pLength, pStartingLine, pEndingLine, pStartingLine);
+    this(
+        pFileName,
+        pFileName,
+        pOffset,
+        pLength,
+        pStartingLine,
+        pEndingLine,
+        pStartingLine,
+        pEndingLine);
   }
 
   public FileLocation(
@@ -59,7 +68,8 @@ public class FileLocation implements Serializable {
       int pLength,
       int pStartingLine,
       int pEndingLine,
-      int pStartingLineInOrigin) {
+      int pStartingLineInOrigin,
+      int pEndingLineInOrigin) {
     fileName = checkNotNull(pFileName);
     niceFileName = checkNotNull(pNiceFileName);
     offset = pOffset;
@@ -67,6 +77,7 @@ public class FileLocation implements Serializable {
     startingLine = pStartingLine;
     endingLine = pEndingLine;
     startingLineInOrigin = pStartingLineInOrigin;
+    endingLineInOrigin = pEndingLineInOrigin;
   }
 
   public static final FileLocation DUMMY =
@@ -97,6 +108,7 @@ public class FileLocation implements Serializable {
     int startingLine = Integer.MAX_VALUE;
     int startingLineInOrigin = Integer.MAX_VALUE;
     int endingLine = Integer.MIN_VALUE;
+    int endingLineInOrigin = Integer.MIN_VALUE;
     for (FileLocation loc : locations) {
       if (loc == DUMMY) {
         continue;
@@ -111,6 +123,7 @@ public class FileLocation implements Serializable {
       startingLine = Math.min(startingLine, loc.getStartingLineNumber());
       startingLineInOrigin = Math.min(startingLineInOrigin, loc.getStartingLineInOrigin());
       endingLine = Math.max(endingLine, loc.getEndingLineNumber());
+      endingLineInOrigin = Math.max(endingLineInOrigin, loc.getEndingLineInOrigin());
     }
 
     if (fileName == null) {
@@ -118,7 +131,14 @@ public class FileLocation implements Serializable {
       return DUMMY;
     }
     return new FileLocation(
-        fileName, niceFileName, 0, 0, startingLine, endingLine, startingLineInOrigin);
+        fileName,
+        niceFileName,
+        0,
+        0,
+        startingLine,
+        endingLine,
+        startingLineInOrigin,
+        endingLineInOrigin);
   }
 
   public String getFileName() {
@@ -143,6 +163,10 @@ public class FileLocation implements Serializable {
 
   public int getStartingLineInOrigin() {
     return startingLineInOrigin;
+  }
+
+  public int getEndingLineInOrigin() {
+    return endingLineInOrigin;
   }
 
   /* (non-Javadoc)
@@ -187,11 +211,10 @@ public class FileLocation implements Serializable {
     String prefix = niceFileName.isEmpty()
         ? ""
         : niceFileName + ", ";
-    if (startingLine == endingLine) {
+    if (startingLineInOrigin == endingLineInOrigin) {
       return prefix + "line " + startingLineInOrigin;
     } else {
-      // TODO ending line number could be wrong
-      return prefix + "lines " + startingLineInOrigin + "-" + (endingLine -startingLine+startingLineInOrigin);
+      return prefix + "lines " + startingLineInOrigin + "-" + endingLineInOrigin;
     }
   }
 }
