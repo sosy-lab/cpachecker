@@ -2599,7 +2599,7 @@ precision.template.allowedCoefficients = {
 precision.template.generateFromAsserts = true
 
 # Generate templates from all program statements
-precision.template.generateFromStatements = true
+precision.template.generateFromStatements = false
 
 # Force the inclusion of function parameters into the generated templates.
 # Required for summaries computation.
