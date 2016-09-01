@@ -92,7 +92,7 @@ public class TemplatePrecision implements Precision {
 
   @Option(secure=true, description="Generate templates from all program "
       + "statements")
-  private boolean generateFromStatements = true;
+  private boolean generateFromStatements = false;
 
   @Option(secure=true, description="Maximum size for the generated template")
   private int maxExpressionSize = 1;
@@ -603,6 +603,12 @@ public class TemplatePrecision implements Precision {
             "Template Refinement: using templates generated with convex hull",
             generatedTemplates);
         generatedTemplates.clear();
+        return true;
+      }
+
+      if (!generateFromStatements) {
+        logger.log(Level.INFO, "Generating templates from all program statements.");
+        generateFromStatements = true;
         return true;
       }
 
