@@ -321,7 +321,7 @@ public class PolicyIterationManager {
    * Perform abstraction and reachability checking with precision adjustment
    * operator.
    */
-  public Optional<PolicyState> precisionAdjustment0(
+  private Optional<PolicyState> precisionAdjustment0(
       final PolicyState inputState,
       final TemplatePrecision inputPrecision,
       final UnmodifiableReachedSet states,
@@ -448,7 +448,7 @@ public class PolicyIterationManager {
   /**
    * Update the meta-information for policies coming from the summary edge.
    */
-  Map<Template, PolicyBound> updateAbstractionForExpanded(
+  private Map<Template, PolicyBound> updateAbstractionForExpanded(
       Map<Template, PolicyBound> pAbstraction,
       PathFormula inputPath,
       PolicyAbstractedState pParent
@@ -559,12 +559,11 @@ public class PolicyIterationManager {
       BooleanFormula extraInvariant
       ) throws CPATransferException, InterruptedException {
 
-    CFANode node = abstraction.getNode();
     Map<Template, PolicyBound> updated = new HashMap<>();
     PolicyAbstractedState merged = unionAbstractedStates(
           abstraction, latestSibling, precision, updated, extraInvariant);
     PolicyAbstractedState out;
-    if (!shouldPerformValueDetermination(node, updated)) {
+    if (updated.isEmpty()) {
       out = merged;
 
     } else {
@@ -788,39 +787,6 @@ public class PolicyIterationManager {
     }
 
     return Optional.of(stateWithUpdates.withNewAbstraction(newAbstraction));
-  }
-
-  /**
-   * @return Whether to perform the value determination on <code>node</code>.
-   * <p/>
-   * Returns true iff the <code>node</code> is a loophead and at least one of
-   * the bounds in <code>updated</code> has an associated edge coming from
-   * outside of the loop.
-   * Note that the function returns <code>false</code> is <code>updated</code>
-   * is empty.
-   */
-  private boolean shouldPerformValueDetermination(
-      CFANode node,
-      Map<Template, PolicyBound> updated) {
-
-    if (updated.isEmpty()) {
-      return false;
-    }
-
-    // At least one of updated values comes from inside the loop.
-    Loop l = loopStructure.get(node);
-    if (l == null) {
-      // NOTE: sometimes there is no loop-structure when there's
-      // one self-edge.
-      return true;
-    }
-    for (PolicyBound bound : updated.values()) {
-      CFANode fromNode = bound.getPredecessor().getNode();
-      if (l.getLoopNodes().contains(fromNode)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -1367,11 +1333,12 @@ public class PolicyIterationManager {
   }
 
   /**
-   * Find the PolicyAbstractedState sibling: something about-to-be-merged
-   * with the argument state.
-   * ReachedSet gives us all elements potentially joinable
-   * (== in the same partition) with {@code state}.
-   * However, we would like to get the *latest* such element.
+   * Find the PolicyAbstractedState sibling:
+   * something about-to-be-merged with the argument state.
+   *
+   * <p>{@link ReachedSet} gives us all elements potentially joinable
+   * (in the same partition) with {@code state}.
+   * However, we would like to get the <b>latest</b> such element.
    * In ARG terminology, that's the first one we get by following backpointers.
    */
   private Optional<PolicyAbstractedState> findSibling(
@@ -1417,7 +1384,7 @@ public class PolicyIterationManager {
     return initialPrecision.adjustPrecision();
   }
 
-  public void adjustReachedSet(ReachedSet pReachedSet) {
+  void adjustReachedSet(ReachedSet pReachedSet) {
     pReachedSet.clear();
   }
 
