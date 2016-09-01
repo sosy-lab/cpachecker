@@ -201,10 +201,10 @@ public class SSAMap implements Serializable {
   }
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
-      PathCopyingPersistentTreeMap.<String, Integer>of(),
+      PathCopyingPersistentTreeMap.of(),
       new FreshValueProvider.DefaultFreshValueProvider(),
       0,
-      PathCopyingPersistentTreeMap.<String, CType>of());
+      PathCopyingPersistentTreeMap.of());
 
   /**
    * Returns an empty immutable SSAMap.
@@ -244,7 +244,7 @@ public class SSAMap implements Serializable {
               s1.vars,
               s2.vars,
               Equivalence.equals(),
-              PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(),
+              PersistentSortedMaps.getMaximumMergeConflictHandler(),
               collectDifferences);
       freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
     }
