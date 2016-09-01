@@ -392,9 +392,12 @@ class ASTConverter {
 
     CompilationUnit co = (CompilationUnit) l.getRoot();
 
-    return new FileLocation(co.getLineNumber(l.getLength() + l.getStartPosition()),
-        scope.getFileOfCurrentType(), l.getLength(), l.getStartPosition(),
-        co.getLineNumber(l.getStartPosition()));
+    return new FileLocation(
+        scope.getFileOfCurrentType(),
+        l.getStartPosition(),
+        l.getLength(),
+        co.getLineNumber(l.getStartPosition()),
+        co.getLineNumber(l.getLength() + l.getStartPosition()));
   }
 
   /**

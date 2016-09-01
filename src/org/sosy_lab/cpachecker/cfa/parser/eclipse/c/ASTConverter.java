@@ -2279,10 +2279,14 @@ class ASTConverter {
     fileName = startingInOrigin.getFirst();
     startingLineInOrigin = startingInOrigin.getSecond();
 
-    return new FileLocation(l.getEndingLineNumber(), fileName,
+    return new FileLocation(
+        fileName,
         niceFileNameFunction.apply(fileName),
-        l.getNodeLength(), l.getNodeOffset(),
-        startingLineInInput, startingLineInOrigin);
+        l.getNodeOffset(),
+        l.getNodeLength(),
+        startingLineInInput,
+        l.getEndingLineNumber(),
+        startingLineInOrigin);
   }
 
   static String convert(IASTName n) {

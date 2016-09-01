@@ -1139,14 +1139,15 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       FileLocation loc = astCreator.getLocation(condition);
       if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
-        loc = new FileLocation(
-            loc.getEndingLineNumber(),
-            loc.getFileName(),
-            niceFileNameFunction.apply(loc.getFileName()),
-            loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
-            fileLocation.getNodeOffset(),
-            fileLocation.getStartingLineNumber(),
-            fileLocation.getStartingLineInOrigin());
+        loc =
+            new FileLocation(
+                loc.getFileName(),
+                niceFileNameFunction.apply(loc.getFileName()),
+                fileLocation.getNodeOffset(),
+                loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
+                fileLocation.getStartingLineNumber(),
+                loc.getEndingLineNumber(),
+                fileLocation.getStartingLineInOrigin());
       }
 
      CExpression expression = exp;

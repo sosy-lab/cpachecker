@@ -269,9 +269,12 @@ class TypeHierachyConverter {
 
     CompilationUnit co = (CompilationUnit) l.getRoot();
 
-    return new FileLocation(co.getLineNumber(l.getLength() + l.getStartPosition()),
-        fileOfDeclaration, l.getLength(), l.getStartPosition(),
-        co.getLineNumber(l.getStartPosition()));
+    return new FileLocation(
+        fileOfDeclaration,
+        l.getStartPosition(),
+        l.getLength(),
+        co.getLineNumber(l.getStartPosition()),
+        co.getLineNumber(l.getLength() + l.getStartPosition()));
   }
 
   public JClassOrInterfaceType convertClassOrInterfaceType(ITypeBinding pTypeBinding) {
