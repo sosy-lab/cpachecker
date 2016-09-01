@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -50,6 +45,10 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -214,7 +213,6 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   private static class DummyEdge implements CFAEdge {
 
     private static final String UNKNOWN = "unknown";
-    private static final FileLocation DUMMY_LOCATION = new FileLocation(0, UNKNOWN, 0, 0, 0);
 
     private static Map<String, DummyEdge> existingEdges = new HashMap<>();
 
@@ -262,7 +260,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
     @Override
     public FileLocation getFileLocation() {
-      return DUMMY_LOCATION;
+      return FileLocation.DUMMY;
     }
 
     @Override
