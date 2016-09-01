@@ -97,8 +97,6 @@ public class TestDataTools {
         .addConverter(FileOption.class, fileTypeConverter);
   }
 
-  public static final CFANode DUMMY_CFA_NODE = new CFANode("DUMMY");
-
   private static int dummyNodeCounter = 0;
 
   private static CFANode newDummyNode() {
