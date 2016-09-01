@@ -1358,20 +1358,7 @@ public class PolicyIterationManager {
           if (!genState.isPresent()) {
             return Optional.empty();
           }
-          PolicyAbstractedState backpointer = genState.get().getBackpointerState();
-          if (aState.getAbstraction()
-              .entrySet()
-              .stream()
-              .map(e -> e.getValue())
-              .anyMatch(bound -> bound.getPredecessor() == backpointer
-                  && !bound.getDependencies().isEmpty()
-              )) {
-
-            // At least one template depends on backpointer.
-            a = backpointer;
-          } else {
-            return Optional.empty();
-          }
+          a = genState.get().getBackpointerState();
         }
 
       } else {
