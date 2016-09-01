@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Function;
+import java.util.Optional;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 
 import java.util.Collection;
-import java.util.Optional;
 
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
@@ -47,16 +47,13 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     ConfigurableProgramAnalysis,
     AbstractDomain,
     PrecisionAdjustment,
-    StatisticsProvider,
-    MergeOperator,
-    AutoCloseable {
+    StatisticsProvider, MergeOperator {
 
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final RCNFManager RCNFManager;
-  private final Solver solver;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -64,7 +61,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       ShutdownNotifier pShutdownNotifier,
       CFA cfa
   ) throws InvalidConfigurationException {
-    solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
+    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
@@ -171,10 +168,5 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public AbstractState merge(AbstractState state1, AbstractState state2,
       Precision precision) throws CPAException, InterruptedException {
     return manager.merge((SlicingState) state1, (SlicingState) state2);
-  }
-
-  @Override
-  public void close() {
-    solver.close();
   }
 }

@@ -219,10 +219,8 @@ public class ARGStatistics implements Statistics {
 
     // The state space might be partitioned ...
     // ... so we would export a separate ARG for each partition ...
-    boolean partitionedArg =
-        pReached.isEmpty()
-            || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
-                != null;
+    boolean partitionedArg = AbstractStates.extractStateByType(
+        pReached.getFirstState(), PartitionState.class) != null;
 
     final Set<ARGState> rootStates = partitionedArg
         ? ARGUtils.getRootStates(pReached)

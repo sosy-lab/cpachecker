@@ -52,8 +52,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -206,7 +209,17 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       BlockToDotWriter writer = new BlockToDotWriter(partitioning);
       writer.dump(exportBlocksPath, logger);
     }
-    getWrappedCpa().setPartitioning(partitioning);
+
+    BAMPredicateCPA predicateCpa =
+        ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(BAMPredicateCPA.class);
+    if (predicateCpa != null) {
+      predicateCpa.setPartitioning(partitioning);
+    }
+    PolicyCPA policyCPA = ((WrapperCPA) getWrappedCpa()).retrieveWrappedCpa(PolicyCPA.class);
+    if (policyCPA != null) {
+      policyCPA.setPartitioning(partitioning);
+    }
+
     return partitioning;
   }
 
@@ -235,9 +248,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   @Override
-  protected ConfigurableProgramAnalysisWithBAM getWrappedCpa() {
+  protected ConfigurableProgramAnalysis getWrappedCpa() {
     // override for visibility
-    return (ConfigurableProgramAnalysisWithBAM) super.getWrappedCpa();
+    return super.getWrappedCpa();
   }
 
   public BlockPartitioning getBlockPartitioning() {

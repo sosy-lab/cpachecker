@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.util.Collection;
 import java.util.Set;
@@ -89,21 +89,21 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
 
   @Override
   public <R> R visit(
-      BooleanFormula formula, org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor<R> visitor) {
+      BooleanFormula formula,
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor) {
     return manager.visit(formula, visitor);
   }
 
   @Override
   public void visitRecursively(
       BooleanFormula f,
-      org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor) {
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor) {
     manager.visitRecursively(f, rFormulaVisitor);
   }
 
   @Override
   public BooleanFormula transformRecursively(
-      BooleanFormula f,
-      org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor pVisitor) {
+      BooleanFormula f, org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor pVisitor) {
     return manager.transformRecursively(f, pVisitor);
   }
 
@@ -180,7 +180,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
    * <p>No guarantee on iteration order is made.
    */
   public static abstract class BooleanFormulaTransformationVisitor
-      extends org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor {
+      extends org.sosy_lab.solver.visitors.BooleanFormulaTransformationVisitor {
 
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr) {
       super(pFmgr.getRawFormulaManager());

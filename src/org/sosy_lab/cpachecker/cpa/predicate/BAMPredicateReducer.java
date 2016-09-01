@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -304,10 +304,10 @@ public class BAMPredicateReducer implements Reducer {
 
     // De-serialized AbstractionFormula are missing the Regions which we need for expand(),
     // so we re-create them here.
-    rootAbstraction =
-        pamgr.asAbstraction(rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
-    reducedAbstraction =
-        pamgr.asAbstraction(reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
+    rootAbstraction = pamgr.buildAbstraction(
+        rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
+    reducedAbstraction = pamgr.buildAbstraction(
+        reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
 
     Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =

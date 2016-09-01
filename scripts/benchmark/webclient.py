@@ -535,8 +535,7 @@ class WebInterface:
                 .format(run.options, invalidOption))
 
         params.append(('groupId', str(self._group_id)))
-        if meta_information:
-            params.append(('metaInformation', meta_information))
+        params.append(('metaInformation', meta_information))
 
         # prepare request
         headers = {"Accept": "text/plain"}
@@ -684,7 +683,6 @@ class WebInterface:
         Starts the execution of all previous submitted runs in the VerifierCloud.
         The web interface groups runs and submits them to the VerifierCloud only from time to time.
         This method forces the web interface to do this immediately and starts downloading of results.
-        @return: the ids of the RunCollections created since the last flush request
         """
         headers = {"Content-Type": "application/x-www-form-urlencoded",
                    "Connection": "Keep-Alive"}
@@ -697,9 +695,8 @@ class WebInterface:
             logging.warning('No runs were submitted to the VerifierCloud before or a rate limit is hit.')
         else:
             logging.info('Submitted %s run collection: %s', len(run_collections), ",".join(run_collections))
-            self._result_downloader.start()
 
-        return run_collections
+        self._result_downloader.start()
 
     def _is_finished(self, run_id):
         headers = {"Accept": "text/plain"}

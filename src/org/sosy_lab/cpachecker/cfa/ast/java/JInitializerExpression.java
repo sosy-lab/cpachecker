@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * This class represents initializer expressions in variable and field declarations.
  *
  */
-public final class JInitializerExpression extends AInitializerExpression implements JInitializer {
+public class JInitializerExpression extends AInitializerExpression implements JInitializer {
 
   public JInitializerExpression(FileLocation pFileLocation, JExpression pExpression) {
     super(pFileLocation, pExpression);
@@ -39,11 +39,6 @@ public final class JInitializerExpression extends AInitializerExpression impleme
   @Override
   public JExpression getExpression() {
     return (JExpression) super.getExpression();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

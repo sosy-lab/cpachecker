@@ -204,13 +204,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
     globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclarations);
 
-    LoopStructure loopStructure =
-        cfa.getLoopStructure()
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "Loop structure is not present, but required for termination analysis."));
-    statistics = new TerminationStatistics(this, loopStructure.getAllLoops().size());
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+    if (!loopStructure.isPresent()) {
+      throw new InvalidConfigurationException(
+          "Loop structure is not present, but required for termination analysis.");
+    }
+    statistics = new TerminationStatistics(loopStructure.get().getAllLoops().size());
 
     // ugly class loader hack
     LassoAnalysisLoader lassoAnalysisLoader =
@@ -229,10 +228,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return terminationSpecification;
-  }
-
-  void writeOutputFiles() {
-    lassoAnalysis.writeOutputFiles();
   }
 
   @Override
@@ -347,7 +342,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CounterexampleInfo counterexample =
             removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
         LassoAnalysisResult lassoAnalysisResult =
-            lassoAnalysis.checkTermination(pLoop, counterexample, relevantVariables);
+            lassoAnalysis.checkTermination(counterexample, relevantVariables);
 
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);
@@ -369,7 +364,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
           } else {
             totalRepeatedRankingFunctions++;
             repeatedRankingFunctionsSinceSuccessfulIteration++;
-            logger.logf(WARNING, "Repeated ranking relation %s for %s", rankingRelation, pLoop);
+            logger.logf(
+                WARNING, "Repeated ranking relation %s for %s", rankingRelation, pLoop);
 
             // Do not use the first reached target state again and again
             // if we cannot synthesis new termination arguments from it.
@@ -405,8 +401,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     return result;
   }
 
-  private void addInvariantsToAggregatedReachedSet(
-      ARGState loopHeadState, RankingRelation rankingRelation) {
+  private void addInvariantsToAggregatedReachedSet(ARGState loopHeadState,
+      RankingRelation rankingRelation) {
     ReachedSet dummy = reachedSetFactory.create();
     AbstractStateWithLocation locationState =
         extractStateByType(loopHeadState, AbstractStateWithLocation.class);

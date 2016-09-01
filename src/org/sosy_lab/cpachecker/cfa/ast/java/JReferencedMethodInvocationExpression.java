@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
 import java.util.List;
 import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
  *
@@ -44,7 +44,7 @@ import java.util.Objects;
  *
  *
  */
-public final class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
+public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
   private final JIdExpression qualifier;
 

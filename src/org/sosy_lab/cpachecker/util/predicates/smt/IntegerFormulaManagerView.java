@@ -23,25 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
 
 public class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
     implements IntegerFormulaManager {
-  private final IntegerFormulaManager integerFormulaManager;
-
   IntegerFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
-      IntegerFormulaManager pManager) {
+      NumeralFormulaManager<IntegerFormula, IntegerFormula> pManager) {
     super(pWrappingHandler, pManager);
-    integerFormulaManager = pManager;
-  }
-
-  @Override
-  public BooleanFormula modularCongruence(
-      IntegerFormula number1, IntegerFormula number2, long n) {
-    return integerFormulaManager.modularCongruence(number1, number2, n);
   }
 }

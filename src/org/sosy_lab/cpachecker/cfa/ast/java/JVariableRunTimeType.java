@@ -23,17 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-import java.util.Objects;
 
-
-public final class JVariableRunTimeType extends AbstractExpression
-    implements JRunTimeTypeExpression {
+public class JVariableRunTimeType extends AbstractExpression implements JRunTimeTypeExpression {
 
   private final JIdExpression referencedVariable;
 
@@ -50,6 +49,11 @@ public final class JVariableRunTimeType extends AbstractExpression
   @Override
   public JType getExpressionType() {
     return (JType)super.getExpressionType();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override

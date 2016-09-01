@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.util.Objects;
 
 /**
  *   JFieldAccess is no FieldAccess, but a qualified FieldAccess.
@@ -36,7 +36,7 @@ import java.util.Objects;
  *   fields with qualifier, and the rest.
  *
  */
-public final class JFieldAccess extends JIdExpression {
+public class JFieldAccess extends JIdExpression {
 
   //TODO Investigate if this should be refactored.
 

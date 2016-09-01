@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
@@ -41,7 +40,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -80,20 +79,15 @@ public class PredicateAbstractionsWriter {
     Map<ARGState, String> stateToAssert = Maps.newHashMap();
 
     // Get list of all abstraction states in the set reached
-    Deque<ARGState> worklist = Queues.newArrayDeque();
-    SetMultimap<ARGState, ARGState> successors;
-    if (!reached.isEmpty()) {
-      ARGState rootState =
-          AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-      successors =
-          ARGUtils.projectARG(
-              rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+    ARGState rootState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
+    SetMultimap<ARGState, ARGState> successors =
+        ARGUtils.projectARG(
+            rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
 
-      worklist.add(rootState);
-    } else {
-      successors = ImmutableSetMultimap.of();
-    }
     Set<ARGState> done = Sets.newHashSet();
+    Deque<ARGState> worklist = Queues.newArrayDeque();
+
+    worklist.add(rootState);
 
     // Write abstraction formulas of the abstraction states to the file
     try (Writer writer = MoreFiles.openOutputFile(abstractionsFile, Charset.defaultCharset())) {

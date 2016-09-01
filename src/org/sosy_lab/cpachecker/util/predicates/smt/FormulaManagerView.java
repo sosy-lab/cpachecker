@@ -53,31 +53,30 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
-import org.sosy_lab.java_smt.api.ArrayFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaManager;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
-import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.NumeralFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.java_smt.api.NumeralFormulaManager;
-import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.Tactic;
-import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BitvectorFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.FloatingPointFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.visitors.FormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -291,10 +290,10 @@ public class FormulaManagerView {
     return rawFloatingPointFormulaManager;
   }
 
-  private IntegerFormulaManager getIntegerFormulaManager0() {
-    IntegerFormulaManager ifmgr = manager.getIntegerFormulaManager();
+  private NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager0() {
+    NumeralFormulaManager<IntegerFormula, IntegerFormula> ifmgr = manager.getIntegerFormulaManager();
     if (useUFsForNonLinearArithmetic) {
-      ifmgr = new IntegerNonLinearUFNumeralFormulaManager(
+      ifmgr = new NonLinearUFNumeralFormulaManager<>(
           wrappingHandler, ifmgr, functionFormulaManager);
     }
     return ifmgr;
@@ -567,21 +566,9 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = booleanFormulaManager.makeBoolean(true);
+      t = getRationalFormulaManager().modularCongruence((NumeralFormula) pF1, (NumeralFormula) pF2, pModulo);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      Formula unwrapped1 = unwrap(pF1);
-      Formula unwrapped2 = unwrap(pF2);
-      if (unwrapped1 instanceof IntegerFormula && unwrapped2 instanceof IntegerFormula) {
-        t = integerFormulaManager.modularCongruence(
-            (IntegerFormula) unwrapped1, (IntegerFormula) unwrapped2, pModulo);
-      } else {
-        BitvectorFormula constant = bitvectorFormulaManager.makeBitvector(
-            bitvectorFormulaManager.getLength((BitvectorFormula) pF1), pModulo);
-        t = bitvectorFormulaManager.equal(
-            bitvectorFormulaManager.modulo((BitvectorFormula) pF1, constant, true),
-            bitvectorFormulaManager.modulo((BitvectorFormula) pF2, constant, true)
-        );
-      }
+      t = bitvectorFormulaManager.modularCongruence((BitvectorFormula) pF1, (BitvectorFormula) pF2, pModulo);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -1699,7 +1686,7 @@ public class FormulaManagerView {
    * View wrapper for {@link #transformRecursively}.
    */
   public static class FormulaTransformationVisitor
-      extends org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor {
+      extends org.sosy_lab.solver.visitors.FormulaTransformationVisitor {
 
     protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
       super(fmgr.manager);

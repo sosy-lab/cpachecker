@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -66,10 +64,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -130,13 +128,10 @@ public class PredicateAbstractionManager {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
-  private final PredicateAbstractionsStorage abstractionStorage;
   private final AbstractionManager amgr;
   private final RegionCreator rmgr;
   private final PathFormulaManager pfmgr;
   private final Solver solver;
-  private final InvariantSupplier invariantSupplier;
   private final ShutdownNotifier shutdownNotifier;
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
@@ -198,6 +193,14 @@ public class PredicateAbstractionManager {
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
 
+  private final InvariantSupplier invariantSupplier;
+
+  private final BooleanFormulaManagerView bfmgr;
+
+  private final PredicateAbstractionsStorage abstractionStorage;
+
+  private final Configuration config;
+
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       PathFormulaManager pPfmgr,
@@ -208,8 +211,9 @@ public class PredicateAbstractionManager {
       InvariantSupplier pInvariantsSupplier)
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
+    config = pConfig;
 
-    pConfig.inject(this, PredicateAbstractionManager.class);
+    config.inject(this, PredicateAbstractionManager.class);
 
     logger = pLogger;
     fmgr = pSolver.getFormulaManager();
@@ -245,40 +249,6 @@ public class PredicateAbstractionManager {
   }
 
   /**
-   * Compute an abstraction of a single boolean formula.
-   * @param f The formula to be abstracted. Needs to be instantiated
-   *         with the indices from <code>blockFormula.getSssa()</code>.
-   * @param blockFormula A path formula that is not used for the abstraction,
-   *         but will be used as the block formula in the resulting AbstractionFormula instance.
-   * @param predicates The set of predicates used for abstraction.
-   * @return An AbstractionFormula instance representing an abstraction of f
-   *          with blockFormula as the block formula.
-   */
-  public AbstractionFormula buildAbstraction(
-      final CFANode location,
-      final BooleanFormula f,
-      final PathFormula blockFormula,
-      final Collection<AbstractionPredicate> predicates)
-      throws SolverException, InterruptedException {
-
-    PathFormula pf =
-        new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
-
-    AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
-    AbstractionFormula newAbstraction =
-        buildAbstraction(location, emptyAbstraction, pf, predicates);
-
-    // fix block formula in result
-    return new AbstractionFormula(
-        fmgr,
-        newAbstraction.asRegion(),
-        newAbstraction.asFormula(),
-        newAbstraction.asInstantiatedFormula(),
-        blockFormula,
-        noAbstractionReuse);
-  }
-
-  /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and
    * a PathFormula. The AbstractionFormula will be used in its instantiated form,
    * so the indices there should match those from the PathFormula.
@@ -303,7 +273,7 @@ public class PredicateAbstractionManager {
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
+    final BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
@@ -324,14 +294,11 @@ public class PredicateAbstractionManager {
       return makeTrueAbstractionFormula(pathFormula);
     }
 
-    final Function<BooleanFormula, BooleanFormula> instantiator =
-        pred -> fmgr.instantiate(pred, ssa);
-
     // This is the (mutable) set of remaining predicates that still need to be handled.
     // Each step of our abstraction computation may be able to handle some predicates,
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
-        getRelevantPredicates(pPredicates, f, instantiator);
+        getRelevantPredicates(pPredicates, f, ssa, location);
 
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
@@ -367,6 +334,13 @@ public class PredicateAbstractionManager {
     }
 
 
+
+    // We update statistics here because we want to ignore calls
+    // where the result was in the cache.
+    stats.numTotalPredicates += pPredicates.size();
+    stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
+    stats.numIrrelevantPredicates += pPredicates.size() - remainingPredicates.size();
+
     // Compute result for those predicates
     // where we can trivially identify their truthness in the result
     Region abs = rmgr.makeTrue();
@@ -389,17 +363,60 @@ public class PredicateAbstractionManager {
       }
     }
 
-    if (abstractionType == AbstractionType.ELIMINATION) {
-      stats.quantifierEliminationTime.start();
-      try {
-        BooleanFormula eliminationResult = fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
-        abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(eliminationResult));
-      } finally {
-        stats.quantifierEliminationTime.stop();
-      }
+    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+      thmProver.push(f);
 
-    } else {
-      abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
+      if (remainingPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
+        stats.numSatCheckAbstractions++;
+
+        stats.abstractionSolveTime.start();
+        boolean feasibility;
+        try {
+          feasibility = !thmProver.isUnsat();
+        } finally {
+          stats.abstractionSolveTime.stop();
+        }
+
+        if (!feasibility) {
+          abs = rmgr.makeFalse();
+        }
+
+      } else if (abstractionType == AbstractionType.ELIMINATION) {
+        stats.quantifierEliminationTime.start();
+        try {
+          abs = rmgr.makeAnd(abs,
+              eliminateIrrelevantVariablePropositions(f, ssa));
+        } finally {
+          stats.quantifierEliminationTime.stop();
+        }
+      } else {
+        if (abstractionType != AbstractionType.BOOLEAN) {
+          // First do cartesian abstraction if desired
+          stats.cartesianAbstractionTime.start();
+          try {
+            abs =
+                rmgr.makeAnd(
+                    abs, buildCartesianAbstraction(f, ssa, thmProver, remainingPredicates));
+          } finally {
+            stats.cartesianAbstractionTime.stop();
+          }
+        }
+
+        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+          // Last do boolean abstraction if desired and necessary
+          stats.numBooleanAbsPredicates += remainingPredicates.size();
+          stats.booleanAbstractionTime.start();
+          try {
+            abs = rmgr.makeAnd(abs, buildBooleanAbstraction(ssa, thmProver, remainingPredicates));
+          } finally {
+            stats.booleanAbstractionTime.stop();
+          }
+
+          // Warning:
+          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+          // remainingPredicates is now empty.
+        }
+      }
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -420,74 +437,23 @@ public class PredicateAbstractionManager {
 
     if (dumpHardAbstractions && abstractionTime > 10000) {
       // we want to dump "hard" problems...
-      dumpAbstractionProblem(f, pPredicates, result);
+      Path dumpFile;
+
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+      fmgr.dumpFormulaToFile(f, dumpFile);
+
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
+      try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
+        Joiner.on('\n').appendTo(w, pPredicates);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
+      }
+
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
+      fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
     }
 
     return result;
-  }
-
-  /**
-   * Compute an abstraction of a formula.
-   * This is a low-level version of
-   * {@link #buildAbstraction(CFANode, BooleanFormula, PathFormula, Collection)}:
-   * it does not handle instantiation and does not return an {@link AbstractionFormula}
-   * but just a {@link BooleanFormula}.
-   * It also misses several of the optimizations and features of
-   * {@link #buildAbstraction(CFANode, BooleanFormula, PathFormula, Collection)},
-   * so if possible use that method.
-   *
-   * @param pF The formula to be abstracted. Must not be instantiated.
-   * @param pPredicates The set of predicates to use for abstraction.
-   * @return An over-approximation of pF using the predicates from pPredicates.
-   */
-  public BooleanFormula computeAbstraction(
-      final BooleanFormula pF, final Collection<AbstractionPredicate> pPredicates)
-      throws InterruptedException, SolverException {
-    stats.numCallsAbstraction++;
-
-    if (pPredicates.isEmpty()) {
-      stats.numSymbolicAbstractions++;
-      return bfmgr.makeTrue();
-    }
-
-    if (unsatisfiabilityCache.contains(pF)) {
-      stats.numCallsAbstractionCached++;
-      return bfmgr.makeFalse();
-    }
-
-    final Function<BooleanFormula, BooleanFormula> dummyInstantiator = Functions.identity();
-
-    final Collection<AbstractionPredicate> predicates =
-        getRelevantPredicates(pPredicates, pF, dummyInstantiator);
-
-    Region abs = computeAbstraction(pF, predicates, dummyInstantiator);
-
-    BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
-
-    if (simplifyAbstractionFormula) {
-      symbolicAbs = fmgr.simplify(symbolicAbs);
-    }
-
-    if (bfmgr.isFalse(symbolicAbs)) {
-      unsatisfiabilityCache.add(pF);
-    }
-
-    return symbolicAbs;
-  }
-
-  private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
-    BooleanFormula symbFormula = pathFormula.getFormula();
-
-    if (fmgr.useBitwiseAxioms()) {
-      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bfmgr.isTrue(bitwiseAxioms)) {
-        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-
-    return symbFormula;
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -521,7 +487,7 @@ public class PredicateAbstractionManager {
         }
 
         Set<AbstractionNode> candidateAbstractions =
-            abstractionStorage.getSuccessorAbstractions(tryBasedOnAbstractionId);
+            getSuccessorsInAbstractionTree(tryBasedOnAbstractionId);
         Preconditions.checkNotNull(candidateAbstractions);
 
         //logger.log(Level.WARNING, "Raw candidates based on", tryBasedOnAbstractionId, ":", candidateAbstractions);
@@ -595,6 +561,15 @@ public class PredicateAbstractionManager {
     return null; //no abstraction could be reused
   }
 
+  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, SSAMap pSsa) throws InterruptedException, SolverException {
+
+    BooleanFormula eliminationResult = fmgr.uninstantiate(
+        fmgr.eliminateDeadVariables(pF, pSsa));
+
+    return amgr.convertFormulaToRegion(eliminationResult);
+
+  }
+
   /**
    * Extract all relevant predicates (with respect to a given formula)
    * from a given set of predicates.
@@ -607,13 +582,15 @@ public class PredicateAbstractionManager {
    *
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
-   * @param instantiator A function that will be applied to instantiate each abstraction predicate.
+   * @param ssa The SSA map to use for instantiating predicates.
+   * @param pLocation the location that should be used
    * @return A subset of pPredicates.
    */
   private Collection<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
-      final Function<BooleanFormula, BooleanFormula> instantiator) {
+      final SSAMap ssa,
+      final CFANode pLocation) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     // LinkedList keeps order (important to avoid non-determinism) and supports efficient removal.
@@ -628,7 +605,7 @@ public class PredicateAbstractionManager {
         continue;
       }
 
-      BooleanFormula instantiatedPredicate = instantiator.apply(predicateTerm);
+      BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
       Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (predVariables.isEmpty()
@@ -641,10 +618,6 @@ public class PredicateAbstractionManager {
         logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
       }
     }
-
-    stats.numTotalPredicates += pPredicates.size();
-    stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
-    stats.numIrrelevantPredicates += pPredicates.size() - relevantPredicates.size();
 
     return relevantPredicates;
   }
@@ -717,73 +690,50 @@ public class PredicateAbstractionManager {
   }
 
   /**
-   * Actually compute an abstraction of a formula, without fancy caching etc.
-   *
-   * @param f The formula to be abstracted.
-   * @param remainingPredicates The set of predicates.
-   *     Each predicate that is handled will be removed from the set.
-   * @param instantiator A function that will be applied to instantiate each abstraction predicate,
-   *     should yield the same SSA indices that f has (or none, if f has no SSA indices).
-   * @return An over-approximation of f using the predicates from remainingPredicates.
+   * Compute an abstraction of a single boolean formula.
+   * @param f The formula to be abstracted. Needs to be instantiated
+   *         with the indices from <code>blockFormula.getSssa()</code>.
+   * @param blockFormula A path formula that is not used for the abstraction,
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   * @param predicates The set of predicates used for abstraction.
+   * @return An AbstractionFormula instance representing an abstraction of f
+   *          with blockFormula as the block formula.
    */
-  private Region computeAbstraction(
+  public AbstractionFormula buildAbstraction(
+      final CFANode location,
       final BooleanFormula f,
-      final Collection<AbstractionPredicate> remainingPredicates,
-      final Function<BooleanFormula, BooleanFormula> instantiator)
-      throws SolverException, InterruptedException {
-    Region abs = rmgr.makeTrue();
+      final PathFormula blockFormula,
+      final Collection<AbstractionPredicate> predicates)
+          throws SolverException, InterruptedException {
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
-      thmProver.push(f);
+    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
 
-      if (remainingPredicates.isEmpty()) {
-        stats.numSatCheckAbstractions++;
+    AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
+    AbstractionFormula newAbstraction = buildAbstraction(location, emptyAbstraction, pf, predicates);
 
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
+    // fix block formula in result
+    return new AbstractionFormula(fmgr, newAbstraction.asRegion(),
+        newAbstraction.asFormula(), newAbstraction.asInstantiatedFormula(),
+        blockFormula, noAbstractionReuse);
+  }
 
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
-
-      } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
-          stats.cartesianAbstractionTime.start();
-          try {
-            abs =
-                rmgr.makeAnd(
-                    abs,
-                    computeCartesianAbstraction(f, thmProver, remainingPredicates, instantiator));
-          } finally {
-            stats.cartesianAbstractionTime.stop();
-          }
-        }
-
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
-          // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates += remainingPredicates.size();
-          stats.booleanAbstractionTime.start();
-          try {
-            abs =
-                rmgr.makeAnd(
-                    abs, computeBooleanAbstraction(thmProver, remainingPredicates, instantiator));
-          } finally {
-            stats.booleanAbstractionTime.stop();
-          }
-
-          // Warning:
-          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
-          // remainingPredicates is now empty.
-        }
-      }
-    }
-    return abs;
+  /**
+   * Create an abstraction from a single boolean formula without actually
+   * doing any abstraction computation. The formula is just converted into a
+   * region, but the result is equivalent to the input.
+   * This can be used to simply view the formula as a region.
+   * If BDDs are used, the result of this method is a minimized form of the input.
+   * @param f The formula to be converted to a region. Must NOT be instantiated!
+   * @param blockFormula A path formula that is not used for the abstraction,
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   *         Also it's SSAMap will be used for instantiating the result.
+   * @return An AbstractionFormula instance representing f
+   *          with blockFormula as the block formula.
+   */
+  public AbstractionFormula buildAbstraction(final BooleanFormula f,
+      final PathFormula blockFormula) throws InterruptedException {
+    Region r = amgr.convertFormulaToRegion(f);
+    return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
 
   /**
@@ -791,16 +741,16 @@ public class PredicateAbstractionManager {
    * The abstracted formula is expected to have been pushed onto the solver stack already.
    *
    * @param f The (instantiated) formula to abstract, only used as cache key.
+   * @param ssa The SSAMap for instantiating predicates such that it matches f.
    * @param thmProver The solver to use with the input formula on the stack.
    * @param pPredicates The set of predicates. Each predicate that is handled will be removed from the set.
-   * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */
-  private Region computeCartesianAbstraction(
+  private Region buildCartesianAbstraction(
       final BooleanFormula f,
+      final SSAMap ssa,
       final ProverEnvironment thmProver,
-      final Collection<AbstractionPredicate> pPredicates,
-      final Function<BooleanFormula, BooleanFormula> instantiator)
+      final Collection<AbstractionPredicate> pPredicates)
       throws SolverException, InterruptedException {
 
     stats.abstractionSolveTime.start();
@@ -852,7 +802,7 @@ public class PredicateAbstractionManager {
               "CHECKING VALUE OF PREDICATE: ", p.getSymbolicAtom());
 
           // instantiate the definition of the predicate
-          BooleanFormula predTrue = instantiator.apply(p.getSymbolicAtom());
+          BooleanFormula predTrue = fmgr.instantiate(p.getSymbolicAtom(), ssa);
           BooleanFormula predFalse = bfmgr.not(predTrue);
 
           // check whether this predicate has a truth value in the next
@@ -904,21 +854,35 @@ public class PredicateAbstractionManager {
     }
   }
 
+  private BooleanFormula buildFormula(BooleanFormula symbFormula) {
+
+    if (fmgr.useBitwiseAxioms()) {
+      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
+      if (!bfmgr.isTrue(bitwiseAxioms)) {
+        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
+
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+      }
+    }
+
+    return symbFormula;
+  }
+
   /**
    * Compute a Boolean abstraction of a formula given a set of predicates.
    * The abstracted formula is expected to have been pushed onto the solver stack already.
    *
+   * @param ssa The SSAMap for instantiating predicates such that it matches f.
    * @param thmProver The solver to use with the input formula on the stack.
    * @param predicates The set of predicates.
    *    Each predicate that is handled will be removed from the set
    *    (and Boolean abstraction handles all predicates so the set is empty afterwards!).
-   * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */
-  private Region computeBooleanAbstraction(
+  private Region buildBooleanAbstraction(
+      final SSAMap ssa,
       final ProverEnvironment thmProver,
-      final Collection<AbstractionPredicate> predicates,
-      final Function<BooleanFormula, BooleanFormula> instantiator)
+      final Collection<AbstractionPredicate> predicates)
       throws InterruptedException, SolverException {
 
     // build the definition of the predicates, and instantiate them
@@ -930,8 +894,9 @@ public class PredicateAbstractionManager {
     for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
       BooleanFormula var = p.getSymbolicVariable();
-      final BooleanFormula def = instantiator.apply(p.getSymbolicAtom());
+      BooleanFormula def = p.getSymbolicAtom();
       assert !bfmgr.isFalse(def);
+      def = fmgr.instantiate(def, ssa);
 
       // build the formula (var <-> def) and add it to the list of definitions
       BooleanFormula equiv = bfmgr.equivalence(var, def);
@@ -1035,30 +1000,6 @@ public class PredicateAbstractionManager {
   }
 
   /**
-   * Write input and result of an abstraction problem to disk.
-   */
-  private void dumpAbstractionProblem(
-      final BooleanFormula f,
-      final Collection<AbstractionPredicate> predicates,
-      final AbstractionFormula result) {
-    Path dumpFile;
-
-    dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-    fmgr.dumpFormulaToFile(f, dumpFile);
-
-    dumpFile =
-        fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-    try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
-      Joiner.on('\n').appendTo(w, predicates);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
-    }
-
-    dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
-    fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
-  }
-
-  /**
    * Checks if a1 => a2
    */
   public boolean checkCoverage(AbstractionFormula a1, AbstractionFormula a2)
@@ -1072,7 +1013,7 @@ public class PredicateAbstractionManager {
   public boolean checkCoverage(AbstractionFormula a1, PathFormula p1, AbstractionFormula a2)
       throws SolverException, InterruptedException {
     BooleanFormula absFormula = a1.asInstantiatedFormula();
-    BooleanFormula symbFormula = getFormulaFromPathFormula(p1);
+    BooleanFormula symbFormula = buildFormula(p1.getFormula());
     BooleanFormula a = bfmgr.and(absFormula, symbFormula);
 
     // get formula of a2 with the indices of p1
@@ -1091,33 +1032,12 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
 
     BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
-    BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
+    BooleanFormula symbFormula = buildFormula(pathFormula.getFormula());
     BooleanFormula f = bfmgr.and(absFormula, symbFormula);
 
     logger.log(Level.ALL, "Checking satisfiability of formula", f);
 
     return solver.isUnsat(f);
-  }
-
-  // syntactic creation and manipulation of AbstractionFormulas
-
-  /**
-   * Create an abstraction from a single boolean formula without actually
-   * doing any abstraction computation. The formula is just converted into a
-   * region, but the result is equivalent to the input.
-   * This can be used to simply view the formula as a region.
-   * If BDDs are used, the result of this method is a minimized form of the input.
-   * @param f The formula to be converted to a region. Must NOT be instantiated!
-   * @param blockFormula A path formula that is not used for the abstraction,
-   *         but will be used as the block formula in the resulting AbstractionFormula instance.
-   *         Also it's SSAMap will be used for instantiating the result.
-   * @return An AbstractionFormula instance representing f
-   *          with blockFormula as the block formula.
-   */
-  public AbstractionFormula asAbstraction(final BooleanFormula f, final PathFormula blockFormula)
-      throws InterruptedException {
-    Region r = amgr.convertFormulaToRegion(f);
-    return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
   }
 
   public AbstractionFormula makeTrueAbstractionFormula(PathFormula pPreviousBlockFormula) {
@@ -1155,8 +1075,6 @@ public class PredicateAbstractionManager {
 
     return new AbstractionFormula(fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, noAbstractionReuse);
   }
-
-  // reduce & expand of AbstractionFormulas
 
   /**
    * Remove a set of predicates from an abstraction.
@@ -1202,8 +1120,6 @@ public class PredicateAbstractionManager {
     return makeAbstractionFormula(expandedRegion, newSSA, blockFormula);
   }
 
-  // Creating AbstractionPredicates
-
   /**
    * Extract all atoms from a formula and create predicates for them.
    * If instead a single predicate should be created for the whole formula,
@@ -1243,6 +1159,8 @@ public class PredicateAbstractionManager {
     return amgr.makePredicate(fmgr.uninstantiate(pFormula));
   }
 
+  // delegate methods
+
   public AbstractionPredicate makeFalsePredicate() {
     return amgr.makeFalsePredicate();
   }
@@ -1260,4 +1178,10 @@ public class PredicateAbstractionManager {
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
+
+  private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {
+    Preconditions.checkNotNull(reuseAbstractionsFrom);
+    return abstractionStorage.getSuccessorAbstractions(pIdOfLastAbstractionReused);
+  }
+
 }

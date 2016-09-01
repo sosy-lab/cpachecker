@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -187,10 +186,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final CFANode callNode = succ.getEnteringSummaryEdge().getPredecessor();
         final CallstackState returnElement;
 
-          assert calledFunction.equals(e.getCurrentFunction())
-              || isWildcardState(e, AnalysisDirection.FORWARD);
+        assert calledFunction.equals(e.getCurrentFunction()) || isWildcardState(e);
 
-          if (isWildcardState(e, AnalysisDirection.FORWARD)) {
+        if (isWildcardState(e)) {
           returnElement = e;
 
         } else {
@@ -204,8 +202,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           //    the new abstract state is the predecessor state in the stack
           returnElement = e.getPreviousState();
 
-            assert callerFunction.equals(returnElement.getCurrentFunction())
-                || isWildcardState(returnElement, AnalysisDirection.FORWARD);
+          assert callerFunction.equals(returnElement.getCurrentFunction()) || isWildcardState(returnElement);
         }
 
         return Collections.singleton(returnElement);
@@ -222,12 +219,11 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
    * Checks if the given callstack state should be treated as a wildcard state.
    *
    * @param pState the state to check.
-   * @param direction direction of the analysis
    *
    * @return {@code true} if the given state should be treated as a wildcard,
    * {@code false} otherwise.
    */
-  protected boolean isWildcardState(final CallstackState pState, AnalysisDirection direction) {
+  protected boolean isWildcardState(final CallstackState pState) {
     String function = pState.getCurrentFunction();
 
     // Single loop transformation case
@@ -244,16 +240,13 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Normal function call case
-    for (FunctionEntryNode node : CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class)) {
-      if (node.getFunctionName().equals(pState.getCurrentFunction())) {
-        return false;
-      }
+    if (CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class).anyMatch(
+        pArg0 -> pArg0.getFunctionName().equals(pState.getCurrentFunction()))) {
+      return false;
     }
 
     // Not a function call node -> wildcard state
-    // Info: a backward-analysis causes an callstack-state with a non-function-call-node,
-    // build from the target state on getInitialState.
-    return direction == AnalysisDirection.FORWARD;
+    return true;
   }
 
   protected boolean skipRecursiveFunctionCall(final CallstackState element,

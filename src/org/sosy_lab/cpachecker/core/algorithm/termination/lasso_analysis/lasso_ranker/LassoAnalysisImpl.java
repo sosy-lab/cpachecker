@@ -23,28 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.java_smt.SolverContextFactory.Solvers.SMTINTERPOL;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -53,28 +41,22 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.RankingRelationBuilder.RankingRelationException;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext;
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext;
+import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 
 import java.io.IOException;
-import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -134,21 +116,35 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     }
   }
 
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final TerminationStatistics statistics;
+
+  private final AbstractFormulaManager<Term, ?, ?, ?> formulaManager;
+  private final FormulaManagerView formulaManagerView;
+  private final PathFormulaManager pathFormulaManager;
+
+  private final LassoBuilder lassoBuilder;
+  private final RankingRelationBuilder rankingRelationBuilder;
+
+  private final LassoRankerPreferences linearLassoRankerPreferences;
+  private final LassoRankerPreferences nonlinearLassoRankerPreferences;
+  private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
+  private final TerminationAnalysisSettings linearTerminationAnalysisSettings;
+  private final TerminationAnalysisSettings nonlinearTerminationAnalysisSettings;
+
+  private final LassoRankerToolchainStorage toolchainStorage;
+
+  private final Collection<RankingTemplate> rankingTemplates;
+
   @Option(
     secure = true,
     description =
         "Number of non-strict supporting invariants for each Motzkin transformation "
             + "during synthesis of termination arguments."
   )
-  @IntegerOption(min = 1)
-  private int nonStrictInvariants = 3;
-
-  @Option(
-    secure = true,
-    description = "Number of generalized eigenvectors in the geometric nontermination argument."
-  )
   @IntegerOption(min = 0)
-  private int eigenvectors = 3;
+  private int nonStrictInvariants = 3;
 
   @Option(
     secure = true,
@@ -197,42 +193,13 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true ";
 
   @Option(
-    secure = true,
-    description = "Maximal number of functions used in a ranking function template."
-  )
-  @IntegerOption(min = 1)
-  private int maxTemplateFunctions = 3;
-
-  @Option(
-    secure = true,
-    description =
-        "A human readable representation of the synthesized (non-)termination arguments is "
-            + "exported to this file."
-  )
-  @FileOption(Type.OUTPUT_FILE)
-  private Path resultFile = Paths.get("terminationAnalysisResult.txt");
-
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final TerminationStatistics statistics;
-
-  private final SolverContext solverContext;
-
-  private final LassoBuilder lassoBuilder;
-  private final RankingRelationBuilder rankingRelationBuilder;
-
-  private final LassoRankerPreferences linearLassoRankerPreferences;
-  private final LassoRankerPreferences nonlinearLassoRankerPreferences;
-  private final NonTerminationAnalysisSettings nonTerminationAnalysisSettings;
-  private final TerminationAnalysisSettings linearTerminationAnalysisSettings;
-  private final TerminationAnalysisSettings nonlinearTerminationAnalysisSettings;
-
-  private final LassoRankerToolchainStorage toolchainStorage;
-
-  private final Collection<RankingTemplate> rankingTemplates;
-
-  private final SetMultimap<Loop, TerminationArgument> terminationArguments;
-  private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
+      secure = true,
+      description =
+          "Maximal number of functions used in a ranking function template."
+    )
+    @IntegerOption(min = 1)
+    private int maxTemplateFunctions = 3;
+  private SolverContext solverContext;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -249,13 +216,10 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
     solverContext = checkNotNull(pSolverContext);
-    checkArgument(solverContext.getSolverName().equals(SMTINTERPOL));
-    AbstractFormulaManager<Term, ?, ?, ?> formulaManager =
-        (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
+    formulaManager = (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
     Configuration solverConfig = Configuration.defaultConfiguration();
-    FormulaManagerView formulaManagerView =
-        new FormulaManagerView(formulaManager, solverConfig, pLogger);
-    PathFormulaManager pathFormulaManager =
+    formulaManagerView = new FormulaManagerView(formulaManager, solverConfig, pLogger);
+    pathFormulaManager =
         new PathFormulaManagerImpl(
             formulaManagerView,
             pConfig,
@@ -274,11 +238,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             pSolverContext::newProverEnvironment,
             pathFormulaManager);
     rankingRelationBuilder =
-        new RankingRelationBuilder(
-            pCfa.getMachineModel(),
-            pLogger,
-            formulaManagerView,
-            formulaManager.getFormulaCreator());
+        new RankingRelationBuilder(pCfa.getMachineModel(), pLogger, formulaManagerView);
 
     linearLassoRankerPreferences = new LassoRankerPreferences();
     linearLassoRankerPreferences.smt_solver_command = externalSolverCommand;
@@ -289,7 +249,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     nonlinearLassoRankerPreferences.externalSolver = nonlinearExternalSolver;
 
     nonTerminationAnalysisSettings = new NonTerminationAnalysisSettings();
-    nonTerminationAnalysisSettings.number_of_gevs = eigenvectors;
 
     linearTerminationAnalysisSettings = new TerminationAnalysisSettings();
     linearTerminationAnalysisSettings.analysis = linearAnalysisType.toAnalysisType();
@@ -304,8 +263,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
 
     rankingTemplates = createTemplates(maxTemplateFunctions);
-    terminationArguments = MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
-    nonTerminationArguments = Maps.newLinkedHashMap();
   }
 
   private static Collection<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
@@ -331,51 +288,19 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   }
 
   @Override
-  public void writeOutputFiles() {
-    if (resultFile != null) {
-      logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
-
-      try (Writer writer = MoreFiles.openOutputFile(resultFile, UTF_8)) {
-        writer.append("Non-termination arguments:\n");
-        for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
-            nonTerminationArguments.entrySet()) {
-          writer.append(nonTerminationArgument.getKey().toString());
-          writer.append(":\n");
-          writer.append(nonTerminationArgument.getValue().toString());
-          writer.append('\n');
-        }
-
-        writer.append("\n\nTermination arguments:\n");
-        for (Loop loop : terminationArguments.keySet()) {
-          for (TerminationArgument terminationArgument : terminationArguments.get(loop)) {
-            writer.append(loop.toString());
-            writer.append(":\n");
-            writer.append(terminationArgument.toString());
-            writer.append('\n');
-          }
-          writer.append('\n');
-        }
-
-      } catch (IOException e) {
-        logger.logException(WARNING, e, "Could not export (non-)termination arguments.");
-      }
-    }
-  }
-
-  @Override
   public LassoAnalysisResult checkTermination(
-      Loop pLoop, CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
+      CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
     statistics.analysisOfLassosStarted();
     try {
-      return checkTermination0(pLoop, pCounterexample, pRelevantVariables);
+      return checkTermination0(pCounterexample, pRelevantVariables);
     } finally {
       statistics.analysisOfLassosFinished();
     }
   }
 
   private LassoAnalysisResult checkTermination0(
-      Loop pLoop, CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
+      CounterexampleInfo pCounterexample, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException {
     Collection<Lasso> lassos;
     statistics.lassoConstructionStarted();
@@ -384,18 +309,17 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       statistics.lassosConstructed(lassos.size());
 
     } catch (TermException | SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Could not extract lasso (" + pLoop + ").");
+      logger.logUserException(Level.WARNING, e, "Could not extract lasso.");
       return LassoAnalysisResult.unknown();
     } finally {
       statistics.lassoConstructionFinished();
     }
 
     try {
-      return checkTermination(pLoop, lassos, pRelevantVariables);
+      return checkTermination(lassos, pRelevantVariables);
 
     } catch (IOException | SMTLIBException | TermException | SolverException e) {
-      logger.logUserException(
-          WARNING, e, "Could not check (non)-termination of lasso (" + pLoop + ").");
+      logger.logUserException(Level.WARNING, e, "Could not check (non)-termination of lasso.");
       return LassoAnalysisResult.unknown();
     } catch (ToolchainCanceledException e) {
       throw new InterruptedException(e.getMessage());
@@ -403,7 +327,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   }
 
   private LassoAnalysisResult checkTermination(
-      Loop pLoop, Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
+      Collection<Lasso> lassos, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
 
     LassoAnalysisResult result = LassoAnalysisResult.unknown();
@@ -412,8 +336,8 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     // than synthesizing termination arguments.
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
-      logger.logf(FINER, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
-      LassoAnalysisResult resultFromLasso = synthesizeNonTerminationArgument(pLoop, lasso);
+      logger.logf(Level.FINE, "Synthesizing non-termination argument for lasso:\n%s.", lasso);
+      LassoAnalysisResult resultFromLasso = synthesizeNonTerminationArgument(lasso);
       result = result.update(resultFromLasso);
 
       // Stop and return result if non-termination could be proved.
@@ -425,16 +349,16 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     // Synthesize termination arguments
     for (Lasso lasso : lassos) {
       shutdownNotifier.shutdownIfNecessary();
-      logger.logf(FINER, "Synthesizing termination argument for lasso:\n%s.", lasso);
+      logger.logf(Level.FINE, "Synthesizing termination argument for lasso:\n%s.", lasso);
       LassoAnalysisResult resultFromLasso =
-          synthesizeTerminationArgument(pLoop, lasso, pRelevantVariables);
+          synthesizeTerminationArgument(lasso, pRelevantVariables);
       result = result.update(resultFromLasso);
     }
 
     return result;
   }
 
-  private LassoAnalysisResult synthesizeNonTerminationArgument(Loop pLoop, Lasso lasso)
+  private LassoAnalysisResult synthesizeNonTerminationArgument(Lasso lasso)
       throws IOException, SMTLIBException, TermException {
 
     statistics.nonTerminationAnalysisOfLassoStarted();
@@ -445,8 +369,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       LBool result = nonTerminationArgumentSynthesizer.synthesize();
       if (result.equals(LBool.SAT) && nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
         nonTerminationArgument = nonTerminationArgumentSynthesizer.getArgument();
-        logger.logf(FINE, "Proved non-termintion: %s", nonTerminationArgument);
-        nonTerminationArguments.put(pLoop, nonTerminationArgument);
+        logger.logf(Level.INFO, "Proved non-termintion: %s", nonTerminationArgument);
         return LassoAnalysisResult.fromNonTerminationArgument(nonTerminationArgument);
 
       } else {
@@ -459,9 +382,10 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   }
 
   private LassoAnalysisResult synthesizeTerminationArgument(
-      Loop pLoop, Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
+      Lasso lasso, Set<CVariableDeclaration> pRelevantVariables)
       throws IOException, SMTLIBException, TermException, InterruptedException, SolverException {
 
+    RankingRelation rankingRelation = null;
     statistics.terminationAnalysisOfLassoStarted();
     try {
       for (RankingTemplate rankingTemplate : rankingTemplates) {
@@ -476,33 +400,22 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
 
             try (ProverEnvironment proover = solverContext.newProverEnvironment()) {
-              RankingRelation rankingRelation =
+              rankingRelation =
                   rankingRelationBuilder.fromTerminationArgument(
                       terminationArgument, pRelevantVariables);
 
               proover.push(rankingRelation.asFormula());
               if (!proover.isUnsat()) {
-                terminationArguments.put(pLoop, terminationArgument);
                 return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
               }
 
-            } catch (RankingRelationException e) {
-              logger.logUserException(
-                  Level.INFO, e, "Could not create ranking relation from " + terminationArgument);
-              return LassoAnalysisResult.unknown();
+            } catch (UnrecognizedCCodeException e) {
+              logger.logException(
+                  Level.WARNING, e, "Could not create ranking relation from " + pRelevantVariables);
             }
           }
-
-        } catch (AssertionError e) {
-          // Workaround for a bug in LassoRanker (terminationArgumentSynthesizer.synthesize()):
-          // An assertion is violated if the time limit is reached.
-          if (e.getMessage().equals("not yet implemented")) {
-            shutdownNotifier.shutdownIfNecessary();
-          }
-          throw e;
         }
       }
-
     } finally {
       statistics.terminationAnalysisOfLassoFinished();
     }

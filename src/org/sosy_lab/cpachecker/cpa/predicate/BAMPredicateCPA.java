@@ -121,7 +121,6 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
         getSolver().getFormulaManager().getBooleanFormulaManager(), this);
   }
 
-  @Override
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
   }

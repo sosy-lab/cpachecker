@@ -60,8 +60,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
                PrecisionAdjustment,
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA,
-               MergeOperator,
-               AutoCloseable {
+               MergeOperator {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
@@ -72,7 +71,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   private final LogManager logger;
   private final PolicyIterationStatistics statistics;
   private final StopOperator stopOperator;
-  private final Solver solver;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -90,7 +88,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     logger = pLogger;
     config = pConfig;
 
-    solver = Solver.create(config, pLogger, shutdownNotifier);
+    Solver solver = Solver.create(config, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
@@ -271,14 +269,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     return new PolicyReducer(logger);
   }
 
-  @Override
   public void setPartitioning(BlockPartitioning pPartitioning) {
     policyIterationManager.setPartitioning(pPartitioning);
-  }
-
-  @Override
-  public void close() {
-    solver.close();
   }
 }
 

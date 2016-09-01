@@ -46,11 +46,6 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-# Default rounding mode for floating point operations.
-solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
-  enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
-             TOWARD_ZERO]
-
 # Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
@@ -133,9 +128,6 @@ analysis.algorithm.conditionAdjustment = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
-
-# use PDR algorithm
-analysis.algorithm.pdr = false
 
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
@@ -885,10 +877,6 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 # mergeType
 cpa.bdd.merge = "join"
 
-# Threshold for unrolling blocks before stopping. A value of 0 disables the
-# threshold.
-cpa.blockcount.threshold = 1
-
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.bounds.loopIterationsBeforeAbstraction = 0
@@ -1283,7 +1271,7 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
-# which merge operator to use for PointerCPA
+# which merge operator to use for InvariantCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
@@ -2796,10 +2784,6 @@ termination.check = false
 # instead of the current one.
 termination.config = no default value
 
-# Number of generalized eigenvectors in the geometric nontermination
-# argument.
-termination.lassoAnalysis.eigenvectors = 3
-
 # Shell command used to call the external SMT solver.
 termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
 
@@ -2826,10 +2810,6 @@ termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
 # This affects only synthesis of non-linear termination arguments and
 # non-termination arguments.
 termination.lassoAnalysis.nonlinear.externalSolver = false
-
-# A human readable representation of the synthesized (non-)termination
-# arguments is exported to this file.
-termination.lassoAnalysis.resultFile = "terminationAnalysisResult.txt"
 
 # Number of strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.

@@ -27,19 +27,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
-  private AtomicBoolean started = new AtomicBoolean();
-
   @Override
-  public final void start(CFANode pInitialLocation) {
-    startImpl(pInitialLocation);
-    started.set(true);
-  }
-
-  protected abstract void startImpl(CFANode pInitialLocation);
+  public abstract void start(CFANode pInitialLocation);
 
   @Override
   public abstract void cancel();
@@ -51,10 +43,5 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
   @Override
   public abstract boolean isProgramSafe();
-
-  @Override
-  public boolean isStarted() {
-    return started.get();
-  }
 
 }

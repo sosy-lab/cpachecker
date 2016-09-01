@@ -24,27 +24,27 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
 
 import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
-import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.DIV;
-import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MODULO;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.DIV;
+import static org.sosy_lab.solver.api.FunctionDeclarationKind.MODULO;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaManager;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 
 import java.util.Collection;
 import java.util.List;
+
+import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
@@ -107,8 +107,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
       List<Formula> newArgs = Lists.transform(pArgs, f -> fmgrView.visit(f, this));
 
       if (pFunctionDeclaration.getKind().equals(DIV)
-          || pFunctionDeclaration.getName().equalsIgnoreCase("div")
-          || pFunctionDeclaration.getName().equalsIgnoreCase("Integer__/_")) {
+          || pFunctionDeclaration.getName().equalsIgnoreCase("div")) {
         assert newArgs.size() == 2;
         return transformDivision(newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
 
