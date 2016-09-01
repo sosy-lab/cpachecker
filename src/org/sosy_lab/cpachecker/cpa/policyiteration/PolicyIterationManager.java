@@ -553,13 +553,12 @@ public class PolicyIterationManager {
   }
 
   /**
-   * Emulate the JOIN step, while generating an ARG:
-   *
-   * <p>The produced successor will be produced as if it was afterwards joined with
-   * the {@code latestSibling} state.
+   * Emulate the JOIN step on {@code newState} (recently produced abstracted state)
+   * and {@code latestSibling} (state in the same {@link ReachedSet} partition found by following
+   * backpointers.
    */
   private PolicyAbstractedState emulateLargeStep(
-      PolicyAbstractedState abstraction,
+      PolicyAbstractedState newState,
       PolicyAbstractedState latestSibling,
       TemplatePrecision precision,
       BooleanFormula extraInvariant
@@ -567,7 +566,7 @@ public class PolicyIterationManager {
 
     Map<Template, PolicyBound> updated = new HashMap<>();
     PolicyAbstractedState merged = unionAbstractedStates(
-          abstraction, latestSibling, precision, updated, extraInvariant);
+          newState, latestSibling, precision, updated, extraInvariant);
     PolicyAbstractedState out;
     if (updated.isEmpty()) {
       out = merged;
@@ -576,7 +575,8 @@ public class PolicyIterationManager {
       ValueDeterminationConstraints constraints;
       Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
-        constraints = vdfmgr.valueDeterminationFormulaCheap(merged, updated.keySet());
+        constraints = vdfmgr.valueDeterminationFormulaCheap(
+            newState, latestSibling, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           logger.log(Level.INFO, "Switching to more expensive value "
@@ -587,7 +587,8 @@ public class PolicyIterationManager {
       if (!element.isPresent()) {
 
         // Hopeful value determination failed, run the more expensive version.
-        constraints = vdfmgr.valueDeterminationFormula(merged, updated.keySet());
+        constraints = vdfmgr.valueDeterminationFormula(
+            newState, latestSibling, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException("Value determination problem is "

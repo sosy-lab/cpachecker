@@ -111,7 +111,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
             config, formulaManager, pLogger, pathFormulaManager,
-            stateFormulaConversionManager, cfa.getLoopStructure().get(),
+            stateFormulaConversionManager,
             pTemplateToFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(formulaManager, statistics);

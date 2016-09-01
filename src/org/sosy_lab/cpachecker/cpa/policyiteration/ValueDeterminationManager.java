@@ -1,11 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -13,10 +10,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -26,9 +19,11 @@ import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
@@ -47,7 +42,6 @@ public class ValueDeterminationManager {
   private final LogManager logger;
   private final PathFormulaManager pfmgr;
   private final StateFormulaConversionManager stateFormulaConversionManager;
-  private final LoopStructure loopStructure;
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
 
   /** Constants */
@@ -60,7 +54,6 @@ public class ValueDeterminationManager {
       LogManager logger,
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      LoopStructure pLoopStructure,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager) throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfiguration.inject(this);
@@ -70,7 +63,6 @@ public class ValueDeterminationManager {
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     pfmgr = pPfmgr;
-    loopStructure = pLoopStructure;
   }
 
   static class ValueDeterminationConstraints {
@@ -90,21 +82,25 @@ public class ValueDeterminationManager {
    * May under-approximate the true result (the resulting constraint system is
    * strictly stronger due to sharing variables).
    */
-  public ValueDeterminationConstraints valueDeterminationFormulaCheap(
+  ValueDeterminationConstraints valueDeterminationFormulaCheap(
+      PolicyAbstractedState newState,
+      PolicyAbstractedState siblingState,
       PolicyAbstractedState stateWithUpdates,
       Set<Template> updated
   ) {
-    return valueDeterminationFormula(stateWithUpdates, updated, false);
+    return valueDeterminationFormula(newState, siblingState, stateWithUpdates, updated, false);
   }
 
   /**
    * Sound value determination procedure.
    */
-  public ValueDeterminationConstraints valueDeterminationFormula(
+  ValueDeterminationConstraints valueDeterminationFormula(
+      PolicyAbstractedState newState,
+      PolicyAbstractedState siblingState,
       PolicyAbstractedState stateWithUpdates,
       Set<Template> updated
   ) {
-    return valueDeterminationFormula(stateWithUpdates, updated, true);
+    return valueDeterminationFormula(newState, siblingState, stateWithUpdates, updated, true);
   }
 
   /**
@@ -122,11 +118,16 @@ public class ValueDeterminationManager {
    * value.
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
+      PolicyAbstractedState newState,
+      PolicyAbstractedState siblingState,
       PolicyAbstractedState mergedState,
       Set<Template> updated,
       boolean useUniquePrefix
   ) {
     Set<BooleanFormula> outConstraints = new HashSet<>();
+
+    Map<Integer, PolicyAbstractedState> stronglyConnectedComponent = findScc(newState, siblingState);
+
     Table<Template, Integer, Formula> outVars = HashBasedTable.create();
 
     long uniquePrefix = 0;
@@ -143,8 +144,6 @@ public class ValueDeterminationManager {
 
       visitedLocationIDs.add(state.getLocationID());
 
-      Set<CFAEdge> innerLoopEdges = getInnerLoopEdgesOf(state.getNode());
-
       for (Entry<Template, PolicyBound> incoming : state) {
         Template template = incoming.getKey();
         PolicyBound bound = incoming.getValue();
@@ -155,11 +154,8 @@ public class ValueDeterminationManager {
                     && !updated.contains(template)
                     && !bound.isComputedByValueDetermination())
 
-            // Backpointer is neither inner nor outer loop.
-            || Sets.intersection(
-                  innerLoopEdges, getInnerLoopEdgesOf(backpointer.getNode())
-               ).isEmpty()
-            ;
+            // Backpointer is not in the found strongly connected component.
+            || !stronglyConnectedComponent.containsKey(backpointer.getLocationID());
 
         // Update the queue, check visited.
         if (!valueIsFixed &&
@@ -194,12 +190,26 @@ public class ValueDeterminationManager {
         ImmutableSet.copyOf(outConstraints));
   }
 
-  private Set<CFAEdge> getInnerLoopEdgesOf(CFANode node) {
-    return from(loopStructure.getLoopsForLoopHead(node))
-        .transformAndConcat(Loop::getInnerLoopEdges)
-        .toSet();
-  }
+  /**
+   * Add to map everything in the strongly connected between {@code sibling}
+   * and {@code newState}.
+   */
+  private Map<Integer, PolicyAbstractedState> findScc(
+      PolicyAbstractedState newState,
+      PolicyAbstractedState sibling
+  ) {
+    Map<Integer, PolicyAbstractedState> map = new HashMap<>();
+    PolicyAbstractedState s = newState;
+    while (s != sibling) {
+      s = s.getGeneratingState().get().getBackpointerState();
 
+      // If we have multiple matches, only take the latest one.
+      if (!map.containsKey(s.getLocationID())) {
+        map.put(s.getLocationID(), s);
+      }
+    }
+    return map;
+  }
   /**
    * Process and add constraints from a single policy.
    *
