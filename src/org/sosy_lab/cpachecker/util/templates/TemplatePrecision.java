@@ -139,7 +139,7 @@ public class TemplatePrecision implements Precision {
   private final LogManager logger;
 
   private final ImmutableSet<Template> extractedFromAssertTemplates;
-  private final ImmutableSet<Template> extractedTemplates;
+  private ImmutableSet<Template> extractedTemplates;
   private final Set<Template> extraTemplates;
   private final Set<Template> generatedTemplates;
   private final TemplateToFormulaConversionManager
@@ -609,6 +609,7 @@ public class TemplatePrecision implements Precision {
       if (!generateFromStatements) {
         logger.log(Level.INFO, "Generating templates from all program statements.");
         generateFromStatements = true;
+        extractedTemplates = ImmutableSet.copyOf(extractTemplates());
         return true;
       }
 
@@ -660,7 +661,7 @@ public class TemplatePrecision implements Precision {
   }
 
 
-  public Set<ASimpleDeclaration> getVarsForNode(CFANode node) {
+  private Set<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
       return Sets.union(
           cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet(),
