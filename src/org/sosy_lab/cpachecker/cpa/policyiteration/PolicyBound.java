@@ -48,6 +48,7 @@ public class PolicyBound {
 
   private int hashCache = 0;
 
+  // TODO: static fields may fall dreadfully if multiple LPI CPAs are running in parallel.
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
