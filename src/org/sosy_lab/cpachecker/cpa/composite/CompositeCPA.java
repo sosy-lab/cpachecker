@@ -168,7 +168,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
       } else {
         compositePrecisionAdjustment =
-            new CompositePrecisionAdjustment(precisionAdjustments.build(), getLogger());
+            new CompositePrecisionAdjustment(precisionAdjustments.build());
       }
 
       return new CompositeCPA(
