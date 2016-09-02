@@ -314,7 +314,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           }
 
           AutomatonState errorState = AutomatonState.automatonStateFactory(
-              Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, false, violatedProperties);
+              Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR,
+              cpa, 0, 0, 0, false, violatedProperties);
 
           logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + pEdge.getDescription() + "\"");
           result.add(errorState);
@@ -325,7 +326,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           break;
         }
       } else {
-        // Transition does NOT MATCH ................................................
+        // Transition does NOT MATCH ..getM..............................................
         failedMatches++;
       }
     }
@@ -376,6 +377,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         ImmutableList<Pair<AStatement, Boolean>> instantiatedAssumes = exprArgs.instantiateAssumptions(symbolicAssumes);
         List<AAstNode> instantiatedShadowCode = exprArgs.instantiateCode(t.getShadowCode());
 
+        int matchesDepOfProperty = pState.getPropertyDependantMatches() +
+            (matchesIndependentOfProperty(automaton, pState
+                .getInternalState(), t) ? 0 : 1);
+
         // Create the new successor state of the automaton state
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(
             newVars,
@@ -385,6 +390,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             instantiatedShadowCode,
             t.getCandidateInvariants(),
             pState.getMatches() + 1,
+            matchesDepOfProperty,
             pState.getFailedMatches(),
             checkFeasibility,
             violatedProperties);
@@ -400,7 +406,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       // stay in same state, no transitions to be executed here (no transition matched)
       final AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(
           pState.getVars(), pState.getInternalState(),
-          cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, false, null);
+          cpa, pState.getMatches(), pState.getPropertyDependantMatches(),
+          pState.getFailedMatches() + failedMatches, false,
+          null);
       return Collections.singleton(stateNewCounters);
     }
   }
@@ -412,20 +420,24 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     // TODO: Refactor
     //    Hacky code to get the research done...
 
-    boolean matchesIndependentOfProperty =
-               (pAutomaton.getInitialState().equals(pQ) &&  pT.getTrigger() instanceof AutomatonBoolExpr.MatchProgramEntry)
-            || (pT.getFollowState().isTarget() && pT.getTrigger() instanceof AutomatonBoolExpr.MatchProgramExit)
-            || (pT.getFollowState().isTarget() && triggeredByFunctionCallOrReturn(pT.getTrigger(), exitFunctionNamePattern));
-
-    if (matchesIndependentOfProperty) {
+    if (matchesIndependentOfProperty(pAutomaton, pQ, pT)) {
       return;
     }
-
 
     globalMatches.add(new MatchInfo(pEdge, pState));
 
     ImmutableSet<? extends SafetyProperty> relevantFor = pAutomaton.getIsRelevantForProperties(pT);
     PropertyStats.INSTANCE.signalRelevancesOfProperties(relevantFor);
+  }
+
+  private boolean matchesIndependentOfProperty(Automaton pAutomaton, AutomatonInternalState pQ,
+      AutomatonTransition pT) {
+    return (pAutomaton.getInitialState().equals(pQ) && pT
+        .getTrigger() instanceof AutomatonBoolExpr.MatchProgramEntry)
+        || (pT.getFollowState().isTarget() && pT
+        .getTrigger() instanceof AutomatonBoolExpr.MatchProgramExit)
+        || (pT.getFollowState().isTarget() && triggeredByFunctionCallOrReturn(pT.getTrigger(),
+        exitFunctionNamePattern));
   }
 
   private boolean triggeredByFunctionCallOrReturn(AutomatonBoolExpr pTrigger,

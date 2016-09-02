@@ -130,6 +130,7 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
           state.getShadowCode(),
           state.getCandidateInvariants(),
           state.getMatches(),
+          state.getPropertyDependantMatches(),
           state.getFailedMatches(), false,
           state.getViolatedPropertyInstances());
 

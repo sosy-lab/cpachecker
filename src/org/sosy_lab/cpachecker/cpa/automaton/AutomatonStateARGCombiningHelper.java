@@ -90,6 +90,7 @@ public class AutomatonStateARGCombiningHelper {
           toReplace.getShadowCode(),
           toReplace.getCandidateInvariants(),
           toReplace.getMatches(),
+          toReplace.getPropertyDependantMatches(),
           toReplace.getFailedMatches(),
           violatedProperties);
     }

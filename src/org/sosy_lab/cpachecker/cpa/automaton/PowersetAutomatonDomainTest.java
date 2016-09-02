@@ -77,7 +77,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
+                0, 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
                 ImmutableMap.<String, AutomatonVariable>of(),
@@ -86,7 +86,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
+                0, 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
     e_q1enc_q2 = new PowersetAutomatonState(ImmutableSet.copyOf(
@@ -98,7 +98,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(TestDataTools.makeDeclaration("test", CNumericTypes.INT, null).getSecond()),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
+                0, 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
                 ImmutableMap.<String, AutomatonVariable>of(),
@@ -107,7 +107,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
+                0, 0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
 
@@ -120,7 +120,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
+                0, 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
                 ImmutableMap.<String, AutomatonVariable>of(),
@@ -129,7 +129,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, ImmutableMap.<Property, ResultValue<?>>of())
+                0, 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
     e_q2_q3_copy = new PowersetAutomatonState(ImmutableSet.copyOf(
@@ -141,7 +141,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
+                0, 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
                 ImmutableMap.<String, AutomatonVariable>of(),
@@ -150,7 +150,7 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
                 ExpressionTrees.<AExpression>getTrue(),
-                0, 0, ImmutableMap.<Property, ResultValue<?>>of())
+                0, 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
   }
 
