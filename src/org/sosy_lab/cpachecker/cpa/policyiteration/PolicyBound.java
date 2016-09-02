@@ -132,7 +132,7 @@ public class PolicyBound {
   public String toString() {
 
     // Converting the predecessor to string is very costly.
-    return bound.toString();
+    return String.format("%s (<- %s)", bound.toString(), predecessor.getNode());
   }
 
   @Override

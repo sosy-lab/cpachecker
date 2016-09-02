@@ -73,6 +73,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   private final PolicyIterationStatistics statistics;
   private final StopOperator stopOperator;
   private final Solver solver;
+  private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
+  private final StateFormulaConversionManager stateFormulaConversionManager;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -91,36 +94,37 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     config = pConfig;
 
     solver = Solver.create(config, pLogger, shutdownNotifier);
-    FormulaManagerView formulaManager = solver.getFormulaManager();
+    fmgr = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
+        fmgr, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
-      pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
+      pfmgr = new CachingPathFormulaManager(pathFormulaManager);
+    } else {
+      pfmgr = pathFormulaManager;
     }
 
     statistics = new PolicyIterationStatistics(cfa);
     TemplateToFormulaConversionManager pTemplateToFormulaConversionManager =
         new TemplateToFormulaConversionManager(cfa, pLogger);
-    StateFormulaConversionManager stateFormulaConversionManager =
-        new StateFormulaConversionManager(
-            formulaManager,
+    stateFormulaConversionManager = new StateFormulaConversionManager(
+            fmgr,
             pTemplateToFormulaConversionManager, pConfig, cfa,
             logger, shutdownNotifier, pathFormulaManager, solver);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
-            config, formulaManager, pLogger, pathFormulaManager,
+            config, fmgr, pLogger, pathFormulaManager,
             stateFormulaConversionManager,
             pTemplateToFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
-        FormulaLinearizationManager(formulaManager, statistics);
+        FormulaLinearizationManager(fmgr, statistics);
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
 
     policyIterationManager = new PolicyIterationManager(
         pConfig,
-        formulaManager,
+        fmgr,
         cfa, pathFormulaManager,
         solver, pLogger, shutdownNotifier,
         valueDeterminationFormulaManager,
@@ -268,7 +272,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public Reducer getReducer() {
-    return new PolicyReducer(logger);
+    return new PolicyReducer(policyIterationManager, fmgr, stateFormulaConversionManager, pfmgr);
   }
 
   @Override

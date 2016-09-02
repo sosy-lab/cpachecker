@@ -99,7 +99,7 @@ public final class PolicyAbstractedState extends PolicyState
       SSAMap pSSAMap,
       PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
-      PolicyIntermediateState pPredecessor,
+      Optional<PolicyIntermediateState> pPredecessor,
       Optional<PolicyAbstractedState> pSibling) {
     return new PolicyAbstractedState(
         node,
@@ -109,7 +109,7 @@ public final class PolicyAbstractedState extends PolicyState
         pSSAMap,
         pPointerTargetSet,
         pPredicate,
-        pPredecessor,
+        pPredecessor.orElse(null),
         pSibling.orElse(null));
   }
 
@@ -124,21 +124,6 @@ public final class PolicyAbstractedState extends PolicyState
         locationID,
         manager,
         ssaMap,
-        pointerTargetSet,
-        extraInvariant,
-        generator,
-        sibling);
-  }
-
-  public PolicyAbstractedState withNewAbstractionAndSSA(
-      Map<Template, PolicyBound> newAbstraction,
-      SSAMap pSsaMap) {
-    return new PolicyAbstractedState(
-        getNode(),
-        newAbstraction,
-        locationID,
-        manager,
-        pSsaMap,
         pointerTargetSet,
         extraInvariant,
         generator,

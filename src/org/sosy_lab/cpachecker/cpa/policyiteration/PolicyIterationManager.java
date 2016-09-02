@@ -7,7 +7,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
@@ -47,7 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.templates.Template;
@@ -309,9 +306,8 @@ public class PolicyIterationManager {
 
     if (inputState.isAbstract()) {
 
-      // Expanded states require resetting the backpointer.
-      return Optional.of(
-          updateBackpointerForExpanded(pArgState, states, inputState.asAbstracted()));
+      // TODO: might have to change sibling and locationID if we are coming from BAM.
+      return Optional.of(inputState);
     }
     Preconditions.checkState(!inputState.isAbstract());
 
@@ -373,88 +369,6 @@ public class PolicyIterationManager {
     } else {
       return Optional.of(iState);
     }
-  }
-
-  /**
-   * We need to reset the backpointer on the expanded states,
-   * in order to "fake" that control has come down from the summary edge.
-   */
-  private PolicyAbstractedState updateBackpointerForExpanded(
-      AbstractState pFullState,
-      UnmodifiableReachedSet states,
-      PolicyAbstractedState expandedState
-  ) {
-    ARGState state = AbstractStates.extractStateByType(pFullState, ARGState.class);
-    assert state != null : "ARGCPA is needed for BAM";
-    CFANode node = AbstractStates.extractLocation(pFullState);
-    Preconditions.checkState(state.getParents().size() == 1,
-        "Expanded state should have a unique parent.");
-    AbstractState parent = state.getParents().iterator().next();
-    PolicyState parentState = AbstractStates.extractStateByType(
-        parent, PolicyState.class);
-    assert parentState != null;
-    Preconditions.checkState(parentState.isAbstract(),
-        "ARG Parent of the expanded state should be abstract");
-    PolicyAbstractedState aParentState = parentState.asAbstracted();
-
-    SSAMap ssa = expandedState.getSSA();
-    PointerTargetSet pointerTargetSet = expandedState.getPointerTargetSet();
-
-    BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
-        .abstractStateToConstraints(fmgr, expandedState, false));
-    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
-    PolicyIntermediateState generator = PolicyIntermediateState.of(
-        node, pf, aParentState);
-    Optional<PolicyAbstractedState> sibling = findSibling(
-        generator, states, pFullState);
-    int locationID = getLocationID(sibling, node);
-    Map<Template, PolicyBound> newAbstraction = updateAbstractionForExpanded(
-        expandedState.getAbstraction(), pf, aParentState
-    );
-
-    return PolicyAbstractedState.of(
-        newAbstraction,
-        node,
-        locationID,
-        stateFormulaConversionManager,
-        ssa,
-        pointerTargetSet,
-        bfmgr.makeTrue(),
-        generator,
-        sibling
-    );
-  }
-
-  /**
-   * Update the meta-information for policies coming from the summary edge.
-   */
-  private Map<Template, PolicyBound> updateAbstractionForExpanded(
-      Map<Template, PolicyBound> pAbstraction,
-      PathFormula inputPath,
-      PolicyAbstractedState pParent
-  ) {
-    ImmutableMap.Builder<Template, PolicyBound> newAbstraction =
-        ImmutableMap.builder();
-    for (Entry<Template, PolicyBound> e : pAbstraction.entrySet()) {
-      Template template = e.getKey();
-      PolicyBound bound = e.getValue();
-
-      BooleanFormula policyFormula = stateFormulaConversionManager
-          .templateToConstraint(template, bound, pfmgr, fmgr, inputPath);
-      PathFormula policy = inputPath.updateFormula(policyFormula);
-
-      PolicyBound policyBound = PolicyBound.of(
-          policy,
-          bound.getBound(),
-          pParent,
-
-          // TODO: filter the set of dependent templates, at least
-          // syntactically.
-          pParent.getAbstraction().keySet()
-      );
-      newAbstraction.put(template, policyBound);
-    }
-    return newAbstraction.build();
   }
 
   /**
@@ -525,11 +439,14 @@ public class PolicyIterationManager {
     if (sibling.isPresent()) {
       locationID = sibling.get().getLocationID();
     } else {
-      locationID = locationIDGenerator.getFreshId();
-      logger.log(Level.INFO, "Generating new location ID", locationID,
-          " for node ", node);
+      locationID = getFreshLocationID();
+      logger.log(Level.INFO, "Generating new location ID", locationID, " for node ", node);
     }
     return locationID;
+  }
+
+  int getFreshLocationID() {
+    return locationIDGenerator.getFreshId();
   }
 
   /**
@@ -572,7 +489,7 @@ public class PolicyIterationManager {
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException("Value determination problem is "
-              + "unfeasible.");
+              + "unfeasible at node " + newState.getNode());
         }
       }
       out = element.get();
@@ -687,7 +604,7 @@ public class PolicyIterationManager {
             mergedSSA,
             newState.getPointerTargetSet(),
             extraInvariant,
-            newState.getGeneratingState().get(),
+            newState.getGeneratingState(),
 
             // Sibling used to emulate the union.
             Optional.of(oldState));
@@ -896,24 +813,24 @@ public class PolicyIterationManager {
   /**
    * Perform the abstract operation on a new state
    *
-   * @param state State to abstract
+   * @param generatorState State to abstract
    * @return Abstracted state if the state is reachable, empty optional
    * otherwise.
    */
   private PolicyAbstractedState performAbstraction(
-      final PolicyIntermediateState state,
+      final PolicyIntermediateState generatorState,
       int locationID,
       TemplatePrecision precision,
       BooleanFormula extraInvariant,
       Optional<PolicyAbstractedState> pSibling)
       throws CPAException, InterruptedException {
 
-    logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
+    logger.log(Level.FINE, "Performing abstraction at node: ", generatorState.getNode());
 
-    final CFANode node = state.getNode();
-    final PathFormula p = state.getPathFormula();
+    final CFANode node = generatorState.getNode();
+    final PathFormula p = generatorState.getPathFormula();
     final BooleanFormula startConstraints =
-        stateFormulaConversionManager.getStartConstraintsWithExtraInvariant(state);
+        stateFormulaConversionManager.getStartConstraintsWithExtraInvariant(generatorState);
 
     Set<BooleanFormula> startConstraintLemmas = toLemmas(startConstraints);
     Set<BooleanFormula> lemmas = toLemmas(p.getFormula());
@@ -977,13 +894,13 @@ public class PolicyIterationManager {
         // Skip updates if the edge does not have any variables mentioned in the
         // template.
         if (bfmgr.isTrue(f)) {
-          if (state.getBackpointerState().getAbstraction().get(template) == null) {
+          if (generatorState.getBackpointerState().getAbstraction().get(template) == null) {
 
             // Unbounded.
             continue;
           }
 
-          PolicyBound bound = state.getBackpointerState().getAbstraction().get(template);
+          PolicyBound bound = generatorState.getBackpointerState().getAbstraction().get(template);
           abstraction.put(template, bound);
         }
 
@@ -1005,7 +922,7 @@ public class PolicyIterationManager {
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
             Optional<PolicyBound> policyBound = getPolicyBound(
                 template, precision, optEnvironment, bound, annotatedFormula,
-                p, state, objective);
+                p, generatorState, objective);
             if (policyBound.isPresent()) {
               abstraction.put(template, policyBound.get());
             }
@@ -1033,13 +950,13 @@ public class PolicyIterationManager {
 
     return PolicyAbstractedState.of(
         abstraction,
-        state.getNode(),
+        generatorState.getNode(),
         locationID,
         stateFormulaConversionManager,
-        state.getPathFormula().getSsa(),
-        state.getPathFormula().getPointerTargetSet(),
+        generatorState.getPathFormula().getSsa(),
+        generatorState.getPathFormula().getPointerTargetSet(),
         extraInvariant,
-        state,
+        Optional.of(generatorState),
         pSibling);
   }
 
@@ -1328,7 +1245,7 @@ public class PolicyIterationManager {
    * However, we would like to get the <b>latest</b> such element.
    * In ARG terminology, that's the first one we get by following backpointers.
    */
-  private Optional<PolicyAbstractedState> findSibling(
+  Optional<PolicyAbstractedState> findSibling(
       PolicyIntermediateState state,
       UnmodifiableReachedSet states,
       AbstractState pArgState

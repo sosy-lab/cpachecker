@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,15 +35,20 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.templates.Template;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -50,10 +56,24 @@ import java.util.stream.Collectors;
  */
 public class PolicyReducer implements Reducer {
 
-  private final LogManager logger;
+  private final PolicyIterationManager policyIterationManager;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManager bfmgr;
+  private final StateFormulaConversionManager stateFormulaConversionManager;
+  private final PathFormulaManager pfmgr;
 
-  public PolicyReducer(LogManager pLogger) {
-    logger = pLogger;
+  private static final int STARTING_SSA_IDX = 1;
+
+  public PolicyReducer(
+      PolicyIterationManager pPolicyIterationManager,
+      FormulaManagerView pFmgr,
+      StateFormulaConversionManager pStateFormulaConversionManager,
+      PathFormulaManager pPfmgr) {
+    policyIterationManager = pPolicyIterationManager;
+    fmgr = pFmgr;
+    stateFormulaConversionManager = pStateFormulaConversionManager;
+    pfmgr = pPfmgr;
+    bfmgr = fmgr.getBooleanFormulaManager();
   }
 
   /**
@@ -74,9 +94,17 @@ public class PolicyReducer implements Reducer {
         template -> blockVars.containsAll(
             template.getUsedVars().collect(Collectors.toSet()))
     );
-    return aState.withNewAbstractionAndSSA(
+
+    return PolicyAbstractedState.of(
         newAbstraction,
-        SSAMap.emptySSAMap().withDefault(1)
+        aState.getNode(),
+        policyIterationManager.getFreshLocationID(),
+        stateFormulaConversionManager,
+        SSAMap.emptySSAMap().withDefault(STARTING_SSA_IDX),
+        aState.getPointerTargetSet(), // todo: might have to change pointer target set.
+        bfmgr.makeTrue(),
+        aState.getGeneratingState(),
+        Optional.empty()
     );
   }
 
@@ -84,49 +112,124 @@ public class PolicyReducer implements Reducer {
   public PolicyState getVariableExpandedState(
       AbstractState entryState,
       Block reducedContext,
-      AbstractState returnState) {
+      AbstractState summaryState) {
     PolicyState pEntryState = (PolicyState) entryState;
-    PolicyState pReturnState = (PolicyState) returnState;
+    PolicyState pReturnState = (PolicyState) summaryState;
 
     if (!pReturnState.isAbstract()) {
-      // BAM-specific hack: intermediate states come from target states,
-      // but this information can not be expressed by having only a PolicyState.
+      // We get an intermediate state for expansion if and only if
+      // it is a target state.
       return pReturnState;
     }
     Preconditions.checkState(pEntryState.isAbstract());
     Preconditions.checkState(pReturnState.isAbstract());
 
     PolicyAbstractedState aEntryState = pEntryState.asAbstracted();
-    PolicyAbstractedState aReturnState = pReturnState.asAbstracted();
+    PolicyAbstractedState aSummaryState = pReturnState.asAbstracted();
 
-    // Enrich the {@code pReturnState} with bounds obtained from {@code
-    // pEntryState} which were dropped during the reduction.
-    Map<Template, PolicyBound> rootAbstraction =
-        aEntryState.getAbstraction();
-    Map<Template, PolicyBound> fullAbstraction =
-        new HashMap<>(aReturnState.getAbstraction());
-    for (Entry<Template, PolicyBound> e : rootAbstraction.entrySet()) {
-      Template t = e.getKey();
+    return updateBackpointerForExpanded(
+        aEntryState, aSummaryState, aSummaryState.getAbstraction(), aSummaryState.getSSA());
+  }
 
-      if (staysInvariantUnderBlock(t, aReturnState)) {
-        fullAbstraction.put(t, e.getValue());
-      } else {
-        logger.log(Level.INFO, "Not inserting the bound for the template",
-            t, "which is", e.getValue().getBound());
+  /**
+   * We need to reset the backpointer on the expanded states,
+   * in order to "fake" that control has come down from the summary edge.
+   */
+  private PolicyAbstractedState updateBackpointerForExpanded(
+      PolicyAbstractedState entryState,
+      PolicyAbstractedState expandedState,
+      Map<Template, PolicyBound> summaryAbstraction,
+      SSAMap summarySSA
+  ) {
+    CFANode node = expandedState.getNode();
+
+    SSAMapBuilder builder = entryState.getSSA().builder();
+
+    // increment the SSA index for all variables modified in the summary
+    // (we conveniently have calculated them already)
+    // leave others the same.
+    for (String var : builder.allVariables()) {
+      if (entryState.getSSA().getIndex(var) > STARTING_SSA_IDX) {
+        builder = builder.setIndex(
+            var,
+            builder.getType(var),
+            builder.getFreshIndex(var)
+        );
+      }
+    }
+    SSAMap ssa = builder.build();
+
+    // updated in precision adjustment.
+    int locationID = expandedState.getLocationID();
+    Optional<PolicyAbstractedState> sibling = Optional.empty();
+
+    // TODO: update pointer target set.
+    PointerTargetSet pointerTargetSet = entryState.getPointerTargetSet();
+
+    BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
+        .abstractStateToConstraints(fmgr, expandedState, false));
+    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
+    PolicyIntermediateState generator = PolicyIntermediateState.of(
+        node, pf, entryState);
+
+    Map<Template, PolicyBound> newAbstraction = updateAbstractionForExpanded(
+        pf, entryState, summaryAbstraction, summarySSA
+    );
+
+    return PolicyAbstractedState.of(
+        newAbstraction,
+        node,
+        locationID,
+        stateFormulaConversionManager,
+        ssa,
+        pointerTargetSet,
+        bfmgr.makeTrue(),
+        Optional.of(generator),
+        sibling
+    );
+  }
+
+  /**
+   * Update the meta-information for policies coming from the summary edge.
+   */
+  Map<Template, PolicyBound> updateAbstractionForExpanded(
+      PathFormula inputPath,
+      PolicyAbstractedState pParent,
+      Map<Template, PolicyBound> summaryAbstraction,
+      SSAMap summarySSA
+  ) {
+
+    ImmutableMap.Builder<Template, PolicyBound> newAbstraction =
+        ImmutableMap.builder();
+    Set<Template> allTemplates = Sets.union(
+        pParent.getAbstraction().keySet(), summaryAbstraction.keySet());
+    for (Template template : allTemplates) {
+      PolicyBound pBound = summaryAbstraction.get(template);
+      PolicyBound insertedBound = null;
+      if (pBound != null) {
+        BooleanFormula policyFormula = stateFormulaConversionManager
+            .templateToConstraint(template, pBound, pfmgr, fmgr, inputPath);
+        PathFormula policy = inputPath.updateFormula(policyFormula);
+        insertedBound = PolicyBound.of(
+            policy,
+            pBound.getBound(),
+            pParent,
+
+            // TODO: filter the set of dependent templates, at least
+            pParent.getAbstraction().keySet()
+        );
+      } else if (template.getUsedVars().allMatch(
+          v -> !(summarySSA.getIndex(v) > STARTING_SSA_IDX)
+      )) {
+        insertedBound = pParent.getBound(template).get();
+      }
+
+      if (insertedBound != null) {
+        newAbstraction.put(template, insertedBound);
       }
     }
 
-    return pReturnState.asAbstracted().withNewAbstraction(fullAbstraction);
-  }
-
-  private boolean staysInvariantUnderBlock(
-      Template t,
-      PolicyAbstractedState returnState) {
-
-    // todo: unsound handling for pointed-to variables.
-    return t.getUsedVars().allMatch(v ->
-        !returnState.getBound(t).isPresent()
-        && !(returnState.getSSA().getIndex(v) > 1));
+    return newAbstraction.build();
   }
 
   @Override
