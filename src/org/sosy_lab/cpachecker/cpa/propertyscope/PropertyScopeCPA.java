@@ -56,7 +56,7 @@ public class PropertyScopeCPA extends AbstractCPA implements StatisticsProvider{
       CFA pCfa, ShutdownNotifier pShutdownNotifier)
       throws CPAException, InvalidConfigurationException {
     super("sep", "sep", new FlatLatticeDomain(), new PropertyScopeTransferRelation());
-    config.inject(this, PropertyScopeCPA.class);
+    //config.inject(this, PropertyScopeCPA.class);
     this.config = config;
     this.logger = logger;
     cfa = pCfa;
