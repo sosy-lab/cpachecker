@@ -344,9 +344,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * {@inheritDoc}
    */
   @Override
-  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+  public Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
     return converter.makeFormulaForVariable(
-        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
+        pContext.getSsa(),
+        pContext.getPointerTargetSet(),
+        pVarName,
+        pType,
+        forcePointerDereference);
   }
 
   /**
