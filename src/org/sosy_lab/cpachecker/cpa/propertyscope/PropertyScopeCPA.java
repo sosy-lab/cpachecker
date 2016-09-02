@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -53,6 +54,11 @@ public class PropertyScopeCPA extends AbstractCPA implements StatisticsProvider{
     this.logger = logger;
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new PropertyScopePrecisionAdjustment();
   }
 
   public static CPAFactory factory() {
