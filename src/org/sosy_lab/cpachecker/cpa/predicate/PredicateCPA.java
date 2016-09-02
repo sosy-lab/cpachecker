@@ -71,9 +71,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableSet;
+
 import java.util.Collection;
 import java.util.logging.Level;
 
@@ -115,10 +114,6 @@ ProofChecker, AutoCloseable, AnalysisCache {
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
-  @Option(secure=true, description="If enabled it collects various metrics about the analysis "
-      + "which may be time consuming.")
-  private boolean collectPropertyScopeStatistics = false;
-
   protected final Configuration config;
   protected final LogManager logger;
   protected ShutdownNotifier shutdownNotifier;
@@ -133,7 +128,6 @@ ProofChecker, AutoCloseable, AnalysisCache {
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final PredicatePropertyScopeStatistics scopeStats;
 
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
@@ -275,23 +269,6 @@ ProofChecker, AutoCloseable, AnalysisCache {
             merge,
             transfer,
             predPrec);
-
-    scopeStats =
-        new PredicatePropertyScopeStatistics(
-            config,
-            logger,
-            pCfa,
-            solver,
-            formulaManager,
-            pfMgr,
-            blk,
-            regionManager,
-            abstractionManager,
-            predicateManager,
-            domain,
-            merge,
-            transfer,
-            predPrec);
   }
 
   @Override
@@ -367,9 +344,6 @@ ProofChecker, AutoCloseable, AnalysisCache {
     pStatsCollection.add(stats);
     precisionBootstraper.collectStatistics(pStatsCollection);
     invariantsManager.collectStatistics(pStatsCollection);
-    if(collectPropertyScopeStatistics) {
-      pStatsCollection.add(scopeStats);
-    }
   }
 
   @Override

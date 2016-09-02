@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -53,7 +54,7 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 
-public class PredicatePropertyScopeUtil {
+public class PropertyScopeUtil {
 
   private static final Pattern formulaVariablePattern =
       Pattern.compile("(?:(?<function>[^:]+)::)?(?<variable>[^@]+)(?:@(?<ssaindex>[0-9]+))?");
@@ -163,7 +164,7 @@ public class PredicatePropertyScopeUtil {
       AbstractState ast, FormulaManagerView fmgr) {
     PredicateAbstractState past = extractStateByType(ast, PredicateAbstractState.class);
     return fmgr.extractVariableNames(past.getAbstractionFormula().asInstantiatedFormula()).stream()
-        .map(PredicatePropertyScopeUtil::splitFormulaVariable);
+        .map(PropertyScopeUtil::splitFormulaVariable);
 
   }
 
@@ -198,11 +199,11 @@ public class PredicatePropertyScopeUtil {
           pLoopIncDecVariables.orElse
               (Collections.emptySet())
               .stream()
-              .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
+              .map(PropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
       Set<FormulaVariableResult> loopExitCondVarsRes =
           pLoopExitCondVars.orElse(Collections.emptySet())
               .stream()
-              .map(PredicatePropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
+              .map(PropertyScopeUtil::splitFormulaVariable).collect(Collectors.toSet());
 
       for (BooleanFormula atom : atoms) {
         Visitor visitor = new Visitor();

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.Collection;
 
@@ -46,14 +49,19 @@ public class PropertyScopeCPA extends AbstractCPA implements StatisticsProvider{
   private final LogManager logger;
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
+  private final PropertyScopeStatistics statistics;
 
-  protected PropertyScopeCPA(Configuration config, LogManager logger,
-                             CFA pCfa, ShutdownNotifier pShutdownNotifier) {
+  protected PropertyScopeCPA(
+      Configuration config, LogManager logger,
+      CFA pCfa, ShutdownNotifier pShutdownNotifier)
+      throws CPAException, InvalidConfigurationException {
     super("sep", "sep", new FlatLatticeDomain(), new PropertyScopeTransferRelation());
+    config.inject(this, PropertyScopeCPA.class);
     this.config = config;
     this.logger = logger;
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
+    statistics = new PropertyScopeStatistics(config, logger, pCfa);
   }
 
   @Override
@@ -72,6 +80,6 @@ public class PropertyScopeCPA extends AbstractCPA implements StatisticsProvider{
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-
+    statsCollection.add(statistics);
   }
 }

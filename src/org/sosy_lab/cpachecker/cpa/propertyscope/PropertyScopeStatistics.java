@@ -21,16 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 
-import static java.util.stream.StreamSupport.*;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.*;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.asNonTrueAbstractionState;
+import static java.util.stream.StreamSupport.stream;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -45,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -53,17 +49,15 @@ import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.MatchInfo;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.FormulaVariableResult;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.FormulaGlobalsInspector;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.FormulaVariableResult;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.holder.Holder;
 import org.sosy_lab.cpachecker.util.holder.HolderLong;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -71,18 +65,15 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
-@Options(prefix="cpa.predicate.propertyscope")
-public class PredicatePropertyScopeStatistics extends AbstractStatistics {
+@Options(prefix="cpa.propertyscope")
+public class PropertyScopeStatistics extends AbstractStatistics {
 
   @Option(secure=true, description="Do not collect additional statistics but only try to find a "
       + "new entry function and closely related statistics")
@@ -91,49 +82,15 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
-  private final Solver solver;
-  private final FormulaManagerView fmgr;
-  private final PathFormulaManager pfMgr;
-  private final BlockOperator blk;
-  private final RegionManager regionManager;
-  private final AbstractionManager abstractionManager;
-  private final PredicateAbstractionManager predicateManager;
-  private final PredicateAbstractDomain domain;
-  private final MergeOperator merge;
-  private final PredicateTransferRelation transfer;
-  private final PredicatePrecisionAdjustment predPrec;
+  private FormulaManagerView fmgr;
 
-  public PredicatePropertyScopeStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa,
-      Solver pSolver,
-      FormulaManagerView pFmgr,
-      PathFormulaManager pPfMgr,
-      BlockOperator pBlk,
-      RegionManager pRegionManager,
-      AbstractionManager pAbstractionManager,
-      PredicateAbstractionManager pPredicateManager,
-      PredicateAbstractDomain pDomain,
-      MergeOperator pMerge,
-      PredicateTransferRelation pTransfer,
-      PredicatePrecisionAdjustment pPredPrec) throws InvalidConfigurationException {
-
+  public PropertyScopeStatistics(Configuration pConfig, LogManager pLogger, CFA pCfa)
+      throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this, this.getClass());
     logger = pLogger;
     cfa = pCfa;
-    solver = pSolver;
-    fmgr = pFmgr;
-    pfMgr = pPfMgr;
-    blk = pBlk;
-    regionManager = pRegionManager;
-    abstractionManager = pAbstractionManager;
-    predicateManager = pPredicateManager;
-    domain = pDomain;
-    merge = pMerge;
-    transfer = pTransfer;
-    predPrec = pPredPrec;
+
   }
 
   private Multimap<String, String> generateFuncToUsedVars() {
@@ -273,7 +230,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
+      Optional<PredicateAbstractState> absState = PropertyScopeUtil.asNonTrueAbstractionState(absSt);
       Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
       if (absState.isPresent() && !onlyUnusedVarsInAbstraction(absState.get(), csSt
           .getCurrentFunction(), funcToUsedVars)) {
@@ -318,7 +275,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     long matchDepth = Long.MAX_VALUE;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
+      Optional<PredicateAbstractState> absState = PropertyScopeUtil.asNonTrueAbstractionState(absSt);
       Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
       if (absState.isPresent()) {
         if (!onlyUnusedVarsInAbstraction(absState.get(), csSt.getCurrentFunction(),
@@ -408,14 +365,14 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   private static Set<FormulaVariableResult> getGlobalVariablesInAbstractionFormulas(
       ReachedSet reached, FormulaManagerView fmgr) {
     return reached.asCollection().stream()
-        .map(pAS -> formulaVariableSplitStream(pAS, fmgr)
+        .map(pAS -> PropertyScopeUtil.formulaVariableSplitStream(pAS, fmgr)
             .filter(pResult -> pResult.function == null).map(pResult -> pResult)
         ).flatMap(pStringStream -> pStringStream).distinct().collect(Collectors.toSet());
   }
 
   private static long countNonTrueAbstractionStates(ReachedSet pReached) {
     return pReached.asCollection().stream()
-        .filter(as -> asNonTrueAbstractionState(as).isPresent())
+        .filter(as -> PropertyScopeUtil.asNonTrueAbstractionState(as).isPresent())
         .count();
   }
 
@@ -433,7 +390,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     Set<FormulaVariableResult> globalVarInAtoms = new HashSet<>();
 
     pReached.asCollection().stream()
-        .map(PredicatePropertyScopeUtil::asNonTrueAbstractionState)
+        .map(PropertyScopeUtil::asNonTrueAbstractionState)
         .filter(Optional::isPresent)
         .map(Optional::get)
         .forEach(as -> {
@@ -469,7 +426,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
   private static Set<String> collectFunctionsWithNonTrueAbsState(ReachedSet pReachedSet) {
     return pReachedSet.asCollection().stream()
-        .filter(st -> asNonTrueAbstractionState(st).isPresent())
+        .filter(st -> PropertyScopeUtil.asNonTrueAbstractionState(st).isPresent())
         .map(st -> extractStateByType(st, CallstackState.class).getCurrentFunction())
         .collect(Collectors.toSet());
   }
@@ -477,6 +434,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
   @Override
   public void printStatistics(
       PrintStream pOut, Result pResult, ReachedSet pReached) {
+    fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
 
     String newEntry = computeNewEntryFunction(pReached).orElse("<unknown>");
     addKeyValueStatistic("New entry Function Candidate", newEntry);
@@ -507,7 +465,7 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
       ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
-      List<List<ARGState>> paths = allPathStream(root).collect(Collectors.toList());
+      List<List<ARGState>> paths = PropertyScopeUtil.allPathStream(root).collect(Collectors.toList());
       Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(paths.stream());
       List<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
 
