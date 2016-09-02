@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePropertyScopeUtil.a
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -74,10 +75,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @Options(prefix="cpa.predicate.propertyscope")
 public class PredicatePropertyScopeStatistics extends AbstractStatistics {
@@ -314,10 +315,6 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
     long depth = Long.MAX_VALUE;
     long withUsedDepth = Long.MAX_VALUE;
     long matchDepth = Long.MAX_VALUE;
-    Set<List<String>> callstacks = new LinkedHashSet<>();
-    Set<List<String>> matchCallstacks = new LinkedHashSet<>();
-
-
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
       Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
@@ -326,7 +323,6 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
         if (!onlyUnusedVarsInAbstraction(absState.get(), csSt.getCurrentFunction(),
             funcToUsedVars)) {
           withUsedDepth = Math.min(csSt.getDepth(), withUsedDepth);
-          callstacks.add(getStack(csSt));
         }
         depth = Math.min(csSt.getDepth(), depth);
       }
@@ -342,20 +338,11 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
           .anyMatch(mi -> outgoingEdges.contains(mi.edge) && automStates.contains(mi.state))) {
 
         matchDepth = Math.min(csSt.getDepth(), matchDepth);
-        matchCallstacks.add(getStack(csSt));
-
       }
 
     }
 
-    Set<List<String>> indepCallstacks =
-        indepCallstacks(callstacks.isEmpty() ? matchCallstacks : callstacks);
 
-    Set<String> multiEntryFuncCandids = indepCallstacks.stream()
-        .map(stack -> stack.get(stack.size() - 1)).collect(Collectors.toSet());
-
-    addKeyValueStatistic("Multiple Entry Function Candidates",
-        "[" + String.join(":", multiEntryFuncCandids) + "]");
 
     String highestUsedStackKey =
         "Highest point in callstack with non-true abs. and vars used in func.";
@@ -393,34 +380,6 @@ public class PredicatePropertyScopeStatistics extends AbstractStatistics {
 
   }
 
-  private static Set<List<String>> indepCallstacks(Set<List<String>> callstacks) {
-    Set<List<String>> result = new LinkedHashSet<>(callstacks);
-
-    for (List<String> cs1 : callstacks) {
-      for (List<String> cs2 : callstacks) {
-        if(isStrictPrefix(cs1, cs2)) {
-          result.remove(cs2);
-        }
-      }
-    }
-
-    return result;
-
-  }
-  private static <T> boolean isStrictPrefix(List<T> maybePrefix, List<T> list) {
-    if (maybePrefix.size() >= list.size()) {
-      return false;
-    }
-
-    for (int i = 0; i < maybePrefix.size(); i++) {
-      if(!maybePrefix.get(i).equals(list.get(i))) {
-        return false;
-      }
-    }
-
-    return true;
-
-  }
   private static <T> List<T> longestPrefixOf(List<T> list1, List<T> list2) {
     int minlen = Math.min(list1.size(), list2.size());
     ArrayList<T> newList = Lists.newArrayList();
