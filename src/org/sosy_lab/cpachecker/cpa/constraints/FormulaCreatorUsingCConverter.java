@@ -205,7 +205,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     }
 
     assert rightFormula != null;
-    return formulaManager.makeEqual(pVariable, rightFormula);
+    return formulaManager.assignment(pVariable, rightFormula);
   }
 
   private BooleanFormula getNanFormula(FloatingPointFormula pFormula) {
