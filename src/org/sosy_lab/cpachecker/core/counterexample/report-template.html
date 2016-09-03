@@ -57,12 +57,19 @@ body {
 #err_table tr:nth-child(odd) td pre.prettyprint {
     background-color: #f3f3f3;
 }
-#err_table .valueButton pre {
-  display: block;
-  margin-top: 2px;
+#err_table .valueButton {
   -webkit-user-select: none; /* Chrome/Safari */
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* IE10+ */
+  display: block;
+  margin-top: 2px;
+  padding-left: 5px;
+  min-width: 1.5em;
+  height: 1.4em;
+  border: solid 2px transparent;
+  position: relative;
+}
+#err_table .valueButton pre {
   font-size: 0.8em;
 }
 #err_table .valueButton.disabled {
