@@ -80,6 +80,21 @@ body {
   border: solid 2px;
   border-color: #00d415;
 }
+.indicator {
+  border: 1px solid #CCC;
+  width: 5px;
+  height: 100%;
+}
+#err_table .valueButton .indicator {
+    position: absolute;
+    right: 2px;
+    top: 1px;
+    bottom: 1px;
+    height: auto;
+}
+.errorCauseListing .indicator {
+  height: 10px;
+}
 .edge{
     cursor: pointer;
 }
@@ -191,7 +206,7 @@ body {
 }
 
 #errorpath_section .fileContent {
-    height: calc(100% - 110px);
+    height: calc(100% - 160px);
     margin: 5px;
     overflow: auto;
 }
@@ -630,18 +645,24 @@ div pre{
                 }
             }
         };
+
+        $scope.errorCauseExists = function(){
+          return Object.keys($rootScope.errorCauses).length > 0;
+        };
     }]);
 
 
     app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope){
         //gets called when '-V-'button in errorpath is clicked
-        $scope.showValues = function($event){
+        $scope.showValues = function($event, line){
+          if (line.valString) {
             var element = $event.currentTarget;
             if (element.classList.contains("active")) {
                 element.classList.remove("active");
             } else {
                 element.classList.add("active");
             }
+          }
         };
     }]);
 
@@ -660,6 +681,27 @@ div pre{
                 }
             }
             return values;
+        };
+
+        $rootScope.errorCauses = {};
+        $rootScope.selected_errCauses = [];
+
+        getErrorCauseColor = function(cause){
+          cause++; // So that we don't have a 0 (will result in a grayish color)
+          var color = 0;
+          var positions = (Math.log(cause) / Math.log(2)) + 1;
+          for (var a = 1; a <= positions; a++) {
+            var currPos = 1 << (a-1);
+            if (a <= 3) {
+              color += ((cause & currPos) * (255 << (8 *(a-1)))) / currPos;
+            } else {
+              color ^= ((cause & currPos) * (170 << (8 *(a % 3)))) / currPos;
+            }
+          }
+
+          color ^= 0xBBBBBB;
+
+          return '#' + String('000000' + color.toString(16)).slice(-6);
         };
 
         var indentationlevel = 0;
@@ -692,6 +734,29 @@ div pre{
                 for(var b = 1; b <= indentationlevel; b++) {
                     errPathElem.desc = "   " + errPathElem.desc;
                 }
+
+                if (errPathElem["faulty_for"]) {
+                  var stringLen = errPathElem["faulty_for"].length;
+                  var partOfFaults = errPathElem["faulty_for"]
+                          .substring(1, stringLen-1) // Cut '[]' around numbers
+                          .split(",");
+                  errPathElem["faulty_for"] = [];
+                  for (var i = 0; i < partOfFaults.length; i++) {
+                    var intValue = parseInt(partOfFaults[i]);
+                    errPathElem["faulty_for"].push(intValue);
+
+                    if (intValue in errorCauses) {
+                      $rootScope.errorCauses[intValue]['ops'].push(errPathElem);
+                    } else {
+                      $rootScope.errorCauses[intValue] = {
+                        'name': intValue,
+                        'ops': [],
+                        'color': getErrorCauseColor(intValue)
+                      };
+                    }
+                  }
+                }
+
                 $rootScope.errorPathData.push(errPathElem);
             } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
                 indentationlevel -= 1;
@@ -735,6 +800,27 @@ div pre{
             }
             document.getElementById(id).style.outline = "#df80ff solid 1px";
             $rootScope.selected_ErrLine = id;
+        };
+
+        $scope.getLineStyle = function(line) {
+          if (line.faulty_for) {
+            for (var a = 0; a < line.faulty_for.length; a++) {
+              var currCause = line.faulty_for[a];
+              if ($rootScope.selected_errCauses.indexOf(currCause) > -1) {
+                return {'background-color': $rootScope.errorCauses[currCause].color};
+              }
+            }
+          }
+          return {};
+        };
+
+        $scope.toggleErrorCauseSelection = function(causeName) {
+          var causeInd = $rootScope.selected_errCauses.indexOf(causeName);
+          if (causeInd > -1) {
+            $rootScope.selected_errCauses.splice(causeInd, 1);
+          } else {
+            $rootScope.selected_errCauses.push(causeName);
+          }
         };
     }]);
 
@@ -1144,10 +1230,38 @@ function init(){
           </span>
       </div>
       <div id="searchOptions">
-        <label for="optionExactMatch">
+        <div class="checkbox">
+        <label for="optionExactMatch" class="checkbox-inline">
           <input id="optionExactMatch" type="checkbox" name="searchOption">
           Find only exact matches
         </label>
+        </div>
+      </div>
+      <div id="errorCauses" class="dropdown">
+        <button id="errorCausesDropdown"
+            class="btn btn-default dropdown-toggle"
+            type="button"
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+            ng-class="{'disabled': !errorCauseExists()}">
+          Error Causes
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="errorCausesDropdown">
+          <li ng-repeat="cause in errorCauses" class="errorCauseListing">
+            <div class="checkbox">
+            <label class="checkbox-inline">
+            <input id="errorCause-{{$index}}"
+                  type="checkbox" name="errorCause-{{cause.name}}"
+                  ng-value="cause.name"
+                  ng-checked="$root.selected_errCauses.indexOf(cause.name) > -1"
+                  ng-click="toggleErrorCauseSelection(cause.name)">
+                <span class="indicator"
+                      style="background-color: {{cause.color}}">
+                  &nbsp;</span>
+                Cause {{$index + 1}}
+            </label>
+            </div>
+          </li>
+        </ul>
       </div>
       <div id="matches">
         <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
@@ -1157,16 +1271,21 @@ function init(){
     <div class="fileContent" ng-controller="ValueAssignmentsController">
       <table id="err_table">
         <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
-          <td ng-click="showValues($event)" data-toggle="popover" data-placement="right"
+          <td ng-click="showValues($event, line)"
+              data-placement="right"
               data-trigger="click" data-content="{{line.valString}}"
-              class="valueButton" ng-if="line.valString">
-            <pre>&thinsp;V&thinsp;</pre>
-          </td>
-          <td class="valueButton disabled" ng-if="!line.valString">
-            <pre></pre>
+              ng-attr-data-toggle="{{ line.valString ? 'popover' : 'notToggle'}}"
+              class="valueButton">
+            <pre ng-if="line.valString">&thinsp;V&thinsp;</pre>
+            <div ng-repeat="cause in line.faulty_for"
+                class="indicator"
+                style="background-color: {{errorCauses[cause].color}}" >
+              </div>
           </td>
           <td ng-click="clickedErrpathElement($event)">
-            <pre class="prettyprint">{{line.desc}}</pre>
+            <pre class="prettyprint"
+                ng-style="getLineStyle(line)">
+              {{line.desc}}</pre>
           </td>
         </tr>
       </table>
