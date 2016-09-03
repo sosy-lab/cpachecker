@@ -1024,8 +1024,7 @@ div pre{
 
         $scope.jumpToSource = function(line){
             $scope.setTab(3);
-            $location.hash('source-' + line);
-            $anchorScroll();
+            $anchorScroll('source-' + line);
         };
 
         $scope.setSourceFile = function(value){
