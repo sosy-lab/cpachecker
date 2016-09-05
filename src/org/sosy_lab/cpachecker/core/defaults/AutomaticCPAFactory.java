@@ -31,7 +31,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
 
-import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -84,7 +83,8 @@ public class AutomaticCPAFactory implements CPAFactory {
   /**
    * Construct a CPAFactory for the given type.
    * The CPA will be loaded using the given class loader.
-   * It is advisable to use something like {@link ChildFirstPatternClassLoader}
+   * It is advisable to use something like
+   * {@link org.sosy_lab.common.Classes.ClassLoaderBuilder#setDirectLoadClasses(java.util.function.Predicate)}
    * to ensure that the other classes of the CPA will be loaded with the same
    * class loader, even if they are on the class path of the parent class loader.
    *

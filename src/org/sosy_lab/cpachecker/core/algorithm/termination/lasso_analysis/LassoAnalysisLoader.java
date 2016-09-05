@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnsuitedClassException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -160,7 +159,11 @@ public class LassoAnalysisLoader {
         // By using ChildFirstPatternClassLoader we ensure that classes
         // do not get loaded by the parent class loader.
         lassoAnalysisClassLoader =
-            new ChildFirstPatternClassLoader(LASSO_RANKER_CLASSES, urls, smtInterpolClassLoader);
+            Classes.makeExtendedURLClassLoader()
+                .setParent(smtInterpolClassLoader)
+                .setUrls(urls)
+                .setDirectLoadClasses(LASSO_RANKER_CLASSES)
+                .build();
 
       } catch (MalformedURLException e) {
         logger.logUserException(

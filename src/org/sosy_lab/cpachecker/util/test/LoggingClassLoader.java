@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import com.google.common.collect.ImmutableList;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.ChildFirstPatternClassLoader;
-
-import com.google.common.collect.ImmutableList;
-
 /**
  * This is a class loader that keeps a reference to
  * all classes that have been loaded through it.
  */
-public class LoggingClassLoader extends ChildFirstPatternClassLoader {
+@SuppressWarnings("deprecation") // TODO: Do this without ChildFirstPatternClassLoader?
+public class LoggingClassLoader extends org.sosy_lab.common.ChildFirstPatternClassLoader {
 
   private final List<Class<?>> loadedClasses = new ArrayList<>();
 

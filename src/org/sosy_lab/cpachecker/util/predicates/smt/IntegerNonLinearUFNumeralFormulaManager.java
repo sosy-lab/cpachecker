@@ -28,6 +28,8 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.UFManager;
 
+import java.math.BigInteger;
+
 /**
  * Replacing non-linear arithmetics with UF
  * for formulas over integers.
@@ -49,6 +51,11 @@ class IntegerNonLinearUFNumeralFormulaManager
   @Override
   public BooleanFormula modularCongruence(
       IntegerFormula number1, IntegerFormula number2, long n) {
+    return integerFormulaManager.modularCongruence(number1, number2, n);
+  }
+  @Override
+  public BooleanFormula modularCongruence(
+      IntegerFormula number1, IntegerFormula number2, BigInteger n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
 }
