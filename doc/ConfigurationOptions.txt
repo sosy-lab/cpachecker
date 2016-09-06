@@ -2595,6 +2595,10 @@ precision.template.allowedCoefficients = {
       Rational.NEG_ONE, Rational.ONE
   }
 
+# Generate difference constraints.This option is redundant for
+# `maxExpressionSize` >= 2.
+precision.template.generateDifferences = false
+
 # Generate templates from assert statements
 precision.template.generateFromAsserts = true
 
