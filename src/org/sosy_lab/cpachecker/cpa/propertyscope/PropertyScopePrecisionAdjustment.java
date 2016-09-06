@@ -23,29 +23,92 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 
+import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Stream;
 
-public class PropertyScopePrecisionAdjustment extends SimplePrecisionAdjustment {
+public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
+  private final CFA cfa;
+  private final LogManager logger;
+  private final VariableClassification varClassification;
+
+  public PropertyScopePrecisionAdjustment(CFA pCfa, LogManager pLogger) {
+    cfa = pCfa;
+    logger = pLogger;
+    varClassification = Optionals.fromGuavaOptional(cfa.getVarClassification())
+        .orElseThrow(() -> new IllegalStateException("CFA is missing a VariableClassification!"));
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState state,
+      Precision precision,
+      UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState fullState) throws CPAException, InterruptedException {
+    return Optional.of(PrecisionAdjustmentResult.create(state, precision, Action.CONTINUE));
+  }
 
   @Override
   public Optional<? extends AbstractState> strengthen(
       AbstractState pState, Precision pPrecision, List<AbstractState> otherStates)
       throws CPAException, InterruptedException {
-    return Optional.of(pState);
+    PropertyScopeState state = (PropertyScopeState) pState;
+
+    PredicateAbstractState predState = getPredicateAbstractState(otherStates);
+
+    PersistentList<PropertyScopeState> prevStates = state.getPrevBlockStates();
+    Set<ScopeLocation> scopeLocations = new LinkedHashSet<>();
+
+    Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
+        .forEach(st -> {
+          scopeLocations.addAll(st.getScopeLocations());
+        });
+
+    return Optional.of(new PropertyScopeState(
+        PersistentLinkedList.of(),
+        state.getPropertyDependantMatches(),
+        state.getEnteringEdge(),
+        state.getCallstack(),
+        scopeLocations,
+        state.getPrevState()));
+
   }
 
-  @Override
-  public Action prec(
-      AbstractState pState, Precision pPrecision) throws CPAException {
-    return Action.CONTINUE;
+  private static PredicateAbstractState getPredicateAbstractState(List<AbstractState> otherStates)
+      throws CPAException {
+    PredicateAbstractState predState = otherStates.stream()
+        .filter(PredicateAbstractState.class::isInstance)
+        .map(PredicateAbstractState.class::cast)
+        .findAny().orElseThrow(() -> new CPAException("Predicate state missing!"));
+
+    if (!predState.isAbstractionState()) {
+      throw new CPAException("Got a non-abstraction predicate state, enable SBE!");
+    }
+
+    return predState;
   }
+
 }
