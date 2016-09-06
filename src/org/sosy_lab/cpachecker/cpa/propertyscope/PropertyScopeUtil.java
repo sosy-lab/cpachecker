@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -83,6 +84,16 @@ public class PropertyScopeUtil {
       }
     }
     return reachedsb.build();
+  }
+
+  public static List<String> getStack(CallstackState pState) {
+    final List<String> stack = new ArrayList<>();
+    CallstackState state = pState;
+    while (state != null) {
+      stack.add(state.getCurrentFunction());
+      state = state.getPreviousState();
+    }
+    return Collections.unmodifiableList(Lists.reverse(stack));
   }
 
   public static class FormulaVariableResult {

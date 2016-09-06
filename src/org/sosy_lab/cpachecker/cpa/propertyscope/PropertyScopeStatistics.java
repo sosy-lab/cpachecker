@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 
 import static java.util.stream.StreamSupport.stream;
+import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
@@ -230,7 +231,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      Optional<PredicateAbstractState> absState = PropertyScopeUtil.asNonTrueAbstractionState(absSt);
+      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
       Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
       if (absState.isPresent() && !onlyUnusedVarsInAbstraction(absState.get(), csSt
           .getCurrentFunction(), funcToUsedVars)) {
@@ -275,7 +276,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     long matchDepth = Long.MAX_VALUE;
     for (AbstractState absSt : reached) {
       CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      Optional<PredicateAbstractState> absState = PropertyScopeUtil.asNonTrueAbstractionState(absSt);
+      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
       Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
       if (absState.isPresent()) {
         if (!onlyUnusedVarsInAbstraction(absState.get(), csSt.getCurrentFunction(),
@@ -352,27 +353,17 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     return newList;
   }
 
-  private static List<String> getStack(CallstackState pState) {
-    final List<String> stack = new ArrayList<>();
-    CallstackState state = pState;
-    while (state != null) {
-      stack.add(state.getCurrentFunction());
-      state = state.getPreviousState();
-    }
-    return Lists.reverse(stack);
-  }
-
   private static Set<FormulaVariableResult> getGlobalVariablesInAbstractionFormulas(
       ReachedSet reached, FormulaManagerView fmgr) {
     return reached.asCollection().stream()
-        .map(pAS -> PropertyScopeUtil.formulaVariableSplitStream(pAS, fmgr)
+        .map(pAS -> formulaVariableSplitStream(pAS, fmgr)
             .filter(pResult -> pResult.function == null).map(pResult -> pResult)
         ).flatMap(pStringStream -> pStringStream).distinct().collect(Collectors.toSet());
   }
 
   private static long countNonTrueAbstractionStates(ReachedSet pReached) {
     return pReached.asCollection().stream()
-        .filter(as -> PropertyScopeUtil.asNonTrueAbstractionState(as).isPresent())
+        .filter(as -> asNonTrueAbstractionState(as).isPresent())
         .count();
   }
 
@@ -426,7 +417,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
   private static Set<String> collectFunctionsWithNonTrueAbsState(ReachedSet pReachedSet) {
     return pReachedSet.asCollection().stream()
-        .filter(st -> PropertyScopeUtil.asNonTrueAbstractionState(st).isPresent())
+        .filter(st -> asNonTrueAbstractionState(st).isPresent())
         .map(st -> extractStateByType(st, CallstackState.class).getCurrentFunction())
         .collect(Collectors.toSet());
   }
@@ -465,7 +456,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
           ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
       ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
-      List<List<ARGState>> paths = PropertyScopeUtil.allPathStream(root).collect(Collectors.toList());
+      List<List<ARGState>> paths = allPathStream(root).collect(Collectors.toList());
       Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(paths.stream());
       List<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
 
