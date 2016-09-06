@@ -26,12 +26,18 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -50,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
@@ -187,6 +194,23 @@ public class PropertyScopeUtil {
     }
 
     return Optional.empty();
+  }
+
+    public static Multimap<CFAEdge, String> generateCFAEdgeToUsedVar(Set<Partition> partitions) {
+    return partitions.stream().collect(Collector.of(LinkedHashMultimap::create,
+        (mumap, part) -> {
+          for (CFAEdge edge : part.getEdges().keySet()) {
+            if (edge instanceof CDeclarationEdge &&
+                ((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
+              // ignore declarations of global variables
+            } else {
+              part.getVars().forEach(var -> mumap.put(edge, var));
+            }
+          }
+        }, (mumap1, mumap2) -> {
+          mumap1.putAll(mumap2);
+          return mumap1;
+        }));
   }
 
   public static class FormulaGlobalsInspector {

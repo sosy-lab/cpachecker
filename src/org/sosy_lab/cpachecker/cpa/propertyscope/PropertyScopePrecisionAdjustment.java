@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
+import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.generateCFAEdgeToUsedVar;
+
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.collect.PersistentLinkedList;
@@ -39,8 +42,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -53,12 +61,15 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
   private final CFA cfa;
   private final LogManager logger;
   private final VariableClassification varClassification;
+  private final Multimap<?,?> cfaEdgeToUsedVar;
 
   public PropertyScopePrecisionAdjustment(CFA pCfa, LogManager pLogger) {
     cfa = pCfa;
     logger = pLogger;
     varClassification = Optionals.fromGuavaOptional(cfa.getVarClassification())
         .orElseThrow(() -> new IllegalStateException("CFA is missing a VariableClassification!"));
+
+    cfaEdgeToUsedVar = generateCFAEdgeToUsedVar(varClassification.getPartitions());
   }
 
   @Override
@@ -78,6 +89,8 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
     PropertyScopeState state = (PropertyScopeState) pState;
 
     PredicateAbstractState predState = getPredicateAbstractState(otherStates);
+    FormulaManagerView fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+    BooleanFormula formula = predState.getAbstractionFormula().asFormula();
 
     PersistentList<PropertyScopeState> prevStates = state.getPrevBlockStates();
     Set<ScopeLocation> scopeLocations = new LinkedHashSet<>();
@@ -85,6 +98,14 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
     Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
         .forEach(st -> {
           scopeLocations.addAll(st.getScopeLocations());
+
+          // variables in edge occur in abs formula -> edge in scope
+          fmgr.extractAtoms(formula, false).stream()
+              .filter(atom -> fmgr.extractVariableNames(atom).stream()
+                  .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var)))
+              .findAny().ifPresent(p -> scopeLocations.add(new ScopeLocation(
+                  st.getEnteringEdge(), st.getCallstack(), Reason.ABS_FORMULA)));
+
         });
 
     return Optional.of(new PropertyScopeState(
