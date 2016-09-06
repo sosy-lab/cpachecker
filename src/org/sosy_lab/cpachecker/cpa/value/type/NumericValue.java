@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
-import java.math.BigDecimal;
-
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * Stores a numeric value that can be tracked by the ValueAnalysisCPA.
@@ -154,19 +155,12 @@ public class NumericValue implements Value, Serializable {
       } else if (number.equals(Double.NaN)) {
         return this;
       }
+    } else if (number instanceof Rational) {
+      return new NumericValue(((Rational) number).negate());
     }
 
     // if the stored number is a 'casual' number, just negate it
     return new NumericValue(this.bigDecimalValue().negate());
-  }
-
-  /**
-   * Returns whether the stored value is 0.
-   *
-   * @return <code>true</code> if the stored value is 0, <code>false</code> otherwise
-   */
-  public boolean isNull() {
-    return bigDecimalValue().compareTo(new BigDecimal(0)) == 0;
   }
 
   @Override
