@@ -89,7 +89,6 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationAn
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.AffineTemplate;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.LexicographicTemplate;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.NestedTemplate;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.templates.RankingTemplate;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
@@ -315,10 +314,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     for (int i = 2; i <= pMaxTemplateFunctions; i++) {
       rankingTemplates.add(new NestedTemplate(i));
-    }
-
-    for (int i = 2; i <= pMaxTemplateFunctions; i++) {
-      rankingTemplates.add(new LexicographicTemplate(i));
     }
 
     return rankingTemplates.build();
