@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.FreshValueProvider;
-
-import com.google.common.annotations.VisibleForTesting;
 
 public class BAMFreshValueProvider implements FreshValueProvider {
 
@@ -61,7 +61,7 @@ public class BAMFreshValueProvider implements FreshValueProvider {
           PersistentSortedMaps.merge(
               this.vars,
               ((BAMFreshValueProvider) other).vars,
-              PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler());
+              PersistentSortedMaps.getMaximumMergeConflictHandler());
       return new BAMFreshValueProvider(vars);
     } else {
       throw new AssertionError("unhandled case for FreshValueProvider: " + other.getClass());
@@ -74,7 +74,8 @@ public class BAMFreshValueProvider implements FreshValueProvider {
 
   @Override
   public boolean equals(Object other) {
-    return other instanceof BAMFreshValueProvider && this.vars.equals(((BAMFreshValueProvider)other).vars);
+    return other instanceof BAMFreshValueProvider
+        && ((other == this) || vars.equals(((BAMFreshValueProvider)other).vars));
   }
 
   @Override
