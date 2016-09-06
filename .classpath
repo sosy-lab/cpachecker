@@ -4,7 +4,6 @@
 	<classpathentry exported="true" kind="lib" path="bin"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol-comp.jar" sourcepath="lib/java-contrib/smtinterpol-sources.zip"/>
 	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
@@ -28,6 +27,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-util.jar" sourcepath="lib/java-contrib/ultimate-util-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-smt-solver-bridge.jar" sourcepath="lib/java-contrib/ultimate-smt-solver-bridge-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-core.jar" sourcepath="lib/java-contrib/ultimate-core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>

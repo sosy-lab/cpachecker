@@ -77,10 +77,10 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LinearRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 
 class RankingRelationBuilder {
 
@@ -289,7 +289,8 @@ class RankingRelationBuilder {
     List<NumeralFormula> unprimedFormulaSummands = Lists.newArrayList();
     unprimedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
-    for (RankVar rankVar : function.getVariables()) {
+    for (IProgramVar programVar : function.getVariables()) {
+      RankVar rankVar = (RankVar) programVar; // Only RankVars were passed to LassoRanler!
       BigInteger coefficient = function.get(rankVar);
       Optional<CExpression> cCoefficient = createLiteral(coefficient);
       Pair<CIdExpression, CExpression> variables = getVariable(rankVar, pRelevantVariables);
@@ -392,8 +393,10 @@ class RankingRelationBuilder {
 
         Term innerVariableTerm = uf.getParameters()[0];
         String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
+        RankVar innerDummyRankVar =
+            new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);
         Pair<CIdExpression, CExpression> innerVariables =
-            getVariable(new TermRankVar(innerVariableName, innerVariableTerm), pRelevantVariables);
+            getVariable(innerDummyRankVar, pRelevantVariables);
 
         CSimpleDeclaration innerPrimedVariable = innerVariables.getFirstNotNull().getDeclaration();
         CExpression innerVariable = innerVariables.getSecondNotNull();

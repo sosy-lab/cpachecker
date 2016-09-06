@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_
 
 import com.google.common.base.Preconditions;
 
-import org.apache.log4j.Logger;
 import org.sosy_lab.common.log.LogManager;
 
-import java.io.IOException;
 import java.io.Writer;
 
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
@@ -63,26 +61,7 @@ public class LassoRankerLoggingService implements ILoggingService {
   }
 
   @Override
-  public Logger getBacking(ILogger pLogger, Class<?> pBackingType) {
-    if (pLogger == null || pBackingType == null) {
-      return null;
-    }
-
-    if (Logger.class.isAssignableFrom(pBackingType) && pLogger instanceof LassoRankerLogger) {
-      return (Logger) pLogger;
-    }
-
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void addLogfile(String pLogPattern, String pAbsolutePath, boolean pAppend)
-      throws IOException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void removeLogFile(String pAbsolutePath) {
+  public Object getBacking(ILogger pLogger, Class<?> pBackingType) {
     throw new UnsupportedOperationException();
   }
 

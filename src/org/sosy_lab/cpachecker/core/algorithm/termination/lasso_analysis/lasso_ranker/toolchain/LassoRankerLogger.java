@@ -23,25 +23,21 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain;
 
-import org.apache.log4j.Logger;
 import org.sosy_lab.common.log.LogManager;
 
-import java.util.Enumeration;
 import java.util.logging.Level;
 
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
 
-public class LassoRankerLogger extends Logger implements ILogger {
+public class LassoRankerLogger implements ILogger {
 
   private final LogManager logger;
 
   public LassoRankerLogger(LogManager pLogger) {
-    super("");
     logger = pLogger;
   }
 
   public LassoRankerLogger(LogManager pLogger, String name) {
-    super(name);
     logger = pLogger.withComponentName(name);
   }
 
@@ -105,21 +101,6 @@ public class LassoRankerLogger extends Logger implements ILogger {
     logger.log(Level.ALL, pMessage);
   }
 
-  @Override
-  public boolean isTraceEnabled() {
-    return logger.wouldBeLogged(Level.ALL);
-  }
-
-  @Override
-  public void trace(Object pMessage, Throwable pThrowable) {
-    logException(Level.ALL, pMessage, pThrowable);
-  }
-
-  @Override
-  public void trace(Object pMessage) {
-    logger.log(Level.ALL, pMessage);
-  }
-
   private void logException(Level level, Object pMessage, Throwable pThrowable) {
     if (pThrowable != null) {
       logger.logException(level, pThrowable, pMessage.toString());
@@ -128,8 +109,4 @@ public class LassoRankerLogger extends Logger implements ILogger {
     }
   }
 
-  @Override
-  public synchronized Enumeration<?> getAllAppenders() {
-    return super.getAllAppenders();
-  }
 }
