@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -47,13 +47,13 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final LassoRankerLoggingService cpaCheckerLoggingService;
+  private final ILoggingService lassoRankerLoggingService;
   private final Map<String, IStorable> toolchainStorage;
 
   public LassoRankerToolchainStorage(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     logger = Preconditions.checkNotNull(pLogger);
     shutdownNotifier = Preconditions.checkNotNull(pShutdownNotifier);
-    cpaCheckerLoggingService = new LassoRankerLoggingService(pLogger);
+    lassoRankerLoggingService = new LassoRankerLoggingService(pLogger);
     toolchainStorage = Maps.newConcurrentMap();
   }
 
@@ -102,7 +102,7 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
 
   @Override
   public ILoggingService getLoggingService() {
-    return cpaCheckerLoggingService;
+    return lassoRankerLoggingService;
   }
 
   @Override

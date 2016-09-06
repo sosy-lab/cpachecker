@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -98,7 +97,7 @@ class RankingRelationBuilder {
 
   private final FormulaCreator<Term, ?, ?, ?> formulaCreator;
 
-  public RankingRelationBuilder(
+  RankingRelationBuilder(
       MachineModel pMachineModel,
       LogManager pLogger,
       FormulaManagerView pFormulaManagerView,

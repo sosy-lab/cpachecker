@@ -63,8 +63,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisLoader;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -211,11 +211,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                     new InvalidConfigurationException(
                         "Loop structure is not present, but required for termination analysis."));
     statistics = new TerminationStatistics(this, loopStructure.getAllLoops().size());
-
-    // ugly class loader hack
-    LassoAnalysisLoader lassoAnalysisLoader =
-        new LassoAnalysisLoader(pConfig, pLogger, pShutdownNotifier, pCfa, statistics);
-    lassoAnalysis = lassoAnalysisLoader.load();
+    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
   /**

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -50,9 +50,9 @@ public class RankVar implements IProgramVar {
     term = checkNotNull(pTerm);
   }
 
- public Term getDefinition() {
-   return term;
- }
+  public Term getDefinition() {
+    return term;
+  }
 
   @Override
   public String getIdentifier() {

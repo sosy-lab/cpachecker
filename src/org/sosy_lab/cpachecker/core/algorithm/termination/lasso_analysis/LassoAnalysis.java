@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.java_smt.api.SolverContext;
 
 import java.util.Set;
 
@@ -64,15 +63,15 @@ public interface LassoAnalysis {
    */
   void writeOutputFiles();
 
-  public interface Factory {
-
-    public LassoAnalysis create(
-        LogManager pLogger,
-        Configuration pConfig,
-        ShutdownNotifier pShutdownNotifier,
-        SolverContext pSolverContext,
-        CFA pCfa,
-        TerminationStatistics pStatistics)
-        throws InvalidConfigurationException;
+  static LassoAnalysis create(
+      LogManager pLogger,
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      TerminationStatistics pStatistics)
+      throws InvalidConfigurationException {
+    return new LassoAnalysisImpl(pLogger, pConfig, pShutdownNotifier, pCfa, pStatistics);
   }
+
+
 }

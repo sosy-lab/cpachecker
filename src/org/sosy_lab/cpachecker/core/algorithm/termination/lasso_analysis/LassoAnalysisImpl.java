@@ -21,10 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
@@ -49,19 +48,17 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.RankingRelationBuilder.RankingRelationException;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain.LassoRankerToolchainStorage;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationBuilder.RankingRelationException;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain.LassoRankerToolchainStorage;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -97,7 +94,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 
 @Options(prefix = "termination.lassoAnalysis")
-public class LassoAnalysisImpl implements LassoAnalysis {
+class LassoAnalysisImpl implements LassoAnalysis {
 
   // The configuration library does not support small letters in enum constants.
   public enum LassoAnalysisType {
@@ -234,11 +231,10 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
 
   @SuppressWarnings("unchecked")
-  public LassoAnalysisImpl(
+  LassoAnalysisImpl(
       LogManager pLogger,
       Configuration pConfig,
       ShutdownNotifier pShutdownNotifier,
-      SolverContext pSolverContext,
       CFA pCfa,
       TerminationStatistics pStatistics)
       throws InvalidConfigurationException {
@@ -247,10 +243,10 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     statistics = checkNotNull(pStatistics);
-    solverContext = checkNotNull(pSolverContext);
-    checkArgument(solverContext.getSolverName().equals(SMTINTERPOL));
+    solverContext =
+        SolverContextFactory.createSolverContext(pConfig, logger, shutdownNotifier, SMTINTERPOL);
     AbstractFormulaManager<Term, ?, ?, ?> formulaManager =
-        (AbstractFormulaManager<Term, ?, ?, ?>) pSolverContext.getFormulaManager();
+        (AbstractFormulaManager<Term, ?, ?, ?>) solverContext.getFormulaManager();
     Configuration solverConfig = Configuration.defaultConfiguration();
     FormulaManagerView formulaManagerView =
         new FormulaManagerView(formulaManager, solverConfig, pLogger);
@@ -270,7 +266,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             shutdownNotifier,
             formulaManager,
             formulaManagerView,
-            pSolverContext::newProverEnvironment,
+            solverContext::newProverEnvironment,
             pathFormulaManager);
     rankingRelationBuilder =
         new RankingRelationBuilder(
