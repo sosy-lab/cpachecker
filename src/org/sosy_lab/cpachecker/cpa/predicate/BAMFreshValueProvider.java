@@ -45,8 +45,9 @@ public class BAMFreshValueProvider implements FreshValueProvider {
 
   @Override
   public int getFreshValue(String variable, int value) {
-    if (vars.containsKey(variable) && value < vars.get(variable)) {
-      value = vars.get(variable);
+    Integer currentValue = vars.get(variable);
+    if (currentValue != null && value < currentValue) {
+      value = currentValue;
     }
     return value + DefaultFreshValueProvider.DEFAULT_INCREMENT; // increment for a new index
   }
