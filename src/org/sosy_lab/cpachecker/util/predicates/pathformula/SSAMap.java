@@ -123,7 +123,8 @@ public class SSAMap implements Serializable {
     }
 
     public int getFreshIndex(String variable) {
-      return freshValueProvider.getFreshValue(variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
+      return freshValueProvider.getFreshValue(variable,
+          SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
     public CType getType(String name) {
@@ -202,7 +203,7 @@ public class SSAMap implements Serializable {
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       PathCopyingPersistentTreeMap.of(),
-      new FreshValueProvider.DefaultFreshValueProvider(),
+      new FreshValueProvider(),
       0,
       PathCopyingPersistentTreeMap.of());
 
