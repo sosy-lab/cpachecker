@@ -240,8 +240,9 @@ public class TemplatePrecision implements Precision {
         Ordering.from(
             Comparator.<Template>comparingInt(
                 (template) -> template.getLinearExpression().size())
+                .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
                 .thenComparing(Template::toString))
-            .immutableSortedCopy(outBuild);
+                .immutableSortedCopy(outBuild);
 
     cache.putAll(node, sortedTemplates);
     return cache.get(node);
