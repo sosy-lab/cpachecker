@@ -207,8 +207,7 @@ public class PolicyIterationManager {
   }
 
   /**
-   * The concept of a "location" is murky in a CPA.
-   * Currently it's defined in a precision adjustment operator:
+   * Location of the state is defined as follows:
    * if we perform an adjustment, and there's already another state in the
    * same partition (something we are about to get merged with), we take their
    * locationID.
@@ -717,7 +716,7 @@ public class PolicyIterationManager {
           bfmgr.toConjunctionArgs(constraint, true), state.getNode());
       if (!out && pIsTarget) {
 
-        // Set counterexample information for reachable target states.
+        // Set counterexample information for reachable target states for visualization purposes.
         try (ProverEnvironment env = solver.newProverEnvironment
             (ProverOptions.GENERATE_MODELS)) {
           env.push(constraint);
@@ -1245,7 +1244,7 @@ public class PolicyIterationManager {
    * However, we would like to get the <b>latest</b> such element.
    * In ARG terminology, that's the first one we get by following backpointers.
    */
-  Optional<PolicyAbstractedState> findSibling(
+  private Optional<PolicyAbstractedState> findSibling(
       PolicyIntermediateState state,
       UnmodifiableReachedSet states,
       AbstractState pArgState

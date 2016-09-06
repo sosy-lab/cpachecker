@@ -65,7 +65,7 @@ public class PolicyBound {
     computedByValueDetermination = pComputedByValueDetermination;
   }
 
-  public boolean isComputedByValueDetermination() {
+  boolean isComputedByValueDetermination() {
     return computedByValueDetermination;
   }
 
@@ -79,20 +79,20 @@ public class PolicyBound {
         pDependencies, false);
   }
 
-  public PolicyBound updateValueFromValueDetermination(Rational newValue) {
+  PolicyBound updateValueFromValueDetermination(Rational newValue) {
     return new PolicyBound(formula, newValue, predecessor, dependencies, true);
   }
 
-  public PolicyBound withNoDependencies() {
+  PolicyBound withNoDependencies() {
     return new PolicyBound(formula, bound, predecessor, ImmutableSet.of(), false);
   }
 
   /**
    * @return Unique identifier for value determination.
    *
-   * Based on triple (from, to, policy).
+   * <p>Based on triple {@code from, to, policy}.
    */
-  public int serializePolicy(PolicyAbstractedState toState) {
+  int serializePolicy(PolicyAbstractedState toState) {
     Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState> p = Triple.of(
         predecessor, formula.getFormula(), toState);
     Integer serialization = serializationMap.get(p);
@@ -118,7 +118,6 @@ public class PolicyBound {
   public ImmutableSet<Template> getDependencies() {
     return dependencies;
   }
-
 
   @Override
   public int hashCode() {
