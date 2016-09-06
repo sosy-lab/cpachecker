@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -96,6 +97,10 @@ public class TemplatePrecision implements Precision {
 
   @Option(secure=true, description="Maximum size for the generated template")
   private int maxExpressionSize = 1;
+
+  @Option(secure=true, description="Generate difference constraints."
+      + "This option is redundant for `maxExpressionSize` >= 2.")
+  private boolean generateDifferences = false;
 
   @Option(secure=true, description="Allowed coefficients in a template.")
   private Set<Rational> allowedCoefficients = ImmutableSet.of(
@@ -305,7 +310,25 @@ public class TemplatePrecision implements Precision {
       returned.addAll(generated);
     }
 
+    if (generateDifferences) {
+      returned.addAll(generateDifferenceTemplates(vars));
+    }
+
     return returned;
+  }
+
+  private Set<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
+    List<LinearExpression<CIdExpression>> out = new ArrayList<>();
+    for (CIdExpression v1 : vars) {
+      for (CIdExpression v2 : vars) {
+        out.add(LinearExpression.ofVariable(v1).sub(LinearExpression.ofVariable(v2)));
+      }
+    }
+    out = filterToSameType(out);
+    return out.stream()
+        .filter(t -> !t.isEmpty())
+        .map(t -> Template.of(t))
+        .collect(Collectors.toSet());
   }
 
   /**
