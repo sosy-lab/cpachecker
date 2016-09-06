@@ -160,6 +160,11 @@ public class ValueDeterminationManager {
         // Update the queue, check visited.
         if (!valueIsFixed &&
             bound.getDependencies().contains(template)
+
+            // todo note: it is implicitly assumed that by processing backpointers we should get
+            // the latest version of the state for each location ID,
+            // as we would simply ignore the second one.
+            // perhaps it could be more fruitful to make this assumption explicit.
             && !visitedLocationIDs.contains(backpointer.getLocationID())) {
 
           queue.add(backpointer);
@@ -297,7 +302,7 @@ public class ValueDeterminationManager {
    */
   private String absDomainVarName(int locId, Template template) {
     return String.format(
-        BOUND_VAR_NAME, locId, template.toFormulaString());
+        BOUND_VAR_NAME, locId, template.toString());
   }
 
 }
