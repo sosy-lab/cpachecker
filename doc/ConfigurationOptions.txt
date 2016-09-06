@@ -2844,7 +2844,7 @@ termination.lassoBuilder.simplify = false
 
 # maximal number of repeated ranking functions per loop before stopping
 # analysis
-termination.maxRepeatedRankingFunctionsPerLoop = 100
+termination.maxRepeatedRankingFunctionsPerLoop = 10
 
 # Strategy used to prepare reched set and ARG for next iteration after
 # successful refinement of the termination argument.

@@ -140,7 +140,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     description = "maximal number of repeated ranking functions per loop before stopping analysis"
   )
   @IntegerOption(min = 1)
-  private int maxRepeatedRankingFunctionsPerLoop = 100;
+  private int maxRepeatedRankingFunctionsPerLoop = 10;
 
   private final TerminationStatistics statistics;
 
