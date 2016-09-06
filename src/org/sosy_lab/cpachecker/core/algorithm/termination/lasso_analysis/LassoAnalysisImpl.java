@@ -94,7 +94,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.util.ToolchainCanceledException;
 
 @Options(prefix = "termination.lassoAnalysis")
-class LassoAnalysisImpl implements LassoAnalysis {
+public class LassoAnalysisImpl implements LassoAnalysis {
 
   // The configuration library does not support small letters in enum constants.
   public enum LassoAnalysisType {
@@ -214,7 +214,7 @@ class LassoAnalysisImpl implements LassoAnalysis {
 
   private final SolverContext solverContext;
 
-  private final LassoBuilder lassoBuilder;
+  private final org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder lassoBuilder;
   private final RankingRelationBuilder rankingRelationBuilder;
 
   private final LassoRankerPreferences linearLassoRankerPreferences;
@@ -231,7 +231,7 @@ class LassoAnalysisImpl implements LassoAnalysis {
   private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
 
   @SuppressWarnings("unchecked")
-  LassoAnalysisImpl(
+  public LassoAnalysisImpl(
       LogManager pLogger,
       Configuration pConfig,
       ShutdownNotifier pShutdownNotifier,
@@ -259,14 +259,13 @@ class LassoAnalysisImpl implements LassoAnalysis {
             pCfa,
             AnalysisDirection.FORWARD);
 
-    lassoBuilder =
-        new LassoBuilder(
+    lassoBuilder = new LassoBuilder(
             pConfig,
             pLogger,
             shutdownNotifier,
             formulaManager,
             formulaManagerView,
-            solverContext::newProverEnvironment,
+            () -> solverContext.newProverEnvironment(), // Eclipse compiler crashes if a method reference is used here.
             pathFormulaManager);
     rankingRelationBuilder =
         new RankingRelationBuilder(
