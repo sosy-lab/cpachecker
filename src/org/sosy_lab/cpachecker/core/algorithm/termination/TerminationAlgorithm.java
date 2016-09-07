@@ -270,7 +270,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
-      statistics.analysisOfLoopStarted();
+      statistics.analysisOfLoopStarted(loop);
 
       resetReachedSet(pReachedSet, initialLocation);
       CPAcheckerResult.Result loopTermiantion =
@@ -285,7 +285,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         status = status.withSound(false);
       }
 
-      statistics.analysisOfLoopFinished();
+      statistics.analysisOfLoopFinished(loop);
     }
 
     if (status.isSound()) {
@@ -315,10 +315,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Result result = Result.TRUE;
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
-      statistics.safetyAnalysisStarted();
+      statistics.safetyAnalysisStarted(pLoop);
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
       terminationInformation.resetCfa();
-      statistics.safetyAnalysisFinished();
+      statistics.safetyAnalysisFinished(pLoop);
       shutdownNotifier.shutdownIfNecessary();
 
       boolean targetReached =
