@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,7 @@ public class CFunctionPointerResolver {
 
   @Option(secure=true, name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_TYPES, FunctionSet.RETURN_VALUE);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
@@ -290,11 +291,16 @@ public class CFunctionPointerResolver {
       }
       if( expression instanceof CFieldReference) {
         String fieldName = ((CFieldReference)expression).getFieldName();
-        Collection<String> matchedFields = candidateFunctionsForField.get(fieldName);
-        funcs = from(funcs).
-            filter(f -> matchedFields.contains(f.getFunctionName())).
-            toSet();
-
+        Collection<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
+        if (matchedFuncs == null) {
+          //means, that our heuristics missed something
+          //TODO
+          funcs = Collections.emptySet();
+        } else {
+          funcs = from(funcs).
+              filter(f -> matchedFuncs.contains(f.getFunctionName())).
+              toSet();
+        }
       }
     }
 
