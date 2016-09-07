@@ -754,8 +754,13 @@ public class CtoFormulaConverter {
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
     if (edge.getPredecessor() instanceof CFunctionEntryNode) {
-      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, (CFunctionEntryNode)edge.getPredecessor());
+      final CFunctionEntryNode entryNode = (CFunctionEntryNode) edge.getPredecessor();
+      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, entryNode);
       addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
+
+      if (entryNode.getNumEnteringEdges() == 0) {
+        handleEntryFunctionParameters(entryNode, ssa, constraints);
+      }
     }
 
     // handle the edge
@@ -785,16 +790,31 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
+  /**
+   * Ensure parameters of entry function are added to the SSAMap.
+   * Otherwise they would be missing and (un)instantiate would not work correctly,
+   * leading to a wrong analysis if their value is relevant.
+   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
+   *
+   * Also add range constraints for these non-deterministic parameters to strengthen analysis.
+   */
+  private void handleEntryFunctionParameters(
+      final CFunctionEntryNode entryNode, final SSAMapBuilder ssa, final Constraints constraints) {
+    for (CParameterDeclaration param : entryNode.getFunctionDefinition().getParameters()) {
+      // has side-effect of adding to SSAMap!
+      final Formula var = makeFreshVariable(param.getQualifiedName(), param.getType(), ssa);
+
+      if (options.addRangeConstraintsForNondet()) {
+        addRangeConstraint(var, param.getType(), constraints);
+      }
+    }
+  }
 
   /**
    * Create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
    * The tmp-variables are also used before the function-entry as "argument-constraints".
    *
    * This function is usually only relevant with options.useParameterVariables().
-   * We also add the same constraints for the entry function, though,
-   * to ensure that the parameters of the entry function have been assigned once
-   * and are in the SSAMap (otherwise instantiate and uninstantiate will be wrong).
-   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
    */
   private void addParameterConstraints(final CFAEdge edge, final String function,
                                        final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
@@ -802,8 +822,7 @@ public class CtoFormulaConverter {
                                        final CFunctionEntryNode entryNode)
           throws UnrecognizedCCodeException, InterruptedException {
 
-    if (options.useParameterVariables()
-        || entryNode.getNumEnteringEdges() == 0 /* entry function */ ) {
+    if (options.useParameterVariables()) {
       for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
 
         // create expressions for each formal param: "f::x" --> "f::x__param__"
