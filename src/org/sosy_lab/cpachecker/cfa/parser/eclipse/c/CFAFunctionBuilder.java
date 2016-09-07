@@ -421,18 +421,15 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope.enterFunction(fdef);
 
     final List<CParameterDeclaration> parameters = fdef.getParameters();
-    final List<String> parameterNames = new ArrayList<>(parameters.size());
-
     for (CParameterDeclaration param : parameters) {
       scope.registerDeclaration(param); // declare parameter as local variable
-      parameterNames.add(param.getName());
     }
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
-    final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc, fdef, returnNode, parameterNames, scope.getReturnVariable());
+    final FunctionEntryNode startNode =
+        new CFunctionEntryNode(fileloc, fdef, returnNode, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 

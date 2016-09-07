@@ -252,7 +252,6 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
             Collections.<CParameterDeclaration>emptyList()
         ),
         new FunctionExitNode(name),
-        Collections.<String>emptyList(),
         Optional.empty()
     );
 
