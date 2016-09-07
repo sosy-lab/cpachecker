@@ -473,6 +473,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
               proover.push(rankingRelation.asFormula());
               if (!proover.isUnsat()) {
                 terminationArguments.put(pLoop, terminationArgument);
+                statistics.synthesizedTerminationArgument(terminationArgument);
                 return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
               }
 

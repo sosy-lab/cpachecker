@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -46,6 +47,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 
 
 public class TerminationStatistics implements Statistics {
@@ -77,6 +80,8 @@ public class TerminationStatistics implements Statistics {
   private final AtomicInteger maxLassosPerIteration = new AtomicInteger();
 
   private final AtomicInteger lassosCurrentIteration = new AtomicInteger();
+
+  private final Map<String, AtomicInteger> terminationArguments = Maps.newConcurrentMap();
 
   private final TerminationAlgorithm terminationAlgorithm;
 
@@ -175,6 +180,11 @@ public class TerminationStatistics implements Statistics {
     lassosCurrentIteration.addAndGet(numberOfLassos);
   }
 
+  public void synthesizedTerminationArgument(TerminationArgument pTerminationArgument) {
+    String name = pTerminationArgument.getRankingFunction().getName();
+    terminationArguments.computeIfAbsent(name, n -> new AtomicInteger()).incrementAndGet();
+  }
+
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
     terminationAlgorithm.writeOutputFiles();
@@ -248,6 +258,17 @@ public class TerminationStatistics implements Statistics {
     pOut.println("  Total time for termination analysis:              " + lassoTerminationTime);
     pOut.println("    Avg time for termination analysis per lasso:    " + format(lassoTerminationTime.getAvgTime()));
     pOut.println("    Max time for termination analysis per lasso:    " + format(lassoTerminationTime.getMaxTime()));
+    pOut.println();
+
+    int totoalTerminationArguments =
+        terminationArguments.values().stream().mapToInt(AtomicInteger::get).sum();
+    pOut.println("Total number of termination arguments:              " + format(totoalTerminationArguments));
+
+    for (Entry<String, AtomicInteger> terminationArgument : terminationArguments.entrySet()) {
+      String name = terminationArgument.getKey();
+      String whiteSpaces = Strings.repeat(" ", 49 - name.length());
+      pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue().get()));
+    }
   }
 
   @Override
