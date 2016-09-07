@@ -23,15 +23,28 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -39,7 +52,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -48,10 +65,20 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 
-
+@Options(prefix = "termination")
 public class TerminationStatistics implements Statistics {
+
+  @Option(
+      secure = true,
+      description =
+          "A human readable representation of the synthesized (non-)termination arguments is "
+              + "exported to this file."
+    )
+  @FileOption(Type.OUTPUT_FILE)
+  private Path resultFile = Paths.get("terminationAnalysisResult.txt");
 
   private final int totalLoops;
 
@@ -81,13 +108,18 @@ public class TerminationStatistics implements Statistics {
 
   private final AtomicInteger lassosCurrentIteration = new AtomicInteger();
 
-  private final Map<String, AtomicInteger> terminationArguments = Maps.newConcurrentMap();
+  private final Multimap<Loop, TerminationArgument> terminationArguments =
+      MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
-  private final TerminationAlgorithm terminationAlgorithm;
+  private final Map<Loop, NonTerminationArgument> nonTerminationArguments = Maps.newConcurrentMap();
+
+  private final LogManager logger;
 
   public TerminationStatistics(
-      TerminationAlgorithm pTerminationAlgorithm, int pTotalNumberOfLoops) {
-    terminationAlgorithm = checkNotNull(pTerminationAlgorithm);
+      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops)
+          throws InvalidConfigurationException {
+    pConfig.inject(this);
+    logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
   }
 
@@ -180,15 +212,18 @@ public class TerminationStatistics implements Statistics {
     lassosCurrentIteration.addAndGet(numberOfLassos);
   }
 
-  public void synthesizedTerminationArgument(TerminationArgument pTerminationArgument) {
-    String name = pTerminationArgument.getRankingFunction().getName();
-    terminationArguments.computeIfAbsent(name, n -> new AtomicInteger()).incrementAndGet();
+  public void synthesizedTerminationArgument(Loop pLoop, TerminationArgument pTerminationArgument) {
+    checkState(analysedLoops.contains(pLoop));
+    terminationArguments.put(pLoop, pTerminationArgument);
+  }
+
+  public void synthesizedNonTerminationArgument(
+      Loop pLoop, NonTerminationArgument pNonTerminationArgument) {
+    nonTerminationArguments.put(pLoop, pNonTerminationArgument);
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    terminationAlgorithm.writeOutputFiles();
-
     pOut.println("Total time :                                        " + totalTime);
     pOut.println("Time for recursion analysis:                        " + recursionTime);
     pOut.println();
@@ -260,14 +295,52 @@ public class TerminationStatistics implements Statistics {
     pOut.println("    Max time for termination analysis per lasso:    " + format(lassoTerminationTime.getMaxTime()));
     pOut.println();
 
-    int totoalTerminationArguments =
-        terminationArguments.values().stream().mapToInt(AtomicInteger::get).sum();
+    int totoalTerminationArguments = terminationArguments.size();
     pOut.println("Total number of termination arguments:              " + format(totoalTerminationArguments));
 
-    for (Entry<String, AtomicInteger> terminationArgument : terminationArguments.entrySet()) {
+    Map<String, Integer> terminationArguementTypes = Maps.newHashMap();
+    for (TerminationArgument terminationArgument : terminationArguments.values()) {
+      String name = terminationArgument.getRankingFunction().getName();
+      terminationArguementTypes.merge(name, 1, Integer::sum);
+    }
+
+    for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
       String name = terminationArgument.getKey();
       String whiteSpaces = Strings.repeat(" ", 49 - name.length());
-      pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue().get()));
+      pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));
+    }
+
+    exportSynthesizedArguments();
+  }
+
+  private void exportSynthesizedArguments() {
+    if (resultFile != null) {
+      logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
+
+      try (Writer writer = MoreFiles.openOutputFile(resultFile, UTF_8)) {
+        writer.append("Non-termination arguments:\n");
+        for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
+            nonTerminationArguments.entrySet()) {
+          writer.append(nonTerminationArgument.getKey().toString());
+          writer.append(":\n");
+          writer.append(nonTerminationArgument.getValue().toString());
+          writer.append('\n');
+        }
+
+        writer.append("\n\nTermination arguments:\n");
+        for (Loop loop : terminationArguments.keySet()) {
+          for (TerminationArgument terminationArgument : terminationArguments.get(loop)) {
+            writer.append(loop.toString());
+            writer.append(":\n");
+            writer.append(terminationArgument.toString());
+            writer.append('\n');
+          }
+          writer.append('\n');
+        }
+
+      } catch (IOException e) {
+        logger.logException(WARNING, e, "Could not export (non-)termination arguments.");
+      }
     }
   }
 

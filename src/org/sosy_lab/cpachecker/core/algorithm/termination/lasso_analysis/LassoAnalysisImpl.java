@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
@@ -31,19 +30,13 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.java_smt.SolverContextFactory.Solvers.SMTINTERPOL;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -65,13 +58,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
 
 import java.io.IOException;
-import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -199,15 +187,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   @IntegerOption(min = 1)
   private int maxTemplateFunctions = 3;
 
-  @Option(
-    secure = true,
-    description =
-        "A human readable representation of the synthesized (non-)termination arguments is "
-            + "exported to this file."
-  )
-  @FileOption(Type.OUTPUT_FILE)
-  private Path resultFile = Paths.get("terminationAnalysisResult.txt");
-
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationStatistics statistics;
@@ -226,9 +205,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   private final LassoRankerToolchainStorage toolchainStorage;
 
   private final Collection<RankingTemplate> rankingTemplates;
-
-  private final SetMultimap<Loop, TerminationArgument> terminationArguments;
-  private final Map<Loop, NonTerminationArgument> nonTerminationArguments;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -298,8 +274,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     toolchainStorage = new LassoRankerToolchainStorage(pLogger, pShutdownNotifier);
 
     rankingTemplates = createTemplates(maxTemplateFunctions);
-    terminationArguments = MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
-    nonTerminationArguments = Maps.newLinkedHashMap();
   }
 
   private static Collection<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
@@ -318,38 +292,6 @@ public class LassoAnalysisImpl implements LassoAnalysis {
   public void close() {
     toolchainStorage.clear();
     solverContext.close();
-  }
-
-  @Override
-  public void writeOutputFiles() {
-    if (resultFile != null) {
-      logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
-
-      try (Writer writer = MoreFiles.openOutputFile(resultFile, UTF_8)) {
-        writer.append("Non-termination arguments:\n");
-        for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
-            nonTerminationArguments.entrySet()) {
-          writer.append(nonTerminationArgument.getKey().toString());
-          writer.append(":\n");
-          writer.append(nonTerminationArgument.getValue().toString());
-          writer.append('\n');
-        }
-
-        writer.append("\n\nTermination arguments:\n");
-        for (Loop loop : terminationArguments.keySet()) {
-          for (TerminationArgument terminationArgument : terminationArguments.get(loop)) {
-            writer.append(loop.toString());
-            writer.append(":\n");
-            writer.append(terminationArgument.toString());
-            writer.append('\n');
-          }
-          writer.append('\n');
-        }
-
-      } catch (IOException e) {
-        logger.logException(WARNING, e, "Could not export (non-)termination arguments.");
-      }
-    }
   }
 
   @Override
@@ -436,7 +378,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
       if (result.equals(LBool.SAT) && nonTerminationArgumentSynthesizer.synthesisSuccessful()) {
         nonTerminationArgument = nonTerminationArgumentSynthesizer.getArgument();
         logger.logf(FINE, "Proved non-termintion: %s", nonTerminationArgument);
-        nonTerminationArguments.put(pLoop, nonTerminationArgument);
+        statistics.synthesizedNonTerminationArgument(pLoop, nonTerminationArgument);
         return LassoAnalysisResult.fromNonTerminationArgument(nonTerminationArgument);
 
       } else {
@@ -472,8 +414,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
               proover.push(rankingRelation.asFormula());
               if (!proover.isUnsat()) {
-                terminationArguments.put(pLoop, terminationArgument);
-                statistics.synthesizedTerminationArgument(terminationArgument);
+                statistics.synthesizedTerminationArgument(pLoop, terminationArgument);
                 return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
               }
 

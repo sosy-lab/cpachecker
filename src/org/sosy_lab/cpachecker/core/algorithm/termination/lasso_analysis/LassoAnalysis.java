@@ -58,11 +58,6 @@ public interface LassoAnalysis {
    */
   void close();
 
-  /**
-   * Writes termination and non-termination arguments into output files.
-   */
-  void writeOutputFiles();
-
   static LassoAnalysis create(
       LogManager pLogger,
       Configuration pConfig,

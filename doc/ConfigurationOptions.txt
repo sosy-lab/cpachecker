@@ -2831,10 +2831,6 @@ termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
 # non-termination arguments.
 termination.lassoAnalysis.nonlinear.externalSolver = false
 
-# A human readable representation of the synthesized (non-)termination
-# arguments is exported to this file.
-termination.lassoAnalysis.resultFile = "terminationAnalysisResult.txt"
-
 # Number of strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
 termination.lassoAnalysis.strictInvariants = 2
@@ -2850,3 +2846,7 @@ termination.maxRepeatedRankingFunctionsPerLoop = 10
 # successful refinement of the termination argument.
 termination.resetReachedSetStrategy = REMOVE_LOOP
   enum:     [REMOVE_TARGET_STATE, REMOVE_LOOP, RESET]
+
+# A human readable representation of the synthesized (non-)termination
+# arguments is exported to this file.
+termination.resultFile = "terminationAnalysisResult.txt"

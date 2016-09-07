@@ -210,7 +210,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                 () ->
                     new InvalidConfigurationException(
                         "Loop structure is not present, but required for termination analysis."));
-    statistics = new TerminationStatistics(this, loopStructure.getAllLoops().size());
+    statistics = new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size());
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
@@ -225,10 +225,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return terminationSpecification;
-  }
-
-  void writeOutputFiles() {
-    lassoAnalysis.writeOutputFiles();
   }
 
   @Override
