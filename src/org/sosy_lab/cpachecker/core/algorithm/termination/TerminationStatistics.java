@@ -57,6 +57,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -296,8 +297,25 @@ public class TerminationStatistics implements Statistics {
     pOut.println();
 
     int totoalTerminationArguments = terminationArguments.size();
+    int maxTerminationArgumentsPerLoop =
+        terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
+    String loopsWithMaxTerminationArguments =
+        terminationArguments
+        .asMap()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue().size() == maxTerminationArgumentsPerLoop)
+        .map(Entry::getKey)
+        .map(l -> l.getLoopHeads().toString())
+        .collect(Collectors.joining(", "));
     pOut.println("Total number of termination arguments:              " + format(totoalTerminationArguments));
+    if (loops > 0) {
+      pOut.println("  Avg termination arguments per loop:               " + div(totoalTerminationArguments, loops));
+    }
+    pOut.println("  Max termination arguments per loop:               " + format(maxTerminationArgumentsPerLoop) + " \t for loops " + loopsWithMaxTerminationArguments);
 
+
+    pOut.println();
     Map<String, Integer> terminationArguementTypes = Maps.newHashMap();
     for (TerminationArgument terminationArgument : terminationArguments.values()) {
       String name = terminationArgument.getRankingFunction().getName();
