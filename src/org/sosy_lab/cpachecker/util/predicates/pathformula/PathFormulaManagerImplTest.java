@@ -264,11 +264,10 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     CFAEdge a_to_b = data.getFirst();
 
     int customIdx = 1337;
-    PathFormula p = makePathFormulaWithCustomIdx(
-        a_to_b, customIdx);
+    PathFormula p = makePathFormulaWithCustomIdx(a_to_b, customIdx);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + FreshValueProvider.DefaultFreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
+    Assert.assertEquals(customIdx + FreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
   }
 
   @Test

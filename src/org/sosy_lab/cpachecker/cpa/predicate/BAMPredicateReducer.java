@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.FreshValueProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -506,7 +507,7 @@ public class BAMPredicateReducer implements Reducer {
     Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
 
     if (idx > oldIdx) {
-      BAMFreshValueProvider bamfvp = new BAMFreshValueProvider();
+      FreshValueProvider bamfvp = new FreshValueProvider();
       bamfvp.put(name, idx);
       ssa.mergeFreshValueProviderWith(bamfvp);
     }
