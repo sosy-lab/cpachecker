@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceConditionManager;
@@ -54,6 +55,7 @@ public class GlobalInfo {
   private ApronManager apronManager;
   private LogManager apronLogger;
   private PresenceConditionManager pcManager;
+  private Solver predicateSolver;
 
   private GlobalInfo() {
 
@@ -102,6 +104,7 @@ public class GlobalInfo {
           Preconditions.checkState(absManager == null);
           absManager = ((PredicateCPA) c).getAbstractionManager();
           predicateFormulaManagerView = ((PredicateCPA) c).getSolver().getFormulaManager();
+          predicateSolver = ((PredicateCPA) c).getSolver();
         } else if (c instanceof AssumptionStorageCPA) {
           Preconditions.checkState(assumptionFormulaManagerView == null);
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
@@ -147,4 +150,7 @@ public class GlobalInfo {
     return assumptionFormulaManagerView;
   }
 
+  public Solver getPredicateSolver() {
+    return predicateSolver;
+  }
 }
