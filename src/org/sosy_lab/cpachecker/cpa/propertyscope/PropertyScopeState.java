@@ -23,8 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.TargetGraph.Builder;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -37,7 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-class PropertyScopeState implements AbstractState, Graphable {
+public class PropertyScopeState implements AbstractState, Graphable {
 
   private final long propertyDependantMatches;
   private final PersistentList<PropertyScopeState> prevBlockStates;
@@ -47,6 +53,11 @@ class PropertyScopeState implements AbstractState, Graphable {
   private final Optional<PropertyScopeState> prevState;
   private final Optional<AbstractionFormula> absFormula;
   private final Map<Automaton, AutomatonState> automatonStates;
+
+  public static PropertyScopeState initial(CFANode pNode) {
+    return new PropertyScopeState(PersistentLinkedList.of(), 0, null, singletonList(pNode
+        .getFunctionName()), emptySet(), Optional.empty(), Optional.empty(), Collections.emptyMap());
+  }
 
   public PropertyScopeState(
       PersistentList<PropertyScopeState> pPrevBlockStates,

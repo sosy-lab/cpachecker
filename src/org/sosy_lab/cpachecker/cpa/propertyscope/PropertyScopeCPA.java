@@ -115,8 +115,7 @@ public class PropertyScopeCPA implements StatisticsProvider, ConfigurableProgram
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return new PropertyScopeState(PersistentLinkedList.of(), 0, null, singletonList(node
-        .getFunctionName()), emptySet(), Optional.empty(), Optional.empty(), Collections.emptyMap());
+    return PropertyScopeState.initial(node);
 
   }
 
