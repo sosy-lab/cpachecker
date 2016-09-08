@@ -96,6 +96,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
+  //New memory model for pointer analysis with regions
+  //Regions are based not only on type, but also on structure field names (so called Burstall&Bornat model).
+  //If the field is not accessed by address then it is placed in a separate region.
+  @Option(secure=true, description = "Use regions for pointer analysis")
+  private boolean useMemoryRegions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
@@ -183,5 +189,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
+  }
+
+  public boolean useMemoryRegions() {
+    return useMemoryRegions;
   }
 }

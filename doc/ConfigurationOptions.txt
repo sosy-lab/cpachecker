@@ -1834,6 +1834,9 @@ cpa.predicate.useArraysForHeap = false
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Use regions for pointer analysis
+cpa.predicate.useMemoryRegions = false
+
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 

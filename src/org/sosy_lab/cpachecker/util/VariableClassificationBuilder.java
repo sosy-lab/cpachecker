@@ -159,6 +159,7 @@ public class VariableClassificationBuilder {
 
   private Optional<Set<String>> relevantVariables = Optional.empty();
   private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.empty();
+  private Optional<Multimap<CCompositeType, String>> addressedFields = Optional.empty();
   private Optional<Set<String>> addressedVariables = Optional.empty();
 
   private final LogManager logger;
@@ -231,6 +232,7 @@ public class VariableClassificationBuilder {
         relevantVariables.get(),
         addressedVariables.get(),
         relevantFields.get(),
+        addressedFields.get(),
         dependencies.partitions,
         intBoolPartitions,
         intEqualPartitions,
@@ -377,6 +379,7 @@ public class VariableClassificationBuilder {
       }
     }
     addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
+    addressedFields = Optional.of(varFieldDependencies.computeAddressedFields());
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
                                                               varFieldDependencies.computeRelevantVariablesAndFields();
     relevantVariables = Optional.of(relevant.getFirst());
