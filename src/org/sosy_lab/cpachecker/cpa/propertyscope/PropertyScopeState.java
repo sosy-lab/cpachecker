@@ -27,9 +27,13 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,6 +45,8 @@ class PropertyScopeState implements AbstractState, Graphable {
   private final List<String> callstack;
   private final Set<ScopeLocation> scopeLocations;
   private final Optional<PropertyScopeState> prevState;
+  private final Optional<AbstractionFormula> absFormula;
+  private final Map<Automaton, AutomatonState> automatonStates;
 
   public PropertyScopeState(
       PersistentList<PropertyScopeState> pPrevBlockStates,
@@ -48,7 +54,9 @@ class PropertyScopeState implements AbstractState, Graphable {
       CFAEdge pEnteringEdge,
       List<String> pCallstack,
       Set<ScopeLocation> pScopeLocations,
-      Optional<PropertyScopeState> pPrevState) {
+      Optional<PropertyScopeState> pPrevState,
+      Optional<AbstractionFormula> pAbsFormula,
+      Map<Automaton, AutomatonState> pAutomatonStates) {
 
     prevBlockStates = pPrevBlockStates;
     propertyDependantMatches = pPropertyDependantMatches;
@@ -56,7 +64,11 @@ class PropertyScopeState implements AbstractState, Graphable {
     callstack = Collections.unmodifiableList(pCallstack);
     scopeLocations = Collections.unmodifiableSet(pScopeLocations);
     prevState = pPrevState;
+    absFormula = pAbsFormula;
+    automatonStates = Collections.unmodifiableMap(pAutomatonStates);
   }
+
+
 
   public PersistentList<PropertyScopeState> getPrevBlockStates() {
     return prevBlockStates;
@@ -82,9 +94,17 @@ class PropertyScopeState implements AbstractState, Graphable {
     return prevState;
   }
 
+  public Optional<AbstractionFormula> getAbsFormula() {
+    return absFormula;
+  }
+
+  public Map<Automaton, AutomatonState> getAutomatonStates() {
+    return automatonStates;
+  }
+
   @Override
   public String toDOTLabel() {
-    return String.format("SCOPE %s", scopeLocations);
+    return scopeLocations.isEmpty()? "" : String.format("SCOPE %s", scopeLocations);
 
   }
 

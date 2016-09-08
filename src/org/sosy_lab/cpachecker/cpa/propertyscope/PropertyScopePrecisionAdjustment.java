@@ -34,7 +34,6 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -53,7 +51,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 
 public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
@@ -108,13 +105,17 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
         });
 
+
+
     return Optional.of(new PropertyScopeState(
         PersistentLinkedList.of(),
         state.getPropertyDependantMatches(),
         state.getEnteringEdge(),
         state.getCallstack(),
         scopeLocations,
-        state.getPrevState()));
+        state.getPrevState(),
+        java.util.Optional.of(predState.getAbstractionFormula()),
+        state.getAutomatonStates()));
 
   }
 

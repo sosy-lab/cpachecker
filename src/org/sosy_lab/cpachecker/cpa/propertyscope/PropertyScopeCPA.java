@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.NavigableMap;
 import java.util.Optional;
 
 public class PropertyScopeCPA implements StatisticsProvider, ConfigurableProgramAnalysis{
@@ -114,7 +116,7 @@ public class PropertyScopeCPA implements StatisticsProvider, ConfigurableProgram
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
     return new PropertyScopeState(PersistentLinkedList.of(), 0, null, singletonList(node
-        .getFunctionName()), emptySet(), Optional.empty());
+        .getFunctionName()), emptySet(), Optional.empty(), Optional.empty(), Collections.emptyMap());
 
   }
 

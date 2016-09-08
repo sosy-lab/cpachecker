@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
@@ -42,8 +43,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -65,7 +69,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
     PersistentList<PropertyScopeState> newPrevBlkStates = prevBlkStates.with(state);
 
     PropertyScopeState newState = new PropertyScopeState(newPrevBlkStates,
-        -1, cfaEdge, emptyList(), emptySet(), Optional.of(state));
+        -1, cfaEdge, emptyList(), emptySet(), Optional.of(state), Optional.empty(),
+        Collections.emptyMap());
     return Collections.singleton(newState);
   }
 
@@ -96,9 +101,21 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
         .filter(oldMatches -> propDepMatches > oldMatches).ifPresent(p -> scopeLocations.add(
            new ScopeLocation(cfaEdge, callstack, Reason.AUTOMATON_MATCH)));
 
+    Map<Automaton, AutomatonState> automatonStateMap = otherStates.stream()
+        .filter(AutomatonState.class::isInstance)
+        .map(AutomatonState.class::cast)
+        .collect(Collectors.toMap(AutomatonState::getOwningAutomaton, Function.identity()));
+
     return Collections.singleton(
-        new PropertyScopeState(state.getPrevBlockStates(), propDepMatches,
-            state.getEnteringEdge(), callstack, scopeLocations, state.getPrevState()));
+        new PropertyScopeState(
+            state.getPrevBlockStates(),
+            propDepMatches,
+            state.getEnteringEdge(),
+            callstack,
+            scopeLocations,
+            state.getPrevState(),
+            Optional.empty(),
+            automatonStateMap));
 
   }
 }
