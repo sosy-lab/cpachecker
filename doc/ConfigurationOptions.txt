@@ -193,14 +193,15 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, LINUX_WITH_ALIGNMENT32, LINUX_WITH_ALIGNMENT64]
 
-# abstraction time limit
-analysis.mav.abstractionTimeLimit = 0
+# time limit for each assert in MAV
+analysis.mav.assertTimeLimit = 0
 
-# hard time limit
-analysis.mav.hardTimeLimit = 0
+# time limit for all intervals in MAV algorithm
+analysis.mav.basicIntervalTimeLimit = 0
 
-# Check for hard time limit at start of the analysis)
-analysis.mav.hardTimeLimitAtStart = false
+# time limit for idle intervals in MAV (hard time limit)
+analysis.mav.firstIntervalTimeLimit = 0
+analysis.mav.idleIntervalTimeLimit = 0
 
 # Specify states set in which precision will be cleaned on specification
 # disable (NONE - do not clean at all, WAITLIST - clean precisions in
@@ -214,8 +215,11 @@ analysis.mav.precisionCleanSet = WAITLIST
 analysis.mav.precisionCleanStrategy = BY_SPECIFICATION
   enum:     [NONE, FULL, BY_SPECIFICATION]
 
-# precision clearing time limit
+# DEPRECATED: precision clearing time limit
 analysis.mav.precisionClearingTimeLimit = 0
+
+# Relaunch MAV inside one verification run
+analysis.mav.relaunchInOneRun = false
 
 # file for information reuse
 analysis.mav.resultsFile = no default value
@@ -224,9 +228,6 @@ analysis.mav.resultsFile = no default value
 # name), VIOLATED_PROPERTY (violated property description)
 analysis.mav.specificationComparator = AUTOMATON
   enum:     [AUTOMATON, VIOLATED_PROPERTY]
-
-# specification time limit
-analysis.mav.specificationTimeLimit = 0
 
 # Stop checking for current specification after the first error was found(for
 # Multi-Aspect Verification only)

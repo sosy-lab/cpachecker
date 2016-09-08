@@ -251,6 +251,9 @@ public class ConditionalMAVListener implements AnalysisListener {
         {
           stopCheckingSpecification(SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
           mav.setLastCheckedSpecification(null);
+          logger.log(Level.INFO, "Assert " + specificationKey +
+              " has exhausted its Assert Time Limit " +
+              "and will not be checked anymore");
         }
         else
         {
