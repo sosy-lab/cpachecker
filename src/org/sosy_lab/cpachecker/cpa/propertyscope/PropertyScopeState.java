@@ -38,10 +38,14 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class PropertyScopeState implements AbstractState, Graphable {
 
@@ -111,6 +115,25 @@ public class PropertyScopeState implements AbstractState, Graphable {
 
   public Map<Automaton, AutomatonState> getAutomatonStates() {
     return automatonStates;
+  }
+
+  public Stream<PropertyScopeState> prevStateStream() {
+    Iterable<PropertyScopeState> iterable = () -> new Iterator<PropertyScopeState>() {
+      PropertyScopeState state = PropertyScopeState.this;
+
+      @Override
+      public boolean hasNext() {
+        return state.prevState.isPresent();
+      }
+
+      @Override
+      public PropertyScopeState next() {
+        state = state.prevState.orElseThrow(NoSuchElementException::new);
+        return state;
+      }
+    };
+
+    return StreamSupport.stream(iterable.spliterator(), false);
   }
 
   @Override
