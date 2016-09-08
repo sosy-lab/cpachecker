@@ -27,6 +27,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.*;
 
+import org.sosy_lab.common.collect.MapsDifference.Entry;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,15 +37,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AutomatonPropertyScopeInstance;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -69,8 +71,9 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
     PersistentList<PropertyScopeState> newPrevBlkStates = prevBlkStates.with(state);
 
     PropertyScopeState newState = new PropertyScopeState(newPrevBlkStates,
-        -1, cfaEdge, emptyList(), emptySet(), Optional.of(state), Optional.empty(),
-        Collections.emptyMap());
+        -1, cfaEdge, emptyList(), emptySet(), state, null,
+        Collections.emptyMap(), state.getAbsScopeInstance().orElse(null),
+        state.getAutomScopeInsts());
     return Collections.singleton(newState);
   }
 
@@ -90,7 +93,33 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
     List<String> callstack = getStack(callstackState);
     Set<ScopeLocation> scopeLocations = new LinkedHashSet<>(state.getScopeLocations());
 
+    Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts = new HashMap<>(state
+        .getAutomScopeInsts());
+
+    Map<Automaton, AutomatonState> automatonStateMap = otherStates.stream()
+        .filter(AutomatonState.class::isInstance)
+        .map(AutomatonState.class::cast)
+        .collect(Collectors.toMap(AutomatonState::getOwningAutomaton, Function.identity()));
+
+    for(Map.Entry<Automaton, AutomatonState> e : automatonStateMap.entrySet()) {
+      Automaton autom = e.getKey();
+      AutomatonState automState = e.getValue();
+      state.getPrevState()
+          .map(PropertyScopeState::getAutomatonStates)
+          .map(oldAuMa -> oldAuMa.get(autom)).ifPresent(oldAutomState -> {
+            if(automScopeInsts.containsKey(autom)) {
+              AutomatonState startState = automScopeInsts.get(autom).getStartState();
+              if (startState.equals(automState)) {
+                automScopeInsts.remove(autom);
+              }
+            } else if(!automState.equals(oldAutomState)) {
+                automScopeInsts.put(autom, PropertyScopeInstance.create(oldAutomState));
+            }
+      });
+    }
+
     // automaton matches here -> in scope
+    // TODO: use autom states directly
     int propDepMatches = otherStates.stream()
         .filter(AutomatonState.class::isInstance)
         .map(AutomatonState.class::cast)
@@ -98,13 +127,10 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
         .reduce(0, Integer::sum);
     state.getPrevState()
         .map(PropertyScopeState::getPropertyDependantMatches)
-        .filter(oldMatches -> propDepMatches > oldMatches).ifPresent(p -> scopeLocations.add(
-           new ScopeLocation(cfaEdge, callstack, Reason.AUTOMATON_MATCH)));
+        .filter(oldMatches -> propDepMatches > oldMatches).ifPresent(p -> {
+      scopeLocations.add(new ScopeLocation(cfaEdge, callstack, Reason.AUTOMATON_MATCH));
+    });
 
-    Map<Automaton, AutomatonState> automatonStateMap = otherStates.stream()
-        .filter(AutomatonState.class::isInstance)
-        .map(AutomatonState.class::cast)
-        .collect(Collectors.toMap(AutomatonState::getOwningAutomaton, Function.identity()));
 
     return Collections.singleton(
         new PropertyScopeState(
@@ -113,9 +139,11 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
             state.getEnteringEdge(),
             callstack,
             scopeLocations,
-            state.getPrevState(),
-            Optional.empty(),
-            automatonStateMap));
+            state.getPrevState().orElse(null),
+            null,
+            automatonStateMap,
+            state.getAbsScopeInstance().orElse(null),
+            automScopeInsts));
 
   }
 }

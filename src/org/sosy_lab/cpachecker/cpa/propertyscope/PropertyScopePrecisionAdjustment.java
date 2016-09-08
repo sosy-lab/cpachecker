@@ -41,11 +41,14 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AbstractionPropertyScopeInstance;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.holder.HolderBoolean;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.LinkedHashSet;
@@ -87,25 +90,61 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
     PredicateAbstractState predState = getPredicateAbstractState(otherStates);
     FormulaManagerView fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+    Solver solver = GlobalInfo.getInstance().getPredicateSolver();
     BooleanFormula formula = predState.getAbstractionFormula().asFormula();
 
     PersistentList<PropertyScopeState> prevStates = state.getPrevBlockStates();
     Set<ScopeLocation> scopeLocations = new LinkedHashSet<>();
+
+    java.util.Optional<AbstractionPropertyScopeInstance> absScopeInstance = state.getAbsScopeInstance();
+
+    HolderBoolean hIsAbsScopeLoc = HolderBoolean.of(false);
 
     Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
         .forEach(st -> {
           scopeLocations.addAll(st.getScopeLocations());
 
           // variables in edge occur in abs formula -> edge in scope
-          fmgr.extractAtoms(formula, false).stream()
-              .filter(atom -> fmgr.extractVariableNames(atom).stream()
-                  .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var)))
-              .findAny().ifPresent(p -> scopeLocations.add(new ScopeLocation(
-                  st.getEnteringEdge(), st.getCallstack(), Reason.ABS_FORMULA)));
-
+          if (fmgr.extractVariableNames(formula).stream()
+              .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
+            scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
+                Reason.ABS_FORMULA));
+            hIsAbsScopeLoc.value = true;
+          }
         });
 
+    // not really helpful, look again later maybe
+/*    if (absScopeInstance.isPresent()) {
+      AbstractionPropertyScopeInstance absInst = (AbstractionPropertyScopeInstance)
+          absScopeInstance.get();
 
+      BooleanFormula startFormula = absInst.getStartFormula().asInstantiatedFormula();
+      BooleanFormula thisFormula = predState.getAbstractionFormula().asInstantiatedFormula();
+
+      try {
+        boolean implication = solver.implies(startFormula, thisFormula);
+        boolean revImplication = solver.implies(thisFormula, startFormula);
+
+        if (implication && revImplication) {
+          absScopeInstance = java.util.Optional.empty();
+        }
+      } catch (SolverException pE) {
+        throw new CPAException("Solver problem!", pE);
+      }
+
+    }
+
+    if (!absScopeInstance.isPresent() && hIsAbsScopeLoc.value) {
+      java.util.Optional<AbstractionFormula> prevFormula = state.prevStateStream()
+          .map(PropertyScopeState::getAbsFormula)
+          .filter(java.util.Optional::isPresent)
+          .findFirst().flatMap(identity());
+
+      if(prevFormula.isPresent()) {
+        absScopeInstance = java.util.Optional.of(PropertyScopeInstance.create(prevFormula.get()));
+      }
+
+    }*/
 
     return Optional.of(new PropertyScopeState(
         PersistentLinkedList.of(),
@@ -113,9 +152,11 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         state.getEnteringEdge(),
         state.getCallstack(),
         scopeLocations,
-        state.getPrevState(),
-        java.util.Optional.of(predState.getAbstractionFormula()),
-        state.getAutomatonStates()));
+        state.getPrevState().orElse(null),
+        predState.getAbstractionFormula(),
+        state.getAutomatonStates(),
+        absScopeInstance.orElse(null),
+        state.getAutomScopeInsts()));
 
   }
 

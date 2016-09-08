@@ -26,15 +26,20 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.TargetGraph.Builder;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AbstractionPropertyScopeInstance;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AutomatonPropertyScopeInstance;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
 import java.util.Collections;
@@ -54,13 +59,24 @@ public class PropertyScopeState implements AbstractState, Graphable {
   private final CFAEdge enteringEdge;
   private final List<String> callstack;
   private final Set<ScopeLocation> scopeLocations;
-  private final Optional<PropertyScopeState> prevState;
-  private final Optional<AbstractionFormula> absFormula;
+  private final PropertyScopeState prevState;
+  private final AbstractionFormula absFormula;
   private final Map<Automaton, AutomatonState> automatonStates;
+  private final AbstractionPropertyScopeInstance absScopeInstance;
+  private final Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts;
 
   public static PropertyScopeState initial(CFANode pNode) {
-    return new PropertyScopeState(PersistentLinkedList.of(), 0, null, singletonList(pNode
-        .getFunctionName()), emptySet(), Optional.empty(), Optional.empty(), Collections.emptyMap());
+    return new PropertyScopeState(
+        PersistentLinkedList.of(),
+        0,
+        null,
+        singletonList(pNode.getFunctionName()),
+        emptySet(),
+        null,
+        null,
+        Collections.emptyMap(),
+        null,
+        Collections.emptyMap());
   }
 
   public PropertyScopeState(
@@ -69,9 +85,11 @@ public class PropertyScopeState implements AbstractState, Graphable {
       CFAEdge pEnteringEdge,
       List<String> pCallstack,
       Set<ScopeLocation> pScopeLocations,
-      Optional<PropertyScopeState> pPrevState,
-      Optional<AbstractionFormula> pAbsFormula,
-      Map<Automaton, AutomatonState> pAutomatonStates) {
+      PropertyScopeState pPrevState,
+      AbstractionFormula pAbsFormula,
+      Map<Automaton, AutomatonState> pAutomatonStates,
+      AbstractionPropertyScopeInstance pAbsScopeInstance,
+      Map<Automaton, AutomatonPropertyScopeInstance> pAutomScopeInsts) {
 
     prevBlockStates = pPrevBlockStates;
     propertyDependantMatches = pPropertyDependantMatches;
@@ -81,6 +99,8 @@ public class PropertyScopeState implements AbstractState, Graphable {
     prevState = pPrevState;
     absFormula = pAbsFormula;
     automatonStates = Collections.unmodifiableMap(pAutomatonStates);
+    absScopeInstance = pAbsScopeInstance;
+    automScopeInsts = Collections.unmodifiableMap(pAutomScopeInsts);
   }
 
 
@@ -106,15 +126,23 @@ public class PropertyScopeState implements AbstractState, Graphable {
   }
 
   public Optional<PropertyScopeState> getPrevState() {
-    return prevState;
+    return Optional.ofNullable(prevState);
   }
 
   public Optional<AbstractionFormula> getAbsFormula() {
-    return absFormula;
+    return Optional.ofNullable(absFormula);
   }
 
   public Map<Automaton, AutomatonState> getAutomatonStates() {
     return automatonStates;
+  }
+
+  public Map<Automaton, AutomatonPropertyScopeInstance> getAutomScopeInsts() {
+    return automScopeInsts;
+  }
+
+  public Optional<AbstractionPropertyScopeInstance> getAbsScopeInstance() {
+    return Optional.ofNullable(absScopeInstance);
   }
 
   public Stream<PropertyScopeState> prevStateStream() {
@@ -123,12 +151,15 @@ public class PropertyScopeState implements AbstractState, Graphable {
 
       @Override
       public boolean hasNext() {
-        return state.prevState.isPresent();
+        return state.prevState != null;
       }
 
       @Override
       public PropertyScopeState next() {
-        state = state.prevState.orElseThrow(NoSuchElementException::new);
+        state = state.prevState;
+        if (state == null) {
+          throw new NoSuchElementException();
+        }
         return state;
       }
     };
@@ -138,7 +169,7 @@ public class PropertyScopeState implements AbstractState, Graphable {
 
   @Override
   public String toDOTLabel() {
-    return scopeLocations.isEmpty()? "" : String.format("SCOPE %s", scopeLocations);
+    return String.format("SCOPE %s\n%s", scopeLocations, automScopeInsts);
 
   }
 
