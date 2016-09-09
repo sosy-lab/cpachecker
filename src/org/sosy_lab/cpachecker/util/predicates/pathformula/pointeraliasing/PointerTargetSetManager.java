@@ -598,8 +598,12 @@ class PointerTargetSetManager {
       }
     } else {
       if (ssa.getIndex(variablePrefix) > 0) {
+        MemoryRegion newRegion = region;
+        if(newRegion == null) {
+          newRegion = regionMgr.makeMemoryRegion(variableType);
+        }
         final FormulaType<?> variableFormulaType = typeHandler.getFormulaTypeFromCType(variableType);
-        result = bfmgr.and(result, formulaManager.makeEqual(makeDereference(variableType, address, ssa, region),
+        result = bfmgr.and(result, formulaManager.makeEqual(makeDereference(variableType, address, ssa, newRegion),
                                                   formulaManager.makeVariable(variableFormulaType,
                                                                     variablePrefix,
                                                                     ssa.getIndex(variablePrefix))));
