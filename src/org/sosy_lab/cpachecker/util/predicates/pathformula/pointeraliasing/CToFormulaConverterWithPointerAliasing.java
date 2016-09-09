@@ -295,7 +295,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     List<BooleanFormula> result = new ArrayList<>();
-    for (final PointerTarget target : pts.getAllTargets(returnType)) {
+    for (final PointerTarget target : pts.getAllTargets(functionName)) {
       shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = makeFormulaForTarget(target);
       result.add(

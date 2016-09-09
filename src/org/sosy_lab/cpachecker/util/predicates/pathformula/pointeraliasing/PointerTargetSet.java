@@ -119,8 +119,8 @@ public final class PointerTargetSet implements Serializable {
     return baseName.replaceFirst(BASE_PREFIX, "");
   }
 
-  PersistentList<PointerTarget> getAllTargets(final CType type) {
-    return targets.getOrDefault(CTypeUtils.typeToString(type), PersistentLinkedList.of());
+  PersistentList<PointerTarget> getAllTargets(final String regionName) {
+    return targets.getOrDefault(regionName, PersistentLinkedList.of());
   }
 
   public static PointerTargetSet emptyPointerTargetSet() {
