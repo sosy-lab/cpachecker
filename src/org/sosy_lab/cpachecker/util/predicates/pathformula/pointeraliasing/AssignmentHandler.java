@@ -1090,8 +1090,9 @@ class AssignmentHandler {
     switch (rvalue.getKind()) {
     case ALIASED_LOCATION: {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
-                                                                         offsetFormula));
+      final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, newLvalueType, memberName);
+      final AliasedLocation newRvalue = Location.ofAddressWithRegion(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
+                                                                         offsetFormula), region);
       return Pair.of(newRvalue, newLvalueType);
     }
     case UNALIASED_LOCATION: {
