@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import com.google.common.base.Preconditions;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,13 +45,10 @@ public class FunctionPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected boolean isBlockEntry(CFANode pNode) {
-    return pNode instanceof FunctionEntryNode;
-  }
-
-  @Override
   protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
-    Preconditions.checkArgument(isBlockEntry(pBlockHead));
-    return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
+    if (pBlockHead instanceof FunctionEntryNode) {
+      return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
+    }
+    return null;
   }
 }

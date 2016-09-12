@@ -45,19 +45,11 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
   }
 
   @Override
-  protected boolean isBlockEntry(CFANode pNode) {
-    return functionPartitioning.isBlockEntry(pNode) || loopPartitioning.isBlockEntry(pNode);
-  }
-
-  @Override
   protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
-    // TODO what to do if both want to cache it?
-    if (functionPartitioning.isBlockEntry(pBlockHead)) {
-      return functionPartitioning.getBlockForNode(pBlockHead);
-    } else if (loopPartitioning.isBlockEntry(pBlockHead)) {
-      return loopPartitioning.getBlockForNode(pBlockHead);
-    } else {
-      throw new AssertionError("node should not be cached: " + pBlockHead);
+    Set<CFANode> nodes = functionPartitioning.getBlockForNode(pBlockHead);
+    if (nodes == null) {
+      nodes = loopPartitioning.getBlockForNode(pBlockHead);
     }
+    return nodes;
   }
 }

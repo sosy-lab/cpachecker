@@ -36,6 +36,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
@@ -75,11 +77,9 @@ public abstract class PartitioningHeuristic {
     while (!stack.isEmpty()) {
       CFANode node = stack.pop();
 
-      if (isBlockEntry(node)) {
-        Set<CFANode> subtree = getBlockForNode(node);
-        if (subtree != null) {
-          builder.addBlock(subtree, mainFunction, node);
-        }
+      Set<CFANode> subtree = getBlockForNode(node);
+      if (subtree != null) {
+        builder.addBlock(subtree, mainFunction, node);
       }
 
       for (CFANode nextNode : CFAUtils.successorsOf(node)) {
@@ -94,15 +94,11 @@ public abstract class PartitioningHeuristic {
   }
 
   /**
-   * @param pNode the node to be checked
-   * @return whether a new {@link Block} should be created for the input node.
-   */
-  protected abstract boolean isBlockEntry(CFANode pNode);
-
-  /**
    * @param pBlockHead CFANode that should be cached.
-   *                   We assume {@link #isBlockEntry(CFANode)} for the node.
-   * @return set of nodes that represent a {@link Block}.
+   * @return set of nodes that represent a {@link Block},
+   *         or NULL, if no block should be build for this node.
+   *         In most cases, we will return NULL.
    */
+  @Nullable
   protected abstract Set<CFANode> getBlockForNode(CFANode pBlockHead);
 }

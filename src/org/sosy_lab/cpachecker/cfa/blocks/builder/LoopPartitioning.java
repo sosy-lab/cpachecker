@@ -69,16 +69,6 @@ public class LoopPartitioning extends PartitioningHeuristic {
     }
   }
 
-  @Override
-  protected boolean isBlockEntry(CFANode pNode) {
-    if (isMainFunction(pNode)) {
-      Preconditions.checkArgument(cfa.getMainFunction().getFunctionName().equals(pNode.getFunctionName()));
-      //main function
-      return true;
-    }
-    return isLoopHead(pNode) && !hasBlankEdgeFromLoop(pNode) && !selfLoop(pNode);
-  }
-
   private boolean isMainFunction(CFANode pNode) {
     return pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0;
   }
@@ -102,9 +92,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
-    Preconditions.checkArgument(isBlockEntry(pBlockHead));
-
     if (isMainFunction(pBlockHead)) {
+      Preconditions.checkArgument(
+          cfa.getMainFunction().getFunctionName().equals(pBlockHead.getFunctionName()));
       return CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pBlockHead);
     }
 
@@ -112,8 +102,11 @@ public class LoopPartitioning extends PartitioningHeuristic {
       initLoopMap();
     }
 
-    if (!loopHeaderToLoopBody.containsKey(pBlockHead)) {
-      // loopStructure is missing in CFA or loop with multiple headers
+    if (!loopHeaderToLoopBody.containsKey(pBlockHead)
+        || !isLoopHead(pBlockHead)
+        || hasBlankEdgeFromLoop(pBlockHead)
+        || selfLoop(pBlockHead)) {
+      // loopStructure is missing in CFA or loop with multiple headers or self loop
       return null;
     }
 
