@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -52,8 +53,8 @@ public class LoopPartitioning extends PartitioningHeuristic {
 
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
 
-  public LoopPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
+  public LoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig) {
+    super(pLogger, pCfa, pConfig);
     loopHeaderToLoopBody = null;
   }
 

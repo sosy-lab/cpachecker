@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,19 +39,34 @@ import java.util.Set;
 /**
  * <code>PartitioningHeuristic</code> that creates a block for each function-body.
  */
+@Options(prefix = "cpa.bam.blockHeuristic.functionPartitioning")
 public class FunctionPartitioning extends PartitioningHeuristic {
 
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
+  @Option(
+    secure = true,
+    description =
+        "only consider function with a minimum number of CFA nodes. "
+            + "This approach is similar to 'inlining' small functions, when using BAM."
+  )
+  private int minFunctionSize = 0;
+
   /** Do not change signature! Constructor will be created with Reflections. */
-  public FunctionPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
+  public FunctionPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(pLogger, pCfa, pConfig);
+    pConfig.inject(this);
   }
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
     if (pBlockHead instanceof FunctionEntryNode) {
-      return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
+      Set<CFANode> nodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
+      if (pBlockHead.getNumEnteringEdges() == 0 // main function
+          || nodes.size() >= minFunctionSize) {
+        return nodes;
+      }
     }
     return null;
   }

@@ -828,6 +828,10 @@ cpa.bam.argFile = "BlockedARG.dot"
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = no default value
 
+# only consider function with a minimum number of CFA nodes. This approach is
+# similar to 'inlining' small functions, when using BAM.
+cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
+
 # This flag determines which precisions should be updated during refinement.
 # We can choose between the minimum number of states and all states that are
 # necessary to re-explore the program along the error-path.

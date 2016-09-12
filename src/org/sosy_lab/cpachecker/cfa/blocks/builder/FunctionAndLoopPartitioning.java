@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,10 +40,11 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
   private FunctionPartitioning functionPartitioning;
   private LoopPartitioning loopPartitioning;
 
-  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
-    functionPartitioning = new FunctionPartitioning(pLogger, pCfa);
-    loopPartitioning = new LoopPartitioning(pLogger, pCfa);
+  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(pLogger, pCfa, pConfig);
+    functionPartitioning = new FunctionPartitioning(pLogger, pCfa, pConfig);
+    loopPartitioning = new LoopPartitioning(pLogger, pCfa, pConfig);
   }
 
   @Override

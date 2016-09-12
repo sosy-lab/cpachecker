@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -48,13 +50,17 @@ import javax.annotation.Nullable;
 public abstract class PartitioningHeuristic {
 
   public interface Factory {
-    PartitioningHeuristic create(LogManager logger, CFA cfa) throws CPAException;
+    PartitioningHeuristic create(LogManager logger, CFA cfa, Configuration pConfig)
+        throws CPAException, InvalidConfigurationException;
   }
 
   protected final CFA cfa;
   protected final LogManager logger;
 
-  public PartitioningHeuristic(LogManager pLogger, CFA pCfa) {
+  /**
+   * @param pConfig configuration can be used and injected in subclasses.
+   */
+  public PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
     cfa = pCfa;
     logger = pLogger;
   }
