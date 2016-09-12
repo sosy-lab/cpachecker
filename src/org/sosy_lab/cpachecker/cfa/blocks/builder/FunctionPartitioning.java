@@ -52,6 +52,15 @@ public class FunctionPartitioning extends PartitioningHeuristic {
   )
   private int minFunctionSize = 0;
 
+  @Option(
+    secure = true,
+    description =
+        "only consider function with a minimum number of calls. "
+            + "This approach is similar to 'inlining' functions used only a few times. "
+            + "Info: If a function is called several times in a loop, we only count 'one' call."
+  )
+  private int minFunctionCalls = 0;
+
   /** Do not change signature! Constructor will be created with Reflections. */
   public FunctionPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException {
@@ -63,8 +72,14 @@ public class FunctionPartitioning extends PartitioningHeuristic {
   protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
     if (pBlockHead instanceof FunctionEntryNode) {
       Set<CFANode> nodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
-      if (pBlockHead.getNumEnteringEdges() == 0 // main function
-          || nodes.size() >= minFunctionSize) {
+
+      // main function
+      if (pBlockHead.getNumEnteringEdges() == 0) {
+        return nodes;
+      }
+
+      // heuristics based on function metrics
+      if (nodes.size() >= minFunctionSize && pBlockHead.getNumEnteringEdges() >= minFunctionCalls) {
         return nodes;
       }
     }

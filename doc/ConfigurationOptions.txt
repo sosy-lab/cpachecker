@@ -828,6 +828,11 @@ cpa.bam.argFile = "BlockedARG.dot"
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = no default value
 
+# only consider function with a minimum number of calls. This approach is
+# similar to 'inlining' functions used only a few times. Info: If a function
+# is called several times in a loop, we only count 'one' call.
+cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
+
 # only consider function with a minimum number of CFA nodes. This approach is
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
