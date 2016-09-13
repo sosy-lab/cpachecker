@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
-<<<<<<< HEAD
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
-
-=======
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -50,7 +45,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
->>>>>>> trunk
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;

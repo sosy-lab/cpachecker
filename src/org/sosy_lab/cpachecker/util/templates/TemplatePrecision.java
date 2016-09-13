@@ -67,10 +67,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
-<<<<<<< HEAD
-=======
 import java.util.ArrayList;
->>>>>>> trunk
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
