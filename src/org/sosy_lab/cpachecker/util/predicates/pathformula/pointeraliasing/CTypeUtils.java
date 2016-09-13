@@ -23,64 +23,128 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import javax.annotation.Nonnull;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+
+import java.util.OptionalInt;
 
 /**
  * Utility class with helper methods for CTypes.
  */
-public class CTypeUtils {
+class CTypeUtils {
 
   private CTypeUtils() { }
 
   private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
 
   /**
-   * Return the length of an array if statically given, or null.
+   * Return the length of an array if statically given.
    */
-  public static Integer getArrayLength(CArrayType t) {
-
+  static OptionalInt getArrayLength(CArrayType t) {
     final CExpression arrayLength = t.getLength();
     if (arrayLength instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+      return OptionalInt.of(((CIntegerLiteralExpression) arrayLength).getValue().intValue());
     }
 
-    return null;
+    return OptionalInt.empty();
   }
 
   /**
-   * The method is used to check if a composite type contains array as this means it can't be encoded as a bunch of
-   * variables.
-   * @param type any type to check, but normally a composite type
-   * @return whether the {@code type} contains array
+   * Return the length of an array, honoring the options for maximum and default array length.
    */
-  public static boolean containsArray(CType type) {
-    type = simplifyType(type);
-    if (type instanceof CArrayType) {
+  static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
+    OptionalInt length = getArrayLength(t);
+    return length.isPresent()
+        ? Integer.min(options.maxArrayLength(), length.getAsInt())
+        : options.defaultArrayLength();
+  }
+
+  private static boolean containsArrayInComposite(final CType pType) {
+    checkIsSimplified(pType);
+    if (pType instanceof CArrayType) {
       return true;
-    } else if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    } else if (pType instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) pType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite!";
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (containsArray(memberDeclaration.getType())) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (containsArrayInComposite(memberDeclaration.getType())) {
           return true;
         }
       }
       return false;
     } else {
       return false;
+    }
+  }
+
+  /**
+   * The method is used to check if a composite type contains array as this means it can't be encoded as a bunch of
+   * variables. It also returns {@code true} on stand-alone arrays assuming they are not function
+   * parameters. Normally stand-alone arrays are different from pointers as their address
+   * cannot change, unlike the value of a pointer. Thus arrays are usually encoded as uninterpreted
+   * constants corresponding to their starting addresses, just as variables of structure types.
+   * They can also be "assigned" somewhat similar to structures by initialization or zeroing allocation function.
+   * So usually stand-alone arrays are treated together with structure array members.
+   * However, this is not the case for
+   * function parameters (see § 6.7.5.3 (7) of the C99 standard), those are actually pointers rather than arrays as
+   * their starting address can change (upon a function call since they are inlined) and the corresponding assignment
+   * has the same semantics as pointer assignment.
+   * So the static method {@link #containsArrayInFunctionParameter(CType)} should be used for function parameters.
+   * @param pType any type to check, but normally a composite type
+   * @return whether the {@code type} contains array
+   */
+  static boolean containsArrayOutsideFunctionParameter(final CType pType) {
+    checkIsSimplified(pType);
+    if (pType instanceof CArrayType) {
+      return true;
+    } else if (pType instanceof CCompositeType) {
+      return containsArrayInComposite(pType);
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Same as {{@link #containsArrayOutsideFunctionParameter(CType)}, but returns {@code false} on stand-alone arrays.
+   * This corresponds to the fact that arrays in function parameters are to be treated as pointers.
+   * @param pType type any type to check, normally a composite type
+   * @return whether the {@code type} contains array
+   */
+  static boolean containsArrayInFunctionParameter(final CType pType) {
+    checkIsSimplified(pType);
+    if (pType instanceof CCompositeType) {
+      return containsArrayInComposite(pType);
+    } else {
+      return false;
+    }
+  }
+
+  /** A generalization of {@link #containsArrayOutsideFunctionParameter(CType)} and
+   * {@link #containsArrayInFunctionParameter(CType)} for a
+   * known declaration.
+   *
+   * @param pType pType type any type to check
+   * @param pDeclaration declaration of a variable for which the type is checked
+   * @return whether the {@code type} contains array
+   */
+  static boolean containsArray(final CType pType, final CSimpleDeclaration pDeclaration) {
+    checkIsSimplified(pType);
+    if (pDeclaration instanceof CParameterDeclaration) {
+      return containsArrayInFunctionParameter(pType);
+    } else {
+      return containsArrayOutsideFunctionParameter(pType);
     }
   }
 
@@ -95,8 +159,8 @@ public class CTypeUtils {
    * @param type The type of the memory location
    * @return The type of the base variable
    */
-  public static CType getBaseType(CType type) {
-    type = simplifyType(type);
+  static CType getBaseType(CType type) {
+    checkIsSimplified(type);
     if (!(type instanceof CArrayType)) {
       return new CPointerType(false, false, type);
     } else {
@@ -104,21 +168,10 @@ public class CTypeUtils {
     }
   }
 
-  static boolean isCompositeType(CType type) {
-    type = simplifyType(type);
-    assert !(type instanceof CElaboratedType) : "Unresolved elaborated type";
-    assert !(type instanceof CCompositeType) || ((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT ||
-                                                ((CCompositeType) type).getKind() == ComplexTypeKind.UNION :
-           "Enums are not composite";
-    return type instanceof CArrayType || type instanceof CCompositeType;
-  }
-
-  public static CType implicitCastToPointer(CType type) {
-    type = CTypeUtils.simplifyType(type);
+  static CType implicitCastToPointer(CType type) {
+    checkIsSimplified(type);
     if (type instanceof CArrayType) {
-      return new CPointerType(false,
-                              false,
-                              CTypeUtils.simplifyType(((CArrayType) type).getType()));
+      return new CPointerType(false, false, checkIsSimplified(((CArrayType) type).getType()));
     } else if (type instanceof CFunctionType) {
       return new CPointerType(false, false, type);
     } else {
@@ -126,33 +179,41 @@ public class CTypeUtils {
     }
   }
 
-  public static boolean isSimpleType(final CType type) {
+  static boolean isSimpleType(final CType type) {
     return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 
   /**
-   * <p>
-   * The method should be used everywhere the type of any expression is determined. This is because the encoding uses
-   * types for naming of the UFs as well as for over-approximating points-to sets (may-aliases). To make the encoding
-   * precise enough the types should correspond to actually different types (requiring explicit casts to be
-   * converted to one another), so {@link CCompositeType}s, corresponding  {@link CElaboratedType}s and
-   * {@link CTypedefType}s shouldn't be distinguished and are converted to the same canonical type by this method.
-   * </p>
-   * <p>
-   * This method will also perform {@code const} and {@code volatile} modifiers elimination.
-   * </p>
-   * @param type The type obtained form the CFA
-   * @return The corresponding simplified canonical type
+   * Only for use from {@link #checkIsSimplified(CType)}.
    */
-  public static CType simplifyType(final @Nonnull CType type) {
+  private static synchronized CType simplifyType(final CType type) {
     return type.accept(typeVisitor);
+  }
+
+  /**
+   * The code in this package works only with "simplified" types,
+   * which have typedefs resolved and const and volatile removed
+   * (as produced by {@link TypeHandlerWithPointerAliasing#simplifyType(CType)}.
+   * This method can be used as an assertion check that a given type has been simplified.
+   * @param type A C-type.
+   * @return The same type object, if it is simplified, otherwise an exception is thrown.
+   */
+  static <T extends CType> T checkIsSimplified(final T type) {
+    checkArgument(!type.isConst(), "Type %s is const but should have been simplified.", type);
+    checkArgument(!type.isVolatile(), "Type %s is volatile but should have been simplified.", type);
+    // More expensive checks as assertions
+    assert type.equals(type.getCanonicalType())
+        : "Type " + type + " is not equal to its canonical type but should have been simplified.";
+    assert type.equals(simplifyType(type))
+        : "Type " + type + " is not equal to its simplified type but should have been simplified.";
+    return type;
   }
 
   /**
    * The method is used in two cases:
    * <ul>
    * <li>
-   * by {@link CToFormulaConverterWithPointerAliasing#getUFName(CType)} to get the UF name corresponding to the given type.
+   * by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)} to get the UF name corresponding to the given type.
    * </li>
    * <li>
    * to convert {@link CType}s to strings in order to use them as keys in a {@link PathCopyingPersistentTreeMap}.
@@ -161,7 +222,8 @@ public class CTypeUtils {
    * @param type The type
    * @return The string representation of the type
    */
-  public static String typeToString(final CType type) {
-    return simplifyType(type).toString();
+  static String typeToString(final CType type) {
+    checkIsSimplified(type);
+    return type.toString();
   }
 }

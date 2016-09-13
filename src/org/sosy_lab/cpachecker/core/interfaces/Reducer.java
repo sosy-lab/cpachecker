@@ -28,11 +28,41 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 
+/**
+ * An interface which is provided by a configurable program analysis using
+ * {@link ConfigurableProgramAnalysisWithBAM} which allows it to use BAM
+ * memoization framework.
+ */
 public interface Reducer {
 
-  AbstractState getVariableReducedState(AbstractState expandedState, Block context, CFANode callNode)
+  /**
+   * Return an over-approximation of {@code expandedState},
+   * discarding all information which is not relevant to the block
+   * {@code context}.
+   *
+   * @param expandedState Input state to be reduced.
+   * @param context Block with respect to which the reduction is performed.
+   * @param callNode Function call node for the block.
+   */
+  AbstractState getVariableReducedState(
+      AbstractState expandedState,
+      Block context,
+      CFANode callNode)
       throws InterruptedException;
 
+  /**
+   * Perform the opposite of the reduction: return an under-approximation of
+   * the state {@code reducedState} which includes constraints from
+   * {@code rootState}, where all of the added constraints are irrelevant to
+   * {@code reducedContext}.
+   *
+   * @param rootState State which was not reduced, and contains the global
+   *                  information, some of which was reduced before due to
+   *                  its irrelevancy to the block {@code reducedContext}.
+   * @param reducedContext Block with respect to which the reduction was
+   *                       performed.
+   * @param reducedState Input state to be expanded.
+   */
   AbstractState getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState)
       throws InterruptedException;
 
@@ -45,17 +75,32 @@ public interface Reducer {
    * <code> BAMCache.AbstractStateHash </code>. */
   Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
-  /** Returns a (non-negative) value for the difference between two precisions.
-   * This function is called for aggressive caching
-   * (see {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
-   * A greater value indicates a bigger difference in the precision.
+  /**
+   * @param pPrecision Precision object.
+   * @param pOtherPrecision Other precision object.
+   *
+   * @return value (non-negative) for the difference between two
+   * precisions.
+   *
+   * <p>This function is used only when {@code cpa.bam.aggressiveCaching} is
+   * enabled (cf. {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache#get(AbstractState, Precision, Block) BAMCache.get}).
+   *
+   * <p>A greater value indicates a bigger difference in the precision.
    * If the implementation of this function is not important, return zero. */
-  int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
+  default int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+    return 0;
+  }
 
-  AbstractState getVariableReducedStateForProofChecking(AbstractState expandedState, Block context, CFANode callNode);
+  default AbstractState getVariableReducedStateForProofChecking(
+      AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
+    return getVariableReducedState(expandedState, context, callNode);
+  }
 
-  AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState)
-      throws InterruptedException;
+  default AbstractState getVariableExpandedStateForProofChecking(
+      AbstractState rootState, Block reducedContext, AbstractState reducedState)
+      throws InterruptedException {
+    return getVariableExpandedState(rootState, reducedContext, reducedState);
+  }
 
   /**
    * Use the expandedState as basis for a new state,
@@ -68,6 +113,7 @@ public interface Reducer {
    *                     must be the location of rebuildState,
    *                     TODO should be instance of FunctionExitNode?
    *
+   * <pre>
    *                                             +---------- BLOCK ----------+
    *                                             |                           |
    * rootState ---------------> entryState - - - - - -> reducedEntryState    |
@@ -81,6 +127,7 @@ public interface Reducer {
    *     |                         | | |         |                           |
    *     V     functionReturnEdge  V V V         +---------------------------+
    * returnState <------------  rebuildState
+   * </pre>
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation);

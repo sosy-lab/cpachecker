@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -74,10 +75,16 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private boolean targetFound = false;
   final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
 
-  public BAMTransferRelationWithFixPointForRecursion(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
-                             ProofChecker wrappedChecker, BAMDataManager data, ShutdownNotifier pShutdownNotifier)
-                                 throws InvalidConfigurationException {
-    super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier);
+  public BAMTransferRelationWithFixPointForRecursion(
+      Configuration pConfig,
+      LogManager pLogger,
+      BAMCPA bamCpa,
+      ProofChecker wrappedChecker,
+      BAMDataManager data,
+      ShutdownNotifier pShutdownNotifier,
+      BlockPartitioning pPartitioning)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier, pPartitioning);
     pConfig.inject(this);
   }
 
@@ -194,7 +201,11 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       final List<Triple<AbstractState, Precision, Block>> stack,
       final Triple<AbstractState, Precision, Block> currentLevel)
     throws CPAException, InterruptedException {
-    for (Triple<AbstractState, Precision, Block> level : stack.subList(0, stack.size() - 1)) {
+
+    // Iterate from the beginning to the second last element of the stack.
+    for (Triple<AbstractState, Precision, Block> level :
+          stack.subList(0, stack.size() - 1)) {
+
       if (level.getThird() == currentLevel.getThird()
               // && level.getSecond().equals(currentLevel.getSecond())
               && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
@@ -246,8 +257,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   @Override
   protected Collection<AbstractState> analyseBlockAndExpand(final AbstractState initialState,
       final Precision pPrecision, final Block outerSubtree,
-      final AbstractState reducedInitialState, final Precision reducedInitialPrecision) throws CPAException, InterruptedException,
-      CPATransferException {
+      final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+      throws CPAException, InterruptedException {
 
     final CFANode node = currentBlock.getCallNode();
     final Collection<AbstractState> resultStates;
@@ -279,8 +290,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
   private Collection<AbstractState> analyseBlockAndExpandForRecursion(final AbstractState initialState,
       final Precision pPrecision, final CFANode node, final Block outerSubtree,
-      final AbstractState reducedInitialState, final Precision reducedInitialPrecision) throws CPAException, InterruptedException,
-      CPATransferException {
+      final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
+        throws CPAException, InterruptedException {
 
     final Collection<AbstractState> expandedFunctionReturnStates;
     final Triple<AbstractState, Precision, Block> coveringLevel = getCoveringLevel(stack, Iterables.getLast(stack));
@@ -331,7 +342,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
             data.bamCache.get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
     final ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> previousResult = pair.getSecond();
-    final Collection<Pair<AbstractState, Precision>> reducedResult;
+    final Collection<AbstractState> reducedResult;
 
     assert reached != null : "cached entry has no reached set";
     if (previousResult == null) {
@@ -341,15 +352,17 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     } else {
       // use previously computed outer block as inner block,
       // this is equal to 'add one recursive step' in the recursion
-      reducedResult = imbueAbstractStatesWithPrecision(reached, previousResult);
+      reducedResult = previousResult;
       logger.logf(Level.FINEST, "skipping recursive call with cached result (root is %s)", reached.getFirstState());
     }
 
     data.initialStateToReachedSet.put(initialState, reached);
 
-    addBlockAnalysisInfo(pReducedInitialState);
+    if (bamPccManager.isPCCEnabled()) {
+      bamPccManager.addBlockAnalysisInfo(pReducedInitialState);
+    }
 
-    return expandResultStates(reducedResult, pOuterSubtree, initialState, pPrecision);
+    return expandResultStates(reducedResult, reached, pOuterSubtree, initialState, pPrecision);
   }
 
   /** We try to get a smaller set of states for further analysis.

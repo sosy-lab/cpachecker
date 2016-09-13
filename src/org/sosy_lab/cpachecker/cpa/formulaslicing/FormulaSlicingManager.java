@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -11,6 +10,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -34,14 +34,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -49,11 +49,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -144,16 +143,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       iState = pState.asIntermediate();
     }
 
-    boolean hasTargetState = StreamSupport
-        .stream(AbstractStates.asIterable(pFullState).spliterator(), false)
-        .filter(AbstractStates.IS_TARGET_STATE::apply)
-        .collect(Collectors.toList()).iterator().hasNext();
-    boolean shouldPerformAbstraction = shouldPerformAbstraction(
-        iState.getNode(), pFullState);
-    if (hasTargetState && checkTargetStates && isUnreachableTarget(iState)) {
+    if (checkTargetStates
+        && AbstractStates.isTargetState(pFullState)
+        && isUnreachableTarget(iState)) {
       return Optional.empty();
     }
 
+    boolean shouldPerformAbstraction = shouldPerformAbstraction(iState.getNode(), pFullState);
     if (shouldPerformAbstraction) {
       Optional<SlicingAbstractedState> oldState = findOldToMerge(
           pStates, pFullState, pState);
@@ -221,13 +217,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
-      if (filterByLiveness &&
-          Sets.intersection(
-              ImmutableSet.copyOf(
-                  liveVariables.getLiveVariableNamesForNode(node)
-                      .filter(s -> s != null)),
-              fmgr.extractFunctionNames(fmgr.uninstantiate(lemma))).isEmpty()
-          ) {
+      if (filterByLiveness
+          && Sets.intersection(
+                  ImmutableSet.copyOf(
+                      liveVariables
+                          .getLiveVariablesForNode(node)
+                          .transform(ASimpleDeclaration::getQualifiedName)
+                          .filter(s -> s != null)),
+                  fmgr.extractFunctionNames(fmgr.uninstantiate(lemma)))
+              .isEmpty()) {
 
         continue;
       }
@@ -541,7 +539,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
     final AtomicBoolean out = new AtomicBoolean(false);
-    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    fmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -560,7 +558,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, atom);
+    });
     return out.get();
   }
 }

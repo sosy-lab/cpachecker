@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.truth.Truth;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -44,20 +44,21 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType.NumeralType;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 import java.util.Set;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   @Parameters(name = "{0}")
@@ -106,8 +107,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula atom4 = imgr.lessThan(imgr.makeVariable("d"), imgr.makeNumber(4));
     BooleanFormula atom5 = imgr.lessOrEquals(imgr.makeVariable("e"), imgr.makeNumber(5));
 
-    BooleanFormula f = bmgrv.or(ImmutableList.of(
-        bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
+    BooleanFormula f = bmgrv.or(bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5);
 
     assertThat(mgrv.extractAtoms(f, false))
         .containsExactly(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4),
@@ -119,8 +119,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
       BooleanFormula atom2, BooleanFormula atom3,
       BooleanFormula atom4, BooleanFormula atom5) throws SolverException, InterruptedException {
 
-    BooleanFormula f = bmgrv.or(ImmutableList.of(
-        bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5));
+    BooleanFormula f = bmgrv.or(bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5);
 
     Set<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
     Set<BooleanFormula> expected = ImmutableSet
@@ -164,22 +163,34 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
       throws SolverException, InterruptedException {
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
     BooleanFormula atom1ineq =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), true);
     BooleanFormula atom2 =
-        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
+        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), true);
     BooleanFormula atom3 =
-        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
+        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), true);
     BooleanFormula atom4 =
-        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
+        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), true);
     BooleanFormula atom5 =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), true);
 
     testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
   }
 
   @Test
-  public void testExtractAtoms_SplitEqualities_bv() throws SolverException, InterruptedException {
+  public void testExtractAtoms_SplitEqualities_bv() throws Exception {
     requireBitvectors();
+
+    // Create a FormulaManagerView which does not re-wrap bitvectors.
+    Configuration viewConfig = Configuration.builder()
+        .copyFrom(config)
+        // use only theory supported by all solvers:
+        .setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR")
+        .setOption("cpa.predicate.encodeFloatAs", "FLOAT")
+        .build();
+    mgrv = new FormulaManagerView(context.getFormulaManager(),
+        viewConfig, LogManager.createTestLogManager());
+    bmgrv = mgrv.getBooleanFormulaManager();
+    imgrv = mgrv.getIntegerFormulaManager();
     testExtractAtoms_SplitEqualities_bitvectors(bvmgr);
   }
 
@@ -290,17 +301,14 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     QuantifiedFormulaManagerView qmv = mgrv.getQuantifiedFormulaManager();
     BooleanFormula instantiated =
         qmv.forall(
-            Lists.newArrayList(_x),
+            _x,
             bmgrv.and(
-                Lists.newArrayList(
-                    _b_at_x_NOTEQ_0, imgrv.greaterOrEquals(_x, _j1), imgrv.lessOrEquals(_x, _i1))));
+                _b_at_x_NOTEQ_0, imgrv.greaterOrEquals(_x, _j1), imgrv.lessOrEquals(_x, _i1)));
 
     BooleanFormula uninstantiated =
         qmv.forall(
-            Lists.newArrayList(_x),
-            bmgrv.and(
-                Lists.newArrayList(
-                    _b_at_x_NOTEQ_0, imgrv.greaterOrEquals(_x, _j), imgrv.lessOrEquals(_x, _i))));
+            _x,
+            bmgrv.and(_b_at_x_NOTEQ_0, imgrv.greaterOrEquals(_x, _j), imgrv.lessOrEquals(_x, _i)));
 
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
     ssaBuilder.setIndex("i", CNumericTypes.INT, 1);
@@ -323,12 +331,12 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula _inst1 = imgrv.equal(imgrv.add(_1, _j1), imgrv.add(_0, _i1));
     BooleanFormula _inst2 =
         imgrv.equal(imgrv.add(_1, imgrv.subtract(_0, _i1)), imgrv.add(imgrv.add(_0, _x1), _i1));
-    BooleanFormula _inst3 = bmgrv.and(Lists.newArrayList(_inst1, _inst2, bmgrv.not(_inst1)));
+    BooleanFormula _inst3 = bmgrv.and(_inst1, _inst2, bmgrv.not(_inst1));
 
     BooleanFormula _uinst1 = imgrv.equal(imgrv.add(_1, _j), imgrv.add(_0, _i));
     BooleanFormula _uinst2 =
         imgrv.equal(imgrv.add(_1, imgrv.subtract(_0, _i)), imgrv.add(imgrv.add(_0, _x), _i));
-    BooleanFormula _uinst3 = bmgrv.and(Lists.newArrayList(_uinst1, _uinst2, bmgrv.not(_uinst1)));
+    BooleanFormula _uinst3 = bmgrv.and(_uinst1, _uinst2, bmgrv.not(_uinst1));
 
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
     ssaBuilder.setIndex("i", CNumericTypes.INT, 1);

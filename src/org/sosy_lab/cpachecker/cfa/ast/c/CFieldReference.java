@@ -23,13 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.util.Objects;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import java.util.Objects;
 
 public final class CFieldReference extends AbstractExpression implements CLeftHandSide {
 
@@ -52,18 +56,35 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
 
   private boolean checkFieldAccess() throws IllegalArgumentException {
     CType structType = owner.getExpressionType().getCanonicalType();
-    if (structType instanceof CCompositeType) {
-      boolean found = false;
-      for (CCompositeTypeMemberDeclaration field : ((CCompositeType)structType).getMembers()) {
-        if (field.getName().equals(name)) {
-          found = true;
-          break;
-        }
+    if (structType instanceof CProblemType) {
+      return true;
+    }
+
+    if (structType instanceof CPointerType) {
+      checkArgument(isPointerDereference, "Field access for pointer type in %s", this);
+      structType = ((CPointerType) structType).getType();
+      if (structType instanceof CProblemType) {
+        return true;
       }
-      if (!found) {
-        throw new IllegalArgumentException("Accessing unknown field " + name + " in " + structType);
+    } else {
+      checkArgument(!isPointerDereference, "Pointer dereference of non-pointer in %s", this);
+    }
+
+    checkArgument(
+        structType instanceof CCompositeType,
+        "Field access for non-composite type %s in %s",
+        structType,
+        this);
+
+    boolean found = false;
+    for (CCompositeTypeMemberDeclaration field : ((CCompositeType) structType).getMembers()) {
+      if (field.getName().equals(name)) {
+        found = true;
+        break;
       }
     }
+    checkArgument(found, "Accessing unknown field %s of type %s in %s", name, structType, this);
+
     return true;
   }
 
@@ -82,6 +103,30 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
 
   public boolean isPointerDereference() {
     return isPointerDereference;
+  }
+
+  /**
+   * Convert an expression {@code s->m} to the equivalent {@code (*s).m}.
+   * Other expressions are returned unchanged.
+   */
+  public CFieldReference withExplicitPointerDereference() {
+    if (!isPointerDereference) {
+      return this;
+    }
+
+    CType pointerType = owner.getExpressionType().getCanonicalType();
+    CType structType;
+    if (pointerType instanceof CProblemType) {
+      structType = pointerType;
+    } else if (pointerType instanceof CPointerType) {
+      structType = ((CPointerType) pointerType).getType();
+    } else {
+      throw new AssertionError("Pointer dereference of non-pointer in " + this);
+    }
+
+    CExpression pointerDereference = new CPointerExpression(getFileLocation(), structType, owner);
+    return new CFieldReference(
+        getFileLocation(), getExpressionType(), name, pointerDereference, false);
   }
 
   @Override

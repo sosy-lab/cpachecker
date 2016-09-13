@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
@@ -53,6 +52,7 @@ public final class SMGIntersectStates {
   public static SMGIntersectionResult intersect(SMGState pSmgState1, CLangSMG pHeap1, SMGState pSmgState2,
       CLangSMG pHeap2, BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2) {
+
     CLangSMG destSMG = new CLangSMG(pHeap1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
@@ -182,6 +182,7 @@ public final class SMGIntersectStates {
     }
 
     SMGState pIntersectResult = new SMGState(pSmgState1, destSMG, destExplicitValues);
+
     return new SMGIntersectionResult(pSmgState1, pSmgState2, pIntersectResult, true);
   }
 
@@ -265,24 +266,19 @@ public final class SMGIntersectStates {
     Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Integer, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(hves1).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
-
-          @Override
-          public Integer apply(SMGEdgeHasValue hve) {
-            return hve.getOffset();
-          }
-        });
+        FluentIterable.from(hves1).uniqueIndex(
+            (SMGEdgeHasValue hve) -> {
+              return hve.getOffset();
+            });
 
     Map<Integer, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(hves2).uniqueIndex(new Function<SMGEdgeHasValue, Integer>() {
+        FluentIterable.from(hves2).uniqueIndex(
+            (SMGEdgeHasValue hve) -> {
+              return hve.getOffset();
+            });
 
-          @Override
-          public Integer apply(SMGEdgeHasValue hve) {
-            return hve.getOffset();
-          }
-        });
-
-    Set<Integer> offsetSet = offsetToHve1Map.keySet();
+    Set<Integer> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
+    offsetSet.addAll(offsetToHve1Map.keySet());
     offsetSet.addAll(offsetToHve2Map.keySet());
 
     for (Integer offset : offsetSet) {
@@ -366,7 +362,7 @@ public final class SMGIntersectStates {
     boolean isPointer1 = pSmg1.isPointer(pValue1);
     boolean isPointer2 = pSmg2.isPointer(pValue2);
 
-    if(isPointer1 && !isPointer2 || !isPointer1 && isPointer2) {
+    if ((isPointer1 && !isPointer2) || (!isPointer1 && isPointer2)) {
       return false;
     }
 
@@ -489,10 +485,12 @@ public final class SMGIntersectStates {
     /*Global and stack objects already mapped */
     pDestSMG.addHeapObject(destObject);
 
-    intersectPairFields(pSmg1, pSmg2, pObj2, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
-        pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2, pDestExplicitValues);
+    boolean defined =
+        intersectPairFields(pSmg1, pSmg2, pObj1, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
+            pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2,
+            pDestExplicitValues);
 
-    return true;
+    return defined;
   }
 
   private static boolean matchObject(SMGObject pObj1, SMGObject pObj2) {

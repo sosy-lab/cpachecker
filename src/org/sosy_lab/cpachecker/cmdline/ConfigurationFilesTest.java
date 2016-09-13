@@ -28,9 +28,7 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
-import com.google.common.io.Resources;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
@@ -62,6 +60,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -87,7 +86,9 @@ public class ConfigurationFilesTest {
       Pattern.compile(
           ".*File .* does not exist.*"
               + "|The following configuration options were specified but are not used:.*"
-              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.",
+              + "|MathSAT5 is available for research and evaluation purposes only.*"
+              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
+              + "|Finding target locations was interrupted.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
@@ -97,8 +98,10 @@ public class ConfigurationFilesTest {
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
+          "limits.time.cpu.thread",
           "memorysafety.config",
           "overflow.config",
+          "termination.config",
           "pcc.proofgen.doPCC",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
@@ -114,7 +117,9 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config");
+          "counterexample.checker.config",
+          // LoopstackCPA can be removed from inhering configuration.
+          "cpa.loopstack.loopIterationsBeforeAbstraction");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
@@ -163,7 +168,7 @@ public class ConfigurationFilesTest {
 
   @Test
   @SuppressWarnings("CheckReturnValue")
-  public void parse() {
+  public void parse() throws URISyntaxException {
     try {
       parse(configFile).build();
     } catch (InvalidConfigurationException | IOException e) {
@@ -172,14 +177,17 @@ public class ConfigurationFilesTest {
     }
   }
 
-  private static ConfigurationBuilder parse(Object configFile)
-      throws IOException, InvalidConfigurationException {
-    if (configFile instanceof Path) {
-      return Configuration.builder().loadFromFile((Path) configFile);
+  private static ConfigurationBuilder parse(Object pConfigFile)
+      throws IOException, InvalidConfigurationException, URISyntaxException {
+    Path configFile;
+    if (pConfigFile instanceof Path) {
+      configFile = (Path) pConfigFile;
+    } else if (pConfigFile instanceof URL) {
+      configFile = Paths.get(((URL) pConfigFile).toURI());
     } else {
-      CharSource source = Resources.asCharSource((URL) configFile, StandardCharsets.US_ASCII);
-      return Configuration.builder().loadFromSource(source, "", configFile.toString());
+      throw new AssertionError("Unexpected config file " + pConfigFile);
     }
+    return Configuration.builder().loadFromFile(configFile);
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -209,7 +217,7 @@ public class ConfigurationFilesTest {
     final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
-    logHandler.setLevel(Level.INFO);
+    logHandler.setLevel(Level.ALL);
     final LogManager logger = BasicLogManager.createWithHandler(logHandler);
 
     final CPAchecker cpachecker;
@@ -237,14 +245,14 @@ public class ConfigurationFilesTest {
         logHandler
             .getStoredLogRecords()
             .stream()
-            .filter(record -> record.getLevel().intValue() >= Level.SEVERE.intValue())
+            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
             .map(LogRecord::getMessage)
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
 
     if (severeMessages.count() > 0) {
       assert_()
           .fail(
-              "Not true that log for config %s does not contain messages with level SEVERE:\n%s",
+              "Not true that log for config %s does not contain messages with level WARNING or higher:\n%s",
               configFile,
               logHandler
                   .getStoredLogRecords()
@@ -254,7 +262,7 @@ public class ConfigurationFilesTest {
                   .trim());
     }
 
-    if (options.useParallelAlgorithm || options.useRestartingAlgorithm) {
+    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
       // TODO find a solution how to check for unused properties correctly even with RestartAlgorithm
       Set<String> unusedOptions = new TreeSet<>(config.getUnusedProperties());
       unusedOptions.removeAll(UNUSED_OPTIONS);
@@ -275,7 +283,7 @@ public class ConfigurationFilesTest {
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .build();
-    } catch (InvalidConfigurationException | IOException e) {
+    } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assume().fail(e.getMessage());
       throw new AssertionError();
     }

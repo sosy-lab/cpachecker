@@ -95,4 +95,9 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     }
     return false;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof AuxiliaryComputer && super.equals(o);
+  }
 }

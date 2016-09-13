@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Collection;
 import java.util.logging.Level;
@@ -175,7 +175,7 @@ public class PredicateCPA
 
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
-    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager);
+    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager, shutdownNotifier);
     invariantsManager =
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
@@ -223,9 +223,7 @@ public class PredicateCPA
             pfMgr,
             blk,
             predicateManager,
-            invariantsManager.appendToPathFormula()
-                ? invariantsManager
-                : TrivialInvariantSupplier.INSTANCE,
+            invariantsManager,
             predicateProvider);
 
     if (stopType.equals("SEP")) {

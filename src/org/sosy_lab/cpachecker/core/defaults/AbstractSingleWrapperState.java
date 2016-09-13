@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import java.io.Serializable;
@@ -43,7 +44,8 @@ import javax.annotation.Nullable;
  * Base class for AbstractStates which wrap the abstract state of exactly
  * one CPA.
  */
-public abstract class AbstractSingleWrapperState implements AbstractWrapperState, Targetable, Partitionable, Serializable {
+public abstract class AbstractSingleWrapperState
+    implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
 
@@ -82,6 +84,24 @@ public abstract class AbstractSingleWrapperState implements AbstractWrapperState
   public Object getPartitionKey() {
     if (wrappedState instanceof Partitionable) {
       return ((Partitionable)wrappedState).getPartitionKey();
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public Comparable<?> getPseudoPartitionKey() {
+    if (wrappedState instanceof PseudoPartitionable) {
+      return ((PseudoPartitionable) wrappedState).getPseudoPartitionKey();
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public Object getPseudoHashCode() {
+    if (wrappedState instanceof PseudoPartitionable) {
+      return ((PseudoPartitionable) wrappedState).getPseudoHashCode();
     } else {
       return null;
     }

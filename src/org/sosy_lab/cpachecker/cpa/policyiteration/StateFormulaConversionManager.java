@@ -1,64 +1,82 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.templates.Template;
+import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Class responsible for converting states to formulas.
  */
+@Options(prefix="cpa.lpi")
 public class StateFormulaConversionManager {
+
+  @Option(description="Remove redundant items when abstract values.")
+  private boolean simplifyDotOutput = true;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final PathFormulaManager pfmgr;
+  private final TemplateToFormulaConversionManager
+      templateToFormulaConversionManager;
+  private final Configuration configuration;
   private final CFA cfa;
   private final LogManager logger;
-
-  private final CBinaryExpressionBuilder expressionBuilder;
-
-  private static final CFAEdge DummyEdge = new BlankEdge("",
-      FileLocation.DUMMY,
-      new CFANode("dummy-1"), new CFANode("dummy-2"), "Dummy Edge");
+  private final ShutdownNotifier shutdownNotifier;
+  private final PolicyDotWriter dotWriter;
+  private final PathFormulaManager pfmgr;
+  private final Solver solver;
 
   public StateFormulaConversionManager(
       FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr,
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
+      Configuration pConfiguration,
       CFA pCfa,
-      LogManager pLogger) {
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      PathFormulaManager pPfmgr,
+      Solver pSolver) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     fmgr = pFmgr;
-    pfmgr = pPfmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
+    configuration = pConfiguration;
     cfa = pCfa;
     logger = pLogger;
-    expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(),
-        logger);
+    shutdownNotifier = pShutdownNotifier;
+    pfmgr = pPfmgr;
+    solver = pSolver;
+    dotWriter = new PolicyDotWriter();
   }
 
   /**
@@ -68,42 +86,65 @@ public class StateFormulaConversionManager {
    */
   List<BooleanFormula> abstractStateToConstraints(
       FormulaManagerView fmgrv,
-      PathFormulaManager pfmgr,
       PolicyAbstractedState abstractState,
       boolean attachExtraInvariant) {
 
     // Returns the abstract state together with the conjoined extra invariant.
-    PathFormula inputPath = getPathFormula(abstractState, fmgrv,
-        attachExtraInvariant);
-
     List<BooleanFormula> constraints = new ArrayList<>();
+
+    PathFormulaManager pfmgrv;
+    try {
+      pfmgrv = new PathFormulaManagerImpl(
+          fmgrv, configuration, logger,
+          shutdownNotifier,
+          cfa,
+          AnalysisDirection.FORWARD
+      );
+    } catch (InvalidConfigurationException pE) {
+      throw new UnsupportedOperationException("Could not construct path "
+          + "formula manager", pE);
+    }
+
+    PathFormula inputPath = getPathFormula(abstractState, fmgrv, attachExtraInvariant);
+    if (!fmgrv.getBooleanFormulaManager().isTrue(inputPath.getFormula())) {
+      constraints.add(inputPath.getFormula());
+    }
+
     if (attachExtraInvariant) {
 
       // Extra invariant.
-      constraints.add(fmgr.instantiate(
+      constraints.add(fmgrv.instantiate(
           abstractState.getExtraInvariant(), inputPath.getSsa()));
     }
 
-    constraints.add(abstractState.getCongruence().toFormula(
-        fmgrv, pfmgr, inputPath
-    ));
     for (Entry<Template, PolicyBound> entry : abstractState) {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      Formula t = toFormula(pfmgr, fmgrv, template, inputPath);
-
-      BooleanFormula constraint = fmgrv.makeLessOrEqual(
-          t, fmgrv.makeNumber(t, bound.getBound()), true);
-      constraints.add(constraint);
+      constraints.add(
+          templateToConstraint(template, bound, pfmgrv, fmgrv, inputPath));
     }
     return constraints;
   }
 
-  BooleanFormula getStartConstraintsWithExtraInvariant(
+  BooleanFormula templateToConstraint(
+      Template template,
+      PolicyBound bound,
+      PathFormulaManager pfmgrv,
+      FormulaManagerView fmgrv,
+      PathFormula inputPath
+      ) {
+    Formula t = templateToFormulaConversionManager.toFormula(
+        pfmgrv, fmgrv, template, inputPath);
+    return fmgrv.makeLessOrEqual(
+        t, fmgrv.makeNumber(t, bound.getBound()), true);
+
+  }
+
+  public BooleanFormula getStartConstraintsWithExtraInvariant(
       PolicyIntermediateState state) {
     return bfmgr.and(abstractStateToConstraints(
-        fmgr, pfmgr, state.getGeneratingState(), true));
+        fmgr, state.getBackpointerState(), true));
   }
 
   /**
@@ -142,200 +183,55 @@ public class StateFormulaConversionManager {
         abstractState.getPointerTargetSet(), 1);
   }
 
-  private final Map<ToFormulaCacheKey, Formula> toFormulaCache =
-      new HashMap<>();
-
-  /**
-   * Convert {@code template} to {@link Formula}, using
-   * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
-   * the context provided by {@code contextFormula}.
-   *
-   * @return Resulting formula.
-   */
-  public Formula toFormula(
-      PathFormulaManager pfmgr,
-      FormulaManagerView fmgr,
-      Template template,
-      PathFormula contextFormula) {
-    ToFormulaCacheKey key =
-        new ToFormulaCacheKey(pfmgr, fmgr, template, contextFormula);
-    Formula out = toFormulaCache.get(key);
-    if (out != null) {
-      return out;
+  public String toDOTLabel(Map<Template, PolicyBound> pAbstraction) {
+    if (!simplifyDotOutput) {
+      return dotWriter.toDOTLabel(pAbstraction);
     }
-    boolean useRationals = !template.isIntegral();
-    Formula sum = null;
-    int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
 
-    for (Entry<CIdExpression, Rational> entry : template.linearExpression) {
-      Rational coeff = entry.getValue();
-      CIdExpression declaration = entry.getKey();
+    PathFormula inputPath = new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet
+        .emptyPointerTargetSet(), 0
+    );
 
-      final Formula item;
+    Map<Template, BooleanFormula> templatesToConstraints = pAbstraction
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey(),
+            entry -> templateToConstraint(
+                entry.getKey(),
+                entry.getValue(),
+                pfmgr,
+                fmgr,
+                inputPath
+            )
+        ));
+    List<Template> templates = new ArrayList<>(pAbstraction.keySet());
+    Set<Template> nonRedundant = new HashSet<>(templates);
+    for (Template t : templates) {
+      // mark redundant templates as such
+      BooleanFormula constraint = templatesToConstraints.get(t);
+
+      Set<Template> others = Sets.filter(nonRedundant, t2 -> t2 != t);
+
+      // if others imply the constraint, remove it.
+      BooleanFormula othersConstraint =
+          bfmgr.and(Collections2.transform(others, tb -> templatesToConstraints.get(tb)));
+
       try {
-        Formula f = pfmgr.expressionToFormula(
-            contextFormula, declaration, DummyEdge);
-        item = normalizeLength(f, maxBitvectorSize, fmgr);
-      } catch (UnrecognizedCCodeException e) {
-        throw new UnsupportedOperationException();
-      }
-
-      final Formula multipliedItem;
-      if (coeff.equals(Rational.ZERO)) {
-        continue;
-      } else if (coeff.equals(Rational.NEG_ONE)) {
-        multipliedItem = fmgr.makeNegate(item);
-      } else if (coeff.equals(Rational.ONE)){
-        multipliedItem = item;
-      } else {
-        multipliedItem = fmgr.makeMultiply(
-            item, fmgr.makeNumber(item, entry.getValue()));
-      }
-
-      if (sum == null) {
-        sum = multipliedItem;
-      } else {
-        sum = fmgr.makePlus(sum, multipliedItem);
+        if (solver.implies(othersConstraint, constraint)) {
+          nonRedundant.remove(t);
+        }
+      } catch (SolverException|InterruptedException pE) {
+        logger.logException(Level.WARNING, pE, "Failed simplifying the "
+            + "abstraction before rendering, converting as it is.");
+        simplifyDotOutput = false;
+        return dotWriter.toDOTLabel(pAbstraction);
       }
     }
 
-    if (sum == null) {
-      if (useRationals) {
-        out = fmgr.getRationalFormulaManager().makeNumber(0);
-      } else {
-        out = fmgr.getIntegerFormulaManager().makeNumber(0);
-      }
-    } else {
-      out = sum;
-    }
-    toFormulaCache.put(key, out);
-    return out;
-  }
-
-  public boolean isOverflowing(Template template, Rational v) {
-    CSimpleType templateType = getTemplateType(template);
-    if (templateType.getType().isIntegerType()) {
-      BigInteger maxValue = cfa.getMachineModel()
-          .getMaximalIntegerValue(templateType);
-      BigInteger minValue = cfa.getMachineModel()
-          .getMinimalIntegerValue(templateType);
-
-      // The bound obtained is larger than the highest representable
-      // value, ignore it.
-      if (v.compareTo(Rational.ofBigInteger(maxValue)) == 1
-          || v.compareTo(Rational.ofBigInteger(minValue)) == -1) {
-        logger.log(Level.FINE, "Bound too high, ignoring",
-            v);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private CSimpleType getTemplateType(Template t) {
-    CExpression sum = null;
-
-    // also note: there is an overall _expression_ type.
-    // Wonder how that one is computed --- it actually depends on the order of
-    // the operands.
-    for (Entry<CIdExpression, Rational> e: t.getLinearExpression()) {
-      CIdExpression expr = e.getKey();
-      if (sum == null) {
-        sum = expr;
-      } else {
-        sum = expressionBuilder.buildBinaryExpressionUnchecked(
-            sum, expr, BinaryOperator.PLUS);
-      }
-    }
-    assert sum != null;
-    return (CSimpleType) sum.getExpressionType();
-  }
-
-  private int getBitvectorSize(Template t, PathFormulaManager pfmgr,
-                               PathFormula contextFormula, FormulaManagerView fmgr) {
-    int length = 0;
-
-    // Figure out the maximum bitvector size.
-    for (Entry<CIdExpression, Rational> entry : t.linearExpression) {
-      Formula item;
-      try {
-        item = pfmgr.expressionToFormula(
-            contextFormula, entry.getKey(), DummyEdge);
-      } catch (UnrecognizedCCodeException e) {
-        throw new UnsupportedOperationException();
-      }
-      if (!(item instanceof BitvectorFormula)) {
-        continue;
-      }
-      BitvectorFormula b = (BitvectorFormula) item;
-      length = Math.max(
-          fmgr.getBitvectorFormulaManager().getLength(b),
-          length);
-    }
-    return length;
-  }
-
-  private Formula normalizeLength(Formula f, int maxBitvectorSize,
-                                  FormulaManagerView fmgr) {
-    if (!(f instanceof BitvectorFormula)) {
-      return f;
-    }
-    BitvectorFormula bv = (BitvectorFormula) f;
-    return fmgr.getBitvectorFormulaManager().extend(
-        bv,
-        Math.max(0,
-            maxBitvectorSize - fmgr.getBitvectorFormulaManager().getLength(bv)),
-        true);
-  }
-
-  private static class ToFormulaCacheKey {
-    private final PathFormulaManager pathFormulaManager;
-    private final FormulaManagerView formulaManagerView;
-    private final Template template;
-    private final PathFormula contextFormula;
-
-
-    private ToFormulaCacheKey(
-        PathFormulaManager pPathFormulaManager,
-        FormulaManagerView pFormulaManagerView,
-        Template pTemplate,
-        PathFormula pContextFormula) {
-      pathFormulaManager = pPathFormulaManager;
-      formulaManagerView = pFormulaManagerView;
-      template = pTemplate;
-      contextFormula = pContextFormula;
-    }
-
-    @Override
-    public boolean equals(Object pO) {
-      if (this == pO) {
-        return true;
-      }
-      if (pO == null || getClass() != pO.getClass()) {
-        return false;
-      }
-      ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
-      return pathFormulaManager == that.pathFormulaManager
-          && formulaManagerView == that.formulaManagerView &&
-          Objects.equals(template, that.template) &&
-          Objects.equals(contextFormula, that.contextFormula);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects
-          .hash(pathFormulaManager, formulaManagerView, template,
-              contextFormula);
-    }
-
-    @Override
-    public String toString() {
-      return "ToFormulaCacheKey{" +
-          "pathFormulaManager=" + pathFormulaManager +
-          ", formulaManagerView=" + formulaManagerView +
-          ", template=" + template +
-          ", contextFormula=" + contextFormula +
-          '}';
-    }
+    Map<Template, PolicyBound> filteredAbstraction = Maps.filterKeys(
+        pAbstraction, t -> nonRedundant.contains(t));
+    return dotWriter.toDOTLabel(filteredAbstraction);
   }
 }

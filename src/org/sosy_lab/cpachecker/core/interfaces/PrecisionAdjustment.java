@@ -82,7 +82,7 @@ public interface PrecisionAdjustment {
    * @throws CPAException By the CPA code, when errors happen.
    * @throws InterruptedException On interrupt.
    */
-  default Optional<AbstractState> strengthen(
+  default Optional<? extends AbstractState> strengthen(
       AbstractState pState, Precision pPrecision, List<AbstractState> otherStates)
       throws CPAException, InterruptedException {
     return Optional.of(pState);

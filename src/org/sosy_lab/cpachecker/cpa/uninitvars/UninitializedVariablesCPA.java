@@ -23,35 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpa.uninitvars")
-public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+import java.util.Collection;
+
+@Options(prefix = "cpa.uninitvars")
+public class UninitializedVariablesCPA extends AbstractCPA implements StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
@@ -66,46 +57,12 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
       description="which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
 
-  private final AbstractDomain abstractDomain;
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
-  private final TransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
   private final UninitializedVariablesStatistics statistics;
 
   private UninitializedVariablesCPA(Configuration config) throws InvalidConfigurationException {
-
+    super("irrelevant", "irrelevant", new UninitializedVariablesDomain(), null);
     config.inject(this);
-
-    UninitializedVariablesDomain domain = new UninitializedVariablesDomain();
-
-    MergeOperator mergeOp = null;
-    if (mergeType.equals("sep")) {
-      mergeOp = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("join")) {
-      mergeOp = new MergeJoinOperator(domain);
-    }
-
-    StopOperator stopOp = null;
-
-    if (stopType.equals("sep")) {
-      stopOp = new StopSepOperator(domain);
-    } else if (stopType.equals("join")) {
-      stopOp = new StopJoinOperator(domain);
-    }
-
-    this.abstractDomain = domain;
-    this.mergeOperator = mergeOp;
-    this.stopOperator = stopOp;
-    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings);
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-
     statistics = new UninitializedVariablesStatistics(printWarnings);
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
   }
 
   @Override
@@ -114,28 +71,18 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return buildMergeOperator(mergeType);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return buildStopOperator(stopType);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return new UninitializedVariablesTransferRelation(printWarnings);
   }
 
   @Override

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -135,7 +136,7 @@ final class CompositeTransferRelation implements TransferRelation {
     CompositePrecision compositePrecision = (CompositePrecision)precision;
 
     Collection<CompositeState> results = new ArrayList<>(1);
-    getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
+    getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, results);
 
     return results;
   }
@@ -408,12 +409,38 @@ final class CompositeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-      List<AbstractState> otherElements, CFAEdge cfaEdge,
-      Precision precision) {
-    // strengthen is only called by the composite CPA on its component CPAs,
-    // at some point we might want to pass this call through to support nested CompositeCPAs
-    return Collections.singletonList(element);
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState element,
+      List<AbstractState> otherElements,
+      CFAEdge cfaEdge,
+      Precision precision) throws CPATransferException, InterruptedException {
+
+    CompositeState compositeState = (CompositeState) element;
+    CompositePrecision compositePrecision = (CompositePrecision) precision;
+    List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
+    int resultCount = 1;
+
+    for (int i = 0; i < size; i++) {
+
+      TransferRelation lCurrentTransfer = transferRelations.get(i);
+      AbstractState lCurrentElement = compositeState.get(i);
+      Precision lCurrentPrecision = compositePrecision.get(i);
+
+      Collection<? extends AbstractState> lResultsList =
+          lCurrentTransfer.strengthen(lCurrentElement, otherElements, cfaEdge, lCurrentPrecision);
+
+      resultCount *= lResultsList.size();
+      if (resultCount == 0) {
+        // shortcut
+        break;
+      }
+
+      lStrengthenResults.add(lResultsList);
+    }
+
+
+    Collection<List<AbstractState>> lResultingElements = createCartesianProduct(lStrengthenResults, resultCount);
+    return transformedImmutableListCopy(lResultingElements, CompositeState::new);
   }
 
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {

@@ -132,9 +132,9 @@ public abstract class SMGObject {
 
   /**
    * @param pOther object to join with
-   * @param pIncreaseLevel increase Nesting level.
+   * @param pDestLevel increase Nesting level.
    */
-  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
     throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
   }
 

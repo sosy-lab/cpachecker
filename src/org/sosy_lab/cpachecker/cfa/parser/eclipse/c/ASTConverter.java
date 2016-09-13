@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -88,6 +87,7 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -177,6 +177,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -451,19 +452,21 @@ class ASTConverter {
     case ALWAYS_FALSE:
       return convertExpressionWithSideEffects(e.getNegativeResultExpression());
     case NORMAL:
-      CIdExpression tmp = createTemporaryVariable(e);
 
       // this means the return value (if there could be one) of the conditional
       // expression is not used
-      if (tmp.getExpressionType() instanceof CVoidType) {
+      if (convertType(e) instanceof CVoidType) {
         sideAssignmentStack.addConditionalExpression(e, null);
+
         // TODO we should not return a variable here, however null cannot be returned
-        // perhaps we need a dummyexpression here
+        // perhaps we need a DummyExpression here
         return CIntegerLiteralExpression.ZERO;
-      } else {
-        sideAssignmentStack.addConditionalExpression(e, tmp);
-        return tmp;
       }
+
+      CIdExpression tmp = createTemporaryVariable(e);
+      assert !(tmp.getExpressionType() instanceof CVoidType);
+      sideAssignmentStack.addConditionalExpression(e, tmp);
+      return tmp;
     default:
       throw new AssertionError("Unhandled case statement: " + conditionKind);
     }
@@ -584,27 +587,31 @@ class ASTConverter {
    * creates temporary variables with increasing numbers
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
+    CType type = convertType(e);
+
+    return createInitializedTemporaryVariable(
+        getLocation(e), type, (CInitializer)null);
+  }
+
+  /**
+   * Convert Eclipse AST type to {@link CType}.
+   */
+  private CType convertType(IASTExpression e) {
     CType type = typeConverter.convert(e.getExpressionType());
     if (type.getCanonicalType() instanceof CVoidType) {
       if (e instanceof IASTFunctionCallExpression) {
         // Void method called and return value used.
         // Possibly this is an undeclared function.
         // Default return type in C for these cases is INT.
-        type = CNumericTypes.INT;
-      } else {
-        // TODO enable if we do not have unnecessary temporary variables of type void anymore
-//        throw new CFAGenerationRuntimeException(
-//            "Cannot create temporary variable for expression with type void",
-//            e, niceFileNameFunction);
+        return CNumericTypes.INT;
       }
 
       // workaround for strange CDT behaviour
     } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
-      type = typeConverter.convert(((IASTConditionalExpression)e).getNegativeResultExpression().getExpressionType());
+      return typeConverter.convert(
+          ((IASTConditionalExpression)e).getNegativeResultExpression() .getExpressionType());
     }
-
-    return createInitializedTemporaryVariable(
-        getLocation(e), type, (CInitializer)null);
+    return type;
   }
 
   private CIdExpression createInitializedTemporaryVariable(
@@ -840,8 +847,13 @@ class ASTConverter {
     final FileLocation loc = getLocation(e);
 
     CType ownerType = owner.getExpressionType().getCanonicalType();
-    while (ownerType instanceof CPointerType) {
-      ownerType = ((CPointerType)ownerType).getType().getCanonicalType();
+    if (e.isPointerDereference()) {
+      if (ownerType instanceof CPointerType) {
+        ownerType = ((CPointerType) ownerType).getType();
+      } else if (!(ownerType instanceof CProblemType)) {
+        throw new CFAGenerationRuntimeException(
+            "Pointer dereference of non-pointer type " + ownerType, e, niceFileNameFunction);
+      }
     }
 
     // In case of an anonymous struct, the type provided by Eclipse
@@ -857,10 +869,9 @@ class ASTConverter {
       fullFieldReference = new CFieldReference(loc,
           typeConverter.convert(e.getExpressionType()), fieldName, owner,
           e.isPointerDereference());
-    } else {
-      assert ownerType instanceof CCompositeType : "owner of field has no CCompositeType, but is a: " + ownerType.getClass() + " instead.";
-
-      wayToInnerField = getWayToInnerField(ownerType, fieldName, loc, new ArrayList<>());
+    } else if (ownerType instanceof CCompositeType) {
+      wayToInnerField =
+          getWayToInnerField((CCompositeType) ownerType, fieldName, loc, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         fullFieldReference = owner;
         boolean isPointerDereference = e.isPointerDereference();
@@ -869,8 +880,20 @@ class ASTConverter {
           isPointerDereference = false;
         }
       } else {
-        throw new CFAGenerationRuntimeException("Accessing unknown field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e, niceFileNameFunction);
+        throw new CFAGenerationRuntimeException(
+            "Accessing unknown field " + fieldName + " in type " + ownerType,
+            e,
+            niceFileNameFunction);
       }
+    } else {
+      throw new CFAGenerationRuntimeException(
+          "Cannot access field "
+              + fieldName
+              + " in type "
+              + ownerType
+              + " which is not a composite type",
+          e,
+          niceFileNameFunction);
     }
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
@@ -925,24 +948,8 @@ class ASTConverter {
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if there is a "var->field" convert it to (*var).field
-    } else if (simplifyPointerExpressions && e.isPointerDereference()) {
-      CType newType = null;
-      CType typeDefType = owner.getExpressionType();
-
-      //unpack typedefs
-      while (typeDefType instanceof CTypedefType) {
-        typeDefType = ((CTypedefType)typeDefType).getRealType();
-      }
-
-      if (typeDefType instanceof CPointerType) {
-        newType = ((CPointerType)typeDefType).getType();
-      } else {
-        throw new CFAGenerationRuntimeException("The owner of the struct with field dereference has an invalid type", owner);
-      }
-
-      CPointerExpression exp = new CPointerExpression(loc, newType, owner);
-
-      return new CFieldReference(loc, fullFieldReference.getExpressionType(), fieldName, exp, false);
+    } else if (simplifyPointerExpressions) {
+      return ((CFieldReference) fullFieldReference).withExplicitPointerDereference();
     }
 
     return (CFieldReference) fullFieldReference;
@@ -957,27 +964,24 @@ class ASTConverter {
    * @param allReferences an empty list
    * @return the fields (including the searched one) in the right order
    */
-  private static List<Pair<String, CType>> getWayToInnerField(CType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
-    CType type = owner.getCanonicalType();
-
-    if (type instanceof CCompositeType) {
-      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
-        if (member.getName().equals(fieldName)) {
-          allReferences.add(Pair.of(member.getName(), member.getType()));
-          return allReferences;
-        }
+  private static List<Pair<String, CType>> getWayToInnerField(CCompositeType owner, String fieldName, FileLocation loc, List<Pair<String, CType>> allReferences) {
+    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
+      if (member.getName().equals(fieldName)) {
+        allReferences.add(Pair.of(member.getName(), member.getType()));
+        return allReferences;
       }
+    }
 
-      // no field found in current struct, so proceed to the structs/unions which are
-      // fields inside the current struct
-      for (CCompositeTypeMemberDeclaration member : ((CCompositeType) type).getMembers()) {
-        if (member.getName().contains("__anon_type_member_")) {
-          List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
-          tmp.add(Pair.of(member.getName(), member.getType()));
-          tmp = getWayToInnerField(member.getType(), fieldName, loc, tmp);
-          if (!tmp.isEmpty()) {
-            return tmp;
-          }
+    // no field found in current struct, so proceed to the structs/unions which are
+    // fields inside the current struct
+    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
+      CType memberType = member.getType().getCanonicalType();
+      if (memberType instanceof CCompositeType && member.getName().contains("__anon_type_member_")) {
+        List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
+        tmp.add(Pair.of(member.getName(), member.getType()));
+        tmp = getWayToInnerField((CCompositeType)memberType, fieldName, loc, tmp);
+        if (!tmp.isEmpty()) {
+          return tmp;
         }
       }
     }
@@ -1277,7 +1281,11 @@ class ASTConverter {
       return tmp;
 
     case IASTUnaryExpression.op_not:
-      return simplifyUnaryNotExpression(operand);
+      try {
+        return binExprBuilder.negateExpressionAndSimplify(operand);
+      } catch (UnrecognizedCCodeException ex) {
+        throw new CFAGenerationRuntimeException(ex);
+      }
 
     default:
       CType type;
@@ -1288,42 +1296,6 @@ class ASTConverter {
       }
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
-  }
-
-  private static BinaryOperator getNegatedOperator(final BinaryOperator op) {
-    switch (op) {
-      case EQUALS:
-        return BinaryOperator.NOT_EQUALS;
-      case NOT_EQUALS:
-        return BinaryOperator.EQUALS;
-      case LESS_THAN:
-        return BinaryOperator.GREATER_EQUAL;
-      case LESS_EQUAL:
-        return BinaryOperator.GREATER_THAN;
-      case GREATER_THAN:
-        return BinaryOperator.LESS_EQUAL;
-      case GREATER_EQUAL:
-        return BinaryOperator.LESS_THAN;
-      default:
-        throw new AssertionError("operator can not be negated");
-    }
-  }
-
-  /** returns an expression, that is exactly the negation of the input. */
-  private CExpression simplifyUnaryNotExpression(final CExpression expr) {
-    // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
-    if (expr instanceof CBinaryExpression) {
-      final CBinaryExpression binExpr = (CBinaryExpression)expr;
-      if (CBinaryExpressionBuilder.relationalOperators.contains(binExpr.getOperator())) {
-        BinaryOperator inverseOperator = getNegatedOperator(binExpr.getOperator());
-        return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
-      }
-    }
-
-    // at this point, we have an expression, that is not directly boolean (!a, !(a+b), !123), so we compare it with Zero.
-    // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
-    // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
-    return buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS);
   }
 
   /** returns a CPointerExpression, that may be simplified. */
@@ -1886,6 +1858,23 @@ class ASTConverter {
 
             // only adjust the length of the array if we definitely know it
             if (length != -1) {
+              CExpression lengthExp = new CIntegerLiteralExpression(
+                  getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+
+              type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
+                  arrayType.getType(), lengthExp);
+            }
+          } else {
+            // Arrays with unknown length but an string initializer
+            // have their length calculated from the initializer.
+            // Example: char a[] = "abc";
+            // will be converted as char a[4] = "abc";
+            if (initClause instanceof CASTLiteralExpression &&
+                  (arrayType.getType().equals(CNumericTypes.CHAR) ||
+                   arrayType.getType().equals(CNumericTypes.SIGNED_CHAR) ||
+                   arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
+              CASTLiteralExpression literalExpression = (CASTLiteralExpression) initClause;
+              int length = literalExpression.getLength() - 1;
               CExpression lengthExp = new CIntegerLiteralExpression(
                   getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
 

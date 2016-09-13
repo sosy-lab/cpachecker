@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
-import java.math.BigInteger;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
-import com.google.common.base.Preconditions;
+import java.math.BigInteger;
 
 /**
  * Instances of implementations of this interface are operators that can
@@ -212,8 +212,8 @@ public enum IICOperatorFactory {
          * singleton interval of zero) or shifting anything by 0.
          */
         if (pFirstOperand.isTop()
-            || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pSecondOperand.isSingleton() && pSecondOperand.containsZero())
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return CompoundBitVectorInterval.of(pFirstOperand);
         }
         BitVectorInfo bitVectorInfo = pFirstOperand.getTypeInfo();
@@ -287,8 +287,8 @@ public enum IICOperatorFactory {
          * singleton interval of zero) or shifting anything by 0.
          */
         if (pFirstOperand.isTop()
-            || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pSecondOperand.isSingleton() && pSecondOperand.containsZero())
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return CompoundBitVectorInterval.of(pFirstOperand);
         }
         BitVectorInfo bitVectorInfo = pFirstOperand.getTypeInfo();

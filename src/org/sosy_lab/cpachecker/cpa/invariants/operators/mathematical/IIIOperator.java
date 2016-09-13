@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
-import com.google.common.base.Preconditions;
+import java.math.BigInteger;
+
+import javax.annotation.Nullable;
 
 /**
  * Instances of implementations of this interface are operators that can
@@ -122,9 +122,11 @@ public enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, Simp
       }
       // Any bound that is infinite will stay infinite (but may change sign)
       boolean negInf =
-          !pFirstOperand.hasLowerBound() && pSecondOperand.containsPositive() || !pFirstOperand.hasUpperBound() && pSecondOperand.containsNegative();
+          (!pFirstOperand.hasLowerBound() && pSecondOperand.containsPositive())
+              || (!pFirstOperand.hasUpperBound() && pSecondOperand.containsNegative());
       boolean posInf =
-          !pFirstOperand.hasLowerBound() && pSecondOperand.containsNegative() || !pFirstOperand.hasUpperBound() && pSecondOperand.containsPositive();
+          (!pFirstOperand.hasLowerBound() && pSecondOperand.containsNegative())
+              || (!pFirstOperand.hasUpperBound() && pSecondOperand.containsPositive());
       if (negInf && posInf) {
         return SimpleInterval.infinite();
       }
@@ -489,8 +491,9 @@ public enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, Simp
        * identity is returned. The same applies for shifting [0] (a
        * singleton interval of zero) or shifting anything by 0.
        */
-      if (pFirstOperand.isTop() || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
-          || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+      if (pFirstOperand.isTop()
+          || (pSecondOperand.isSingleton() && pSecondOperand.containsZero())
+          || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
         return pFirstOperand;
       }
       SimpleInterval result = null;
@@ -560,8 +563,9 @@ public enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, Simp
        * identity is returned. The same applies for shifting [0] (a
        * singleton interval of zero) or shifting anything by 0.
        */
-      if (pFirstOperand.isTop() || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
-          || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+      if (pFirstOperand.isTop()
+          || (pSecondOperand.isSingleton() && pSecondOperand.containsZero())
+          || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
         return pFirstOperand;
       }
       SimpleInterval result = null;

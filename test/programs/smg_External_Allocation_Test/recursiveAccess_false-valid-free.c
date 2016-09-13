@@ -6,9 +6,9 @@ int foo() {
   struct Recursive *a;
   struct Recursive *b;
   a = ext_allocation();
-  b = a.p.p;
+  b = a->p->p;
   free(b);
-  free(a.p.p);
+  free(a->p->p);
   return 0;
 }
 

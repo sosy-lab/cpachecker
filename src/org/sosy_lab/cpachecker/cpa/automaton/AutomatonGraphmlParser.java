@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -81,12 +80,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
+import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMatcher;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper.OffsetDescriptor;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginLineDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
@@ -127,9 +125,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -268,7 +268,7 @@ public class AutomatonGraphmlParser {
       } else if (graphTypeText.size() > 1) {
         throw new WitnessParseException("Only one graph type is allowed.");
       } else {
-        String graphTypeToParse = graphTypeText.iterator().next();
+        String graphTypeToParse = graphTypeText.iterator().next().trim();
         Optional<GraphType> parsedGraphType = GraphType.tryParse(graphTypeToParse);
         if (parsedGraphType.isPresent()) {
           graphType = parsedGraphType.get();
@@ -402,7 +402,7 @@ public class AutomatonGraphmlParser {
           actions = Collections.emptyList();
         }
 
-        List<CStatement> assumptions = Lists.newArrayList();
+        List<AExpression> assumptions = Lists.newArrayList();
         ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
@@ -456,11 +456,26 @@ public class AutomatonGraphmlParser {
         AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
 
         // Match a loop start
-        if (targetNodeFlags.contains(NodeFlag.ISLOOPSTART)) {
-          conjunctedTriggers =
-              and(
-                  conjunctedTriggers,
-                  AutomatonBoolExpr.EpsilonMatch.of(AutomatonBoolExpr.MatchLoopStart.INSTANCE));
+        boolean enterLoopHead = false;
+        Set<String> loopHeadFlags =
+            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ENTERLOOPHEAD);
+        if (!loopHeadFlags.isEmpty()) {
+          Set<Boolean> loopHeadFlagValues =
+              loopHeadFlags.stream().map(Boolean::parseBoolean).collect(Collectors.toSet());
+          if (loopHeadFlagValues.size() > 1) {
+            throw new WitnessParseException(
+                "Conflicting values for the flag "
+                    + KeyDef.ENTERLOOPHEAD
+                    + ": "
+                    + loopHeadFlags.toString());
+          }
+          if (loopHeadFlagValues.iterator().next()) {
+            conjunctedTriggers =
+                and(
+                    conjunctedTriggers,
+                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+            enterLoopHead = true;
+          }
         }
 
         // Add assumptions to the transition
@@ -468,7 +483,11 @@ public class AutomatonGraphmlParser {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
           Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
           assumptions.addAll(
-              parseStatements(transAssumes, determineScope(assumptionScopes, newStack), cparser));
+              CParserUtils.convertStatementsToAssumptions(
+                  parseStatements(
+                      transAssumes, determineScope(assumptionScopes, newStack), cparser),
+                  machine,
+                  logger));
           if (graphType == GraphType.PROOF_WITNESS && !assumptions.isEmpty()) {
             throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
           }
@@ -506,9 +525,13 @@ public class AutomatonGraphmlParser {
           }
           if (matchOriginLineNumber > 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.empty() : Optional.of(originFileTags.iterator().next());
-            LocationDescriptor originDescriptor = new OriginLineDescriptor(matchOriginFileName, matchOriginLineNumber);
+            OriginLineMatcher originDescriptor =
+                new OriginLineMatcher(matchOriginFileName, matchOriginLineNumber);
 
             AutomatonBoolExpr startingLineMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+            if (enterLoopHead) {
+              startingLineMatchingExpr = AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(startingLineMatchingExpr, true);
+            }
             conjunctedTriggers = and(conjunctedTriggers, startingLineMatchingExpr);
           }
 
@@ -531,9 +554,12 @@ public class AutomatonGraphmlParser {
 
           if (offset >= 0) {
             Optional<String> matchOriginFileName = originFileTags.isEmpty() ? Optional.empty() : Optional.of(originFileTags.iterator().next());
-            LocationDescriptor originDescriptor = new OffsetDescriptor(matchOriginFileName, offset);
+            OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset);
 
             AutomatonBoolExpr offsetMatchingExpr = new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+            if (enterLoopHead) {
+              offsetMatchingExpr = AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
+            }
             conjunctedTriggers = and(conjunctedTriggers, offsetMatchingExpr);
           }
 
@@ -583,6 +609,9 @@ public class AutomatonGraphmlParser {
 
             AutomatonBoolExpr assumeCaseMatchingExpr =
                 new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
+            if (enterLoopHead) {
+              assumeCaseMatchingExpr = AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(assumeCaseMatchingExpr, true);
+            }
 
             conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }
@@ -611,7 +640,7 @@ public class AutomatonGraphmlParser {
                       conjunctedTriggers,
                       new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
                   Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.<CStatement>emptyList(),
+                  Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
@@ -652,7 +681,7 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   stutterCondition,
                   Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.<CStatement>emptyList(),
+                  Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
@@ -666,7 +695,7 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   AutomatonBoolExpr.TRUE,
                   assertions,
-                  Collections.<CStatement>emptyList(),
+                  Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
@@ -793,8 +822,7 @@ public class AutomatonGraphmlParser {
       }
     }
     if (fallBack) {
-      return AutomatonASTComparator.generateSourceASTOfBlock(
-          tryFixArrayInitializers(pCode), pCParser, pScope);
+      return CParserUtils.parseListOfStatements(tryFixArrayInitializers(pCode), pCParser, pScope);
     }
     return result;
   }
@@ -823,19 +851,17 @@ public class AutomatonGraphmlParser {
     String assumeCode = tryFixArrayInitializers(pAssumeCode);
     Collection<CStatement> statements = null;
     try {
-      statements = AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, pCParser, pScope);
+      statements = CParserUtils.parseListOfStatements(assumeCode, pCParser, pScope);
     } catch (RuntimeException e) {
       if (e.getMessage() != null && e.getMessage().contains("Syntax error:")) {
         statements =
-            AutomatonASTComparator.generateSourceASTOfBlock(
-                tryFixACSL(assumeCode, pScope), pCParser, pScope);
+            CParserUtils.parseListOfStatements(tryFixACSL(assumeCode, pScope), pCParser, pScope);
       } else {
         throw e;
       }
     } catch (CParserException e) {
       statements =
-          AutomatonASTComparator.generateSourceASTOfBlock(
-              tryFixACSL(assumeCode, pScope), pCParser, pScope);
+          CParserUtils.parseListOfStatements(tryFixACSL(assumeCode, pScope), pCParser, pScope);
     }
     statements = removeDuplicates(adjustCharAssignments(statements));
     // Check that no expressions were split
@@ -1079,7 +1105,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonTransition createAutomatonTransition(
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
-      List<CStatement> pAssumptions,
+      List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pTargetStateId,
@@ -1120,7 +1146,7 @@ public class AutomatonGraphmlParser {
     private ViolationCopyingAutomatonTransition(
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
-        List<CStatement> pAssumptions,
+        List<AExpression> pAssumptions,
         ExpressionTree<AExpression> pCandidateInvariants,
         List<AutomatonAction> pActions,
         String pTargetStateId) {

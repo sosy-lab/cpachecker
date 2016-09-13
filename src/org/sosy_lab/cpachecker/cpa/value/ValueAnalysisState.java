@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -48,26 +49,27 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -75,9 +77,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-public class ValueAnalysisState implements AbstractQueryableState, FormulaReportingState,
-    ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
-    LatticeAbstractState<ValueAnalysisState> {
+public class ValueAnalysisState
+    implements AbstractQueryableState, FormulaReportingState,
+        ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
+        LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {
 
   private static final long serialVersionUID = -3152134511524554357L;
 
@@ -580,14 +583,13 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    BooleanFormula formula = bfmgr.makeBoolean(true);
-
     if (machineModel == null) {
-      return formula;
+      return bfmgr.makeBoolean(true);
     }
 
+    List<BooleanFormula> result = new ArrayList<>();
     BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
     FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
 
@@ -611,7 +613,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
             } else {
               val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
             }
-            formula = bfmgr.and(formula, bitvectorFMGR.equal(var, val));
+            result.add(bitvectorFMGR.equal(var, val));
           } else if (simpleType.getType().isFloatingPointType()) {
             final FloatingPointType fpType;
             switch (simpleType.getType()) {
@@ -626,7 +628,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
             }
             FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
             FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
-            formula = bfmgr.and(formula, floatFMGR.equalWithFPSemantics(var, val));
+            result.add(floatFMGR.equalWithFPSemantics(var, val));
           } else {
             // ignore in formula-approximation
           }
@@ -638,7 +640,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       }
     }
 
-    return formula;
+    return bfmgr.and(result);
   }
 
   /**
@@ -807,5 +809,15 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       throw new IOException("",e);
     }
     memLocToType = PathCopyingPersistentTreeMap.of();
+  }
+
+  @Override
+  public Comparable<?> getPseudoPartitionKey() {
+    return getSize();
+  }
+
+  @Override
+  public Object getPseudoHashCode() {
+    return this;
   }
 }

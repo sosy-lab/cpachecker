@@ -258,7 +258,7 @@ public class CFADeclarationMover {
    * Using it with ignoreSummaryEdges and ignoreFunctionCalls, collects all
    * Declarations in a Function.
    */
-  class DeclarationCollector extends DefaultCFAVisitor {
+  private static class DeclarationCollector extends DefaultCFAVisitor {
 
     private final List<CFAEdge> edges;
 

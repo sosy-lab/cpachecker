@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -147,11 +147,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     imgr = new InterpolationManager(pfmgr, solver, cfa.getLoopStructure(), cfa.getVarClassification(), config, pShutdownNotifier, logger);
   }
 
-  public AbstractState getInitialState(CFANode location) {
+  public AbstractState getInitialState(CFANode location) throws InterruptedException {
     return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
   }
 
-  public Precision getInitialPrecision(CFANode location) {
+  public Precision getInitialPrecision(CFANode location) throws InterruptedException {
     return cpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition());
   }
 

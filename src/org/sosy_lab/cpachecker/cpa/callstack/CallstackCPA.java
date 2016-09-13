@@ -57,8 +57,6 @@ import com.google.common.collect.Iterables;
 public class CallstackCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  private final Reducer reducer;
-
   private final CFA cfa;
 
   public static CPAFactory factory() {
@@ -70,12 +68,11 @@ public class CallstackCPA extends AbstractCPA
         new DomainInitializer(config).initializeDomain(),
         new TransferInitializer(config).initializeTransfer(config, pLogger));
     this.cfa = pCFA;
-    this.reducer = new CallstackReducer();
   }
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    return new CallstackReducer();
   }
 
   @Override

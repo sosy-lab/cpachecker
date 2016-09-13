@@ -30,7 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class represents the string literal AST node type.
  */
-public class JStringLiteralExpression extends AStringLiteralExpression implements JLiteralExpression {
+public final class JStringLiteralExpression extends AStringLiteralExpression
+    implements JLiteralExpression {
 
   public JStringLiteralExpression(FileLocation pFileLocation, JType pType, String pValue) {
     super(pFileLocation, pType, pValue);
@@ -39,11 +40,6 @@ public class JStringLiteralExpression extends AStringLiteralExpression implement
   @Override
   public JType getExpressionType() {
     return (JType) super.getExpressionType();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

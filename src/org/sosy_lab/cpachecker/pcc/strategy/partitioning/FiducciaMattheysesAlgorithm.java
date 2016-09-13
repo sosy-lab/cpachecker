@@ -155,7 +155,7 @@ public class FiducciaMattheysesAlgorithm {
       boolean nInV2 = v2.contains(n);
       if((nInV1 || nInV2) && !lock.get(n)) {
         long updatedGain = gain.get(n);
-        if(nInV1 && v1.contains(node) || nInV2 && v2.contains(node)) {
+        if ((nInV1 && v1.contains(node)) || (nInV2 && v2.contains(node))) {
           updatedGain += 1;
         } else {
           updatedGain -= 1;

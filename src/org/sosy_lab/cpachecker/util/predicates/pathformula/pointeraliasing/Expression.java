@@ -24,29 +24,53 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.java_smt.api.Formula;
 
-public abstract class Expression {
-  public static abstract class Location extends Expression {
-    public static class AliasedLocation extends Location {
+import javax.annotation.Nullable;
+
+abstract class Expression {
+  static abstract class Location extends Expression {
+    static final class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
         this.address = address;
       }
 
-      public Formula getAddress() {
+      Formula getAddress() {
         return address;
       }
 
       @Override
-      public Kind getKind() {
+      Kind getKind() {
         return Kind.ALIASED_LOCATION;
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliased() {
+        return this;
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliasedLocation() {
+        return this;
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliased() {
+        throw new IllegalStateException();
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliasedLocation() {
+        throw new IllegalStateException();
       }
 
       @Override
@@ -68,19 +92,43 @@ public abstract class Expression {
       private String region;
     }
 
-    public static class UnaliasedLocation extends Location {
+    static final class UnaliasedLocation extends Location {
 
       private UnaliasedLocation(final String variableName) {
         this.variableName = variableName;
       }
 
-      public String getVariableName() {
+      String getVariableName() {
         return variableName;
       }
 
       @Override
-      public Kind getKind() {
+      Kind getKind() {
         return Kind.UNALIASED_LOCATION;
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliased() {
+        throw new IllegalStateException();
+      }
+
+      @Override
+      @Deprecated
+      AliasedLocation asAliasedLocation() {
+        throw new IllegalStateException();
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliased() {
+        return this;
+      }
+
+      @Override
+      @Deprecated
+      UnaliasedLocation asUnaliasedLocation() {
+        return this;
       }
 
       @Override
@@ -93,53 +141,47 @@ public abstract class Expression {
       private final String variableName;
     }
 
-    public static AliasedLocation ofAddress(final @Nonnull Formula address) {
-      return new AliasedLocation(address);
+    static AliasedLocation ofAddress(final Formula address) {
+      return new AliasedLocation(checkNotNull(address));
     }
 
-    public static UnaliasedLocation ofVariableName(final @Nonnull String variableName) {
-      return new UnaliasedLocation(variableName);
+    static UnaliasedLocation ofVariableName(final String variableName) {
+      return new UnaliasedLocation(checkNotNull(variableName));
     }
 
-    public boolean isAliased() {
+    boolean isAliased() {
       return this instanceof AliasedLocation;
     }
 
-    public AliasedLocation asAliased() {
-      if (this instanceof AliasedLocation) {
-        return (AliasedLocation) this;
-      } else {
-        return null;
-      }
+    @Override
+    @Deprecated
+    final Location asLocation() {
+      return this;
     }
 
-    public UnaliasedLocation asUnaliased() {
-      if (this instanceof UnaliasedLocation) {
-        return (UnaliasedLocation) this;
-      } else {
-        return null;
-      }
+    @Override
+    final Value asValue() {
+      throw new IllegalStateException();
     }
+
+    abstract AliasedLocation asAliased();
+
+    abstract UnaliasedLocation asUnaliased();
   }
 
-  public static class Value extends Expression {
-    public static class Nondet extends Value {
+  static class Value extends Expression {
+    private static class Nondet extends Value {
       private Nondet() {
         super(null);
       }
 
       @Override
-      public Formula getValue() {
-        return null;
-      }
-
-      @Override
-      public boolean isNondet() {
+      boolean isNondet() {
         return true;
       }
 
       @Override
-      public Kind getKind() {
+      Kind getKind() {
         return Kind.NONDET;
       }
 
@@ -150,21 +192,45 @@ public abstract class Expression {
       }
     }
 
-    private Value(final Formula value) {
+    Value(final @Nullable Formula value) {
       this.value = value;
     }
 
-    public Formula getValue() {
+    @Nullable Formula getValue() {
       return value;
     }
 
-    public boolean isNondet() {
+    boolean isNondet() {
       return false;
     }
 
     @Override
-    public Kind getKind() {
+    Kind getKind() {
       return Kind.DET_VALUE;
+    }
+
+    @Override
+    @Deprecated
+    final Location asLocation() {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    @Deprecated
+    final AliasedLocation asAliasedLocation() {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    @Deprecated
+    final UnaliasedLocation asUnaliasedLocation() {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    @Deprecated
+    final Value asValue() {
+      return this;
     }
 
     @Override
@@ -192,71 +258,52 @@ public abstract class Expression {
       return value != null ? value.hashCode() : 0;
     }
 
-    private final Formula value;
+    private final @Nullable Formula value;
     private static final Value nondet = new Nondet();
   }
 
-  public static Value ofValue(final @Nullable Formula value) {
-    return value != null ? new Value(value) : null;
+  static Value ofValue(final Formula value) {
+    return new Value(checkNotNull(value));
   }
 
-  public static Value nondetValue() {
+  static Value nondetValue() {
     return Value.nondet;
   }
 
-  public boolean isLocation() {
+  boolean isLocation() {
     return this instanceof Location;
   }
 
-  public boolean isValue() {
+  boolean isValue() {
     return this instanceof Value;
   }
 
-  public boolean isNondetValue() {
+  boolean isNondetValue() {
     return this == Value.nondet;
   }
 
-  public boolean isAliasedLocation() {
+  boolean isAliasedLocation() {
     return this.isLocation() && this.asLocation().isAliased();
   }
 
-  public boolean isUnaliasedLocation() {
+  boolean isUnaliasedLocation() {
     return this.isLocation() && !this.asLocation().isAliased();
   }
 
-  public Location asLocation() {
-    if (this instanceof Location) {
-      return (Location) this;
-    } else {
-      return null;
-    }
+  abstract Location asLocation();
+
+  abstract AliasedLocation asAliasedLocation();
+
+  abstract UnaliasedLocation asUnaliasedLocation();
+
+  abstract Value asValue();
+
+  abstract Kind getKind();
+
+  enum Kind {
+    ALIASED_LOCATION,
+    UNALIASED_LOCATION,
+    DET_VALUE,
+    NONDET
   }
-
-  public AliasedLocation asAliasedLocation() {
-    if (this.isLocation()) {
-      return this.asLocation().asAliased();
-    } else {
-      return null;
-    }
-  }
-
-  public UnaliasedLocation asUnaliasedLocation() {
-    if (this.isLocation()) {
-      return this.asLocation().asUnaliased();
-    } else {
-      return null;
-    }
-  }
-
-  public Value asValue() {
-    if (this instanceof Value) {
-      return (Value) this;
-    } else {
-      return null;
-    }
-  }
-
-  public abstract Kind getKind();
-
-  public enum Kind {ALIASED_LOCATION, UNALIASED_LOCATION, DET_VALUE, NONDET}
 }

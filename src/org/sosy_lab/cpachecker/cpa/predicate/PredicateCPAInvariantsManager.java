@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Lists.newArrayList;
-import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
@@ -39,7 +37,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,7 +69,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -87,7 +85,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -105,10 +103,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -126,6 +124,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -196,9 +195,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   )
   private boolean dumpInvariantGenerationAutomata = false;
 
-  @Option(secure = true, description = "Compute invariants with PredicateCPA")
-  private boolean computeInvariants = false;
-
   @Option(
     secure = true,
     deprecatedName = "useInvariantsForAbstraction",
@@ -264,8 +260,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
-  private final AggregatedReachedSetInvariants aggregatedReachedSets;
-  private InvariantSupplier globalInvariantsSupplier;
+  private final FormulaInvariantsSupplier globalInvariants;
   private final Specification specification;
 
   public PredicateCPAInvariantsManager(
@@ -281,16 +276,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    aggregatedReachedSets = new AggregatedReachedSetInvariants(pAggregatedReachedSets, pCfa);
-    globalInvariantsSupplier = aggregatedReachedSets.asInvariantSupplier();
     specification = pSpecification;
-
     cfa = pCfa;
-    semiCNFConverter = new RCNFManager(pConfig);
-  }
 
-  public boolean shouldInvariantsBeComputed() {
-    return computeInvariants;
+    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets, logger);
+    updateGlobalInvariants();
+
+    semiCNFConverter = new RCNFManager(pConfig);
   }
 
   public boolean appendToAbstractionFormula() {
@@ -306,25 +298,22 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   }
 
   public void updateGlobalInvariants() {
-    globalInvariantsSupplier = aggregatedReachedSets.asInvariantSupplier();
+    globalInvariants.updateInvariants();
   }
 
   @Override
   public BooleanFormula getInvariantFor(
       CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
-    Set<BooleanFormula> localInvariants = locationInvariantsCache.get(pNode);
+    Set<BooleanFormula> localInvariants =
+        locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
     BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
 
     if (useGlobalInvariants) {
-      globalInvariant = globalInvariantsSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      globalInvariant = globalInvariants.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
     }
 
-    if (localInvariants == null) {
-      return globalInvariant;
-    } else {
-      return localInvariants.stream().reduce(globalInvariant, (a, b) -> bfmgr.and(a, b));
-    }
+    return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
   }
 
   /**
@@ -413,6 +402,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       final List<ARGState> abstractionStatesTrace,
       final PathFormulaManager pPfmgr,
       final Solver pSolver) {
+
+    updateGlobalInvariants(); // we want to have the newest global invariants available
+
+    // skip without doing anything if we do not have a strategy for invariant generation
+    if (generationStrategy.isEmpty()) {
+      return;
+    }
 
     pfmgr = Preconditions.checkNotNull(pPfmgr);
     solver = Preconditions.checkNotNull(pSolver);
@@ -632,6 +628,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           bfmgr.and(semiCNFConverter.toLemmas(pPathFormula.getFormula(), fmgr));
       Collection<BooleanFormula> conjuncts =
           bfmgr.visit(
+              cnfFormula,
               new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
                 @Override
                 protected List<BooleanFormula> visitDefault() {
@@ -642,8 +639,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 public List<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
                   return operands;
                 }
-              },
-              cnfFormula);
+              });
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
           new StaticCandidateProvider(
@@ -754,7 +750,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
-    InvariantSupplier invSup = invGen.get();
+    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get(), logger);
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {
@@ -776,7 +772,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
 
       if (wasSuccessful) {
-        foundInvariants.addAll(invariants.stream().map(Pair::getFirst).collect(toList()));
+        from(invariants).transform(Pair::getFirst).copyInto(foundInvariants);
       }
 
       return wasSuccessful;
@@ -868,7 +864,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               shutdownNotifier,
               logger);
 
-      infeasiblePrefixes = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr).extractInfeasiblePrefixes(argPath);
+      infeasiblePrefixes =
+          new PredicateBasedPrefixProvider(config, logger, solver, pfmgr, shutdownNotifier)
+              .extractInfeasiblePrefixes(argPath);
     }
 
     @Override
@@ -883,7 +881,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       }
 
       candidates =
-          newArrayList(concat(from(infeasiblePrefixes).transform(TO_LOCATION_CANDIDATE_INVARIANT)));
+          newArrayList(
+              from(infeasiblePrefixes).transformAndConcat(TO_LOCATION_CANDIDATE_INVARIANT));
       trieNum++;
 
       return true;
@@ -905,7 +904,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   interpolants =
                       imgr.buildCounterexampleTrace(
                               pInput.getPathFormulae(),
-                              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+                              ImmutableList.copyOf(abstractionStatesTrace),
                               elementsOnPath,
                               true)
                           .getInterpolants();
@@ -1045,6 +1044,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     public void log(Level pPriority, Object... pArgs) {
       if (wouldBeLogged(pPriority)) {
         logger.log(pPriority, pArgs);
+      }
+    }
+
+    @Override
+    public void log(Level pPriority, Supplier<String> pMsgSupplier) {
+      if (wouldBeLogged(pPriority)) {
+        super.log(pPriority, pMsgSupplier);
       }
     }
 

@@ -204,6 +204,7 @@ public class SMGInterpolationTree {
 
       if (stateHasNonTrivialInterpolant(currentState)) {
         refinementRoots.add(currentState);
+        continue;
       }
 
       Collection<ARGState> successors = successorRelation.get(currentState);
@@ -298,7 +299,16 @@ public class SMGInterpolationTree {
 
       if (stateHasNonTrivialInterpolant(currentState) && !currentState.isTarget()) {
         SMGInterpolant itp = interpolants.get(currentState);
-        increment.put(AbstractStates.extractLocation(currentState), itp.getPrecisionIncrement());
+        SMGPrecisionIncrement inc = itp.getPrecisionIncrement();
+        CFANode loc = AbstractStates.extractLocation(currentState);
+
+        if (increment.containsKey(loc)) {
+          SMGPrecisionIncrement inc2 = increment.get(loc);
+          SMGPrecisionIncrement joinInc = inc.join(inc2);
+          increment.put(loc, joinInc);
+        } else {
+          increment.put(loc, inc);
+        }
       }
 
       if (!stateHasFalseInterpolant(currentState)) {
@@ -454,11 +464,11 @@ public class SMGInterpolationTree {
         sb.append("itp is " + interpolants.get(current.getKey()));
 
         result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");
 
       } else {
         result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");
       }
 
       if (current.getValue().isTarget()) {

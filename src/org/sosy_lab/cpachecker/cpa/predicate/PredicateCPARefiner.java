@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -68,7 +69,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -128,7 +129,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   // the previously analyzed counterexample to detect repeated counterexamples
-  private List<CFANode> lastErrorPath = null;
+  private ImmutableList<CFANode> lastErrorPath = null;
 
   private final PathChecker pathChecker;
 
@@ -182,7 +183,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.get(), pConfig);
     } else {
       loopFinder = null;
-      if (invariantsManager.shouldInvariantsBeComputed() || invariantsManager.addToPrecision()) {
+      if (invariantsManager.addToPrecision()) {
         logger.log(
             Level.WARNING,
             "Invariants should be used during refinement, but loop information is not present.");
@@ -230,8 +231,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     totalRefinement.start();
 
     try {
-      final List<CFANode> errorPath =
-          Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+      final ImmutableList<CFANode> errorPath =
+          ImmutableList.copyOf(
+              Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
       final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
       lastErrorPath = errorPath;
 
@@ -256,9 +258,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       CounterexampleTraceInfo counterexample;
 
+      // find new invariants (this is a noop if no invariants should be used/generated)
+      invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
+
       // Compute invariants if desired, and if the counterexample is not a repeated one
       // (otherwise invariants for the same location didn't help before, so they won't help now).
-      if (!repeatedCounterexample && (invariantsManager.shouldInvariantsBeComputed() || invariantsManager.addToPrecision())) {
+      if (!repeatedCounterexample && invariantsManager.addToPrecision()) {
         counterexample =
             performInvariantsRefinement(
                 allStatesTrace,
@@ -280,7 +285,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             pReached,
             abstractionStatesTrace,
             counterexample.getInterpolants(),
-            repeatedCounterexample && wereInvariantsUsedInLastRefinement);
+            repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
 
         // set some invariants flags, they are necessary to make sure we
         // call performRefinement in a way that it doesn't think it is a repeated
@@ -331,51 +336,39 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final List<BooleanFormula> formulas)
       throws CPAException, InterruptedException {
 
-    // find new invariants
-    invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
-
     CounterexampleTraceInfo counterexample =
         interpolationManager.buildCounterexampleTrace(
             formulas,
             Lists.<AbstractState>newArrayList(abstractionStatesTrace),
             elementsOnPath,
-            !invariantsManager.addToPrecision());
+            false);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       // add invariant precision increment if necessary
-      if (invariantsManager.addToPrecision()) {
-        List<BooleanFormula> precisionIncrement = addInvariants(abstractionStatesTrace);
+      List<BooleanFormula> precisionIncrement = addInvariants(abstractionStatesTrace);
 
-        if (usePathInvariants) {
-          precisionIncrement =
-              addPathInvariants(allStatesTrace, abstractionStatesTrace, precisionIncrement);
-        }
+      if (usePathInvariants) {
+        precisionIncrement =
+            addPathInvariants(allStatesTrace, abstractionStatesTrace, precisionIncrement);
+      }
 
-        if (precisionIncrement.isEmpty()) {
-          // fall-back to interpolation
-          logger.log(
-              Level.FINEST,
-              "Starting interpolation-based refinement because invariant generation was not successful.");
-          return performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
-
-        } else {
-          if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-            ((PredicateAbstractionRefinementStrategy) strategy)
-                .setUseAtomicPredicates(atomicInvariants);
-          }
-          wereInvariantsusedInCurrentRefinement = true;
-          return CounterexampleTraceInfo.infeasible(precisionIncrement);
-        }
+      if (precisionIncrement.isEmpty()) {
+        // fall-back to interpolation
+        logger.log(
+            Level.FINEST,
+            "Starting interpolation-based refinement because invariant generation was not successful.");
+        return performInterpolatingRefinement(abstractionStatesTrace, elementsOnPath, formulas);
 
       } else {
         if (strategy instanceof PredicateAbstractionRefinementStrategy) {
           ((PredicateAbstractionRefinementStrategy) strategy)
-              .setUseAtomicPredicates(atomicInterpolants);
+              .setUseAtomicPredicates(atomicInvariants);
         }
-        return counterexample;
+        wereInvariantsusedInCurrentRefinement = true;
+        return CounterexampleTraceInfo.infeasible(precisionIncrement);
       }
 
     } else {
@@ -384,7 +377,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace) {
-    invariantsManager.updateGlobalInvariants(); // we want to have the newest invariants
     List<BooleanFormula> precisionIncrement = new ArrayList<>();
     boolean invIsTriviallyTrue = true;
 

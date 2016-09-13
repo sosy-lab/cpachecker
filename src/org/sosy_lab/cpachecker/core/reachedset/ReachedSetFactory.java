@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
 public class ReachedSetFactory {
 
   private static enum ReachedSetType {
-    NORMAL, LOCATIONMAPPED, PARTITIONED
+    NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED
   }
 
   @Option(secure=true, name="traversal.order",
@@ -98,7 +98,9 @@ public class ReachedSetFactory {
       + "\nNORMAL: just a simple set"
       + "\nLOCATIONMAPPED: a different set per location "
       + "(faster, states with different locations cannot be merged)"
-      + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)")
+      + "\nPARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)"
+      + "\nPSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states' lattice "
+      + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
   public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
@@ -140,6 +142,9 @@ public class ReachedSetFactory {
     switch (reachedSet) {
     case PARTITIONED:
       return new PartitionedReachedSet(waitlistFactory);
+
+    case PSEUDOPARTITIONED:
+      return new PseudoPartitionedReachedSet(waitlistFactory);
 
     case LOCATIONMAPPED:
       return new LocationMappedReachedSet(waitlistFactory);

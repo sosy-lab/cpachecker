@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.List;
-
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+
+import java.util.List;
 
 /**
  * Sub-interface for {@link AbstractState}s that marks states
@@ -38,25 +37,18 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 public interface AbstractStateWithAssumptions extends AbstractState {
 
   /**
-   * Get the list of assumptions in form of statements.
-   * @return A (possibly empty list) of statements.
-   */
-  List<AStatement> getAssumptions();
-
-  /**
-   * Get the list of assumptions transformed into AssumeEdges.
-   * This might be easier to use by other CPAs.
+   * Get the list of assumptions represented as AssumeEdges.
+   *
+   * Implementors should make sure that only expressions are returned
+   * which would also occur in the CFA, i.e., the expressions should be simplified and normalized.
+   * For example, this means that the expression "x" is not valid
+   * and should "x != 0" instead.
    *
    * Assumptions about function return value are transformed from
-   * "return N;" to "[retVar == N]", where "retVar" is the name of a pseudo variable
+   * "return N;" to "retVar == N", where "retVar" is the name of a pseudo variable
    * (just as {@link AReturnStatement#asAssignment()} does.
    *
-   * The CFANodes attached to the produced edges are not real nodes
-   * and should not be used. In particular, there is no guarantee that the list
-   * of edges corresponds to a connected chain of nodes and edges.
-   *
-   * @param functionName the function name where the assumptions are
    * @return A (possibly empty list) of assume edges.
    */
-  List<AssumeEdge> getAsAssumeEdges(String functionName);
+  List<? extends AExpression> getAssumptions();
 }

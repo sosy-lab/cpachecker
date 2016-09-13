@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/CPAchecker.iml" filepath="$PROJECT_DIR$/.idea/CPAchecker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/CPAchecker.iml" filepath="$PROJECT_DIR$/CPAchecker.iml" />
     </modules>
   </component>
 </project>

@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +38,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -78,7 +84,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Option(secure=true, name="cpa.arg.inCPAEnabledAnalysis",
   description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
-    + "behave differntly during merge.")
+    + "behave differently during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
   @Option(secure=true, name="cpa.arg.deleteInCPAEnabledAnalysis",
@@ -97,7 +103,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
-      ImmutableList.<CounterexampleFilter.Factory>of(
+      ImmutableList.of(
           (config, logger, cpa) -> new PathEqualityCounterexampleFilter(config, logger, cpa));
   private final CounterexampleFilter cexFilter;
 
@@ -112,7 +118,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final MergeOperator mergeOperator;
   private final ARGStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  private final Reducer reducer;
   private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
 
@@ -125,17 +130,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     this.logger = logger;
     abstractDomain = new FlatLatticeDomain();
     transferRelation = new ARGTransferRelation(cpa.getTransferRelation());
-
-    if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)cpa).getReducer();
-      if (wrappedReducer != null) {
-        reducer = new ARGReducer(wrappedReducer);
-      } else {
-        reducer = null;
-      }
-    } else {
-      reducer = null;
-    }
 
     if (cpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker)cpa;
@@ -212,11 +206,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    ConfigurableProgramAnalysis cpa = getWrappedCpa();
+    Preconditions.checkState(
+        cpa instanceof ConfigurableProgramAnalysisWithBAM,
+        "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+    return new ARGReducer(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
@@ -239,7 +237,29 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
-    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, wrappedProofChecker);
+    ARGState element = (ARGState) pElement;
+
+    assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
+
+    AbstractState wrappedState = element.getWrappedState();
+    Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
+    for (AbstractState absElement : pSuccessors) {
+      ARGState successorElem = (ARGState) absElement;
+      wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedState());
+    }
+
+    if (pCfaEdge != null) {
+      return wrappedProofChecker.areAbstractSuccessors(
+          wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
+    }
+
+    for (CFAEdge edge : getOutgoingEdges(element)) {
+      if (!wrappedProofChecker.areAbstractSuccessors(
+          wrappedState, edge, wrappedSuccessors.get(edge))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -261,5 +281,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+
+  @Override
+  public void setPartitioning(BlockPartitioning partitioning) {
+    ConfigurableProgramAnalysis cpa = getWrappedCpa();
+    assert cpa instanceof ConfigurableProgramAnalysisWithBAM;
+    ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
   }
 }

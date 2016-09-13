@@ -23,38 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 
 // requires that function names are unique, no two functions may have the same name although they have different signature
 // currently ensured by parser
-@Options(prefix="cpa.validVars")
-public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
+@Options(prefix = "cpa.validVars")
+public class ValidVarsCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValidVarsCPA")
@@ -64,90 +49,18 @@ public class ValidVarsCPA implements ConfigurableProgramAnalysis, ProofChecker {
     return AutomaticCPAFactory.forType(ValidVarsCPA.class);
   }
 
-  private final AbstractDomain domain;
-  private final TransferRelation transfer;
-  private final MergeOperator merge;
-  private final StopOperator stop;
-
   public ValidVarsCPA(Configuration config) throws InvalidConfigurationException {
+    super("irrelevant", "sep", new ValidVarsDomain(), new ValidVarsTransferRelation());
     config.inject(this);
-
-    domain = new ValidVarsDomain();
-    transfer = new ValidVarsTransferRelation();
-
-    if (mergeType.equals("SEP")) {
-      merge = MergeSepOperator.getInstance();
-    } else {
-      merge = new MergeJoinOperator(domain);
-    }
-
-    stop = new StopSepOperator(domain);
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return domain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transfer;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stop;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return buildMergeOperator(mergeType);
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new ValidVarsState(ValidVars.initial);
   }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    try {
-      Collection<? extends AbstractState> computedSuccessors =
-          transfer.getAbstractSuccessorsForEdge(
-              pState, SingletonPrecision.getInstance(), pCfaEdge);
-      boolean found;
-      for (AbstractState comp:computedSuccessors) {
-        found = false;
-        for (AbstractState e:pSuccessors) {
-          if (isCoveredBy(comp, e)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          return false;
-        }
-      }
-    } catch (CPAException e) {
-      throw new CPATransferException("Cannot compare abstract successors", e);
-    }
-    return true;
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return domain.isLessOrEqual(pState, pOtherState);
-  }
-
 }

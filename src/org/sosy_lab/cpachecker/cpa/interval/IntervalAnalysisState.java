@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.base.Splitter;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -39,13 +34,17 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.IntegerFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.NumeralFormula;
 
-import com.google.common.base.Splitter;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
     AbstractQueryableState, Graphable, FormulaReportingState {
@@ -413,16 +412,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("The modifying query " + pModification + " is an unsupported operation in " + getCPAName() + "!");
-  }
-
-  @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 
@@ -451,7 +440,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr, PathFormulaManager pPfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr) {
     IntegerFormulaManager nfmgr = pMgr.getIntegerFormulaManager();
     List<BooleanFormula> result = new ArrayList<>();
     for (Entry<String, Interval> entry : intervals.entrySet()) {

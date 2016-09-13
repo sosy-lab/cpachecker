@@ -23,13 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -42,7 +36,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 
 /**
@@ -103,10 +103,14 @@ public class BlockPartitioningBuilder {
   }
 
   /**
-   * @param nodes Nodes from which Block should be created; if the set of nodes contains inner function calls, the called function body should NOT be included
+   * @param nodes Nodes from which Block should be created;
+   *              if the set of nodes contains inner function calls, the called
+   *              function body should NOT be included.
+   * @param mainFunction Head of the starting point for the entire CFA.
+   * @param blockHead Entry point for the block.
    */
 
-  public void addBlock(Set<CFANode> nodes, CFANode mainFunction) {
+  public void addBlock(Set<CFANode> nodes, CFANode mainFunction, CFANode blockHead) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
     Set<CFANode> callNodes = collectCallNodes(nodes, mainFunction);
     Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);

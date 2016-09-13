@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,96 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 
-import com.google.common.base.Preconditions;
-
-public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class ThreadingCPA extends AbstractCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadingCPA.class);
   }
 
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final MergeOperator mergeOperator = MergeSepOperator.getInstance();
-  private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
-  private final ConfigurableProgramAnalysis locationCPA;
-  private final ConfigurableProgramAnalysis callstackCPA;
-  private final ThreadingTransferRelation transferRelation;
-
   public ThreadingCPA(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    locationCPA = new LocationCPA(pCfa, config);
-    callstackCPA = new CallstackCPA(config, pLogger, pCfa);
-    transferRelation = new ThreadingTransferRelation(config, callstackCPA, locationCPA, pCfa, pLogger);
+    super("sep", "sep", new ThreadingTransferRelation(config, pCfa, pLogger));
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
-  }
-
-  @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
     String mainThread = pNode.getFunctionName();
-    ThreadingState ts = new ThreadingState();
-    return ts.addThreadAndCopy(mainThread, ThreadingState.MIN_THREAD_NUM,
-            callstackCPA.getInitialState(pNode, pPartition),
-            locationCPA.getInitialState(pNode, pPartition));
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    return ((ThreadingTransferRelation) getTransferRelation())
+        .addNewThread(new ThreadingState(), mainThread, ThreadingState.MIN_THREAD_NUM, mainThread);
   }
 }

@@ -4,7 +4,7 @@ import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast" })
+@SuppressWarnings(value = { "all", "cast", "MissingOverride" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 

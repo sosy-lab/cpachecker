@@ -47,13 +47,13 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
   }
 
   @Override
-  protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if (pNode instanceof FunctionEntryNode) {
-      Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
-      return removeInitialDeclarations(pNode, blockNodes);
+  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+    if (pBlockHead instanceof FunctionEntryNode) {
+      Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
+      return removeInitialDeclarations(pBlockHead, blockNodes);
     }
 
-    return super.getBlockForNode(pNode);
+    return super.getBlockForNode(pBlockHead);
   }
 
   private Set<CFANode> removeInitialDeclarations(CFANode functionNode, Set<CFANode> functionBody) {

@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import java.util.Map;
 import java.util.Set;
 
 public class SMGStateInformation {
@@ -34,32 +32,30 @@ public class SMGStateInformation {
   private static final SMGStateInformation EMPTY = new SMGStateInformation();
 
   private final Set<SMGEdgeHasValue> hvEdges;
-  private final Map<Integer, SMGEdgePointsTo> ptEdges;
+  private final Set<SMGEdgePointsTo> ptEdges;
+  private final boolean valid;
+  private final boolean external;
 
   private SMGStateInformation() {
     hvEdges = ImmutableSet.of();
-    ptEdges = ImmutableMap.of();
+    ptEdges = ImmutableSet.of();
+    valid = false;
+    external = false;
   }
 
-  private SMGStateInformation(Set<SMGEdgeHasValue> pHvEdges, Map<Integer, SMGEdgePointsTo> pPtEdges) {
-    hvEdges = ImmutableSet.copyOf(pHvEdges);
-    ptEdges = ImmutableMap.copyOf(pPtEdges);
+  private SMGStateInformation(Set<SMGEdgeHasValue> pHves,
+      Set<SMGEdgePointsTo> pPtes, boolean pIsRegionValid, boolean pIsRegionExternallyAllocated) {
+    hvEdges = ImmutableSet.copyOf(pHves);
+    ptEdges = ImmutableSet.copyOf(pPtes);
+    valid = pIsRegionValid;
+    external = pIsRegionExternallyAllocated;
   }
 
   public static SMGStateInformation of() {
     return EMPTY;
   }
 
-  public static SMGStateInformation of(Set<SMGEdgeHasValue> pHvEdges, Map<Integer, SMGEdgePointsTo> pPtEdges) {
-    return new SMGStateInformation(pHvEdges, pPtEdges);
-  }
-
-  public static SMGStateInformation of(SMGEdgeHasValue pSmgEdgeHasValue,
-      Map<Integer, SMGEdgePointsTo> pPtEdges) {
-    return new SMGStateInformation(ImmutableSet.of(pSmgEdgeHasValue), pPtEdges);
-  }
-
-  public Map<Integer, SMGEdgePointsTo> getPtEdges() {
+  public Set<SMGEdgePointsTo> getPtEdges() {
     return ptEdges;
   }
 
@@ -67,8 +63,23 @@ public class SMGStateInformation {
     return hvEdges;
   }
 
+  public boolean isValid() {
+    return valid;
+  }
+
+  public boolean isExternal() {
+    return external;
+  }
+
   @Override
   public String toString() {
     return hvEdges.toString() + "\n" + ptEdges.toString();
+  }
+
+  public static SMGStateInformation of(Set<SMGEdgeHasValue> pHves,
+      Set<SMGEdgePointsTo> ptes, boolean pIsRegionValid,
+      boolean pIsRegionExternallyAllocated) {
+    return new SMGStateInformation(pHves, ptes, pIsRegionValid,
+        pIsRegionExternallyAllocated);
   }
 }

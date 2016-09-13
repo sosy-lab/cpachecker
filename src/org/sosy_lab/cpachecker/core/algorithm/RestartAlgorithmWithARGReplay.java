@@ -269,7 +269,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
       Configuration singleConfig,
-      LogManager singleLogger) throws InvalidConfigurationException {
+      LogManager singleLogger) throws InvalidConfigurationException, InterruptedException {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(singleConfig);

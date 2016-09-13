@@ -41,12 +41,15 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
 import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -63,6 +66,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
+import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -107,11 +111,28 @@ class MainCPAStatistics implements Statistics {
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
-  private final Configuration config;
+  @Option(
+    secure = true,
+    name = "cinvariants.export",
+    description = "Output an input file, with invariants embedded as assume constraints."
+  )
+  private boolean cInvariantsExport = false;
+
+  @Option(
+    secure = true,
+    name = "cinvariants.prefix",
+    description =
+        "Prefix to add to an output file, which would contain assumed invariants."
+  )
+  @FileOption(Type.OUTPUT_FILE)
+  private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
   private final CoverageReport coverageReport;
+  private final String analyzedFiles;
+  private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
   private final Timer programTime = new Timer();
@@ -126,11 +147,14 @@ class MainCPAStatistics implements Statistics {
   private @Nullable Statistics cfaCreatorStatistics;
   private @Nullable CFA cfa;
 
-  public MainCPAStatistics(Configuration pConfig, LogManager pLogger)
+  public MainCPAStatistics(
+      Configuration pConfig,
+      LogManager pLogger,
+      String pAnalyzedFiles, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    config = pConfig;
     logger = pLogger;
-    config.inject(this);
+    analyzedFiles = pAnalyzedFiles;
+    pConfig.inject(this);
 
     subStats = new ArrayList<>();
 
@@ -162,7 +186,13 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     }
 
-    coverageReport = new CoverageReport(config, pLogger);
+    coverageReport = new CoverageReport(pConfig, pLogger);
+    if (cInvariantsExport && cInvariantsPrefix != null) {
+      cExpressionInvariantExporter =
+          new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier, cInvariantsPrefix);
+    } else {
+      cExpressionInvariantExporter = null;
+    }
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -265,6 +295,22 @@ class MainCPAStatistics implements Statistics {
       } catch (OutOfMemoryError e) {
         logger.logUserException(Level.WARNING, e,
             "Out of memory while generating statistics about final reached set");
+      }
+
+      if (cExpressionInvariantExporter != null) {
+        try {
+          cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
+        } catch (IOException e) {
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Encountered IO error while generating the invariant as an output program.");
+        } catch (InterruptedException pE) {
+          logger.logUserException(
+              Level.WARNING,
+              pE,
+              "Interrupted while generating the invariant as an output program");
+        }
       }
     }
 

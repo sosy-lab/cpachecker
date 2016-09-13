@@ -89,7 +89,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
     CExpression expression = pCfaEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
     String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
-    return handleAssignmentToVariable(state, assignedVar, expression);
+    return handleAssignmentToVariable(state, assignedVar, expression, pCfaEdge);
   }
 
   @Override
@@ -106,7 +106,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
       String scopedVarId = getScopedVariableNameForNonGlobalVariable(pParameters.get(i).getName(), pCalledFunctionName);
-      mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(edge, state, this)));
+      mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
     ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
     logger.log(Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
@@ -319,7 +319,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     logger.log(Level.FINE, "Declaration: " + scopedId);
     // type x = expression;
     if (init instanceof AInitializerExpression) {
-      return handleAssignmentToVariable(state, scopedId, ((AInitializerExpression)init).getExpression());
+      return handleAssignmentToVariable(state, scopedId, ((AInitializerExpression)init).getExpression(), pCfaEdge);
     }
     // type x;
     // since it is C, we assume it may have any value here
@@ -330,7 +330,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   protected SignState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement) throws CPATransferException {
     // expression is a binary expression e.g. a = b.
     if (pStatement instanceof AAssignment) {
-      return handleAssignment((AAssignment)pStatement);
+      return handleAssignment((AAssignment)pStatement, pCfaEdge);
     }
 
     // only expression expr; does not change state
@@ -342,10 +342,10 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     if (pStatement instanceof AFunctionCallStatement) {
       return state;
     }
-      throw new UnrecognizedCodeException("only assignments are supported at this time", edge);
+      throw new UnrecognizedCodeException("only assignments are supported at this time", pCfaEdge);
   }
 
-  private SignState handleAssignment(AAssignment pAssignExpr)
+  private SignState handleAssignment(AAssignment pAssignExpr, CFAEdge edge)
       throws CPATransferException {
     AExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
@@ -354,13 +354,13 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
         return state;
       }
       String scopedId = getScopedVariableName(left, functionName);
-      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
+      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide(), edge);
     }
     // TODO become more precise, handle &x, (int *) x on right hand side, deal with int* x = s;
     // p->x = .., c.x =
     if (left instanceof CFieldReference) {
       String scopedId = getScopedVariableName(left, functionName);
-      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide());
+      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide(), edge);
     }
 
     // x[index] = ..,
@@ -371,7 +371,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
 
-  private SignState handleAssignmentToVariable(SignState pState, String pVarIdent, ARightHandSide pRightExpr)
+  private SignState handleAssignmentToVariable(SignState pState, String pVarIdent, ARightHandSide pRightExpr, CFAEdge edge)
       throws CPATransferException {
     if (pRightExpr instanceof CRightHandSide) {
       CRightHandSide right = (CRightHandSide)pRightExpr;

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
 
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
@@ -47,8 +50,12 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWi
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class contains smg utilities, for example filters.
@@ -148,7 +155,7 @@ public final class SMGUtils {
 
     @Override
     public CType visit(CArrayType pArrayType) {
-      if (model.getSizeof(pArrayType) % fieldOffset == 0) {
+      if (fieldOffset % model.getSizeof(pArrayType) == 0) {
         return pArrayType.getType();
       } else {
         return UNKNOWN;
@@ -214,5 +221,35 @@ public final class SMGUtils {
     public CType visit(CVoidType pVoidType) {
       return UNKNOWN;
     }
+  }
+
+  public static void plotWhenConfigured(String pSMGName, SMGState pState, String pLocation,
+      LogManager pLogger, SMGExportLevel pLevel, SMGExportDotOption pExportOption) {
+
+    if (pExportOption.exportSMG(pLevel)) {
+      dumpSMGPlot(pLogger, pSMGName, pState, pLocation, pExportOption);
+    }
+  }
+
+  private static void dumpSMGPlot(LogManager pLogger, String pSMGName, SMGState pCurrentState,
+      String pLocation, SMGExportDotOption pExportOption) {
+    if (pCurrentState != null && pExportOption.hasExportPath()) {
+      Path outputFile = pExportOption.getOutputFilePath(pSMGName);
+      dumpSMGPlot(pLogger, pCurrentState, pLocation, outputFile);
+    }
+  }
+
+  public static void dumpSMGPlot(LogManager pLogger, SMGState currentState,
+      String location, Path pOutputFile) {
+    try {
+      String dot = getDot(currentState, location);
+      MoreFiles.writeFile(pOutputFile, Charset.defaultCharset(), dot);
+    } catch (IOException e) {
+      pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
+    }
+  }
+
+  private static String getDot(SMGState pCurrentState, String pLocation) {
+    return pCurrentState.toDot("SMG" + pCurrentState.getId(), pLocation);
   }
 }

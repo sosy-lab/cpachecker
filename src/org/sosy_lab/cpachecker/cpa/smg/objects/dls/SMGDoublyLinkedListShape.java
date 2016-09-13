@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
-public class SMGDoublyLinkedListShape {
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
+
+public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
 
   private final int hfo;
   private final int pfo;
@@ -85,5 +88,14 @@ public class SMGDoublyLinkedListShape {
   @Override
   public String toString() {
     return "SMGDoublyLinkedListShape [hfo=" + hfo + ", pfo=" + pfo + ", nfo=" + nfo + "]";
+  }
+
+  @Override
+  public int compareTo(SMGDoublyLinkedListShape other) {
+    return ComparisonChain.start()
+        .compare(nfo, other.nfo, Ordering.<Integer> natural().nullsFirst())
+        .compare(pfo, other.pfo, Ordering.<Integer> natural().nullsFirst())
+        .compare(hfo, other.hfo, Ordering.<Integer> natural().nullsFirst())
+        .result();
   }
 }

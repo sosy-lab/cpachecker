@@ -23,34 +23,30 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-public class Variable {
+final class Variable {
   private final String name;
   private final CType type;
 
   private Variable(String pName, CType pType) {
-    super();
     name = pName;
     type = pType;
   }
 
-  public String getName() {
+  String getName() {
     return name;
   }
 
-  public CType getType() {
-    assert type != null;
+  CType getType() {
     return type;
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    return result;
+    return name.hashCode();
   }
 
   @Override
@@ -58,21 +54,11 @@ public class Variable {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof Variable)) {
       return false;
     }
     Variable other = (Variable) obj;
-    if (name == null) {
-      if (other.name != null) {
-        return false;
-      }
-    } else if (!name.equals(other.name)) {
-      return false;
-    }
-    return true;
+    return name.equals(other.name);
   }
 
   @Override
@@ -80,15 +66,8 @@ public class Variable {
     return type.toASTString(name);
   }
 
-  public Variable withName(String newName) {
-    return Variable.create(newName, type);
-  }
-
-  public Variable withType(CType pType) {
-    return Variable.create(name, pType);
-  }
-
-  public static Variable create(String pName, CType pT) {
-    return new Variable(pName, pT);
+  static Variable create(String pName, CType pT) {
+    CTypeUtils.checkIsSimplified(pT);
+    return new Variable(checkNotNull(pName), checkNotNull(pT));
   }
 }

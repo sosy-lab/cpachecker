@@ -67,8 +67,10 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
     }
     if (o instanceof LogicalAnd) {
       LogicalAnd<?> other = (LogicalAnd<?>) o;
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2())
-          || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
+      return (getOperand1().equals(other.getOperand1())
+              && getOperand2().equals(other.getOperand2()))
+          || (getOperand1().equals(other.getOperand2())
+              && getOperand2().equals(other.getOperand1()));
     }
     return false;
   }

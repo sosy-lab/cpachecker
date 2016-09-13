@@ -78,7 +78,7 @@ public class PostDominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     return this.parametricDominatorCPA.getInitialState(pNode, pPartition);
   }
 

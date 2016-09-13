@@ -31,7 +31,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 
-public class WeightedGraphRandomIterator implements Iterable<WeightedNode>, Iterator<WeightedNode> {
+public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
 
   private final WeightedGraph wGraph;
   private final int size;
@@ -78,10 +78,5 @@ public class WeightedGraphRandomIterator implements Iterable<WeightedNode>, Iter
     }
     Collections.shuffle(permutation);
     return permutation;
-  }
-
-  @Override
-  public Iterator<WeightedNode> iterator() {
-   return new WeightedGraphRandomIterator(wGraph);
   }
 }

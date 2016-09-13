@@ -28,7 +28,6 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -109,6 +108,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -889,10 +889,14 @@ public class CFASingleLoopTransformation {
       pEdge.getSuccessor().addEnteringSummaryEdge(summaryEdge);
     } else {
       assert predecessor.getNumLeavingEdges() == 0
-          || predecessor.getNumLeavingEdges() <= 1 && pEdge.getEdgeType() == CFAEdgeType.AssumeEdge
-          || predecessor instanceof FunctionExitNode && pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
-          || predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge && pEdge.getEdgeType() == CFAEdgeType.StatementEdge
-          || predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.StatementEdge && pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge;
+          || (predecessor.getNumLeavingEdges() <= 1
+              && pEdge.getEdgeType() == CFAEdgeType.AssumeEdge)
+          || (predecessor instanceof FunctionExitNode
+              && pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)
+          || (predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge
+              && pEdge.getEdgeType() == CFAEdgeType.StatementEdge)
+          || (predecessor.getLeavingEdge(0).getEdgeType() == CFAEdgeType.StatementEdge
+              && pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge);
       predecessor.addLeavingEdge(pEdge);
       pEdge.getSuccessor().addEnteringEdge(pEdge);
     }
@@ -1111,8 +1115,10 @@ public class CFASingleLoopTransformation {
     Map<CFANode, CFANode> newToOld = new LinkedHashMap<>();
     newToOld.put(pOldNode, pNewNode);
     CFAEdge oldEdge;
-    while ((oldEdge = removeNextEnteringEdge(pOldNode)) != null && constantTrue(newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor()))
-        || (oldEdge = removeNextLeavingEdge(pOldNode)) != null && constantTrue(newToOld.put(oldEdge.getSuccessor(), oldEdge.getSuccessor()))) {
+    while (((oldEdge = removeNextEnteringEdge(pOldNode)) != null
+            && constantTrue(newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor())))
+        || ((oldEdge = removeNextLeavingEdge(pOldNode)) != null
+            && constantTrue(newToOld.put(oldEdge.getSuccessor(), oldEdge.getSuccessor())))) {
       CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, newToOld);
       addToNodes(newEdge);
     }

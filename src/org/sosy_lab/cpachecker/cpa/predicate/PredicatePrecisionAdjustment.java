@@ -23,17 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -47,9 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -70,7 +67,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
 
-  private InvariantSupplier invariants;
+  private PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
 
   public PredicatePrecisionAdjustment(
@@ -79,7 +76,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
-      InvariantSupplier pInvariantSupplier,
+      PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider) {
 
     logger = pLogger;
@@ -115,7 +112,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
 
     } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
+      throw new CPAException("Solver Failure: " + e.getMessage(), e);
     } finally {
       totalPrecTime.stop();
     }
@@ -149,16 +146,26 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
-    Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
+    Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
 
     numAbstractions++;
     logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
 
-    // get invariants and add them
-    BooleanFormula invariant =
-        invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula);
+    // update/get invariants and add them, the need to be instantiated
+    // (we do only update global invariants (computed by a parallelalgorithm) here
+    // as everything else can only be computed during refinement)
+    invariants.updateGlobalInvariants();
+    BooleanFormula invariant;
+    if (invariants.appendToPathFormula()) {
+      invariant =
+          fmgr.instantiate(
+              invariants.getInvariantFor(loc, fmgr, pathFormulaManager, pathFormula),
+              pathFormula.getSsa());
+    } else {
+      invariant = fmgr.getBooleanFormulaManager().makeBoolean(true);
+    }
 
     // we don't want to add trivially true invariants
     if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {

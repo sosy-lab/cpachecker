@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
+import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
+import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -71,10 +72,12 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
  *<p>
@@ -98,12 +101,14 @@ import javax.annotation.Nonnull;
  * The class also collects a set of all explicitly addressed variables that is returned by
  * {@link VarFieldDependencies#computeAddressedVariables()}.
  */
+@ParametersAreNonnullByDefault
+@ReturnValuesAreNonnullByDefault
+@FieldsAreNonnullByDefault
 public final class VariableAndFieldRelevancyComputer {
   /** Represents an approximation of a node in dependency graph i.e. variable, field or `top' (unknown location). */
   private abstract static class VariableOrField implements Comparable<VariableOrField> {
     private static final class Unknown extends VariableOrField {
-      private Unknown() {
-      }
+      private Unknown() {}
 
       @Override
       public String toString() {
@@ -143,11 +148,11 @@ public final class VariableAndFieldRelevancyComputer {
     }
 
     private static final class Variable extends VariableOrField {
-      private Variable(final @Nonnull String scopedName) {
+      private Variable(final String scopedName) {
         this.scopedName = scopedName;
       }
 
-      public @Nonnull String getScopedName() {
+      public String getScopedName() {
         return scopedName;
       }
 
@@ -176,7 +181,7 @@ public final class VariableAndFieldRelevancyComputer {
           return 1;
         } else if (other instanceof Field) {
           return -1;
-        } else if (other instanceof Variable){
+        } else if (other instanceof Variable) {
           return scopedName.compareTo(((Variable) other).scopedName);
         } else {
           throw new AssertionError("Should not happen: all cases are covered above");
@@ -188,11 +193,11 @@ public final class VariableAndFieldRelevancyComputer {
         return scopedName.hashCode();
       }
 
-      private final @Nonnull String scopedName;
+      private final String scopedName;
     }
 
     private static final class Field extends VariableOrField {
-      private Field(final @Nonnull CCompositeType composite, final @Nonnull String name) {
+      private Field(final CCompositeType composite, final String name) {
         this.composite = composite;
         this.name = name;
       }
@@ -201,12 +206,12 @@ public final class VariableAndFieldRelevancyComputer {
         return composite;
       }
 
-      public @Nonnull String getName() {
+      public String getName() {
         return name;
       }
 
       @Override
-      public @Nonnull String toString() {
+      public String toString() {
         return composite + SCOPE_SEPARATOR + name;
       }
 
@@ -233,8 +238,7 @@ public final class VariableAndFieldRelevancyComputer {
         } else if (other instanceof Field) {
           final Field o = (Field) other;
           final int result = composite.getQualifiedName().compareTo(o.composite.getQualifiedName());
-          return  result != 0 ? result :
-                  name.compareTo(o.name);
+          return result != 0 ? result : name.compareTo(o.name);
         } else {
           throw new AssertionError("Should not happen: all cases are covered above");
         }
@@ -246,22 +250,21 @@ public final class VariableAndFieldRelevancyComputer {
         return prime * composite.hashCode() + name.hashCode();
       }
 
-      private final @Nonnull CCompositeType composite;
-      private final @Nonnull String name;
+      private final CCompositeType composite;
+      private final String name;
     }
 
-    private VariableOrField() {
-    }
+    private VariableOrField() {}
 
-    public static @Nonnull Variable newVariable(final @Nonnull String scopedName) {
+    public static Variable newVariable(final String scopedName) {
       return new Variable(scopedName);
     }
 
-    public static @Nonnull Field newField(final @Nonnull CCompositeType composite, final @Nonnull String name) {
+    public static Field newField(final CCompositeType composite, final String name) {
       return new Field(composite, name);
     }
 
-    public static @Nonnull Unknown unknown() {
+    public static Unknown unknown() {
       return Unknown.INSTANCE;
     }
 
@@ -277,20 +280,21 @@ public final class VariableAndFieldRelevancyComputer {
       return this instanceof Unknown;
     }
 
-    public @Nonnull Variable asVariable() {
+    public Variable asVariable() {
       if (this instanceof Variable) {
         return (Variable) this;
       } else {
-        throw new ClassCastException("Tried to match " + this.getClass().getName() + " with " +
-                                     Variable.class.getName());
+        throw new ClassCastException(
+            "Tried to match " + this.getClass().getName() + " with " + Variable.class.getName());
       }
     }
 
-    public @Nonnull Field asField() {
+    public Field asField() {
       if (this instanceof Field) {
         return (Field) this;
       } else {
-        throw new ClassCastException("Tried to match " + this.getClass().getName() + " with " + Field.class.getName());
+        throw new ClassCastException(
+            "Tried to match " + this.getClass().getName() + " with " + Field.class.getName());
       }
     }
 
@@ -306,232 +310,291 @@ public final class VariableAndFieldRelevancyComputer {
 
   public static final class VarFieldDependencies {
     @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
-    private static @Nonnull <T> Set<T> copy(final @Nonnull Set<T> source) {
+    private static <T> Set<T> copy(final Set<T> source) {
       if (source instanceof HashSet) {
-        return (Set<T>)((HashSet<T>) source).clone();
+        return (Set<T>) ((HashSet<T>) source).clone();
       } else {
         return new HashSet<>(source);
       }
     }
 
-    private static @Nonnull <T1, T2> Multimap<T1, T2> copy(final @Nonnull Multimap<T1, T2> source) {
+    private static <T1, T2> Multimap<T1, T2> copy(final Multimap<T1, T2> source) {
       return HashMultimap.create(source);
     }
 
-    private VarFieldDependencies(@Nonnull Set<String> relevantVariables,
-       @Nonnull Multimap<CCompositeType, String> relevantFields,
-       @Nonnull Set<String> addressedVariables,
-       @Nonnull Multimap<VariableOrField, VariableOrField> dependencies,
-       @Nonnull PersistentList<VarFieldDependencies> pendingMerges,
-       int currentSize,
-       int pendingSize,
-       final boolean forceSquash) {
-         if (currentSize > 0 && pendingSize > currentSize ||
-             currentSize == 0 && pendingSize >= INITIAL_SIZE ||
-             forceSquash) {
-           relevantVariables = copy(relevantVariables);
-           relevantFields = copy(relevantFields);
-           addressedVariables = copy(addressedVariables);
-           dependencies = copy(dependencies);
-           Queue<PersistentList<VarFieldDependencies>> queue = new ArrayDeque<>();
-           queue.add(pendingMerges);
-           while (!queue.isEmpty()){
-             for (VarFieldDependencies deps : queue.poll()) {
-               for (final String e : deps.relevantVariables) {
-                 relevantVariables.add(e);
-               }
-               for (final Map.Entry<CCompositeType, String> e : deps.relevantFields.entries()) {
-                 relevantFields.put(e.getKey(), e.getValue());
-               }
-               for (final String e : deps.addressedVariables) {
-                 addressedVariables.add(e);
-               }
-               for (final Map.Entry<VariableOrField, VariableOrField> e : deps.dependencies.entries()) {
-                 dependencies.put(e.getKey(), e.getValue());
-               }
-               if (!deps.pendingMerges.isEmpty()) {
-                 queue.add(deps.pendingMerges);
-               }
-             }
-           }
-           pendingMerges = PersistentLinkedList.of();
-           currentSize = currentSize + pendingSize;
-           pendingSize = 0;
-         }
-         this.relevantVariables = relevantVariables;
-         this.relevantFields = relevantFields;
-         this.addressedVariables = addressedVariables;
-         this.dependencies = dependencies;
-         this.pendingMerges = pendingMerges;
-         this.currentSize = currentSize;
-         this.pendingSize = pendingSize;
-     }
-
-    private VarFieldDependencies(final @Nonnull Set<String> relevantVariables,
-        final @Nonnull Multimap<CCompositeType, String> relevantFields,
-        final @Nonnull Set<String> addressedVariables,
-        final @Nonnull Multimap<VariableOrField, VariableOrField> dependencies,
-        final @Nonnull PersistentList<VarFieldDependencies> pendingMerges,
-        final int currentSize,
-        final int pendingSize) {
-        this(relevantVariables, relevantFields, addressedVariables, dependencies, pendingMerges,
-             currentSize, pendingSize, false);
+    private VarFieldDependencies(
+        Set<String> relevantVariables,
+        Multimap<CCompositeType, String> relevantFields,
+        Set<String> addressedVariables,
+        Multimap<VariableOrField, VariableOrField> dependencies,
+        PersistentList<VarFieldDependencies> pendingMerges,
+        int currentSize,
+        int pendingSize,
+        final boolean forceSquash) {
+      if ((currentSize > 0 && pendingSize > currentSize)
+          || (currentSize == 0 && pendingSize >= INITIAL_SIZE)
+          || forceSquash) {
+        relevantVariables = copy(relevantVariables);
+        relevantFields = copy(relevantFields);
+        addressedVariables = copy(addressedVariables);
+        dependencies = copy(dependencies);
+        Queue<PersistentList<VarFieldDependencies>> queue = new ArrayDeque<>();
+        queue.add(pendingMerges);
+        while (!queue.isEmpty()) {
+          for (VarFieldDependencies deps : queue.poll()) {
+            for (final String e : deps.relevantVariables) {
+              relevantVariables.add(e);
+            }
+            for (final Map.Entry<CCompositeType, String> e : deps.relevantFields.entries()) {
+              relevantFields.put(e.getKey(), e.getValue());
+            }
+            for (final String e : deps.addressedVariables) {
+              addressedVariables.add(e);
+            }
+            for (final Map.Entry<VariableOrField, VariableOrField> e :
+                deps.dependencies.entries()) {
+              dependencies.put(e.getKey(), e.getValue());
+            }
+            if (!deps.pendingMerges.isEmpty()) {
+              queue.add(deps.pendingMerges);
+            }
+          }
+        }
+        pendingMerges = PersistentLinkedList.of();
+        currentSize = currentSize + pendingSize;
+        pendingSize = 0;
+      }
+      this.relevantVariables = relevantVariables;
+      this.relevantFields = relevantFields;
+      this.addressedVariables = addressedVariables;
+      this.dependencies = dependencies;
+      this.pendingMerges = pendingMerges;
+      this.currentSize = currentSize;
+      this.pendingSize = pendingSize;
     }
 
-     public static @Nonnull VarFieldDependencies emptyDependencies() {
-       return EMPTY_DEPENDENCIES;
-     }
+    private VarFieldDependencies(
+        final Set<String> relevantVariables,
+        final Multimap<CCompositeType, String> relevantFields,
+        final Set<String> addressedVariables,
+        final Multimap<VariableOrField, VariableOrField> dependencies,
+        final PersistentList<VarFieldDependencies> pendingMerges,
+        final int currentSize,
+        final int pendingSize) {
+      this(
+          relevantVariables,
+          relevantFields,
+          addressedVariables,
+          dependencies,
+          pendingMerges,
+          currentSize,
+          pendingSize,
+          false);
+    }
 
-     public @Nonnull VarFieldDependencies withDependency(final @Nonnull VariableOrField lhs,
-                                                         final @Nonnull VariableOrField rhs) {
-       if (!lhs.isUnknown()) {
-         final VarFieldDependencies singleDependency =
-             new VarFieldDependencies(ImmutableSet.of(),
-                                      ImmutableMultimap.of(),
-                                      ImmutableSet.of(),
-                                      ImmutableMultimap.of(lhs, rhs),
-                                      PersistentLinkedList.of(),
-                                      1, 0);
-         return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                         pendingMerges.with(singleDependency),
-                                         currentSize, pendingSize + 1);
-       } else {
-         if (rhs.isVariable()) {
-           final VarFieldDependencies singleVariable =
-               new VarFieldDependencies(ImmutableSet.of(rhs.asVariable().getScopedName()),
-                                        ImmutableMultimap.of(),
-                                        ImmutableSet.of(),
-                                        ImmutableMultimap.of(),
-                                        PersistentLinkedList.of(),
-                                        1, 0);
-           return new VarFieldDependencies(relevantVariables,relevantFields, addressedVariables, dependencies,
-                                           pendingMerges.with(singleVariable),
-                                           currentSize, pendingSize + 1);
-         } else if (rhs.isField()) {
-           final VariableOrField.Field field = rhs.asField();
-           final VarFieldDependencies singleField =
-               new VarFieldDependencies(ImmutableSet.of(),
-                                        ImmutableMultimap.of(field.getCompositeType(), field.getName()),
-                                        ImmutableSet.of(),
-                                        ImmutableMultimap.of(),
-                                        PersistentLinkedList.of(),
-                                        1, 0);
-           return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                           pendingMerges.with(singleField),
-                                           currentSize, pendingSize + 1);
-         } else if (rhs.isUnknown()) {
-           throw new IllegalArgumentException("Can't handle dependency on Unknown");
-         } else {
-           throw new AssertionError("Should be unreachable: all possible cases already handled");
-         }
-       }
-     }
+    public static VarFieldDependencies emptyDependencies() {
+      return EMPTY_DEPENDENCIES;
+    }
 
-     public @Nonnull VarFieldDependencies withAddressedVariable(final @Nonnull VariableOrField.Variable variable) {
-       final VarFieldDependencies singleVariable =
-           new VarFieldDependencies(ImmutableSet.of(),
-                                    ImmutableMultimap.of(),
-                                    ImmutableSet.of(variable.getScopedName()),
-                                    ImmutableMultimap.of(),
-                                    PersistentLinkedList.of(),
-                                    1, 0);
-       return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                       pendingMerges.with(singleVariable),
-                                       currentSize, pendingSize + 1);
-     }
+    public VarFieldDependencies withDependency(
+        final VariableOrField lhs, final VariableOrField rhs) {
+      if (!lhs.isUnknown()) {
+        final VarFieldDependencies singleDependency =
+            new VarFieldDependencies(
+                ImmutableSet.of(),
+                ImmutableMultimap.of(),
+                ImmutableSet.of(),
+                ImmutableMultimap.of(lhs, rhs),
+                PersistentLinkedList.of(),
+                1,
+                0);
+        return new VarFieldDependencies(
+            relevantVariables,
+            relevantFields,
+            addressedVariables,
+            dependencies,
+            pendingMerges.with(singleDependency),
+            currentSize,
+            pendingSize + 1);
+      } else {
+        if (rhs.isVariable()) {
+          final VarFieldDependencies singleVariable =
+              new VarFieldDependencies(
+                  ImmutableSet.of(rhs.asVariable().getScopedName()),
+                  ImmutableMultimap.of(),
+                  ImmutableSet.of(),
+                  ImmutableMultimap.of(),
+                  PersistentLinkedList.of(),
+                  1,
+                  0);
+          return new VarFieldDependencies(
+              relevantVariables,
+              relevantFields,
+              addressedVariables,
+              dependencies,
+              pendingMerges.with(singleVariable),
+              currentSize,
+              pendingSize + 1);
+        } else if (rhs.isField()) {
+          final VariableOrField.Field field = rhs.asField();
+          final VarFieldDependencies singleField =
+              new VarFieldDependencies(
+                  ImmutableSet.of(),
+                  ImmutableMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableSet.of(),
+                  ImmutableMultimap.of(),
+                  PersistentLinkedList.of(),
+                  1,
+                  0);
+          return new VarFieldDependencies(
+              relevantVariables,
+              relevantFields,
+              addressedVariables,
+              dependencies,
+              pendingMerges.with(singleField),
+              currentSize,
+              pendingSize + 1);
+        } else if (rhs.isUnknown()) {
+          throw new IllegalArgumentException("Can't handle dependency on Unknown");
+        } else {
+          throw new AssertionError("Should be unreachable: all possible cases already handled");
+        }
+      }
+    }
 
-     public @Nonnull VarFieldDependencies withDependencies(final @Nonnull VarFieldDependencies other) {
-       if (currentSize + pendingSize == 0) {
-         return other;
-       }
-       if (other.currentSize + other.pendingSize == 0) {
-         return this;
-       }
-       // This shouldn't matter much as merging has linear complexity anyway
-       // But probably we can get slightly faster by cloning the larger hash sets and iterating over smaller ones
-       // As we don't have exact hash set sizes this is only a heuristic
-       if (currentSize >= other.currentSize) {
-         return new VarFieldDependencies(relevantVariables, relevantFields, addressedVariables, dependencies,
-                                         pendingMerges.with(other),
-                                         currentSize, pendingSize + other.currentSize + other.pendingSize);
-       } else {
-         return new VarFieldDependencies(other.relevantVariables, other.relevantFields, other.addressedVariables,
-                                         other.dependencies,
-                                         other.pendingMerges.with(this),
-                                         other.currentSize, other.pendingSize + currentSize + pendingSize);
-       }
-     }
+    public VarFieldDependencies withAddressedVariable(final VariableOrField.Variable variable) {
+      final VarFieldDependencies singleVariable =
+          new VarFieldDependencies(
+              ImmutableSet.of(),
+              ImmutableMultimap.of(),
+              ImmutableSet.of(variable.getScopedName()),
+              ImmutableMultimap.of(),
+              PersistentLinkedList.of(),
+              1,
+              0);
+      return new VarFieldDependencies(
+          relevantVariables,
+          relevantFields,
+          addressedVariables,
+          dependencies,
+          pendingMerges.with(singleVariable),
+          currentSize,
+          pendingSize + 1);
+    }
 
-     private void ensureSquashed() {
-       if (squashed == null) {
-         squashed = new VarFieldDependencies(relevantVariables,
-                                             relevantFields, addressedVariables, dependencies, pendingMerges,
-                                             currentSize, pendingSize, true);
-       }
-     }
+    public VarFieldDependencies withDependencies(final VarFieldDependencies other) {
+      if (currentSize + pendingSize == 0) {
+        return other;
+      }
+      if (other.currentSize + other.pendingSize == 0) {
+        return this;
+      }
+      // This shouldn't matter much as merging has linear complexity anyway
+      // But probably we can get slightly faster by cloning the larger hash sets and iterating over smaller ones
+      // As we don't have exact hash set sizes this is only a heuristic
+      if (currentSize >= other.currentSize) {
+        return new VarFieldDependencies(
+            relevantVariables,
+            relevantFields,
+            addressedVariables,
+            dependencies,
+            pendingMerges.with(other),
+            currentSize,
+            pendingSize + other.currentSize + other.pendingSize);
+      } else {
+        return new VarFieldDependencies(
+            other.relevantVariables,
+            other.relevantFields,
+            other.addressedVariables,
+            other.dependencies,
+            other.pendingMerges.with(this),
+            other.currentSize,
+            other.pendingSize + currentSize + pendingSize);
+      }
+    }
 
-     public ImmutableSet<String> computeAddressedVariables() {
-       ensureSquashed();
-       return ImmutableSet.copyOf(squashed.addressedVariables);
-     }
+    private void ensureSquashed() {
+      if (squashed == null) {
+        squashed =
+            new VarFieldDependencies(
+                relevantVariables,
+                relevantFields,
+                addressedVariables,
+                dependencies,
+                pendingMerges,
+                currentSize,
+                pendingSize,
+                true);
+      }
+    }
 
-     public Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> computeRelevantVariablesAndFields() {
-       ensureSquashed();
-       Queue<VariableOrField> queue = new ArrayDeque<>(squashed.relevantVariables.size() +
-                                                       squashed.relevantFields.size());
-       Set<String> currentRelevantVariables = copy(squashed.relevantVariables);
-       Multimap<CCompositeType, String> currentRelevantFields = copy(squashed.relevantFields);
-       for (final String relevantVariable : squashed.relevantVariables) {
-         queue.add(VariableOrField.newVariable(relevantVariable));
-       }
-       for (final Map.Entry<CCompositeType, String> relevantField : squashed.relevantFields.entries()) {
-         queue.add(VariableOrField.newField(relevantField.getKey(), relevantField.getValue()));
-       }
-       while (!queue.isEmpty()) {
-         for (VariableOrField variableOrField : squashed.dependencies.get(queue.poll())) {
-           assert variableOrField.isVariable() || variableOrField.isField() :
-             "Match failure: neither variable nor field!";
-           if (variableOrField.isVariable()) {
-             final VariableOrField.Variable variable = variableOrField.asVariable();
-             if (currentRelevantVariables.add(variable.getScopedName())) {
-               queue.add(variable);
-             }
-           } else { // Field
-             final VariableOrField.Field field = variableOrField.asField();
-             if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
-               queue.add(field);
-             }
-           }
-         }
-       }
+    public ImmutableSet<String> computeAddressedVariables() {
+      ensureSquashed();
+      return ImmutableSet.copyOf(squashed.addressedVariables);
+    }
 
-       return Pair.of(ImmutableSet.copyOf(currentRelevantVariables), ImmutableMultimap.copyOf(currentRelevantFields));
-     }
+    public Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>>
+        computeRelevantVariablesAndFields() {
+      ensureSquashed();
+      Queue<VariableOrField> queue =
+          new ArrayDeque<>(squashed.relevantVariables.size() + squashed.relevantFields.size());
+      Set<String> currentRelevantVariables = copy(squashed.relevantVariables);
+      Multimap<CCompositeType, String> currentRelevantFields = copy(squashed.relevantFields);
+      for (final String relevantVariable : squashed.relevantVariables) {
+        queue.add(VariableOrField.newVariable(relevantVariable));
+      }
+      for (final Map.Entry<CCompositeType, String> relevantField :
+          squashed.relevantFields.entries()) {
+        queue.add(VariableOrField.newField(relevantField.getKey(), relevantField.getValue()));
+      }
+      while (!queue.isEmpty()) {
+        for (VariableOrField variableOrField : squashed.dependencies.get(queue.poll())) {
+          assert variableOrField.isVariable() || variableOrField.isField()
+              : "Match failure: neither variable nor field!";
+          if (variableOrField.isVariable()) {
+            final VariableOrField.Variable variable = variableOrField.asVariable();
+            if (currentRelevantVariables.add(variable.getScopedName())) {
+              queue.add(variable);
+            }
+          } else { // Field
+            final VariableOrField.Field field = variableOrField.asField();
+            if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
+              queue.add(field);
+            }
+          }
+        }
+      }
 
-     private final Set<String> relevantVariables;
-     private final Multimap<CCompositeType, String> relevantFields;
-     private final Set<String> addressedVariables;
-     private final Multimap<VariableOrField, VariableOrField> dependencies;
-     private final PersistentList<VarFieldDependencies> pendingMerges;
-     private final int currentSize, pendingSize;
-     private VarFieldDependencies squashed = null;
+      return Pair.of(
+          ImmutableSet.copyOf(currentRelevantVariables),
+          ImmutableMultimap.copyOf(currentRelevantFields));
+    }
 
-     private static final int INITIAL_SIZE = 500;
-     private static final VarFieldDependencies EMPTY_DEPENDENCIES =
-         new VarFieldDependencies(ImmutableSet.of(),
-                                  ImmutableMultimap.of(),
-                                  ImmutableSet.of(),
-                                  ImmutableMultimap.of(),
-                                  PersistentLinkedList.of(),
-                                  0, 0);
+    private final Set<String> relevantVariables;
+    private final Multimap<CCompositeType, String> relevantFields;
+    private final Set<String> addressedVariables;
+    private final Multimap<VariableOrField, VariableOrField> dependencies;
+    private final PersistentList<VarFieldDependencies> pendingMerges;
+    private final int currentSize, pendingSize;
+    private @Nullable VarFieldDependencies squashed = null;
+
+    private static final int INITIAL_SIZE = 500;
+    private static final VarFieldDependencies EMPTY_DEPENDENCIES =
+        new VarFieldDependencies(
+            ImmutableSet.of(),
+            ImmutableMultimap.of(),
+            ImmutableSet.of(),
+            ImmutableMultimap.of(),
+            PersistentLinkedList.of(),
+            0,
+            0);
   }
 
   private static final class CollectingLHSVisitor
-    extends DefaultCExpressionVisitor<Pair<VariableOrField, VarFieldDependencies>, RuntimeException> {
+      extends DefaultCExpressionVisitor<
+          Pair<VariableOrField, VarFieldDependencies>, RuntimeException> {
 
-    private CollectingLHSVisitor () {
-
-    }
+    private CollectingLHSVisitor() {}
 
     public static CollectingLHSVisitor instance() {
       return INSTANCE;
@@ -540,21 +603,32 @@ public final class VariableAndFieldRelevancyComputer {
     @Override
     public Pair<VariableOrField, VarFieldDependencies> visit(final CArraySubscriptExpression e) {
       final Pair<VariableOrField, VarFieldDependencies> r = e.getArrayExpression().accept(this);
-      return Pair.of(r.getFirst(), r.getSecond().withDependencies(
-                                                         e.getSubscriptExpression()
-                                                          .accept(CollectingRHSVisitor.create(r.getFirst()))));
+      return Pair.of(
+          r.getFirst(),
+          r.getSecond()
+              .withDependencies(
+                  e.getSubscriptExpression().accept(CollectingRHSVisitor.create(r.getFirst()))));
     }
 
     @Override
     public Pair<VariableOrField, VarFieldDependencies> visit(final CFieldReference e) {
-      final VariableOrField result = VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName());
-      return Pair.of(result, e.getFieldOwner().accept(CollectingRHSVisitor.create(result)));
+      final VariableOrField result =
+          VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName());
+      // Do not remove explicit type inference, otherwise build fails with IntelliJ
+      return Pair.of(
+          result,
+          e.getFieldOwner()
+              .<VarFieldDependencies, RuntimeException>accept(CollectingRHSVisitor.create(result)));
     }
 
     @Override
     public Pair<VariableOrField, VarFieldDependencies> visit(final CPointerExpression e) {
-      return Pair.of(VariableOrField.unknown(),
-                     e.getOperand().accept(CollectingRHSVisitor.create(VariableOrField.unknown())));
+      // Do not remove explicit type inference, otherwise build fails with IntelliJ
+      return Pair.of(
+          VariableOrField.unknown(),
+          e.getOperand()
+              .<VarFieldDependencies, RuntimeException>accept(
+                  CollectingRHSVisitor.create(VariableOrField.unknown())));
     }
 
     @Override
@@ -563,18 +637,19 @@ public final class VariableAndFieldRelevancyComputer {
     }
 
     @Override
-    public Pair<VariableOrField, VarFieldDependencies>visit(final CCastExpression e) {
+    public Pair<VariableOrField, VarFieldDependencies> visit(final CCastExpression e) {
       return e.getOperand().accept(this);
     }
 
     @Override
     public Pair<VariableOrField, VarFieldDependencies> visit(final CIdExpression e) {
-      return Pair.of(VariableOrField.newVariable(e.getDeclaration().getQualifiedName()),
-                     VarFieldDependencies.emptyDependencies());
+      return Pair.of(
+          VariableOrField.newVariable(e.getDeclaration().getQualifiedName()),
+          VarFieldDependencies.emptyDependencies());
     }
 
     @Override
-    protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e)  {
+    protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
       throw new AssertionError("The expression should not occur in the left hand side");
     }
 
@@ -582,15 +657,15 @@ public final class VariableAndFieldRelevancyComputer {
   }
 
   private static final class CollectingRHSVisitor
-    extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
-    implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
+      extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
+      implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
 
-    private CollectingRHSVisitor(final @Nonnull VariableOrField lhs, final boolean addressed) {
+    private CollectingRHSVisitor(final VariableOrField lhs, final boolean addressed) {
       this.lhs = lhs;
       this.addressed = addressed;
     }
 
-    public static CollectingRHSVisitor create(final @Nonnull VariableOrField lhs) {
+    public static CollectingRHSVisitor create(final VariableOrField lhs) {
       return new CollectingRHSVisitor(lhs, false);
     }
 
@@ -600,14 +675,17 @@ public final class VariableAndFieldRelevancyComputer {
 
     @Override
     public VarFieldDependencies visit(final CArraySubscriptExpression e) {
-      return e.getSubscriptExpression().accept(this).withDependencies(e.getArrayExpression().accept(this));
+      return e.getSubscriptExpression()
+          .accept(this)
+          .withDependencies(e.getArrayExpression().accept(this));
     }
 
     @Override
     public VarFieldDependencies visit(final CFieldReference e) {
-      return e.getFieldOwner().accept(this).withDependency(lhs,
-                                                           VariableOrField.newField(getCanonicalFieldOwnerType(e),
-                                                                                    e.getFieldName()));
+      return e.getFieldOwner()
+          .accept(this)
+          .withDependency(
+              lhs, VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName()));
     }
 
     @Override
@@ -642,9 +720,10 @@ public final class VariableAndFieldRelevancyComputer {
     @Override
     public VarFieldDependencies visit(final CIdExpression e) {
       final CSimpleDeclaration decl = e.getDeclaration();
-      final VariableOrField.Variable variable = VariableOrField.newVariable(decl != null ? decl.getQualifiedName() :
-                                                                                           e.getName());
-      final VarFieldDependencies result = VarFieldDependencies.emptyDependencies().withDependency(lhs, variable);
+      final VariableOrField.Variable variable =
+          VariableOrField.newVariable(decl != null ? decl.getQualifiedName() : e.getName());
+      final VarFieldDependencies result =
+          VarFieldDependencies.emptyDependencies().withDependency(lhs, variable);
       if (addressed) {
         return result.withAddressedVariable(variable);
       }
@@ -661,33 +740,40 @@ public final class VariableAndFieldRelevancyComputer {
     }
 
     @Override
-    protected VarFieldDependencies visitDefault(final CExpression e)  {
+    protected VarFieldDependencies visitDefault(final CExpression e) {
       return VarFieldDependencies.emptyDependencies();
     }
 
-    private final @Nonnull VariableOrField lhs;
+    private final VariableOrField lhs;
     private final boolean addressed;
   }
 
-  private static CCompositeType getCanonicalFieldOwnerType(final @Nonnull CFieldReference fieldReference) {
+  private static CCompositeType getCanonicalFieldOwnerType(final CFieldReference fieldReference) {
     CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
 
     if (fieldOwnerType instanceof CPointerType) {
       fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
     }
     assert fieldOwnerType instanceof CCompositeType
-        : "Field owner should have composite type, but the field-owner type of expression " + fieldReference
-          + " in " + fieldReference.getFileLocation()
-          + " is " + fieldOwnerType + ", which is a " + fieldOwnerType.getClass().getSimpleName() + ".";
+        : "Field owner should have composite type, but the field-owner type of expression "
+            + fieldReference
+            + " in "
+            + fieldReference.getFileLocation()
+            + " is "
+            + fieldOwnerType
+            + ", which is a "
+            + fieldOwnerType.getClass().getSimpleName()
+            + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
     // Currently we don't pay attention to possible const and volatile modifiers
     if (compositeType.isConst() || compositeType.isVolatile()) {
-      return new CCompositeType(false,
-                                false,
-                                compositeType.getKind(),
-                                compositeType.getMembers(),
-                                compositeType.getName(),
-                                compositeType.getOrigName());
+      return new CCompositeType(
+          false,
+          false,
+          compositeType.getKind(),
+          compositeType.getMembers(),
+          compositeType.getName(),
+          compositeType.getOrigName());
     } else {
       return compositeType;
     }
@@ -697,102 +783,128 @@ public final class VariableAndFieldRelevancyComputer {
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
 
     switch (edge.getEdgeType()) {
-
-    case AssumeEdge: {
-      final CExpression exp = ((CAssumeEdge) edge).getExpression();
-      result = result.withDependencies(exp.accept(CollectingRHSVisitor.create(VariableOrField.unknown())));
-      break;
-    }
-
-    case DeclarationEdge: {
-      final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-      if (!(decl instanceof CVariableDeclaration)) {
-        break;
-      }
-      for (CExpressionAssignmentStatement init :
-           CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
-        Pair<VariableOrField, VarFieldDependencies> r = init.getLeftHandSide()
-                                                            .accept(CollectingLHSVisitor.instance());
-        result = result.withDependencies(r.getSecond().withDependencies(init.getRightHandSide().accept(
-                                                                          CollectingRHSVisitor.create(r.getFirst()))));
-      }
-      break;
-    }
-
-    case StatementEdge: {
-      final CStatement statement = ((CStatementEdge) edge).getStatement();
-      // Heuristic: for external function calls
-      // r = f(a); // r depends on f and a, BUT
-      // f(a); // f and a are always relevant
-      if (statement instanceof CAssignment) {
-        final CAssignment assignment = (CAssignment) statement;
-        final CRightHandSide rhs = assignment.getRightHandSide();
-        final Pair<VariableOrField, VarFieldDependencies> r = assignment.getLeftHandSide().accept(
-                                                                                      CollectingLHSVisitor.instance());
-        if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
-          result = result.withDependencies(r.getSecond().withDependencies(rhs.accept(CollectingRHSVisitor
-                                                                                              .create(r.getFirst()))));
-        } else {
-          throw new UnrecognizedCCodeException("Unhandled assignment", edge, assignment);
+      case AssumeEdge:
+        {
+          final CExpression exp = ((CAssumeEdge) edge).getExpression();
+          result =
+              result.withDependencies(
+                  exp.accept(CollectingRHSVisitor.create(VariableOrField.unknown())));
+          break;
         }
-      } else if (statement instanceof CFunctionCallStatement) {
-        ((CFunctionCallStatement) statement).getFunctionCallExpression().accept(CollectingRHSVisitor.create(
-                                                                                           VariableOrField.unknown()));
-      }
-      break;
-    }
 
-    case FunctionCallEdge: {
-      final CFunctionCallEdge call = (CFunctionCallEdge) edge;
-      final List<CExpression> args = call.getArguments();
-      final List<CParameterDeclaration> params = call.getSuccessor().getFunctionParameters();
-      for (int i = 0; i < params.size(); i++) {
-        result = result.withDependencies(args.get(i).accept(
-            CollectingRHSVisitor.create(VariableOrField.newVariable(params.get(i).getQualifiedName()))));
-      }
-      CFunctionCall statement = call.getSummaryEdge().getExpression();
-      Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
-      if (returnVar.isPresent()) {
-        String scopedRetVal = returnVar.get().getQualifiedName();
-        if (statement instanceof CFunctionCallAssignmentStatement) {
-          final Pair<VariableOrField, VarFieldDependencies> r =
-                                                      ((CFunctionCallAssignmentStatement) statement)
-                                                        .getLeftHandSide().accept(CollectingLHSVisitor.instance());
-          result = result.withDependencies(r.getSecond()).withDependency(r.getFirst(),
-                                                                         VariableOrField.newVariable(scopedRetVal));
+      case DeclarationEdge:
+        {
+          final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+          if (!(decl instanceof CVariableDeclaration)) {
+            break;
+          }
+          for (CExpressionAssignmentStatement init :
+              CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
+            Pair<VariableOrField, VarFieldDependencies> r =
+                init.getLeftHandSide().accept(CollectingLHSVisitor.instance());
+            result =
+                result.withDependencies(
+                    r.getSecond()
+                        .withDependencies(
+                            init.getRightHandSide()
+                                .accept(CollectingRHSVisitor.create(r.getFirst()))));
+          }
+          break;
         }
-      }
-      break;
-    }
 
-    case FunctionReturnEdge: {
-      break;
-    }
+      case StatementEdge:
+        {
+          final CStatement statement = ((CStatementEdge) edge).getStatement();
+          // Heuristic: for external function calls
+          // r = f(a); // r depends on f and a, BUT
+          // f(a); // f and a are always relevant
+          if (statement instanceof CAssignment) {
+            final CAssignment assignment = (CAssignment) statement;
+            final CRightHandSide rhs = assignment.getRightHandSide();
+            final Pair<VariableOrField, VarFieldDependencies> r =
+                assignment.getLeftHandSide().accept(CollectingLHSVisitor.instance());
+            if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
+              result =
+                  result.withDependencies(
+                      r.getSecond()
+                          .withDependencies(rhs.accept(CollectingRHSVisitor.create(r.getFirst()))));
+            } else {
+              throw new UnrecognizedCCodeException("Unhandled assignment", edge, assignment);
+            }
+          } else if (statement instanceof CFunctionCallStatement) {
+            ((CFunctionCallStatement) statement)
+                .getFunctionCallExpression()
+                .accept(CollectingRHSVisitor.create(VariableOrField.unknown()));
+          }
+          break;
+        }
 
-    case ReturnStatementEdge: {
-      // this is the 'x' from 'return (x);
-      // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
-      final CReturnStatementEdge ret = (CReturnStatementEdge) edge;
-      if (ret.asAssignment().isPresent()) {
-        final Pair<VariableOrField, VarFieldDependencies> r = ret.asAssignment()
-                                                                 .get().getLeftHandSide()
-                                                                 .accept(CollectingLHSVisitor.instance());
-        result = result.withDependencies(r.getSecond().withDependencies(ret.asAssignment()
-                                                                           .get().getRightHandSide()
-                                                                           .accept(CollectingRHSVisitor.create(
-                                                                                                       r.getFirst()))));
-      }
-      break;
-    }
+      case FunctionCallEdge:
+        {
+          final CFunctionCallEdge call = (CFunctionCallEdge) edge;
+          final List<CExpression> args = call.getArguments();
+          final List<CParameterDeclaration> params = call.getSuccessor().getFunctionParameters();
+          for (int i = 0; i < params.size(); i++) {
+            result =
+                result.withDependencies(
+                    args.get(i)
+                        .accept(
+                            CollectingRHSVisitor.create(
+                                VariableOrField.newVariable(params.get(i).getQualifiedName()))));
+          }
+          CFunctionCall statement = call.getSummaryEdge().getExpression();
+          Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
+          if (returnVar.isPresent()) {
+            String scopedRetVal = returnVar.get().getQualifiedName();
+            if (statement instanceof CFunctionCallAssignmentStatement) {
+              final Pair<VariableOrField, VarFieldDependencies> r =
+                  ((CFunctionCallAssignmentStatement) statement)
+                      .getLeftHandSide()
+                      .accept(CollectingLHSVisitor.instance());
+              result =
+                  result
+                      .withDependencies(r.getSecond())
+                      .withDependency(r.getFirst(), VariableOrField.newVariable(scopedRetVal));
+            }
+          }
+          break;
+        }
 
-    case BlankEdge:
-    case CallToReturnEdge: {
-      break;
-    }
+      case FunctionReturnEdge:
+        {
+          break;
+        }
 
-    default: {
-      throw new UnrecognizedCCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
-    }
+      case ReturnStatementEdge:
+        {
+          // this is the 'x' from 'return (x);
+          // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
+          final CReturnStatementEdge ret = (CReturnStatementEdge) edge;
+          if (ret.asAssignment().isPresent()) {
+            final Pair<VariableOrField, VarFieldDependencies> r =
+                ret.asAssignment().get().getLeftHandSide().accept(CollectingLHSVisitor.instance());
+            result =
+                result.withDependencies(
+                    r.getSecond()
+                        .withDependencies(
+                            ret.asAssignment()
+                                .get()
+                                .getRightHandSide()
+                                .accept(CollectingRHSVisitor.create(r.getFirst()))));
+          }
+          break;
+        }
+
+      case BlankEdge:
+      case CallToReturnEdge:
+        {
+          break;
+        }
+
+      default:
+        {
+          throw new UnrecognizedCCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
+        }
     }
 
     return result;

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
@@ -67,9 +68,11 @@ final class SMGJoinTargetObjects {
 
   private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
                                             Integer pAddress1, Integer pAddress2) {
-    if ((! pObj1.notNull()) && (! pObj2.notNull()) ||
-        (pJto.mapping1.containsKey(pObj1) && pJto.mapping2.containsKey(pObj2) && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
-      SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.destSMG, pJto.mapping1,
+    if ((!pObj1.notNull() && !pObj2.notNull())
+        || (pJto.mapping1.containsKey(pObj1)
+            && pJto.mapping2.containsKey(pObj2)
+            && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
+      SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.inputSMG2, pJto.destSMG, pJto.mapping1,
                                                         pJto.mapping2, pAddress1,
                                                         pAddress2);
       pJto.defined = true;
@@ -97,8 +100,8 @@ final class SMGJoinTargetObjects {
 
   public SMGJoinTargetObjects(SMGJoinStatus pStatus,
                               SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, boolean pIncreaseLevel, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMapping,
+                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
@@ -149,26 +152,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    SMGObject objectToJoin1;
-    SMGObject objectToJoin2;
-
-    /* If destination Smg already contains target1, it can't be used
-     * as join Object, a new object has to be created.
-     */
-    if (destSMG.getObjects().contains(target1)
-        && (target1.isAbstract() || !(target2.isAbstract()))) {
-      objectToJoin1 = target1.copy();
-      objectToJoin2 = target2;
-    } else if (destSMG.getObjects().contains(target2) && target2.isAbstract()
-        && !(target1.isAbstract())) {
-      objectToJoin2 = target2.copy();
-      objectToJoin1 = target1;
-    } else {
-      objectToJoin1 = target1;
-      objectToJoin2 = target2;
-    }
-
-    SMGObject newObject = objectToJoin1.join(objectToJoin2, pIncreaseLevel);
+    SMGObject newObject = target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
@@ -183,15 +167,16 @@ final class SMGJoinTargetObjects {
     mapping1.map(target1, newObject);
     mapping2.map(target2, newObject);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, destSMG, mapping1, mapping2, pAddress1, pAddress2);
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
     mapping1 = mta.getMapping1();
     mapping2 = mta.getMapping2();
     value = mta.getValue();
 
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
-                                            mapping1, mapping2,
-                                            target1, target2, newObject, ldiff, pIncreaseLevel, identicalInputSmgs, pSmgState1, pSmgState2);
+        mapping1, mapping2, pLevelMapping,
+        target1, target2, newObject, ldiff, identicalInputSmgs, pSmgState1, pSmgState2);
+
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();

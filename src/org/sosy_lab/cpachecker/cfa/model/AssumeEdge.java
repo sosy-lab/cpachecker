@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import java.util.Optional;
 
@@ -34,6 +34,11 @@ public class AssumeEdge extends AbstractCFAEdge {
   private final boolean truthAssumption;
   protected final AExpression expression;
 
+
+  /**
+   * @param pTruthAssumption If set to false, the expression is assumed to be
+   *                         negated.
+   */
   protected AssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, AExpression pExpression, boolean pTruthAssumption) {
 

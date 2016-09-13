@@ -24,19 +24,28 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation}
@@ -44,18 +53,26 @@ import java.util.List;
  */
 public class TerminationARGPath extends ARGPath {
 
-  private final TerminationTransferRelation terminationTransferRelation;
+  private final TerminationLoopInformation terminationInformation;
+
+  // Construct full path at most once.
+  @Nullable private List<CFAEdge> terminationFullPath = null;
 
   public TerminationARGPath(
-      ARGPath pBasicArgPath, TerminationTransferRelation pTerminationTransferRelation) {
+      ARGPath pBasicArgPath, TerminationLoopInformation pTerminationInformation) {
     super(pBasicArgPath);
-    terminationTransferRelation = checkNotNull(pTerminationTransferRelation);
+    terminationInformation = checkNotNull(pTerminationInformation);
   }
 
   @Override
   public List<CFAEdge> getFullPath() {
-    ImmutableList.Builder<CFAEdge> fullPath = ImmutableList.builder();
+    if (terminationFullPath != null) {
+      return terminationFullPath;
+    }
+
+    ImmutableList.Builder<CFAEdge> fullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
+    Set<CFAEdge> intermediateTermiantionEdges = Sets.newHashSet();
 
     while (it.hasNext()) {
       ARGState prev = it.getAbstractState();
@@ -69,7 +86,10 @@ public class TerminationARGPath extends ARGPath {
       // insert transition from loop to stem
       if (terminationPrev.isPartOfStem() && terminationSucc.isPartOfLoop()) {
         CFANode curNode = extractLocation(prev);
-        fullPath.addAll(terminationTransferRelation.createStemToLoopTransition(curNode, curNode));
+        List<CFAEdge> stemToLoopTransition =
+            terminationInformation.createStemToLoopTransition(curNode, curNode);
+        intermediateTermiantionEdges.addAll(stemToLoopTransition);
+        fullPathBuilder.addAll(stemToLoopTransition);
       }
 
       // compute path between cur and next node
@@ -79,30 +99,36 @@ public class TerminationARGPath extends ARGPath {
 
         // add negated ranking relation before target state (non-termination label)
         if (AbstractStates.isTargetState(succ)) {
-          fullPath.add(
-              terminationTransferRelation.createNegatedRankingRelationAssumeEdge(
-                  curNode, nextNode));
+          CFAEdge negatedRankingRelationAssumeEdge =
+              terminationInformation.createRankingRelationAssumeEdge(curNode, nextNode, false);
+
+          intermediateTermiantionEdges.add(negatedRankingRelationAssumeEdge);
+          fullPathBuilder.add(negatedRankingRelationAssumeEdge);
           nextNode = curNode;
         }
 
         // we assume a linear chain of edges from 'prev' to 'succ'
         while (curNode != nextNode) {
-          if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
+          FluentIterable<CFAEdge> leavingEdges =
+              CFAUtils.leavingEdges(curNode).filter(not(in(intermediateTermiantionEdges)));
+          if (!(leavingEdges.size() == 1 && curNode.getLeavingSummaryEdge() == null)) {
             return Collections.emptyList();
           }
 
-          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
-          fullPath.add(intermediateEdge);
+          CFAEdge intermediateEdge = leavingEdges.get(0);
+          fullPathBuilder.add(intermediateEdge);
           curNode = intermediateEdge.getSuccessor();
         }
 
         // we have a normal connection without hole in the edges
       } else {
-        fullPath.add(curOutgoingEdge);
+        fullPathBuilder.add(curOutgoingEdge);
       }
     }
 
-    return fullPath.build();
+    terminationFullPath = fullPathBuilder.build();
+    terminationInformation.resetCfa();
+    return terminationFullPath;
   }
 
   @Override

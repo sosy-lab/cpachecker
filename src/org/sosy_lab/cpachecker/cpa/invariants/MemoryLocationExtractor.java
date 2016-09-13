@@ -118,7 +118,8 @@ public class MemoryLocationExtractor {
     if (pParameterDeclaration instanceof CSimpleDeclaration) {
       CSimpleDeclaration decl = (CSimpleDeclaration) pParameterDeclaration;
 
-      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal() || decl instanceof CEnumerator)) {
+      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
+          || decl instanceof CEnumerator)) {
         return scope(varName);
       }
     }
@@ -177,7 +178,8 @@ public class MemoryLocationExtractor {
     if (var.getDeclaration() != null) {
       CSimpleDeclaration decl = var.getDeclaration();
 
-      if (!(decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal() || decl instanceof CEnumerator)) {
+      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
+          || decl instanceof CEnumerator)) {
         return scope(varName);
       }
     }
@@ -212,7 +214,8 @@ public class MemoryLocationExtractor {
       subscriptValue = compoundIntervalManagerFactory.createCompoundIntervalManager(machineModel, pOwner.getExpressionType()).allPossibleValues();
     }
     if (subscriptValue.isSingleton()) {
-      return MemoryLocation.valueOf(String.format("%s[%d]", getMemoryLocation(pOwner), subscriptValue.getValue()).toString());
+      return MemoryLocation.valueOf(
+          String.format("%s[%s]", getMemoryLocation(pOwner), subscriptValue.getValue()).toString());
     }
     return MemoryLocation.valueOf(String.format("%s[*]", getMemoryLocation(pOwner)));
   }

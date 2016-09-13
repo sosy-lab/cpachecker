@@ -52,9 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -74,19 +72,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.predicates.invariants.AggregatedReachedSetInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -139,7 +135,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
-  private final Set<CFANode> loopHeads;
   private final Specification specification;
 
   protected final ShutdownNotifier shutdownNotifier;
@@ -170,14 +165,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
-    loopHeads = BMCHelper.getLoopHeads(pCFA);
     specification = checkNotNull(pSpecification);
 
     shutdownNotifier = pShutdownManager.getNotifier();
     targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
 
     if (induction) {
-      induction = checkIfInductionIsPossible(pCFA, pLogger, loopHeads);
+      induction = checkIfInductionIsPossible(pCFA, pLogger);
+      // if there is no loop we do not need induction, although loop information is available
+      induction = induction && cfa.getLoopStructure().get().getCount() > 0 && !getLoopHeads().isEmpty();
     }
 
     if (induction) {
@@ -232,11 +228,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     } else if (induction) {
       invariantGenerator =
           new AbstractInvariantGenerator() {
-            private final AggregatedReachedSetInvariants reachedSetInvariants =
-                new AggregatedReachedSetInvariants(pAggregatedReachedSets, cfa);
 
             @Override
-            public void start(CFANode pInitialLocation) {
+            protected void startImpl(CFANode pInitialLocation) {
               // do nothing
             }
 
@@ -253,14 +247,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             }
 
             @Override
-            public InvariantSupplier get() throws CPAException, InterruptedException {
-              return reachedSetInvariants.asInvariantSupplier();
-            }
-
-            @Override
-            public ExpressionTreeSupplier getAsExpressionTree()
-                throws CPAException, InterruptedException {
-              return reachedSetInvariants.asExpressionTreeSupplier();
+            public AggregatedReachedSets get() throws CPAException, InterruptedException {
+              return pAggregatedReachedSets;
             }
           };
     } else {
@@ -278,20 +266,13 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   }
 
-  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger, Set<CFANode> loopHeads) {
+  static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;
     }
 
-    LoopStructure loops = cfa.getLoopStructure().get();
-
-    if (loops.getCount() == 0) {
-      // induction is unnecessary, program has no loops
-      return false;
-    }
-
-    return !loopHeads.isEmpty();
+    return true;
   }
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
@@ -462,7 +443,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     Collection<ARGState> missingChildren = new ArrayList<>();
     for (ARGState e : from(pReachedSet).transform(toState(ARGState.class))) {
       for (ARGState child : e.getChildren()) {
-        if (!pReachedSet.contains(child) && !(child.isCovered() && child.getChildren().isEmpty())
+        if ((!pReachedSet.contains(child) && !(child.isCovered() && child.getChildren().isEmpty()))
             || pReachedSet.getWaitlist().containsAll(child.getParents())) {
           missingChildren.add(child);
         }
@@ -628,6 +609,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the loop heads.
    */
   protected Set<CFANode> getLoopHeads() {
-    return loopHeads;
+    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 }

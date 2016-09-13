@@ -26,6 +26,11 @@
  * This includes the handling of re-assigned variables,
  * which get converted into SSA form.
  */
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"SE_BAD_FIELD", "SE_TRANSIENT_FIELD_NOT_RESTORED"},
-    justification = "serialization of formulas is currently unsupported")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+  value = {"SE_BAD_FIELD", "SE_TRANSIENT_FIELD_NOT_RESTORED"},
+  justification = "serialization of formulas is currently unsupported"
+)
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.predicates.pathformula;

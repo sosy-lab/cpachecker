@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import javax.annotation.Nonnull;
-
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.ArrayFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.ArrayFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 
 /**
  * Implements some methods for easier interaction with the formula manager for
@@ -47,8 +45,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * @param pManager The formula manager capable of the SMT theory of arrays.
    */
   ArrayFormulaManagerView(
-      final @Nonnull FormulaWrappingHandler pWrappingHandler,
-      final @Nonnull ArrayFormulaManager pManager) {
+      final FormulaWrappingHandler pWrappingHandler, final ArrayFormulaManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;
   }
@@ -58,11 +55,13 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> TE select(
-      final @Nonnull ArrayFormula<TI, TE> pArray, final @Nonnull Formula pIndex) {
+      final ArrayFormula<TI, TE> pArray, final TI pIndex) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
-    final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
+    @SuppressWarnings("unchecked")
+    final TI declaredIndex = (TI) unwrap(pIndex);
+    final TE selectResult = manager.select(declaredArray, declaredIndex);
     final FormulaType<TE> resultType = getElementType(pArray);
 
     // the result of a select can also be a reference to an array! (multi-dimensional arrays)
@@ -75,17 +74,18 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store(
-      final @Nonnull ArrayFormula<TI, TE> pArray,
-      final @Nonnull Formula pIndex,
-      final @Nonnull Formula pValue) {
+      final ArrayFormula<TI, TE> pArray,
+      final TI pIndex,
+      final TE pValue) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
     final ArrayFormulaType<TI, TE> inputArrayType =
         new ArrayFormulaType<>(getIndexType(pArray), getElementType(pArray));
 
+    @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> resultFormula =
-        manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
+        manager.store(declaredArray, (TI) unwrap(pIndex), (TE) unwrap(pValue));
     if (resultFormula instanceof WrappingFormula<?, ?>) {
       return resultFormula;
     } else {
@@ -97,11 +97,13 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * {@inheritDoc}
    */
   @Override
-  public <TI extends Formula, TE extends Formula, FTI extends FormulaType<TI>,
-          FTE extends FormulaType<TE>> ArrayFormula<TI, TE> makeArray(
-          final @Nonnull String pName,
-          final @Nonnull FTI pIndexType,
-          final @Nonnull FTE pElementType) {
+  public <
+          TI extends Formula,
+          TE extends Formula,
+          FTI extends FormulaType<TI>,
+          FTE extends FormulaType<TE>>
+      ArrayFormula<TI, TE> makeArray(
+          final String pName, final FTI pIndexType, final FTE pElementType) {
 
     final ArrayFormulaType<TI, TE> inputArrayType =
         new ArrayFormulaType<>(pIndexType, pElementType);
@@ -117,23 +119,37 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return wrap(inputArrayType, result);
   }
 
+  public <
+          TI extends Formula,
+          TE extends Formula,
+          FTI extends FormulaType<TI>,
+          FTE extends FormulaType<TE>>
+      ArrayFormula<TI, TE> makeArray(
+          final String pName, final int pSsaIndex, final FTI pIndexType, final FTE pElementType) {
+    return makeArray(FormulaManagerView.makeName(pName, pSsaIndex), pIndexType, pElementType);
+  }
+
   /**
    * {@inheritDoc}
    */
   @SuppressWarnings("unchecked")
   @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(
-      final @Nonnull String pName, final @Nonnull ArrayFormulaType<TI, TE> type) {
+      final String pName, final ArrayFormulaType<TI, TE> type) {
     return wrap(
         type, manager.makeArray(pName, (ArrayFormulaType<Formula, Formula>) unwrapType(type)));
+  }
+
+  public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(
+      final String pName, final int pSsaIndex, final ArrayFormulaType<TI, TE> pType) {
+    return makeArray(FormulaManagerView.makeName(pName, pSsaIndex), pType);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public <TI extends Formula> FormulaType<TI> getIndexType(
-      final @Nonnull ArrayFormula<TI, ?> pArray) {
+  public <TI extends Formula> FormulaType<TI> getIndexType(final ArrayFormula<TI, ?> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
       @SuppressWarnings("unchecked")
       ArrayFormulaType<TI, ?> t =
@@ -147,8 +163,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * {@inheritDoc}
    */
   @Override
-  public <TE extends Formula> FormulaType<TE> getElementType(
-      final @Nonnull ArrayFormula<?, TE> pArray) {
+  public <TE extends Formula> FormulaType<TE> getElementType(final ArrayFormula<?, TE> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
       @SuppressWarnings("unchecked")
       ArrayFormulaType<?, TE> t =
@@ -163,7 +178,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(
-      final @Nonnull ArrayFormula<TI, TE> pArray1, final @Nonnull ArrayFormula<TI, TE> pArray2) {
+      final ArrayFormula<TI, TE> pArray1, final ArrayFormula<TI, TE> pArray2) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray1 = (ArrayFormula<TI, TE>) unwrap(pArray1);

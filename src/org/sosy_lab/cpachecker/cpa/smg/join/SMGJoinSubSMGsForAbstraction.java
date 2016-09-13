@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
@@ -125,11 +126,20 @@ final public class SMGJoinSubSMGsForAbstraction {
     mapping1.map(obj1, newAbstractObject);
     mapping2.map(obj2, newAbstractObject);
 
-    boolean increaseLevel = shouldAbstractionIncreaseLevel(obj1, obj2);
+    int destLevel = obj1.getLevel();
+
+    if (shouldAbstractionIncreaseLevel(obj1, obj2)) {
+      destLevel = destLevel + 1;
+    }
 
     CLangSMG inputSMG = new CLangSMG(smg);
 
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, obj1, obj2, newAbstractObject, lDiff, increaseLevel, true, pStateOfSmg, pStateOfSmg);
+    /*Every value thats identical will be skipped, the join only iterates over non shared values, thats why we can introduce a
+     * level map only for non shared objects*/
+    SMGLevelMapping levelMap = new SMGLevelMapping();
+    levelMap.put(SMGJoinLevel.valueOf(obj1.getLevel(), obj2.getLevel()), destLevel);
+
+    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, levelMap, obj1, obj2, newAbstractObject, lDiff, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
       status = SMGJoinStatus.INCOMPLETE;
@@ -148,10 +158,9 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     //TODO Contains abstract 0Cycle?
 
-    /* increase level hold already calculated value for
-     * obj1 instanceof SMGRegion && obj2 instanceof SMGRegion
-     */
-    if (increaseLevel) {
+    boolean bothObjectsAreRegOrOpt = shouldAbstractionIncreaseLevel(obj1, obj2);
+
+    if (bothObjectsAreRegOrOpt) {
       for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(newAbstractObject, smg)) {
         smg.removePointsToEdge(pte.getValue());
         smg.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), pte.getObject(), pte.getOffset(), SMGTargetSpecifier.ALL));

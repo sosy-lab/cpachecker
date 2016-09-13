@@ -33,8 +33,6 @@ import java.util.Optional;
 
 public class CAssumeEdge extends AssumeEdge {
 
-
-
   public CAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 

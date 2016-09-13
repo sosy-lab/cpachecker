@@ -8,16 +8,16 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.Tactic;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +48,7 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return bfmgr.transformRecursively(new BooleanFormulaTransformationVisitor(fmgr) {
+    return bfmgr.transformRecursively(input, new BooleanFormulaTransformationVisitor(fmgr) {
       @Override
       public BooleanFormula visitNot(BooleanFormula pOperand) {
         List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
@@ -61,7 +61,7 @@ public class FormulaLinearizationManager {
         }
         return super.visitNot(pOperand);
       }
-    }, input);
+    });
   }
 
   /**
@@ -71,13 +71,13 @@ public class FormulaLinearizationManager {
       throws InterruptedException {
     input = fmgr.applyTactic(input, Tactic.NNF);
     return bfmgr.transformRecursively(
-        new BooleanFormulaTransformationVisitor(fmgr) {
+        input, new BooleanFormulaTransformationVisitor(fmgr) {
 
       @Override
       public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
         return annotateDisjunction(processedOperands);
       }
-    }, input);
+    });
   }
 
   private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {
@@ -211,7 +211,7 @@ public class FormulaLinearizationManager {
   private Multimap<String, Pair<Formula, List<Formula>>> findUFs(Formula f) {
     final Multimap<String, Pair<Formula, List<Formula>>> UFs = HashMultimap.create();
 
-    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+    fmgr.visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
       protected TraversalProcess visitDefault(Formula f) {
         return TraversalProcess.CONTINUE;
@@ -227,7 +227,7 @@ public class FormulaLinearizationManager {
         }
         return TraversalProcess.CONTINUE;
       }
-    }, f);
+    });
 
     return UFs;
   }

@@ -23,29 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -56,10 +41,12 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Joiner;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
@@ -81,7 +68,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           new AutomatonInternalState(
               "_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
           pAutomatonCPA,
-          ImmutableList.<AStatement>of(),
+          ImmutableList.of(),
           ExpressionTrees.<AExpression>getTrue(),
           0,
           0,
@@ -107,7 +94,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           Collections.<String, AutomatonVariable>emptyMap(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
-          ImmutableList.<AStatement>of(),
+          ImmutableList.of(),
           ExpressionTrees.<AExpression>getTrue(),
           0,
           0,
@@ -128,7 +115,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
-  private final ImmutableList<AStatement> assumptions;
+  private final ImmutableList<AExpression> assumptions;
   private transient final ExpressionTree<AExpression> candidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
@@ -138,7 +125,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<AStatement> pAssumptions,
+      ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
@@ -166,7 +153,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         pVars,
         pInternalState,
         pAutomatonCPA,
-        ImmutableList.<AStatement>of(),
+        ImmutableList.of(),
         ExpressionTrees.<AExpression>getTrue(),
         successfulMatches,
         failedMatches,
@@ -177,7 +164,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      ImmutableList<AStatement> pAssumptions,
+      ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
@@ -238,67 +225,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return internalState.hashCode();
   }
 
-  public List<CStatementEdge> getAsStatementEdges(String cFunctionName) {
-    if (assumptions.isEmpty()) { return ImmutableList.of(); }
-
-    List<CStatementEdge> result = new ArrayList<>(assumptions.size());
-    for (AStatement statement : assumptions) {
-
-      if (statement instanceof CAssignment) {
-        CAssignment assignment = (CAssignment) statement;
-
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-
-          result.add(new CStatementEdge(assignment.toASTString(), assignment, assignment.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName)));
-        } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
-          //TODO FunctionCalls, ExpressionStatements etc
-        }
-      }
-    }
-    return result;
-  }
 
   @Override
-  public List<AssumeEdge> getAsAssumeEdges(String cFunctionName) {
-    if (assumptions.isEmpty()) {
-      return ImmutableList.of();
-    }
-
-    List<AssumeEdge> result = new ArrayList<>(assumptions.size());
-    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
-    for (AStatement statement : assumptions) {
-
-      if (statement instanceof CAssignment) {
-        CAssignment assignment = (CAssignment) statement;
-
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-          CExpression expression = (CExpression) assignment.getRightHandSide();
-          CBinaryExpression assumeExp =
-              expressionBuilder.buildBinaryExpressionUnchecked(
-                  assignment.getLeftHandSide(),
-                  expression,
-                  CBinaryExpression.BinaryOperator.EQUALS);
-
-          result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName), assumeExp, true));
-        } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
-          //TODO FunctionCalls, ExpressionStatements etc
-        }
-      }
-
-      if (statement instanceof CExpressionStatement) {
-        if (((CExpressionStatement) statement).getExpression().getExpressionType() instanceof CSimpleType
-            && ((CSimpleType) (((CExpressionStatement) statement).getExpression().getExpressionType())).getType().isIntegerType()) {
-          result.add(new CAssumeEdge(statement.toASTString(), statement.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName),
-              ((CExpressionStatement) statement).getExpression(), true));
-        }
-      }
-    }
-    return result;
+  public ImmutableList<AExpression> getAssumptions() {
+    return assumptions;
   }
 
   /**
@@ -449,18 +379,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
-  public Boolean evaluateProperty(String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-
-  @Override
   public String getCPAName() {
     return AutomatonState.AutomatonAnalysisNamePrefix + automatonCPA.getAutomaton().getName();
-  }
-
-  @Override
-  public ImmutableList<AStatement> getAssumptions() {
-    return assumptions;
   }
 
   public ExpressionTree<AExpression> getCandidateInvariants() {

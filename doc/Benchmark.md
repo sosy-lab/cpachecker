@@ -2,7 +2,7 @@ Benchmarking CPAchecker
 =======================
 
 For benchmarking, it is recommended to use
-[BenchExec](https://github.com/dbeyer/benchexec).
+[BenchExec](https://github.com/sosy-lab/benchexec).
 An extended version of BenchExec is bundled with CPAchecker
 and usable by calling `scripts/benchmark.py`.
 This script should run with any Python version >= 3.2.
@@ -11,9 +11,9 @@ the resource limits, the tool configuration, the input programs
 and the columns that should appear in the output table.
 The script puts all the results into the test/results/ directory.
 Commented examples for these XML files are given in the BenchExec 
-[documentation](https://github.com/dbeyer/benchexec/tree/master/doc)
-and in `doc/examples/benchmark*.xml`.
-The file [doc/examples/benchmark-cpachecker.xml](doc/examples/benchmark-cpachecker.xml)
+[documentation](https://github.com/sosy-lab/benchexec/blob/master/doc/INDEX.md)
+and in `./examples/benchmark*.xml`.
+The file [./examples/benchmark-cpachecker.xml](./examples/benchmark-cpachecker.xml)
 can be used as base for own benchmarks.
 Several useful benchmark configurations are in `test/test-sets/*.xml`.
 
@@ -49,12 +49,9 @@ according to the characteristics of the input files to avoid wrong answers:
   32-bit model is assumed by default.
   For 64 bit, specify `-64` on the command line.
 
-- Whether the "simple" memory model of SV-Comp is used or not
-  (cf. http://sv-comp.sosy-lab.org/2016/rules.php#programs):
-  If yes, set `cpa.predicate.handlePointerAliasing=false`.
-
 - Whether `malloc` may return null or not:
-  If the program assumes `malloc` never returns null,
+  If the program assumes `malloc` never returns null
+  and you are using a predicate-based analysis,
   set `cpa.predicate.memoryAllocationsAlwaysSucceed=true`.
   Note that this assumption is true for all SV-Comp files,
   thus this option is already set in all `-sv-comp*` configurations.
@@ -69,16 +66,15 @@ the time and memory limits.
   Firstly, in order to get statistics even in case of a timeout,
   is is important to specify different "soft" and "hard" CPU-time limits
   like in this example:
-  `<benchmark timelimit="900" hardtimelimit="1000" ...`
+  `<benchmark timelimit="900s" hardtimelimit="1000s" ...`
   The soft time limit is automatically passed as parameter to CPAchecker,
   so there is no need to specify the `-timelimit` option manually.
 
 - *Memory*.
-  The memory limit is specified in Megabytes
-  (SI units, i.e., 1 MB = 1,000,000 Bytes)
+  The memory limit is specified in SI units (i.e., 1 MB = 1,000,000 Bytes)
   with the attribute `memlimit` in the `<benchmark>` tag
   of the benchmark definition XML file. Example:
-  `<benchmark ... memlimit="8000">`
+  `<benchmark ... memlimit="8000 MB">`
   This limit will be enforced by the OS
   and CPAchecker will be killed if it needs more memory.
 
@@ -92,7 +88,7 @@ such as MathSAT.
 For analyses without MathSAT,
 start to experiment with 1000 MB less than the external limit.
 IMPORTANT: Java does not use SI units here, but IEC units (factor 1024).
-7000M here are 5% more than 7000 for the memory limit above!
+`7000M` here are 5% more than `7000 MB` for the memory limit above!
 Example:
 `<option name="-heap">7000M</option>`
 
@@ -102,7 +98,7 @@ a Java heap size (e.g., 7000MiB), and a timelimit (e.g., 900s).
 Then specify them as follows:
 
 ```xml
-<benchmark ... timelimit="900" hardtimelimit="1000" memlimit="8000">
+<benchmark ... timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB">
   <option name="-heap">7000M</option>
   ...
 </benchmark>
@@ -111,7 +107,8 @@ Then specify them as follows:
 
 Useful CPAchecker Options
 -------------------------
-There are several CPAchecker options that are especially useful for benchmarks:
+There are several CPAchecker options that are important for ensuring
+the optimal performance for benchmarks:
 
 - `output.disable=true`
   This option disables all output files that would otherwise be
@@ -124,7 +121,7 @@ There are several CPAchecker options that are especially useful for benchmarks:
   Use this if the last few ns of CPU time
   are more important than memory statistics.
 
-It is also recommended to disable assertion checking for benchmarks.
+You should also disable assertion checking for benchmarks.
 This can be done by adding the command-line argument `-disable-java-assertions`.
 
 
@@ -134,7 +131,7 @@ In order to combine the results from several benchmark runs into
 a single table the script scripts/table-generator.py can be used.
 It also takes an XML file as input that gives the table configuration
 and is described in the
-[table-generator documentation](https://github.com/dbeyer/benchexec/blob/master/doc/table-generator.md).
+[table-generator documentation](https://github.com/sosy-lab/benchexec/blob/master/doc/table-generator.md).
 
 The output will be tables in HTML and CSV format,
 the former having some additional features like showing the log files

@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.math.BigDecimal;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
+import java.math.BigDecimal;
+
 /**
  * This class represents the float number literal AST node type.
  */
-public class JFloatLiteralExpression extends AFloatLiteralExpression implements JLiteralExpression {
+public final class JFloatLiteralExpression extends AFloatLiteralExpression
+    implements JLiteralExpression {
 
   public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
     super(pFileLocation, JSimpleType.getFloat(), pValue);
@@ -47,11 +48,6 @@ public class JFloatLiteralExpression extends AFloatLiteralExpression implements 
   @Override
   public String toASTString() {
     return getValue().toString();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

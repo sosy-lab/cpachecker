@@ -90,7 +90,7 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
 
     /*Only join if other is region or optional object, otherwise
      * let other object join.*/
@@ -99,25 +99,12 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
     int level = Math.max(this.getLevel(), pOther.getLevel());
 
-    if (pIncreaseLevel) {
-      level = level + 1;
-    }
-
     switch (pOther.getKind()) {
       case REG:
-        if (level != getLevel()) {
-          return copy(level);
-        } else {
-          return this;
-        }
       case OPTIONAL:
-        if (level != getLevel()) {
-          return copy(level);
-        } else {
-          return this;
-        }
+        return copy(level);
       default:
-        return pOther.join(this, pIncreaseLevel);
+        return pOther.join(this, pDestLevel);
     }
   }
 

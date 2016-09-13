@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
@@ -33,8 +34,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,11 +50,13 @@ public class SMGInterpolant {
 
   private final Set<SMGAbstractionBlock> abstractionBlock;
   private final Set<SMGMemoryPath> trackedMemoryPaths;
+  private final Set<MemoryLocation> trackedStackVariables;
   private final Set<SMGState> smgStates;
 
   private SMGInterpolant() {
     abstractionBlock = ImmutableSet.of();
     trackedMemoryPaths = ImmutableSet.of();
+    trackedStackVariables = ImmutableSet.of();
     smgStates = ImmutableSet.of();
   }
 
@@ -60,12 +65,15 @@ public class SMGInterpolant {
     abstractionBlock = ImmutableSet.of();
 
     Set<SMGMemoryPath> memoryPaths = new HashSet<>();
+    Set<MemoryLocation> stackVariables = new HashSet<>();
 
     for (SMGState state : smgStates) {
       memoryPaths.addAll(state.getMemoryPaths());
+      stackVariables.addAll(state.getStackVariables().keySet());
     }
 
     trackedMemoryPaths = memoryPaths;
+    trackedStackVariables = stackVariables;
   }
 
   public SMGInterpolant(Set<SMGState> pStates, Set<SMGAbstractionBlock> pAbstractionBlock) {
@@ -74,12 +82,15 @@ public class SMGInterpolant {
     abstractionBlock = pAbstractionBlock;
 
     Set<SMGMemoryPath> memoryPaths = new HashSet<>();
+    Set<MemoryLocation> stackVariables = new HashSet<>();
 
     for (SMGState state : smgStates) {
       memoryPaths.addAll(state.getMemoryPaths());
+      stackVariables.addAll(state.getStackVariables().keySet());
     }
 
     trackedMemoryPaths = memoryPaths;
+    trackedStackVariables = stackVariables;
   }
 
   public List<SMGState> reconstructStates() {
@@ -87,12 +98,12 @@ public class SMGInterpolant {
     if (isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      List<SMGState> smgStates = new ArrayList<>(this.smgStates.size());
+      List<SMGState> result = new ArrayList<>(this.smgStates.size());
       for (SMGState state : smgStates) {
-        smgStates.add(new SMGState(state));
+        result.add(new SMGState(state));
       }
 
-      return smgStates;
+      return result;
     }
   }
 
@@ -102,9 +113,9 @@ public class SMGInterpolant {
 
   public boolean isTrue() {
     /* No heap abstraction can be performed without hv-edges, thats
-     * why every interpolant without hv-edges is true.
+     * why every interpolant without hv-edges and stack variables is true.
      */
-    return !isFalse() && trackedMemoryPaths.isEmpty();
+    return !isFalse() && trackedMemoryPaths.isEmpty() && trackedStackVariables.isEmpty();
   }
 
   public boolean isFalse() {
@@ -151,9 +162,9 @@ public class SMGInterpolant {
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
-      FunctionEntryNode pMainFunctionNode, int pExternalAllocationSize) {
+      FunctionEntryNode pMainFunctionNode, boolean pTrackPredicates, int pExternalAllocationSize) {
     SMGState initState = new SMGState(logger, model, false, false,
-        null, pExternalAllocationSize, false);
+        null, pExternalAllocationSize, pTrackPredicates, false);
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode) pMainFunctionNode;
     try {
@@ -192,29 +203,46 @@ public class SMGInterpolant {
     SMGState newState = new SMGState(templateState);
 
     newState.clearValues();
+    newState.clearObjects();
 
     return new SMGInterpolant(ImmutableSet.of(newState));
   }
 
   public SMGPrecisionIncrement getPrecisionIncrement() {
-    return new SMGPrecisionIncrement(trackedMemoryPaths, abstractionBlock);
+    List<SMGMemoryPath> memoryPaths = new ArrayList<>(trackedMemoryPaths.size());
+    memoryPaths.addAll(trackedMemoryPaths);
+    List<SMGAbstractionBlock> blocks = new ArrayList<>(abstractionBlock.size());
+    blocks.addAll(abstractionBlock);
+    List<MemoryLocation> stackVariables = new ArrayList<>(trackedStackVariables.size());
+    stackVariables.addAll(trackedStackVariables);
+
+    return new SMGPrecisionIncrement(memoryPaths, blocks, stackVariables);
   }
 
-  public static class SMGPrecisionIncrement {
+  public static class SMGPrecisionIncrement implements Comparable<SMGPrecisionIncrement> {
 
-    private final Set<SMGMemoryPath> pathsToTrack;
-    private final Set<SMGAbstractionBlock> abstractionBlock;
+    private final List<SMGMemoryPath> pathsToTrack;
+    private final List<SMGAbstractionBlock> abstractionBlock;
+    private final List<MemoryLocation> stackVariablesToTrack;
 
-    public SMGPrecisionIncrement(Set<SMGMemoryPath> pPathsToTrack,
-        Set<SMGAbstractionBlock> pAbstractionBlock) {
+    public SMGPrecisionIncrement(List<SMGMemoryPath> pPathsToTrack,
+        List<SMGAbstractionBlock> pAbstractionBlock,
+        List<MemoryLocation> pStackVariablesToTrack) {
       pathsToTrack = pPathsToTrack;
       abstractionBlock = pAbstractionBlock;
+      stackVariablesToTrack = pStackVariablesToTrack;
     }
 
-    @Override
-    public String toString() {
-      return "SMGPrecisionIncrement [pathsToTrack=" + pathsToTrack + ", abstractionBlock="
-          + abstractionBlock + "]";
+    public Collection<SMGMemoryPath> getPathsToTrack() {
+      return pathsToTrack;
+    }
+
+    public Collection<SMGAbstractionBlock> getAbstractionBlock() {
+      return abstractionBlock;
+    }
+
+    public List<MemoryLocation> getStackVariablesToTrack() {
+      return stackVariablesToTrack;
     }
 
     @Override
@@ -223,6 +251,8 @@ public class SMGInterpolant {
       int result = 1;
       result = prime * result + ((abstractionBlock == null) ? 0 : abstractionBlock.hashCode());
       result = prime * result + ((pathsToTrack == null) ? 0 : pathsToTrack.hashCode());
+      result =
+          prime * result + ((stackVariablesToTrack == null) ? 0 : stackVariablesToTrack.hashCode());
       return result;
     }
 
@@ -252,15 +282,93 @@ public class SMGInterpolant {
       } else if (!pathsToTrack.equals(other.pathsToTrack)) {
         return false;
       }
+      if (stackVariablesToTrack == null) {
+        if (other.stackVariablesToTrack != null) {
+          return false;
+        }
+      } else if (!stackVariablesToTrack.equals(other.stackVariablesToTrack)) {
+        return false;
+      }
       return true;
     }
 
-    public Set<SMGMemoryPath> getPathsToTrack() {
-      return pathsToTrack;
+    @Override
+    public int compareTo(SMGPrecisionIncrement other) {
+
+      for (int i = 0; i < pathsToTrack.size() && i < other.pathsToTrack.size(); i++) {
+        SMGMemoryPath path = pathsToTrack.get(i);
+        SMGMemoryPath otherPath = other.pathsToTrack.get(i);
+
+        int result = path.compareTo(otherPath);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      if (pathsToTrack.size() < other.pathsToTrack.size()) {
+        return -1;
+      } else if (pathsToTrack.size() > other.pathsToTrack.size()) {
+        return 1;
+      }
+
+      for (int i = 0; i < abstractionBlock.size() && i < other.abstractionBlock.size(); i++) {
+        SMGAbstractionBlock offset = abstractionBlock.get(i);
+        SMGAbstractionBlock otherOffset = other.abstractionBlock.get(i);
+
+        int result = offset.compareTo(otherOffset);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      if (abstractionBlock.size() < other.abstractionBlock.size()) {
+        return -1;
+      } else if (abstractionBlock.size() > other.abstractionBlock.size()) {
+        return 1;
+      }
+
+      for (int i = 0; i < stackVariablesToTrack.size() && i < other.stackVariablesToTrack.size(); i++) {
+        MemoryLocation path = stackVariablesToTrack.get(i);
+        MemoryLocation otherPath = other.stackVariablesToTrack.get(i);
+
+        int result = path.compareTo(otherPath);
+
+        if (result != 0) {
+          return result;
+        }
+      }
+
+      if (stackVariablesToTrack.size() < other.stackVariablesToTrack.size()) {
+        return -1;
+      } else if (stackVariablesToTrack.size() > other.stackVariablesToTrack.size()) {
+        return 1;
+      }
+
+      return 0;
     }
 
-    public Set<SMGAbstractionBlock> getAbstractionBlock() {
-      return abstractionBlock;
+    @Override
+    public String toString() {
+      return "SMGPrecisionIncrement [pathsToTrack=" + pathsToTrack + ", abstractionBlock="
+          + abstractionBlock + ", stackVariablesToTrack=" + stackVariablesToTrack + "]";
+    }
+
+    public SMGPrecisionIncrement join(SMGPrecisionIncrement pInc2) {
+      Set<SMGMemoryPath> pathsToTrack = new HashSet<>();
+      pathsToTrack.addAll(this.pathsToTrack);
+      pathsToTrack.addAll(pInc2.pathsToTrack);
+      Set<SMGAbstractionBlock> abstractionBlock = new HashSet<>();
+      abstractionBlock.addAll(this.abstractionBlock);
+      abstractionBlock.addAll(pInc2.abstractionBlock);
+      Set<MemoryLocation> stackVariablesToTrack = new HashSet<>();
+      stackVariablesToTrack.addAll(this.stackVariablesToTrack);
+      stackVariablesToTrack.addAll(pInc2.stackVariablesToTrack);
+
+      return new SMGPrecisionIncrement(FluentIterable.from(pathsToTrack).toList(),
+          FluentIterable.from(abstractionBlock).toList(),
+          FluentIterable.from(stackVariablesToTrack).toList());
     }
   }
 }

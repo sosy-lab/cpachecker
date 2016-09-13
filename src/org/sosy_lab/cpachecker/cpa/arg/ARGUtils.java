@@ -31,7 +31,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -80,6 +79,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -346,17 +346,18 @@ public class ARGUtils {
     ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
-      Collection<ARGState> children = currentElement.getChildren();
+      Set<ARGState> children = Sets.newHashSet(currentElement.getChildren());
+      Set<ARGState> childrenInArg = Sets.intersection(children, arg).immutableCopy();
 
       ARGState child;
       CFAEdge edge;
-      switch (children.size()) {
+      switch (childrenInArg.size()) {
 
       case 0:
         throw new IllegalArgumentException("ARG target path terminates without reaching target state!");
 
       case 1: // only one successor, easy
-        child = Iterables.getOnlyElement(children);
+        child = Iterables.getOnlyElement(childrenInArg);
         edge = currentElement.getEdgeToChild(child);
         break;
 
@@ -369,16 +370,10 @@ public class ARGUtils {
 
         CFANode loc = AbstractStates.extractLocation(currentElement);
         if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
-          if (candidates.size() != 1) {
-            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
-          }
-          child = Iterables.getOnlyElement(candidates);
-          edge = currentElement.getEdgeToChild(child);
-          break;
+          throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
         }
 
-        for (ARGState currentChild : children) {
+        for (ARGState currentChild : childrenInArg) {
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
           if (((AssumeEdge)currentEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
@@ -411,13 +406,7 @@ public class ARGUtils {
         break;
 
       default:
-        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
-        if (candidates.size() != 1) {
-          throw new IllegalArgumentException("ARG splits with more than two branches!");
-        }
-        child = Iterables.getOnlyElement(candidates);
-        edge = currentElement.getEdgeToChild(child);
-        break;
+        throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
       if (!arg.contains(child)) {

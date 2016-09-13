@@ -46,11 +46,10 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -154,7 +153,9 @@ public final class LoopStructure {
 
       innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
       incomingEdges.removeAll(innerLoopEdges);
+      incomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
       outgoingEdges.removeAll(innerLoopEdges);
+      outgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
 
       assert !incomingEdges.isEmpty() : "Unreachable loop?";
 
@@ -253,7 +254,7 @@ public final class LoopStructure {
     }
 
     /**
-     * Get the set of all incoming CFA edges,
+     * Get the set of all outgoing CFA edges,
      * i.e., edges which connect a loop node with a non-loop CFA node inside the same function.
      * Although called functions are not considered loop nodes,
      * this set does not contain any edges from inside the loop to called functions.
@@ -345,17 +346,13 @@ public final class LoopStructure {
   }
 
   private ImmutableSet<String> collectLoopCondVars() {
-    ImmutableSet.Builder<String> result = ImmutableSet.builder();
-    for (Loop l : loops.values()) {
-      // Get all variables that are used in exit-conditions
-      for (CFAEdge e : l.getOutgoingEdges()) {
-        if (e instanceof CAssumeEdge) {
-          CExpression expr = ((CAssumeEdge) e).getExpression();
-          result.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(expr));
-        }
-      }
-    }
-    return result.build();
+    // Get all variables that are used in exit-conditions
+    return from(loops.values())
+        .transform(Loop::getOutgoingEdges)
+        .filter(CAssumeEdge.class)
+        .transform(CAssumeEdge::getExpression)
+        .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
+        .toSet();
   }
 
   /**
@@ -492,7 +489,8 @@ public final class LoopStructure {
     }
     String loopFunction = pSingleLoopHead.getFunctionName();
     // A size of one means only the loop head is contained
-    if (loopNodes.isEmpty() || loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead)) {
+    if (loopNodes.isEmpty()
+        || (loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead))) {
       return new LoopStructure(ImmutableMultimap.<String, Loop>of());
     }
 

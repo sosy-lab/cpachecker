@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -65,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaDepthCountVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.IsLinearVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
@@ -81,10 +85,9 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -468,10 +471,10 @@ public class InvariantsState implements AbstractState,
         InvariantsFormulaManager.INSTANCE.asVariable(typeInfo, pMemoryLocation);
 
     // Optimization: If the value being assigned is equivalent to the value already stored, do nothing
-    if (getEnvironmentValue(typeInfo, pMemoryLocation).equals(pValue)
+    if ((getEnvironmentValue(typeInfo, pMemoryLocation).equals(pValue)
             && (pValue instanceof Variable<?>
-                || pValue instanceof Constant<?>
-                    && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())
+                || (pValue instanceof Constant<?>
+                    && ((Constant<CompoundInterval>) pValue).getValue().isSingleton())))
         || variable.accept(
             new StateEqualsVisitor(
                 getFormulaResolver(), this.environment, compoundIntervalManagerFactory),
@@ -883,22 +886,19 @@ public class InvariantsState implements AbstractState,
   }
 
   @Override
-  public org.sosy_lab.solver.api.BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
+  public org.sosy_lab.java_smt.api.BooleanFormula getFormulaApproximation(
+      FormulaManagerView pManager) {
 
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
-    org.sosy_lab.solver.api.BooleanFormula result = bfmgr.makeBoolean(true);
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();
     ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, evaluationVisitor);
 
-    for (BooleanFormula<CompoundInterval> assumption : getApproximationFormulas()) {
-      org.sosy_lab.solver.api.BooleanFormula assumptionFormula =
-          assumption.accept(toBooleanFormulaVisitor, getEnvironment());
-      if (assumptionFormula != null) {
-        result = bfmgr.and(result, assumptionFormula);
-      }
-    }
-    return result;
+    return bfmgr.and(
+        getApproximationFormulas()
+            .transform(assumption -> assumption.accept(toBooleanFormulaVisitor, getEnvironment()))
+            .filter(Predicates.notNull())
+            .toList());
   }
 
   @Override
@@ -948,7 +948,7 @@ public class InvariantsState implements AbstractState,
       }
 
     };
-    final Predicate<MemoryLocation> isValidMemLoc = Predicates.and(isExportable, Predicates.not(isPointerOrArray));
+    final Predicate<MemoryLocation> isValidMemLoc = isExportable;
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar = new Predicate<NumeralFormula<CompoundInterval>>() {
 
       @Override
@@ -956,12 +956,11 @@ public class InvariantsState implements AbstractState,
         if (pFormula instanceof Variable) {
           return !isValidMemLoc.apply(((Variable<?>) pFormula).getMemoryLocation());
         }
-        return FluentIterable.from(pFormula.accept(COLLECT_VARS_VISITOR)).anyMatch(isPointerOrArray);
+        return false;
       }
 
     };
-    ReplaceVisitor<CompoundInterval> evaluateInvalidVars = getInvalidReplacementVisitor(isInvalidVar);
-    Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid = getInvalidReplacer(isInvalidVar, evaluateInvalidVars);
+    Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(isPointerOrArray));
     Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>> toCode = new Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>>() {
 
       @Override
@@ -988,7 +987,8 @@ public class InvariantsState implements AbstractState,
                     return FluentIterable.from(memLocs).allMatch(isValidMemLoc);
                   }
                 })
-            .transform(toCode).filter(Predicates.notNull()));
+            .transform(toCode)
+            .filter(Predicates.notNull()));
 
     final Set<MemoryLocation> safePointers = Sets.newHashSet();
     isInvalidVar = new Predicate<NumeralFormula<CompoundInterval>>() {
@@ -1013,8 +1013,7 @@ public class InvariantsState implements AbstractState,
       }
 
     });
-    evaluateInvalidVars = getInvalidReplacementVisitor(isInvalidVar);
-    replaceInvalid = getInvalidReplacer(isInvalidVar, evaluateInvalidVars);
+    replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(isPointerOrArray));
 
     for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
@@ -1083,18 +1082,29 @@ public class InvariantsState implements AbstractState,
   }
 
   private Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> getInvalidReplacer(
-      final Predicate<NumeralFormula<CompoundInterval>> pIsInvalid,
-      final ReplaceVisitor<CompoundInterval> pEvaluateInvalidVars) {
+      final Predicate<NumeralFormula<CompoundInterval>> pIsAlwaysInvalid,
+      final Predicate<NumeralFormula<CompoundInterval>> pIsPointerOrArray) {
     return new Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>() {
 
       @Override
       public BooleanFormula<CompoundInterval> apply(BooleanFormula<CompoundInterval> pFormula) {
         if (pFormula instanceof Equal) {
+          Predicate<NumeralFormula<CompoundInterval>> isAlwaysInvalid = pIsAlwaysInvalid;
+
           Equal<CompoundInterval> eq = (Equal<CompoundInterval>) pFormula;
-          NumeralFormula<CompoundInterval> op1 = eq.getOperand1().accept(pEvaluateInvalidVars);
+
+          if (eq.getOperand1() instanceof Variable
+              && eq.getOperand2() instanceof Variable
+              && !isAlwaysInvalid.apply(eq.getOperand1())
+              && !isAlwaysInvalid.apply(eq.getOperand2())) {
+            return pFormula;
+          }
+
+          isAlwaysInvalid = Predicates.or(isAlwaysInvalid, pIsPointerOrArray);
+
+          NumeralFormula<CompoundInterval> op1 = eq.getOperand1().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
           final Set<MemoryLocation> op1Vars = op1.accept(COLLECT_VARS_VISITOR);
-          final Predicate<NumeralFormula<CompoundInterval>> isInvalid =
-              Predicates.or(pIsInvalid, new Predicate<NumeralFormula<CompoundInterval>>() {
+          isAlwaysInvalid = Predicates.or(isAlwaysInvalid, new Predicate<NumeralFormula<CompoundInterval>>() {
 
             @Override
             public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
@@ -1102,23 +1112,17 @@ public class InvariantsState implements AbstractState,
             }
 
           });
-          ReplaceVisitor<CompoundInterval> evaluateInvalid = new ReplaceVisitor<>(
-              isInvalid,
-              new Function<NumeralFormula<CompoundInterval>, NumeralFormula<CompoundInterval>>() {
-
-                @Override
-                public NumeralFormula<CompoundInterval> apply(NumeralFormula<CompoundInterval> pFormula) {
-                  return replaceOrEvaluateInvalid(pFormula, isInvalid);
-                }
-
-              });
-          NumeralFormula<CompoundInterval> op2 = eq.getOperand2().accept(evaluateInvalid);
+          NumeralFormula<CompoundInterval> op2 = eq.getOperand2().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
           return InvariantsFormulaManager.INSTANCE.equal(op1, op2);
         }
         if (pFormula instanceof LogicalNot) {
           return InvariantsFormulaManager.INSTANCE.logicalNot(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated()));
         }
-        return pFormula.accept(pEvaluateInvalidVars);
+        if (pFormula instanceof LogicalAnd) {
+          LogicalAnd<CompoundInterval> and = (LogicalAnd<CompoundInterval>) pFormula;
+          return InvariantsFormulaManager.INSTANCE.logicalAnd(apply(and.getOperand1()), apply(and.getOperand2()));
+        }
+        return pFormula.accept(getInvalidReplacementVisitor(Predicates.or(pIsAlwaysInvalid, pIsPointerOrArray)));
       }
 
     };
@@ -1362,18 +1366,18 @@ public class InvariantsState implements AbstractState,
         } else if (compoundIntervalManager
                 .lessEqual(oldExactValue, currentExactValue)
                 .isDefinitelyTrue()
-            || oldExactValue.hasUpperBound()
+            || (oldExactValue.hasUpperBound()
                 && (!currentExactValue.hasUpperBound()
                     || compare(oldExactValue.getUpperBound(), currentExactValue.getUpperBound())
-                        < 0)) {
+                        < 0))) {
           newValue = compoundIntervalManager.union(oldExactValue, currentExactValue).extendToMaxValue();
         } else if (compoundIntervalManager
                 .greaterEqual(oldExactValue, currentExactValue)
                 .isDefinitelyTrue()
-            || oldExactValue.hasLowerBound()
+            || (oldExactValue.hasLowerBound()
                 && (!currentExactValue.hasLowerBound()
                     || compare(oldExactValue.getLowerBound(), currentExactValue.getLowerBound())
-                        > 0)) {
+                        > 0))) {
           newValue = compoundIntervalManager.union(oldExactValue, currentExactValue).extendToMinValue();
         } else {
           NumeralFormula<CompoundInterval> newFormula = resultEnvironment.get(memoryLocation);
@@ -1495,14 +1499,11 @@ public class InvariantsState implements AbstractState,
   }
 
   public Set<MemoryLocation> getVariables() {
-    Set<MemoryLocation> result = environment.keySet();
-    for (NumeralFormula<CompoundInterval> value : environment.values()) {
-      Set<MemoryLocation> valueVars = value.accept(COLLECT_VARS_VISITOR);
-      if (!valueVars.isEmpty()) {
-        result = Sets.union(result, valueVars);
-      }
-    }
-    return result;
+    ImmutableSet.Builder<MemoryLocation> result = ImmutableSet.builder();
+    result.addAll(environment.keySet());
+    result.addAll(
+        from(environment.values()).transformAndConcat(value -> value.accept(COLLECT_VARS_VISITOR)));
+    return result.build();
   }
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
@@ -1563,16 +1564,6 @@ public class InvariantsState implements AbstractState,
       return overflowDetected;
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-  }
-
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return checkProperty(pProperty);
-  }
-
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("Cannot modify properties.");
   }
 
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {

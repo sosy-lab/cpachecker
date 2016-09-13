@@ -148,6 +148,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
         logging.warning("Memory requirement is not supported by the WebInterface.")
 
+    global_required_files = set(benchmark._required_files)
     cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
     result_files_patterns = benchmark.result_files_patterns
@@ -155,7 +156,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
-        required_files = run.required_files
+        required_files = global_required_files.union(run.required_files)
         submisson_future = executor.submit(_webclient.submit,
                                            run=run,
                                            limits=limits,

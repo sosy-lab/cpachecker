@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -34,14 +33,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,6 +48,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -170,7 +170,7 @@ public class CEXWeakeningManager {
     final List<BooleanFormula> newToAbstract = new ArrayList<>();
 
     // Perform the required abstraction.
-    bfmgr.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>() {
+    bfmgr.visitRecursively(primed, new DefaultBooleanFormulaVisitor<TraversalProcess>() {
 
       @Override
       protected TraversalProcess visitDefault() {
@@ -265,7 +265,7 @@ public class CEXWeakeningManager {
             toAbstract, m, selectionInfo, f, depth + 1);
       }
 
-    }, primed);
+    });
 
     return newToAbstract;
   }

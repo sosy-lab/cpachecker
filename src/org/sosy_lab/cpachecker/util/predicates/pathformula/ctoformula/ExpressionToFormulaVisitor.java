@@ -60,11 +60,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -81,9 +81,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   protected final FormulaManagerView mgr;
   protected final SSAMapBuilder ssa;
 
-  public ExpressionToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter,
-      FormulaManagerView pFmgr, CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, Constraints pConstraints) {
+  public ExpressionToFormulaVisitor(
+      CtoFormulaConverter pCtoFormulaConverter,
+      FormulaManagerView pFmgr,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      Constraints pConstraints) {
 
     conv = pCtoFormulaConverter;
     edge = pEdge;
@@ -342,25 +346,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
     // Sign of the remainder is set by the sign of the
     // numerator, and it is bounded by the numerator.
-    BooleanFormula signAndNumBound = bfmgr.ifThenElse(
-        mgr.makeGreaterOrEqual(f1, zero, signed),
-        bfmgr.and(
-
-            // Remainder positive or zero.
-            mgr.makeGreaterOrEqual(ret, zero, signed),
-
-            // Remainder is bounded above by the numerator (both positive)
-            mgr.makeLessOrEqual(ret, f1, signed)
-        ),
-        bfmgr.and(
-
-            // Remainder negative or zero.
-            mgr.makeLessOrEqual(ret, zero, signed),
-
-            // Remainder is bounded below by the numerator (both negative)
-            mgr.makeGreaterOrEqual(ret, f1, signed)
-        )
-    );
+    BooleanFormula signAndNumBound =
+        bfmgr.ifThenElse(
+            mgr.makeGreaterOrEqual(f1, zero, signed),
+            mgr.makeRangeConstraint(ret, zero, f1, signed), // ret in [zero, f1] (both positive)
+            mgr.makeRangeConstraint(ret, f1, zero, signed) // ret in [f1, zero] (both negative)
+            );
 
     BooleanFormula denomBound = bfmgr.ifThenElse(
         mgr.makeGreaterOrEqual(f2, zero, signed),
@@ -402,7 +393,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
     }
 
-    return conv.makeVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
+    return conv.makeVariable(
+        idExp.getDeclaration().getQualifiedName(),
+        idExp.getExpressionType(),
+        ssa);
   }
 
   @Override

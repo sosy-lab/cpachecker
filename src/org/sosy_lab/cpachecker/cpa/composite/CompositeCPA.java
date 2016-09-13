@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -30,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
@@ -52,6 +56,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -98,13 +103,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       boolean mergeSep = true;
       boolean simplePrec = true;
 
-      PredicateAbstractionManager abmgr = null;
-
       for (ConfigurableProgramAnalysis sp : cpas) {
-        if (sp instanceof org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA) {
-          abmgr = ((org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA)sp).getPredicateManager();
-        }
-
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
         stopOperators.add(sp.getStopOperator());
@@ -132,6 +131,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       } else {
         if (options.inCPAEnabledAnalysis) {
           if (options.merge.equals("AGREE")) {
+            Optional<PredicateCPA> predicateCPA = from(cpas).filter(PredicateCPA.class).first();
+            Preconditions.checkState(predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
+            PredicateAbstractionManager abmgr = predicateCPA.get().getPredicateManager();
             compositeMerge = new CompositeMergeAgreeCPAEnabledAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
           } else {
             throw new InvalidConfigurationException("Merge PLAIN is currently not supported in predicated analysis");
@@ -198,11 +200,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final MergeOperator mergeOperator;
   private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  private final Reducer reducer;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  protected CompositeCPA(
+  private CompositeCPA(
       AbstractDomain abstractDomain,
       CompositeTransferRelation transferRelation,
       MergeOperator mergeOperator,
@@ -215,21 +216,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
-
-    List<Reducer> wrappedReducers = new ArrayList<>();
-    for (ConfigurableProgramAnalysis cpa : cpas) {
-      if (cpa instanceof ConfigurableProgramAnalysisWithBAM) {
-        wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
-      } else {
-        wrappedReducers.clear();
-        break;
-      }
-    }
-    if (!wrappedReducers.isEmpty()) {
-      reducer = new CompositeReducer(wrappedReducers);
-    } else {
-      reducer = null;
-    }
   }
 
   @Override
@@ -259,11 +245,18 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    List<Reducer> wrappedReducers = new ArrayList<>();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      Preconditions.checkState(
+          cpa instanceof ConfigurableProgramAnalysisWithBAM,
+          "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+      wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
+    }
+    return new CompositeReducer(wrappedReducers);
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
@@ -275,7 +268,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
@@ -329,5 +322,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
+  }
+
+  @Override
+  public void setPartitioning(BlockPartitioning partitioning) {
+    cpas.forEach(e -> {
+      assert e instanceof ConfigurableProgramAnalysisWithBAM;
+      ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
+    });
   }
 }

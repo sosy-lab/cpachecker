@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -88,6 +87,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 @Options(prefix="cpa.functionpointer")
@@ -184,10 +184,12 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
             }
           }
           if (a.getTruthAssumption()
-              && (cfaEdge.getSuccessor().getNumLeavingEdges() > 0
-                  && cfaEdge.getSuccessor().getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge
-                  || cfaEdge.getSuccessor().getNumLeavingEdges() > 1
-                  && cfaEdge.getSuccessor().getLeavingEdge(1).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
+              && ((cfaEdge.getSuccessor().getNumLeavingEdges() > 0
+                      && cfaEdge.getSuccessor().getLeavingEdge(0).getEdgeType()
+                          == CFAEdgeType.FunctionCallEdge)
+                  || (cfaEdge.getSuccessor().getNumLeavingEdges() > 1
+                      && cfaEdge.getSuccessor().getLeavingEdge(1).getEdgeType()
+                          == CFAEdgeType.FunctionCallEdge))) {
 
             // This AssumedEdge has probably been created by converting a
             // function pointer call into a series of if-else-if-else edges,

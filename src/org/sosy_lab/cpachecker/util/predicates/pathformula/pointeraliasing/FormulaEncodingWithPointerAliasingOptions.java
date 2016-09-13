@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-
-import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.predicate")
 public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOptions {
@@ -64,14 +65,28 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "The default size in bytes for memory allocations when the value cannot be determined.")
   private int defaultAllocationSize = 4;
 
+  @Option(
+    secure = true,
+    description =
+        "Use the theory of arrays for heap-memory encoding. "
+            + "This requires an SMT solver that is capable of the theory of arrays."
+  )
+  private boolean useArraysForHeap = false;
+
   @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
   private int defaultArrayLength = 20;
 
-  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored).")
+  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored). Use -1 to disable the limit.")
+  @IntegerOption(min=-1)
   private int maxArrayLength = 20;
 
   @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
+
+  @Option(secure = true, description = "Use quantifiers when encoding heap accesses. "
+      + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS). "
+      + "Currently universal quantifiers will only be introduced for array initializer statements.")
+  private boolean useQuantifiersOnArrays = false;
 
   @Option(secure=true, description = "When a string literal initializer is encountered, initialize the contents of the char array "
                       + "with the contents of the string literal instead of just assigning a fresh non-det address "
@@ -84,13 +99,17 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
+
+    if (maxArrayLength == -1) {
+      maxArrayLength = Integer.MAX_VALUE;
+    }
   }
 
-  public boolean hasSuperfluousParameters(final String name) {
+  boolean hasSuperfluousParameters(final String name) {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
   }
 
-  public boolean isDynamicMemoryFunction(final String name) {
+  boolean isDynamicMemoryFunction(final String name) {
     return isSuccessfulAllocFunctionName(name)
         || isSuccessfulZallocFunctionName(name)
         || isMemoryAllocationFunction(name)
@@ -98,63 +117,71 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         || isMemoryFreeFunction(name);
   }
 
-  public boolean isSuccessfulAllocFunctionName(final String name) {
+  boolean isSuccessfulAllocFunctionName(final String name) {
     return successfulAllocFunctionName.equals(name);
   }
 
-  public boolean isSuccessfulZallocFunctionName(final String name) {
+  boolean isSuccessfulZallocFunctionName(final String name) {
     return successfulZallocFunctionName.equals(name);
   }
 
-  public boolean isDynamicAllocVariableName(final String name) {
+  boolean isDynamicAllocVariableName(final String name) {
     return isSuccessfulAllocFunctionName(name) || isSuccessfulZallocFunctionName(name);
   }
 
-  public String getSuccessfulAllocFunctionName() {
+  String getSuccessfulAllocFunctionName() {
     return successfulAllocFunctionName;
   }
 
-  public String getSuccessfulZallocFunctionName() {
+  String getSuccessfulZallocFunctionName() {
     return successfulZallocFunctionName;
   }
 
-  public boolean makeMemoryAllocationsAlwaysSucceed() {
+  boolean makeMemoryAllocationsAlwaysSucceed() {
     return memoryAllocationsAlwaysSucceed;
   }
 
-  public boolean revealAllocationTypeFromLHS() {
+  boolean revealAllocationTypeFromLHS() {
     return revealAllocationTypeFromLhs;
   }
 
-  public boolean deferUntypedAllocations() {
+  boolean deferUntypedAllocations() {
     return deferUntypedAllocations;
   }
 
-  public int maxPreFilledAllocationSize() {
+  int maxPreFilledAllocationSize() {
     return maxPreFilledAllocationSize;
   }
 
-  public int defaultAllocationSize() {
+  int defaultAllocationSize() {
     return defaultAllocationSize;
   }
 
-  public int defaultArrayLength() {
+  public boolean useArraysForHeap() {
+    return useArraysForHeap;
+  }
+
+  int defaultArrayLength() {
     return defaultArrayLength;
   }
 
-  public int maxArrayLength() {
+  int maxArrayLength() {
     return maxArrayLength;
   }
 
-  public boolean isMemoryFreeFunction(final String name) {
+  boolean isMemoryFreeFunction(final String name) {
     return memoryFreeFunctionName.equals(name);
   }
 
-  public boolean handleStringLiteralInitializers() {
+  public boolean useQuantifiersOnArrays() {
+    return useQuantifiersOnArrays;
+  }
+
+  boolean handleStringLiteralInitializers() {
     return handleStringLiteralInitializers;
   }
 
-  public boolean handleImplicitInitialization() {
+  boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
   }
 }

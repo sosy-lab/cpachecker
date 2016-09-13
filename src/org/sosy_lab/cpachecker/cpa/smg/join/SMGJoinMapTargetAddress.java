@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.collect.Iterables;
+
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
@@ -39,7 +41,7 @@ final class SMGJoinMapTargetAddress {
   private SMGNodeMapping mapping2;
   private Integer value;
 
-  public SMGJoinMapTargetAddress(SMG pSMG1, SMG destSMG, SMGNodeMapping pMapping1,
+  public SMGJoinMapTargetAddress(SMG pSMG1, SMG pSMG2, SMG destSMG, SMGNodeMapping pMapping1,
                              SMGNodeMapping pMapping2, Integer pAddress1,
                              Integer pAddress2) {
     smg = destSMG;
@@ -49,7 +51,7 @@ final class SMGJoinMapTargetAddress {
 
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);
-    SMGEdgePointsTo pt2 = pSMG1.getPointer(pAddress2);
+    SMGEdgePointsTo pt2 = pSMG2.getPointer(pAddress2);
     if (pt.getObject().notNull()) {
       target = pMapping1.get(pt.getObject());
     }
@@ -68,8 +70,7 @@ final class SMGJoinMapTargetAddress {
     Set<SMGEdgePointsTo> edges = smg.getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(target).filterAtTargetOffset(pt.getOffset()).filterByTargetSpecifier(tg));
 
     if (!edges.isEmpty()) {
-      /*If there are more than one value with same pointer, just chose one arbitrarily*/
-      value = edges.iterator().next().getValue();
+      value = Iterables.getOnlyElement(edges).getValue();
       return;
     }
 

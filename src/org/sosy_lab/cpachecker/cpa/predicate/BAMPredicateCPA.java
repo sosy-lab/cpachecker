@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AllRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
@@ -54,13 +55,20 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     return AutomaticCPAFactory.forType(BAMPredicateCPA.class).withOptions(BAMBlockOperator.class);
   }
 
-  private final BAMPredicateReducer reducer;
   private final BAMBlockOperator blk;
   private RelevantPredicatesComputer relevantPredicatesComputer;
 
-  @Option(secure=true, description="whether to use auxiliary predidates for reduction")
-  private boolean auxiliaryPredicateComputer = true;
-
+  @Option(
+    description =
+        "which strategy/heuristic should be used to compute relevant predicates for a block-reduction?"
+            + "\nAUXILIARY: dependencies between variables."
+            + "\nOCCURENCE: occurence of variables in the block."
+            + "\nALL: all variables are relevant.",
+    secure = true,
+    values = {"AUXILIARY", "OCCURRENCE", "ALL"},
+    toUppercase = true
+  )
+  private String predicateComputer = "AUXILIARY";
 
   private BAMPredicateCPA(
       Configuration config,
@@ -76,15 +84,22 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     config.inject(this, BAMPredicateCPA.class);
 
     FormulaManagerView fmgr = getSolver().getFormulaManager();
-    RelevantPredicatesComputer relevantPredicatesComputer;
-    if (auxiliaryPredicateComputer) {
-      relevantPredicatesComputer = new AuxiliaryComputer(fmgr);
-    } else {
-      relevantPredicatesComputer = new RefineableOccurrenceComputer(fmgr);
+    switch (predicateComputer) {
+      case "AUXILIARY":
+        relevantPredicatesComputer =
+            new CachingRelevantPredicatesComputer(new AuxiliaryComputer(fmgr));
+        break;
+      case "OCCURRENCE":
+        relevantPredicatesComputer =
+            new CachingRelevantPredicatesComputer(new RefineableOccurrenceComputer(fmgr));
+        break;
+      case "ALL":
+        relevantPredicatesComputer = AllRelevantPredicatesComputer.INSTANCE;
+        break;
+      default:
+        throw new AssertionError("unhandled case");
     }
-    this.relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
 
-    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this);
     blk = pBlk;
   }
 
@@ -102,9 +117,11 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   @Override
   public BAMPredicateReducer getReducer() {
-    return reducer;
+    return new BAMPredicateReducer(
+        getSolver().getFormulaManager().getBooleanFormulaManager(), this);
   }
 
+  @Override
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
   }

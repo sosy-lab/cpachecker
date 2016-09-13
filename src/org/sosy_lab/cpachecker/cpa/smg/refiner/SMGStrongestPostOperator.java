@@ -34,10 +34,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,9 +50,15 @@ public class SMGStrongestPostOperator {
 
   private final SMGTransferRelation transfer;
 
-  public SMGStrongestPostOperator(LogManager pLogger, Configuration pBuild, CFA pCfa)
-      throws InvalidConfigurationException {
-    transfer = SMGTransferRelation.createTransferRelationForRefinement(pBuild, pLogger, pCfa.getMachineModel());
+  private SMGStrongestPostOperator(SMGTransferRelation pTransferRelation) {
+    transfer = pTransferRelation;
+  }
+
+  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(LogManager pLogger,
+      Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator) throws InvalidConfigurationException {
+    SMGTransferRelation transfer =
+        SMGTransferRelation.createTransferRelationForCEX(pConfig, pLogger, pCfa.getMachineModel(), pSMGPredicateManager, pBlockOperator);
+    return new SMGStrongestPostOperator(transfer);
   }
 
   public Collection<SMGState> getStrongestPost(SMGState pOrigin, Precision pPrecision,
@@ -81,5 +89,15 @@ public class SMGStrongestPostOperator {
         return (SMGState) pState;
       }
     }).toList();
+  }
+
+  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(
+      LogManager pLogger, Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+
+    SMGTransferRelation transferRelation = SMGTransferRelation
+        .createTransferRelationForInterpolation(pConfig, pLogger, pCfa.getMachineModel(),
+            pSMGPredicateManager, pBlockOperator);
+    return new SMGStrongestPostOperator(transferRelation);
   }
 }

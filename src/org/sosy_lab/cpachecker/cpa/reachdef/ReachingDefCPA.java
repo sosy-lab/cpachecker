@@ -23,18 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -55,11 +49,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /*
  * Requires preprocessing with cil to get proper result because preprocessing guarantees that
@@ -69,8 +65,8 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
  * If function x is called from at least two distinct functions y and z, analysis must be done together
  * with CallstackCPA.
  */
-@Options(prefix="cpa.reachdef")
-public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker {
+@Options(prefix = "cpa.reachdef")
+public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofCheckerCPA {
 
   private LogManager logger;
 
@@ -156,36 +152,4 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis, ProofChecker
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
   }
-
-  @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    try {
-      Collection<? extends AbstractState> computedSuccessors =
-          transfer.getAbstractSuccessorsForEdge(
-              pState, SingletonPrecision.getInstance(), pCfaEdge);
-      boolean found;
-      for (AbstractState comp:computedSuccessors) {
-        found = false;
-        for (AbstractState e:pSuccessors) {
-          if (isCoveredBy(comp, e)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          return false;
-        }
-      }
-    } catch (CPAException e) {
-      throw new CPATransferException("Cannot compare abstract successors", e);
-    }
-    return true;
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    return domain.isLessOrEqual(pState, pOtherState);
-  }
-
 }

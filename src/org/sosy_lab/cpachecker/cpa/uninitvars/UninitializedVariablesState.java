@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,11 +35,6 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
@@ -199,16 +199,6 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
     }
     return this.properties.contains(prop);
-  }
-  @Override
-  public Boolean evaluateProperty(
-      String pProperty) throws InvalidQueryException {
-    return Boolean.valueOf(checkProperty(pProperty));
-  }
-  @Override
-  public void modifyProperty(String pModification)
-      throws InvalidQueryException {
-    throw new InvalidQueryException("The uninitVars CPA does not support modification.");
   }
 
   @Override

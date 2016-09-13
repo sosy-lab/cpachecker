@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
 
 /**
@@ -44,6 +47,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface InvariantGenerator {
 
   /**
+   * Checks if the invariant generator has already been started.
+   *
+   * @return {@code true} if the invariant generator has already been started,
+   * {@code false} otherwise.
+   */
+  boolean isStarted();
+
+  /**
    * Prepare invariant generation, and optionally start the algorithm.
    * May be called only once.
    */
@@ -56,7 +67,9 @@ public interface InvariantGenerator {
   void cancel();
 
   /**
-   * Retrieve the generated invariant.
+   * Retrieve the generated {@link AggregatedReachedSets} object. It can be used to extract invariants
+   * by e.g. using {@link FormulaInvariantsSupplier} or {@link ExpressionTreeInvariantSupplier}.
+   *
    * Can be called only after {@link #start(CFANode)} was called.
    *
    * Depending on the invariant generator, this method may either block
@@ -66,20 +79,7 @@ public interface InvariantGenerator {
    * @throws CPAException If the invariant generation failed.
    * @throws InterruptedException If the invariant generation was interrupted.
    */
-  InvariantSupplier get() throws CPAException, InterruptedException;
-
-  /**
-   * Retrieve the generated invariant as an expression tree.
-   * Can be called only after {@link #start(CFANode)} was called.
-   *
-   * Depending on the invariant generator, this method may either block
-   * for some time during the invariant generation runs,
-   * or return a current snapshot of the invariants quickly.
-   *
-   * @throws CPAException If the invariant generation failed.
-   * @throws InterruptedException If the invariant generation was interrupted.
-   */
-  ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException;
+  AggregatedReachedSets get() throws CPAException, InterruptedException;
 
   /**
    * Return whether the invariant generation has already proved

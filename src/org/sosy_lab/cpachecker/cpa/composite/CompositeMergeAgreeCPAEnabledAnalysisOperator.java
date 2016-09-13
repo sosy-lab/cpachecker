@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -91,12 +91,15 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
           && predReachedState.isAbstractionState()) {
         // check if same abstraction state, test formula for equivalence
         try {
-          if (predSuccessorState.getAbstractionFormula().asFormula() == predReachedState.getAbstractionFormula()
-              .asFormula()
-              || abmgr.checkCoverage(predSuccessorState.getAbstractionFormula(), predReachedState
-                  .getAbstractionFormula())
-              && abmgr.checkCoverage(predReachedState.getAbstractionFormula(), predSuccessorState
-                  .getAbstractionFormula())) { // TODO do we need functional equivalence or is something else faster and sufficient?
+          if (predSuccessorState.getAbstractionFormula().asFormula()
+                  == predReachedState.getAbstractionFormula().asFormula()
+              || (abmgr.checkCoverage(
+                      predSuccessorState.getAbstractionFormula(),
+                      predReachedState.getAbstractionFormula())
+                  && abmgr.checkCoverage(
+                      predReachedState.getAbstractionFormula(),
+                      predSuccessorState
+                          .getAbstractionFormula()))) { // TODO do we need functional equivalence or is something else faster and sufficient?
             mergeIfPredicateEnabler = true;
           }
         } catch (SolverException e) {

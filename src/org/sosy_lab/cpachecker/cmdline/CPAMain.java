@@ -66,6 +66,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -78,6 +79,10 @@ public class CPAMain {
 
   @SuppressWarnings("resource") // We don't close LogManager
   public static void main(String[] args) {
+    // CPAchecker uses American English for output,
+    // so make sure numbers are formatted appropriately.
+    Locale.setDefault(Locale.US);
+
     // initialize various components
     Configuration cpaConfig = null;
     LoggingOptions logOptions;

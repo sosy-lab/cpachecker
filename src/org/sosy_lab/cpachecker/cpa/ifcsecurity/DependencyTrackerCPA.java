@@ -30,35 +30,23 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
  * CPA for tracking which variables/functions are dependent on which other variables/functions
  */
-@Options(prefix="cpa.ifcsecurity")
-public class DependencyTrackerCPA implements ConfigurableProgramAnalysis {
+@Options(prefix = "cpa.ifcsecurity")
+public class DependencyTrackerCPA extends AbstractCPA {
 
   @SuppressWarnings("unused")
   private LogManager logger;
-  private AbstractDomain domain;
-  private DependencyTrackerRelation transfer;
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for DependencyTrackerCPA")
@@ -68,55 +56,28 @@ public class DependencyTrackerCPA implements ConfigurableProgramAnalysis {
       description="which stop operator to use for DependencyTrackerCPA")
   private String stopType = "SEP";
 
-  private StopOperator stop;
-  private MergeOperator merge;
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(DependencyTrackerCPA.class);
   }
 
   private DependencyTrackerCPA(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    super(
+        "irrelevant", // operator-initialization is overridden
+        "irrelevant", // operator-initialization is overridden
+        DelegateAbstractDomain.<DependencyTrackerState>getInstance(),
+        new DependencyTrackerRelation(pLogger, pShutdownNotifier));
     pConfig.inject(this);
     this.logger = pLogger;
-
-    domain = DelegateAbstractDomain.<DependencyTrackerState>getInstance();
-    transfer = new DependencyTrackerRelation(pLogger, pShutdownNotifier);
-
-    if (stopType.equals("SEP")) {
-      stop = new StopSepOperator(domain);
-    } else if (mergeType.equals("JOIN")) {
-      stop = new StopJoinOperator(domain);
-    }
-    if (mergeType.equals("SEP")) {
-      merge = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("JOIN")) {
-      merge = new MergeJoinOperator(domain);
-    }
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return domain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transfer;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return buildMergeOperator(mergeType);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return buildStopOperator(stopType);
   }
 
   @Override
@@ -124,13 +85,4 @@ public class DependencyTrackerCPA implements ConfigurableProgramAnalysis {
     DependencyTrackerState initialstate=new DependencyTrackerState();
     return  initialstate;
   }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-
-
-
 }

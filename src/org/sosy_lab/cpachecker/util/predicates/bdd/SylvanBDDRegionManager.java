@@ -35,8 +35,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
 
-import jsylvan.JSylvan;
-
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -53,12 +51,12 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -71,6 +69,8 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
+
+import jsylvan.JSylvan;
 
 /**
  * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
@@ -330,7 +330,7 @@ class SylvanBDDRegionManager implements RegionManager {
 
     try (FormulaToRegionConverter converter =
              new FormulaToRegionConverter(fmgr, atomToRegion)) {
-      return wrap(bfmgr.visit(converter, pF));
+      return wrap(bfmgr.visit(pF, converter));
     }
   }
 
@@ -485,7 +485,7 @@ class SylvanBDDRegionManager implements RegionManager {
     private long convert(BooleanFormula pOperand) {
       Long operand = cache.get(pOperand);
       if (operand == null) {
-        operand = ref(bfmgr.visit(this, pOperand));
+        operand = ref(bfmgr.visit(pOperand, this));
         cache.put(pOperand, operand);
       }
       return operand;

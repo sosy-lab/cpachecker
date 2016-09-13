@@ -47,13 +47,15 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
   private final SMGSingleLinkedListCandidate candidate;
   private final int length;
+  private final boolean includesSll;
   private final SMGJoinStatus seqStatus;
 
   public SMGSingleLinkedListCandidateSequence(SMGSingleLinkedListCandidate pCandidate,
-      int pLength, SMGJoinStatus pSmgJoinStatus) {
+      int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesSll) {
     candidate = pCandidate;
     length = pLength;
     seqStatus = pSmgJoinStatus;
+    includesSll = pIncludesSll;
   }
 
   @Override
@@ -158,6 +160,11 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
   @Override
   public int getScore() {
     int score = length + getStatusScore() + getRecursiveFieldTypeScore();
+
+    if (includesSll) {
+      score = score + 2;
+    }
+
     return score;
   }
 
@@ -169,10 +176,11 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
     switch (seqStatus) {
       case EQUAL:
-        return 3;
+        return 50;
       case LEFT_ENTAIL:
+        return 31;
       case RIGHT_ENTAIL:
-        return 2;
+        return 30;
       case INCOMPARABLE:
       default:
         return 0;
@@ -194,5 +202,10 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
     return new SMGSingleLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
   }
 }

@@ -47,7 +47,10 @@ public class CPATestRunner {
     Configuration config = TestDataTools.configurationForTest()
         .setOptions(pProperties)
         .build();
+    return run(config, pSourceCodeFilePath);
+  }
 
+  public static TestResults run(Configuration config, String pSourceCodeFilePath) throws Exception {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(Level.INFO);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());

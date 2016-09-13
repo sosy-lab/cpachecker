@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Set;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,8 +43,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.Optional;
-import com.google.common.collect.Iterables;
+import java.util.Set;
 
 /**
  * Strongest post-operator using {@link ValueAnalysisTransferRelation}.
@@ -86,7 +86,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   @Override
   public ValueAnalysisState handleFunctionCall(ValueAnalysisState state, CFAEdge edge,
       Deque<ValueAnalysisState> callstack) {
-    callstack.addLast(state);
+    callstack.push(state);
     return state;
   }
 
@@ -94,7 +94,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   public ValueAnalysisState handleFunctionReturn(ValueAnalysisState next, CFAEdge edge,
       Deque<ValueAnalysisState> callstack) {
 
-    final ValueAnalysisState callState = callstack.removeLast();
+    final ValueAnalysisState callState = callstack.pop();
     return next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
   }
 

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast" })
+@SuppressWarnings(value = { "all", "cast", "MissingOverride" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
@@ -142,6 +142,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "STOP"              { return symbol("STOP", AutomatonSym.STOP); }
 <YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
+<YYINITIAL> "ENTRY"             { return symbol("ENTRY", AutomatonSym.ENTRY); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }

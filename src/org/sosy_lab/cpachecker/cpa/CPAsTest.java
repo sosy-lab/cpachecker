@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
+import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -103,8 +105,10 @@ public class CPAsTest {
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
+    cpas.remove(SingleSuccessorCompactorCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
+    cpas.remove(ABECPA.class); // Shouldn't be used by itself.
 
     return cpas;
   }
@@ -190,7 +194,7 @@ public class CPAsTest {
   }
 
   @Test
-  public void getInitialState() {
+  public void getInitialState() throws InterruptedException {
     assertThat(cpa.getInitialState(main, partition)).named("initial state").isNotNull();
   }
 

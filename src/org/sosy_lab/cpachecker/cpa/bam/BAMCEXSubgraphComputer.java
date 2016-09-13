@@ -60,16 +60,19 @@ public class BAMCEXSubgraphComputer {
     this.logger = bamCpa.getLogger();
   }
 
-  /** returns the root of a subtree, leading from the root element of the given reachedSet to the target state.
+  /**
+   * Returns the root of a subtree, leading from the root element of the
+   * given reachedSet to the target state.
    * The subtree is represented using children and parents of ARGElements,
    * where newTreeTarget is the ARGState in the constructed subtree that represents target.
    *
-   * If the target is reachable via a missing block (aka "hole"),
+   * <p>If the target is reachable via a missing block (aka "hole"),
    * the MissingBlockException is thrown.
    * Then we expect, that the next actions are removing cache-entries from bam-cache,
    * updating some waitlists and restarting the CPA-algorithm, so that the missing block is analyzed again.
    *
-   * If the CEX contains a state, where several blocks overlap (happens at block-start and block-end),
+   * <p>If the CEX contains a state, where several blocks overlap (happens at
+   * block-start and block-end),
    * the new CEX-graph contains the states of the most-outer block/reached-set.
    *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
@@ -80,7 +83,8 @@ public class BAMCEXSubgraphComputer {
    *         because one real state can be used multiple times in one path.
    * @throws MissingBlockException for re-computing some blocks
    */
-  BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet pMainReachedSet)
+  BackwardARGState computeCounterexampleSubgraph(
+      final ARGState target, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
     assert pMainReachedSet.asReachedSet().contains(target);
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, Collections.singleton(new BackwardARGState(target)));
@@ -88,8 +92,10 @@ public class BAMCEXSubgraphComputer {
     return root;
   }
 
-  /** compute a subgraph within the given reached set,
-   * backwards from target (wrapped by newTreeTarget) towards the root of the reached set. */
+  /**
+   * Compute a subgraph within the given reached set,
+   * backwards from target (wrapped by newTreeTarget) towards the root of the reached set.
+   * */
   private BackwardARGState computeCounterexampleSubgraph(
       final ARGReachedSet reachedSet, final Collection<BackwardARGState> newTreeTargets)
       throws MissingBlockException, InterruptedException {

@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
-import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+
+import java.util.Collection;
+import java.util.Set;
 
 
 /**
@@ -48,15 +49,31 @@ public class OccurrenceComputer extends AbstractRelevantPredicatesComputer<Block
 
   @Override
   protected boolean isRelevant(Block context, AbstractionPredicate predicate) {
-    String predicateString = predicate.getSymbolicAtom().toString();
-
+    Set<String> variables = fmgr.extractVariableNames(predicate.getSymbolicAtom());
     for (ReferencedVariable var : context.getReferencedVariables()) {
-      if (predicateString.contains(var.getName())) {
-        //var occurs in the predicate, so better trace it
-        //TODO: contains is a quite rough approximation; for example "foo <= 5" also contains "f", although the variable f does in fact not occur in the predicate.
+
+      // short cut
+      if (variables.contains(var.getName())) {
         return true;
       }
+
+      // here we have to handle some imprecise information,
+      // because the encoding of variables in predicates and referencedVariables might differ.
+      // Examples: "__ADDRESS_OF_xyz" vs "xyz", "ssl3_accept::s->state" vs "ssl3_accept::s"
+      // This handling causes an over-approximation of the set of variables, because
+      // a predicate-variable "f" is relevant, if "foo" is one of the referenced variables.
+      for (String variable : variables) {
+        if (variable.contains(var.getName())) {
+          return true;
+        }
+      }
     }
+
     return false;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof OccurrenceComputer && super.equals(o);
   }
 }

@@ -46,6 +46,11 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# Default rounding mode for floating point operations.
+solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
+  enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
+             TOWARD_ZERO]
+
 # Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
@@ -60,6 +65,10 @@ solver.mathsat5.loadOptimathsat5 = false
 # The number of atoms a term has to have before it gets abbreviated if there
 # are more identical terms.
 solver.princess.minAtomsForAbbreviation = 100
+
+# Princess needs to copy all symbols for each new prover. This flag allows to
+# reuse old unused provers and avoid the overhead.
+solver.princess.reuseProvers = true
 
 # Random seed for SMT solver.
 solver.randomSeed = 42
@@ -78,6 +87,9 @@ solver.solver = SMTINTERPOL
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Dump failed interpolation queries to this file in SMTLIB2 format
+solver.z3.dumpFailedInterpolationQueries = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -121,6 +133,9 @@ analysis.algorithm.conditionAdjustment = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
+
+# use PDR algorithm
+analysis.algorithm.pdr = false
 
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
@@ -193,8 +208,11 @@ analysis.programNames = no default value
 # LOCATIONMAPPED: a different set per location (faster, states with different
 # locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
+# PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the
+# states' lattice (maybe faster for some special analyses which use merge_sep
+# and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED]
 
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
@@ -280,8 +298,7 @@ assumptions.export = true
 assumptions.file = "assumptions.txt"
 
 # comma-separated list of files with specifications that should be used 
-# in a backwards analysis; used if the full analysis consists of a forward
-# AND a backward part!
+# in a backwards analysis; used if the analysis starts at the target states!
 # (see config/specification/ for examples)
 backwardSpecification = []
 
@@ -521,6 +538,15 @@ cfa.variableClassification.printStatsOnStartup = false
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 
+# Output an input file, with invariants embedded as assume constraints.
+cinvariants.export = false
+
+# Prefix to add to an output file, which would contain assumed invariants.
+cinvariants.prefix = no default value
+
+# Attempt to simplify the invariant before exporting [may be very expensive].
+cinvariants.simplify = false
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -658,6 +684,16 @@ coverage.stdout = true
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
 
+# Where to perform abstraction
+cpa.abe.abstractionLocations = LOOPHEAD
+  enum:     [ALL, LOOPHEAD, MERGE]
+
+# Check target states reachability
+cpa.abe.checkTargetStates = true
+
+# Cache formulas produced by path formula manager
+cpa.abe.useCachingPathFormulaManager = true
+
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
   enum:     [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
@@ -705,7 +741,7 @@ cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
-# must behave differntly during merge.
+# must behave differently during merge.
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
@@ -780,7 +816,7 @@ cpa.automaton.prec.topOnFinalSelfLoopingState = false
 # This should be the standard use case.
 cpa.automaton.treatErrorsAsTargets = true
 
-# if enabled, cache queries also consider blocks with non-matching precision
+# If enabled, cache queries also consider blocks with non-matching precision
 # for reuse.
 cpa.bam.aggressiveCaching = true
 
@@ -800,7 +836,7 @@ cpa.bam.doPrecisionRefinementForAllStates = false
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
-# if enabled, the reached set cache is analysed for each cache miss to find
+# If enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
 
@@ -848,6 +884,10 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
+
+# Threshold for unrolling blocks before stopping. A value of 0 disables the
+# threshold.
+cpa.blockcount.threshold = 1
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
@@ -984,6 +1024,13 @@ cpa.conditions.path.length.limit = -1
 
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
+
+# Generate congruences for sums of variables (<=> x and y have same/different
+# evenness)
+cpa.congruence.trackCongruenceSum = false
+
+# Cache formulas produced by path formula manager
+cpa.congruence.useCachingPathFormulaManager = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -1149,10 +1196,9 @@ cpa.loopstack.maxLoopIterationsUpperBound = 0
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
 
-# Allowed coefficients in a template.
-cpa.lpi.allowedCoefficients = {
-      Rational.NEG_ONE, Rational.ONE
-  }
+# Attach extra invariant from other CPAs during the value determination
+# computation
+cpa.lpi.attachExtraInvariantDuringValueDetermination = true
 
 # Check whether the policy depends on the initial value
 cpa.lpi.checkPolicyInitialCondition = true
@@ -1163,14 +1209,12 @@ cpa.lpi.checkTargetStates = true
 # Compute abstraction for larger templates using decomposition
 cpa.lpi.computeAbstractionByDecomposition = false
 
+# Do not compute the abstraction until strengthen is called. This speeds up
+# the computation, but does not let other CPAs use the output of LPI.
+cpa.lpi.delayAbstractionUntilStrengthen = false
+
 # Value to substitute for the epsilon
 cpa.lpi.epsilon = Rational.ONE
-
-# Generate templates from assert statements
-cpa.lpi.generateFromAsserts = true
-
-# Generate templates from all program statements
-cpa.lpi.generateFromStatements = true
 
 # Generate new templates using polyhedra convex hull
 cpa.lpi.generateTemplatesUsingConvexHull = false
@@ -1178,18 +1222,11 @@ cpa.lpi.generateTemplatesUsingConvexHull = false
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
 
-# Maximum size for the generated template
-cpa.lpi.maxExpressionSize = 1
-
-# Run simple congruence analysis
-cpa.lpi.runCongruence = true
-
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.lpi.runHopefulValueDetermination = true
 
-# Do not generate templates with threshold larger than specified. Set to '-1'
-# for no limit.
-cpa.lpi.templateConstantThreshold = 100
+# Remove redundant items when abstract values.
+cpa.lpi.simplifyDotOutput = true
 
 # Algorithm for converting a formula to a set of lemmas
 cpa.lpi.toLemmasAlgorithm = "RCNF"
@@ -1204,12 +1241,11 @@ cpa.lpi.useCachingOptSolver = false
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
 
+# Use the new SSA after the merge operation.
+cpa.lpi.useNewSSAAfterMerge = false
+
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
-
-# Strategy for filtering variables out of templates using liveness
-cpa.lpi.varFiltering = ALL_LIVE
-  enum:     [ALL_LIVE, ONE_LIVE, ALL]
 
 # Number of value determination steps allowed before widening is run. Value
 # of '-1' runs value determination until convergence.
@@ -1247,7 +1283,7 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
-# which merge operator to use for InvariantCPA
+# which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
@@ -1325,8 +1361,13 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
-# whether to use auxiliary predidates for reduction
-cpa.predicate.bam.auxiliaryPredicateComputer = true
+# which strategy/heuristic should be used to compute relevant predicates for
+# a block-reduction?
+# AUXILIARY: dependencies between variables.
+# OCCURENCE: occurence of variables in the block.
+# ALL: all variables are relevant.
+cpa.predicate.bam.predicateComputer = "AUXILIARY"
+  allowed values: [AUXILIARY, OCCURRENCE, ALL]
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -1433,10 +1474,6 @@ cpa.predicate.handleArrays = false
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
-# Use the theory of arrays for heap memory abstraction. This supports pointer
-# aliasing and replaces the option "handlePointerAliasing".
-cpa.predicate.handleHeapArray = false
-
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
@@ -1478,9 +1515,6 @@ cpa.predicate.invariants.appendToAbstractionFormula = false
 # generated. Invariants do not need to be generated with the PredicateCPA
 # they can also be given from outside.
 cpa.predicate.invariants.appendToPathFormula = false
-
-# Compute invariants with PredicateCPA
-cpa.predicate.invariants.computeInvariants = false
 
 # Should the automata used for invariant generation be dumped to files?
 cpa.predicate.invariants.dumpInvariantGenerationAutomata = false
@@ -1533,7 +1567,8 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
-# The maximum length for arrays (elements beyond this will be ignored).
+# The maximum length for arrays (elements beyond this will be ignored). Use
+# -1 to disable the limit.
 cpa.predicate.maxArrayLength = 20
 
 # Maximum size of allocations for which all structure fields are regarded
@@ -1790,6 +1825,10 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
+# Use the theory of arrays for heap-memory encoding. This requires an SMT
+# solver that is capable of the theory of arrays.
+cpa.predicate.useArraysForHeap = false
+
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
@@ -1806,9 +1845,8 @@ cpa.predicate.useParameterVariables = false
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
 
-# Use quantifiers together with the heap-array converter. This requires the
-# option "handleHeapArray=true" and a SMT solver that is capable of the
-# theory of arrays and quantifiers (e.g. Z3 or PRINCESS). Universal
+# Use quantifiers when encoding heap accesses. This requires an SMT solver
+# that is capable of quantifiers (e.g. Z3 or PRINCESS). Currently universal
 # quantifiers will only be introduced for array initializer statements.
 cpa.predicate.useQuantifiersOnArrays = false
 
@@ -1905,8 +1943,9 @@ cpa.smg.exportSMG.file = "smg/smg-%s.dot"
 cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
-# Function which indicate on external allocated memory
-cpa.smg.externalAllocationFunction = "ext_allocation"
+# Functions which indicate on external allocated memory
+cpa.smg.externalAllocationFunction = {
+      "ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg.externalAllocationSize = Integer.MAX_VALUE
@@ -1938,6 +1977,9 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
+# export interpolant smgs for every path interpolation to this path template
+cpa.smg.refinement.exportInterpolantSMGs = "smg/interpolation-%d/%s"
+
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement
@@ -1945,6 +1987,9 @@ cpa.smg.memoryErrors = true
 # multiple times per refinement
 cpa.smg.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
+
+# export interpolant smgs for every path interpolation to this path template
+cpa.smg.refinement.exportRefinmentSMGs = "smg/refinment-%d/smg-%s"
 
 # export interpolation trees to this file template
 cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
@@ -1955,10 +2000,16 @@ cpa.smg.runtimeCheck = NONE
 
 # which stop operator to use for the SMGCPA
 cpa.smg.stop = "SEP"
-  allowed values: [SEP, NEVER]
+  allowed values: [SEP, NEVER, END_BLOCK]
+
+# Enable track predicates on SMG state
+cpa.smg.trackPredicates = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Allow SMG to check predicates
+cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {
@@ -2031,10 +2082,6 @@ cpa.statistics.metric.structVariablesCount = true
 
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
-
-# Generate congruences for sums of variables (<=> x and y have same/different
-# evenness)
-cpa.stator.congruence.trackCongruenceSum = false
 
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
@@ -2110,10 +2157,6 @@ cpa.value.abstraction.onlyAtNonLinearCFA = false
 # 1, even if x is a symbolic expression).
 cpa.value.assignSymbolicAssumptionVars = false
 
-# Process the Automaton ASSUMEs as if they were statements, not as if they
-# were assumptions.
-cpa.value.automatonAssumesAsStatements = false
-
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
@@ -2180,7 +2223,7 @@ cpa.value.refinement.performEdgeBasedInterpolation = true
 
 # which prefix of an actual counterexample trace should be used for
 # interpolation
-cpa.value.refinement.prefixPreference = Lists.newArrayList(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN)
+cpa.value.refinement.prefixPreference = [PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN]
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
@@ -2288,27 +2331,8 @@ impact.useForcedCovering = true
 # invariance.
 invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
 
-# Timelimit for invariant generation which may be used during refinement.
-# (Use seconds or specify a unit; 0 for infinite)
-invariantChecker.timeForInvariantCheck = 0ns
-
-# adjust invariant generation conditions if supported by the analysis
-invariantGeneration.adjustConditions = false
-
-# generate invariants in parallel to the normal analysis
-invariantGeneration.async = false
-
 # configuration file for invariant generation
 invariantGeneration.config = no default value
-
-# generate invariants in parallel to the normal analysis
-invariantGeneration.cpachecker.async = false
-
-# Configuration file for invariant generation with a full CPAchecker run.
-invariantGeneration.cpachecker.config.path = "config/invgen-components/pred-Invgen-restart-bitprecise.properties"
-
-# dump generated invariants
-invariantGeneration.cpachecker.invExportPath = no default value
 
 # Check candidate invariants in a separate thread asynchronously.
 invariantGeneration.kInduction.async = true
@@ -2351,6 +2375,11 @@ language = C
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.cpu = -1ns
+
+# Limit for thread cpu time used by CPAchecker. This option will in general
+# not work when multi-threading is used in more than one place, use only with
+# great caution! (use seconds or specify a unit; -1 for infinite)
+limits.time.cpu.thread = -1ns
 
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
@@ -2397,6 +2426,13 @@ overflow.check = false
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
+
+# Track overflow for signed integers.
+overflow.trackSignedIntegers = true
+
+# Only check live variables for overflow, as compiler can remove dead
+# variables.
+overflow.useLiveness = true
 
 # List of files with configurations to use. Files can be suffixed with
 # ::supply-reached this signalizes that the (finished) reached set of an
@@ -2553,6 +2589,32 @@ pcc.useCores = 1
 # (sharing=scoped).
 precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
+
+# Allowed coefficients in a template.
+precision.template.allowedCoefficients = {
+      Rational.NEG_ONE, Rational.ONE
+  }
+
+# Generate templates from assert statements
+precision.template.generateFromAsserts = true
+
+# Generate templates from all program statements
+precision.template.generateFromStatements = true
+
+# Force the inclusion of function parameters into the generated templates.
+# Required for summaries computation.
+precision.template.includeFunctionParameters = false
+
+# Maximum size for the generated template
+precision.template.maxExpressionSize = 1
+
+# Do not generate templates with threshold larger than specified. Set to '-1'
+# for no limit.
+precision.template.templateConstantThreshold = 100
+
+# Strategy for filtering variables out of templates using liveness
+precision.template.varFiltering = ALL_LIVE
+  enum:     [ALL_LIVE, ONE_LIVE, ALL]
 
 # If this option is used, variables that are addressed may get tracked
 # depending on the rest of the precision. When this option is disabled, a
@@ -2733,3 +2795,46 @@ termination.check = false
 # When checking for the termination property, use this configuration file
 # instead of the current one.
 termination.config = no default value
+
+# Shell command used to call the external SMT solver.
+termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
+
+# Analysis type used for synthesis of linear termination arguments.
+termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
+
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+# This affects only synthesis of linear termination arguments.
+termination.lassoAnalysis.linear.externalSolver = false
+
+# Maximal number of functions used in a ranking function template.
+termination.lassoAnalysis.maxTemplateFunctions = 3
+
+# Number of non-strict supporting invariants for each Motzkin transformation
+# during synthesis of termination arguments.
+termination.lassoAnalysis.nonStrictInvariants = 3
+
+# Analysis type used for synthesis of non-linear termination arguments.
+termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
+
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+# This affects only synthesis of non-linear termination arguments and
+# non-termination arguments.
+termination.lassoAnalysis.nonlinear.externalSolver = false
+
+# Number of strict supporting invariants for each Motzkin transformation
+# during synthesis of termination arguments.
+termination.lassoAnalysis.strictInvariants = 2
+
+# Simplifies loop and stem formulas.
+termination.lassoBuilder.simplify = false
+
+# maximal number of repeated ranking functions per loop before stopping
+# analysis
+termination.maxRepeatedRankingFunctionsPerLoop = 100
+
+# Strategy used to prepare reched set and ARG for next iteration after
+# successful refinement of the termination argument.
+termination.resetReachedSetStrategy = REMOVE_LOOP
+  enum:     [REMOVE_TARGET_STATE, REMOVE_LOOP, RESET]

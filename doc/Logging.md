@@ -102,10 +102,10 @@ deferring the string concatenation to the logger
 which will do it only if necessary.
 Other expensive method calls (for example using a `Joiner`)
 should also be done lazily and only if necessary.
-This can be done by either creating and passing new `Object` instance
-that does the expensive computation inside its `toString()` method,
-or by using `if (wouldBeLogged(level)) { log(level, ...); }`.
-
+This can be done by using the log method that takes a `Supplier<String>`,
+or by wrapping the expensive code in a lambda
+and a call to `MoreStrings.lazyString()`:
+`logger.log(..., MoreStrings.lazyString(() -> compute()), ...);`
 
 Do not log too much
 -------------------

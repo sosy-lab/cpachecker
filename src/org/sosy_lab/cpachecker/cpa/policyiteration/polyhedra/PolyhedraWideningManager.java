@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
-import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
+import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
 

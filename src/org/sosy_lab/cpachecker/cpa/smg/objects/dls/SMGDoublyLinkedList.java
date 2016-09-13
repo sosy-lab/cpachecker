@@ -118,9 +118,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   @Override
-  public SMGObject join(SMGObject pOther, boolean pIncreaseLevel) {
-
-    int maxLevel = Math.max(getLevel(), pOther.getLevel());
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
 
     switch (pOther.getKind()) {
       case DLL:
@@ -130,18 +128,8 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
         int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
 
-        if (pIncreaseLevel) {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel + 1);
-        } else {
-
-          if (minimumLength == minlength && maxLevel == getLevel()) {
-            return this;
-          } else {
-            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-                maxLevel);
-          }
-        }
+        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+            pDestLevel);
 
       case REG:
       case OPTIONAL:
@@ -150,17 +138,8 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
         int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
         minlength = Math.min(getMinimumLength(), otherLength);
 
-        if (pIncreaseLevel) {
-          return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-              maxLevel + 1);
-        } else {
-          if (minlength == getMinimumLength() && maxLevel == getLevel()) {
-            return this;
-          } else {
-            return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
-                maxLevel);
-          }
-        }
+        return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), minlength,
+            pDestLevel);
 
       default:
         throw new IllegalArgumentException("join called on unjoinable Objects");

@@ -279,7 +279,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Set<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
@@ -295,20 +295,15 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
     }
 
+    shutdownNotifier.shutdownIfNecessary();
+
     AbstractionState abstractionState =
         options.abstractionStateFactory
           .createStrategy(compoundIntervalManagerFactory, machineModel)
           .getAbstractionState();
 
-    if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(
-          new AcceptAllVariableSelection<>(),
-          compoundIntervalManagerFactory,
-          machineModel,
-          abstractionState,
-          false,
-          options.includeTypeInformation);
-    }
+    shutdownNotifier.shutdownIfNecessary();
+
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
     } else {
@@ -333,6 +328,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       Queue<CFANode> nodes = new ArrayDeque<>();
       nodes.offer(location);
       while (!nodes.isEmpty()) {
+        shutdownNotifier.shutdownIfNecessary();
+
         location = nodes.poll();
         for (CFAEdge edge : CFAUtils.enteringEdges(location)) {
           if (relevantEdges.add(edge)) {
@@ -340,16 +337,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           }
         }
       }
-    }
-
-    if (shutdownNotifier.shouldShutdown()) {
-      return new InvariantsState(
-          new AcceptAllVariableSelection<>(),
-          compoundIntervalManagerFactory,
-          machineModel,
-          abstractionState,
-          false,
-          options.includeTypeInformation);
     }
 
     // Try to specify all relevant variables
@@ -417,7 +404,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     InvariantsPrecision precision = initialPrecisionMap.get(pNode);
     if (precision != null) {
       return precision;
@@ -491,20 +478,18 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     return pLimit >= 0 && pCollection.size() >= pLimit;
   }
 
-  private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, Set<CFANode> pRelevantLocations, int pLimit) {
+  private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, Set<CFANode> pRelevantLocations, int pLimit) throws InterruptedException {
     for (CFANode relevantLocation : pRelevantLocations) {
       expandFixpoint(pRelevantVariables, relevantLocation, pLimit);
     }
   }
 
-  private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
+  private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, CFANode pRelevantLocation, int pLimit) throws InterruptedException {
     int prevSize = -1;
     while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
       // we cannot throw an interrupted exception during #getInitialState, but the analysis
       // will be shutdown afterwards by another notifier so we can safely end computation here
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       prevSize = pRelevantVariables.size();
       expandOnce(pRelevantVariables, pRelevantLocation, pLimit);
     }

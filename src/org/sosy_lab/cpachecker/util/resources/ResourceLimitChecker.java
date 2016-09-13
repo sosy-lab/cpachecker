@@ -62,6 +62,7 @@ import javax.management.JMException;
 public final class ResourceLimitChecker {
 
   private final Thread thread;
+  private final List<ResourceLimit> limits;
 
   /**
    * Create a new instance with a list of limits to check and a {@link ShutdownNotifier}
@@ -74,6 +75,7 @@ public final class ResourceLimitChecker {
    */
   public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> limits) {
     checkNotNull(shutdownManager);
+    this.limits = limits;
     if (limits.isEmpty() || shutdownManager.getNotifier().shouldShutdown()) {
       // limits are irrelevant
       thread = null;
@@ -104,6 +106,10 @@ public final class ResourceLimitChecker {
     }
   }
 
+  public List<ResourceLimit> getResourceLimits() {
+    return limits;
+  }
+
   /**
    * Create an instance of this class from some configuration options.
    * The returned instance is not started yet.
@@ -126,6 +132,9 @@ public final class ResourceLimitChecker {
         logger.logDebugException(e, "Querying cpu time failed");
         logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
       }
+    }
+    if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
+      limits.add(ThreadCpuTimeLimit.fromNowOn(options.threadTime, Thread.currentThread()));
     }
 
     ImmutableList<ResourceLimit> limitsList = limits.build();
@@ -155,6 +164,16 @@ public final class ResourceLimitChecker {
         min=-1)
     private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
+    @Option(
+      secure = true,
+      name = "time.cpu.thread",
+      description =
+          "Limit for thread cpu time used by CPAchecker. This option will in general not work when"
+              + " multi-threading is used in more than one place, use only with great caution!"
+              + " (use seconds or specify a unit; -1 for infinite)"
+    )
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
+    private TimeSpan threadTime = TimeSpan.ofNanos(-1);
   }
 
   private static class ResourceLimitCheckRunnable implements Runnable {
@@ -199,6 +218,7 @@ public final class ResourceLimitChecker {
           // Check if expired
           final long currentValue = limit.getCurrentValue();
           if (limit.isExceeded(currentValue)) {
+            updateCurrentValuesOfAllLimits();
             String reason = String.format("The %s has elapsed.", limit.getName());
             shutdownManager.requestShutdown(reason);
             return;
@@ -221,10 +241,24 @@ public final class ResourceLimitChecker {
         try {
           Thread.sleep(millisToSleep);
         } catch (InterruptedException e) {
+          updateCurrentValuesOfAllLimits();
           // Cancel requested by ResourceLimitChecker#cancel()
           shutdownManager.getNotifier().unregister(interruptThreadOnShutdown);
           return;
         }
+      }
+    }
+
+    /**
+     * For each limit call getCurrentValue() a last time, to (possibly) update the
+     * last used value in the resource limit, this is especially important for ThreadCPULimits
+     * as the used cpu time of a thread can only be determined while it is running, afterwards
+     * this is not possible any more so this limit needs to cache the amount time in order
+     * to be able to return it to the user
+     */
+    private void updateCurrentValuesOfAllLimits() {
+      for (ResourceLimit l : limits) {
+        l.getCurrentValue();
       }
     }
   }

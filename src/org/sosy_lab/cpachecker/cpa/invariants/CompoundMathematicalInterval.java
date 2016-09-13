@@ -401,8 +401,12 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     while (leftInclusive < rightExclusive) {
       int index = IntMath.mean(leftInclusive, rightExclusive);
       SimpleInterval intervalAtIndex = this.intervals[index];
-      boolean lbIndexLeqLb = !intervalAtIndex.hasLowerBound() || hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0;
-      boolean ubIndexGeqUb = !intervalAtIndex.hasUpperBound() || hasUpperBound && intervalAtIndex.getUpperBound().compareTo(ub) >= 0;
+      boolean lbIndexLeqLb =
+          !intervalAtIndex.hasLowerBound()
+              || (hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0);
+      boolean ubIndexGeqUb =
+          !intervalAtIndex.hasUpperBound()
+              || (hasUpperBound && intervalAtIndex.getUpperBound().compareTo(ub) >= 0);
       if (lbIndexLeqLb) { // Interval at index starts before interval
         if (ubIndexGeqUb) { // Interval at index ends after interval
           return true;
@@ -1187,7 +1191,9 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    */
   public CompoundMathematicalInterval logicalAnd(final CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
-    if (isSingleton() && containsZero() || pState.isSingleton() && pState.containsZero()) { return logicalFalse(); }
+    if ((isSingleton() && containsZero()) || (pState.isSingleton() && pState.containsZero())) {
+      return logicalFalse();
+    }
     if (!containsZero() && !pState.containsZero()) { return logicalTrue(); }
     return top();
   }

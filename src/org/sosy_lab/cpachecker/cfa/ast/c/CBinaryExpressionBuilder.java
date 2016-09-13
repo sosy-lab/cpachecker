@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.*;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.DOUBLE;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -45,8 +47,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
+import java.util.Set;
+import java.util.logging.Level;
 
 
 /** This Class build binary expression.
@@ -171,6 +173,47 @@ public class CBinaryExpressionBuilder {
       return buildBinaryExpression(op1, op2, op);
     } catch (UnrecognizedCCodeException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Create an expression that is the negation of the input.
+   * This is better than just building "expr == 0" because if "expr" contains a relational operator
+   * we can swap it instead.
+   * This makes it easier for many CPAs to handle it.
+   */
+  public CBinaryExpression negateExpressionAndSimplify(final CExpression expr) throws UnrecognizedCCodeException {
+    // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
+    if (expr instanceof CBinaryExpression) {
+      final CBinaryExpression binExpr = (CBinaryExpression)expr;
+      if (CBinaryExpressionBuilder.relationalOperators.contains(binExpr.getOperator())) {
+        BinaryOperator inverseOperator = getNegatedOperator(binExpr.getOperator());
+        return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
+      }
+    }
+
+    // at this point, we have an expression, that is not directly boolean (!a, !(a+b), !123), so we compare it with Zero.
+    // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
+    // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
+    return buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS);
+  }
+
+  private static BinaryOperator getNegatedOperator(final BinaryOperator op) {
+    switch (op) {
+      case EQUALS:
+        return BinaryOperator.NOT_EQUALS;
+      case NOT_EQUALS:
+        return BinaryOperator.EQUALS;
+      case LESS_THAN:
+        return BinaryOperator.GREATER_EQUAL;
+      case LESS_EQUAL:
+        return BinaryOperator.GREATER_THAN;
+      case GREATER_THAN:
+        return BinaryOperator.LESS_EQUAL;
+      case GREATER_EQUAL:
+        return BinaryOperator.LESS_THAN;
+      default:
+        throw new AssertionError("operator can not be negated");
     }
   }
 

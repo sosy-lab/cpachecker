@@ -48,12 +48,14 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   private final SMGDoublyLinkedListCandidate candidate;
   private final int length;
   private final SMGJoinStatus seqStatus;
+  private final boolean includesDll;
 
   public SMGDoublyLinkedListCandidateSequence(SMGDoublyLinkedListCandidate pCandidate,
-      int pLength, SMGJoinStatus pSmgJoinStatus) {
+      int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesDll) {
     candidate = pCandidate;
     length = pLength;
     seqStatus = pSmgJoinStatus;
+    includesDll = pIncludesDll;
   }
 
   public SMGDoublyLinkedListCandidate getCandidate() {
@@ -99,6 +101,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       if(!join.isDefined()) {
         throw new AssertionError("Unexpected join failure while abstracting longest mergeable sequence");
       }
+
+//      SMGDebugTest.dumpPlot("afterAbstractionBeforeRemoval", pSmgState);
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 
@@ -169,6 +173,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       pSMG.addHasValueEdge(pfoHve);
 
       pSmgState.pruneUnreachable();
+
+//      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
     }
 
     return pSMG;
@@ -183,6 +189,11 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   @Override
   public int getScore() {
     int score = getLength() + getStatusScore() + getRecursivScore();
+
+    if (includesDll) {
+      score = score + 2;
+    }
+
     return score;
   }
 
@@ -193,10 +204,11 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   private int getStatusScore() {
     switch (seqStatus) {
       case EQUAL:
-        return 3;
+        return 50;
       case LEFT_ENTAIL:
+        return 31;
       case RIGHT_ENTAIL:
-        return 2;
+        return 30;
       case INCOMPARABLE:
       default:
         return 0;
@@ -210,5 +222,10 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getObject());
     return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getDllShape(), length,
         pPointerToStartObject);
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return false;
   }
 }

@@ -475,6 +475,8 @@ class WebInterface:
         @param svn_revision: overrides the svn revision given in the constructor (optional)
         @param result_files_patterns: list of result_files_pattern (optional)
         @param required_files: list of additional file required to execute the run (optional)
+        @raise WebClientError: if the HTTP request could not be created
+        @raise HTTPError: if the HTTP request was not successful
         """
         if result_files_pattern:
             if result_files_patterns:
@@ -494,7 +496,7 @@ class WebInterface:
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
-
+  
         for required_file in required_files:
             norm_path = self._normalize_path_for_cloud(required_file)
             params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
@@ -533,7 +535,8 @@ class WebInterface:
                 .format(run.options, invalidOption))
 
         params.append(('groupId', str(self._group_id)))
-        params.append(('metaInformation', meta_information))
+        if meta_information:
+            params.append(('metaInformation', meta_information))
 
         # prepare request
         headers = {"Accept": "text/plain"}
@@ -575,6 +578,7 @@ class WebInterface:
 
     def _handle_options(self, run, params, rlimits):
         opened_files = []
+        config = None
 
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
@@ -640,18 +644,21 @@ class WebInterface:
                     elif option == "-config":
                         configPath = next(i)
                         tokens = configPath.split('/')
-                        if not (tokens[0] == "config" and len(tokens) == 2):
-                            logging.warning('Configuration %s of run %s is not from the default config directory.',
-                                            configPath, run.identifier)
-                            return (configPath, opened_files)
-                        config = tokens[1].split('.')[0]
-                        params.append(('configuration', config))
+                        if (tokens[0] == "config" and len(tokens) == 2):
+                            config = tokens[1].split('.')[0]
+                            params.append(('configuration', config))
+                        else:
+                            params.append(("option", "configuration.file=" + configPath))
 
                     elif option == "-setprop":
                         params.append(("option", next(i)))
 
-                    elif option[0] == '-' and 'configuration' not in params :
-                        params.append(('configuration', option[1:]))
+                    elif option[0] == '-':
+                        if config:
+                            raise WebClientError("More than one configuration: '{}' and '{}'".format(config, option[1:]))
+                        else:
+                            params.append(('configuration', option[1:]))
+                            config = option[1:]
                     else:
                         return (option, opened_files)
 
@@ -677,6 +684,7 @@ class WebInterface:
         Starts the execution of all previous submitted runs in the VerifierCloud.
         The web interface groups runs and submits them to the VerifierCloud only from time to time.
         This method forces the web interface to do this immediately and starts downloading of results.
+        @return: the ids of the RunCollections created since the last flush request
         """
         headers = {"Content-Type": "application/x-www-form-urlencoded",
                    "Connection": "Keep-Alive"}
@@ -689,8 +697,9 @@ class WebInterface:
             logging.warning('No runs were submitted to the VerifierCloud before or a rate limit is hit.')
         else:
             logging.info('Submitted %s run collection: %s', len(run_collections), ",".join(run_collections))
+            self._result_downloader.start()
 
-        self._result_downloader.start()
+        return run_collections
 
     def _is_finished(self, run_id):
         headers = {"Accept": "text/plain"}

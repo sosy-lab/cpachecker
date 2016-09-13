@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
  * As part of a regular Expression, it denotes the Run Time Object. As Part of a
  * JRunTimeTypeEqualsType Expression, it denotes the Run Time Type.
  */
-public class JThisExpression extends AbstractExpression implements JRunTimeTypeExpression {
+public final class JThisExpression extends AbstractExpression implements JRunTimeTypeExpression {
 
   public JThisExpression(FileLocation pFileLocation, JClassOrInterfaceType pType) {
     super(pFileLocation, pType);
@@ -42,11 +42,6 @@ public class JThisExpression extends AbstractExpression implements JRunTimeTypeE
   @Override
   public JClassOrInterfaceType getExpressionType() {
     return (JClassOrInterfaceType) super.getExpressionType();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

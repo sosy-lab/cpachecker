@@ -26,11 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
@@ -46,13 +44,16 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.Tactic;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -148,11 +149,11 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
 
-    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(
-        Lists.newArrayList(fromStateLemmas), startingSSA);
+    List<BooleanFormula> fromStateLemmasInstantiated =
+        fmgr.instantiate(fromStateLemmas, startingSSA);
 
-    List<BooleanFormula> toStateLemmasInstantiated = fmgr.instantiate(
-        Lists.newArrayList(toStateLemmas), transition.getSsa());
+    List<BooleanFormula> toStateLemmasInstantiated =
+        fmgr.instantiate(toStateLemmas, transition.getSsa());
     BooleanFormula toStateLemmasAnnotated = annotateConjunctions(
         toStateLemmasInstantiated, selectionInfo
     );
@@ -166,14 +167,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         fromStateLemmas);
 
     Set<BooleanFormula> out =
-        Sets.filter(toStateLemmas, new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula lemma) {
-            return (!toAbstract.contains(selectionInfo.inverse().get(
+        Sets.filter(toStateLemmas,
+            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(
                 fmgr.instantiate(lemma, transition.getSsa())
-            )));
-          }
-        });
+            ))));
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -197,8 +194,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     // Mapping from selectors to the items they annotate.
     final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
 
-    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(
-        Lists.newArrayList(lemmas), startingSSA);
+    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(lemmas, startingSSA);
     BooleanFormula fromStateLemmasAnnotated = annotateConjunctions(
         fromStateLemmasInstantiated, selectionInfo
     );
@@ -213,14 +209,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         startingSSA, lemmas);
 
     Set<BooleanFormula> out =
-        Sets.filter(lemmas, new Predicate<BooleanFormula>() {
-          @Override
-          public boolean apply(BooleanFormula lemma) {
-            return (!toAbstract.contains(selectionInfo.inverse().get(
+        Sets.filter(lemmas,
+            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(
                 fmgr.instantiate(lemma, startingSSA)
-            )));
-          }
-        });
+            ))));
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 
@@ -290,7 +282,61 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     }
   }
 
-  private BooleanFormula annotateConjunctions(
+  public BooleanFormula removeRedundancies(BooleanFormula input)
+      throws InterruptedException {
+    // Assume the formula to be a conjunction over disjunctions.
+    BooleanFormula nnf = fmgr.applyTactic(input, Tactic.NNF);
+
+    return bfmgr.transformRecursively(nnf, new BooleanFormulaTransformationVisitor(fmgr) {
+          @Override
+          public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
+            try {
+              return bfmgr.and(simplifyArgs(processedOperands));
+            } catch (SolverException|InterruptedException pE) {
+              throw new UnsupportedOperationException("Error while "
+                  + "simplifying", pE); }
+          }
+
+          @Override
+          public BooleanFormula visitOr(List<BooleanFormula> processedOperands) {
+            try {
+              return bfmgr.or(simplifyArgs(processedOperands));
+            } catch (SolverException|InterruptedException pE) {
+              throw new UnsupportedOperationException("Error while "
+                  + "simplifying", pE); }
+          }
+        });
+  }
+
+  private List<BooleanFormula> simplifyArgs(
+      List<BooleanFormula> args)
+      throws SolverException, InterruptedException {
+    boolean changed = true;
+    while (changed) {
+      changed = false;
+      for (int i = 0; i < args.size(); i++) {
+        BooleanFormula f = args.get(i);
+        List<BooleanFormula> others = others(args, i);
+        if (solver.isUnsat(
+            bfmgr.not(
+                bfmgr.implication(bfmgr.and(others), f)
+            )
+        )) {
+          args = others;
+          changed = true;
+        }
+      }
+    }
+    return args;
+  }
+
+  private <T> List<T> others(List<T> l, int i) {
+    List<T> others = new ArrayList<>(l);
+    others.remove(i);
+    return others;
+  }
+
+  BooleanFormula annotateConjunctions(
       Collection<BooleanFormula> pInput,
       final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
 

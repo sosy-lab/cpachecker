@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
-
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
 
 public class NumeralFormulaManagerView
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
@@ -73,10 +73,7 @@ public class NumeralFormulaManagerView
   public ResultFormulaType modulo(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.modulo(pNumber1, pNumber2);
   }
-  @Override
-  public BooleanFormula modularCongruence(ParamFormulaType pNumber1, ParamFormulaType pNumber2, long pModulo) {
-    return manager.modularCongruence(pNumber1, pNumber2, pModulo);
-  }
+
   @Override
   public ResultFormulaType multiply(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     return manager.multiply(pNumber1, pNumber2);

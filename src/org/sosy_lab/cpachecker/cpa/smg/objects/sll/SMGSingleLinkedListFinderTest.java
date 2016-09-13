@@ -81,7 +81,7 @@ public class SMGSingleLinkedListFinderTest {
 
     TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(1);
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2,2,2);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
     Assert.assertEquals(1, candidates.size());
   }

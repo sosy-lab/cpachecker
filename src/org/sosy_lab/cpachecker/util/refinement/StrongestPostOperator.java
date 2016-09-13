@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
-import java.util.Deque;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import java.util.Deque;
 import java.util.Optional;
 
 /**
@@ -63,7 +62,8 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
    *
    * @param state the state before calling the function
    * @param edge the function-call-edge, where the parameters are assigned
-   * @param callstack data-structure to store information about scopes
+   * @param callstack data-structure to store information about scopes,
+   *        one new element should be pushed when executing this method.
    */
   S handleFunctionCall(S state, CFAEdge edge, Deque<S> callstack);
 
@@ -85,7 +85,8 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
    * @param edge the function-return-edge,
    *        where the return-variable is copied into the calling scope and
    *        assigned to the left-hand-side of the function-call
-   * @param callstack data-structure to store information about scopes
+   * @param callstack data-structure to store information about scopes,
+   *        one old element should be popped when executing this method.
    */
   S handleFunctionReturn(S next, CFAEdge edge, Deque<S> callstack);
 

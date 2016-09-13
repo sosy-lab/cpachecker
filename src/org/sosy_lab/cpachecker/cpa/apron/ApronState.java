@@ -23,32 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import com.google.common.math.DoubleMath;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.util.ApronManager;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Level;
-
 import apron.Abstract0;
 import apron.Dimchange;
 import apron.Dimension;
@@ -66,7 +40,35 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
+
+import com.google.common.collect.Lists;
+import com.google.common.math.DoubleMath;
+
 import gmp.Mpfr;
+
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.util.ApronManager;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.logging.Level;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -567,18 +569,13 @@ logger.log(Level.FINEST, "apron state: isEqual");
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pPfmgr) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
     BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
     BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
     Tcons0[] constraints = apronState.toTcons(apronManager.getManager());
 
-    BooleanFormula result = bFmgr.makeBoolean(true);
-
-    for (Tcons0 cons : constraints) {
-      result = bFmgr.and(result, createFormula(bFmgr, bitFmgr, cons));
-    }
-
-    return result;
+    return bFmgr.and(
+        Lists.transform(Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons)));
   }
 
   private BooleanFormula createFormula(BooleanFormulaManager bFmgr,
@@ -599,7 +596,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
   }
 
-  abstract class Texpr0NodeTraversal<T> {
+  static abstract class Texpr0NodeTraversal<T> {
 
    T visit(Texpr0Node node) {
       if (node instanceof Texpr0BinNode) {

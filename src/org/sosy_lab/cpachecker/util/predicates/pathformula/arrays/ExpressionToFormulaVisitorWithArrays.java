@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -32,23 +34,32 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
+@SuppressFBWarnings({
+  "NP_NONNULL_PARAM_VIOLATION",
+  "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"
+})
 public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVisitor {
 
   private final ArrayFormulaManagerView amgr;
   private final CToFormulaConverterWithArrays ctfa;
   private final MachineModel machine;
 
-  public ExpressionToFormulaVisitorWithArrays(CToFormulaConverterWithArrays pCtoFormulaConverter,
-      FormulaManagerView pMgr, MachineModel pMachineModel, CFAEdge pEdge,
-      String pFunction, SSAMapBuilder pSsa, Constraints pConstraints) {
+  public ExpressionToFormulaVisitorWithArrays(
+      CToFormulaConverterWithArrays pCtoFormulaConverter,
+      FormulaManagerView pMgr,
+      MachineModel pMachineModel,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      Constraints pConstraints) {
     super(pCtoFormulaConverter, pMgr, pEdge, pFunction, pSsa, pConstraints);
 
     amgr = mgr.getArrayFormulaManager();
@@ -106,7 +117,9 @@ public class ExpressionToFormulaVisitorWithArrays extends ExpressionToFormulaVis
           indexExprFormula, null, null);
 
     // SELECT! ---------------------------------------------------------------
-    return amgr.select(selectFrom, castedIndexExprFormula);
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    Formula out = amgr.select((ArrayFormula) selectFrom, castedIndexExprFormula);
+    return out;
   }
 
   @Override

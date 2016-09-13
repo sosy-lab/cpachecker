@@ -154,7 +154,8 @@ public class ARGPath extends AbstractAppender {
         // we assume a linear chain of edges from 'prev' to 'succ'
         CFANode curNode = extractLocation(prev);
         CFANode nextNode = extractLocation(succ);
-        while (curNode != nextNode) {
+
+        do { // the chain must not be empty
           if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
             return Collections.emptyList();
           }
@@ -162,7 +163,7 @@ public class ARGPath extends AbstractAppender {
           CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
           fullPath.add(intermediateEdge);
           curNode = intermediateEdge.getSuccessor();
-        }
+        } while (curNode != nextNode);
 
       // we have a normal connection without hole in the edges
       } else {
@@ -983,52 +984,36 @@ public class ARGPath extends AbstractAppender {
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
 
-      // if we are currently on a position with state and we have a real
-      // (non-null) edge then we can directly set the parameters without
-      // further checking
-      if (path.edges.get(pos) != null && currentPositionHasState) {
-        pos++;
-        overallOffset++;
-        currentPositionHasState = true;
+      CFAEdge nextEdge = fullPath.get(overallOffset);
+      Iterable<CFANode> nextLocation = extractLocations(getNextAbstractState());
+      boolean nextPositionHasState =
+          Iterables.contains(nextLocation, nextEdge.getSuccessor()) // forward analysis
+              || Iterables.contains(nextLocation, nextEdge.getPredecessor()); // backward analysis
 
-      } else {
-        if (Iterables.contains(extractLocations(getNextAbstractState()),
-            fullPath.get(overallOffset).getSuccessor())) {
-          pos++;
-          currentPositionHasState = true;
-        } else {
-          currentPositionHasState = false;
-        }
-        overallOffset++;
+      if (nextPositionHasState) {
+        pos++;
       }
+
+      currentPositionHasState = nextPositionHasState;
+      overallOffset++;
     }
 
     @Override
     public void rewind() throws IllegalStateException {
       checkState(hasPrevious(), "No more states in PathIterator.");
 
-      // if we are currently on a position with state and we have a real
-      // (non-null) edge then we can directly set the parameters without
-      // further checking
-      if (path.edges.get(pos-1) != null && currentPositionHasState) {
-        pos--;
-        overallOffset--;
-        currentPositionHasState = true;
+      boolean previousPositionHasState =
+          Iterables.contains(
+              extractLocations(getPreviousAbstractState()),
+              fullPath.get(overallOffset - 1).getPredecessor());
 
-      } else {
-        boolean previousPositionHasState =
-            Iterables.contains(
-                extractLocations(getPreviousAbstractState()),
-                fullPath.get(overallOffset - 1).getPredecessor());
-
-        if (currentPositionHasState) {
-          pos--; // only reduce by one if it was a real node before we are leaving it now
-        }
-
-        currentPositionHasState = previousPositionHasState;
-
-        overallOffset--;
+      if (currentPositionHasState) {
+        pos--; // only reduce by one if it was a real node before we are leaving it now
       }
+
+      currentPositionHasState = previousPositionHasState;
+
+      overallOffset--;
     }
 
     @Override

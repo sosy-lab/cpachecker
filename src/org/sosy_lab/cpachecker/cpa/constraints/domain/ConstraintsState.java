@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Lists;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -39,13 +37,13 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -433,7 +431,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
     createMissingConstraintFormulas();
 
-    return formulaManager.getBooleanFormulaManager().and(Lists.newArrayList(constraintFormulas.values()));
+    return formulaManager.getBooleanFormulaManager().and(constraintFormulas.values());
   }
 
   private void createMissingConstraintFormulas() throws UnrecognizedCCodeException, InterruptedException {

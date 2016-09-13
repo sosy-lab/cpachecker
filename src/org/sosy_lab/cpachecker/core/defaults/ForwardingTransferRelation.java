@@ -25,6 +25,10 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -77,7 +81,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -126,9 +129,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
-  /** the given edge, not casted, for local access (like logging) */
-  protected @Nullable CFAEdge edge;
-
   /** the given state, casted to correct type, for local access */
   protected @Nullable T state;
 
@@ -137,10 +137,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** the function BEFORE the current edge */
   protected @Nullable String functionName;
-
-  protected CFAEdge getEdge() {
-    return checkNotNull(edge);
-  }
 
   protected T getState() {
     return checkNotNull(state);
@@ -166,40 +162,71 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    final Collection<T> preCheck = preCheck();
+    final Collection<T> preCheck = preCheck(state, precision);
     if (preCheck != null) { return preCheck; }
 
     final S successor;
 
     switch (cfaEdge.getEdgeType()) {
 
-    case AssumeEdge:
-      final AssumeEdge assumption = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(assumption, assumption.getExpression(), assumption.getTruthAssumption());
-      break;
+      case AssumeEdge:
+        final AssumeEdge assumption = (AssumeEdge) cfaEdge;
+        successor =
+            handleAssumption(
+                assumption, assumption.getExpression(), assumption.getTruthAssumption());
+        break;
 
-    case FunctionCallEdge:
-      final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = fnkCall.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successor = handleFunctionCallEdge(fnkCall, fnkCall.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName);
-      break;
+      case FunctionCallEdge:
+        final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
+        final FunctionEntryNode succ = fnkCall.getSuccessor();
+        final String calledFunctionName = succ.getFunctionName();
+        successor =
+            handleFunctionCallEdge(
+                fnkCall, fnkCall.getArguments(), succ.getFunctionParameters(), calledFunctionName);
+        break;
 
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-      successor = handleFunctionReturnEdge(fnkReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName);
+      case FunctionReturnEdge:
+        final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+        final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
+        final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
+        successor =
+            handleFunctionReturnEdge(
+                fnkReturnEdge, summaryEdge, summaryEdge.getExpression(), callerFunctionName);
+        break;
 
-      break;
+      case DeclarationEdge:
+        final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
+        successor = handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
+        break;
 
-    default:
-      successor = handleSimpleEdge(cfaEdge);
+      case StatementEdge:
+        final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
+        successor = handleStatementEdge(statementEdge, statementEdge.getStatement());
+        break;
+
+      case ReturnStatementEdge:
+        // this statement is a function return, e.g. return (a);
+        // note that this is different from return edge,
+        // this is a statement edge, which leads the function to the
+        // last node of its CFA, where return edge is from that last node
+        // to the return site of the caller function
+        final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
+        successor = handleReturnStatementEdge(returnEdge);
+        break;
+
+      case BlankEdge:
+        successor = handleBlankEdge((BlankEdge) cfaEdge);
+        break;
+
+      case CallToReturnEdge:
+        successor = handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
+        break;
+
+      default:
+        throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
 
-    final Collection<T> result = postProcessing(successor);
+    final Collection<T> result = postProcessing(successor, cfaEdge);
 
     resetInfo();
 
@@ -210,64 +237,29 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   @SuppressWarnings("unchecked")
   protected void setInfo(final AbstractState abstractState,
       final Precision abstractPrecision, final CFAEdge cfaEdge) {
-    edge = cfaEdge;
     state = (T) abstractState;
     precision = (P) abstractPrecision;
     functionName = cfaEdge.getPredecessor().getFunctionName();
   }
 
   protected void resetInfo() {
-    edge = null;
     state = null;
     precision = null;
     functionName = null;
   }
 
-  /** This function handles simple edges like Declarations, Statements,
-   * ReturnStatements and BlankEdges.
-   * They have in common, that they all can be part of an MultiEdge. */
-  protected S handleSimpleEdge(final CFAEdge cfaEdge) throws CPATransferException {
-
-    switch (cfaEdge.getEdgeType()) {
-    case DeclarationEdge:
-      final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
-      return handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
-
-    case StatementEdge:
-      final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-      return handleStatementEdge(statementEdge, statementEdge.getStatement());
-
-    case ReturnStatementEdge:
-      // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge,
-      // this is a statement edge, which leads the function to the
-      // last node of its CFA, where return edge is from that last node
-      // to the return site of the caller function
-      final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
-      return handleReturnStatementEdge(returnEdge);
-
-    case BlankEdge:
-      return handleBlankEdge((BlankEdge) cfaEdge);
-
-    case CallToReturnEdge:
-      return handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
-
-    default:
-      throw new UnrecognizedCFAEdgeException(cfaEdge);
-    }
-  }
-
   /** This is a fast check, if the edge should be analyzed.
    * It returns NULL for further processing,
-   * otherwise the return-value for skipping. */
-  protected @Nullable Collection<T> preCheck() {
+   * otherwise the return-value for skipping.  */
+  @SuppressWarnings("unused")
+  protected @Nullable Collection<T> preCheck(T state, P precision) {
     return null;
   }
 
   /** This method should convert/cast/copy the intermediate result into a Collection<T>.
    * This method can modify the successor, if needed. */
-  @SuppressWarnings("unchecked")
-  protected Collection<T> postProcessing(@Nullable S successor) {
+  @SuppressWarnings({"unchecked", "unused"})
+  protected Collection<T> postProcessing(@Nullable S successor, CFAEdge edge) {
     if (successor == null) {
       return Collections.emptySet();
     } else {
@@ -613,11 +605,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return false;
   }
 
-  @Deprecated
-  protected static String buildVarName(@Nullable final String function, final String var) {
-    return (function == null) ? var : function + "::" + var;
-  }
-
   protected static Pair<AExpression, Boolean> simplifyAssumption(AExpression pExpression, boolean pAssumeTruth) {
     if (isBooleanExpression(pExpression)) {
       if (pExpression instanceof CBinaryExpression) {
@@ -643,42 +630,23 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     return Pair.of(pExpression, pAssumeTruth);
   }
 
-  private static boolean isBooleanExpression(AExpression pExpression) {
-    if (pExpression instanceof CExpression) {
-      return isBooleanExpression((CExpression) pExpression);
-    } else if (pExpression instanceof JExpression) {
-      return isBooleanExpression(((JExpression) pExpression));
-    }
-    return false;
-  }
-
-  private static boolean isBooleanExpression(CExpression pExpression) {
-    if (pExpression instanceof CBinaryExpression) {
-      return Arrays.asList(
+  private static final ImmutableSet<ABinaryOperator> BOOLEAN_BINARY_OPERATORS =
+      ImmutableSet.of(
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN,
           org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL,
-          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN)
-          .contains(((CBinaryExpression)pExpression).getOperator());
-    } else {
-      return false;
-    }
-  }
-
-  private static boolean isBooleanExpression(JExpression pExpression) {
-    if (pExpression instanceof CBinaryExpression) {
-      return Arrays.asList(
+          org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_EQUAL,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.GREATER_THAN,
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_EQUAL,
-          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN)
-          .contains(((CBinaryExpression)pExpression).getOperator());
-    } else {
-      return false;
-    }
+          org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN);
+
+  private static boolean isBooleanExpression(AExpression pExpression) {
+    return pExpression instanceof ABinaryExpression
+        && BOOLEAN_BINARY_OPERATORS.contains(((ABinaryExpression) pExpression).getOperator());
   }
 }

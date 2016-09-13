@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -146,7 +147,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   }
 
   @Override
-  protected Collection<OctagonState> postProcessing(Collection<OctagonState> successors) {
+  protected Collection<OctagonState> postProcessing(Collection<OctagonState> successors, CFAEdge edge) {
     assert !successors.contains(null); // TODO is this assertion equal to next line?
     assert !successors.removeAll(Collections.singleton(null));
 

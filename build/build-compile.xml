@@ -39,6 +39,7 @@
             <compilerarg value="-Xlint"/>
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-fallthrough"/>
+            <compilerarg value="-Xep:ReferenceEquality:OFF"/>
             <compilerarg value="-Werror"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerclasspath refid="errorprone"/>

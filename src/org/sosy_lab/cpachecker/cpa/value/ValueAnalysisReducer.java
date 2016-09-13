@@ -125,23 +125,6 @@ public class ValueAnalysisReducer implements Reducer {
   }
 
   @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
-  }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return getVariableReducedState(pExpandedState, pContext, pCallNode);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
-  }
-
-  @Override
   public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState,
       AbstractState pExpandedState, FunctionExitNode exitLocation) {
 

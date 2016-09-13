@@ -23,19 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import java.util.List;
-import java.util.Map;
-
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface PathFormulaManager {
 
@@ -57,6 +61,9 @@ public interface PathFormulaManager {
 
   PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula);
 
+  PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
+      throws CPATransferException, InterruptedException;
+
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
@@ -64,6 +71,20 @@ public interface PathFormulaManager {
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
+
+  /**
+   * Takes a variable name and its type to create the corresponding formula out of it. The
+   * <code>pContext</code> is used to supply this method with the necessary {@link SSAMap}
+   * and (if necessary) the {@link PointerTargetSet}. The variable is assumed not to be a
+   * function parameter, i.e. array won't be treated as pointer variable, but as a constant representing
+   * starting address of the array.
+   *
+   * @param pContext the context in which the variable should be created
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @return the created formula, which is always <b>instantiated</b>
+   */
+  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
 
   /**
    * Build a formula containing a predicate for all branching situations in the
@@ -76,12 +97,12 @@ public interface PathFormulaManager {
    * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    */
-  BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException;
 
   /**
    * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Iterable)} from a satisfying assignment.
+   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
    * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).

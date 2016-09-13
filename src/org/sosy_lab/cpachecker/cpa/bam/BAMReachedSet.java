@@ -27,7 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -82,7 +82,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     return new UnmodifiableReachedSet() {
 
       private final Collection<AbstractState> subgraph =
-          Collections.<AbstractState>unmodifiableCollection(rootOfSubgraph.getSubgraph());
+          Collections.unmodifiableCollection(rootOfSubgraph.getSubgraph());
 
       @Override
       public Collection<AbstractState> asCollection() {
@@ -161,7 +161,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   public void removeSubtree(
       ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
       throws InterruptedException {
-    removeSubtree(element, Lists.newArrayList(newPrecision), Lists.<Predicate<? super Precision>>newArrayList(pPrecisionType));
+    removeSubtree(element, ImmutableList.of(newPrecision), ImmutableList.of(pPrecisionType));
   }
 
   @Override

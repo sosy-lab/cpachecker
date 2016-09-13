@@ -24,19 +24,22 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another
@@ -131,9 +134,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
-    if (pOldFormula.getFormula() == null) {
-      return delegate.makeEmptyPathFormula(pOldFormula);
-    }
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {
       result = delegate.makeEmptyPathFormula(pOldFormula);
@@ -145,8 +145,19 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+    return delegate.makeFormulaForVariable(pContext, pVarName, pType);
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     return delegate.makeAnd(pPathFormula, pOtherFormula);
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
+      throws CPATransferException, InterruptedException {
+    return delegate.makeAnd(pPathFormula, pAssumption);
   }
 
   @Override
@@ -160,7 +171,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }

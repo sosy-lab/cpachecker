@@ -23,14 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,7 +42,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
 
-import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 @Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -149,6 +149,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     paramsList.add(Integer.toString(unwind));
     paramsList.add("--error-label");
     paramsList.add(errorLabel);
+    paramsList.add("--stop-on-fail");
 
     if (noUnwindingAssertions) {
       paramsList.add("--no-unwinding-assertions");

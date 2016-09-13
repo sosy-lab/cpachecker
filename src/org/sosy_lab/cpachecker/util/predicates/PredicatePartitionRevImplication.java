@@ -29,7 +29,7 @@ import java.util.LinkedList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * The class <code>PredicatePartitionRevImplication</code> represents a concrete partition of predicates and hence it

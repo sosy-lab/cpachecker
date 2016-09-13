@@ -104,7 +104,10 @@ public class AutomatonInternalTest {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (Reader input = defaultSpec.openBufferedStream()) {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpecPath, logger, sf);
-      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser, CProgramScope.empty()).parse();
+      Symbol symbol =
+          new AutomatonParser(
+                  scanner, sf, logger, parser, MachineModel.LINUX32, CProgramScope.empty())
+              .parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {
@@ -187,7 +190,7 @@ public class AutomatonInternalTest {
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
     assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression");
     result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
-    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression  =  CPAchecker_AutomatonAnalysis_JokerExpression");
+    assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard0  =  CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard1");
     result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
     assertThat(result).contains("CPAchecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAchecker_AutomatonAnalysis_JokerExpression_Num5 ");
   }
@@ -218,37 +221,74 @@ public class AutomatonInternalTest {
     result = args.replaceVariables("$1 == $5");
     assertThat(result).isNull(); // $5 has not been found
     // this test should issue a log message!
-    verify(mockLogger).log(eq(Level.WARNING), anyVararg());
+    verify(mockLogger).log(eq(Level.WARNING), (Object[]) anyVararg());
   }
 
   @Test
   public void testASTcomparison() {
+    assert_().about(astMatcher).that("x= $?;").matches("x=5;");
+    assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
+    assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
+    assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
 
-   assert_().about(astMatcher).that("x= $?;").matches("x=5;");
-   assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
-   assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
-   assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
+    assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
 
-   assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
+    assert_().about(astMatcher).that("init($?);").matches("init(a);");
+    assert_().about(astMatcher).that("init($?);").matches("init();");
+    assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
 
-   assert_().about(astMatcher).that("init($?);").matches("init(a);");
-   assert_().about(astMatcher).that("init($?);").matches("init();");
-   assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
+    assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
+    assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
 
-   assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
-   assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
+    assert_().about(astMatcher).that("x=$?").matches("x = 5;");
+    assert_().about(astMatcher).that("x=$?;").matches("x = 5");
 
-   assert_().about(astMatcher).that("x=$?").matches("x = 5;");
-   assert_().about(astMatcher).that("x=$?;").matches("x = 5");
+    assert_().about(astMatcher).that("f($?);").matches("f();");
+    assert_().about(astMatcher).that("f($?);").matches("f(x);");
+    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
 
+    // Too-large number in a joker makes it be ignored.
+    assert_().about(astMatcher).that("$12345678901;").doesNotMatch("x");
+  }
 
-   assert_().about(astMatcher).that("f($?);").matches("f();");
-   assert_().about(astMatcher).that("f($?);").matches("f(x);");
-   assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+  @Test
+  public void testAstMatcherFunctionParameters() {
+    assert_().about(astMatcher).that("f();").matches("f();");
+    assert_().about(astMatcher).that("f();").doesNotMatch("f(x);");
+    assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
 
-   assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
-   assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
-   assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
+    assert_().about(astMatcher).that("f($1);").doesNotMatch("f();");
+    assert_().about(astMatcher).that("f($1);").matches("f(x);").withVariableValue(1, "x");
+    assert_().about(astMatcher).that("f($1);").doesNotMatch("f(x, y);");
+
+    assert_().about(astMatcher).that("f($?);").matches("f();");
+    assert_().about(astMatcher).that("f($?);").matches("f(x);");
+    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+
+    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
+    assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
+    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
+  }
+
+  @Test
+  public void testAstMatcherFunctionCall() {
+    assert_().about(astMatcher).that("$?();").matches("f();");
+    assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
+    assert_().about(astMatcher).that("$1();").matches("f();").withVariableValue(1, "f");
+
+    assert_().about(astMatcher).that("x = $?();").doesNotMatch("f();");
+    assert_().about(astMatcher).that("x = $?();").matches("x = f();");
+    assert_().about(astMatcher).that("x = $1();").matches("x = f();").withVariableValue(1, "f");
+
+    assert_().about(astMatcher).that("$?($?);").matches("f();");
+    assert_().about(astMatcher).that("$?($?);").matches("f(y);");
+    assert_().about(astMatcher).that("$?($?);").matches("f(y, z);");
+    assert_().about(astMatcher).that("$?($?);").doesNotMatch("x = f();");
+
+    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f();");
+    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y);");
+    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y, z);");
+    assert_().about(astMatcher).that("$? = $1($?);").doesNotMatch("f();");
   }
 
   private final SubjectFactory<ASTMatcherSubject, String> astMatcher =
@@ -283,7 +323,7 @@ public class AutomatonInternalTest {
     private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
       CAstNode sourceAST;
       ASTMatcher matcher;
-      sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+      sourceAST = CParserUtils.parseSingleStatement(src, parser, CProgramScope.empty());
       matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);

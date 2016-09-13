@@ -207,6 +207,11 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   @Override
+  public Iterable<CFAEdge> getIngoingEdges() {
+    return getLocations().transformAndConcat(AbstractStateWithLocations::getIngoingEdges);
+  }
+
+  @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 
@@ -306,16 +311,6 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
       }
     }
     return false;
-  }
-
-  @Override
-  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    return checkProperty(pProperty);
-  }
-
-  @Override
-  public void modifyProperty(String pModification) throws InvalidQueryException {
-    throw new InvalidQueryException("not implemented by " + this.getClass().getCanonicalName());
   }
 
   /** A ThreadState describes the state of a single thread. */

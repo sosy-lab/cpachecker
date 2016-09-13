@@ -24,7 +24,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import org.sosy_lab.common.collect.PersistentMap;
@@ -35,9 +35,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -50,14 +47,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -315,7 +313,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // TODO: replace with Iterables.getOnlyElement(AbstractStates.extractLocations(otherElements));
       // when the special case for PredicateCPA in CompositeTransferRelation#callStrengthen
       // is removed.
-      final CFANode currentLocation = getAnalysisSuccesor(edge);
+      final CFANode currentLocation;
+      if (edge == null) {
+        currentLocation = null;
+      } else {
+        currentLocation = getAnalysisSuccesor(edge);
+      }
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
@@ -327,7 +330,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(currentLocation, element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(element, (AbstractStateWithAssumptions) lElement);
         }
 
         if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
@@ -358,19 +361,27 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
-      AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pElement, AbstractStateWithAssumptions pAssumeElement)
+      throws CPATransferException, InterruptedException {
 
     PathFormula pf = pElement.getPathFormula();
 
-    for (AssumeEdge assumption : pAssumeElement.getAsAssumeEdges(pNode.getFunctionName())) {
+    for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
       // assumptions do not contain compete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future
-      if(assumptionContainsProblemType(assumption)) {
+      if (CFAUtils.getIdExpressionsOfExpression(assumption)
+          .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
         continue;
       }
-      pf = convertEdgeToPathFormula(pf, assumption);
+      pathFormulaTimer.start();
+      try {
+        // compute new pathFormula with the operation on the edge
+        pf = pathFormulaManager.makeAnd(pf, assumption);
+      } finally {
+        pathFormulaTimer.stop();
+      }
     }
 
     if (pf != pElement.getPathFormula()) {
@@ -400,7 +411,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       PredicateAbstractState pElement, FormulaReportingState pFormulaReportingState) {
 
     BooleanFormula formula =
-        pFormulaReportingState.getFormulaApproximation(fmgr, pathFormulaManager);
+        pFormulaReportingState.getFormulaApproximation(fmgr);
 
     if (bfmgr.isTrue(formula) || bfmgr.isFalse(formula)) {
       return pElement;
@@ -446,7 +457,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       // update abstraction locations map
       PersistentMap<CFANode, Integer> abstractionLocations = pElement.getAbstractionLocationsOnPath();
-      Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
+      Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
@@ -505,17 +516,5 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return result;
-  }
-
-  private boolean assumptionContainsProblemType(AssumeEdge assumption) {
-    CExpression expression = (CExpression) assumption.getExpression();
-    CIdExpressionCollectorVisitor collector = new CIdExpressionCollectorVisitor();
-    expression.accept(collector);
-    for (CIdExpression var : collector.getReferencedIdExpressions()) {
-      if (var.getExpressionType() instanceof CProblemType) {
-        return true;
-      }
-    }
-    return false;
   }
 }

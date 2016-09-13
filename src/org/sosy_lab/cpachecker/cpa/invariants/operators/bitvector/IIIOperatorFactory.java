@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
-import com.google.common.base.Preconditions;
+import java.math.BigInteger;
+
+import javax.annotation.Nullable;
 
 /**
  * This factory provides operators that can be applied to two bit-vector
@@ -431,8 +431,8 @@ public enum IIIOperatorFactory {
          * singleton interval of zero) or shifting anything by 0.
          */
         if (pFirstOperand.isTop()
-            || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pSecondOperand.isSingleton() && pSecondOperand.containsZero())
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return pFirstOperand;
         }
         BitVectorInterval result = null;
@@ -506,8 +506,8 @@ public enum IIIOperatorFactory {
          * singleton interval of zero) or shifting anything by 0.
          */
         if (pFirstOperand.isTop()
-            || pSecondOperand.isSingleton() && pSecondOperand.containsZero()
-            || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
+            || (pSecondOperand.isSingleton() && pSecondOperand.containsZero())
+            || (pFirstOperand.isSingleton() && pFirstOperand.containsZero())) {
           return pFirstOperand;
         }
         BitVectorInterval result = null;

@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.areEqualWithMatchingPointerArray;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import java.util.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -94,9 +94,9 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
@@ -105,18 +105,19 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -161,7 +162,7 @@ public class CtoFormulaConverter {
   protected final BooleanFormulaManagerView bfmgr;
   private final IntegerFormulaManagerView nfmgr;
   private final BitvectorFormulaManagerView efmgr;
-  protected final FunctionFormulaManagerView ffmgr;
+  final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
@@ -355,6 +356,33 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Create the necessary equivalence terms for adjusting the SSA indices
+   * of a given symbol (of any type) from oldIndex to newIndex.
+   *
+   * @param variableName The name of the variable for which the index is adjusted.
+   * @param variableType The type of the variable.
+   * @param oldIndex The previous SSA index.
+   * @param newIndex The new SSA index.
+   * @param pts The previous PointerTargetSet.
+   * @throws InterruptedException If execution is interrupted.
+   */
+  public BooleanFormula makeSsaUpdateTerm(
+      final String variableName,
+      final CType variableType,
+      final int oldIndex,
+      final int newIndex,
+      final PointerTargetSet pts)
+      throws InterruptedException {
+    checkArgument(oldIndex > 0 && newIndex > oldIndex);
+
+    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType(variableType);
+    final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
+    final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
+
+    return fmgr.assignment(newVariable, oldVariable);
+  }
+
+  /**
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
    */
@@ -371,6 +399,34 @@ public class CtoFormulaConverter {
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
     return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+  }
+
+  /**
+   * Takes a variable name and its type and create the corresponding formula out of it. The
+   * <code>pContextSSA</code> is used to supply this method with the necessary {@link SSAMap}
+   * and (if necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
+   *
+   * @param pContextSSA the SSAMap indices from which the variable should be created
+   * @param pContextPTS the PointerTargetSet which should be used for formula generation
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @return the created formula
+   */
+  public Formula makeFormulaForVariable(
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+    Preconditions.checkArgument(!(pType instanceof CEnumType));
+
+    SSAMapBuilder ssa = pContextSSA.builder();
+    Formula formula = makeVariable(pVarName, pType, ssa);
+
+    if (!ssa.build().equals(pContextSSA)) {
+      throw new IllegalArgumentException(
+          "we cannot apply the SSAMap changes to the point where the"
+              + " information would be needed possible problems: uninitialized variables could be"
+              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
+    }
+
+    return formula;
   }
 
   /**
@@ -442,12 +498,12 @@ public class CtoFormulaConverter {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(value);
       final boolean signed = machineModel.isSigned(sType);
 
-      final BooleanFormula lowerBound  = fmgr.makeLessOrEqual(
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType)), value, signed);
-      final BooleanFormula upperBound = fmgr.makeLessOrEqual(
-          value, fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType)), signed);
+      final Formula lowerBound =
+          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
+      final Formula upperBound =
+          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
 
-      BooleanFormula range = bfmgr.and(lowerBound, upperBound);
+      BooleanFormula range = fmgr.makeRangeConstraint(value, lowerBound, upperBound, signed);
 
       // simplify constant formulas like "1<=2" and return the value directly.
       // benefit: divide_by_constant works without UFs
@@ -460,11 +516,14 @@ public class CtoFormulaConverter {
         return value;
       }
 
-      final Formula overflowUF = ffmgr.declareAndCallUF(
-          // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
-          String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
-          numberType,
-          Lists.<Formula>newArrayList(value));
+      // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
+      final String ufName =
+          String.format(
+              "_%s%s(%d)_",
+              "overflow",
+              (signed ? "Signed" : "Unsigned"),
+              machineModel.getSizeofInBits(sType));
+      final Formula overflowUF = ffmgr.declareAndCallUF(ufName, numberType, value);
       addRangeConstraint(overflowUF, type, constraints);
 
       // TODO improvement:
@@ -489,12 +548,11 @@ public class CtoFormulaConverter {
       final CSimpleType sType = (CSimpleType)type;
       final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final BooleanFormula lowerBound  = fmgr.makeLessOrEqual(
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType)), variable, signed);
-      final BooleanFormula upperBound = fmgr.makeLessOrEqual(
-          variable, fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType)), signed);
-      constraints.addConstraint(upperBound);
-      constraints.addConstraint(lowerBound);
+      final Formula lowerBound =
+          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
+      final Formula upperBound =
+          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
+      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
     }
   }
 

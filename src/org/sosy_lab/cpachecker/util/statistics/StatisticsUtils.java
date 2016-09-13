@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import java.io.PrintStream;
-import java.util.Locale;
-
 import com.google.common.base.Strings;
+
+import java.io.PrintStream;
 
 
 public class StatisticsUtils {
@@ -41,7 +40,7 @@ public class StatisticsUtils {
   }
 
   public static String div(double val, double full) {
-    return String.format(Locale.ROOT, "%.2f", val/full);
+    return String.format("%.2f", val / full);
   }
 
   public static void write(PrintStream target, int indentLevel, int outputNameColWidth,

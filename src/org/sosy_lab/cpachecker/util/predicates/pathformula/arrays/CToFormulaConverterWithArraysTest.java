@@ -24,10 +24,15 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.INT_ZERO_INITIALIZER;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeAssignment;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeAssume;
+import static org.sosy_lab.cpachecker.util.test.TestDataTools.makeDeclaration;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -46,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -74,17 +78,17 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.NumeralType;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import com.google.common.collect.Lists;
 
 /**
  *
@@ -107,6 +111,10 @@ import com.google.common.collect.Lists;
  *
  */
 @SuppressWarnings("unused")
+@SuppressFBWarnings({
+  "NP_NONNULL_PARAM_VIOLATION",
+  "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"
+})
 @RunWith(Parameterized.class)
 public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
 
@@ -509,16 +517,17 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
      */
     // int x[] = { 1, 3, 5, 7 } ;
 
-    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _x = makeDeclaration(
-        "x",
-        new CArrayType(false, false, CNumericTypes.INT, null),
-        new CInitializerList(FileLocation.DUMMY,
-            Lists.<CInitializer>newArrayList(
-                createIntInitExpr(1),
-                createIntInitExpr(3),
-                createIntInitExpr(5),
-                createIntInitExpr(7)
-                )));
+    Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _x =
+        makeDeclaration(
+            "x",
+            new CArrayType(false, false, CNumericTypes.INT, null),
+            new CInitializerList(
+                FileLocation.DUMMY,
+                ImmutableList.of(
+                    createIntInitExpr(1),
+                    createIntInitExpr(3),
+                    createIntInitExpr(5),
+                    createIntInitExpr(7))));
 
     SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
     BooleanFormula result = ctfFwd.makeDeclaration(

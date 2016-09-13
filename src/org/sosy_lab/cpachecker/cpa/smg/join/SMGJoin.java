@@ -45,6 +45,7 @@ final public class SMGJoin {
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
+  SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
   public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
     CLangSMG opSMG1 = new CLangSMG(pSMG1);
@@ -112,7 +113,7 @@ final public class SMGJoin {
       SMGObject globalInSMG1 = entry.getValue();
       SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
-      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, globalInSMG1, globalInSMG2, destinationGlobal, 0, false, false, pStateOfSmg1, pStateOfSmg2);
+      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, globalInSMG1, globalInSMG2, destinationGlobal, 0,false, pStateOfSmg1, pStateOfSmg2);
       if (! jss.isDefined()) {
         return;
       }
@@ -133,7 +134,7 @@ final public class SMGJoin {
         SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject destinationLocal = mapping1.get(localInSMG1);
-        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, localInSMG1, localInSMG2, destinationLocal, 0, false, false, pStateOfSmg1, pStateOfSmg2);
+        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, localInSMG1, localInSMG2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
         if (! jss.isDefined()) {
           return;
         }
@@ -149,8 +150,8 @@ final public class SMGJoin {
         mapping1.map(returnObjectInSmg1, destinationLocal);
         mapping2.map(returnObjectInSmg2, destinationLocal);
         SMGJoinSubSMGs jss =
-            new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, returnObjectInSmg1,
-                returnObjectInSmg2, destinationLocal, 0, false, false, pStateOfSmg1, pStateOfSmg2);
+            new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, returnObjectInSmg1,
+                returnObjectInSmg2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
         if (!jss.isDefined()) {
           return;
         }

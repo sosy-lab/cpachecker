@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import java.io.Serializable;
+import com.google.common.base.Joiner;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.base.Joiner;
+import java.io.Serializable;
 
 /**
  * Represents one abstract state of the FunctionPointer CPA.
@@ -143,7 +143,7 @@ public class FunctionPointerState implements LatticeAbstractState<FunctionPointe
 
     public FunctionPointerTarget getTarget(String variableName) {
       // default to UNKNOWN
-      return firstNonNull(values.get(variableName), UnknownTarget.getInstance());
+      return values.getOrDefault(variableName, UnknownTarget.getInstance());
     }
 
     void setTarget(String variableName, FunctionPointerTarget target) {
@@ -205,7 +205,7 @@ public class FunctionPointerState implements LatticeAbstractState<FunctionPointe
 
   public FunctionPointerTarget getTarget(String variableName) {
     // default to UNKNOWN
-    return firstNonNull(pointerVariableValues.get(variableName), UnknownTarget.getInstance());
+    return pointerVariableValues.getOrDefault(variableName, UnknownTarget.getInstance());
   }
 
   @Override

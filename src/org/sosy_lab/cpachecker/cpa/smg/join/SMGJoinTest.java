@@ -56,7 +56,7 @@ public class SMGJoinTest {
   static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
 
   SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
-      null, 4, false);
+      null, 4, false, false);
 
   private CLangSMG smg1;
   private CLangSMG smg2;

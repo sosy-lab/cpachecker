@@ -90,12 +90,14 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinementForPath(
+      ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
     checkArgument(!(pReached instanceof BAMReachedSet),
         "Wrapping of BAM-based refiners inside BAM-based refiners is not allowed.");
     assert pPath == null || pPath.size() > 0;
 
     if (pPath == null) {
+
       // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
       // We directly return SPURIOUS and let the CPA-algorithm run again.
       // During the counter-example-path-building we already re-added the start-states of all blocks,
@@ -103,6 +105,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
+
       // wrap the original reached-set to have a valid "view" on all reached states.
       pReached = new BAMReachedSet(bamCpa, pReached, pPath, rootOfSubgraph, removeCachedSubtreeTimer);
       return super.performRefinementForPath(pReached, pPath);
@@ -110,7 +113,8 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
+  protected final ARGPath computePath(
+      ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 

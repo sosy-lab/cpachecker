@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import java.util.Collection;
-import java.util.Set;
 
 
 /**
@@ -37,5 +36,6 @@ import java.util.Set;
  * but the set of relevant variables must remain constant (within one instance).
  */
 public interface RelevantPredicatesComputer {
-  public Set<AbstractionPredicate> getRelevantPredicates(Block context, Collection<AbstractionPredicate> predicates);
+  public Collection<AbstractionPredicate> getRelevantPredicates(
+      Block context, Collection<AbstractionPredicate> predicates);
 }

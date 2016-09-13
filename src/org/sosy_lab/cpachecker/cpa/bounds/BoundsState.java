@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -73,7 +73,9 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
 
   private BoundsState(boolean pStopIt, boolean pStopRec, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, int pDeepestRecursion, String pCurrentFunction, int pReturnFromCounter) {
     Preconditions.checkArgument(pDeepestIteration >= 0);
-    Preconditions.checkArgument(pDeepestIteration == 0 && pIterations.isEmpty() || pDeepestIteration > 0 && !pIterations.isEmpty());
+    Preconditions.checkArgument(
+        (pDeepestIteration == 0 && pIterations.isEmpty())
+            || (pDeepestIteration > 0 && !pIterations.isEmpty()));
     Preconditions.checkArgument(pDeepestRecursion >= 1);
     this.stopIt = pStopIt;
     this.stopRec = pStopRec;
