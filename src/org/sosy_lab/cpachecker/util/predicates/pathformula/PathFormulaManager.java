@@ -82,9 +82,11 @@ public interface PathFormulaManager {
    * @param pContext the context in which the variable should be created
    * @param pVarName the name of the variable
    * @param pType the type of the variable
+   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF main:x)
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
+  Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference);
 
   /**
    * Build a formula containing a predicate for all branching situations in the

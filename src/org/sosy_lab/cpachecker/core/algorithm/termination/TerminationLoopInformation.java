@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationARGPath;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationTransferRelation;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;

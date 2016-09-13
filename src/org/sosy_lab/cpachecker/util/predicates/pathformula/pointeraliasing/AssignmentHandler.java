@@ -47,10 +47,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.bnbmemorymodel.BnBRegionsMaker;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -62,12 +58,17 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -132,7 +133,7 @@ class AssignmentHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
- BooleanFormula handleAssignment(
+  BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final CType lhsType,
@@ -149,18 +150,9 @@ class AssignmentHandler {
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
 
-    final Expression rhsExpression;
-    if (rhs == null) {
-      rhsExpression = Value.nondetValue();
-    } else {
-      CRightHandSide r = rhs;
-      if (r instanceof CExpression) {
-        r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
-      }
-      rhsExpression = r.accept(rhsVisitor);
-    }
+    final Expression rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor);
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
@@ -168,7 +160,7 @@ class AssignmentHandler {
     final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
 
     // LHS handling
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
@@ -203,6 +195,25 @@ class AssignmentHandler {
       pts.addField(field.getFirst(), field.getSecond());
     }
     return result;
+  }
+
+  //TODO: see if this thing needs corrcetion for the B&B memory model case
+  private Expression createRHSExpression(
+      CRightHandSide pRhs, CType pLhsType, CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      throws UnrecognizedCCodeException {
+    if (pRhs == null) {
+      return Value.nondetValue();
+    }
+    CRightHandSide r = pRhs;
+    if (r instanceof CExpression) {
+      r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
+    }
+    return r.accept(pRhsVisitor);
+  }
+
+  private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
+    return new CExpressionVisitorWithPointerAliasing(
+        conv, edge, function, ssa, constraints, errorConditions, pts);
   }
 
   BooleanFormula handleAssignment(
@@ -249,7 +260,7 @@ class AssignmentHandler {
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
-    CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     final Set<Pair<String, CType>> updatedUFs = new HashSet<>();
     BooleanFormula result = conv.bfmgr.makeBoolean(true);
@@ -261,10 +272,11 @@ class AssignmentHandler {
                                                        updatedUFs));
     }
     if (lhsLocation.isAliased()) {
-      finishAssignments(typeHandler.getSimplifiedType(variable),
-                             lhsLocation.asAliased(),
-                             PointerTargetPattern.forLeftHandSide(variable, typeHandler, edge, pts),
-                             updatedUFs);
+      finishAssignments(
+          typeHandler.getSimplifiedType(variable),
+          lhsLocation.asAliased(),
+          PointerTargetPattern.forLeftHandSide(variable, typeHandler, edge, pts),
+          updatedUFs);
     }
     return result;
   }
@@ -297,14 +309,10 @@ class AssignmentHandler {
     final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
     final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
 
-    final CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
-            errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
     final Expression rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor);
 
-    final CExpressionVisitorWithPointerAliasing lhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
 
     if (!rhsValue.isValue()
@@ -652,31 +660,14 @@ class AssignmentHandler {
     Preconditions.checkArgument(isSimpleType(rvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
 
-    final Formula value;
-    switch (rvalue.getKind()) {
-    case ALIASED_LOCATION:
-      value = conv.makeDereference(rvalueType, rvalue.asAliasedLocation().getAddress(), ssa, errorConditions,
-                                    rvalue.asAliasedLocation().getRegion());
-      break;
-    case UNALIASED_LOCATION:
-      value = conv.makeVariable(rvalue.asUnaliasedLocation().getVariableName(), rvalueType, ssa);
-      break;
-    case DET_VALUE:
-      value = rvalue.asValue().getValue();
-      break;
-    case NONDET:
-      value = null;
-      break;
-    default: throw new AssertionError();
-    }
-
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() :
-                        CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
+    String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
+
     if (lvalue.isAliased() && conv.isBnBUsed()){
       targetName = BnBRegionsMaker.getNewUfName(targetName, lvalue.asAliased().getRegion());
     }
+
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
     final int newIndex = useOldSSAIndices ?
@@ -684,8 +675,11 @@ class AssignmentHandler {
             conv.getFreshIndex(targetName, lvalueType, ssa);
     final BooleanFormula result;
 
-    rvalueType = implicitCastToPointer(rvalueType);
-    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, constraints, edge) : null;
+    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
+    final Formula rhs =
+        value.isPresent()
+            ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
+            : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
@@ -712,6 +706,26 @@ class AssignmentHandler {
     }
 
     return result;
+  }
+
+  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
+      throws AssertionError {
+    switch (pRValue.getKind()) {
+      case ALIASED_LOCATION:
+        return Optional.of(
+            conv.makeDereference(
+                pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions,
+                pRValue.asAliasedLocation().getRegion()));
+      case UNALIASED_LOCATION:
+        return Optional.of(
+            conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
+      case DET_VALUE:
+        return Optional.of(pRValue.asValue().getValue());
+      case NONDET:
+        return Optional.empty();
+      default:
+        throw new AssertionError();
+    }
   }
 
   /**
@@ -771,6 +785,7 @@ class AssignmentHandler {
       final int newIndex = conv.getFreshIndex(uf.getFirst(), uf.getSecond(), ssa);
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(uf.getSecond());
 
+
       // forall counter : !condition => retentionConstraint
       // is equivalent to:
       // forall counter : condition || retentionConstraint
@@ -813,7 +828,6 @@ class AssignmentHandler {
       throws InterruptedException {
 
     if (isSimpleType(lvalueType)) {
-
       addSimpleTypeRetentionConstraints(pattern, ImmutableSet.of(lvalueType), startAddress);
 
     } else if (pattern.isExact()) {
@@ -891,13 +905,12 @@ class AssignmentHandler {
    * All heap cells where the pattern does not match retained.
    */
   private void addExactRetentionConstraints(
-      final Predicate<PointerTarget> pattern, final Set<CType> types) throws InterruptedException {
+      final Predicate<PointerTarget> pattern, final Set<Pair<String, CType>> types) throws InterruptedException {
     makeRetentionConstraints(
         types,
-        type -> pts.getNonMatchingTargets(type, pattern),
+        ufName -> pts.getNonMatchingTargets(ufName, pattern),
         (targetAddress, constraint) -> constraints.addConstraint(constraint));
   }
-
 
   /**
    * Add retention constraints without quantifiers for the case where some information is known

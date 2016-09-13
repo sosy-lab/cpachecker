@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -83,70 +82,51 @@ public class CProgramScope implements Scope {
 
   private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>>
       TO_C_SIMPLE_DECLARATIONS =
-          new Function<CFANode, Iterable<? extends CSimpleDeclaration>>() {
+      pNode -> CFAUtils.leavingEdges(pNode)
+          .transformAndConcat(
+              pEdge -> {
 
-            @Override
-            public Iterable<? extends CSimpleDeclaration> apply(final CFANode pNode) {
+                if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+                  CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
+                  return Collections.singleton(dcl);
+                }
 
-              return CFAUtils.leavingEdges(pNode)
-                  .transformAndConcat(
-                      new Function<CFAEdge, Iterable<? extends CSimpleDeclaration>>() {
+                if (pNode instanceof FunctionEntryNode) {
+                  FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
+                  return from(entryNode.getFunctionParameters())
+                      .filter(CSimpleDeclaration.class);
+                }
 
-                        @Override
-                        public Iterable<? extends CSimpleDeclaration> apply(CFAEdge pEdge) {
+                return Collections.emptySet();
+              });
 
-                          if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                            CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
-                            return Collections.singleton(dcl);
-                          }
-
-                          if (pNode instanceof FunctionEntryNode) {
-                            FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
-                            return from(entryNode.getFunctionParameters())
-                                .filter(CSimpleDeclaration.class);
-                          }
-
-                          return Collections.emptySet();
-                        }
-                      });
-            }
-          };
-
-  private static final Predicate<CSimpleDeclaration> HAS_NAME = new Predicate<CSimpleDeclaration>() {
-
-    @Override
-    public boolean apply(CSimpleDeclaration pDeclaration) {
-      if (pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null) {
-        return true;
-      }
-      if (pDeclaration.getName() == null
-          && pDeclaration.getQualifiedName() == null
-          && pDeclaration instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
-        CComplexType complexType = complexTypeDeclaration.getType();
-        return complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null;
-      }
-      return false;
+  private static final Predicate<CSimpleDeclaration> HAS_NAME = pDeclaration -> {
+    if (pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null) {
+      return true;
     }
+    if (pDeclaration.getName() == null
+        && pDeclaration.getQualifiedName() == null
+        && pDeclaration instanceof CComplexTypeDeclaration) {
+      CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+      CComplexType complexType = complexTypeDeclaration.getType();
+      return complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null;
+    }
+    return false;
   };
 
-  private static final Function<CSimpleDeclaration, String> GET_NAME = new Function<CSimpleDeclaration, String>() {
-
-    @Override
-    public String apply(CSimpleDeclaration pDeclaration) {
-      String result = pDeclaration.getName();
-      if (result != null) {
-        return result;
-      }
-      if (pDeclaration instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
-        CComplexType complexType = complexTypeDeclaration.getType();
-        if (complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null) {
-          return complexType.getName();
-        }
-      }
-      throw new AssertionError("Cannot extract a name.");
+  private static final Function<CSimpleDeclaration, String> GET_NAME = pDeclaration -> {
+    String result = pDeclaration.getName();
+    if (result != null) {
+      return result;
     }
+    if (pDeclaration instanceof CComplexTypeDeclaration) {
+      CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+      CComplexType complexType = complexTypeDeclaration.getType();
+      if (complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null) {
+        return complexType.getName();
+      }
+    }
+    throw new AssertionError("Cannot extract a name.");
   };
 
   private static final Function<CSimpleDeclaration, String> GET_ORIGINAL_QUALIFIED_NAME = new Function<CSimpleDeclaration, String>() {
@@ -309,10 +289,10 @@ public class CProgramScope implements Scope {
   @Override
   public CFunctionDeclaration lookupFunction(String pName) {
     // Just take the first declaration; multiple different ones are not allowed
-    for (CFunctionDeclaration result : functionDeclarations.get(pName)) {
-      return result;
+    Iterator<CFunctionDeclaration> it = functionDeclarations.get(pName).iterator();
+    if (it.hasNext()) {
+      return it.next();
     }
-
     return null;
   }
 
@@ -485,28 +465,23 @@ public class CProgramScope implements Scope {
     for (Map.Entry<String, Collection<CSimpleDeclaration>> declarationsEntry : qualifiedDeclarationsMultiMap.asMap().entrySet()) {
       String qualifiedName = declarationsEntry.getKey();
       Collection<CSimpleDeclaration> declarations = declarationsEntry.getValue();
-      Set<CSimpleDeclaration> duplicateFreeDeclarations = from(declarations).transform(new Function<CSimpleDeclaration, CSimpleDeclaration>() {
-
-        @Override
-        public CSimpleDeclaration apply(CSimpleDeclaration pArg0) {
-          if (pArg0 instanceof CVariableDeclaration) {
-            CVariableDeclaration original = (CVariableDeclaration) pArg0;
-            if (original.getInitializer() == null) {
-              return pArg0;
-            }
-            return new CVariableDeclaration(
-                original.getFileLocation(),
-                original.isGlobal(),
-                original.getCStorageClass(),
-                original.getType(),
-                original.getName(),
-                original.getOrigName(),
-                original.getQualifiedName(),
-                null);
+      Set<CSimpleDeclaration> duplicateFreeDeclarations = from(declarations).transform(pArg0 -> {
+        if (pArg0 instanceof CVariableDeclaration) {
+          CVariableDeclaration original = (CVariableDeclaration) pArg0;
+          if (original.getInitializer() == null) {
+            return pArg0;
           }
-          return pArg0;
+          return new CVariableDeclaration(
+              original.getFileLocation(),
+              original.isGlobal(),
+              original.getCStorageClass(),
+              original.getType(),
+              original.getName(),
+              original.getOrigName(),
+              original.getQualifiedName(),
+              null);
         }
-
+        return pArg0;
       }).toSet();
       if (!duplicateFreeDeclarations.isEmpty()) {
         if (duplicateFreeDeclarations.size() == 1) {
@@ -628,7 +603,7 @@ public class CProgramScope implements Scope {
     private final Set<CType> collectedTypes;
 
     public TypeCollector() {
-      this(Sets.<CType>newHashSet());
+      this(Sets.newHashSet());
     }
 
     public TypeCollector(Set<CType> pCollectedTypes) {

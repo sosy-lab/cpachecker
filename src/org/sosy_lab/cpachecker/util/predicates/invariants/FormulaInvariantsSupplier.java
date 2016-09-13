@@ -35,6 +35,8 @@ import com.google.common.collect.Sets;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -124,10 +127,29 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       if (context.getPointerTargetSet().isActualBase(varName)) {
         return fmgr.uninstantiate(
             pfgmr.makeFormulaForVariable(
-                context, varName, context.getPointerTargetSet().getBases().get(varName)));
-      }
+                context, varName, context.getPointerTargetSet().getBases().get(varName), false));
+      } else {
+        SSAMap ssa = context.getSsa();
 
-      return atom;
+        if (!ssa.containsVariable(varName)) {
+          if (varName.startsWith("*(") && varName.endsWith(")")) {
+            varName = varName.substring(2, varName.length() - 1);
+            if (!ssa.containsVariable(varName)) {
+              throw new IllegalArgumentException();
+            }
+
+            CType type = ((CPointerType) ssa.getType(varName)).getType();
+            atom = fmgr.uninstantiate(pfgmr.makeFormulaForVariable(context, varName, type, true));
+            return atom;
+          }
+
+          throw new IllegalArgumentException(
+              "Variable " + varName + " could not be found in SSAMap");
+        }
+
+        // nothing special, just return the variable as is
+        return atom;
+      }
     }
   }
 
@@ -193,7 +215,11 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
                         i, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
                   } catch (IllegalArgumentException e) {
                     logger.logUserException(
-                        Level.INFO, e, "Ignoring invariant which could not be wrapped properly.");
+                        Level.INFO,
+                        e,
+                        "Ignoring invariant for location "
+                            + pNode
+                            + " which could not be wrapped properly.");
                     return bfmgr.makeBoolean(true);
                   }
                 });

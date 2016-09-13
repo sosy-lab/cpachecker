@@ -26,19 +26,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
@@ -127,10 +117,20 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.base.Function;
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 /**
  * Builder to traverse AST.
@@ -421,18 +421,15 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope.enterFunction(fdef);
 
     final List<CParameterDeclaration> parameters = fdef.getParameters();
-    final List<String> parameterNames = new ArrayList<>(parameters.size());
-
     for (CParameterDeclaration param : parameters) {
       scope.registerDeclaration(param); // declare parameter as local variable
-      parameterNames.add(param.getName());
     }
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
     final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
-    final FunctionEntryNode startNode = new CFunctionEntryNode(
-        fileloc, fdef, returnNode, parameterNames, scope.getReturnVariable());
+    final FunctionEntryNode startNode =
+        new CFunctionEntryNode(fileloc, fdef, returnNode, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfa = startNode;
 
@@ -1139,14 +1136,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       FileLocation loc = astCreator.getLocation(condition);
       if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
-        loc = new FileLocation(
-            loc.getEndingLineNumber(),
-            loc.getFileName(),
-            niceFileNameFunction.apply(loc.getFileName()),
-            loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
-            fileLocation.getNodeOffset(),
-            fileLocation.getStartingLineNumber(),
-            fileLocation.getStartingLineInOrigin());
+        loc =
+            new FileLocation(
+                loc.getFileName(),
+                niceFileNameFunction.apply(loc.getFileName()),
+                fileLocation.getNodeOffset(),
+                loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
+                fileLocation.getStartingLineNumber(),
+                loc.getEndingLineNumber(),
+                fileLocation.getStartingLineInOrigin(),
+                loc.getEndingLineInOrigin());
       }
 
      CExpression expression = exp;

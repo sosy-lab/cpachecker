@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/bin" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/output" />
+      <excludeFolder url="file://$MODULE_DIR$/results" />
+      <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
+      <excludeFolder url="file://$MODULE_DIR$/test/results" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/lib" />
+        </SOURCES>
+        <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" />
+        <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="common.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/common.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/common-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="guava.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/guava.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/guava-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="smtinterpol-comp.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/smtinterpol-comp.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://lib/java-contrib/smtinterpol-sources.zip" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="javabdd.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/javabdd.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/javabdd-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="java-cup-runtime.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/java-cup-runtime.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="icu4j.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/icu4j.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="junit.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/junit.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="mockito-core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/mockito-core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="hamcrest-core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/hamcrest-core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="edu.cmu.sei.rtss.jldd.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/edu.cmu.sei.rtss.jldd.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jpl.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jpl.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jsylvan.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jsylvan.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="apron.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/apron.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/apron.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="gmp.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/gmp.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="guava-testlib.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/guava-testlib.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/guava-testlib-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="annotations.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/build/annotations.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java/build/annotations.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="truth.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/truth.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/truth-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="smt-parser.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/smt-parser.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="error_prone_annotations.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/build/error_prone_annotations.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="lasso-ranker.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/lasso-ranker.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/lasso-ranker-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-model-checker-utils.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-model-checker-utils.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-model-checker-utils-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-model.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-model.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-model-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-core-rcp.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-core-rcp.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-core-rcp-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-util.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-util.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-util-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-smt-solver-bridge.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-smt-solver-bridge.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-smt-solver-bridge-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="ultimate-core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/ultimate-core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/ultimate-core-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="module-library">
+      <library name="objenesis.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/objenesis.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.cdt.core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.cdt.core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/org.eclipse.cdt.core-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.core.contenttype.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.core.contenttype.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.core.jobs.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.core.jobs.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.core.resources.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.core.resources.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.core.runtime.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.core.runtime.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.equinox.common.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.equinox.common.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.equinox.preferences.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.equinox.preferences.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.jdt.core.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.jdt.core.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/org.eclipse.jdt.core-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="org.eclipse.osgi.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.osgi.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="meconsole010.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/meconsole010.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="princess-assertionless.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/princess-assertionless.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://lib/java-contrib/princess-sources-assertionless.zip" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="scala-library.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-library.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="scala-actors.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-actors.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="javasmt.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/runtime/javasmt.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/javasmt-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+  </component>
+</module>

@@ -48,6 +48,7 @@ public class PolicyBound {
 
   private int hashCache = 0;
 
+  // TODO: static fields may fall dreadfully if multiple LPI CPAs are running in parallel.
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
@@ -64,7 +65,7 @@ public class PolicyBound {
     computedByValueDetermination = pComputedByValueDetermination;
   }
 
-  public boolean isComputedByValueDetermination() {
+  boolean isComputedByValueDetermination() {
     return computedByValueDetermination;
   }
 
@@ -78,20 +79,20 @@ public class PolicyBound {
         pDependencies, false);
   }
 
-  public PolicyBound updateValueFromValueDetermination(Rational newValue) {
+  PolicyBound updateValueFromValueDetermination(Rational newValue) {
     return new PolicyBound(formula, newValue, predecessor, dependencies, true);
   }
 
-  public PolicyBound withNoDependencies() {
+  PolicyBound withNoDependencies() {
     return new PolicyBound(formula, bound, predecessor, ImmutableSet.of(), false);
   }
 
   /**
    * @return Unique identifier for value determination.
    *
-   * Based on triple (from, to, policy).
+   * <p>Based on triple {@code from, to, policy}.
    */
-  public int serializePolicy(PolicyAbstractedState toState) {
+  int serializePolicy(PolicyAbstractedState toState) {
     Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState> p = Triple.of(
         predecessor, formula.getFormula(), toState);
     Integer serialization = serializationMap.get(p);
@@ -131,7 +132,7 @@ public class PolicyBound {
   public String toString() {
 
     // Converting the predecessor to string is very costly.
-    return bound.toString();
+    return String.format("%s (<- %s)", bound.toString(), predecessor.getNode());
   }
 
   @Override

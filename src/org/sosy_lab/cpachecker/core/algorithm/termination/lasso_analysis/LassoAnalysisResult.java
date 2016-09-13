@@ -26,15 +26,15 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
-
 import java.util.Optional;
 
 import javax.annotation.CheckReturnValue;
 
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
+
 public class LassoAnalysisResult {
 
-  private Optional<?> nonTerminationArgument;
+  private Optional<NonTerminationArgument> nonTerminationArgument;
 
   private Optional<RankingRelation> terminationArgument;
 
@@ -42,7 +42,8 @@ public class LassoAnalysisResult {
     return new LassoAnalysisResult(Optional.empty(), Optional.empty());
   }
 
-  public static LassoAnalysisResult fromNonTerminationArgument(Object nonTerminationArgument) {
+  public static LassoAnalysisResult fromNonTerminationArgument(
+      NonTerminationArgument nonTerminationArgument) {
     return new LassoAnalysisResult(Optional.of(nonTerminationArgument), Optional.empty());
   }
 
@@ -51,13 +52,14 @@ public class LassoAnalysisResult {
   }
 
   private LassoAnalysisResult(
-      Optional<?> pNonTerminationArgument, Optional<RankingRelation> pTerminationArgument) {
+      Optional<NonTerminationArgument> pNonTerminationArgument,
+      Optional<RankingRelation> pTerminationArgument) {
     checkArgument(!(pNonTerminationArgument.isPresent() && pTerminationArgument.isPresent()));
     nonTerminationArgument = checkNotNull(pNonTerminationArgument);
     terminationArgument = checkNotNull(pTerminationArgument);
   }
 
-  public Object getNonTerminationArgument() {
+  public NonTerminationArgument getNonTerminationArgument() {
     return nonTerminationArgument.get();
   }
 

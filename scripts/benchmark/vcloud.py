@@ -135,7 +135,7 @@ def stop():
     # kill cloud-client, should be done automatically, when the subprocess is aborted
 
 def formatEnvironment(environment):
-    return ",".join(k + "=" + v for k,v in environment.items())
+    return ",".join(k + "=" + v for k,v in environment.get("additionalEnv", {}).items())
 
 def toTabList(l):
     return "\t".join(map(str, l))

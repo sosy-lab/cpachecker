@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -77,8 +76,12 @@ public class EclipseParsers {
 
     classLoader = EclipseParsers.class.getClassLoader();
     if (classLoader instanceof URLClassLoader) {
-      classLoader = new ChildFirstPatternClassLoader(OUR_CLASSES,
-          ((URLClassLoader)classLoader).getURLs(), classLoader);
+      classLoader =
+          Classes.makeExtendedURLClassLoader()
+              .setParent(classLoader)
+              .setUrls(((URLClassLoader) classLoader).getURLs())
+              .setDirectLoadClasses(OUR_CLASSES)
+              .build();
     }
     loadedClassLoader = new WeakReference<>(classLoader);
     return classLoader;

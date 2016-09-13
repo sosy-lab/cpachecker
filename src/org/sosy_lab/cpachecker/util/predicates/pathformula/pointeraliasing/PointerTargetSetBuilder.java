@@ -839,10 +839,14 @@ public interface PointerTargetSetBuilder {
     }
 
 
-
     @Override
     public PointerTargetSet build() {
       return PointerTargetSet.emptyPointerTargetSet();
+    }
+
+    @Override
+    public boolean canRemoveDeferredAllocationPointer(String pPointer) {
+      throw new UnsupportedOperationException();
     }
 
     @Override

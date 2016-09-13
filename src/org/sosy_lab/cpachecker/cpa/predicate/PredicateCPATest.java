@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
@@ -32,6 +31,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.reflect.Invokable;
 
 import org.junit.Test;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -41,14 +41,18 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.util.test.LoggingClassLoader;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+import java.lang.reflect.Field;
 import java.net.URLClassLoader;
+import java.util.Vector;
 import java.util.regex.Pattern;
 
 public class PredicateCPATest {
 
+  private static final Pattern PREDICATECPA_CLASSES =
+      Pattern.compile(
+          "org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|FormulaReportingState|InvariantSupplier).*");
   private static final Pattern BDD_CLASS_PATTERN = Pattern.compile("(BDD|bdd)");
 
   /**
@@ -84,12 +88,12 @@ public class PredicateCPATest {
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);
     LogManager logger = LogManager.createTestLogManager();
 
-    try (LoggingClassLoader cl =
-        new LoggingClassLoader(
-            Pattern.compile(
-                "(org\\.sosy_lab\\.cpachecker\\..*(predicate|bdd|BDD|formulaslicing|FormulaReportingState|InvariantSupplier).*)|(org\\.sosy_lab\\.solver\\..*)"),
-            ((URLClassLoader) myClassLoader).getURLs(),
-            myClassLoader)) {
+    try (URLClassLoader cl =
+        Classes.makeExtendedURLClassLoader()
+            .setParent(myClassLoader)
+            .setUrls(((URLClassLoader) myClassLoader).getURLs())
+            .setDirectLoadClasses(PREDICATECPA_CLASSES)
+            .build()) {
       Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
       Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
@@ -106,7 +110,12 @@ public class PredicateCPATest {
       if (cpa instanceof AutoCloseable) {
         ((AutoCloseable)cpa).close();
       }
-      return from(cl.getLoadedClasses()).transform(Class::getName);
+
+      Field classesField = ClassLoader.class.getDeclaredField("classes");
+      classesField.setAccessible(true);
+      @SuppressWarnings("unchecked")
+      Vector<Class<?>> classes = (Vector<Class<?>>) classesField.get(cl);
+      return FluentIterable.from(classes).transform(Class::getName);
     }
   }
 }

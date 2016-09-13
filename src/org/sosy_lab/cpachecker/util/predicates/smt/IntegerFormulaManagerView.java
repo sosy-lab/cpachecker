@@ -27,6 +27,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+import java.math.BigInteger;
+
 public class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
     implements IntegerFormulaManager {
@@ -42,6 +44,12 @@ public class IntegerFormulaManagerView
   @Override
   public BooleanFormula modularCongruence(
       IntegerFormula number1, IntegerFormula number2, long n) {
+    return integerFormulaManager.modularCongruence(number1, number2, n);
+  }
+
+  @Override
+  public BooleanFormula modularCongruence(
+      IntegerFormula number1, IntegerFormula number2, BigInteger n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
 }

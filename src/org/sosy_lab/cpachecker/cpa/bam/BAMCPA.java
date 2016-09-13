@@ -92,7 +92,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private PartitioningHeuristic.Factory blockHeuristic =
-      (logger, cfa) -> new FunctionAndLoopPartitioning(logger, cfa);
+      (logger, cfa, config) -> new FunctionAndLoopPartitioning(logger, cfa, config);
 
   @Option(secure=true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -141,7 +141,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     final BAMCache cache = new BAMCache(config, reducer, logger);
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
-    heuristic = blockHeuristic.create(pLogger, pCfa);
+    heuristic = blockHeuristic.create(pLogger, pCfa, config);
     blockPartitioning = buildBlockPartitioning(pCfa);
     bamPccManager = new BAMPCCManager(
         wrappedProofChecker,

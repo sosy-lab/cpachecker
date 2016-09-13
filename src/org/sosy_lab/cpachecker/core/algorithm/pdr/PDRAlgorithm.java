@@ -316,7 +316,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     for (String variableName : pUnprimedContext.getSsa().allVariables()) {
       CType type = pUnprimedContext.getSsa().getType(variableName);
       BitvectorFormula unprimedVar =
-          (BitvectorFormula) pfmgr.makeFormulaForVariable(pUnprimedContext, variableName, type);
+          (BitvectorFormula)
+              pfmgr.makeFormulaForVariable(pUnprimedContext, variableName, type, false);
       BitvectorFormula value =
           fmgr.getBitvectorFormulaManager()
               .makeBitvector(fmgr.getFormulaType(unprimedVar), pModel.evaluate(unprimedVar));

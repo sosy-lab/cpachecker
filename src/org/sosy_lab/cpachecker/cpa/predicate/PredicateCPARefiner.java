@@ -263,7 +263,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       // Compute invariants if desired, and if the counterexample is not a repeated one
       // (otherwise invariants for the same location didn't help before, so they won't help now).
-      if (!repeatedCounterexample && invariantsManager.addToPrecision()) {
+      if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
         counterexample =
             performInvariantsRefinement(
                 allStatesTrace,
@@ -348,7 +348,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       // add invariant precision increment if necessary
-      List<BooleanFormula> precisionIncrement = addInvariants(abstractionStatesTrace);
+      List<BooleanFormula> precisionIncrement = Lists.newArrayList();
+      if (invariantsManager.addToPrecision()) {
+        precisionIncrement = addInvariants(abstractionStatesTrace);
+      }
 
       if (usePathInvariants) {
         precisionIncrement =
