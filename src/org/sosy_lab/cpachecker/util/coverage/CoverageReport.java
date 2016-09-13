@@ -107,7 +107,7 @@ public class CoverageReport {
       final FileCoverageInformation infos = getFileInfoTarget(loc, infosPerFile);
 
       final int startingLine = loc.getStartingLineInOrigin();
-      final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
+      final int endingLine = loc.getEndingLineInOrigin();
 
       infos.addExistingFunction(functionName, startingLine, endingLine);
 

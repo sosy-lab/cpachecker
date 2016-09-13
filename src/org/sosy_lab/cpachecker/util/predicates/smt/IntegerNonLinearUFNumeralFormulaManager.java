@@ -26,19 +26,26 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.UFManager;
 
 import java.math.BigInteger;
 
-public class IntegerFormulaManagerView
-    extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
-    implements IntegerFormulaManager {
+/**
+ * Replacing non-linear arithmetics with UF
+ * for formulas over integers.
+ */
+class IntegerNonLinearUFNumeralFormulaManager
+  extends NonLinearUFNumeralFormulaManager<IntegerFormula, IntegerFormula>
+  implements IntegerFormulaManager  {
+
   private final IntegerFormulaManager integerFormulaManager;
 
-  IntegerFormulaManagerView(
+  IntegerNonLinearUFNumeralFormulaManager(
       FormulaWrappingHandler pWrappingHandler,
-      IntegerFormulaManager pManager) {
-    super(pWrappingHandler, pManager);
-    integerFormulaManager = pManager;
+      IntegerFormulaManager numeralFormulaManager,
+      UFManager pFunctionManager) {
+    super(pWrappingHandler, numeralFormulaManager, pFunctionManager);
+    integerFormulaManager = numeralFormulaManager;
   }
 
   @Override
@@ -46,7 +53,6 @@ public class IntegerFormulaManagerView
       IntegerFormula number1, IntegerFormula number2, long n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
-
   @Override
   public BooleanFormula modularCongruence(
       IntegerFormula number1, IntegerFormula number2, BigInteger n) {

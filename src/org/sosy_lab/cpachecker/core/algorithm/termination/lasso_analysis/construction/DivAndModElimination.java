@@ -21,14 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
-import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.TERMINATION_AUX_VARS_PREFIX;
 import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.DIV;
 import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MODULO;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -39,12 +41,10 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 import java.util.Collection;
 import java.util.List;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 

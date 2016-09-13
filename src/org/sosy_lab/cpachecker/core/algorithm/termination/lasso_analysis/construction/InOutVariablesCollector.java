@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.construction;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 import java.util.List;
 import java.util.Map;
@@ -56,7 +56,6 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
   private final SSAMap inVariablesSsa;
   private final Set<String> relevantVariables;
   private final Map<Formula, Formula> substitution;
-
 
   public InOutVariablesCollector(
       FormulaManagerView pFormulaManagerView,

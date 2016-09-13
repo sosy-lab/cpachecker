@@ -26,18 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -117,6 +105,18 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Builder to traverse AST.
@@ -252,11 +252,9 @@ class CFAMethodBuilder extends ASTVisitor {
     scope.enterMethod(fdef);
 
     final List<JParameterDeclaration> parameters = fdef.getParameters();
-    final List<String> parameterNames = new ArrayList<>(parameters.size());
 
     for (JParameterDeclaration param : parameters) {
       scope.registerDeclarationOfThisClass(param); // declare parameter as local variable
-      parameterNames.add(param.getName());
     }
 
     // Create initial CFA Nodes for Method (start, return, next)
@@ -265,8 +263,7 @@ class CFAMethodBuilder extends ASTVisitor {
     cfaNodes.add(returnNode);
 
     final JMethodEntryNode startNode =
-        new JMethodEntryNode(fdef.getFileLocation(), fdef, returnNode, parameterNames,
-            scope.getReturnVariable());
+        new JMethodEntryNode(fdef.getFileLocation(), fdef, returnNode, scope.getReturnVariable());
     returnNode.setEntryNode(startNode);
     cfaNodes.add(startNode);
     cfa = startNode;

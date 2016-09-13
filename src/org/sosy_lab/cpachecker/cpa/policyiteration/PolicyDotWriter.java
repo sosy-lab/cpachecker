@@ -45,7 +45,7 @@ public class PolicyDotWriter {
 
         // Rotate the pair if necessary.
         boolean negated = false;
-        if (template.toString().startsWith("-")) {
+        if (template.toString().trim().startsWith("-")) {
           negated = true;
         }
 

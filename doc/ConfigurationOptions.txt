@@ -46,6 +46,11 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# Default rounding mode for floating point operations.
+solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
+  enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
+             TOWARD_ZERO]
+
 # Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
@@ -822,6 +827,15 @@ cpa.bam.argFile = "BlockedARG.dot"
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = no default value
+
+# only consider function with a minimum number of calls. This approach is
+# similar to 'inlining' functions used only a few times. Info: If a function
+# is called several times in a loop, we only count 'one' call.
+cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
+
+# only consider function with a minimum number of CFA nodes. This approach is
+# similar to 'inlining' small functions, when using BAM.
+cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 
 # This flag determines which precisions should be updated during refinement.
 # We can choose between the minimum number of states and all states that are
@@ -2590,11 +2604,15 @@ precision.template.allowedCoefficients = {
       Rational.NEG_ONE, Rational.ONE
   }
 
+# Generate difference constraints.This option is redundant for
+# `maxExpressionSize` >= 2.
+precision.template.generateDifferences = false
+
 # Generate templates from assert statements
 precision.template.generateFromAsserts = true
 
 # Generate templates from all program statements
-precision.template.generateFromStatements = true
+precision.template.generateFromStatements = false
 
 # Force the inclusion of function parameters into the generated templates.
 # Required for summaries computation.
@@ -2791,6 +2809,10 @@ termination.check = false
 # instead of the current one.
 termination.config = no default value
 
+# Number of generalized eigenvectors in the geometric nontermination
+# argument.
+termination.lassoAnalysis.eigenvectors = 3
+
 # Shell command used to call the external SMT solver.
 termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
 
@@ -2827,9 +2849,13 @@ termination.lassoBuilder.simplify = false
 
 # maximal number of repeated ranking functions per loop before stopping
 # analysis
-termination.maxRepeatedRankingFunctionsPerLoop = 100
+termination.maxRepeatedRankingFunctionsPerLoop = 10
 
 # Strategy used to prepare reched set and ARG for next iteration after
 # successful refinement of the termination argument.
 termination.resetReachedSetStrategy = REMOVE_LOOP
   enum:     [REMOVE_TARGET_STATE, REMOVE_LOOP, RESET]
+
+# A human readable representation of the synthesized (non-)termination
+# arguments is exported to this file.
+termination.resultFile = "terminationAnalysisResult.txt"

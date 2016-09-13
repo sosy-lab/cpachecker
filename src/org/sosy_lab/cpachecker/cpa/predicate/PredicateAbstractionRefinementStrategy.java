@@ -302,7 +302,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       itpSimplification.start();
       // need to call extractPredicates() for registering all predicates
       allPredsCount = predAbsMgr.getPredicatesForAtomsOf(interpolant).size();
-      interpolant = predAbsMgr.buildAbstraction(fmgr.uninstantiate(interpolant), blockFormula).asInstantiatedFormula();
+      interpolant =
+          predAbsMgr
+              .asAbstraction(fmgr.uninstantiate(interpolant), blockFormula)
+              .asInstantiatedFormula();
       itpSimplification.stop();
 
       FormulaMeasures itpAfterSimple = formulaMeasuring.measure(interpolant);

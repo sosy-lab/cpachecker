@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -36,6 +38,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
@@ -46,13 +50,17 @@ import java.util.Set;
 public abstract class PartitioningHeuristic {
 
   public interface Factory {
-    PartitioningHeuristic create(LogManager logger, CFA cfa) throws CPAException;
+    PartitioningHeuristic create(LogManager logger, CFA cfa, Configuration pConfig)
+        throws CPAException, InvalidConfigurationException;
   }
 
   protected final CFA cfa;
   protected final LogManager logger;
 
-  public PartitioningHeuristic(LogManager pLogger, CFA pCfa) {
+  /**
+   * @param pConfig configuration can be used and injected in subclasses.
+   */
+  public PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
     cfa = pCfa;
     logger = pLogger;
   }
@@ -75,11 +83,9 @@ public abstract class PartitioningHeuristic {
     while (!stack.isEmpty()) {
       CFANode node = stack.pop();
 
-      if (isBlockEntry(node)) {
-        Set<CFANode> subtree = getBlockForNode(node);
-        if (subtree != null) {
-          builder.addBlock(subtree, mainFunction, node);
-        }
+      Set<CFANode> subtree = getBlockForNode(node);
+      if (subtree != null) {
+        builder.addBlock(subtree, mainFunction, node);
       }
 
       for (CFANode nextNode : CFAUtils.successorsOf(node)) {
@@ -94,15 +100,11 @@ public abstract class PartitioningHeuristic {
   }
 
   /**
-   * @param pNode the node to be checked
-   * @return whether a new {@link Block} should be created for the input node.
-   */
-  protected abstract boolean isBlockEntry(CFANode pNode);
-
-  /**
    * @param pBlockHead CFANode that should be cached.
-   *                   We assume {@link #isBlockEntry(CFANode)} for the node.
-   * @return set of nodes that represent a {@link Block}.
+   * @return set of nodes that represent a {@link Block},
+   *         or NULL, if no block should be build for this node.
+   *         In most cases, we will return NULL.
    */
+  @Nullable
   protected abstract Set<CFANode> getBlockForNode(CFANode pBlockHead);
 }

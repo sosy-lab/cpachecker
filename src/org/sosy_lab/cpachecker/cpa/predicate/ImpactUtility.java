@@ -153,7 +153,7 @@ final class ImpactUtility {
     AbstractionFormula newAbstraction;
     if (!doAbstractionComputation) {
       // Only create a region from itp without abstraction computation.
-      newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
+      newAbstraction = predAbsMgr.asAbstraction(fmgr.uninstantiate(itp), blockFormula);
 
     } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp" using the predicates from "itp".

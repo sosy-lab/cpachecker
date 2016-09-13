@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
@@ -31,7 +31,9 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.createDummyLiteral;
 import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.LONG_INT;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createDereferencedVariable;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createPrimedVariable;
@@ -46,12 +48,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -76,18 +76,16 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.LinearRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
-import de.uni_freiburg.informatik.ultimate.lassoranker.variables.RankVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 
 class RankingRelationBuilder {
 
-  private final static CIntegerLiteralExpression ONE = createLiteral(BigInteger.ONE);
-
   private final LogManager logger;
 
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+  private final CBinaryExpressionBuilder cExpressionBuilder;
 
   private final FormulaManagerView fmgr;
 
@@ -99,13 +97,13 @@ class RankingRelationBuilder {
 
   private final FormulaCreator<Term, ?, ?, ?> formulaCreator;
 
-  public RankingRelationBuilder(
+  RankingRelationBuilder(
       MachineModel pMachineModel,
       LogManager pLogger,
       FormulaManagerView pFormulaManagerView,
       FormulaCreator<Term, ?, ?, ?> pFormulaCreator) {
     logger = checkNotNull(pLogger);
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
+    cExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     fmgr = checkNotNull(pFormulaManagerView);
     bfmgr = fmgr.getBooleanFormulaManager();
     ifmgr = fmgr.getIntegerFormulaManager();
@@ -172,7 +170,6 @@ class RankingRelationBuilder {
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
     }
-
   }
 
   private RankingRelation fromLexicographicRankingFunction(
@@ -186,13 +183,62 @@ class RankingRelationBuilder {
       RankingRelation rankingRelation = fromRankingFunction(pRelevantVariables, component);
       CExpression cExpressionComponent = rankingRelation.asCExpression();
       cExpression =
-          binaryExpressionBuilder.buildBinaryExpression(
-              cExpression, cExpressionComponent, BINARY_OR);
+          cExpressionBuilder.buildBinaryExpression(cExpression, cExpressionComponent, BINARY_OR);
       formulas.add(rankingRelation.asFormula());
     }
 
     BooleanFormula formula = bfmgr.or(formulas);
-    return new RankingRelation(cExpression, formula, binaryExpressionBuilder, fmgr);
+    return new RankingRelation(cExpression, formula, cExpressionBuilder, fmgr);
+  }
+
+  private RankingRelation fromNestedRankingFunction(
+      NestedRankingFunction pRankingFunction, Set<CVariableDeclaration> pRelevantVariables)
+      throws UnrecognizedCCodeException, RankingRelationException {
+    Preconditions.checkArgument(pRankingFunction.getComponents().length > 0);
+
+    BooleanFormula phaseConditionFormula = bfmgr.makeTrue();
+    CExpression phaseConditionExpression = CIntegerLiteralExpression.ONE;
+
+    List<CExpression> componentExpressions = Lists.newArrayList();
+    List<BooleanFormula> componentFormulas = Lists.newArrayList();
+
+    for (AffineFunction component : pRankingFunction.getComponents()) {
+      RankingRelation componentRelation = fromAffineFunction(pRelevantVariables, component);
+
+      CBinaryExpression componentExpression =
+          cExpressionBuilder.buildBinaryExpression(
+              phaseConditionExpression, componentRelation.asCExpression(), BINARY_AND);
+      componentExpressions.add(componentExpression);
+      BooleanFormula componentFormula =
+          fmgr.makeAnd(phaseConditionFormula, componentRelation.asFormula());
+      componentFormulas.add(componentFormula);
+
+      // update phase condition
+      RankingRelationComponents rankingRelationComponents =
+          createRankingRelationComponents(component, pRelevantVariables);
+
+      BooleanFormula unprimedLessThanZeroFormula =
+          fmgr.makeLessThan(rankingRelationComponents.getUnprimedFormula(), zero, true);
+      phaseConditionFormula = fmgr.makeAnd(phaseConditionFormula, unprimedLessThanZeroFormula);
+
+      CExpression unprimedLessThanZeroExpression =
+          cExpressionBuilder.buildBinaryExpression(
+              rankingRelationComponents.getUnprimedExpression().orElse(ZERO), ZERO, LESS_THAN);
+      phaseConditionExpression =
+          cExpressionBuilder.buildBinaryExpression(
+              phaseConditionExpression, unprimedLessThanZeroExpression, BINARY_AND);
+    }
+
+    BooleanFormula formula = fmgr.getBooleanFormulaManager().or(componentFormulas);
+    CExpression expression =
+        componentExpressions
+            .stream()
+            .reduce(
+                (op1, op2) ->
+                    cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BINARY_OR))
+            .get();
+
+    return new RankingRelation(expression, formula, cExpressionBuilder, fmgr);
   }
 
   private RankingRelation fromAffineFunction(
@@ -204,8 +250,7 @@ class RankingRelationBuilder {
     Optional<CExpression> rankingRelation = createRankingRelationExpression(components);
     BooleanFormula rankingRelationFormula = createRankingRelationFormula(components);
 
-    return new RankingRelation(
-        rankingRelation, rankingRelationFormula, binaryExpressionBuilder, fmgr);
+    return new RankingRelation(rankingRelation, rankingRelationFormula, cExpressionBuilder, fmgr);
   }
 
   private Optional<CExpression> createRankingRelationExpression(
@@ -215,13 +260,13 @@ class RankingRelationBuilder {
 
     if (unprimedFunction.isPresent() && primedFunction.isPresent()) {
       CExpression unprimedGreatorThanZero =
-          binaryExpressionBuilder.buildBinaryExpression(primedFunction.get(), ZERO, GREATER_EQUAL);
+          cExpressionBuilder.buildBinaryExpression(primedFunction.get(), ZERO, GREATER_EQUAL);
       CExpression primedLessThanUnprimed =
-          binaryExpressionBuilder.buildBinaryExpression(
+          cExpressionBuilder.buildBinaryExpression(
               unprimedFunction.get(), primedFunction.get(), LESS_THAN);
 
       CBinaryExpression rankingRelation =
-          binaryExpressionBuilder.buildBinaryExpression(
+          cExpressionBuilder.buildBinaryExpression(
               unprimedGreatorThanZero, primedLessThanUnprimed, BINARY_AND);
       return Optional.of(rankingRelation);
 
@@ -234,29 +279,30 @@ class RankingRelationBuilder {
       AffineFunction function, Set<CVariableDeclaration> pRelevantVariables)
       throws RankingRelationException {
     // f(x')
-    Optional<CExpression> primedFunction = Optional.of(createLiteral(function.getConstant()));
+    Optional<CExpression> primedFunction = createLiteral(function.getConstant());
     List<NumeralFormula> primedFormulaSummands = Lists.newArrayList();
     primedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
     // f(x)
-    Optional<CExpression> unprimedFunction = Optional.of(createLiteral(function.getConstant()));
+    Optional<CExpression> unprimedFunction = createLiteral(function.getConstant());
     List<NumeralFormula> unprimedFormulaSummands = Lists.newArrayList();
     unprimedFormulaSummands.add(ifmgr.makeNumber(function.getConstant()));
 
-    for (RankVar rankVar : function.getVariables()) {
+    for (IProgramVar programVar : function.getVariables()) {
+      RankVar rankVar = (RankVar) programVar; // Only RankVars were passed to LassoRanler!
       BigInteger coefficient = function.get(rankVar);
-      CLiteralExpression cCoefficient = createLiteral(coefficient);
+      Optional<CExpression> cCoefficient = createLiteral(coefficient);
       Pair<CIdExpression, CExpression> variables = getVariable(rankVar, pRelevantVariables);
 
       CIdExpression primedVariable = variables.getFirstNotNull();
       CExpression variable = variables.getSecondNotNull();
 
-      if (primedFunction.isPresent() && unprimedFunction.isPresent()) {
+      if (primedFunction.isPresent() && unprimedFunction.isPresent() && cCoefficient.isPresent()) {
         try {
           primedFunction =
-              Optional.of(addSummand(primedFunction.get(), cCoefficient, primedVariable));
+              Optional.of(addSummand(primedFunction.get(), cCoefficient.get(), primedVariable));
           unprimedFunction =
-              Optional.of(addSummand(unprimedFunction.get(), cCoefficient, variable));
+              Optional.of(addSummand(unprimedFunction.get(), cCoefficient.get(), variable));
 
         } catch (UnrecognizedCCodeException e) {
           // some ranking function cannot be represented by C expressions
@@ -264,6 +310,10 @@ class RankingRelationBuilder {
           primedFunction = Optional.empty();
           unprimedFunction = Optional.empty();
         }
+
+      } else {
+        primedFunction = Optional.empty();
+        unprimedFunction = Optional.empty();
       }
 
       NumeralFormula unprimedVariableFormula = encapsulate(rankVar.getDefinition());
@@ -278,17 +328,16 @@ class RankingRelationBuilder {
         unprimedFunction, primedFunction, unprimedFormulaSummands, primedFormulaSummands);
   }
 
-  private CExpression addSummand(
-      CExpression sum, CLiteralExpression coefficient, CExpression pVariable)
+  private CExpression addSummand(CExpression pSum, CExpression pCoefficient, CExpression pVariable)
       throws UnrecognizedCCodeException {
 
     CExpression summand;
-    if (coefficient.equals(ONE)) {
+    if (pCoefficient.equals(ONE)) {
       summand = pVariable;
     } else {
-      summand = binaryExpressionBuilder.buildBinaryExpression(coefficient, pVariable, MULTIPLY);
+      summand = cExpressionBuilder.buildBinaryExpression(pCoefficient, pVariable, MULTIPLY);
     }
-    return binaryExpressionBuilder.buildBinaryExpression(sum, summand, PLUS);
+    return cExpressionBuilder.buildBinaryExpression(pSum, summand, PLUS);
   }
 
   private NumeralFormula encapsulate(Term pTerm) {
@@ -343,8 +392,10 @@ class RankingRelationBuilder {
 
         Term innerVariableTerm = uf.getParameters()[0];
         String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
+        RankVar innerDummyRankVar =
+            new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);
         Pair<CIdExpression, CExpression> innerVariables =
-            getVariable(new TermRankVar(innerVariableName, innerVariableTerm), pRelevantVariables);
+            getVariable(innerDummyRankVar, pRelevantVariables);
 
         CSimpleDeclaration innerPrimedVariable = innerVariables.getFirstNotNull().getDeclaration();
         CExpression innerVariable = innerVariables.getSecondNotNull();
@@ -361,58 +412,13 @@ class RankingRelationBuilder {
     }
   }
 
-  private RankingRelation fromNestedRankingFunction(
-      NestedRankingFunction pRankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException, RankingRelationException {
-    Preconditions.checkArgument(pRankingFunction.getComponents().length > 0);
-
-    BooleanFormula phaseConditionFormula = bfmgr.makeTrue();
-    CExpression phaseConditionExpression = CIntegerLiteralExpression.ONE;
-
-    List<CExpression> componentExpressions = Lists.newArrayList();
-    List<BooleanFormula> componentFormulas = Lists.newArrayList();
-
-    for (AffineFunction component : pRankingFunction.getComponents()) {
-      RankingRelation componentRelation = fromAffineFunction(pRelevantVariables, component);
-
-      CBinaryExpression componentExpression =
-          binaryExpressionBuilder.buildBinaryExpression(
-              phaseConditionExpression, componentRelation.asCExpression(), BINARY_AND);
-      componentExpressions.add(componentExpression);
-      BooleanFormula componentFormula =
-          fmgr.makeAnd(phaseConditionFormula, componentRelation.asFormula());
-      componentFormulas.add(componentFormula);
-
-      // update phase condition
-      RankingRelationComponents rankingRelationComponents =
-          createRankingRelationComponents(component, pRelevantVariables);
-
-      BooleanFormula unprimedLessThanZeroFormula =
-          fmgr.makeLessThan(rankingRelationComponents.getUnprimedFormula(), zero, true);
-      phaseConditionFormula = fmgr.makeAnd(phaseConditionFormula, unprimedLessThanZeroFormula);
-
-      CExpression unprimedLessThanZeroExpression =
-          binaryExpressionBuilder.buildBinaryExpression(
-              rankingRelationComponents.getUnprimedExpression().orElse(ZERO), ZERO, GREATER_EQUAL);
-      phaseConditionExpression =
-          binaryExpressionBuilder.buildBinaryExpression(
-              phaseConditionExpression, unprimedLessThanZeroExpression, BINARY_AND);
+  private static Optional<CExpression> createLiteral(BigInteger value) {
+    if (value.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0
+        && value.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0) {
+      return Optional.of(createDummyLiteral(value.longValueExact(), LONG_INT));
+    } else {
+      return Optional.empty();
     }
-
-    BooleanFormula formula = fmgr.getBooleanFormulaManager().or(componentFormulas);
-    CExpression expression =
-        componentExpressions
-            .stream()
-            .reduce(
-                (op1, op2) ->
-                    binaryExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BINARY_OR))
-            .get();
-
-    return new RankingRelation(expression, formula, binaryExpressionBuilder, fmgr);
-  }
-
-  private static CIntegerLiteralExpression createLiteral(BigInteger value) {
-    return CIntegerLiteralExpression.createDummyLiteral(value.longValueExact(), LONG_INT);
   }
 
   private BooleanFormula createRankingRelationFormula(RankingRelationComponents components) {
@@ -490,6 +496,5 @@ class RankingRelationBuilder {
     public RankingRelationException(Exception e) {
       super(e);
     }
-
   }
 }

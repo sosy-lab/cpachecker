@@ -22,12 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Incomplete implementation of interfaces from Ultimate required by
- * {@link de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgumentSynthesizer}
- * and
- * {@link de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer}.
+ * Construction of {@link de.uni_freiburg.informatik.ultimate.lassoranker.Lasso}s.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.lasso_ranker.toolchain;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;

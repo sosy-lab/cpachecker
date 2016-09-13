@@ -58,7 +58,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.java_smt.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;

@@ -63,8 +63,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisLoader;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -140,7 +140,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     description = "maximal number of repeated ranking functions per loop before stopping analysis"
   )
   @IntegerOption(min = 1)
-  private int maxRepeatedRankingFunctionsPerLoop = 100;
+  private int maxRepeatedRankingFunctionsPerLoop = 10;
 
   private final TerminationStatistics statistics;
 
@@ -204,17 +204,14 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
     globalDeclaration = ImmutableSet.copyOf(visitor.globalDeclarations);
 
-    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-    if (!loopStructure.isPresent()) {
-      throw new InvalidConfigurationException(
-          "Loop structure is not present, but required for termination analysis.");
-    }
-    statistics = new TerminationStatistics(loopStructure.get().getAllLoops().size());
-
-    // ugly class loader hack
-    LassoAnalysisLoader lassoAnalysisLoader =
-        new LassoAnalysisLoader(pConfig, pLogger, pShutdownNotifier, pCfa, statistics);
-    lassoAnalysis = lassoAnalysisLoader.load();
+    LoopStructure loopStructure =
+        cfa.getLoopStructure()
+            .orElseThrow(
+                () ->
+                    new InvalidConfigurationException(
+                        "Loop structure is not present, but required for termination analysis."));
+    statistics = new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size());
+    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
   /**
@@ -269,7 +266,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
-      statistics.analysisOfLoopStarted();
+      statistics.analysisOfLoopStarted(loop);
 
       resetReachedSet(pReachedSet, initialLocation);
       CPAcheckerResult.Result loopTermiantion =
@@ -284,7 +281,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         status = status.withSound(false);
       }
 
-      statistics.analysisOfLoopFinished();
+      statistics.analysisOfLoopFinished(loop);
     }
 
     if (status.isSound()) {
@@ -314,10 +311,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Result result = Result.TRUE;
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
-      statistics.safetyAnalysisStarted();
+      statistics.safetyAnalysisStarted(pLoop);
       AlgorithmStatus status = safetyAlgorithm.run(pReachedSet);
       terminationInformation.resetCfa();
-      statistics.safetyAnalysisFinished();
+      statistics.safetyAnalysisFinished(pLoop);
       shutdownNotifier.shutdownIfNecessary();
 
       boolean targetReached =
@@ -342,7 +339,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CounterexampleInfo counterexample =
             removeDummyLocationsFromCounterExample(originalCounterexample, nonTerminationLoopHead);
         LassoAnalysisResult lassoAnalysisResult =
-            lassoAnalysis.checkTermination(counterexample, relevantVariables);
+            lassoAnalysis.checkTermination(pLoop, counterexample, relevantVariables);
 
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);

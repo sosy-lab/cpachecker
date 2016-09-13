@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.termination;
+package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
@@ -116,11 +116,11 @@ public class RankingRelation {
   @CheckReturnValue
   public RankingRelation merge(RankingRelation other) {
     ImmutableSet.Builder<CExpression> newRankingRelations = ImmutableSet.builder();
-    ImmutableSet.Builder<BooleanFormula> newRankingRelationFormulas = ImmutableSet.builder();
     newRankingRelations.addAll(rankingRelations);
-    newRankingRelationFormulas.addAll(rankingRelationFormulas);
-
     newRankingRelations.addAll(other.rankingRelations);
+
+    ImmutableSet.Builder<BooleanFormula> newRankingRelationFormulas = ImmutableSet.builder();
+    newRankingRelationFormulas.addAll(rankingRelationFormulas);
     newRankingRelationFormulas.addAll(other.rankingRelationFormulas);
 
     ImmutableSet.Builder<BooleanFormula> newSupportingInvariants = ImmutableSet.builder();

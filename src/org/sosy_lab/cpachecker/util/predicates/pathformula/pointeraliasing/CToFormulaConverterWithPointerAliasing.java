@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1191,10 +1192,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+      SSAMap pContextSSA,
+      PointerTargetSet pContextPTS,
+      String pVarName,
+      CType pType,
+      boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
-    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS);
+    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS, forcePointerDereference);
 
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula;
@@ -1210,15 +1215,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (!ssa.build().equals(pContextSSA)) {
       throw new IllegalArgumentException(
           "we cannot apply the SSAMap changes to the point where the"
-              + " information would be needed possible problems: uninitialized variables could be"
-              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
+              + " information would be needed. Possible problems: uninitialized variables could be"
+              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result.\n"
+              + " difference in SSA variables: "
+              + Sets.difference(ssa.allVariables(), pContextSSA.allVariables()));
     }
 
     return formula;
   }
 
-  protected Expression makeFormulaForVariable(String pVarName, CType pType, PointerTargetSet pts) {
-    if (!pts.isActualBase(pVarName) && !CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
+  protected Expression makeFormulaForVariable(
+      String pVarName, CType pType, PointerTargetSet pts, boolean forceDereference) {
+    if (forceDereference) {
+      final Formula address = makeConstant(pVarName, CTypeUtils.getBaseType(pType));
+      return AliasedLocation.ofAddress(address);
+    } else if (!pts.isActualBase(pVarName)
+        && !CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
       Variable variable = Variable.create(pVarName, pType);
 
       final String variableName = variable.getName();

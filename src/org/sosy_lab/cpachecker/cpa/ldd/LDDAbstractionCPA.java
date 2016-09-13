@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -57,23 +56,26 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.ldd.LDDRegionManager;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LDDAbstractionCPA.class);
   }
 
-  private final LDDAbstractDomain domain;
-
-  private final StopOperator stopOperator;
-
-  private final LDDAbstractionTransferRelation transferRelation;
-
   private final LDDRegionManager regionManager;
 
-  private final LDDAbstractState initialState;
+  private final ImmutableMap<String, Integer> variables;
 
   public LDDAbstractionCPA(CFA cfa) {
+    Map<String, Integer> variables = getVariables(cfa);
+    this.regionManager = new LDDRegionManager(variables.size());
+    this.variables = ImmutableMap.copyOf(variables);
+  }
+
+  private static Map<String, Integer> getVariables(CFA cfa) {
     Map<String, Integer> variables = new HashMap<>();
 
     for (CFANode node : cfa.getAllNodes()) {
@@ -106,14 +108,10 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
         }
       }
     }
-    this.regionManager = new LDDRegionManager(variables.size());
-    this.domain = new LDDAbstractDomain(this.regionManager);
-    this.stopOperator = new StopSepOperator(this.domain);
-    this.initialState = new LDDAbstractState(this.regionManager.makeTrue());
-    this.transferRelation = new LDDAbstractionTransferRelation(this.regionManager, variables);
+    return variables;
   }
 
-  private void registerVariable(String name, CType type, Map<String, Integer> variables) {
+  private static void registerVariable(String name, CType type, Map<String, Integer> variables) {
     if (name != null && !name.isEmpty() && type != null && type instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType) type).getType();
       if (basicType == CBasicType.INT) {
@@ -124,12 +122,12 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return this.domain;
+    return new LDDAbstractDomain(regionManager);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return this.transferRelation;
+    return new LDDAbstractionTransferRelation(regionManager, variables);
   }
 
   @Override
@@ -139,7 +137,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public StopOperator getStopOperator() {
-    return this.stopOperator;
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
@@ -149,7 +147,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return this.initialState;
+    return new LDDAbstractState(regionManager.makeTrue());
   }
 
   @Override

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,26 +40,19 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
   private FunctionPartitioning functionPartitioning;
   private LoopPartitioning loopPartitioning;
 
-  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
-    functionPartitioning = new FunctionPartitioning(pLogger, pCfa);
-    loopPartitioning = new LoopPartitioning(pLogger, pCfa);
-  }
-
-  @Override
-  protected boolean isBlockEntry(CFANode pNode) {
-    return functionPartitioning.isBlockEntry(pNode) || loopPartitioning.isBlockEntry(pNode);
+  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(pLogger, pCfa, pConfig);
+    functionPartitioning = new FunctionPartitioning(pLogger, pCfa, pConfig);
+    loopPartitioning = new LoopPartitioning(pLogger, pCfa, pConfig);
   }
 
   @Override
   protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
-    // TODO what to do if both want to cache it?
-    if (functionPartitioning.isBlockEntry(pBlockHead)) {
-      return functionPartitioning.getBlockForNode(pBlockHead);
-    } else if (loopPartitioning.isBlockEntry(pBlockHead)) {
-      return loopPartitioning.getBlockForNode(pBlockHead);
-    } else {
-      throw new AssertionError("node should not be cached: " + pBlockHead);
+    Set<CFANode> nodes = functionPartitioning.getBlockForNode(pBlockHead);
+    if (nodes == null) {
+      nodes = loopPartitioning.getBlockForNode(pBlockHead);
     }
+    return nodes;
   }
 }

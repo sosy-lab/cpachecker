@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.FreshValueProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -304,10 +305,10 @@ public class BAMPredicateReducer implements Reducer {
 
     // De-serialized AbstractionFormula are missing the Regions which we need for expand(),
     // so we re-create them here.
-    rootAbstraction = pamgr.buildAbstraction(
-        rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
-    reducedAbstraction = pamgr.buildAbstraction(
-        reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
+    rootAbstraction =
+        pamgr.asAbstraction(rootAbstraction.asFormula(), rootAbstraction.getBlockFormula());
+    reducedAbstraction =
+        pamgr.asAbstraction(reducedAbstraction.asFormula(), reducedAbstraction.getBlockFormula());
 
     Collection<AbstractionPredicate> rootPredicates = pamgr.getPredicatesForAtomsOf(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
@@ -447,39 +448,43 @@ public class BAMPredicateReducer implements Reducer {
    * @param functionExitNode the function-return-location
    * @return new SSAMap
    */
-  protected static SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA,
+  static SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA,
       FunctionExitNode functionExitNode) {
 
     final SSAMapBuilder rootBuilder = rootSSA.builder();
 
     for (String var : expandedSSA.allVariables()) {
+
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
+      // var was used and maybe overridden inside the block
+      final CType type = expandedSSA.getType(var);
+      if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
-      if (expandedSSA.containsVariable(var)) { // var was used and maybe overridden inside the block
-        final CType type = expandedSSA.getType(var);
-        if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
+        if (!rootSSA.containsVariable(var)) {
 
-          if (!rootSSA.containsVariable(var)) { // inner local variable, never seen before, use fresh index as basis for further assignments
-            rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
-
-          } else { // outer variable or inner variable from previous function call
-            setFreshValueBasis(rootBuilder, var,
-                Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
-          }
+          // Inner local variable, never seen before,
+          // use fresh index as a basis for further assignments
+          rootBuilder.setIndex(var, type, expandedSSA.builder().getFreshIndex(var));
 
         } else {
-          // global variable in rootSSA is outdated, the correct index is in expandedSSA.
-          // return-variable in rootSSA is outdated, the correct index is in expandedSSA
-          // (this is the return-variable of the current function-return).
 
-          // small trick:
-          // If MAX(expIndex, rootIndex) is not expIndex,
-          // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
-          // in this case the index is irrelevant and can be set to expIndex (TODO really?).
-          // Otherwise (the important case, MAX == expIndex)
-          // we are in the refinement step and build the CEX-path.
-          rootBuilder.setIndex(var, type, expandedSSA.getIndex(var));
+          // Outer variable or inner variable from previous function call
+          setFreshValueBasis(rootBuilder, var,
+              Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
         }
+
+      } else {
+        // global variable in rootSSA is outdated, the correct index is in expandedSSA.
+        // return-variable in rootSSA is outdated, the correct index is in expandedSSA
+        // (this is the return-variable of the current function-return).
+
+        // small trick:
+        // If MAX(expIndex, rootIndex) is not expIndex,
+        // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
+        // in this case the index is irrelevant and can be set to expIndex (TODO really?).
+        // Otherwise (the important case, MAX == expIndex)
+        // we are in the refinement step and build the CEX-path.
+        rootBuilder.setIndex(var, type, expandedSSA.getIndex(var));
       }
     }
 
@@ -502,7 +507,7 @@ public class BAMPredicateReducer implements Reducer {
     Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
 
     if (idx > oldIdx) {
-      BAMFreshValueProvider bamfvp = new BAMFreshValueProvider();
+      FreshValueProvider bamfvp = new FreshValueProvider();
       bamfvp.put(name, idx);
       ssa.mergeFreshValueProviderWith(bamfvp);
     }

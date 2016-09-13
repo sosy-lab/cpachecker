@@ -159,11 +159,17 @@ public class Template {
     return linearExpression.hashCode();
   }
 
+
+  public int size() {
+    return linearExpression.size();
+  }
+
   /**
-   * @return String suitable for formula serialization. Guarantees that two
-   * equal templates will get an equal serialization.
+   * @return String suitable for formula serialization.
+   * Guarantees that two equal templates will get an equal serialization.
    */
-  public String toFormulaString() {
+  @Override
+  public String toString() {
 
     // Sort by .getQualifiedName() first.
     Map<String, CIdExpression> mapping = new HashMap<>();
@@ -186,14 +192,5 @@ public class Template {
       LinearExpression.writeMonomial(varName, coeff, b);
     }
     return b.toString();
-  }
-
-  public int size() {
-    return linearExpression.size();
-  }
-
-  @Override
-  public String toString() {
-    return toFormulaString();
   }
 }
