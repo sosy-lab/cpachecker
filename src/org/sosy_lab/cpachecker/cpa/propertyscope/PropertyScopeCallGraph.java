@@ -109,7 +109,7 @@ public class PropertyScopeCallGraph {
         });
   }
 
-  private static class CallEdge {
+  public static class CallEdge {
     private final FunctionNode source;
     private final FunctionNode sink;
 
@@ -132,7 +132,7 @@ public class PropertyScopeCallGraph {
     }
   }
 
-  private static class FunctionNode {
+  public static class FunctionNode {
     private final int id;
     private final String name;
     private int calledCount = 0; // how often the name gets called
