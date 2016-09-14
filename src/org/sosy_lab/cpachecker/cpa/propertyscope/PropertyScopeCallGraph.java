@@ -35,11 +35,13 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class PropertyScopeCallGraph {
 
   private final Map<String, FunctionNode> nodes = new TreeMap<>();
+  private final SortedMap<Integer, FunctionNode> idNodes = new TreeMap<>();
   private final Set<CallEdge> edges = new HashSet<>();
   private FunctionNode entryNode;
 
@@ -85,8 +87,10 @@ public class PropertyScopeCallGraph {
 
   private FunctionNode functionNodeFor(String name) {
     return nodes.computeIfAbsent(name, function -> {
-      FunctionNode node = new FunctionNode(function);
+      int lastId = idNodes.isEmpty() ? 0 : idNodes.lastKey();
+      FunctionNode node = new FunctionNode(lastId + 1, function);
       nodes.put(function, node);
+      idNodes.put(node.id, node);
       return node;
     });
   }
@@ -129,14 +133,20 @@ public class PropertyScopeCallGraph {
   }
 
   private static class FunctionNode {
+    private final int id;
     private final String name;
     private int calledCount = 0; // how often the name gets called
     private int cfaEdges = 0; // passed CFAEdges in ARG
     private int propertyRelevantCFAEdges = 0; // cfaEdges which are in scope of the property
     private final Set<CallEdge> callEdges = new HashSet<>();
 
-    private FunctionNode(String pName) {
+    private FunctionNode(int pId, String pName) {
+      id = pId;
       name = pName;
+    }
+
+    public int getId() {
+      return id;
     }
 
     public String getName() {
@@ -175,6 +185,10 @@ public class PropertyScopeCallGraph {
 
   public FunctionNode getEntryNode() {
     return entryNode;
+  }
+
+  public FunctionNode nodeForId(int id) {
+    return idNodes.get(id);
   }
 
   @Override
