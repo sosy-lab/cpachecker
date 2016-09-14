@@ -61,7 +61,7 @@ public class PropertyScopeCallGraph {
 
       for (ARGState childState: argState.getChildren()) {
 
-        // handle name calls
+        // handle func calls
         CallstackState chCsState = extractStateByType(childState, CallstackState.class);
         if (chCsState.getDepth() > csState.getDepth()) {
           CallEdge callEdge =
@@ -163,6 +163,10 @@ public class PropertyScopeCallGraph {
 
     public int getPropertyRelevantCFAEdges() {
       return propertyRelevantCFAEdges;
+    }
+
+    public double calculatePropertyScopeImportance() {
+      return cfaEdges == 0 ? 0 : (double) propertyRelevantCFAEdges / (double) cfaEdges;
     }
 
     public Set<CallEdge> getCallEdges() {
