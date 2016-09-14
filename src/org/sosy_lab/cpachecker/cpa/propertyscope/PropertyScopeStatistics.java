@@ -34,9 +34,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,16 +65,28 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 
 @Options(prefix="cpa.propertyscope")
 public class PropertyScopeStatistics extends AbstractStatistics {
@@ -79,6 +94,10 @@ public class PropertyScopeStatistics extends AbstractStatistics {
   @Option(secure=true, description="Do not collect additional statistics but only try to find a "
       + "new entry function and closely related statistics")
   private boolean onlyFindNewEntryFunction = false;
+
+  @Option(secure = true, description = "Where to export the property scope callgraph to")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path callgraphGraphmlFile = Paths.get("propScopeCallGraph.graphml");
 
   private final Configuration config;
   private final LogManager logger;
@@ -431,6 +450,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("New entry Function Candidate", newEntry);
 
     computeDepthOfHighestNonTrueAbstractionInCallstack(pReached);
+    ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
 
     if (!onlyFindNewEntryFunction) {
 
@@ -455,7 +475,6 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       addKeyValueStatistic("Global observer automaton reached target count",
           ControlAutomatonCPA.getglobalObserverTargetReachCount());
 
-      ARGState root = extractStateByType(pReached.getFirstState(), ARGState.class);
       List<List<ARGState>> paths = allPathStream(root).collect(Collectors.toList());
       Set<List<ARGState>> distinctAbsSeqs = extractDistinctAbstractionStateSeqs(paths.stream());
       List<List<Boolean>> tntSeqs = computeTNTSeqs(distinctAbsSeqs);
@@ -500,6 +519,13 @@ public class PropertyScopeStatistics extends AbstractStatistics {
               .reduce(Long::sum)
               .orElse(0L) / (double) trueGlobalOtherSwitch.size());
 
+    }
+
+    PropertyScopeCallGraph graph = PropertyScopeCallGraph.create(root);
+    try (Writer w = MoreFiles.openOutputFile(callgraphGraphmlFile ,Charset.defaultCharset())) {
+      new PropertyScopeCallGraphToGraphMLWriter(graph).writeTo(w);
+    } catch (IOException | ParserConfigurationException | TransformerException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeCallGraph to file");
     }
 
     super.printStatistics(pOut, pResult, pReached);

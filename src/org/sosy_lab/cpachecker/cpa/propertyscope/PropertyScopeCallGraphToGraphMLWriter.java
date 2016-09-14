@@ -1,0 +1,158 @@
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2016  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.cpa.propertyscope;
+
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.CallEdge;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.FunctionNode;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Locale;
+import java.util.Objects;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+public class PropertyScopeCallGraphToGraphMLWriter {
+
+  private final PropertyScopeCallGraph graph;
+
+  public PropertyScopeCallGraphToGraphMLWriter(PropertyScopeCallGraph pGraph) {
+    graph = pGraph;
+  }
+
+  public void writeTo(Writer writer)
+      throws IOException, ParserConfigurationException, TransformerException {
+    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+    Document doc = docBuilder.newDocument();
+
+    Element rootElement = doc.createElementNS("http://graphml.graphdrawing.org/xmlns", "graphml");
+    doc.appendChild(rootElement);
+
+    Element nodeLabelElement = doc.createElement("key");
+    nodeLabelElement.setAttribute("id", "label");
+    nodeLabelElement.setAttribute("attr.name", "label");
+    nodeLabelElement.setAttribute("for", "node");
+    nodeLabelElement.setAttribute("attr.type", "string");
+    rootElement.appendChild(nodeLabelElement);
+
+    Element nodeCFAEdgeElement = doc.createElement("key");
+    nodeCFAEdgeElement.setAttribute("id", "node_cfa_count");
+    nodeCFAEdgeElement.setAttribute("attr.name", "node_cfa_count");
+    nodeCFAEdgeElement.setAttribute("for", "node");
+    nodeCFAEdgeElement.setAttribute("attr.type", "int");
+    rootElement.appendChild(nodeCFAEdgeElement);
+
+    Element propertyRelevantCFAEdgesElement = doc.createElement("key");
+    propertyRelevantCFAEdgesElement.setAttribute("id", "cfa_edges_in_scope");
+    propertyRelevantCFAEdgesElement.setAttribute("attr.name", "cfa_edges_in_scope");
+    propertyRelevantCFAEdgesElement.setAttribute("for", "node");
+    propertyRelevantCFAEdgesElement.setAttribute("attr.type", "int");
+    rootElement.appendChild(propertyRelevantCFAEdgesElement);
+
+    Element propertyScopeRelevanceElement = doc.createElement("key");
+    propertyScopeRelevanceElement.setAttribute("id", "prop_scope_relevance");
+    propertyScopeRelevanceElement.setAttribute("attr.name", "prop_scope_relevance");
+    propertyScopeRelevanceElement.setAttribute("for", "node");
+    propertyScopeRelevanceElement.setAttribute("attr.type", "double");
+    rootElement.appendChild(propertyScopeRelevanceElement);
+
+    Element functionCallCountElement = doc.createElement("key");
+    functionCallCountElement.setAttribute("id", "call_count");
+    functionCallCountElement.setAttribute("attr.name", "call_count");
+    functionCallCountElement.setAttribute("for", "node");
+    functionCallCountElement.setAttribute("attr.type", "int");
+    rootElement.appendChild(functionCallCountElement);
+
+    Element graphElement = doc.createElement("graph");
+    graphElement.setAttribute("id", "graph");
+    graphElement.setAttribute("edgedefault", "directed");
+    rootElement.appendChild(graphElement);
+
+    for (FunctionNode node : graph.getNodes().values()) {
+      Element nodeElement = doc.createElement("node");
+      nodeElement.setAttribute("id", node.getName());
+      graphElement.appendChild(nodeElement);
+
+      Element nodeCFAEdgeDataElement = doc.createElement("data");
+      nodeCFAEdgeDataElement.setAttribute("key", "node_cfa_count");
+      nodeCFAEdgeDataElement.setTextContent(Objects.toString(node.getCfaEdges()));
+      nodeElement.appendChild(nodeCFAEdgeDataElement);
+
+      Element nodeCFAEdInScopeDataElem = doc.createElement("data");
+      nodeCFAEdInScopeDataElem.setAttribute("key", "cfa_edges_in_scope");
+      nodeCFAEdInScopeDataElem.setTextContent(Integer.toString(node.getPropertyRelevantCFAEdges()));
+      nodeElement.appendChild(nodeCFAEdInScopeDataElem);
+
+      Element nodeScopeRelevanceDataElem = doc.createElement("data");
+      nodeScopeRelevanceDataElem.setAttribute("key", "prop_scope_relevance");
+      nodeScopeRelevanceDataElem.setTextContent(String.format(Locale.ROOT, "%f",
+          node.calculatePropertyScopeImportance()));
+      nodeElement.appendChild(nodeScopeRelevanceDataElem);
+
+      Element callCountDataElement = doc.createElement("data");
+      callCountDataElement.setAttribute("key", "call_count");
+      callCountDataElement.setTextContent(Integer.toString(node.getCalledCount()));
+      nodeElement.appendChild(callCountDataElement);
+
+      Element nodeLabelDataElem = doc.createElement("data");
+      nodeLabelDataElem.setAttribute("key", "label");
+      nodeLabelDataElem.setTextContent(node.getName());
+      nodeElement.appendChild(nodeLabelDataElem);
+
+    }
+
+    for (CallEdge edge : graph.getEdges()) {
+      Element edgeElement = doc.createElement("edge");
+      edgeElement.setAttribute("source", edge.getSource().getName());
+      edgeElement.setAttribute("target", edge.getSink().getName());
+
+      graphElement.appendChild(edgeElement);
+    }
+
+    // write the xml
+    DOMSource source = new DOMSource(doc);
+    StreamResult result = new StreamResult(writer);
+    TransformerFactory transformerFactory = TransformerFactory.newInstance();
+    Transformer transformer = transformerFactory.newTransformer();
+    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+    transformer.transform(source, result);
+
+
+  }
+
+}
