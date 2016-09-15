@@ -53,7 +53,7 @@ public class PropertyScopeCallGraph {
     // handle entry name
     CallstackState rootCsState = extractStateByType(root, CallstackState.class);
     graph.entryNode = graph.functionNodeFor(rootCsState.getCurrentFunction());
-    graph.entryNode.calledCount = 1;
+    graph.entryNode.argOccurenceCount = 1;
 
     while (!waitlist.isEmpty()) {
       ARGState argState = waitlist.removeFirst();
@@ -66,7 +66,7 @@ public class PropertyScopeCallGraph {
         if (chCsState.getDepth() > csState.getDepth()) {
           CallEdge callEdge =
               graph.callEdgeFor(csState.getCurrentFunction(), chCsState.getCurrentFunction());
-          callEdge.sink.calledCount += 1;
+          callEdge.sink.argOccurenceCount += 1;
         }
 
         PropertyScopeState psState = extractStateByType(childState, PropertyScopeState.class);
@@ -135,7 +135,7 @@ public class PropertyScopeCallGraph {
   public static class FunctionNode {
     private final int id;
     private final String name;
-    private int calledCount = 0; // how often the name gets called
+    private int argOccurenceCount = 0; // how often the name gets called
     private int cfaEdges = 0; // passed CFAEdges in ARG
     private int propertyRelevantCFAEdges = 0; // cfaEdges which are in scope of the property
     private final Set<CallEdge> callEdges = new HashSet<>();
@@ -153,8 +153,8 @@ public class PropertyScopeCallGraph {
       return name;
     }
 
-    public int getCalledCount() {
-      return calledCount;
+    public int getArgOccurenceCount() {
+      return argOccurenceCount;
     }
 
     public int getCfaEdges() {

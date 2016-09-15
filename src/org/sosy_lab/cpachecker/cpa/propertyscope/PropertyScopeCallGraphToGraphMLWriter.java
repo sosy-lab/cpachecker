@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.Function
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Locale;
@@ -39,7 +38,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -90,12 +88,12 @@ public class PropertyScopeCallGraphToGraphMLWriter {
     propertyScopeRelevanceElement.setAttribute("attr.type", "double");
     rootElement.appendChild(propertyScopeRelevanceElement);
 
-    Element functionCallCountElement = doc.createElement("key");
-    functionCallCountElement.setAttribute("id", "call_count");
-    functionCallCountElement.setAttribute("attr.name", "call_count");
-    functionCallCountElement.setAttribute("for", "node");
-    functionCallCountElement.setAttribute("attr.type", "int");
-    rootElement.appendChild(functionCallCountElement);
+    Element functionARGCountElement = doc.createElement("key");
+    functionARGCountElement.setAttribute("id", "arg_occurence_count");
+    functionARGCountElement.setAttribute("attr.name", "arg_occurence_count");
+    functionARGCountElement.setAttribute("for", "node");
+    functionARGCountElement.setAttribute("attr.type", "int");
+    rootElement.appendChild(functionARGCountElement);
 
     Element graphElement = doc.createElement("graph");
     graphElement.setAttribute("id", "graph");
@@ -123,10 +121,10 @@ public class PropertyScopeCallGraphToGraphMLWriter {
           node.calculatePropertyScopeImportance()));
       nodeElement.appendChild(nodeScopeRelevanceDataElem);
 
-      Element callCountDataElement = doc.createElement("data");
-      callCountDataElement.setAttribute("key", "call_count");
-      callCountDataElement.setTextContent(Integer.toString(node.getCalledCount()));
-      nodeElement.appendChild(callCountDataElement);
+      Element argCountDataElement = doc.createElement("data");
+      argCountDataElement.setAttribute("key", "arg_occurence_count");
+      argCountDataElement.setTextContent(Integer.toString(node.getArgOccurenceCount()));
+      nodeElement.appendChild(argCountDataElement);
 
       Element nodeLabelDataElem = doc.createElement("data");
       nodeLabelDataElem.setAttribute("key", "label");
