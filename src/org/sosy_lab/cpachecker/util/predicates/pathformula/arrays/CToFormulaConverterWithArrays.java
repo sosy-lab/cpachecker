@@ -113,13 +113,9 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   private <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArrayVariable(String pName,
       CType pType, SSAMapBuilder pSsa, boolean bMakeFresh) {
 
-    if (bMakeFresh) {
-      int freshIndex = makeFreshIndex(pName, pType, pSsa);
-      return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, freshIndex);
-    } else {
-      int useIndex = getIndex(pName, pType, pSsa);
-      return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, useIndex);
-    }
+    int index = bMakeFresh ? makeFreshIndex(pName, pType, pSsa) : getIndex(pName, pType, pSsa);
+    return (ArrayFormula<TI, TE>)
+        fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, index);
   }
 
   @SuppressWarnings("unchecked")

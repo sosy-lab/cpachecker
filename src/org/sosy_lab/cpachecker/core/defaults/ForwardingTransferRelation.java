@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -124,8 +124,6 @@ import javax.annotation.Nullable;
  */
 public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     extends SingleEdgeTransferRelation {
-
-  private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
   /** the given state, casted to correct type, for local access */
   protected @Nullable T state;
@@ -344,7 +342,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected @Nullable S handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -358,7 +356,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected @Nullable S handleAssumption(
       JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
 
@@ -394,7 +392,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected S handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -409,7 +407,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected S handleFunctionCallEdge(JMethodCallEdge cfaEdge,
       List<JExpression> arguments, List<JParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
 
@@ -442,7 +440,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected S handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
           throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -457,7 +455,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected S handleFunctionReturnEdge(JMethodReturnEdge cfaEdge,
       JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName)
           throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
 
@@ -484,7 +482,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -496,7 +494,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;"
@@ -523,7 +521,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -535,7 +533,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
 
@@ -561,7 +559,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -572,7 +570,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
 
@@ -606,7 +604,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -616,7 +614,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   ///////////// BACKWARDS /////////////////
@@ -656,7 +654,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected @Nullable S handleAssumptionBackwards(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -670,7 +668,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected @Nullable S handleAssumptionBackwards(
       JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /** This function handles functioncalls like "f(x)", that calls "f(int a)". */
@@ -715,7 +713,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       List<CParameterDeclaration> parameters,
       String calledFunctionName)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -733,7 +731,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       List<JParameterDeclaration> parameters,
       String calledFunctionName)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /** This function handles functionReturns like "y=f(x)". */
@@ -777,7 +775,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       CFunctionCall summaryExpr,
       String callerFunctionName)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -795,7 +793,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       JMethodOrConstructorInvocation summaryExpr,
       String callerFunctionName)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;". */
@@ -821,7 +819,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleDeclarationEdgeBackwards(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -833,7 +831,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleDeclarationEdgeBackwards(JDeclarationEdge cfaEdge, JDeclaration decl)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;"
@@ -860,7 +858,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleStatementEdgeBackwards(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -872,7 +870,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleStatementEdgeBackwards(JStatementEdge cfaEdge, JStatement statement)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /** This function handles functionStatements like "return (x)". */
@@ -897,7 +895,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleReturnStatementEdgeBackwards(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -908,7 +906,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleReturnStatementEdgeBackwards(JReturnStatementEdge cfaEdge)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -943,7 +941,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleFunctionSummaryEdgeBackwards(CFunctionSummaryEdge cfaEdge)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   /**
@@ -954,7 +952,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleFunctionSummaryEdgeBackwards(JMethodSummaryEdge cfaEdge)
       throws CPATransferException {
-    throw new AssertionError(NOT_IMPLEMENTED);
+    return notImplemented();
   }
 
   ////////////////// UTILITY ////////////////////////
@@ -1032,5 +1030,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   private static boolean isBooleanExpression(AExpression pExpression) {
     return pExpression instanceof ABinaryExpression
         && BOOLEAN_BINARY_OPERATORS.contains(((ABinaryExpression) pExpression).getOperator());
+  }
+
+  private S notImplemented() throws AssertionError {
+    throw new AssertionError(
+        "this method is not implemented in subclass " + this.getClass().getSimpleName());
   }
 }

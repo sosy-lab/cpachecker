@@ -178,7 +178,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       return true;
     }
     if (satCheckAtAbstraction) {
-      CFANode loc = getAnalysisSuccesor(edge);
+      CFANode loc = getAnalysisSuccessor(edge);
       if (blk.isBlockEnd(loc, pathFormula.getLength())) {
         return true;
       }
@@ -186,7 +186,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
-  private CFANode getAnalysisSuccesor(CFAEdge pEdge) {
+  private CFANode getAnalysisSuccessor(CFAEdge pEdge) {
     if (direction == AnalysisDirection.BACKWARD) {
       return pEdge.getPredecessor();
     } else {
@@ -317,7 +317,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       if (edge == null) {
         currentLocation = null;
       } else {
-        currentLocation = getAnalysisSuccesor(edge);
+        currentLocation = getAnalysisSuccessor(edge);
       }
 
       boolean errorFound = false;
