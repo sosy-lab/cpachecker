@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
+import static java.util.function.Function.identity;
 import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.generateCFAEdgeToUsedVar;
 
 import com.google.common.base.Function;
@@ -46,9 +47,12 @@ import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.holder.Holder;
 import org.sosy_lab.cpachecker.util.holder.HolderBoolean;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.util.LinkedHashSet;
@@ -88,15 +92,20 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
       throws CPAException, InterruptedException {
     PropertyScopeState state = (PropertyScopeState) pState;
 
+    Holder<AbstractionFormula> hAfterGlobalInitAbsFormula =
+        Holder.of(state.getAfterGlobalInitAbsFormula());
+
     PredicateAbstractState predState = getPredicateAbstractState(otherStates);
     FormulaManagerView fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
     Solver solver = GlobalInfo.getInstance().getPredicateSolver();
     BooleanFormula formula = predState.getAbstractionFormula().asFormula();
+    BooleanFormula instFormula = predState.getAbstractionFormula().asInstantiatedFormula();
 
     PersistentList<PropertyScopeState> prevStates = state.getPrevBlockStates();
     Set<ScopeLocation> scopeLocations = new LinkedHashSet<>();
 
     java.util.Optional<AbstractionPropertyScopeInstance> absScopeInstance = state.getAbsScopeInstance();
+
 
     HolderBoolean hIsAbsScopeLoc = HolderBoolean.of(false);
 
@@ -104,14 +113,38 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         .forEach(st -> {
           scopeLocations.addAll(st.getScopeLocations());
 
+          // save the initial abstraction formula after init of globals
+          if(hAfterGlobalInitAbsFormula.value == null &&
+              st.getEnteringEdge().getDescription().equals("Function start dummy edge")) {
+            hAfterGlobalInitAbsFormula.value = predState.getAbstractionFormula();
+          }
+
           // variables in edge occur in abs formula -> edge in scope
           if (fmgr.extractVariableNames(formula).stream()
               .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
             scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
-                Reason.ABS_FORMULA));
+                Reason.ABS_FORMULA_VAR_CLASSIFICATION));
             hIsAbsScopeLoc.value = true;
           }
         });
+
+    if (predState.isAbstractionState() && hAfterGlobalInitAbsFormula.value != null) {
+      try {
+        boolean implication =
+            solver.implies(hAfterGlobalInitAbsFormula.value.asInstantiatedFormula(),
+                instFormula);
+
+        if (!implication) {
+          Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
+              .forEach(st ->
+                  scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
+                      Reason.ABS_FORMULA_IMPLICATION)));
+        }
+      } catch (SolverException pE) {
+        throw new CPAException("Solver problem!", pE);
+      }
+    }
+
 
     // not really helpful, look again later maybe
 /*    if (absScopeInstance.isPresent()) {
@@ -156,7 +189,8 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         predState.getAbstractionFormula(),
         state.getAutomatonStates(),
         absScopeInstance.orElse(null),
-        state.getAutomScopeInsts()));
+        state.getAutomScopeInsts(),
+        hAfterGlobalInitAbsFormula.value));
 
   }
 

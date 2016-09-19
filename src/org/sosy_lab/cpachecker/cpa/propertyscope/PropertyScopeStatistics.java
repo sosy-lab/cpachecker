@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.FormulaGlobalsInspector;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.FormulaVariableResult;
+import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -97,7 +98,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
   @Option(secure = true, description = "Where to export the property scope callgraph to")
   @FileOption(Type.OUTPUT_FILE)
-  private Path callgraphGraphmlFile = Paths.get("propScopeCallGraph.graphml");
+  private Path callgraphGraphmlFile = Paths.get("prop_scope_callgraph-%s.graphml");
 
   private final Configuration config;
   private final LogManager logger;
@@ -522,10 +523,13 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     }
 
     PropertyScopeCallGraph graph = PropertyScopeCallGraph.create(root);
-    try (Writer w = MoreFiles.openOutputFile(callgraphGraphmlFile ,Charset.defaultCharset())) {
-      new PropertyScopeCallGraphToGraphMLWriter(graph).writeTo(w);
-    } catch (IOException | ParserConfigurationException | TransformerException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeCallGraph to file");
+    for (Reason reason: Reason.values()) {
+      Path outpath = Paths.get(String.format(this.callgraphGraphmlFile.toString(), reason.name()));
+      try (Writer w = MoreFiles.openOutputFile(outpath, Charset.defaultCharset())) {
+        new PropertyScopeCallGraphToGraphMLWriter(graph, reason).writeTo(w);
+      } catch (IOException | ParserConfigurationException | TransformerException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeCallGraph to file");
+      }
     }
 
     super.printStatistics(pOut, pResult, pReached);

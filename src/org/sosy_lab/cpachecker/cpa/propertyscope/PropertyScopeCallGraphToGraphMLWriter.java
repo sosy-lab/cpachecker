@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.CallEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.FunctionNode;
+import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -46,9 +47,11 @@ import javax.xml.transform.stream.StreamResult;
 public class PropertyScopeCallGraphToGraphMLWriter {
 
   private final PropertyScopeCallGraph graph;
+  private final Reason reason;
 
-  public PropertyScopeCallGraphToGraphMLWriter(PropertyScopeCallGraph pGraph) {
+  public PropertyScopeCallGraphToGraphMLWriter(PropertyScopeCallGraph pGraph, Reason pReason) {
     graph = pGraph;
+    reason = pReason;
   }
 
   public void writeTo(Writer writer)
@@ -112,13 +115,13 @@ public class PropertyScopeCallGraphToGraphMLWriter {
 
       Element nodeCFAEdInScopeDataElem = doc.createElement("data");
       nodeCFAEdInScopeDataElem.setAttribute("key", "cfa_edges_in_scope");
-      nodeCFAEdInScopeDataElem.setTextContent(Integer.toString(node.getPropertyRelevantCFAEdges()));
+      nodeCFAEdInScopeDataElem.setTextContent(Integer.toString(node.getScopedCFAEdgesCount(reason)));
       nodeElement.appendChild(nodeCFAEdInScopeDataElem);
 
       Element nodeScopeRelevanceDataElem = doc.createElement("data");
       nodeScopeRelevanceDataElem.setAttribute("key", "prop_scope_relevance");
       nodeScopeRelevanceDataElem.setTextContent(String.format(Locale.ROOT, "%f",
-          node.calculatePropertyScopeImportance()));
+          node.calculatePropertyScopeImportance(reason)));
       nodeElement.appendChild(nodeScopeRelevanceDataElem);
 
       Element argCountDataElement = doc.createElement("data");

@@ -27,7 +27,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.*;
 
-import org.sosy_lab.common.collect.MapsDifference.Entry;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -73,7 +72,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
     PropertyScopeState newState = new PropertyScopeState(newPrevBlkStates,
         -1, cfaEdge, emptyList(), emptySet(), state, null,
         Collections.emptyMap(), state.getAbsScopeInstance().orElse(null),
-        state.getAutomScopeInsts());
+        state.getAutomScopeInsts(),
+        state.getAfterGlobalInitAbsFormula());
     return Collections.singleton(newState);
   }
 
@@ -143,7 +143,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
             null,
             automatonStateMap,
             state.getAbsScopeInstance().orElse(null),
-            automScopeInsts));
+            automScopeInsts,
+            state.getAfterGlobalInitAbsFormula()));
 
   }
 }
