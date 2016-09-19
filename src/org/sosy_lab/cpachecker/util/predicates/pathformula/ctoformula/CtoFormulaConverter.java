@@ -112,6 +112,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1539,4 +1540,11 @@ public class CtoFormulaConverter {
       InterruptedException e) throws T {
     throw (T) e;
   }
+
+  /**
+   * Prints some information about the RegionManager.
+   *
+   * @param out - output stream
+   */
+  public void printStatistics(PrintStream out) {}
 }
