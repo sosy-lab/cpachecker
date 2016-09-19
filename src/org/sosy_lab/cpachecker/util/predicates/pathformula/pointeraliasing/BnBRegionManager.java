@@ -222,8 +222,8 @@ public class BnBRegionManager extends AbstractMemoryRegionManager implements Mem
       VariableClassification var = varClassification.get();
       int relevantSize = var.getRelevantFields().size();
       int addressedSize = var.getAddressedFields().size();
-      out.println("Number of relevant fields " + relevantSize);
-      out.println("Number of addressed fields " + addressedSize);
+      out.println("Number of relevant fields:    " + relevantSize);
+      out.println("Number of addressed fields:   " + addressedSize);
       bnbSize = valueWithPercentage(fieldRegions.size(), relevantSize);
     } else {
       bnbSize = fieldRegions.size() + " ()";
