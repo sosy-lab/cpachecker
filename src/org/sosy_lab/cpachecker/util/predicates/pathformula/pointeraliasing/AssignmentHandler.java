@@ -950,7 +950,7 @@ class AssignmentHandler {
       List<BooleanFormula> consequent = new ArrayList<>();
       makeRetentionConstraints(
           regions,
-          type -> pts.getNonMatchingTargets(type, exact),
+          region -> pts.getNonMatchingTargets(region, exact),
           (targetAddress, constraint) -> consequent.add(constraint));
       constraints.addConstraint(bfmgr.or(negAntecedent, bfmgr.and(consequent)));
     }
@@ -966,7 +966,7 @@ class AssignmentHandler {
       throws InterruptedException {
     makeRetentionConstraints(
         regions,
-        type -> pts.getAllTargets(type),
+        region -> pts.getAllTargets(region),
         (targetAddress, constraint) -> {
           final BooleanFormula updateCondition =
               fmgr.makeElementIndexConstraint(targetAddress, startAddress, size, false);
