@@ -14,9 +14,9 @@
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
       <!-- <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis=true</option>-->
-      <!-- <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis2=true</option>-->
+      <option name="-setprop">cpa.predicate.useExplicitStateInPredicateAnalysis2=true</option>
     </tasks>
-    <option name="-ldv-sequential"/> <!-- standard ldv configuration -->
+    <option name="-ldv"/> <!-- standard ldv configuration -->
   </rundefinition>
 
    <columns>
@@ -26,5 +26,6 @@
     <column title="Formula">Time for path formula creation</column>
     <column title="CPU">CPU time for analysis</column>
     <column title="Reached set">Size of reached set</column>
+    <column title="# Predicates">Number of predicates discovered</column>
   </columns>
 </benchmark>

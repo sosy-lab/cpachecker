@@ -103,6 +103,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private int previousErrorPathId = -1;
 
+  private int noProgressCount = 0;
+
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");
   private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
@@ -149,8 +151,14 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
 
     if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          targetPaths.get(0));
+      if (noProgressCount > 1) {
+        throw new RefinementFailedException(Reason.RepeatedCounterexample,
+            targetPaths.get(0));
+      } else {
+        noProgressCount++;
+      }
+    } else {
+      noProgressCount = 0;
     }
 
     return performRefinement(pReached, targets, targetPaths);
