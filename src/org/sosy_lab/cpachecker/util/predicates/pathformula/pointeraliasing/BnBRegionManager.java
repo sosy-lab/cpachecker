@@ -24,13 +24,18 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+
+import java.io.PrintStream;
+import java.util.Optional;
 
 
-public class BnBRegionManager implements MemoryRegionManager {
+public class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
   private static final String GLOBAL = "global";
   private static final String SEPARATOR = "_";
 
@@ -170,10 +175,12 @@ public class BnBRegionManager implements MemoryRegionManager {
     }
   }
 
+  private final Optional<VariableClassification> varClassification;
   private final Multimap<CType, String> fieldRegions;
 
-  public BnBRegionManager(Multimap<CType, String> fieldRegions) {
+  public BnBRegionManager(Optional<VariableClassification> var, Multimap<CType, String> fieldRegions) {
     this.fieldRegions = fieldRegions;
+    this.varClassification = var;
   }
 
   @Override
@@ -206,4 +213,22 @@ public class BnBRegionManager implements MemoryRegionManager {
     }
   }
 
+  @Override
+  public void printStatistics(PrintStream out) {
+    super.printStatistics(out);
+
+    String bnbSize;
+    if(varClassification.isPresent()) {
+      VariableClassification var = varClassification.get();
+      int relevantSize = var.getRelevantFields().size();
+      int addressedSize = var.getAddressedFields().size();
+      out.println("Number of relevant fields " + relevantSize);
+      out.println("Number of addressed fields " + addressedSize);
+      bnbSize = valueWithPercentage(fieldRegions.size(), relevantSize);
+    } else {
+      bnbSize = fieldRegions.size() + " ()";
+    }
+    out.println("Number of BnB memory regions: " + bnbSize);
+    out.println();
+  }
 }

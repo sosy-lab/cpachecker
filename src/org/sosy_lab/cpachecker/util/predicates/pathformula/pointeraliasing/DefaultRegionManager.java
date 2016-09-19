@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
-public class DefaultRegionManager implements MemoryRegionManager {
+public class DefaultRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
 
   protected static class DefaultMemoryRegion implements MemoryRegion {
 

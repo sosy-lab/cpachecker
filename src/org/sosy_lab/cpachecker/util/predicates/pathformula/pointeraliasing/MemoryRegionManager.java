@@ -23,10 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import java.io.PrintStream;
 
 public interface MemoryRegionManager {
   public String getPointerAccessName(final MemoryRegion pRegion);
   public MemoryRegion makeMemoryRegion(CType pType);
   public MemoryRegion makeMemoryRegion(CType pFieldOwnerType, CType pExpressionType, String pFieldName);
+  public void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget);
+  public void printStatistics(PrintStream out);
 }

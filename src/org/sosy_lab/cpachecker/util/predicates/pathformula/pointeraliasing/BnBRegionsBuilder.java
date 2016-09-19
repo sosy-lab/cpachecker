@@ -50,7 +50,7 @@ public class BnBRegionsBuilder {
 
   public MemoryRegionManager build() {
     if(!variableClassification.isPresent()) {
-      return new BnBRegionManager(ImmutableMultimap.<CType, String>of());
+      return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>of());
     }
     VariableClassification var = variableClassification.get();
     Multimap<CCompositeType, String> relevant = var.getRelevantFields();
@@ -63,7 +63,7 @@ public class BnBRegionsBuilder {
         bnb.put(type, p.getValue());
       }
     }
-    return new BnBRegionManager(ImmutableMultimap.<CType, String>copyOf(bnb));
+    return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>copyOf(bnb));
   }
 
 }

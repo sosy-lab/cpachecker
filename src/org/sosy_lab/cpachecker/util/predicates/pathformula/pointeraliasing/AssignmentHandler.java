@@ -882,6 +882,7 @@ class AssignmentHandler {
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
 
       for (final PointerTarget target : targetLookup.apply(region)) {
+        regionMgr.addTargetToStats(edge, ufName, target);
         conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = conv.makeFormulaForTarget(target);
         constraintConsumer.accept(
