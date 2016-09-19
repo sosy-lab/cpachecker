@@ -138,14 +138,14 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
       AbstractionFormula absFormula = new AbstractionFormula(
           fmgr, formulaManager.buildRegionFromFormula(trueBF), trueBF, trueBF,
-          pathFormulaManager.makeEmptyPathFormula(),
+          pathFormulaManager.makeEmptyFakePathFormula(),
           ImmutableSet.<Integer>of());
 
       // update abstraction locations map
       abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
       PredicateAbstractState state =
-          PredicateAbstractState.mkAbstractionState(pathFormulaManager.makeEmptyPathFormula(),
+          PredicateAbstractState.mkAbstractionState(pathFormulaManager.makeEmptyFakePathFormula(),
               absFormula, abstractionLocations);
       return Optional.of(PrecisionAdjustmentResult.create(
           state, precision, PrecisionAdjustmentResult.Action.CONTINUE));

@@ -163,6 +163,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisDirection direction;
   private final CFA cfa;
 
+  private boolean wasPrecisionNonEmpty = false;
+
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
       Configuration config, AnalysisDirection pDirection, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
@@ -200,9 +202,11 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // by Romanov
       if (useExplicitStateInPredicateAnalysis2 &&
           (!(pPrecision instanceof PredicatePrecision) ||
-              ((PredicatePrecision)pPrecision).isEmpty())) {
+              ((PredicatePrecision)pPrecision).isEmpty()) &&
+          !wasPrecisionNonEmpty) {
         pathFormula = pathFormulaManager.makeEmptyFakePathFormula();
       } else {
+        wasPrecisionNonEmpty = true;
         pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       }
       logger.log(Level.ALL, "New path formula is", pathFormula);

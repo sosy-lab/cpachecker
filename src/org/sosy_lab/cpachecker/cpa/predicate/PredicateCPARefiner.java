@@ -208,10 +208,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
  // check if there exists a fake PathFormula in abstraction states
     boolean foundFakePathFormula = false;
-    if(useExplicitStateInPredicateAnalysis2) {
-      
+    if (useExplicitStateInPredicateAnalysis2) {
       ImmutableList<ARGState> predicateStates = from(abstractionStatesTrace).toList();
       UnmodifiableIterator<ARGState> abstractionIt = predicateStates.iterator();
+
       while (abstractionIt.hasNext()) {
         final ARGState argState = abstractionIt.next();
 

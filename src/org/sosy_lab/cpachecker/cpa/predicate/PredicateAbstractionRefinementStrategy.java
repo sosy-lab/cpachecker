@@ -200,6 +200,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
   private StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
 
+  private boolean isFirstRefinement = true;
+
   private class Stats implements Statistics {
     @Override
     public String getName() {
@@ -614,7 +616,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     boolean newPredicatesFound = !targetStatePrecision.getLocalPredicates().entries().containsAll(newPredicates.entries());
 
     ARGState firstInterpolationPoint = pAffectedStates.get(0);
-    if (!newPredicatesFound) {
+    if (!newPredicatesFound || isFirstRefinement) {
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
@@ -628,27 +630,24 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       // find top-most element in path with location == firstInterpolationPointLocation,
       // this is not necessary equal to firstInterpolationPoint
       ARGState current = firstInterpolationPoint;
-      boolean b = false;
+      ARGState previousInterpolaitonPoint = null;
       while (!current.getParents().isEmpty()) {
         current = Iterables.get(current.getParents(), 0);
 
         if (getPredicateState(current).isAbstractionState()) {
-          if (useExplicitStateInPredicateAnalysis2 && b) {
-            firstInterpolationPoint = current;
-            b = false;
-          }
           CFANode loc = AbstractStates.extractLocation(current);
-          if (loc.equals(firstInterpolationPointLocation)) {
+          if (loc.equals(firstInterpolationPointLocation) ||
+              (useExplicitStateInPredicateAnalysis2 && isFirstRefinement)) {
+            previousInterpolaitonPoint = firstInterpolationPoint;
             firstInterpolationPoint = current;
-            b = true;
           }
         }
       }
-      if (useExplicitStateInPredicateAnalysis2 && b) {
-        firstInterpolationPoint = current;
-        b = false;
+      if (useExplicitStateInPredicateAnalysis2 && isFirstRefinement) {
+        firstInterpolationPoint = previousInterpolaitonPoint;
       }
     }
+    isFirstRefinement = false;
     return firstInterpolationPoint;
   }
 
