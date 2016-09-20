@@ -62,6 +62,12 @@ solver.mathsat5.furtherOptions = ""
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
 
+# log all queries as Princess-specific Scala code
+solver.princess.logAllQueriesAsScala = false
+
+# file for Princess-specific dump of queries as Scala code
+solver.princess.logAllQueriesAsScalaFile = "princess-query-%03d-"
+
 # The number of atoms a term has to have before it gets abbreviated if there
 # are more identical terms.
 solver.princess.minAtomsForAbbreviation = 100
