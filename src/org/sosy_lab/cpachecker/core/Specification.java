@@ -104,23 +104,12 @@ public final class Specification {
             "Specification file contains no automata: " + specFile);
       }
 
-      automata.forEach(
-          automaton ->
-              logger.logf(
-                  Level.FINER,
-                  "Loaded Automaton",
-                  automaton.getName(),
-                  "with",
-                  automaton.getNumberOfStates(),
-                  "states."));
       for (Automaton automaton : automata) {
         logger.logf(
             Level.FINER,
-            "Loaded Automaton",
+            "Loaded Automaton %s with %d states.",
             automaton.getName(),
-            "with",
-            automaton.getNumberOfStates(),
-            "states.");
+            automaton.getNumberOfStates());
       }
       allAutomata.addAll(automata);
     }
