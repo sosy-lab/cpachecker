@@ -1736,6 +1736,7 @@ class ASTConverter {
 
       IASTInitializer initializer = null;
       String name = null;
+      Integer bitFieldSize = null;
 
       // Descend into the nested chain of declarators.
       // Find out the name and the initializer, and collect all modifiers.
@@ -1744,13 +1745,17 @@ class ASTConverter {
         // TODO handle bitfields by checking for instanceof IASTFieldDeclarator
 
         if (currentDecl instanceof IASTFieldDeclarator) {
-          IASTExpression bitFieldSize = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
-          if (bitFieldSize instanceof CASTLiteralExpression) {
-            CExpression cExpression = convertExpressionWithoutSideEffects(bitFieldSize);
+          if (bitFieldSize != null) {
+            throw new CFAGenerationRuntimeException("Unsupported declaration with two bitfield descriptions", d, niceFileNameFunction);
+          }
+
+          IASTExpression bitField = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
+          if (bitField instanceof CASTLiteralExpression) {
+            CExpression cExpression = convertExpressionWithoutSideEffects(bitField);
             if (cExpression instanceof CIntegerLiteralExpression) {
-              specifier.setBitFieldSize(((CIntegerLiteralExpression)cExpression).getValue().intValue());
+              bitFieldSize = ((CIntegerLiteralExpression) cExpression).getValue().intValue();
             } else {
-              throw  new CFAGenerationRuntimeException("Unsupported bitfield specifier", d, niceFileNameFunction);
+              throw new CFAGenerationRuntimeException("Unsupported bitfield specifier", d, niceFileNameFunction);
             }
           }
         }
@@ -1896,6 +1901,9 @@ class ASTConverter {
         }
       }
 
+      if (bitFieldSize != null) {
+        type = typeConverter.convertBitFieldType(bitFieldSize, type);
+      }
       return Triple.of(type, initializer, name);
     }
   }

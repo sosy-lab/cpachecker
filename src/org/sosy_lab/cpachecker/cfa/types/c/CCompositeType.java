@@ -320,9 +320,10 @@ public final class CCompositeType implements CComplexType {
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
+  public CType setBitFieldSize(Integer pBitFieldSize) {
     //Unsupported operation
-    assert(false);
+    assert(pBitFieldSize == null);
+    return this;
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {

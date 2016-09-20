@@ -171,9 +171,10 @@ public final class CArrayType extends AArrayType implements CType {
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
+  public CType setBitFieldSize(Integer pBitFieldSize) {
     //Unsupported operation
-    assert(false);
+    assert(pBitFieldSize == null);
+    return this;
   }
 
   private Object writeReplace() {

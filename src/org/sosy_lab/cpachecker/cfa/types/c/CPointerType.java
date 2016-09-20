@@ -154,8 +154,9 @@ public final class CPointerType implements CType, Serializable {
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
+  public CType setBitFieldSize(Integer pBitFieldSize) {
     //Unsupported operation
-    assert(false);
+    assert(pBitFieldSize == null);
+    return this;
   }
 }

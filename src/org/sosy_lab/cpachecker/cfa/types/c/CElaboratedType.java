@@ -40,6 +40,9 @@ public final class CElaboratedType implements CComplexType {
   private final String origName;
   private final boolean isConst;
   private final boolean isVolatile;
+  private Integer bitFieldSize;
+
+  private int hashCache = 0;
 
   private CComplexType realType = null;
 
@@ -127,7 +130,7 @@ public final class CElaboratedType implements CComplexType {
     lASTString.append(" ");
     lASTString.append(pDeclarator);
 
-    return lASTString.toString();
+    return lASTString.toString()  + (isBitField() ? " : " + getBitFieldSize() : "");
   }
   @Override
   public String toString() {
@@ -160,6 +163,7 @@ public final class CElaboratedType implements CComplexType {
 
   @Override
   public int hashCode() {
+    if (hashCache == 0) {
       final int prime = 31;
       int result = 7;
       result = prime * result + Objects.hashCode(isConst);
@@ -167,7 +171,9 @@ public final class CElaboratedType implements CComplexType {
       result = prime * result + Objects.hashCode(kind);
       result = prime * result + Objects.hashCode(name);
       result = prime * result + Objects.hashCode(realType);
-      return result;
+      hashCache = result;
+    }
+    return hashCache;
   }
 
   /**
@@ -230,17 +236,20 @@ public final class CElaboratedType implements CComplexType {
 
   @Override
   public boolean isBitField() {
-    return false;
+    return bitFieldSize != null;
   }
 
   @Override
   public int getBitFieldSize() {
-    return 0;
+    return bitFieldSize == null ? 0 : bitFieldSize;
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
-    //Unsupported operation
-    assert(false);
+  public CType setBitFieldSize(Integer pBitFieldSize) {
+    CElaboratedType result = new CElaboratedType(isConst, isVolatile, kind, name, origName, realType);
+    result.bitFieldSize = pBitFieldSize;
+    final int prime = 31;
+    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
+    return result;
   }
 }

@@ -135,10 +135,12 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
-    bitFieldSize = pBitFieldSize;
+  public CType setBitFieldSize(Integer pBitFieldSize) {
+    CEnumType result = new CEnumType(isConst, isVolatile, enumerators, name, origName);
+    result.bitFieldSize = pBitFieldSize;
     final int prime = 31;
-    hashCache = prime * hashCode() + Objects.hashCode(bitFieldSize);
+    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
+    return result;
   }
 
   @Override

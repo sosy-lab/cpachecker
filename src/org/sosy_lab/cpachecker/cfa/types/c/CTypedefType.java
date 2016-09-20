@@ -53,10 +53,12 @@ public final class CTypedefType implements CType, Serializable {
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
-    bitFieldSize = pBitFieldSize;
+  public CType setBitFieldSize(Integer pBitFieldSize) {
+    CTypedefType result = new CTypedefType(isConst, isVolatile, name, realType);
+    result.bitFieldSize = pBitFieldSize;
     final int prime = 31;
-    hashCache = prime * hashCode() + Objects.hashCode(bitFieldSize);
+    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
+    return result;
   }
   public String getName() {
     return name;

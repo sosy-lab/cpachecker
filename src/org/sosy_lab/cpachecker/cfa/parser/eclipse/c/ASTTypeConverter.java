@@ -514,4 +514,9 @@ class ASTTypeConverter {
     }
     return type;
   }
+
+  /** returns a bitfield type */
+  CType convertBitFieldType(final Integer bitFieldSize, final CType pType) {
+    return pType.setBitFieldSize(bitFieldSize);
+  }
 }

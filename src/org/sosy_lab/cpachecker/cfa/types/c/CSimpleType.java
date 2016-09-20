@@ -72,10 +72,13 @@ public final class CSimpleType implements CType, Serializable {
   }
 
   @Override
-  public void setBitFieldSize(Integer pBitFieldSize) {
-    bitFieldSize = pBitFieldSize;
+  public CType setBitFieldSize(Integer pBitFieldSize) {
+    CSimpleType result = new CSimpleType(isConst, isVolatile, type, isLong, isShort, isSigned,
+        isUnsigned, isComplex, isImaginary, isLongLong);
+    result.bitFieldSize = pBitFieldSize;
     final int prime = 31;
-    hashCache = prime * hashCode() + Objects.hashCode(bitFieldSize);
+    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
+    return result;
   }
 
   @Override
