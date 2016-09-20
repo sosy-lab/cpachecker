@@ -1855,8 +1855,7 @@ cpa.predicate.useParameterVariables = false
 cpa.predicate.useParameterVariablesForGlobals = false
 
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
-# that is capable of quantifiers (e.g. Z3 or PRINCESS). Currently universal
-# quantifiers will only be introduced for array initializer statements.
+# that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
 
 # Enable fallback to UFs if a solver does not support non-linear arithmetics.

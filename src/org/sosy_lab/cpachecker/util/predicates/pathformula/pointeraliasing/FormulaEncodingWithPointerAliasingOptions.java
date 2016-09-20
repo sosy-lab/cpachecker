@@ -84,8 +84,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private String memoryFreeFunctionName = "free";
 
   @Option(secure = true, description = "Use quantifiers when encoding heap accesses. "
-      + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS). "
-      + "Currently universal quantifiers will only be introduced for array initializer statements.")
+      + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS).")
   private boolean useQuantifiersOnArrays = false;
 
   @Option(secure=true, description = "When a string literal initializer is encountered, initialize the contents of the char array "
