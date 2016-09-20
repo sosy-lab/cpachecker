@@ -39,6 +39,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.FormatMethod;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -103,9 +104,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 import java.io.IOException;
@@ -1053,6 +1054,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
 
     @Override
+    @FormatMethod
     public void logf(Level pPriority, String pFormat, Object... pArgs) {
       if (wouldBeLogged(pPriority)) {
         logger.logf(pPriority, pFormat, pArgs);
