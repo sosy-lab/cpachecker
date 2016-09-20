@@ -157,7 +157,7 @@ public class BDDVectorCExpressionVisitor
         if (calculationType instanceof CSimpleType) {
           final CSimpleType st = (CSimpleType) calculationType;
           if (st.getType() == CBasicType.INT || st.getType() == CBasicType.CHAR) {
-            final int bitPerByte = machineModel.getSizeofCharInBits();
+            final int bitPerByte = MachineModel.getSizeofCharInBits();
             final int numBytes = machineModel.getSizeof(st);
             size = bitPerByte * numBytes;
           }
@@ -320,7 +320,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   private int getSize(CType pType) {
-    return machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
+    return machineModel.getSizeof(pType) * MachineModel.getSizeofCharInBits();
   }
 
   /**
@@ -358,7 +358,7 @@ public class BDDVectorCExpressionVisitor
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
       if (st.getType() == CBasicType.INT || st.getType() == CBasicType.CHAR) {
-        final int bitPerByte = machineModel.getSizeofCharInBits();
+        final int bitPerByte = MachineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
         final Region[] result = bvmgr.toBitsize(size, st.isSigned(), value);

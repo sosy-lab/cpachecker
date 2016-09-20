@@ -52,7 +52,7 @@ public class CtoFormulaTypeHandler {
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
     final int pointerSize = machineModel.getSizeofPtr();
-    final int bitsPerByte = machineModel.getSizeofCharInBits();
+    final int bitsPerByte = MachineModel.getSizeofCharInBits();
     pointerType = FormulaType.getBitvectorTypeWithSize(pointerSize * bitsPerByte);
   }
 
@@ -95,7 +95,7 @@ public class CtoFormulaTypeHandler {
 
     int byteSize = getSizeof(type);
 
-    int bitsPerByte = machineModel.getSizeofCharInBits();
+    int bitsPerByte = MachineModel.getSizeofCharInBits();
     // byte to bits
     return FormulaType.getBitvectorTypeWithSize(byteSize * bitsPerByte);
   }

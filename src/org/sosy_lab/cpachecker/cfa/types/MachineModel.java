@@ -227,7 +227,7 @@ public enum MachineModel {
   private final int mAlignofChar = 1;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
-  private final int mSizeofCharInBits = 8;
+  private static final int mSizeofCharInBits = 8;
   private final CSimpleType ptrEquivalent;
 
   private MachineModel(
@@ -356,7 +356,7 @@ public enum MachineModel {
     }
   }
 
-  public int getSizeofCharInBits() {
+  public static int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }
 
@@ -602,11 +602,22 @@ public enum MachineModel {
       }
     }
 
+    private int calculateByteSize(int bitFieldsSize) {
+      if (bitFieldsSize == 0) {
+        return 0;
+      }
+
+      int result = bitFieldsSize / getSizeofCharInBits();
+      if (bitFieldsSize % getSizeofCharInBits() > 0) {
+        result++;
+      }
+      return result;
+    }
+
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
       int bitFieldsSize = 0;
       Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
-      boolean previosIsBitField = false;
       while (declIt.hasNext()) {
         CCompositeTypeMemberDeclaration decl = declIt.next();
         if (decl.getType().isIncomplete() && !declIt.hasNext()) {
@@ -622,33 +633,16 @@ public enum MachineModel {
           }
         } else {
           if (model.isBitFieldsSupportEnabled() && decl.getType().isBitField()) {
-            if (previosIsBitField) {
               bitFieldsSize += decl.getType().getBitFieldSize();
-            } else {
-              size += model.getPadding(size, decl.getType());
-              bitFieldsSize += decl.getType().getBitFieldSize();
-            }
-            previosIsBitField = true;
           } else {
-            if (bitFieldsSize > 0) {
-              size += bitFieldsSize / 8;
-              if (bitFieldsSize % 8 > 0) {
-                size++;
-              }
-            }
+            size += calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;
-            previosIsBitField = false;
             size += model.getPadding(size, decl.getType());
             size += decl.getType().accept(this);
           }
         }
       }
-      if (bitFieldsSize > 0) {
-        size += bitFieldsSize / 8;
-        if (bitFieldsSize % 8 > 0) {
-          size++;
-        }
-      }
+      size += calculateByteSize(bitFieldsSize);
       size += model.getPadding(size, pCompositeType);
       return size;
     }

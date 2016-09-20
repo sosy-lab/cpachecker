@@ -96,8 +96,8 @@ public class Types {
       return false;
     }
 
-    int holdingBitSize = pMachineModel.getSizeof(pHoldingType) * pMachineModel.getSizeofCharInBits();
-    int innerBitSize = pMachineModel.getSizeof(pInnerType) * pMachineModel.getSizeofCharInBits();
+    int holdingBitSize = pMachineModel.getSizeof(pHoldingType) * MachineModel.getSizeofCharInBits();
+    int innerBitSize = pMachineModel.getSizeof(pInnerType) * MachineModel.getSizeofCharInBits();
 
     if (innerBitSize > holdingBitSize) {
       return false;

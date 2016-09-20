@@ -111,7 +111,7 @@ public class PredicateManager {
     MachineModel machineModel = cfa.getMachineModel();
     for (VariableClassification.Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
-      createPredicates(partition.getVars(), machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
+      createPredicates(partition.getVars(), machineModel.getSizeofLongLongInt() * MachineModel.getSizeofCharInBits());
     }
   }
 

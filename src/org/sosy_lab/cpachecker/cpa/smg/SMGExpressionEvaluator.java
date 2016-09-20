@@ -311,20 +311,13 @@ public class SMGExpressionEvaluator {
     List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
     int offset = 0;
-    boolean previousIsBitField = false;
     int bitFieldsSize = 0;
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
       if (machineModel.isBitFieldsSupportEnabled() && typeMember.getType().isBitField()) {
-        int padding = 0;
-        if (!previousIsBitField) {
-          padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
-              machineModel.getSizeofCharInBits();
-        }
-
         if (memberName.equals(fieldName)) {
-          offset += padding + bitFieldsSize;
+          offset += bitFieldsSize;
           return new SMGField(SMGKnownExpValue.valueOf(offset),
               getRealExpressionType(typeMember.getType()));
         }
@@ -332,18 +325,16 @@ public class SMGExpressionEvaluator {
         if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
           bitFieldsSize += typeMember.getType().getBitFieldSize();
         }
-        previousIsBitField = true;
       } else {
         if (bitFieldsSize > 0) {
           offset += bitFieldsSize;
-          if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
-            offset += machineModel.getSizeofCharInBits() - (bitFieldsSize % machineModel.getSizeofCharInBits());
+          if (bitFieldsSize % MachineModel.getSizeofCharInBits() > 0) {
+            offset += MachineModel.getSizeofCharInBits() - (bitFieldsSize % MachineModel.getSizeofCharInBits());
           }
           bitFieldsSize = 0;
         }
-        previousIsBitField = false;
-        int padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
-            machineModel.getSizeofCharInBits();
+        int padding = machineModel.getPadding(offset / MachineModel.getSizeofCharInBits(), typeMember.getType()) *
+            MachineModel.getSizeofCharInBits();
 
         if (memberName.equals(fieldName)) {
           offset += padding;
@@ -434,7 +425,7 @@ public class SMGExpressionEvaluator {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
         if (address.getObject() == SMGObject.getNullObject()) { return SMGExplicitValueAndState.of(newState,
-            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / machineModel.getSizeofCharInBits())); }
+            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / MachineModel.getSizeofCharInBits())); }
       }
     }
 
@@ -2561,7 +2552,7 @@ public class SMGExpressionEvaluator {
       state = pState;
       expression = pExpression;
       eval = new SMGExpressionEvaluator(logger, pModel);
-      sizeofCharInBits = pModel.getSizeofCharInBits();
+      sizeofCharInBits = MachineModel.getSizeofCharInBits();
     }
 
     public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
@@ -2572,7 +2563,7 @@ public class SMGExpressionEvaluator {
       state = pState;
       expression = null;
       eval = new SMGExpressionEvaluator(pLogger, pModel);
-      sizeofCharInBits = pModel.getSizeofCharInBits();
+      sizeofCharInBits = MachineModel.getSizeofCharInBits();
     }
 
     @Override

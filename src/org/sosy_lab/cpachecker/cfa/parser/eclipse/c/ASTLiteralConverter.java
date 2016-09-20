@@ -468,7 +468,7 @@ class ASTLiteralConverter {
     public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
       CSimpleType type = getTypeForValue(pValue, pMachineModel);
       if (type != null) {
-        return pMachineModel.getSizeof(type) * pMachineModel.getSizeofCharInBits();
+        return pMachineModel.getSizeof(type) * MachineModel.getSizeofCharInBits();
       }
       return pValue.bitLength();
     }
@@ -479,7 +479,7 @@ class ASTLiteralConverter {
       int numberOfBits = pValue.bitLength();
       CSimpleType bestCandidate = null;
       for (CSimpleType candidate : pCandidates) {
-        int candidateBitSize = pMachineModel.getSizeof(candidate) * pMachineModel.getSizeofCharInBits();
+        int candidateBitSize = pMachineModel.getSizeof(candidate) * MachineModel.getSizeofCharInBits();
         int actualCandidateBitSize = isSigned() ? candidateBitSize - 1 : candidateBitSize;
         if (actualCandidateBitSize >= numberOfBits) {
           return candidate;

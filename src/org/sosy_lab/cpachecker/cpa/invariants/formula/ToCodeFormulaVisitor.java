@@ -92,7 +92,7 @@ public class ToCodeFormulaVisitor
   private CSimpleType determineType(TypeInfo pTypeInfo) {
     if (pTypeInfo instanceof BitVectorInfo) {
       BitVectorInfo bitVectorInfo = (BitVectorInfo) pTypeInfo;
-      int sizeOfChar = machineModel.getSizeofCharInBits();
+      int sizeOfChar = MachineModel.getSizeofCharInBits();
       int size = bitVectorInfo.getSize();
       boolean isSigned = bitVectorInfo.isSigned();
       for (CSimpleType type : TYPES) {

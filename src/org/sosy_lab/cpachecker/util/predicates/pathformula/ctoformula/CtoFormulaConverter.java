@@ -1430,7 +1430,7 @@ public class CtoFormulaConverter {
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
     // f is now the structure, access it:
-    int bitsPerByte = machineModel.getSizeofCharInBits();
+    int bitsPerByte = MachineModel.getSizeofCharInBits();
 
     int offset;
     switch (structType.getKind()) {

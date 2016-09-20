@@ -133,7 +133,7 @@ public class BitVectorInfo implements TypeInfo {
       if (sizeInChars == 0) {
         sizeInChars = pMachineModel.getSizeofPtr();
       }
-      size = sizeInChars * pMachineModel.getSizeofCharInBits();
+      size = sizeInChars * MachineModel.getSizeofCharInBits();
       assert size >= 0;
       signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);
     } else if (type instanceof JSimpleType) {
