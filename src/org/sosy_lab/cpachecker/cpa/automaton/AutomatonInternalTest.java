@@ -295,7 +295,7 @@ public class AutomatonInternalTest {
       new SubjectFactory<ASTMatcherSubject, String>() {
         @Override
         public ASTMatcherSubject getSubject(FailureStrategy pFs, String pThat) {
-          return new ASTMatcherSubject(pFs, pThat);
+          return new ASTMatcherSubject(pFs, pThat).named("AST matcher pattern");
         }
       };
 
@@ -312,19 +312,11 @@ public class AutomatonInternalTest {
       super(pFailureStrategy, pPattern);
     }
 
-    @Override
-    protected String getDisplaySubject() {
-      if (internalCustomName() != null) {
-        return super.getDisplaySubject();
-      }
-      return "ASTMatcher pattern " + super.getDisplaySubject();
-    }
-
     private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
       CAstNode sourceAST;
       ASTMatcher matcher;
       sourceAST = CParserUtils.parseSingleStatement(src, parser, CProgramScope.empty());
-      matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
+      matcher = AutomatonASTComparator.generatePatternAST(actual(), parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);
     }
