@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static java.util.stream.Collectors.toCollection;
+import com.google.common.collect.ImmutableSortedSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -64,7 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -576,11 +575,11 @@ class DynamicMemoryHandler {
               lhsPointer.ifPresent(
                   (s) -> {
                     pts.removeDeferredAllocationPointer(s)
-                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(s, false));
+                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(s));
                     pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
                     // And not the RHS, it was a dummy, not a code pointer approximation
                     pts.removeDeferredAllocationPointer(variable)
-                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable, false));
+                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
                   });
               if (!lhsPointer.isPresent()) {
                 conv.logger.logfOnce(
@@ -589,7 +588,7 @@ class DynamicMemoryHandler {
                     lhs,
                     edge);
                 pts.removeDeferredAllocationPointer(variable)
-                    .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable, false));
+                    .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
               }
             }
             isAllocation = true;
@@ -672,7 +671,7 @@ class DynamicMemoryHandler {
     if (lhs instanceof CIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
       pts.removeDeferredAllocationPointer(((CIdExpression) lhs).getDeclaration().getQualifiedName())
-          .forEach(_d -> handleDeferredAllocationPointerRemoval(lhs, false));
+          .forEach(_d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
       Optional<String> lhsPointer = lhs.accept(visitor.getPointerApproximatingVisitor());
@@ -709,17 +708,14 @@ class DynamicMemoryHandler {
    * Removes a pointer variable from tracking.
    *
    * @param pointer The expression or string corresponding to the pointer.
-   * @param isReturn A flag indicating if the variable is a return variable.
    */
-  private void handleDeferredAllocationPointerRemoval(
-      final Object pointer, final boolean isReturn) {
+  private void handleDeferredAllocationPointerRemoval(final Object pointer) {
     conv.logger.logfOnce(
         Level.WARNING,
-        (!isReturn ? "Assignment to the" : "Destroying the")
-            + " void * pointer  %s produces garbage or "
-            + "the memory pointed by it is unused! (in the following line(s):\n %s)",
+        "%s: Assignment to the void* pointer %s produces garbage or the memory pointed by it is unused: %s",
+        edge.getFileLocation(),
         pointer,
-        edge);
+        edge.getDescription());
   }
 
   /**
@@ -729,13 +725,17 @@ class DynamicMemoryHandler {
    * @param function The name of the function.
    */
   void handleDeferredAllocationInFunctionExit(final String function) {
-    CFAUtils.filterVariablesOfFunction(
-            pts.getDeferredAllocationPointers().stream().collect(toCollection(TreeSet::new)),
-            function)
-        .stream()
-        .forEach(
-            (v) ->
-                pts.removeDeferredAllocationPointer(v)
-                    .forEach((_d) -> handleDeferredAllocationPointerRemoval(v, true)));
+    for (String v :
+        CFAUtils.filterVariablesOfFunction(
+            ImmutableSortedSet.copyOf(pts.getDeferredAllocationPointers()), function)) {
+      if (!pts.removeDeferredAllocationPointer(v).isEmpty()) {
+        conv.logger.logfOnce(
+            Level.WARNING,
+            "%s: Destroying the void* pointer %s produces garbage or the memory pointed by it is unused: %s",
+            edge.getFileLocation(),
+            v,
+            edge.getDescription());
+      }
+    }
   }
 }
