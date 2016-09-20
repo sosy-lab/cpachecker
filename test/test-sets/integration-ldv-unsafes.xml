@@ -10,9 +10,9 @@
   <option name="-heap">7000M</option>
   <option name="-ldv"/>
 
-  <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
-
   <rundefinition>
+    <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+
     <tasks>
       <include>../programs/ldv-benchmarks/validator/*/*.c</include>
       <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
@@ -69,6 +69,13 @@
       <exclude>../programs/ldv-benchmarks/unsafes/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main11_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.12-rc1/fs--nilfs2--nilfs2.ko-ldv_main10_false-unreach-label.cil.out.c</exclude>
 
+    </tasks>
+  </rundefinition>
+
+  <rundefinition>
+    <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
+    <tasks>
+      <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.i</include>
     </tasks>
   </rundefinition>
 </benchmark>
