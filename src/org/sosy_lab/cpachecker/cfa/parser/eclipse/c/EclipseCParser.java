@@ -492,6 +492,8 @@ class EclipseCParser implements CParser {
 
       // _Static_assert(cond, msg) feature of C11
       macrosBuilder.put("_Static_assert(c, m)", "");
+      // _Noreturn feature of C11
+      macrosBuilder.put("_Noreturn", "");
 
       // These built-ins are defined as macros
       // in org.eclipse.cdt.core.dom.parser.GNUScannerExtensionConfiguration.
