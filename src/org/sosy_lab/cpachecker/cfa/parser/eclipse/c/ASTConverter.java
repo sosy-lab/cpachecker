@@ -1718,6 +1718,19 @@ class ASTConverter {
 
 
   private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
+    while (d != null
+        && d.getClass() == org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator.class
+        && d.getPointerOperators().length == 0
+        && d.getAttributes().length == 0
+        && d.getAttributeSpecifiers().length == 0
+        && d.getInitializer() == null
+        && d.getNestedDeclarator() != null) {
+      // This is an "empty" declarator with nothing else but the nested declarator.
+      // It comes from code like "void ((*(f))(void));"
+      // (the outer unnecessary parentheses are represented by this).
+      // We just ignore this declarator like we ignore parentheses in expressions.
+      d = d.getNestedDeclarator();
+    }
 
     if (d instanceof IASTFunctionDeclarator) {
       // TODO is it always right to assume that here is no static storage class
