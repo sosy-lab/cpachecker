@@ -58,8 +58,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
                StatisticsProvider,
                AbstractDomain,
                PrecisionAdjustment,
-               AdjustableConditionCPA,
-               ReachedSetAdjustingCPA,
                MergeOperator,
                AutoCloseable {
 
@@ -98,12 +96,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         fmgr, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
-
     if (useCachingPathFormulaManager) {
-      pfmgr = new CachingPathFormulaManager(pathFormulaManager);
-    } else {
-      pfmgr = pathFormulaManager;
+      pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
+    pfmgr = pathFormulaManager;
 
     statistics = new PolicyIterationStatistics(cfa);
     TemplateToFormulaConversionManager pTemplateToFormulaConversionManager =
@@ -111,10 +107,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     stateFormulaConversionManager = new StateFormulaConversionManager(
             fmgr,
             pTemplateToFormulaConversionManager, pConfig, cfa,
-            logger, shutdownNotifier, pathFormulaManager, solver);
+            logger, shutdownNotifier, pfmgr, solver);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
-            config, fmgr, pLogger, pathFormulaManager,
+            config, fmgr, pLogger, pfmgr,
             stateFormulaConversionManager,
             pTemplateToFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
@@ -125,7 +121,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     policyIterationManager = new PolicyIterationManager(
         pConfig,
         fmgr,
-        cfa, pathFormulaManager,
+        cfa, pfmgr,
         solver, pLogger, shutdownNotifier,
         valueDeterminationFormulaManager,
         statistics,
@@ -244,12 +240,12 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         (PolicyState) pState, (TemplatePrecision) pPrecision, otherStates);
   }
 
-  @Override
+  //@Override
   public boolean adjustPrecision() {
     return policyIterationManager.adjustPrecision();
   }
 
-  @Override
+  //@Override
   public void adjustReachedSet(ReachedSet pReachedSet) {
     policyIterationManager.adjustReachedSet(pReachedSet);
   }
