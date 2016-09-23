@@ -77,7 +77,9 @@ public class CPreprocessor {
   public CPreprocessor(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
+    if (dumpDirectory != null) {
+      dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
+    }
   }
 
   public String preprocess(String file) throws CParserException, InterruptedException {
