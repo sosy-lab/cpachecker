@@ -2467,6 +2467,12 @@ parser.dialect = GNUC
 # stdout.
 parser.preprocessor = "cpp"
 
+# Directory where to dump the results of the preprocessor.
+parser.preprocessor.dumpDirectory = "preprocessed"
+
+# Whether to dump the results of the preprocessor to disk for debugging.
+parser.preprocessor.dumpResults = false
+
 # For C files, read #line preprocessor directives and use their information
 # for outputting line numbers. (Always enabled when pre-processing is used.)
 parser.readLineDirectives = false
