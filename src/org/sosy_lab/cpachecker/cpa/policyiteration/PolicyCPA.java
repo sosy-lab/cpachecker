@@ -55,6 +55,8 @@ import java.util.Optional;
 @Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
 public class PolicyCPA extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysisWithBAM,
+               AdjustableConditionCPA,
+               ReachedSetAdjustingCPA,
                StatisticsProvider,
                AbstractDomain,
                PrecisionAdjustment,
@@ -240,12 +242,12 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         (PolicyState) pState, (TemplatePrecision) pPrecision, otherStates);
   }
 
-  //@Override
+  @Override
   public boolean adjustPrecision() {
     return policyIterationManager.adjustPrecision();
   }
 
-  //@Override
+  @Override
   public void adjustReachedSet(ReachedSet pReachedSet) {
     policyIterationManager.adjustReachedSet(pReachedSet);
   }
