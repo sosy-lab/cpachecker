@@ -1944,6 +1944,9 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
 
+# Where to export the property scope callgraph to
+cpa.propertyscope.callgraphGraphmlFile = "prop_scope_callgraph-%s.graphml"
+
 # Do not collect additional statistics but only try to find a new entry
 # function and closely related statistics
 cpa.propertyscope.onlyFindNewEntryFunction = false
