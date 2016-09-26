@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.CallToReturnEdge;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.ReturnStatementEdge;
+import static org.sosy_lab.cpachecker.util.AbstractStates.asFlatIterable;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
+
 import com.google.common.base.Functions;
 import com.google.common.collect.Iterables;
 
@@ -34,6 +41,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,8 +58,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.io.PrintStream;
@@ -253,7 +264,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     }
-    return status;
+
+    return status.withProgramNeverTerminates(isProgramNeverTerminating(reachedSet));
   }
 
   /**
@@ -420,6 +432,33 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return false;
+  }
+
+  private boolean isProgramNeverTerminating(final ReachedSet reachedSet) {
+    LocationState locationState =
+        extractStateByType(reachedSet.getFirstState(), LocationState.class);
+
+    // Consider only forward analysis and a fully explored state space.
+    if (!reachedSet.hasWaitingState()
+            && locationState != null
+            && locationState.getClass().equals(LocationState.class)) {
+
+      String entryFunctionName = locationState.getLocationNode().getFunctionName();
+
+      // The program never terminates if no program end state is in the reached set.
+      return !asFlatIterable(reachedSet).filter(AutomatonState.class).anyMatch(as -> as.getInternalStateName().equals("STOP"))
+          && !reachedSet.asCollection().stream().anyMatch(as -> isTargetState(as))
+          && !asFlatIterable(reachedSet)
+              .filter(LocationState.class)
+              .transform(LocationState::getLocationNode)
+              .filter(n -> n.getFunctionName().equals(entryFunctionName))
+              .transformAndConcat(n -> CFAUtils.allEnteringEdges(n))
+              .transform(CFAEdge::getEdgeType)
+              .anyMatch(et -> et.equals(FunctionReturnEdge) || et.equals(ReturnStatementEdge) || et.equals(CallToReturnEdge));
+
+    } else {
+      return false;
+    }
   }
 
   @Override
