@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -115,9 +117,28 @@ public class RCNFManager implements StatisticsProvider {
   }
 
   /**
-   * @param input Input formula with at most one parent-level existential
-   *              quantifier.
-   * @param pFmgr TODO
+   * Existentially quantify dead variables, and apply RCNF conversion.
+   *
+   * @return Set of lemmas, only have variables with latest SSA index.
+   */
+  public Set<BooleanFormula> toLemmasInstantiated(PathFormula pf, FormulaManagerView pFmgr)
+      throws InterruptedException {
+    BooleanFormula transition = pf.getFormula();
+    SSAMap ssa = pf.getSsa();
+    transition = pFmgr.filterLiterals(transition, input -> !hasDeadUf(input, ssa, pFmgr));
+    BooleanFormula quantified = pFmgr.quantifyDeadVariables(transition, ssa);
+
+    return toLemmas(quantified, pFmgr);
+  }
+
+  /**
+   * Convert an input formula to RCNF form.
+   * A formula in RCNF form is a conjunction over quantifier-free formulas.
+   *
+   * @param input Formula over-approximation with at most one parent-level
+   *              existential quantifier.
+   *              Contains only latest SSA indexes.
+   * @param pFmgr Formula manager which performs the conversion.
    */
   public Set<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
     Preconditions.checkNotNull(pFmgr);
@@ -396,5 +417,30 @@ public class RCNFManager implements StatisticsProvider {
           t.getNumberOfIntervals(),
           conversionCacheHits);
     }
+  }
+
+  private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap, FormulaManagerView pFmgr) {
+    final AtomicBoolean out = new AtomicBoolean(false);
+    pFmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFunction(
+          Formula f,
+          List<Formula> args,
+          FunctionDeclaration<?> functionDeclaration) {
+        if (functionDeclaration.getKind() == FunctionDeclarationKind.UF) {
+          if (pFmgr.isIntermediate(functionDeclaration.getName(), pSSAMap)) {
+            out.set(true);
+            return TraversalProcess.ABORT;
+          }
+        }
+        return TraversalProcess.CONTINUE;
+      }
+    });
+    return out.get();
   }
 }
