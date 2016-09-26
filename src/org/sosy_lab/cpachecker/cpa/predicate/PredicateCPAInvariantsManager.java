@@ -1135,6 +1135,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    semiCNFConverter.collectStatistics(pStatsCollection);
   }
 
 }
