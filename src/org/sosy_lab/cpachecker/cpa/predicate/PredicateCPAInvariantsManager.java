@@ -423,7 +423,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       // TODO what if loop structure does not exist?
       if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
-        argForPathFormulaBasedGeneration.add(Pair.of(predState.getPathFormula(), node));
+        argForPathFormulaBasedGeneration.add(Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
       } else if (!node.equals(
           extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
         argForPathFormulaBasedGeneration.add(Pair.<PathFormula, CFANode>of(null, node));
