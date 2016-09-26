@@ -107,7 +107,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -127,6 +126,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -258,7 +258,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final ShutdownNotifier shutdownNotifier;
   private final Stats stats = new Stats();
 
-  private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
   private final FormulaInvariantsSupplier globalInvariants;
@@ -423,10 +422,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       // TODO what if loop structure does not exist?
       if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
-        argForPathFormulaBasedGeneration.add(Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
+        argForPathFormulaBasedGeneration.add(
+            Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
       } else if (!node.equals(
           extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
-        argForPathFormulaBasedGeneration.add(Pair.<PathFormula, CFANode>of(null, node));
+        argForPathFormulaBasedGeneration.add(Pair.of(null, node));
       }
     }
 
@@ -584,23 +584,17 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
       PointerTargetSet pts = pBlockFormula.getPointerTargetSet();
       SSAMap ssa = pBlockFormula.getSsa();
-      PathFormula loopFormula;
-
-      // we already found this loop and just need to update the SSA indices
-      if (loopFormulaCache.containsKey(pLocation)) {
-        loopFormula =
-            new PathFormula(fmgr.instantiate(loopFormulaCache.get(pLocation), ssa), ssa, pts, 0);
-      } else {
-        loopFormula =
-            new LoopTransitionFinder(
-                    config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
-                .generateLoopTransition(ssa, pts, pLocation);
-        loopFormulaCache.put(pLocation, fmgr.uninstantiate(loopFormula.getFormula()));
-      }
+      PathFormula loopFormula =
+          new LoopTransitionFinder(
+                  config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
+              .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
-          semiCNFConverter.toLemmas(
-              fmgr.uninstantiate(pBlockFormula.getFormula()), fmgr);
+          semiCNFConverter
+              .toLemmasInstantiated(pBlockFormula, fmgr)
+              .stream()
+              .map(s -> fmgr.uninstantiate(s))
+              .collect(Collectors.toSet());
 
       Set<BooleanFormula> inductiveLemmas =
           new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
@@ -611,6 +605,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         return false;
       } else {
         addResultToCache(bfmgr.and(inductiveLemmas), pLocation);
+        logger.log(Level.FINER, "Generated invariant: ", inductiveLemmas);
         return true;
       }
     } finally {
@@ -625,35 +620,24 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     try {
       stats.pfKindTime.start();
 
-      BooleanFormula cnfFormula =
-          bfmgr.and(semiCNFConverter.toLemmas(pPathFormula.getFormula(), fmgr));
-      Collection<BooleanFormula> conjuncts =
-          bfmgr.visit(
-              cnfFormula,
-              new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
-                @Override
-                protected List<BooleanFormula> visitDefault() {
-                  return Collections.emptyList();
-                }
+      Set<BooleanFormula> conjuncts =
+          semiCNFConverter
+              .toLemmasInstantiated(pPathFormula, fmgr)
+              .stream()
+              .map(s -> fmgr.uninstantiate(s))
+              .collect(Collectors.toSet());
 
-                @Override
-                public List<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
-                  return operands;
-                }
-              });
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
           new StaticCandidateProvider(
               from(conjuncts)
                   .transform(
-                      new Function<BooleanFormula, CandidateInvariant>() {
-                        @Override
-                        public CandidateInvariant apply(BooleanFormula pInput) {
-                          String dumpedFormula = fmgr.dumpFormula(pInput).toString();
-                          formulaToRegion.put(dumpedFormula, pInput);
-                          return makeLocationInvariant(pLocation, dumpedFormula);
-                        }
-                      }));
+                      (Function<BooleanFormula, CandidateInvariant>)
+                          pInput -> {
+                            String dumpedFormula = fmgr.dumpFormula(pInput).toString();
+                            formulaToRegion.put(dumpedFormula, pInput);
+                            return makeLocationInvariant(pLocation, dumpedFormula);
+                          }));
 
       new KInductionInvariantChecker(
               config,
