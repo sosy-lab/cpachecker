@@ -322,7 +322,6 @@ class KInductionProver implements AutoCloseable {
     return invariant;
   }
 
-  // todo: extend with a callstack.
   private FluentIterable<LocationFormulaInvariant> getConfirmedCandidates(
       final CFANode pLocation) {
     return from(confirmedCandidates)
