@@ -242,7 +242,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * Create an assumption that is sufficient to exclude an abstract state
    */
   private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState state) {
-    addAssumption(invariant, bfmgr.makeBoolean(false), state);
+    addAssumption(invariant, bfmgr.makeFalse(), state);
   }
 
   private void produceAssumptionAutomaton(Appendable output, ReachedSet reached) throws IOException {

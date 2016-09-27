@@ -351,19 +351,19 @@ class PointerTargetSetManager {
       // Trivial case: either no allocations on one branch at all, or no difference.
       // Just take the first non-null value, the second is either equal or null.
       lastBase = (pts1.getLastBase() != null) ? pts1.getLastBase() : pts2.getLastBase();
-      basesMergeFormula = bfmgr.makeBoolean(true);
+      basesMergeFormula = bfmgr.makeTrue();
 
     } else if (basesOnlyPts1.isEmpty()) {
       assert pts2.getBases().keySet().containsAll(pts1.getBases().keySet());
       // One branch has a strict superset of the allocations of the other.
       lastBase = pts2.getLastBase();
-      basesMergeFormula = bfmgr.makeBoolean(true);
+      basesMergeFormula = bfmgr.makeTrue();
 
     } else if (basesOnlyPts2.isEmpty()) {
       assert pts1.getBases().keySet().containsAll(pts2.getBases().keySet());
       // One branch has a strict superset of the allocations of the other.
       lastBase = pts1.getLastBase();
-      basesMergeFormula = bfmgr.makeBoolean(true);
+      basesMergeFormula = bfmgr.makeTrue();
 
     } else {
       // Otherwise we have no possibility to determine which base to use as lastBase,
@@ -523,7 +523,7 @@ class PointerTargetSetManager {
    */
   private BooleanFormula makeValueImportConstraints(final PersistentSortedMap<String, CType> newBases,
       final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa) {
-    BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
+    BooleanFormula mergeFormula = bfmgr.makeTrue();
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
@@ -561,7 +561,7 @@ class PointerTargetSetManager {
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
         : "Array access can't be encoded as a variable";
 
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
 
     if (variableType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) variableType;

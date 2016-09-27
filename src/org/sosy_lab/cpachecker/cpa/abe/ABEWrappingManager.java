@@ -129,7 +129,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
       iOldState = ABEIntermediateState.of(
           pState.getNode(),
           new PathFormula(
-              bfmgr.makeBoolean(true),
+              bfmgr.makeTrue(),
               aState.getSSAMap(),
               aState.getPointerTargetSet(),
               1

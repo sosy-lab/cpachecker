@@ -128,7 +128,7 @@ public final class BMCHelper {
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
    */
   public static BooleanFormula createFormulaFor(Iterable<AbstractState> states, BooleanFormulaManager pBFMGR) {
-    BooleanFormula f = pBFMGR.makeBoolean(false);
+    BooleanFormula f = pBFMGR.makeFalse();
 
     for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
       // Conjuncting block formula of last abstraction and current path formula

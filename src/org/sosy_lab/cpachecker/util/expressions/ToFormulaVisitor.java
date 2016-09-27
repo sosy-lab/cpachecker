@@ -111,12 +111,12 @@ public class ToFormulaVisitor
 
   @Override
   protected BooleanFormula cacheMissTrue() {
-    return formulaManagerView.getBooleanFormulaManager().makeBoolean(true);
+    return formulaManagerView.getBooleanFormulaManager().makeTrue();
   }
 
   @Override
   protected BooleanFormula cacheMissFalse() {
-    return formulaManagerView.getBooleanFormulaManager().makeBoolean(false);
+    return formulaManagerView.getBooleanFormulaManager().makeFalse();
   }
 
   public static class ToFormulaException extends Exception {

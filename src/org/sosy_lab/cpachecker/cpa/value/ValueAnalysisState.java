@@ -586,7 +586,7 @@ public class ValueAnalysisState
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     if (machineModel == null) {
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     List<BooleanFormula> result = new ArrayList<>();

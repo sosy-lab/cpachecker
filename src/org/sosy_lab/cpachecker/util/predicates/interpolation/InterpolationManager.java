@@ -384,7 +384,7 @@ public final class InterpolationManager {
    * @param f The list of formulas to scan for bitwise operations.
    */
   private void addBitwiseAxioms(List<BooleanFormula> f) {
-    BooleanFormula bitwiseAxioms = bfmgr.makeBoolean(true);
+    BooleanFormula bitwiseAxioms = bfmgr.makeTrue();
 
     for (BooleanFormula fm : f) {
       BooleanFormula a = fmgr.getBitwiseAxioms(fm);
@@ -422,7 +422,7 @@ public final class InterpolationManager {
 
     final BooleanFormula[] needed = new BooleanFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
-      needed[i] =  bfmgr.makeBoolean(true);
+      needed[i] =  bfmgr.makeTrue();
     }
     final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
     final int start = backwards ? f.size()-1 : 0;

@@ -432,7 +432,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return SlicingIntermediateState.of(
         pSlicingAbstractedState.getNode(),
         new PathFormula(
-            bfmgr.makeBoolean(true),
+            bfmgr.makeTrue(),
             pSlicingAbstractedState.getSSA(),
             pSlicingAbstractedState.getPointerTargetSet(),
             0), pSlicingAbstractedState

@@ -224,7 +224,7 @@ public interface PointerTargetSetBuilder {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
+        return formulaManager.getBooleanFormulaManager().makeTrue();
       }
       bases = bases.putAndCopy(name, type); // To get proper inequalities
       final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
@@ -273,7 +273,7 @@ public interface PointerTargetSetBuilder {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
+        return formulaManager.getBooleanFormulaManager().makeTrue();
       }
 
       addTargets(name, type);
@@ -284,7 +284,7 @@ public interface PointerTargetSetBuilder {
       if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
         // Avoid adding constraints about function addresses,
         // otherwise we might track facts about function pointers for code like "if (p == &f)".
-        return formulaManager.getBooleanFormulaManager().makeBoolean(true);
+        return formulaManager.getBooleanFormulaManager().makeTrue();
       } else {
         return nextInequality;
       }

@@ -871,7 +871,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // function declaration, typedef etc.
       logDebug("Ignoring declaration", declarationEdge);
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
@@ -885,7 +885,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         !isAddressedVariable(declaration)) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     checkForLargeArray(declarationEdge, declarationType);
@@ -953,7 +953,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
       } else {
-        result = bfmgr.makeBoolean(true);
+        result = bfmgr.makeTrue();
       }
 
     } else if (initializer instanceof CInitializerList) {

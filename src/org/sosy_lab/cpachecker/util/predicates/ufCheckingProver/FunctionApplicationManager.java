@@ -97,7 +97,7 @@ public class FunctionApplicationManager {
     }
 
     logger.logf(Level.ALL, "ignoring UF '%s' with value '%s'.", entry, value);
-    return fmgr.getBooleanFormulaManager().makeBoolean(true);
+    return fmgr.getBooleanFormulaManager().makeTrue();
   }
 
   /** if the new valid result is equal to the old value, we return just TRUE, else we return the new assignment. */
@@ -106,7 +106,7 @@ public class FunctionApplicationManager {
       logger.logf(Level.ALL, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
       return newAssignment;
     } else {
-      return fmgr.getBooleanFormulaManager().makeBoolean(true);
+      return fmgr.getBooleanFormulaManager().makeTrue();
     }
   }
 
@@ -132,7 +132,7 @@ public class FunctionApplicationManager {
 
       if (validResult == null) {
         // evaluation not possible, ignore UF
-        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+        return fmgr.getBooleanFormulaManager().makeTrue();
       }
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(
@@ -165,7 +165,7 @@ public class FunctionApplicationManager {
 
       if (validResult == null) {
         // evaluation not possible, ignore UF
-        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+        return fmgr.getBooleanFormulaManager().makeTrue();
       }
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(

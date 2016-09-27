@@ -522,7 +522,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
       while (formulas.size() < pAbstractionStatesTrace.size()) {
-        formulas.add(fmgr.getBooleanFormulaManager().makeBoolean(true));
+        formulas.add(fmgr.getBooleanFormulaManager().makeTrue());
       }
 
       return formulas;

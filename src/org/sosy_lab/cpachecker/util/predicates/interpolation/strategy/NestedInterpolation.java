@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -40,13 +38,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 
 public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
@@ -67,7 +67,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(formulasWithStatesAndGroupdIds.size() - 1);
-    BooleanFormula lastItp = bfmgr.makeBoolean(true); // PSI_0 = True
+    BooleanFormula lastItp = bfmgr.makeTrue(); // PSI_0 = True
     final Deque<Triple<BooleanFormula,BooleanFormula,CFANode>> callstack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {
       // use a new prover, because we use several distinct queries
@@ -104,7 +104,7 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
         // case 2 from paper
         final BooleanFormula call = formulasWithStatesAndGroupdIds.get(positionOfA).getFirst();
         callstack.addLast(Triple.of(lastItp, call, node));
-        final BooleanFormula itp = bfmgr.makeBoolean(true);
+        final BooleanFormula itp = bfmgr.makeTrue();
         interpolants.add(itp);
         return itp; // PSIminus = True --> PSI = True, for the 3rd rule ITP is True
       }

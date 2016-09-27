@@ -307,7 +307,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
-    BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
+    BooleanFormula globalInvariant = bfmgr.makeTrue();
 
     if (useGlobalInvariants) {
       globalInvariant = globalInvariants.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
@@ -465,7 +465,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                             pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
                         || wasSuccessful;
                 } else {
-                  addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                  addResultToCache(bfmgr.makeTrue(), pair.getSecond());
                 }
               }
             break;
@@ -478,7 +478,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                             pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
                         || wasSuccessful;
                 } else {
-                  addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                  addResultToCache(bfmgr.makeTrue(), pair.getSecond());
                 }
               }
             break;
@@ -650,7 +650,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
       Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
 
-      BooleanFormula invariant = bfmgr.makeBoolean(true);
+      BooleanFormula invariant = bfmgr.makeTrue();
       for (CandidateInvariant candidate : invariants) {
         invariant = bfmgr.and(invariant, formulaToRegion.get(candidate.toString()));
       }
@@ -754,7 +754,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       boolean wasSuccessful =
           !from(invariants)
               .transform(Pair::getFirst)
-              .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+              .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeTrue()));
 
       if (wasSuccessful) {
         from(invariants).transform(Pair::getFirst).copyInto(foundInvariants);
@@ -801,7 +801,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         boolean wasSuccessful =
             !from(invariants)
                 .transform(Pair::getFirst)
-                .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+                .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeTrue()));
         if (wasSuccessful) {
           for (Pair<BooleanFormula, CFANode> invariant : invariants) {
             addResultToCache(fmgr.uninstantiate(invariant.getFirst()), invariant.getSecond());
@@ -884,7 +884,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   // the prefix is not filled up with trues if it is shorter than
                   // the path so we need to do it ourselves
                   while (pathFormula.size() < abstractionStatesTrace.size()) {
-                    pathFormula.add(bfmgr.makeBoolean(true));
+                    pathFormula.add(bfmgr.makeTrue());
                   }
                   interpolants =
                       imgr.buildCounterexampleTrace(
@@ -903,7 +903,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 List<CandidateInvariant> invCandidates = new ArrayList<>();
                 // add false as last interpolant for the error location
                 interpolants = new ArrayList<>(interpolants);
-                interpolants.add(bfmgr.makeBoolean(false));
+                interpolants.add(bfmgr.makeFalse());
 
                 for (Pair<CFANode, BooleanFormula> nodeAndFormula :
                     Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
@@ -980,11 +980,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                                   Level.WARNING,
                                   e,
                                   "Invariant could not be" + " retrieved from InvariantGenerator");
-                              return fmgr.getBooleanFormulaManager().makeBoolean(true);
+                              return fmgr.getBooleanFormulaManager().makeTrue();
                             }
                           }
                         })
-                    .or(fmgr.getBooleanFormulaManager().makeBoolean(true)),
+                    .or(fmgr.getBooleanFormulaManager().makeTrue()),
                 node));
       }
 

@@ -216,8 +216,8 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   @Test
   public void testIsPurelyConjunctive_Simple() {
-    assertIsConjunctive(bmgrv.makeBoolean(true));
-    assertIsConjunctive(bmgrv.makeBoolean(false));
+    assertIsConjunctive(bmgrv.makeTrue());
+    assertIsConjunctive(bmgrv.makeFalse());
     assertIsConjunctive(bmgrv.makeVariable("a"));
     assertIsConjunctive(bmgrv.not(bmgrv.makeVariable("a")));
     assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));

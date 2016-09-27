@@ -259,7 +259,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(bfmgr.makeBoolean(true),
+    return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
                            PointerTargetSet.emptyPointerTargetSet(),
                            0);
@@ -267,7 +267,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeBoolean(true),
+    return new PathFormula(bfmgr.makeTrue(),
                            oldFormula.getSsa(),
                            oldFormula.getPointerTargetSet(),
                            0);
@@ -369,7 +369,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
-    BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
+    BooleanFormula branchingFormula = bfmgr.makeTrue();
     for (final ARGState pathElement : elementsOnPath) {
       Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
       Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
@@ -382,7 +382,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             continue;
           } else {
             logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeBoolean(true);
+            return bfmgr.makeTrue();
           }
         }
 
@@ -394,7 +394,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             continue;
           } else {
             logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeBoolean(true);
+            return bfmgr.makeTrue();
           }
         }
 
@@ -412,7 +412,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
         if (positiveEdge == null || negativeEdge == null) {
           logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
-          return bfmgr.makeBoolean(true);
+          return bfmgr.makeTrue();
         }
 
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
@@ -424,7 +424,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
         if (pe == null) {
           logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return bfmgr.makeBoolean(true);
+          return bfmgr.makeTrue();
         } else {
           pf = pe.getPathFormula();
         }

@@ -177,7 +177,7 @@ public class StateFormulaConversionManager {
       extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
           abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
+      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);

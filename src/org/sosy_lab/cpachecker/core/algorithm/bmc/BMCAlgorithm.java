@@ -298,7 +298,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           FormulaManagerView formulaManager = solver.getFormulaManager();
           pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
           // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
-          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
+          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeTrue();
         }
 
         pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);

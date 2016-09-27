@@ -38,8 +38,8 @@ public class ErrorConditions {
 
   public ErrorConditions(BooleanFormulaManagerView pBfmgr) {
     bfmgr = pBfmgr;
-    invalidDeref = bfmgr.makeBoolean(false);
-    invalidFree = bfmgr.makeBoolean(false);
+    invalidDeref = bfmgr.makeFalse();
+    invalidFree = bfmgr.makeFalse();
   }
 
   public boolean isEnabled() {

@@ -273,6 +273,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   private BooleanFormula makeTrue() {
-    return solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
+    return solver.getFormulaManager().getBooleanFormulaManager().makeTrue();
   }
 }

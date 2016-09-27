@@ -234,7 +234,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
 
     PathFormula empty = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeBoolean(true),
+        fmgr.getBooleanFormulaManager().makeTrue(),
         start, pts, 0);
     EdgeWrapper outEdge;
     if (out.size() == 1) {

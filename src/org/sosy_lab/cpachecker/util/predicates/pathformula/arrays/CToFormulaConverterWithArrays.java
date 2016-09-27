@@ -158,7 +158,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
       // TODO: How can we handle this case better?
       logger.logOnce(Level.WARNING, "Result might be unsound. Aliasing of array variables detected!", pEdge.getRawStatement());
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
 
     } else if (pLhs instanceof CArraySubscriptExpression) {
 
@@ -169,7 +169,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       if (lhsExpr.getArrayExpression() instanceof CArraySubscriptExpression) {
         logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported "
             + "multi-dimensional arrays found!", pEdge.getRawStatement());
-        return bfmgr.makeBoolean(true);
+        return bfmgr.makeTrue();
       }
 
       // .getArrayExpression() provides a CIdExpression

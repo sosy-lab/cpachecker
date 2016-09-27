@@ -447,7 +447,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
       Interval interval = entry.getValue();
       if (interval.isEmpty()) {
         // one invalid interval disqualifies the whole state
-        return pMgr.getBooleanFormulaManager().makeBoolean(false);
+        return pMgr.getBooleanFormulaManager().makeFalse();
       }
 
       // we assume that everything is an SIGNED INTEGER

@@ -567,7 +567,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = booleanFormulaManager.makeBoolean(true);
+      t = booleanFormulaManager.makeTrue();
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       Formula unwrapped1 = unwrap(pF1);
       Formula unwrapped2 = unwrap(pF2);
@@ -1408,7 +1408,7 @@ public class FormulaManagerView {
       }
     });
 
-    BooleanFormula result = booleanFormulaManager.makeBoolean(true);
+    BooleanFormula result = booleanFormulaManager.makeTrue();
     if (andFound.get()) {
       // Note: We can assume that we have no real bitvectors here, so size should be not important
       // If it ever should be we can just add an method to the unsafe-manager to read the size.
@@ -1671,7 +1671,7 @@ public class FormulaManagerView {
               @Override
               public BooleanFormula visitNot(BooleanFormula pOperand) {
                 if (!toKeep.apply(pOperand)) {
-                  return booleanFormulaManager.makeBoolean(true);
+                  return booleanFormulaManager.makeTrue();
                 }
                 return super.visitNot(pOperand);
               }
@@ -1683,7 +1683,7 @@ public class FormulaManagerView {
               BooleanFormula pOperand,
               FunctionDeclaration<BooleanFormula> decl) {
             if (!toKeep.apply(pOperand)) {
-              return booleanFormulaManager.makeBoolean(true);
+              return booleanFormulaManager.makeTrue();
             }
             return super.visitAtom(pOperand, decl);
           }

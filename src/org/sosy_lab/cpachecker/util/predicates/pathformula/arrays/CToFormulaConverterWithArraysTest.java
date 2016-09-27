@@ -559,13 +559,13 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
         _arr.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.simplify(resultBwd))
-      .isEqualTo(bmgr.makeBoolean(true));
+      .isEqualTo(bmgr.makeTrue());
 
     final BooleanFormula resultFwd = ctfFwd.makeDeclaration(
         _arr.getFirst(), "foo", ssa, null, null, null);
 
     assertThat(mgr.simplify(resultFwd))
-      .isEqualTo(bmgr.makeBoolean(true));
+      .isEqualTo(bmgr.makeTrue());
   }
 
   @Test

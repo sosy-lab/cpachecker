@@ -148,7 +148,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public AbstractState getInitialState(CFANode location) throws InterruptedException {
-    return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
+    return new Vertex(bfmgr, bfmgr.makeTrue(), cpa.getInitialState(location, StateSpacePartition.getDefaultPartition()));
   }
 
   public Precision getInitialPrecision(CFANode location) throws InterruptedException {
@@ -181,12 +181,12 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         if (successors.isEmpty()) {
           // edge not feasible
           // create fake vertex
-          new Vertex(bfmgr, v, bfmgr.makeBoolean(false), null);
+          new Vertex(bfmgr, v, bfmgr.makeFalse(), null);
           continue;
         }
         assert successors.size() == 1;
 
-        Vertex w = new Vertex(bfmgr, v, bfmgr.makeBoolean(true), Iterables.getOnlyElement(successors));
+        Vertex w = new Vertex(bfmgr, v, bfmgr.makeTrue(), Iterables.getOnlyElement(successors));
         reached.add(w, precision);
         reached.popFromWaitlist(); // we don't use the waitlist
       }
@@ -244,7 +244,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
       // itp of last element is always false, set it
       if (! bfmgr.isFalse(v.getStateFormula())) {
-        v.setStateFormula(bfmgr.makeBoolean(false));
+        v.setStateFormula(bfmgr.makeFalse());
         v.cleanCoverage();
         changedElements.add(v);
       }

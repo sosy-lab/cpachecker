@@ -205,7 +205,7 @@ public class CongruenceManager implements
 
   public BooleanFormula toFormula(CongruenceState state) {
     return toFormula(pfmgr, fmgr, state, new PathFormula(
-        bfmgr.makeBoolean(true),
+        bfmgr.makeTrue(),
         state.getSSAMap(),
         state.getPointerTargetSet(),
         1
@@ -236,7 +236,7 @@ public class CongruenceManager implements
             fmgr,
             state,
             new PathFormula(
-                fmgr.getBooleanFormulaManager().makeBoolean(true),
+                fmgr.getBooleanFormulaManager().makeTrue(),
                 state.getSSAMap(),
                 state.getPointerTargetSet(),
                 1

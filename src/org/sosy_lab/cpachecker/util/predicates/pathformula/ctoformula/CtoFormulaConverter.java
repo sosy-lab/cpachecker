@@ -913,7 +913,7 @@ public class CtoFormulaConverter {
     }
 
     case BlankEdge: {
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     case FunctionCallEdge: {
@@ -957,7 +957,7 @@ public class CtoFormulaConverter {
       }
 
       // side-effect free statement, ignore
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
   }
 
@@ -970,7 +970,7 @@ public class CtoFormulaConverter {
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
@@ -979,7 +979,7 @@ public class CtoFormulaConverter {
     if (!isRelevantVariable(decl)) {
       logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
           decl.getFileLocation(), decl.toASTString());
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CType declarationType = decl.getType().getCanonicalType();
@@ -1021,7 +1021,7 @@ public class CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
 
     if (decl.getInitializer() instanceof CInitializerList) {
       // If there is an initializer, all fields/elements not mentioned
@@ -1064,7 +1064,7 @@ public class CtoFormulaConverter {
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
@@ -1150,7 +1150,7 @@ public class CtoFormulaConverter {
     }
 
     int i = 0;
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
     for (CParameterDeclaration formalParam : formalParams) {
       CExpression paramExpression = actualParams.get(i++);
       CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
@@ -1181,7 +1181,7 @@ public class CtoFormulaConverter {
           throws UnrecognizedCCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     } else {
 
       return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
@@ -1224,7 +1224,7 @@ public class CtoFormulaConverter {
 
     if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CType lhsType = lhs.getExpressionType().getCanonicalType();
@@ -1232,7 +1232,7 @@ public class CtoFormulaConverter {
     if (lhsType instanceof CArrayType) {
       // Probably a (string) initializer, ignore assignments to arrays
       // as they cannot behandled precisely anyway.
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     if (rhs instanceof CExpression) {

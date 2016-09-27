@@ -238,7 +238,7 @@ public class TestDataTools {
     CFANode start = cfa.getMainFunction();
 
     PathFormula initial = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeBoolean(true), initialSSA,
+        fmgr.getBooleanFormulaManager().makeTrue(), initialSSA,
         PointerTargetSet.emptyPointerTargetSet(),
         0
     );

@@ -223,7 +223,7 @@ public class PolicyIterationManager {
   public PolicyState getInitialState(CFANode pNode) {
     return PolicyAbstractedState.empty(
         pNode,
-        bfmgr.makeBoolean(true), stateFormulaConversionManager);
+        bfmgr.makeTrue(), stateFormulaConversionManager);
   }
 
   public Precision getInitialPrecision() {

@@ -157,7 +157,7 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
     if (stop) {
       return PreventingHeuristic.LOOPITERATIONS.getFormula(manager, iteration);
     } else {
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
   }
 }

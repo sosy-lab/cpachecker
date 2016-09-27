@@ -130,7 +130,7 @@ public abstract class ITPStrategy<T> {
 
     // Check (C).
     BooleanFormula conjunct = bfmgr.and(interpolants.get(n - 1), formulas.get(n));
-    if (!solver.implies(conjunct, bfmgr.makeBoolean(false))) {
+    if (!solver.implies(conjunct, bfmgr.makeFalse())) {
       throw new SolverException("Last interpolant fails to prove infeasibility of the path");
     }
 

@@ -137,7 +137,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
     } else {
 
       BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
   }
 

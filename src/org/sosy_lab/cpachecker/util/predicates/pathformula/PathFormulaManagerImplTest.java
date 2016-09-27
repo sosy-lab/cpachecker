@@ -353,7 +353,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
   public void testEmpty() {
     PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula expected = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeBoolean(true),
+        fmgr.getBooleanFormulaManager().makeTrue(),
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         0);

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +55,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+import java.util.Collection;
+
 /**
  * CPA used to capture the assumptions that ought to be dumped.
  *
@@ -85,7 +85,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
-    topState = new AssumptionStorageState(formulaManager, bfmgr.makeBoolean(true), bfmgr.makeBoolean(true));
+    topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
     transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
   }
 

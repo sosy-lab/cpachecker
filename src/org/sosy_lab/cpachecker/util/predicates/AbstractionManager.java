@@ -25,18 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,14 +45,21 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -280,7 +280,7 @@ public final class AbstractionManager {
    * creates a Predicate that represents "false"
    */
   public AbstractionPredicate makeFalsePredicate() {
-    return makePredicate(bfmgr.makeBoolean(false));
+    return makePredicate(bfmgr.makeFalse());
   }
 
   /**
@@ -327,8 +327,8 @@ public final class AbstractionManager {
     }
     Deque<Region> toProcess = new ArrayDeque<>();
 
-    cache.put(rmgr.makeTrue(), bfmgr.makeBoolean(true));
-    cache.put(rmgr.makeFalse(), bfmgr.makeBoolean(false));
+    cache.put(rmgr.makeTrue(), bfmgr.makeTrue());
+    cache.put(rmgr.makeFalse(), bfmgr.makeFalse());
 
     toProcess.push(af);
     while (!toProcess.isEmpty()) {

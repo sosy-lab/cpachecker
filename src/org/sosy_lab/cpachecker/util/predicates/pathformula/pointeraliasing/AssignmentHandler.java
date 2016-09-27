@@ -142,7 +142,7 @@ class AssignmentHandler {
       throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
-      return conv.bfmgr.makeBoolean(true);
+      return conv.bfmgr.makeTrue();
     }
 
     final CType rhsType =
@@ -261,7 +261,7 @@ class AssignmentHandler {
     CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     final Set<CType> updatedTypes = new HashSet<>();
-    BooleanFormula result = conv.bfmgr.makeBoolean(true);
+    BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
       result = conv.bfmgr.and(result, handleAssignment(lhs, lhs,
@@ -534,7 +534,7 @@ class AssignmentHandler {
               ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
               : options.defaultArrayLength();
 
-      result = bfmgr.makeBoolean(true);
+      result = bfmgr.makeTrue();
       int offset = 0;
       for (int i = 0; i < length; ++i) {
         final Pair<AliasedLocation, CType> newLvalue = shiftArrayLvalue(lvalue.asAliased(), offset, lvalueElementType);
@@ -565,7 +565,7 @@ class AssignmentHandler {
         throw new UnrecognizedCCodeException("Impossible structure assignment due to incompatible types:"
             + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
       }
-      result = bfmgr.makeBoolean(true);
+      result = bfmgr.makeTrue();
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
         final int offset = typeHandler.getOffset(lvalueCompositeType, memberName);
@@ -667,7 +667,7 @@ class AssignmentHandler {
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
       } else {
-        result = bfmgr.makeBoolean(true);
+        result = bfmgr.makeTrue();
       }
 
       if (updatedVariables != null) {
@@ -680,7 +680,7 @@ class AssignmentHandler {
             conv.ptsMgr.makePointerAssignment(
                 targetName, targetType, oldIndex, newIndex, address, rhs);
       } else {
-        result = bfmgr.makeBoolean(true);
+        result = bfmgr.makeTrue();
       }
 
       if (updatedTypes != null) {

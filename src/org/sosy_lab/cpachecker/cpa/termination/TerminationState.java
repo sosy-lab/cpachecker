@@ -202,7 +202,7 @@ public class TerminationState extends AbstractSingleWrapperState
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
     if (unsatisfiedRankingRelation == null) {
-      return pManager.getBooleanFormulaManager().makeBoolean(true);
+      return pManager.getBooleanFormulaManager().makeTrue();
     } else {
       return pManager.makeNot(unsatisfiedRankingRelation.asFormulaFromOtherSolver(pManager));
     }
