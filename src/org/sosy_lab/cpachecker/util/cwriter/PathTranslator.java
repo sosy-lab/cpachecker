@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -292,6 +293,7 @@ public abstract class PathTranslator {
     // find the next elements to add to the waitlist
 
     List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
+    relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {
@@ -341,6 +343,35 @@ public abstract class PathTranslator {
       return result;
     }
     return Collections.emptyList();
+  }
+
+  private List<ARGState> chooseIfArbitrary(ARGState parent, List<ARGState> pRelevantChildrenOfElement) {
+    if (pRelevantChildrenOfElement.size() <= 1) {
+      return pRelevantChildrenOfElement;
+    }
+    List<ARGState> result = new ArrayList<>(2);
+    for (ARGState candidate : pRelevantChildrenOfElement) {
+      boolean valid = true;
+      if (!result.isEmpty()) {
+        Set<ARGState> candidateParents = ImmutableSet.copyOf(candidate.getParents());
+        Set<ARGState> candidateChildren = ImmutableSet.copyOf(candidate.getChildren());
+        for (ARGState chosen : result) {
+          if (parent.getEdgesToChild(chosen).equals(parent.getEdgesToChild(candidate))) {
+            Set<ARGState> chosenParents = ImmutableSet.copyOf(chosen.getParents());
+            Set<ARGState> chosenChildren = ImmutableSet.copyOf(chosen.getChildren());
+            if (candidateParents.equals(chosenParents)
+                && candidateChildren.equals(chosenChildren)) {
+              valid = false;
+              break;
+            }
+          }
+        }
+      }
+      if (valid) {
+        result.add(candidate);
+      }
+    }
+    return result;
   }
 
   private static FunctionBody processIncomingStacks(
