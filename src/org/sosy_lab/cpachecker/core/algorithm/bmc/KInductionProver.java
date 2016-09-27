@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -80,6 +81,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
@@ -174,7 +176,7 @@ class KInductionProver implements AutoCloseable {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
-    loopHeadInvariants = bfmgr.makeBoolean(true);
+    loopHeadInvariants = bfmgr.makeTrue();
 
     invariantsSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
@@ -263,38 +265,44 @@ class KInductionProver implements AutoCloseable {
    */
   private BMCHelper.FormulaInContext getCurrentLoopHeadInvariants(
       final Set<CFANode> pStopLocations) {
-    return new BMCHelper.FormulaInContext() {
+    return pContext -> {
+      if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
+        BooleanFormula lhi = bfmgr.makeFalse();
+        for (CFANode loopHead : pStopLocations) {
+          lhi = bfmgr.or(
+              lhi,
 
-      @Override
-      public BooleanFormula getFormulaInContext(PathFormula pContext)
-          throws CPATransferException, InterruptedException {
-        if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
-          BooleanFormula lhi = bfmgr.makeBoolean(false);
-          for (CFANode loopHead : pStopLocations) {
-            lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pContext));
-          }
-          loopHeadInvariants = lhi;
+              // todo: what would be the callstack here?
+              getCurrentLocationInvariants(loopHead, Optional.empty(), fmgr, pfmgr, pContext));
         }
-        return loopHeadInvariants;
+        loopHeadInvariants = lhi;
       }
+      return loopHeadInvariants;
     };
   }
 
   public BooleanFormula getCurrentLocationInvariants(
-      CFANode pLocation, FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
+      CFANode pLocation,
+      Optional<CallstackWrapper> callstackInformation,
+      FormulaManagerView pFMGR,
+      PathFormulaManager pPFMGR,
+      PathFormula pContext)
       throws CPATransferException, InterruptedException {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = bfmgr.makeBoolean(true);
+    BooleanFormula invariant = bfmgr.makeTrue();
 
     for (CandidateInvariant candidateInvariant :
-        getConfirmedCandidates(pLocation).filter(CandidateInvariant.class)) {
+          getConfirmedCandidates(pLocation).filter(CandidateInvariant.class)) {
       invariant = bfmgr.and(invariant, candidateInvariant.getFormula(pFMGR, pPFMGR, pContext));
     }
 
     invariant =
-        bfmgr.and(invariant, currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR, pContext));
+        bfmgr.and(
+            invariant,
+            currentInvariantsSupplier.getInvariantFor(
+                pLocation, callstackInformation, pFMGR, pPFMGR, pContext));
 
     return invariant;
   }
@@ -318,17 +326,13 @@ class KInductionProver implements AutoCloseable {
     return invariant;
   }
 
-  private FluentIterable<LocationFormulaInvariant> getConfirmedCandidates(final CFANode pLocation) {
+  // todo: extend with a callstack.
+  private FluentIterable<LocationFormulaInvariant> getConfirmedCandidates(
+      final CFANode pLocation) {
     return from(confirmedCandidates)
         .filter(LocationFormulaInvariant.class)
         .filter(
-            new Predicate<LocationFormulaInvariant>() {
-
-              @Override
-              public boolean apply(LocationFormulaInvariant pConfirmedCandidate) {
-                return pConfirmedCandidate.getLocations().contains(pLocation);
-              }
-            });
+            pConfirmedCandidate -> pConfirmedCandidate.getLocations().contains(pLocation));
   }
 
   @Override
@@ -411,7 +415,7 @@ class KInductionProver implements AutoCloseable {
     for (CandidateInvariant candidateInvariant : candidatesToCheck) {
 
       if (!canBeAsserted(candidateInvariant, pImmediateLoopHeads)) {
-        assertions.put(candidateInvariant, bfmgr.makeBoolean(true));
+        assertions.put(candidateInvariant, bfmgr.makeTrue());
         continue;
       }
 
@@ -444,16 +448,12 @@ class KInductionProver implements AutoCloseable {
     Iterable<AbstractState> loopHeadStates =
         AbstractStates.filterLocations(reached, stopLocations)
             .filter(
-                new Predicate<AbstractState>() {
-
-                  @Override
-                  public boolean apply(AbstractState pArg0) {
-                    if (pArg0 == null) {
-                      return false;
-                    }
-                    BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
-                    return ls != null && ls.getDeepestIteration() == 1;
+                pArg0 -> {
+                  if (pArg0 == null) {
+                    return false;
                   }
+                  BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
+                  return ls != null && ls.getDeepestIteration() == 1;
                 });
     BooleanFormula loopHeadInv =
         bfmgr.and(
@@ -581,18 +581,13 @@ class KInductionProver implements AutoCloseable {
       final Set<CandidateInvariant> pCandidateInvariants) {
     FluentIterable<? extends LocationFormulaInvariant> remainingLoopHeadCandidateInvariants = from(pCandidateInvariants)
         .filter(LocationFormulaInvariant.class)
-        .filter(new Predicate<LocationFormulaInvariant>() {
-
-          @Override
-          public boolean apply(@Nullable LocationFormulaInvariant pLocationFormulaInvariant) {
-            for (CFANode location : pLocationFormulaInvariant.getLocations()) {
-              if (!location.isLoopStart()) {
-                return cfa.getLoopStructure().isPresent() && cfa.getLoopStructure().get().getAllLoopHeads().contains(location);
-              }
+        .filter(pLocationFormulaInvariant -> {
+          for (CFANode location : pLocationFormulaInvariant.getLocations()) {
+            if (!location.isLoopStart()) {
+              return cfa.getLoopStructure().isPresent() && cfa.getLoopStructure().get().getAllLoopHeads().contains(location);
             }
-            return true;
           }
-
+          return true;
         })
         .filter(Predicates.not(Predicates.in(confirmedCandidates)));
     if (remainingLoopHeadCandidateInvariants.isEmpty()) {
@@ -613,19 +608,15 @@ class KInductionProver implements AutoCloseable {
         // Use filter instead of computed collection
         // so that it is updated dynamically if the underlying collection is updated
         artificialConjunctions.add(CandidateInvariantConjunction.of(
-            remainingLoopHeadCandidateInvariants.filter(new Predicate<LocationFormulaInvariant>() {
-
-              @Override
-              public boolean apply(LocationFormulaInvariant pLocationFormulaInvariant) {
-                for (CFANode location : pLocationFormulaInvariant.getLocations()) {
-                  if (location.getFunctionName().equals(functionInvariantsEntry.getKey())) {
-                    return true;
+            remainingLoopHeadCandidateInvariants.filter(
+                (Predicate<LocationFormulaInvariant>) pLocationFormulaInvariant -> {
+                  for (CFANode location : pLocationFormulaInvariant.getLocations()) {
+                    if (location.getFunctionName().equals(functionInvariantsEntry.getKey())) {
+                      return true;
+                    }
                   }
-                }
-                return false;
-              }
-
-            })));
+                  return false;
+                })));
       }
     }
 

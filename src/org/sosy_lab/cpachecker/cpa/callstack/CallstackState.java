@@ -38,8 +38,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Abstract state that stores callstack information by maintaning a single-linked list of states
@@ -57,12 +59,63 @@ public class CallstackState
 
   private static final long serialVersionUID = 3629687385150064994L;
 
-  protected final CallstackState previousState;
+  protected final @Nullable CallstackState previousState;
   protected final String currentFunction;
   protected transient CFANode callerNode;
   private final int depth;
+  private transient CallstackWrapper equivalenceWrapper = null;
 
-  public CallstackState(CallstackState pPreviousElement, @Nonnull String pFunction,
+  /**
+   * Callstack wrapper which provides comparison based on stored data.
+   */
+  public static final class CallstackWrapper {
+    private final CallstackState wrapped;
+
+    private CallstackWrapper(CallstackState pWrapped) {
+      wrapped = pWrapped;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (!(o instanceof CallstackWrapper)) {
+        return false;
+      }
+      CallstackWrapper other = (CallstackWrapper) o;
+      return wrapped.currentFunction.equals(other.wrapped.currentFunction)
+          && wrapped.callerNode.equals(other.wrapped.callerNode)
+          && wrapped.depth == other.wrapped.depth
+          && (
+            (wrapped.previousState == null && other.wrapped.previousState == null)
+              ||
+            (wrapped.previousState != null && other.wrapped.previousState != null && Objects.equals(
+                wrapped.previousState.getEquivalenceWrapper(),
+                other.wrapped.previousState.getEquivalenceWrapper()
+            )
+          ));
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          wrapped.currentFunction,
+          wrapped.callerNode,
+          wrapped.depth,
+          wrapped.previousState != null ?
+          wrapped.previousState.getEquivalenceWrapper() : null);
+    }
+  };
+
+  public CallstackWrapper getEquivalenceWrapper() {
+    if (equivalenceWrapper == null) {
+      equivalenceWrapper = new CallstackWrapper(this);
+    }
+    return equivalenceWrapper;
+  }
+
+
+  public CallstackState(
+      @Nullable CallstackState pPreviousElement,
+      @Nonnull String pFunction,
       @Nonnull CFANode pCallerNode) {
 
     previousState = pPreviousElement;

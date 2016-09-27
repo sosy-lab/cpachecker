@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallstackWraper;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Preconditions;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -386,7 +388,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     // we do not need the last state from the trace, so we exclude it here
     for (ARGState state : from(abstractionStatesTrace).limit(abstractionStatesTrace.size() - 1)) {
       CFANode location = extractLocation(state);
-      BooleanFormula inv = invariantsManager.getInvariantFor(location, fmgr, pfmgr, null);
+      Optional<CallstackWrapper>
+          callstack = extractOptionalCallstackWraper(state);
+      BooleanFormula inv = invariantsManager.getInvariantFor(location, callstack, fmgr, pfmgr, null);
       if (invIsTriviallyTrue
           && !fmgr.getBooleanFormulaManager().isTrue(inv)
           && (!lastInvariantForNode.containsKey(location)

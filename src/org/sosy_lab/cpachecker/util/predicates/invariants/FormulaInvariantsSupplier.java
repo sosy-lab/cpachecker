@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -57,6 +58,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -82,10 +84,11 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   @Override
   public BooleanFormula getInvariantFor(
       CFANode pNode,
+      Optional<CallstackWrapper> pCallstackInfo,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       @Nullable PathFormula pContext) {
-    return lastInvariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+    return lastInvariantSupplier.getInvariantFor(pNode, pCallstackInfo, pFmgr, pPfmgr, pContext);
   }
 
   public void updateInvariants() {
@@ -162,11 +165,13 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     }
 
     public BooleanFormula getInvariantFor(
-        CFANode pLocation, FormulaManagerView fmgr) {
+        CFANode pLocation,
+        Optional<CallstackWrapper> pCallstackInformation,
+        FormulaManagerView fmgr) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-      BooleanFormula invariant = bfmgr.makeBoolean(false);
+      BooleanFormula invariant = bfmgr.makeFalse();
 
-      for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
+      for (AbstractState locState : lazyLocationMapping.get(pLocation, pCallstackInformation)) {
         invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState));
       }
       return invariant;
@@ -188,8 +193,12 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     @Override
     public BooleanFormula getInvariantFor(
-        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-      InvariantsCacheKey key = new InvariantsCacheKey(pNode, pFmgr, pPfmgr);
+        CFANode pNode,
+        Optional<CallstackWrapper> callstackInformation,
+        FormulaManagerView pFmgr,
+        PathFormulaManager pPfmgr,
+        PathFormula pContext) {
+      InvariantsCacheKey key = new InvariantsCacheKey(pNode, callstackInformation, pFmgr, pPfmgr);
 
       List<BooleanFormula> invariants;
       if (cache.containsKey(key)) {
@@ -197,7 +206,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       } else {
         invariants =
             Collections3.transformedImmutableListCopy(
-                invariantSuppliers, s -> s.getInvariantFor(pNode, pFmgr));
+                invariantSuppliers, s -> s.getInvariantFor(pNode, callstackInformation, pFmgr));
 
         cache.put(key, invariants);
       }
@@ -220,7 +229,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
                         "Ignoring invariant for location "
                             + pNode
                             + " which could not be wrapped properly.");
-                    return bfmgr.makeBoolean(true);
+                    return bfmgr.makeTrue();
                   }
                 });
       }
@@ -231,40 +240,39 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private static class InvariantsCacheKey {
     private final CFANode node;
+    private final Optional<CallstackWrapper> callstackInformation;
     private final FormulaManagerView fmgr;
     private final PathFormulaManager pfmgr;
 
-    public InvariantsCacheKey(CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
+    public InvariantsCacheKey(
+        CFANode pNode,
+        Optional<CallstackWrapper> pCallstackInformation,
+        FormulaManagerView pFmgr,
+        PathFormulaManager pPfmgr) {
       node = pNode;
+      callstackInformation = pCallstackInformation;
       fmgr = pFmgr;
       pfmgr = pPfmgr;
     }
 
     @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Objects.hashCode(fmgr);
-      result = prime * result + Objects.hashCode(node);
-      result = prime * result + Objects.hashCode(pfmgr);
-      return result;
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      InvariantsCacheKey that = (InvariantsCacheKey) pO;
+      return Objects.equals(node, that.node) &&
+          Objects.equals(callstackInformation, that.callstackInformation) &&
+          Objects.equals(fmgr, that.fmgr) &&
+          Objects.equals(pfmgr, that.pfmgr);
     }
 
     @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (!(obj instanceof InvariantsCacheKey)) {
-        return false;
-      }
-
-      InvariantsCacheKey other = (InvariantsCacheKey) obj;
-      return Objects.equals(node, other.node)
-          && Objects.equals(fmgr, other.fmgr)
-          && Objects.equals(pfmgr, other.pfmgr);
+    public int hashCode() {
+      return Objects.hash(node, callstackInformation, fmgr, pfmgr);
     }
   }
-
 }
