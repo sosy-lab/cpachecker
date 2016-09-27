@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormula
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallstackWraper;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Function;
@@ -79,6 +80,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -303,14 +305,19 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
   @Override
   public BooleanFormula getInvariantFor(
-      CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+      CFANode pNode,
+      Optional<CallstackWrapper> pCallstackInformation,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      PathFormula pContext) {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
     BooleanFormula globalInvariant = bfmgr.makeTrue();
 
     if (useGlobalInvariants) {
-      globalInvariant = globalInvariants.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      globalInvariant = globalInvariants.getInvariantFor(
+          pNode, pCallstackInformation, pFmgr, pPfmgr, pContext);
     }
 
     return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
@@ -744,8 +751,14 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         // the last one will always be false, we don't need it here
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
+          Optional<CallstackWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
-          BooleanFormula invariant = invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
+          BooleanFormula invariant = invSup.getInvariantFor(
+              location,
+              callstack,
+              fmgr,
+              pfmgr,
+              pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
           logger.log(Level.FINEST, "Invariant for location", location, "is", invariant);
         }

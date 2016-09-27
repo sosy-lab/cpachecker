@@ -46,11 +46,14 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -124,6 +127,11 @@ public final class AbstractStates {
   public static CFANode extractLocation(AbstractState pState) {
     AbstractStateWithLocation e = extractStateByType(pState, AbstractStateWithLocation.class);
     return e == null ? null : e.getLocationNode();
+  }
+
+  public static Optional<CallstackWrapper> extractOptionalCallstackWraper(AbstractState pState) {
+    CallstackState callstack = extractStateByType(pState, CallstackState.class);
+    return callstack == null ? Optional.empty() : Optional.of(callstack.getEquivalenceWrapper());
   }
 
   public static Iterable<CFANode> extractLocations(AbstractState pState) {
