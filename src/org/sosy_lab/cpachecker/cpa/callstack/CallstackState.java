@@ -103,7 +103,7 @@ public class CallstackState
           wrapped.previousState != null ?
           wrapped.previousState.getEquivalenceWrapper() : null);
     }
-  };
+  }
 
   public CallstackWrapper getEquivalenceWrapper() {
     if (equivalenceWrapper == null) {
