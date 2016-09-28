@@ -54,15 +54,17 @@ public abstract class SMGPrecision implements Precision {
   private final int threshold = 0;
   private final VariableClassification varClass;
   private final Optional<LiveVariables> liveVars;
+  private final SMGHeapAbstractionThreshold heapAbsThreshold;
 
   public SMGPrecision(LogManager pLogger, SMGPrecisionAbstractionOptions pOptions,
       BlockOperator pBlockOperator, VariableClassification pVarClass,
-      Optional<LiveVariables> pLiveVars) {
+      Optional<LiveVariables> pLiveVars, SMGHeapAbstractionThreshold pHeapAbsThreshold) {
     logger = pLogger;
     options = pOptions;
     blockOperator = pBlockOperator;
     varClass = pVarClass;
     liveVars = pLiveVars;
+    heapAbsThreshold = pHeapAbsThreshold;
   }
 
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction,
@@ -73,10 +75,10 @@ public abstract class SMGPrecision implements Precision {
             pUseLiveVariableAnalysis, false, pUseSMGMerge);
     return new SMGStaticPrecision(pLogger, options, pBlockOperator,
         pCFA.getVarClassification().orElse(VariableClassification.empty(pLogger)),
-        pCFA.getLiveVariables());
+        pCFA.getLiveVariables(), new SMGHeapAbstractionThreshold(2, 2, 3));
   }
 
-  public abstract SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions);
+  public abstract SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions, SMGHeapAbstractionThreshold pNewThreshold);
 
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
 
@@ -95,7 +97,8 @@ public abstract class SMGPrecision implements Precision {
             pPrecision.forgetDeadVariables(), useInterpoaltion, pPrecision.useSMGMerge()),
         pPrecision.getBlockOperator(),
         emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable, pPrecision.getVarClass(),
-        pPrecision.getLiveVars());
+        pPrecision.getLiveVars(),
+        new SMGHeapAbstractionThreshold(2, 2, 2));
   }
 
   public LogManager getLogger() {
@@ -161,7 +164,7 @@ public abstract class SMGPrecision implements Precision {
     return options.useSMGMerge();
   }
 
-  protected SMGPrecisionAbstractionOptions getAbstractionOptions() {
+  public SMGPrecisionAbstractionOptions getAbstractionOptions() {
     return options;
   }
 
@@ -177,6 +180,10 @@ public abstract class SMGPrecision implements Precision {
     return liveVars;
   }
 
+  public SMGHeapAbstractionThreshold getHeapAbsThreshold() {
+    return heapAbsThreshold;
+  }
+
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
 
   private static class SMGRefineablePrecision extends SMGPrecision {
@@ -190,8 +197,9 @@ public abstract class SMGPrecision implements Precision {
         SetMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
         SetMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
         SetMultimap<CFANode, MemoryLocation> pTrackedStackVariables,
-        VariableClassification pVarClass, Optional<LiveVariables> pLiveVars) {
-      super(pLogger, pOptions, pBlockOperator, pVarClass, pLiveVars);
+        VariableClassification pVarClass, Optional<LiveVariables> pLiveVars,
+        SMGHeapAbstractionThreshold pHeapAbsThreshold) {
+      super(pLogger, pOptions, pBlockOperator, pVarClass, pLiveVars, pHeapAbsThreshold);
       trackedMemoryPaths = ImmutableSetMultimap.copyOf(pTrackedMemoryPaths);
       abstractionBlocks = ImmutableSetMultimap.copyOf(pAbstractionBlocks);
       trackedStackVariables = ImmutableSetMultimap.copyOf(pTrackedStackVariables);
@@ -243,7 +251,7 @@ public abstract class SMGPrecision implements Precision {
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
           resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars());
+          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars(), getHeapAbsThreshold());
     }
 
     @Override
@@ -275,7 +283,7 @@ public abstract class SMGPrecision implements Precision {
 
       return new SMGRefineablePrecision(getLogger(), options, getBlockOperator(),
           resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars());
+          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars(), getHeapAbsThreshold());
     }
 
     @Override
@@ -302,10 +310,11 @@ public abstract class SMGPrecision implements Precision {
     }
 
     @Override
-    public SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions) {
+    public SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions,
+        SMGHeapAbstractionThreshold pNewThreshold) {
       return new SMGRefineablePrecision(getLogger(), pNewOptions, getBlockOperator(),
           trackedMemoryPaths,
-          abstractionBlocks, trackedStackVariables, getVarClass(), getLiveVars());
+          abstractionBlocks, trackedStackVariables, getVarClass(), getLiveVars(), pNewThreshold);
     }
   }
 
@@ -313,8 +322,10 @@ public abstract class SMGPrecision implements Precision {
 
     private SMGStaticPrecision(LogManager pLogger,
         SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, BlockOperator pBlockOperator,
-        VariableClassification pVarClass, Optional<LiveVariables> pOptional) {
-      super(pLogger, pAllowsHeapAbstraction, pBlockOperator, pVarClass, pOptional);
+        VariableClassification pVarClass, Optional<LiveVariables> pOptional,
+        SMGHeapAbstractionThreshold pHeapAbsThreshold) {
+      super(pLogger, pAllowsHeapAbstraction, pBlockOperator, pVarClass, pOptional,
+          pHeapAbsThreshold);
     }
 
     @Override
@@ -358,7 +369,8 @@ public abstract class SMGPrecision implements Precision {
     }
 
     @Override
-    public SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions) {
+    public SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions,
+        SMGHeapAbstractionThreshold pHeapAbsThrshold) {
       return this;
     }
   }

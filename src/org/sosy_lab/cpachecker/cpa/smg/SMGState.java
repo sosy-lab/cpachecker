@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHeapAbstractionThreshold;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -1606,7 +1607,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           s1.pruneUnreachable();
           s2.pruneUnreachable();
 
-          logger.log(Level.INFO, this.getId(), " is Less or Equal ", reachedState.getId());
+          logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {
@@ -2172,20 +2173,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks,
-      boolean usesHeapInterpoaltion)
+      SMGHeapAbstractionThreshold pThreshold)
       throws SMGInconsistentException {
 
-    boolean change;
-
-    if (usesHeapInterpoaltion) {
-      SMGAbstractionManager manager =
-          new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
-      change = manager.execute();
-    } else {
-      SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, blocks);
-      change = manager.execute();
-    }
-
+    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, blocks,
+        pThreshold.getEqualThreshold(), pThreshold.getEntailThreshold(),
+        pThreshold.getIncombarableThreshold());
+    boolean change = manager.execute();
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return change;
   }
@@ -2210,10 +2204,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGJoinStatus valueIsLessOrEqual(SMGKnownSymValue value1, SMGKnownSymValue value2,
       SMGState smgState2) {
 
-    if (value1.equals(value2)) { return SMGJoinStatus.EQUAL; }
+    if (value1.equals(value2)) {
+      return SMGJoinStatus.EQUAL;
+    }
 
     if (smgState2.explicitValues.containsKey(value2)) {
-      if (!explicitValues.containsKey(value1)) { return SMGJoinStatus.INCOMPARABLE; }
+      if (!explicitValues.containsKey(value1)) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
 
       if (!smgState2.explicitValues.get(value2).equals(explicitValues.get(value1))) {
         return SMGJoinStatus.INCOMPARABLE;

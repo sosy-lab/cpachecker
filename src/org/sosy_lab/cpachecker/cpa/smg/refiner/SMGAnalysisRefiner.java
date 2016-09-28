@@ -43,41 +43,45 @@ public class SMGAnalysisRefiner {
     if (originalPrecision.forgetDeadVariables() || originalPrecision.useSMGMerge()
         || originalPrecision.useHeapAbstraction()) {
 
-      SMGPrecisionAbstractionOptions options = disableNextFeature();
-      SMGPrecision refinedPrecision = originalPrecision.refineOptions(options);
+      SMGPrecision refinedPrecision = disableNextFeature();
       return new SMGAnalysisRefinerResult(true, refinedPrecision);
     } else {
       return new SMGAnalysisRefinerResult(false, originalPrecision);
     }
   }
 
-  private SMGPrecisionAbstractionOptions disableNextFeature() {
+  private SMGPrecision disableNextFeature() {
 
-    if (originalPrecision.useSMGMerge()) {
+    SMGPrecisionAbstractionOptions options = originalPrecision.getAbstractionOptions();
+    SMGHeapAbstractionThreshold threshold = originalPrecision.getHeapAbsThreshold();
+
+    if (threshold.getIncombarableThreshold() == 2) {
+      logger.log(Level.INFO, "Increase heap abstraction threshold.");
+      threshold = new SMGHeapAbstractionThreshold(2, 2, 3);
+    } else if (originalPrecision.useSMGMerge()) {
       logger.log(Level.INFO, "Disable merge.");
-      return new SMGPrecisionAbstractionOptions(
-        originalPrecision.useHeapAbstraction(),
-        originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-        originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false);
-    }
-
-    if (originalPrecision.forgetDeadVariables()) {
+      options = new SMGPrecisionAbstractionOptions(
+          originalPrecision.useHeapAbstraction(),
+          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false);
+    } else if (originalPrecision.forgetDeadVariables()) {
       logger.log(Level.INFO, "Disable live variable Analysis.");
-      return new SMGPrecisionAbstractionOptions(
-        originalPrecision.useHeapAbstraction(),
-        originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-        false, originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge());
-    }
-
-    if (originalPrecision.useHeapAbstraction()) {
+      options = new SMGPrecisionAbstractionOptions(
+          originalPrecision.useHeapAbstraction(),
+          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
+          false, originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge());
+    } else if (originalPrecision.useHeapAbstraction()) {
       logger.log(Level.INFO, "Disable heap abstraction.");
-      return new SMGPrecisionAbstractionOptions(false,
-        originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-        originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),
-        originalPrecision.useSMGMerge());
+      options = new SMGPrecisionAbstractionOptions(false,
+          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),
+          originalPrecision.useSMGMerge());
+    } else {
+      logger.log(Level.INFO, "Use strongest precision.");
+      options = new SMGPrecisionAbstractionOptions(false, false, false, false, false, false);
     }
 
-    return new SMGPrecisionAbstractionOptions(false, false, false, false, false, false);
+    return originalPrecision.refineOptions(options, threshold);
   }
 
   public static class SMGAnalysisRefinerResult {
