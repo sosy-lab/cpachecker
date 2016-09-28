@@ -85,7 +85,8 @@ public class SMGRefiner implements Refiner {
 
   private final LogManager logger;
 
-  private final SMGFeasibilityChecker checker;
+  private final SMGFeasibilityChecker checkerForCEX;
+  private final SMGFeasibilityChecker checkerForInterpolation;
   private final ARGCPA argCpa;
   private final SMGCPA smgCpa;
   private final PathExtractor pathExtractor;
@@ -151,7 +152,7 @@ public class SMGRefiner implements Refiner {
 
     SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction());
 
-    checker =
+    checkerForCEX =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
 
     interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger,
@@ -161,8 +162,9 @@ public class SMGRefiner implements Refiner {
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pConfig, pCfa,
             predicateManager, blockOperator);
 
-    SMGFeasibilityChecker checkerForInterpolation =
-        new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
+    checkerForInterpolation =
+        new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState,
+            automatonCpas, smgCpa.getBlockOperator());
 
     SMGEdgeInterpolator edgeInterpolator =
         new SMGEdgeInterpolator(checkerForInterpolation, strongestPostOpForInterpolation,
@@ -284,7 +286,7 @@ public class SMGRefiner implements Refiner {
 
     for (ARGPath targetPath : pTargetPaths) {
       SMGAnalysisRefiner analysisRefiner =
-          new SMGAnalysisRefiner(originalPrecision, logger, targetPath, checker);
+          new SMGAnalysisRefiner(originalPrecision, logger, targetPath, checkerForInterpolation);
       SMGAnalysisRefinerResult refinedAnalysisResult = analysisRefiner.refineAnalysis();
       refinedPrecision = refinedPrecision.join(refinedAnalysisResult.getPrecision());
       analysisChanged = analysisChanged || refinedAnalysisResult.isChanged();
@@ -366,7 +368,7 @@ public class SMGRefiner implements Refiner {
       throws InterruptedException, CPAException {
     SMGConcreteErrorPathAllocator alloc =
         new SMGConcreteErrorPathAllocator(smgCpa.getAssumptionToEdgeAllocator());
-    return alloc.createFullModelForPath(checker, errorPath);
+    return alloc.createFullModelForPath(checkerForCEX, errorPath);
   }
 
   private SMGInterpolationTree obtainInterpolants(List<ARGPath> pTargetPaths, ARGReachedSet pReachedSet)
@@ -416,7 +418,7 @@ public class SMGRefiner implements Refiner {
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checker.isFeasible(errorPath, initialItp.reconstructStates());
+    return checkerForCEX.isFeasible(errorPath, initialItp.reconstructStates());
   }
 
   private SMGInterpolationTree createInterpolationTree(List<ARGPath> pTargetPaths) {
@@ -541,7 +543,7 @@ public class SMGRefiner implements Refiner {
 
   private boolean isErrorPathFeasible(ARGPath pErrorPath)
       throws CPAException, InterruptedException {
-    return checker.isFeasible(pErrorPath);
+    return checkerForCEX.isFeasible(pErrorPath);
   }
 
   /** export the interpolation-tree as dot-file, if necessary. */
