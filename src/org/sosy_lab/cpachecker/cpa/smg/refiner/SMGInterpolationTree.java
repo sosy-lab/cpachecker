@@ -37,8 +37,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.IOException;
@@ -188,13 +189,7 @@ public class SMGInterpolationTree {
     return root;
   }
 
-  /**
-   * This method obtains the refinement roots, i.e., for each disjunct path from target states
-   * to the root, it collects the highest state that has a non-trivial interpolant associated.
-   *
-   * @return the set of refinement roots
-   */
-  public Collection<ARGState> obtainRefinementRoots() {
+  public Collection<ARGState> obtainRefinementRoots(ARGReachedSet pReached) {
 
     Collection<ARGState> refinementRoots = new HashSet<>();
 
@@ -202,7 +197,7 @@ public class SMGInterpolationTree {
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
-      if (stateHasNonTrivialInterpolant(currentState)) {
+      if (interpolantIsNotTrivialComparedToCurrentPrecision(currentState, pReached)) {
         refinementRoots.add(currentState);
         continue;
       }
@@ -214,15 +209,27 @@ public class SMGInterpolationTree {
     return refinementRoots;
   }
 
-  /**
-   * This method checks if for the given state a non-trivial interpolant is present.
-   *
-   * @param currentState the state for which to check
-   * @return true, if a non-trivial interpolant is present, else false
-   */
-  private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
-    return interpolants.containsKey(currentState)
-        && !interpolants.get(currentState).isTrivial();
+  private boolean interpolantIsNotTrivialComparedToCurrentPrecision(final ARGState currentState, ARGReachedSet pReached) {
+
+    if (interpolants.containsKey(currentState)) {
+      SMGInterpolant interpolant = interpolants.get(currentState);
+
+      if (interpolant.isTrivial()) {
+        return false;
+      }
+
+      SMGPrecision curPrec = SMGCEGARUtils.extractSMGPrecision(pReached, currentState);
+      CFANode location = AbstractStates.extractLocation(currentState);
+
+      if (curPrec.isInterpolantContained(interpolant, location)) {
+        return false;
+      } else {
+        return true;
+      }
+
+    } else {
+      return false;
+    }
   }
 
   /**
@@ -317,6 +324,11 @@ public class SMGInterpolationTree {
     }
 
     return increment;
+  }
+
+  private boolean stateHasNonTrivialInterpolant(ARGState pCurrentState) {
+    return interpolants.containsKey(pCurrentState)
+        && !interpolants.get(pCurrentState).isTrivial();
   }
 
   private interface SMGInterpolationStrategy {

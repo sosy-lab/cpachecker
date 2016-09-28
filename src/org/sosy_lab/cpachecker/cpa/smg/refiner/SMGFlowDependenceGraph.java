@@ -32,16 +32,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class SMGUseGraph<V extends SMGUseVertice, E extends SMGUseGraphEdge<V>> {
+public class SMGFlowDependenceGraph<V extends SMGFlowDependenceVertice, E extends SMGFlowDependenceEdge<V>> {
 
   private final Multimap<V, E> graph;
 
-  public SMGUseGraph(Set<E> pGraphEdges) {
+  public SMGFlowDependenceGraph(Set<E> pGraphEdges) {
 
     Multimap<V, E> result = HashMultimap.create();
 
     pGraphEdges.forEach((E pEdge) -> {
-      result.put(pEdge.getSource(), pEdge);
+      result.put(pEdge.getTarget(), pEdge);
     });
 
     graph = ImmutableSetMultimap.copyOf(result);
@@ -52,34 +52,34 @@ public class SMGUseGraph<V extends SMGUseVertice, E extends SMGUseGraphEdge<V>> 
     return graph.toString();
   }
 
-  public Map<V, SMGUseRange> getAllTargetsAndUseRangeOfSources(Set<V> pSources, int curPos) {
+  public Map<V, SMGUseRange> getAllTargetsAndUseRangeOfSources(Set<V> pTargets, int curPos) {
 
     Map<V, SMGUseRange> result = new HashMap<>();
     Set<V> waitlist = new HashSet<>();
     Set<V> addToWaitlist = new HashSet<>();
 
-    for (V source : pSources) {
-      int srcPos = source.getPosition();
+    for (V target : pTargets) {
+      int targetPos = target.getPosition();
 
-      assert srcPos <= curPos;
+      assert targetPos <= curPos;
 
-      result.put(source, new SMGUseRange(srcPos, curPos));
-      waitlist.add(source);
+      result.put(target, new SMGUseRange(targetPos, curPos));
+      waitlist.add(target);
     }
 
     while (!waitlist.isEmpty()) {
-      for (V source : waitlist) {
+      for (V target : waitlist) {
         // no target resolves to empty collection
-        for (SMGUseGraphEdge<V> edge : graph.get(source)) {
-          V target = edge.getTarget();
+        for (SMGFlowDependenceEdge<V> edge : graph.get(target)) {
+          V source = edge.getSource();
 
-          if (!result.containsKey(target)) {
-            result.put(target, new SMGUseRange(target.getPosition(), source.getPosition()));
-            addToWaitlist.add(target);
+          if (!result.containsKey(source)) {
+            result.put(source, new SMGUseRange(source.getPosition(), target.getPosition() - 1));
+            addToWaitlist.add(source);
           } else {
-            SMGUseRange range = result.get(target);
-            if (range.getPosUse() < source.getPosition()) {
-              result.put(target, new SMGUseRange(target.getPosition(), source.getPosition()));
+            SMGUseRange range = result.get(source);
+            if (range.getPosUse() < target.getPosition()) {
+              result.put(source, new SMGUseRange(source.getPosition(), target.getPosition() - 1));
             }
           }
         }

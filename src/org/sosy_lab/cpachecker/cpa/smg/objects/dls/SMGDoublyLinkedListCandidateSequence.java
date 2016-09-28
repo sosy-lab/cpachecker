@@ -171,6 +171,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
       SMGEdgeHasValue pfoHve = new SMGEdgeHasValue(prevObj1hve.getType(), prevObj1hve.getOffset(), newAbsObj, prevObj1hve.getValue());
       pSMG.addHasValueEdge(nfoHve);
       pSMG.addHasValueEdge(pfoHve);
+      pSmgState.getSourcesOfHve().registerHasValueEdge(nfoHve);
+      pSmgState.getSourcesOfHve().registerHasValueEdge(pfoHve);
 
       pSmgState.pruneUnreachable();
 

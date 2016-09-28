@@ -1182,6 +1182,10 @@ cpa.invariants.merge = "PRECISIONDEPENDENT"
 # variables being live.
 cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 
+# This option enables collecting all expressions that use live variables.
+# This gives further information how a live variable is used.
+cpa.liveVar.collectExpressionsUsingLiveVariables = false
+
 # With this option enabled, unction calls that occur in the CFA are followed.
 # By disabling this option one can traverse a function without following
 # function calls (in this case FunctionSummaryEdges are used)

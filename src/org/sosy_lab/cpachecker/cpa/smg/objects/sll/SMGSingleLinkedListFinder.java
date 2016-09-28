@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
+import org.sosy_lab.cpachecker.cpa.smg.SMGDebugExporter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -59,18 +60,22 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
   private final int seqLengthEqualityThreshold;
   private final int seqLengthEntailmentThreshold;
   private final int seqLengthIncomparableThreshold;
+  private final boolean joinNonSharedNonPointer;
 
   public SMGSingleLinkedListFinder() {
     seqLengthEqualityThreshold = 2;
     seqLengthEntailmentThreshold = 2;
     seqLengthIncomparableThreshold = 3;
+    joinNonSharedNonPointer = true;
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,
-      int pSeqLengthEntailmentThreshold, int pSeqLengthIncomparableThreshold) {
+      int pSeqLengthEntailmentThreshold, int pSeqLengthIncomparableThreshold,
+      boolean pJoinNonSharedNonPointer) {
     seqLengthEqualityThreshold = pSeqLengthEqualityThreshold;
     seqLengthEntailmentThreshold = pSeqLengthEntailmentThreshold;
     seqLengthIncomparableThreshold = pSeqLengthIncomparableThreshold;
+    joinNonSharedNonPointer = pJoinNonSharedNonPointer;
   }
 
   @Override
@@ -267,6 +272,22 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     if(nonSharedValues2.contains(pValue)) {
       nonSharedValues2.remove(pValue);
     }
+
+    if (!joinNonSharedNonPointer) {
+      for (Integer val : nonSharedValues1) {
+        if (!pSmgState.isPointer(val)) {
+          SMGDebugExporter.dumpPlot("pp", pSmgState);
+          return;
+        }
+      }
+
+      for (Integer val : nonSharedValues2) {
+        if (!pSmgState.isPointer(val)) {
+          return;
+        }
+      }
+    }
+
 
     Set<SMGEdgePointsTo> prevPointer = pSmg.getPtEdges(
         SMGEdgePointsToFilter.targetObjectFilter(startObject).filterAtTargetOffset(hfo));

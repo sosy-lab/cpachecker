@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -48,14 +47,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGAnalysisRefiner.SMGAnalysisRefinerResult;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -102,8 +100,6 @@ public class SMGRefiner implements Refiner {
    * keep log of previous refinements to identify repeated one
    */
   private final Set<Integer> previousRefinementIds = new HashSet<>();
-
-  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
   @Option(secure = true, description = "use heap interpoaltion when refining reached set.")
   private boolean useInterpoaltion = false;
@@ -171,9 +167,12 @@ public class SMGRefiner implements Refiner {
             interpolantManager,
             smgCpa.getShutdownNotifier(), logger, smgCpa.getBlockOperator(), smgCpa.getCFA());
 
+    SMGFlowDependenceBasedInterpolator useGraphBuilder = new SMGFlowDependenceBasedInterpolator(pLogger,
+        checkerForInterpolation, pConfig, pCfa, predicateManager, blockOperator, exportInterpolantSMGs, smgCpa.getExportSMGLevel());
+
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
-            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), checkerForInterpolation);
+            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), checkerForInterpolation, useGraphBuilder);
 
     shutdownNotifier = pShutdownNotifier;
   }
@@ -215,42 +214,7 @@ public class SMGRefiner implements Refiner {
     Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
 
-    /*Only check if we made progress if we actually use interpoaltion*/
-    if (useInterpoaltion && !madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(
-            Reason.RepeatedCounterexample,
-            targetPaths.get(0));
-     }
-
     return performRefinementForPaths(pReached, targets, targetPaths);
-  }
-
-  private boolean madeProgress(ARGPath path) {
-    Integer pathId = obtainErrorPathId(path);
-    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(pathId));
-
-    previousErrorPathIds.add(pathId);
-
-    return progress;
-  }
-
-  private int obtainErrorPathId(ARGPath path) {
-
-    Predicate<? super AutomatonState> automatonStateIsTarget = (AutomatonState state) -> {
-      return state.isTarget() ? true : false;
-    };
-
-    Function<AutomatonState, String> toNameFunction = (AutomatonState state) -> {
-      return state.getOwningAutomatonName();
-    };
-
-    Set<String> automatonNames =
-        AbstractStates.asIterable(path.getLastState()).filter(AutomatonState.class)
-            .filter(automatonStateIsTarget).transform(toNameFunction).toSet();
-
-    int id = path.toString().hashCode() + automatonNames.hashCode();
-
-    return id;
   }
 
   private CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached,
@@ -396,7 +360,8 @@ public class SMGRefiner implements Refiner {
 
     SMGInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
 
-    if (isInitialInterpolantTooWeak(interpolationTree.getRoot(), initialItp, errorPath)) {
+    ARGState root = interpolationTree.getRoot();
+    if (isInitialARGStateTooWeak(root, errorPath)) {
       errorPath = ARGUtils.getOnePathTo(errorPath.getLastState());
       initialItp = interpolantManager.createInitialInterpolant();
     }
@@ -405,11 +370,11 @@ public class SMGRefiner implements Refiner {
         errorPath.getFirstState().getStateId(),
         ", using interpolant ", initialItp);
 
-    interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp, pReachedSet));
+    interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp, root, pReachedSet));
     exportTree(interpolationTree, "ALWAYS");
   }
 
-  private boolean isInitialInterpolantTooWeak(ARGState root, SMGInterpolant initialItp, ARGPath errorPath)
+  private boolean isInitialARGStateTooWeak(ARGState root, ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak
@@ -418,7 +383,8 @@ public class SMGRefiner implements Refiner {
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checkerForCEX.isFeasible(errorPath, initialItp.reconstructStates());
+    return checkerForCEX.isFeasible(errorPath,
+        AbstractStates.extractStateByType(root, SMGState.class));
   }
 
   private SMGInterpolationTree createInterpolationTree(List<ARGPath> pTargetPaths) {
@@ -428,7 +394,7 @@ public class SMGRefiner implements Refiner {
   private void refineUsingInterpolants(ARGReachedSet pReached, SMGInterpolationTree pInterpolationTree) throws InterruptedException {
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
-    Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots();
+    Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(pReached);
 
     for (ARGState root : refinementRoots) {
       shutdownNotifier.shutdownIfNecessary();

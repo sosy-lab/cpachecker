@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -151,7 +152,7 @@ public class SMGStateTest {
 
     SMGState smg1State = new SMGState(logger, smg1);
 
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(SMGKnownExpValue.valueOf(8), "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
@@ -265,7 +266,7 @@ public class SMGStateTest {
     SMGState smg1State = new SMGState(logger, heap);
 
     smg1State.addStackFrame(functionDeclaration3);
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(SMGKnownExpValue.valueOf(8), "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));

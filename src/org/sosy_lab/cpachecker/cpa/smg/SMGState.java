@@ -28,6 +28,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
@@ -75,9 +77,11 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHeapAbstractionThreshold;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHveSources;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHveUnkownSources;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPathDependence.PathPositionMemoryPathDependencys;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFlowDependenceFieldVertice;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -379,7 +383,27 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     preciseIsLessOrEqualThroughJoin = pOriginalState.preciseIsLessOrEqualThroughJoin;
     blockEnded = pOriginalState.blockEnded;
-    sourcesOfHve = new SMGHveSources();
+    sourcesOfHve = pOriginalState.sourcesOfHve.copy();
+  }
+
+  private SMGState(SMGState pOriginalState, SMGHveSources pSources) {
+    heap = new CLangSMG(pOriginalState.heap);
+    logger = pOriginalState.logger;
+    predecessorId = pOriginalState.getId();
+    id_counter = pOriginalState.id_counter;
+    id = id_counter.getAndIncrement();
+    explicitValues.putAll(pOriginalState.explicitValues);
+    memoryErrors = pOriginalState.memoryErrors;
+    unknownOnUndefined = pOriginalState.unknownOnUndefined;
+    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
+    invalidFree = pOriginalState.invalidFree;
+    invalidRead = pOriginalState.invalidRead;
+    invalidWrite = pOriginalState.invalidWrite;
+    externalAllocationSize = pOriginalState.externalAllocationSize;
+    trackPredicates = pOriginalState.trackPredicates;
+    preciseIsLessOrEqualThroughJoin = pOriginalState.preciseIsLessOrEqualThroughJoin;
+    blockEnded = pOriginalState.blockEnded;
+    sourcesOfHve = pSources;
   }
 
   /**
@@ -474,12 +498,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addGlobalVariable(int pTypeSize, String pVarName)
+  public SMGObject addGlobalVariable(SMGKnownExpValue pTypeSize, String pVarName)
       throws SMGInconsistentException {
-    SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
+    SMGRegion new_object = new SMGRegion(pTypeSize.getAsInt(), pVarName);
 
     heap.addGlobalObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
+    sourcesOfHve.registerNewObjectAllocation(pTypeSize, new_object, true);
     return new_object;
   }
 
@@ -505,12 +530,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(int pTypeSize, String pVarName)
+  public SMGObject addLocalVariable(SMGKnownExpValue pTypeSize, String pVarName)
       throws SMGInconsistentException {
-    SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
+    SMGRegion new_object = new SMGRegion(pTypeSize.getAsInt(), pVarName);
 
     heap.addStackObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
+    sourcesOfHve.registerNewObjectAllocation(pTypeSize, new_object, true);
     return new_object;
   }
 
@@ -528,17 +554,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject)
+  public SMGObject addLocalVariable(SMGKnownExpValue pTypeSize, String pVarName, SMGRegion smgObject)
       throws SMGInconsistentException {
-    SMGRegion new_object2 = new SMGRegion(pTypeSize, pVarName);
+    SMGRegion new_object2 = new SMGRegion(pTypeSize.getAsInt(), pVarName);
 
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
     // arrays are converted to pointers
-    assert smgObject.getSize() == pTypeSize
+    assert smgObject.getSize() == pTypeSize.getAsInt()
         || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
 
     heap.addStackObject(smgObject);
+    sourcesOfHve.registerNewObjectAllocation(pTypeSize, smgObject, true);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return smgObject;
   }
@@ -660,8 +687,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (heap.isPointer(value)) {
       SMGEdgePointsTo addressValue = heap.getPointer(value);
 
-      SMGAddressValue address = SMGKnownAddVal.valueOf(addressValue.getValue(),
-          addressValue.getObject(), addressValue.getOffset());
+      SMGAddressValue address = sourcesOfHve.createPointer(pValue, addressValue);
 
       SMGObject obj = address.getObject();
 
@@ -976,6 +1002,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.addValue(newPointerToSll);
     heap.addHasValueEdge(newFieldFromNewRegionToSll);
+    sourcesOfHve.registerHasValueEdge(newFieldFromNewRegionToSll);
     heap.addPointsToEdge(newPtEToSll);
 
     return SMGAddressValueAndState.of(this,
@@ -1104,9 +1131,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.addPointsToEdge(newPtEdgeToNewRegionFromOutsideSMG);
     heap.addHasValueEdge(newFieldFromNewRegionToOutsideSMG);
+    sourcesOfHve.registerHasValueEdge(newFieldFromNewRegionToOutsideSMG);
 
     heap.addValue(newPointerToDll);
     heap.addHasValueEdge(newFieldFromNewRegionToDll);
+    sourcesOfHve.registerHasValueEdge(newFieldFromNewRegionToDll);
     heap.addPointsToEdge(newPtEToDll);
 
     heap.addHasValueEdge(newFieldFromDllToNewRegion);
@@ -1469,17 +1498,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       if(sourcesOfHve.getClass().equals(SMGHveSources.class)) {
 
-        Set<SMGAddress> sources = new HashSet<>();
+        Set<SMGKnownAddress> sources = new HashSet<>();
 
         SMGEdgeHasValueFilter objectFilter = SMGEdgeHasValueFilter.objectFilter(object).filterHavingValue(heap.getNullValue());
 
         for (SMGEdgeHasValue zeroEdge : getHVEdges(objectFilter)) {
           if (zeroEdge.overlapsWith(edge, getMachineModel())) {
-            sources.add(SMGAddress.valueOf(zeroEdge.getObject(), zeroEdge.getOffset()));
+            sources.add(SMGKnownAddress.valueOf(zeroEdge.getObject(), zeroEdge.getOffset()));
           }
         }
 
-        value = sourcesOfHve.createReadValueSource(pAddress, value, sources);
+        value = sourcesOfHve.createReadValueSource(pAddress, value, sources, true);
       }
 
       return SMGValueAndState.of(this, value);
@@ -1541,6 +1570,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       }
     }
 
+    sourcesOfHve.registerDereference(targetStr1Address);
+    sourcesOfHve.registerDereference(sourceStr2Address);
+    sourcesOfHve.registerDereference(sizeValue);
+    sourcesOfHve.registerTargetWrite(targetStr1Address);
+
     SMGObject source = sourceStr2Address.getObject();
     SMGObject target = targetStr1Address.getObject();
 
@@ -1558,11 +1592,19 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGExplicitValue expValue)
       throws CPATransferException {
 
-    if (bufferAddress.isUnknown()
-        || countValue.isUnknown()) {
+    if (bufferAddress.isUnknown()) {
+      unknownWrite();
+      return SMGAddressValueAndState.of(setInvalidWrite());
+    }
+
+    if (countValue.isUnknown()) {
       writeUnknownValueInUnknownField(bufferAddress.getObject());
       return SMGAddressValueAndState.of(setInvalidWrite());
     }
+
+    sourcesOfHve.registerDereference(countValue);
+    sourcesOfHve.registerDereference(expValue);
+    sourcesOfHve.registerTargetWrite(bufferAddress);
 
     long count = countValue.getAsLong();
 
@@ -1656,7 +1698,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     SMGStateEdgePair result = writeValue(pAddress, pType, value);
 
-    sourcesOfHve.registerWriteValueSource(pAddress, pValue, result);
+    sourcesOfHve.registerWriteValueSource(pAddress.getAsKnownAddress(), pValue, result);
     return result;
   }
 
@@ -1722,6 +1764,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       return new SMGStateEdgePair(setInvalidWrite());
     }
+
+    sourcesOfHve.registerTargetWrite(pAddress);
 
     SMGObject object = pAddress.getObject();
     SMGExplicitValue offset = pAddress.getOffset();
@@ -2163,7 +2207,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addPointsToEdge(points_to);
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    sourcesOfHve.registerNewObjectAllocation(pSize, new_object);
+    sourcesOfHve.registerNewObjectAllocation(pSize, new_object, false);
     return SMGKnownAddVal.valueOf(new_value, new_object, 0);
   }
 
@@ -2202,7 +2246,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    sourcesOfHve.registerNewObjectAllocation(pSize, new_object);
+    sourcesOfHve.registerNewObjectAllocation(pSize, new_object, true);
     return SMGKnownAddVal.valueOf(new_value, new_object, 0);
   }
 
@@ -2267,6 +2311,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
+  public SMGSymbolicValue getAddress(SMGRegion memory, SMGKnownExpValue offset) {
+
+    SMGSymbolicValue result = getAddress(memory, offset.getAsInt());
+
+    return sourcesOfHve.createGetAddressSource(result, offset);
+  }
+
   /**
    * Get the symbolic value, that represents the address
    * pointing to the given memory with the given offset, if it exists.
@@ -2308,6 +2359,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   public SMGState free(SMGKnownAddVal pPointer)
       throws SMGInconsistentException {
+
+    sourcesOfHve.registerDereference(pPointer);
 
     if (pPointer.getAsInt() == 0) {
       return this;
@@ -2687,7 +2740,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
     if (explicitValues.containsKey(pKey)) {
-      return explicitValues.get(pKey);
+      return sourcesOfHve.createExpValue(pKey, explicitValues.get(pKey));
     }
 
     return SMGUnknownValue.getInstance();
@@ -2757,7 +2810,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;
 
-    return addGlobalVariable(0, functionQualifiedSMGName);
+    return addGlobalVariable(SMGKnownExpValue.ZERO, functionQualifiedSMGName);
   }
 
   private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
@@ -2777,13 +2830,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    *
    * @param pResult The blocks that prevent specified objects to be abstracted.
+   * @param pJoinNonSharedNonPointer prevent merging non shared values that are not both pointers when merging
    * @return the abstraction executed in this step represented by the returned abstraction candidate.
    *          If no abstraction was executed, returns a unknown instance of the abstraction candidate.
    * @throws SMGInconsistentException Heap abstraction constructed an inconsistent smg.
    */
-  public SMGAbstractionCandidate executeHeapAbstractionOneStep(Set<SMGAbstractionBlock> pResult)
+  public SMGAbstractionCandidate executeHeapAbstractionOneStep(Set<SMGAbstractionBlock> pResult, boolean pJoinNonSharedNonPointer)
       throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, pResult, 2, 2, 2);
+    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, pResult, 2, 2, 2, pJoinNonSharedNonPointer);
     SMGAbstractionCandidate result = manager.executeOneStep();
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return result;
@@ -2804,16 +2858,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param blocks blocks heap abstraction on specified objects with specified shape.
    * @param pThreshold configures the minimum threshold of the number of segments in a abstraction
+   * @param pJoinNonSharedNonPointer prevent merging non shared values that are not both pointers when merging
    * @return true, iff at least one new heap abstraction was executed.
    * @throws SMGInconsistentException Heap abstraction constructed an inconsistent smg.
    */
   public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks,
-      SMGHeapAbstractionThreshold pThreshold)
+      SMGHeapAbstractionThreshold pThreshold, boolean pJoinNonSharedNonPointer)
       throws SMGInconsistentException {
 
     SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, blocks,
         pThreshold.getEqualThreshold(), pThreshold.getEntailThreshold(),
-        pThreshold.getIncombarableThreshold());
+        pThreshold.getIncombarableThreshold(), pJoinNonSharedNonPointer);
     boolean change = manager.execute();
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return change;
@@ -2920,8 +2975,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pAbstractionBlocks include these abstraction blocks in the interpolant.
    * @return Interpolant based on this state.
    */
-  public SMGInterpolant createInterpolant(Set<SMGAbstractionBlock> pAbstractionBlocks) {
-    return new SMGInterpolant(ImmutableSet.of(this), pAbstractionBlocks);
+  public SMGStateInterpolant createInterpolant(Set<SMGAbstractionBlock> pAbstractionBlocks) {
+    return new SMGStateInterpolant(ImmutableSet.of(this), pAbstractionBlocks);
   }
 
   /**
@@ -2929,8 +2984,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @return Interpolant based on this state.
    */
-  public SMGInterpolant createInterpolant() {
-    return new SMGInterpolant(ImmutableSet.of(this));
+  public SMGStateInterpolant createInterpolant() {
+    return new SMGStateInterpolant(ImmutableSet.of(this));
   }
 
   /**
@@ -3302,5 +3357,103 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public MachineModel getMachineModel() {
     return heap.getMachineModel();
+  }
+
+  public SMGState addSourcesToValues() {
+    return new SMGState(this, new SMGHveSources());
+  }
+
+  public SMGHveSources getSourcesOfHve() {
+    return sourcesOfHve;
+  }
+
+  public PathPositionMemoryPathDependencys calculatePathDependence(
+      Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> pPScope, Set<SMGKnownAddress> pPPathTargets, Set<SMGAbstractionBlock> pBlocks) {
+
+    Map<SMGObject, MemoryLocation> pMemoryLocations = new HashMap<>();
+    Map<MemoryLocation, Integer> pLocationOnStack = new HashMap<>();
+
+    SMGDebugExporter.dumpPlot("aa", this);
+
+    for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
+      String variableName = variableEntry.getKey();
+      SMGRegion reg = variableEntry.getValue();
+      pMemoryLocations.put(reg, MemoryLocation.valueOf(variableName));
+    }
+
+    int locPos = 0;
+    for (CLangStackFrame frame : heap.getStackFrames()) {
+      String functionName = frame.getFunctionDeclaration().getName();
+
+      for (Entry<String, SMGRegion> variableEntry : frame.getVariables().entrySet()) {
+        String variableName = variableEntry.getKey();
+        SMGRegion reg = variableEntry.getValue();
+        MemoryLocation memloc = MemoryLocation.valueOf(functionName, variableName);
+        pMemoryLocations.put(reg, memloc);
+        pLocationOnStack.put(memloc, locPos);
+      }
+
+      if (frame.getReturnObject() != null) {
+        MemoryLocation memloc =
+            MemoryLocation.valueOf(functionName, frame.getReturnObject().getLabel());
+        pMemoryLocations.put(frame.getReturnObject(), memloc);
+        pLocationOnStack.put(memloc, locPos);
+      }
+
+      locPos++;
+    }
+
+    Multimap<SMGObject, SMGKnownAddress> pHeapObjectToPointerMap = HashMultimap.create();
+    Map<SMGKnownAddress, SMGObject> stackPointer = new HashMap<>();
+
+    for (SMGEdgeHasValue field : heap.getHVEdges()) {
+      int value = field.getValue();
+      if (isPointer(value)) {
+        SMGObject obj = heap.getPointer(value).getObject();
+        SMGKnownAddress address = SMGKnownAddress.valueOf(field.getObject(), field.getOffset());
+        if (heap.isHeapObject(obj)) {
+          if (heap.getNullObject() != obj) {
+            pHeapObjectToPointerMap.put(obj,
+                address);
+          }
+        } else {
+          stackPointer.put(address, obj);
+        }
+      }
+    }
+
+    Map<SMGObject, SMGKnownAddress> pDefaultHeapObjectToPointerConnection = new HashMap<>();
+
+    Map<SMGObject, SMGMemoryPath> heapObjectMemoryPaths = heap.getHeapObjectMemoryPaths();
+
+    for (Entry<SMGObject, SMGMemoryPath> mempath : heapObjectMemoryPaths.entrySet()) {
+      Optional<SMGEdgeHasValue> pointer = heap.getHVEdgeFromMemoryLocation(mempath.getValue());
+
+      if(!pointer.isPresent()) {
+        throw new AssertionError();
+      }
+
+      pDefaultHeapObjectToPointerConnection.put(mempath.getKey(),
+          SMGKnownAddress.valueOf(pointer.get().getObject(), pointer.get().getOffset()));
+    }
+
+    for (SMGObject obj : heap.getHeapObjects()) {
+      if (obj == heap.getNullObject()) {
+        continue;
+      }
+
+      if (!heapObjectMemoryPaths.containsKey(obj)) {
+        SMGDebugExporter.dumpPlot("memeoryReach.dot", this);
+      }
+    }
+
+    Set<SMGObject> heapObj = new HashSet<>();
+    heapObj.addAll(heap.getHeapObjects());
+    heapObj.remove(heap.getNullObject());
+    Predicate<SMGObject> valid = (SMGObject obj) -> {
+      return heap.isObjectValid(obj);
+    };
+    Set<SMGObject> validObj = FluentIterable.from(heapObj).filter(valid).toSet();
+    return new PathPositionMemoryPathDependencys(pPPathTargets, pPScope, heapObj, pHeapObjectToPointerMap, pMemoryLocations, pLocationOnStack, pDefaultHeapObjectToPointerConnection, pBlocks, stackPointer, validObj);
   }
 }

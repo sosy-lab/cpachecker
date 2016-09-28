@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 
-public class SMGUseFieldVertice implements SMGUseVertice {
+public class SMGFlowDependenceFieldVertice implements SMGFlowDependenceVertice {
 
-  private final SMGEdgeHasValue field;
+  private final SMGAddress field;
   private final int argPos;
 
-  public SMGUseFieldVertice(SMGEdgeHasValue pField, int pArgPos) {
+  public SMGFlowDependenceFieldVertice(SMGAddress pField, int pArgPos) {
     field = pField;
     argPos = pArgPos;
   }
@@ -40,7 +40,7 @@ public class SMGUseFieldVertice implements SMGUseVertice {
     return argPos;
   }
 
-  public SMGEdgeHasValue getField() {
+  public SMGAddress getField() {
     return field;
   }
 
@@ -69,7 +69,7 @@ public class SMGUseFieldVertice implements SMGUseVertice {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    SMGUseFieldVertice other = (SMGUseFieldVertice) obj;
+    SMGFlowDependenceFieldVertice other = (SMGFlowDependenceFieldVertice) obj;
     if (argPos != other.argPos) {
       return false;
     }

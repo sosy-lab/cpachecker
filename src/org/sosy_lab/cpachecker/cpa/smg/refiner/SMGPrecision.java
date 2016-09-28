@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -228,6 +228,8 @@ public abstract class SMGPrecision implements Precision {
     return options.forgetNonRelevantVariables();
   }
 
+  public abstract boolean isInterpolantContained(SMGInterpolant pInterpolant, CFANode pLocation);
+
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
 
   private static class SMGRefineablePrecision extends SMGPrecision {
@@ -247,6 +249,20 @@ public abstract class SMGPrecision implements Precision {
       trackedMemoryPaths = ImmutableSetMultimap.copyOf(pTrackedMemoryPaths);
       abstractionBlocks = ImmutableSetMultimap.copyOf(pAbstractionBlocks);
       trackedStackVariables = ImmutableSetMultimap.copyOf(pTrackedStackVariables);
+    }
+
+    @Override
+    public boolean isInterpolantContained(SMGInterpolant pInterpolant, CFANode pLocation) {
+
+      SMGPrecisionIncrement inc = pInterpolant.getPrecisionIncrement();
+
+      Set<SMGMemoryPath> memPath = trackedMemoryPaths.get(pLocation);
+      Set<MemoryLocation> stackVar = trackedStackVariables.get(pLocation);
+      Set<SMGAbstractionBlock> blocks = abstractionBlocks.get(pLocation);
+
+      return memPath.containsAll(FluentIterable.from(inc.getPathsToTrack()).toSet())
+          && stackVar.containsAll(FluentIterable.from(inc.getStackVariablesToTrack()).toSet())
+          && blocks.containsAll(FluentIterable.from(inc.getAbstractionBlock()).toSet());
     }
 
     @Override
@@ -374,6 +390,11 @@ public abstract class SMGPrecision implements Precision {
         SMGHeapAbstractionThreshold pHeapAbsThreshold) {
       super(pLogger, pAllowsHeapAbstraction, pBlockOperator, pVarClass, pOptional,
           pHeapAbsThreshold);
+    }
+
+    @Override
+    public boolean isInterpolantContained(SMGInterpolant pInterpolant, CFANode pLocation) {
+      return true;
     }
 
     @Override

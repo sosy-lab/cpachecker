@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 
-public interface SMGUseVertice {
+public interface SMGFlowDependenceVertice {
 
   public int getPosition();
 

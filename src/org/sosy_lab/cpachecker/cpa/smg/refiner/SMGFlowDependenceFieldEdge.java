@@ -23,24 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
+public class SMGFlowDependenceFieldEdge implements SMGFlowDependenceEdge<SMGFlowDependenceFieldVertice> {
 
-  private final SMGUseFieldVertice source;
-  private final SMGUseFieldVertice target;
+  private final SMGFlowDependenceFieldVertice source;
+  private final SMGFlowDependenceFieldVertice target;
 
-  public SMGUseFieldEdge(SMGUseFieldVertice pSource, SMGUseFieldVertice pTarget) {
+  public SMGFlowDependenceFieldEdge(SMGFlowDependenceFieldVertice pSource, SMGFlowDependenceFieldVertice pTarget) {
     super();
     source = pSource;
     target = pTarget;
   }
 
   @Override
-  public SMGUseFieldVertice getSource() {
+  public SMGFlowDependenceFieldVertice getSource() {
     return source;
   }
 
   @Override
-  public SMGUseFieldVertice getTarget() {
+  public SMGFlowDependenceFieldVertice getTarget() {
     return target;
   }
 
@@ -64,7 +64,7 @@ public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    SMGUseFieldEdge other = (SMGUseFieldEdge) obj;
+    SMGFlowDependenceFieldEdge other = (SMGFlowDependenceFieldEdge) obj;
     if (source == null) {
       if (other.source != null) {
         return false;

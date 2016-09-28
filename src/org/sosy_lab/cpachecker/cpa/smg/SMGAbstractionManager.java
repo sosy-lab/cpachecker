@@ -66,13 +66,13 @@ public class SMGAbstractionManager {
   }
 
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
-      Set<SMGAbstractionBlock> pBlocks, int equalSeq, int entailSeq, int incSeq) {
+      Set<SMGAbstractionBlock> pBlocks, int equalSeq, int entailSeq, int incSeq, boolean pJoinNonSharedNonPointer) {
     smg = pSMG;
     smgState = pSMGstate;
     logger = pLogger;
     blocks = pBlocks;
     dllCandidateFinder = new SMGDoublyLinkedListCandidateFinder(equalSeq, entailSeq, incSeq);
-    sllCandidateFinder = new SMGSingleLinkedListFinder(equalSeq, entailSeq, incSeq);
+    sllCandidateFinder = new SMGSingleLinkedListFinder(equalSeq, entailSeq, incSeq, pJoinNonSharedNonPointer);
   }
 
   private boolean hasCandidates() throws SMGInconsistentException {

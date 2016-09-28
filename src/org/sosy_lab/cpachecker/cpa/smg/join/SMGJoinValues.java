@@ -434,7 +434,7 @@ final class SMGJoinValues {
         newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
             newVal);
       }
-      pDestSMG.addHasValueEdge(newHve);
+      addHasValueEdge(newHve, pDestSMG);
     }
 
     return Pair.of(true, true);
@@ -654,7 +654,7 @@ final class SMGJoinValues {
         newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
             newVal);
       }
-      pDestSMG.addHasValueEdge(newHve);
+      addHasValueEdge(newHve, pDestSMG);
     }
 
     return Pair.of(true, true);
@@ -828,23 +828,28 @@ final class SMGJoinValues {
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nf, list, newAdressFromDLS);
 
     if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
-      pDestSMG.addHasValueEdge(newHve);
+      addHasValueEdge(newHve, pDestSMG);
     }
 
     if (smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
       CType nfType2 = getType(pTarget, nfo, inputSMG1);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfo, list, newAdressFromDLS);
-      pDestSMG.addHasValueEdge(newHve2);
+      addHasValueEdge(newHve2, pDestSMG);
     }
 
     if (pTarget.getKind() == SMGObjectKind.DLL
         && smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
       CType nfType2 = getType(pTarget, pfo, inputSMG1);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, pfo, list, newAdressFromDLS);
-      pDestSMG.addHasValueEdge(newHve2);
+      addHasValueEdge(newHve2, pDestSMG);
     }
 
     return Pair.of(true, true);
+  }
+
+  private void addHasValueEdge(SMGEdgeHasValue pNewHve, SMG pDestSMG) {
+    pDestSMG.addHasValueEdge(pNewHve);
+    smgState1.getSourcesOfHve().registerHasValueEdge(pNewHve);
   }
 
   private CType getType(SMGObject pTarget, int pNf, SMG inputSMG1) {
@@ -1025,20 +1030,20 @@ final class SMGJoinValues {
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nf, list, newAdressFromDLS);
 
     if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
-      pDestSMG.addHasValueEdge(newHve);
+      addHasValueEdge(newHve, pDestSMG);
     }
 
     if (smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
       CType nfType2 = getType(pTarget, nfo, inputSMG2);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, nfo, list, newAdressFromDLS);
-      pDestSMG.addHasValueEdge(newHve2);
+      addHasValueEdge(newHve2, pDestSMG);
     }
 
     if (pTarget.getKind() == SMGObjectKind.DLL
         && smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
       CType nfType2 = getType(pTarget, nfo, inputSMG2);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfType2, pfo, list, newAdressFromDLS);
-      pDestSMG.addHasValueEdge(newHve2);
+      addHasValueEdge(newHve2, pDestSMG);
     }
 
     return Pair.of(true, true);
@@ -1137,7 +1142,7 @@ final class SMGJoinValues {
         }
 
         if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy).filterAtOffset(hve.getOffset())).isEmpty()) {
-          pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), listCopy, newVal));
+          addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), listCopy, newVal), pDestSMG);
         }
       }
     }
@@ -1218,7 +1223,7 @@ final class SMGJoinValues {
       }
 
       if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).isEmpty()) {
-        pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
+        addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal), pDestSMG);
       }
     }
   }

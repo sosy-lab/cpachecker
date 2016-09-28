@@ -145,6 +145,7 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
       SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
       pSMG.addHasValueEdge(nfoHve);
+      pSmgState.getSourcesOfHve().registerHasValueEdge(nfoHve);
       pSmgState.pruneUnreachable();
     }
 

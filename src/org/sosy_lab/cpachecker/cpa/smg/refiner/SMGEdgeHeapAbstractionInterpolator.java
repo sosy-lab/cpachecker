@@ -79,7 +79,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
     SMGState abstractionTest = new SMGState(pState);
     Set<SMGAbstractionBlock> result = new HashSet<>();
     result.addAll(pPrecision.getAbstractionBlocks(pStateLocation));
-    SMGAbstractionCandidate candidate = abstractionTest.executeHeapAbstractionOneStep(result);
+    SMGAbstractionCandidate candidate = abstractionTest.executeHeapAbstractionOneStep(result, pPrecision.useFieldAbstraction());
     boolean change = false;
 
     while (!candidate.isEmpty()) {
@@ -89,11 +89,11 @@ public class SMGEdgeHeapAbstractionInterpolator {
         result.add(candidate.createAbstractionBlock(state));
         abstractionTest = new SMGState(state);
       } else {
-        state.executeHeapAbstractionOneStep(result);
+        state.executeHeapAbstractionOneStep(result, pPrecision.useFieldAbstraction());
         change = true;
       }
 
-      candidate = abstractionTest.executeHeapAbstractionOneStep(result);
+      candidate = abstractionTest.executeHeapAbstractionOneStep(result, !pPrecision.useFieldAbstraction());
     }
 
     logger.log(Level.ALL, "Finish interpolating heap abstraction on node " + pStateLocation.getNodeNumber());

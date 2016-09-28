@@ -141,4 +141,14 @@ public abstract class SMGObject {
   public int getLevel() {
     return level;
   }
+
+  @Override
+  public boolean equals(Object pObj) {
+    return super.equals(pObj);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
 }

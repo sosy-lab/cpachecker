@@ -105,8 +105,8 @@ public class SMGEdgeInterpolator {
         new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker);
   }
 
-  public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
-      PathPosition pOffset, SMGInterpolant pInputInterpolant, boolean pAllTargets, ARGReachedSet pReached, ARGState pSuccessorARGstate) throws CPAException, InterruptedException {
+  public List<SMGStateInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
+      PathPosition pOffset, SMGStateInterpolant pInputInterpolant, boolean pAllTargets, ARGReachedSet pReached, ARGState pSuccessorARGstate) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming
@@ -135,7 +135,7 @@ public class SMGEdgeInterpolator {
       currentEdge = it.getOutgoingEdge();
 
       if (initialStates.isEmpty()) {
-        List<SMGInterpolant> resultingInterpolants = new ArrayList<>(1);
+        List<SMGStateInterpolant> resultingInterpolants = new ArrayList<>(1);
         resultingInterpolants.add(interpolantManager.getFalseInterpolant());
         return resultingInterpolants;
       }
@@ -151,7 +151,7 @@ public class SMGEdgeInterpolator {
       successors.addAll(getInitialSuccessor(state, currentEdge));
     }
 
-    List<SMGInterpolant> resultingInterpolants;
+    List<SMGStateInterpolant> resultingInterpolants;
 
     if (successors.isEmpty()) {
       resultingInterpolants = new ArrayList<>(1);
@@ -184,7 +184,7 @@ public class SMGEdgeInterpolator {
     // then return the input interpolant with those renamings
     if (onlySuccessor && isOnlyVariableRenamingEdge(pCurrentEdge)
         && !currentPrecision.useHeapAbstractionOnNode(currentEdge.getPredecessor())) {
-      SMGInterpolant interpolant =
+      SMGStateInterpolant interpolant =
           interpolantManager.createInterpolant(Iterables.getOnlyElement(successors));
       resultingInterpolants.add(interpolant);
       return resultingInterpolants;
@@ -214,7 +214,7 @@ public class SMGEdgeInterpolator {
         }
       }
 
-      SMGInterpolant result = interpolantManager.createInterpolant(state, abstractionBlocks);
+      SMGStateInterpolant result = interpolantManager.createInterpolant(state, abstractionBlocks);
       resultingInterpolants.add(result);
     }
 

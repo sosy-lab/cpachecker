@@ -85,6 +85,17 @@ public class SMGFeasibilityChecker {
         new SMGPrecisionAdjustment(logger, SMGExportDotOption.getNoExportInstance());
   }
 
+  public SMGFeasibilityChecker(SMGFeasibilityChecker pChecker,
+      SMGStrongestPostOperator pStrongestPostOp) {
+    strongestPostOp = pStrongestPostOp;
+    initialState = pChecker.initialState;
+    logger = pChecker.logger;
+    precision = pChecker.precision;
+    mainFunction = pChecker.mainFunction;
+    automatonCPA = pChecker.automatonCPA;
+    precisionAdjustment = pChecker.precisionAdjustment;
+  }
+
   private ReachabilityResult isReachable(
        ARGPath pPath,
        SMGState pStartingPoint,
@@ -120,6 +131,11 @@ public class SMGFeasibilityChecker {
 
         try {
           successors = FluentIterable.from(successors).transform((SMGState smgState) -> {
+
+            if (!iterator.isPositionWithState()) {
+              return smgState;
+            }
+
             try {
               return (SMGState) precisionAdjustment
                   .prec(smgState, precision, location)
@@ -158,15 +174,13 @@ public class SMGFeasibilityChecker {
 
       for (ControlAutomatonCPA automaton : automatonCPAsToCheck) {
         boolean isTarget = isTarget(lastState, pLastEdge, automaton);
-        if (allTargets && isTarget) {
+        if(isTarget) {
           return true;
-        } else if (!allTargets && !isTarget) {
-          return false;
         }
       }
     }
 
-    return !allTargets;
+    return false;
   }
 
   private Set<ControlAutomatonCPA> getAutomatons(ARGState pLastState,
@@ -415,5 +429,13 @@ public class SMGFeasibilityChecker {
     }
 
     return path;
+  }
+
+  public SMGStrongestPostOperator getStrongestPostOp() {
+    return strongestPostOp;
+  }
+
+  public Precision getStrongestPrecision() {
+    return precision;
   }
 }

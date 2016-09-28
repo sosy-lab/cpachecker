@@ -54,6 +54,10 @@ public class SMGStrongestPostOperator {
     transfer = pTransferRelation;
   }
 
+  public SMGTransferRelation getTransfer() {
+    return transfer;
+  }
+
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(LogManager pLogger,
       Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator) throws InvalidConfigurationException {
     SMGTransferRelation transfer =
@@ -89,6 +93,16 @@ public class SMGStrongestPostOperator {
         return (SMGState) pState;
       }
     }).toList();
+  }
+
+  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForUseGraph(
+      LogManager pLogger, Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+
+    SMGTransferRelation transferRelation = SMGTransferRelation
+        .createTransferRelationForUseGraphBuilder(pConfig, pLogger, pCfa.getMachineModel(),
+            pSMGPredicateManager, pBlockOperator);
+    return new SMGStrongestPostOperator(transferRelation);
   }
 
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(

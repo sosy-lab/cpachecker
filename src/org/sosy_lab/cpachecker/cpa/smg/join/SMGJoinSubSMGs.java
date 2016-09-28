@@ -140,6 +140,7 @@ final class SMGJoinSubSMGs {
       }
 
       destSMG.addHasValueEdge(newHV);
+      pSmgState1.getSourcesOfHve().registerHasValueEdge(newHV);
     }
 
     defined = true;

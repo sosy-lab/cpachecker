@@ -41,7 +41,7 @@ public class SMGInterpolantManager {
       boolean pTrackPredicates, int pExternalAllocationSize) {
     logger = pLogger;
     model = pModel;
-    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(),
+    initalInterpolant = SMGStateInterpolant.createInitial(logger, model, pCfa.getMainFunction(),
         pTrackPredicates, pExternalAllocationSize);
   }
 
@@ -49,19 +49,19 @@ public class SMGInterpolantManager {
     return initalInterpolant;
   }
 
-  public SMGInterpolant createInterpolant(SMGState pState) {
+  public SMGStateInterpolant createInterpolant(SMGState pState) {
     return pState.createInterpolant();
   }
 
-  public SMGInterpolant getFalseInterpolant() {
-    return SMGInterpolant.getFalseInterpolant();
+  public SMGStateInterpolant getFalseInterpolant() {
+    return SMGStateInterpolant.getFalseInterpolant();
   }
 
-  public SMGInterpolant getTrueInterpolant(SMGInterpolant pTemplate) {
-    return SMGInterpolant.getTrueInterpolant(pTemplate);
+  public SMGStateInterpolant getTrueInterpolant(SMGStateInterpolant pTemplate) {
+    return SMGStateInterpolant.getTrueInterpolant(pTemplate);
   }
 
-  public SMGInterpolant createInterpolant(SMGState pState,
+  public SMGStateInterpolant createInterpolant(SMGState pState,
       Set<SMGAbstractionBlock> pAbstractionBlocks) {
     return pState.createInterpolant(pAbstractionBlocks);
   }

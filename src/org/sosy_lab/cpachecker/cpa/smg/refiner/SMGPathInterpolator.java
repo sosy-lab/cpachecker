@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,10 +84,15 @@ public class SMGPathInterpolator {
   private final PathTemplate exportPath;
   private final SMGExportLevel exportWhen;
 
+  private final boolean useEdgeBasedInterpolation = false;
+
+  private final SMGFlowDependenceBasedInterpolator useGraphBasedInterpolator;
+
   public SMGPathInterpolator(ShutdownNotifier pShutdownNotifier,
       SMGInterpolantManager pInterpolantManager,
       SMGEdgeInterpolator pInterpolator, LogManager pLogger,
-      PathTemplate pExportPath, SMGExportLevel pExportWhen, SMGFeasibilityChecker pChecker) {
+      PathTemplate pExportPath, SMGExportLevel pExportWhen, SMGFeasibilityChecker pChecker,
+      SMGFlowDependenceBasedInterpolator pUseGraphBasedInterpolator) {
     shutdownNotifier = pShutdownNotifier;
     interpolantManager = pInterpolantManager;
     interpolator = pInterpolator;
@@ -94,10 +100,11 @@ public class SMGPathInterpolator {
     exportPath = pExportPath;
     exportWhen = pExportWhen;
     checker = pChecker;
+    useGraphBasedInterpolator = pUseGraphBasedInterpolator;
   }
 
   public Map<ARGState, SMGInterpolant> performInterpolation(ARGPath pErrorPath,
-      SMGInterpolant pInterpolant, ARGReachedSet pReachedSet) throws InterruptedException, CPAException {
+      SMGInterpolant pInterpolant, ARGState pRoot, ARGReachedSet pReachedSet) throws InterruptedException, CPAException {
     totalInterpolations.inc();
 
     int interpolationId = idGenerator.incrementAndGet();
@@ -106,22 +113,53 @@ public class SMGPathInterpolator {
 
     interpolationOffset = -1;
 
-    Map<ARGState, SMGInterpolant> interpolants =
-        performEdgeBasedInterpolation(pErrorPath, pInterpolant, pReachedSet);
+    Map<ARGState, SMGInterpolant> interpolants;
 
-    propagateFalseInterpolant(pErrorPath, pErrorPath, interpolants);
-
-    if(exportWhen == SMGExportLevel.EVERY) {
-      exportInterpolation(pErrorPath, interpolants, interpolationId);
+    if (useEdgeBasedInterpolation) {
+      interpolants =
+          performEdgedBasedInterpolation(pErrorPath, (SMGStateInterpolant) pInterpolant,
+              pReachedSet, interpolationId);
+    } else {
+      interpolants = performUseGraphBasedInterpolation(pErrorPath, pRoot, interpolationId, pReachedSet);
     }
 
     logger.log(Level.ALL,
         "Finish generating Interpolants for path with interpolation id ", interpolationId);
 
-    return interpolants;
+    Map<ARGState, SMGInterpolant> result = new HashMap<>(interpolants.size());
+
+    result.putAll(interpolants);
+    return result;
   }
 
-  private void exportInterpolation(ARGPath pErrorPath, Map<ARGState, SMGInterpolant> pInterpolants,
+  private Map<ARGState, SMGInterpolant> performUseGraphBasedInterpolation(ARGPath pErrorPath,
+      ARGState pRoot, int pInterpolationId, ARGReachedSet pReached)
+      throws CPAException, InterruptedException {
+    Map<ARGState, SMGInterpolant> result =
+        useGraphBasedInterpolator.performUseGraphBasedInterpolation(pErrorPath, pRoot, pReached, pInterpolationId);
+    return result;
+  }
+
+  private Map<ARGState, SMGInterpolant> performEdgedBasedInterpolation(
+      ARGPath pErrorPath,
+      SMGStateInterpolant pInterpolant, ARGReachedSet pReachedSet, int interpolationId)
+      throws InterruptedException, CPAException {
+
+    Map<ARGState, SMGStateInterpolant> interpolants =
+        obtainInterpolantsWithEdgeInterpolator(pErrorPath, pInterpolant, pReachedSet);
+
+    propagateFalseInterpolant(pErrorPath, pErrorPath, interpolants);
+
+    if (exportWhen == SMGExportLevel.EVERY) {
+      exportInterpolation(pErrorPath, interpolants, interpolationId);
+    }
+
+    Map<ARGState, SMGInterpolant> result = new HashMap<>(interpolants.size());
+    result.putAll(interpolants);
+    return result;
+  }
+
+  private void exportInterpolation(ARGPath pErrorPath, Map<ARGState, SMGStateInterpolant> pInterpolants,
       int pInterpolationId) {
 
     if (exportPath == null) {
@@ -133,7 +171,7 @@ public class SMGPathInterpolator {
     ARGState firstState = pErrorPath.getFirstState();
 
     if (pInterpolants.containsKey(firstState)) {
-      SMGInterpolant firstInterpolant = pInterpolants.get(firstState);
+      SMGStateInterpolant firstInterpolant = pInterpolants.get(firstState);
       exportFirstInterpolant(firstInterpolant, pInterpolationId);
     }
 
@@ -149,7 +187,7 @@ public class SMGPathInterpolator {
         continue;
       }
 
-      SMGInterpolant currentInterpolant = pInterpolants.get(currentARGState);
+      SMGStateInterpolant currentInterpolant = pInterpolants.get(currentARGState);
       CFANode currentLocation = pathIterator.getLocation();
       CFAEdge currentIncomingEdge = pathIterator.getIncomingEdge();
       exportInterpolant(currentInterpolant, currentLocation, currentIncomingEdge, pInterpolationId,
@@ -158,7 +196,7 @@ public class SMGPathInterpolator {
     }
   }
 
-  private void exportInterpolant(SMGInterpolant pCurrentInterpolant, CFANode pCurrentLocation,
+  private void exportInterpolant(SMGStateInterpolant pCurrentInterpolant, CFANode pCurrentLocation,
       CFAEdge pIncomingEdge, int pInterpolationId, int pPathIndex) {
 
     if (pIncomingEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
@@ -190,7 +228,7 @@ public class SMGPathInterpolator {
     }
   }
 
-  private void exportFirstInterpolant(SMGInterpolant pFirstInterpolant, int pInterpolationId) {
+  private void exportFirstInterpolant(SMGStateInterpolant pFirstInterpolant, int pInterpolationId) {
 
     if (pFirstInterpolant.isFalse()) {
       return;
@@ -261,7 +299,7 @@ public class SMGPathInterpolator {
    */
   private final void propagateFalseInterpolant(final ARGPath errorPath,
       final ARGPath pErrorPathPrefix,
-      final Map<ARGState, SMGInterpolant> pInterpolants) {
+      final Map<ARGState, SMGStateInterpolant> pInterpolants) {
     if (pErrorPathPrefix.size() < errorPath.size()) {
       PathIterator it = errorPath.pathIterator();
       for (int i = 0; i < pErrorPathPrefix.size(); i++) {
@@ -283,26 +321,26 @@ public class SMGPathInterpolator {
    * @param pReachedSet used to extract the current SMGPrecision, useful for heap abstraction interpolation
    * @return the mapping of {@link ARGState}s to {@link Interpolant}
    */
-  private Map<ARGState, SMGInterpolant> performEdgeBasedInterpolation(
+  private Map<ARGState, SMGStateInterpolant> obtainInterpolantsWithEdgeInterpolator(
       ARGPath pErrorPath,
-      SMGInterpolant pInterpolant, ARGReachedSet pReachedSet
+      SMGStateInterpolant pInterpolant, ARGReachedSet pReachedSet
   ) throws InterruptedException, CPAException {
 
     /*We may as well interpolate every possible target error if path contains more than one.*/
     boolean checkAllTargets = !checker.isFeasible(pErrorPath, true);
 
-    Map<ARGState, SMGInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPath.size());
+    Map<ARGState, SMGStateInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPath.size());
 
     PathIterator pathIterator = pErrorPath.pathIterator();
 
-    List<SMGInterpolant> interpolants = new ArrayList<>();
+    List<SMGStateInterpolant> interpolants = new ArrayList<>();
     interpolants.add(pInterpolant);
 
     while (pathIterator.hasNext()) {
 
-      List<SMGInterpolant> resultingInterpolants = new ArrayList<>();
+      List<SMGStateInterpolant> resultingInterpolants = new ArrayList<>();
 
-      for(SMGInterpolant interpolant : interpolants) {
+      for(SMGStateInterpolant interpolant : interpolants) {
         shutdownNotifier.shutdownIfNecessary();
 
         // interpolate at each edge as long as the previous interpolant is not false
@@ -310,7 +348,7 @@ public class SMGPathInterpolator {
 
           ARGState nextARGState = pathIterator.getNextAbstractState();
 
-          List<SMGInterpolant> deriveResult = interpolator.deriveInterpolant(
+          List<SMGStateInterpolant> deriveResult = interpolator.deriveInterpolant(
               pathIterator.getOutgoingEdge(),
               pathIterator.getPosition(),
               interpolant,
@@ -331,7 +369,7 @@ public class SMGPathInterpolator {
 
       pathIterator.advance();
 
-      SMGInterpolant jointResultInterpolant = joinInterpolants(resultingInterpolants);
+      SMGStateInterpolant jointResultInterpolant = joinInterpolants(resultingInterpolants);
 
       ARGState argState = pathIterator.getAbstractState();
       pathInterpolants.put(argState, jointResultInterpolant);
@@ -342,11 +380,11 @@ public class SMGPathInterpolator {
     return pathInterpolants;
   }
 
-  private SMGInterpolant joinInterpolants(List<SMGInterpolant> pResultingInterpolants) {
+  private SMGStateInterpolant joinInterpolants(List<SMGStateInterpolant> pResultingInterpolants) {
 
-    SMGInterpolant result = null;
+    SMGStateInterpolant result = null;
 
-    for (SMGInterpolant interpolant : pResultingInterpolants) {
+    for (SMGStateInterpolant interpolant : pResultingInterpolants) {
       if (result == null) {
         result = interpolant;
       } else {
