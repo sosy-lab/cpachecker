@@ -27,6 +27,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 public enum SMGTransferRelationKind {
 
   REFINMENT,
-  STATIC;
+  STATIC,
+  INTERPOLATION;
 
 }

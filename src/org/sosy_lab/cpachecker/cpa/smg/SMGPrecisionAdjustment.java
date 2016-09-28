@@ -118,7 +118,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     totalAbstraction.start();
 
     SMGState result = pState;
-    SMGState newState = new SMGState(pState);
+    SMGState newState = pState.createSuccessor();
 
     if (forgetDeadVariables) {
       Map<MemoryLocation, SMGRegion> stackVars = newState.getStackVariables();

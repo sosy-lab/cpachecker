@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+
 public class SMGUseFieldVertice implements SMGUseVertice {
 
-  private final SMGMemoryPath field;
+  private final SMGEdgeHasValue field;
   private final int argPos;
 
-  public SMGUseFieldVertice(SMGMemoryPath pField, int pArgPos) {
+  public SMGUseFieldVertice(SMGEdgeHasValue pField, int pArgPos) {
     field = pField;
     argPos = pArgPos;
   }
@@ -38,7 +40,7 @@ public class SMGUseFieldVertice implements SMGUseVertice {
     return argPos;
   }
 
-  public SMGMemoryPath getField() {
+  public SMGEdgeHasValue getField() {
     return field;
   }
 

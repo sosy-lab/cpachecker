@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 
 import java.util.HashMap;
@@ -33,10 +34,17 @@ import java.util.Set;
 
 public class SMGUseGraph<V extends SMGUseVertice, E extends SMGUseGraphEdge<V>> {
 
-  private final Multimap<V, E> graph = HashMultimap.create();
+  private final Multimap<V, E> graph;
 
-  public void addEdge(E edge) {
-    graph.put(edge.getSource(), edge);
+  public SMGUseGraph(Set<E> pGraphEdges) {
+
+    Multimap<V, E> result = HashMultimap.create();
+
+    pGraphEdges.forEach((E pEdge) -> {
+      result.put(pEdge.getSource(), pEdge);
+    });
+
+    graph = ImmutableSetMultimap.copyOf(result);
   }
 
   @Override
@@ -54,7 +62,6 @@ public class SMGUseGraph<V extends SMGUseVertice, E extends SMGUseGraphEdge<V>> 
       int srcPos = source.getPosition();
 
       assert srcPos <= curPos;
-
 
       result.put(source, new SMGUseRange(srcPos, curPos));
       waitlist.add(source);
