@@ -50,7 +50,12 @@ final public class SMGJoin {
   private final SMGNodeMapping mapping1;
   private final SMGNodeMapping mapping2;
 
-  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
+  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2)
+      throws SMGInconsistentException {
+    this(pSMG1, pSMG2, pStateOfSmg1, pStateOfSmg2, false);
+  }
+
+  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2, boolean pAbortWhenNonCover) throws SMGInconsistentException {
     CLangSMG opSMG1 = new CLangSMG(pSMG1);
     CLangSMG opSMG2 = new CLangSMG(pSMG2);
     smg = new CLangSMG(opSMG1.getMachineModel());
@@ -117,7 +122,8 @@ final public class SMGJoin {
       SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
       SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, globalInSMG1, globalInSMG2, destinationGlobal, 0,false, pStateOfSmg1, pStateOfSmg2);
-      if (! jss.isDefined()) {
+      if (!jss.isDefined() || (pAbortWhenNonCover && smg1DoesNotCoverSmg2(status))) {
+        defined = false;
         return;
       }
       status = jss.getStatus();
@@ -138,7 +144,8 @@ final public class SMGJoin {
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject destinationLocal = mapping1.get(localInSMG1);
         SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, localInSMG1, localInSMG2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
-        if (! jss.isDefined()) {
+        if (! jss.isDefined() || (pAbortWhenNonCover && smg1DoesNotCoverSmg2(status))) {
+          defined = false;
           return;
         }
         status = jss.getStatus();
@@ -155,7 +162,8 @@ final public class SMGJoin {
         SMGJoinSubSMGs jss =
             new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, returnObjectInSmg1,
                 returnObjectInSmg2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
-        if (!jss.isDefined()) {
+        if (!jss.isDefined() || (pAbortWhenNonCover && smg1DoesNotCoverSmg2(status))) {
+          defined = false;
           return;
         }
         status = jss.getStatus();
@@ -163,6 +171,16 @@ final public class SMGJoin {
     }
 
     defined = true;
+  }
+
+  private boolean smg1DoesNotCoverSmg2(SMGJoinStatus pStatus) {
+    switch (pStatus) {
+      case EQUAL:
+      case RIGHT_ENTAIL:
+        return true;
+      default:
+        return false;
+    }
   }
 
   public boolean isDefined() {

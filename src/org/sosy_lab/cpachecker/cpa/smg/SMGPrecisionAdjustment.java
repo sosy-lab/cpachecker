@@ -202,6 +202,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
             SMGExportLevel.EVERY, exportOptions);
         logger.log(Level.ALL, "Heap abstraction on node ", pLocation.getNodeNumber(),
             " with state id: ", pState.getId());
+        SMGDebugExporter.dumpPlot("node" + pLocation.getNodeNumber() + "_" + name, result);
+        SMGDebugExporter.dumpPlot("node" + pLocation.getNodeNumber() + "_" + name2, newState);
         result = newState;
       }
     }
