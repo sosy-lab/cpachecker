@@ -106,6 +106,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     boolean allowsHeapAbstraction =
         pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
     boolean allowsStackAbstraction = pPrecision.allowsStackAbstraction();
+    boolean forgetDeadVariables = pPrecision.forgetDeadVariables();
+
 
     if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
@@ -116,6 +118,31 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     SMGState result = pState;
     SMGState newState = new SMGState(pState);
     CFANode node = location.getLocationNode();
+
+    if (forgetDeadVariables) {
+      Set<MemoryLocation> stackVars = newState.getStackVariables().keySet();
+      Set<MemoryLocation> deadVars = pPrecision.getDeadVariablesOnLocation(node, stackVars);
+
+      boolean liveVarChange = false;
+
+      for (MemoryLocation deadVar : deadVars) {
+        SMGStateInformation info = newState.forgetStackVariable(deadVar);
+        liveVarChange = !info.equals(SMGStateInformation.of());
+      }
+
+      if (liveVarChange) {
+        String name =
+            String.format("%03d-%03d-after-forgetting-dead-variables-", result.getId(),
+                newState.getId());
+        String description = "after-forgetting-dead-variables-" + result.getId();
+        SMGUtils.plotWhenConfigured(name, newState, description, logger,
+            SMGExportLevel.EVERY, exportOptions);
+
+        result = newState;
+        logger.log(Level.ALL, "Precision adjustment on node ", node.getNodeNumber(),
+            " with result state id: ", result.getId());
+      }
+    }
 
     if (allowsStackAbstraction) {
       Set<MemoryLocation> stackVariables = pPrecision.getTrackedStackVariablesOnNode(node);
