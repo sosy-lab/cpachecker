@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -152,7 +153,12 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     precisionAdjustment = new SMGPrecisionAdjustment(logger, exportOptions);
 
     abstractDomain = DelegateAbstractDomain.<SMGState> getInstance();
-    mergeOperator = SMGMerge.getInstance();
+
+    if (useSMGMerge) {
+      mergeOperator = SMGMerge.getInstance();
+    } else {
+      mergeOperator = MergeSepOperator.getInstance();
+    }
 
     if(stopType.equals("END_BLOCK")) {
       stopOperator = new SMGStopOperator(abstractDomain);
