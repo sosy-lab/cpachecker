@@ -33,6 +33,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -50,6 +52,9 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -557,6 +562,25 @@ public class SMGPathDependence {
       return new PathPositionMemoryPathDependencys(Sets.union(pNewTargets, pathTargets), scope,
           heapObjectsOfPath, heapObjectToPointerMap, memoryLocations, locationOnStack,
           defaultHeapObjectToPointerConnection, blocks, stackPointer, validHeapObjectsOfPath);
+    }
+  }
+
+  public void exportPathDependence(PathTemplate pExportPath,
+      int pCurrentDependencePathcreationIndex, int pInterpolationId,
+      int pPathDependenceId) {
+
+    if (pExportPath == null) { return; }
+
+    SMGFlowDependencePlotter plotter = new SMGFlowDependencePlotter(smgUseGraph);
+    String pathDependenceDot = plotter.toDot();
+    String fileName = "flowDependenceGraph-" + pCurrentDependencePathcreationIndex + "-id" + pPathDependenceId + ".dot";
+    Path exportPath = pExportPath.getPath(pInterpolationId, fileName);
+
+    try {
+      MoreFiles.writeFile(exportPath, Charset.defaultCharset(), pathDependenceDot);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e,
+          "Failed to write interpolation path to path " + path.toString());
     }
   }
 }

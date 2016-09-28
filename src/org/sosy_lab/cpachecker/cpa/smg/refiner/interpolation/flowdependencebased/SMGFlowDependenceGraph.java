@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,17 +35,54 @@ import java.util.Set;
 
 public class SMGFlowDependenceGraph<V extends SMGFlowDependenceVertice, E extends SMGFlowDependenceEdge<V>> {
 
+  private final Set<V> vertices;
   private final Multimap<V, E> graph;
 
   public SMGFlowDependenceGraph(Set<E> pGraphEdges) {
 
-    Multimap<V, E> result = HashMultimap.create();
+    ImmutableSetMultimap.Builder<V, E> graphBuilder = ImmutableSetMultimap.builder();
+    Set<V> vertices = new HashSet<>();
 
     pGraphEdges.forEach((E pEdge) -> {
-      result.put(pEdge.getTarget(), pEdge);
+      V target = pEdge.getTarget();
+      V source = pEdge.getSource();
+
+      graphBuilder.put(target, pEdge);
+
+      if (!vertices.contains(source)) {
+        vertices.add(source);
+      }
+
+      if (!vertices.contains(target)) {
+        vertices.add(target);
+      }
+
+      vertices.add(pEdge.getTarget());
     });
 
-    graph = ImmutableSetMultimap.copyOf(result);
+    graph = graphBuilder.build();
+    this.vertices = vertices;
+  }
+
+  public SMGFlowDependenceGraph(Set<E> pGraphEdges, Set<V> pVertices) {
+
+    ImmutableSetMultimap.Builder<V, E> graphBuilder = ImmutableSetMultimap.builder();
+
+    pGraphEdges.forEach((E pEdge) -> {
+      graphBuilder.put(pEdge.getTarget(), pEdge);
+    });
+
+    graph = graphBuilder.build();
+    vertices = ImmutableSet.copyOf(pVertices);
+    assert Sets.intersection(vertices, graph.keySet()).equals(graph.keySet());
+  }
+
+  public Multimap<V, E> getAdjacencyList() {
+    return graph;
+  }
+
+  public Set<V> getVertices() {
+    return vertices;
   }
 
   @Override

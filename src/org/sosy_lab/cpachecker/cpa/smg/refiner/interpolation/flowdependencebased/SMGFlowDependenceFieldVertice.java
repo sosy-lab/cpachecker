@@ -45,6 +45,14 @@ public class SMGFlowDependenceFieldVertice implements SMGFlowDependenceVertice {
   }
 
   @Override
+  public String toDotNodeLabel() {
+
+    return "object : " + field.getObject().toString()
+        + "\noffset : " + field.getOffset().getAsLong()
+        + "\nposition : " + argPos;
+  }
+
+  @Override
   public String toString() {
     return "SMGUseFieldVertice [field=" + field + ", argPos=" + argPos + "]";
   }

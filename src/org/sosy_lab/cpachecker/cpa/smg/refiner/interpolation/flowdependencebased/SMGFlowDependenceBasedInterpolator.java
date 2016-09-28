@@ -65,7 +65,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -110,9 +109,14 @@ public class SMGFlowDependenceBasedInterpolator {
 
     SMGPrecision newPrec = SMGPrecision.createRefineablePrecision(originalPrec, true);
 
+    int currentDependencePathcreationIndex = 0;
+
     do {
+
+      currentDependencePathcreationIndex++;
+
       Map<ARGState, SMGInterpolant> newInterpolants =
-          interpolatePath(pErrorPath, pRoot, prevInterpolants, pReached);
+          interpolatePath(pErrorPath, pRoot, prevInterpolants, pReached, currentDependencePathcreationIndex, pInterpolationId);
 
       if (newInterpolants.equals(prevInterpolants)) {
 
@@ -155,11 +159,14 @@ public class SMGFlowDependenceBasedInterpolator {
   }
 
   private Map<ARGState, SMGInterpolant> interpolatePath(ARGPath pErrorPath, ARGState pRoot,
-      Map<ARGState, SMGInterpolant> pPrevInterpolants, ARGReachedSet pReached) throws CPAException, InterruptedException {
-
+      Map<ARGState, SMGInterpolant> pPrevInterpolants, ARGReachedSet pReached, int pCurrentDependencePathcreationIndex, int pInterpolationId) throws CPAException, InterruptedException {
 
     Set<SMGPathDependence> memoryDependence =
         useGraphBuilder.createMemoryDependences(pErrorPath, pRoot, pPrevInterpolants, pReached);
+
+    if (smgExportLevel == SMGExportLevel.EVERY) {
+      exportPathDependence(memoryDependence, pCurrentDependencePathcreationIndex, pInterpolationId);
+    }
 
     if(memoryDependence.size() < 2) {
       return memoryDependence.iterator().next().obtainInterpolantsBasedOnDependency();
@@ -240,7 +247,7 @@ public class SMGFlowDependenceBasedInterpolator {
       return;
     }
 
-    exportCFAPath(pErrorPath.getFullPath(), pInterpolationId);
+    exportCFAPath(pErrorPath, pInterpolationId);
     exportInterpolants(interpolants, pErrorPath, pInterpolationId);
 
     PathIterator it = pErrorPath.fullPathIterator();
@@ -375,15 +382,23 @@ public class SMGFlowDependenceBasedInterpolator {
     }
   }
 
-  private void exportCFAPath(List<CFAEdge> pFullPath, int pInterpolationId) {
+  private void exportCFAPath(ARGPath pPath, int pInterpolationId) {
 
     if(exportPath == null) {
       return;
     }
 
+    PathIterator pPathIterator = pPath.fullPathIterator();
+
     StringBuilder interpolationPath = new StringBuilder();
 
-    for (CFAEdge edge : pFullPath) {
+    while (pPathIterator.advanceIfPossible()) {
+
+      CFAEdge edge = pPathIterator.getIncomingEdge();
+
+      if (edge == null) {
+        continue;
+      }
 
       if(edge.getEdgeType() == CFAEdgeType.BlankEdge) {
         continue;
@@ -399,6 +414,11 @@ public class SMGFlowDependenceBasedInterpolator {
       }
 
       interpolationPath.append(edge.toString());
+      interpolationPath.append(" ");
+      interpolationPath.append("Pos");
+      interpolationPath.append(pPathIterator.getIndex() - 1);
+      interpolationPath.append("->");
+      interpolationPath.append(pPathIterator.getIndex());
       interpolationPath.append("\n");
     }
 
@@ -409,6 +429,23 @@ public class SMGFlowDependenceBasedInterpolator {
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e,
           "Failed to write interpolation path to path " + path.toString());
+    }
+  }
+
+  private void exportPathDependence(Set<SMGPathDependence> pMemoryDependence,
+      int pCurrentDependencePathcreationIndex, int pInterpolationId) {
+
+    if (exportPath == null) {
+      return;
+    }
+
+    int pathDependenceId = 1;
+
+    for (SMGPathDependence pathDependence : pMemoryDependence) {
+
+      pathDependence.exportPathDependence(exportPath, pCurrentDependencePathcreationIndex,
+          pInterpolationId, pathDependenceId);
+      pathDependenceId++;
     }
   }
 }

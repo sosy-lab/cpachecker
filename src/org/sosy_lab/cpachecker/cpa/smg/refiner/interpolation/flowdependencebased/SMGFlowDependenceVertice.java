@@ -28,4 +28,6 @@ public interface SMGFlowDependenceVertice {
 
   public int getPosition();
 
+  public String toDotNodeLabel();
+
 }
