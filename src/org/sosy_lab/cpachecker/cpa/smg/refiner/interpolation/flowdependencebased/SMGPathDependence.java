@@ -90,62 +90,14 @@ public class SMGPathDependence {
   public Map<ARGState, SMGInterpolant> obtainInterpolantsBasedOnDependency()
       throws RefinementFailedException {
 
-    SetMultimap<Integer, SMGMemoryPath> dependentPathFields = HashMultimap.create();
-    SetMultimap<Integer, MemoryLocation> dependentStackVariables = HashMultimap.create();
-
-    createDependentPahs(dependentPathFields, dependentStackVariables, pathEnd);
-
-    return createInterpolants(dependentPathFields, dependentStackVariables, pathEnd);
-  }
-
-  private Map<ARGState, SMGInterpolant> createInterpolants(
-      SetMultimap<Integer, SMGMemoryPath> pDependentPathFields,
-      SetMultimap<Integer, MemoryLocation> pDependentStackVariables, int pPathEnd) {
-
-    PathIterator it = path.fullPathIterator();
-    Map<ARGState, SMGInterpolant> result = new java.util.HashMap<>();
-
-    while (it.hasNext() && !pathPositionMemoryPathDependencys.containsKey(it.getIndex())) {
-      it.advance();
-    }
-
-    do {
-
-      if (!it.isPositionWithState()) {
-        continue;
-      }
-
-      int pos = it.getIndex();
-      ARGState state = it.getAbstractState();
-
-      Set<SMGMemoryPath> pTrackedMemoryPaths = pDependentPathFields.get(pos);
-      Set<MemoryLocation> pTrackedStackVariables = pDependentStackVariables.get(pos);
-      Set<SMGAbstractionBlock> blocks;
-
-      if(pathPositionMemoryPathDependencys.containsKey(pos)) {
-        blocks = pathPositionMemoryPathDependencys.get(pos).getBlocks();
-      } else {
-        blocks = ImmutableSet.of();
-      }
-
-      SMGSimpleInterpolant simpleInterpolant =
-          new SMGSimpleInterpolant(blocks,
-              pTrackedMemoryPaths, pTrackedStackVariables);
-      result.put(state, simpleInterpolant);
-    } while (it.advanceIfPossible() && it.getIndex() <= pPathEnd);
-
-    return result;
-  }
-
-  private void createDependentPahs(SetMultimap<Integer, SMGMemoryPath> pDependentPathFields,
-      SetMultimap<Integer, MemoryLocation> pDependentStackVariables, int pPathEnd) throws RefinementFailedException {
+    ImmutableMap.Builder<ARGState, SMGInterpolant> interpolantBuilder = ImmutableMap.builder();
 
     SetMultimap<Integer, SMGAddress> addressDependency = HashMultimap.create();
     SetMultimap<Integer, SMGObject> stackDependency = HashMultimap.create();
 
     PathIterator it = path.fullPathIterator();
 
-    while (it.getIndex() != pPathEnd) {
+    while (it.getIndex() != pathEnd) {
       it.advance();
     }
 
@@ -155,24 +107,51 @@ public class SMGPathDependence {
         continue;
       }
 
-      int pos = it.getIndex();
+      int pathPosition = it.getIndex();
 
-      if (!pathPositionMemoryPathDependencys.containsKey(pos)) {
+      if (!pathPositionMemoryPathDependencys.containsKey(pathPosition)) {
         break;
       }
 
       PathPositionMemoryPathDependencys positionDependency =
-          pathPositionMemoryPathDependencys.get(pos);
+          pathPositionMemoryPathDependencys.get(pathPosition);
 
-      updateAddressAndStackDependency(addressDependency, stackDependency, positionDependency, pos);
+      updateAddressAndStackDependency(addressDependency, stackDependency, positionDependency, pathPosition);
       Map<SMGObject, SMGAddress> memoryPathMap =
-          createMemoryPathForReachableHeapObjects(addressDependency, stackDependency, positionDependency, pos);
-      Set<SMGAddress> fieldDependence = addressDependency.get(pos);
-      updateResultStackDependency(pDependentStackVariables, stackDependency, positionDependency,
-          pos);
-      updateResultMemoryPaths(pDependentPathFields, fieldDependence,
-          memoryPathMap, positionDependency, pos);
+          createMemoryPathForReachableHeapObjects(addressDependency, stackDependency, positionDependency, pathPosition);
+      Set<SMGAddress> fieldDependence = addressDependency.get(pathPosition);
+
+      Set<SMGMemoryPath> trackedMemoryPathsOfCurrentPosition =
+          createMemoryPathsForPosition(fieldDependence, memoryPathMap, pathPosition);
+
+      Set<MemoryLocation> trackedStackVariablesOfCurrentPosition =
+          createStackMemoryLocationsForPosition(stackDependency, pathPosition);
+
+      ARGState currentARGState = it.getAbstractState();
+      SMGInterpolant interpolantOfPosition = createInterpolant(trackedMemoryPathsOfCurrentPosition,
+          trackedStackVariablesOfCurrentPosition, pathPosition);
+
+      interpolantBuilder.put(currentARGState, interpolantOfPosition);
     } while(it.rewindIfPossible());
+
+    return interpolantBuilder.build();
+  }
+
+  private SMGInterpolant createInterpolant(Set<SMGMemoryPath> pTrackedMemoryPaths,
+      Set<MemoryLocation> pTrackedStackVariables, int pPathPos) {
+
+    Set<SMGAbstractionBlock> blocks;
+
+    if (pathPositionMemoryPathDependencys.containsKey(pPathPos)) {
+      blocks = pathPositionMemoryPathDependencys.get(pPathPos).getBlocks();
+    } else {
+      blocks = ImmutableSet.of();
+    }
+
+    SMGSimpleInterpolant simpleInterpolant =
+        new SMGSimpleInterpolant(blocks,
+            pTrackedMemoryPaths, pTrackedStackVariables);
+    return simpleInterpolant;
   }
 
   private void updateAddressAndStackDependency(
@@ -357,40 +336,55 @@ public class SMGPathDependence {
     heapToPointerMapResult.put(pObjectToReach, defaultAddress);
   }
 
-  private void updateResultStackDependency(
-      SetMultimap<Integer, MemoryLocation> pDependentStackVariables,
+  private Set<MemoryLocation> createStackMemoryLocationsForPosition(
       SetMultimap<Integer, SMGObject> pStackDependency,
-      PathPositionMemoryPathDependencys pPositionDependency,
-      int pPos) {
+      int pPathPosition) {
 
-    Set<SMGObject> stackObjects = pStackDependency.get(pPos);
-    Map<SMGObject, MemoryLocation> memloc = pPositionDependency.getMemoryLocations();
+    ImmutableSet.Builder<MemoryLocation> resultBuilder = ImmutableSet.builder();
 
-    for (SMGObject obj : stackObjects) {
-      if(memloc.containsKey(obj)) {
-        pDependentStackVariables.put(pPos, memloc.get(obj));
+    Set<SMGObject> stackObjects = pStackDependency.get(pPathPosition);
+    PathPositionMemoryPathDependencys positionDependency =
+        pathPositionMemoryPathDependencys.get(pPathPosition);
+    Map<SMGObject, MemoryLocation> positionMemoryLocations =
+        positionDependency.getMemoryLocations();
+
+    for (SMGObject stackObject : stackObjects) {
+      if (positionMemoryLocations.containsKey(stackObject)) {
+        resultBuilder.add(positionMemoryLocations.get(stackObject));
+      } else {
+        logger.log(Level.ALL, () -> {
+          return "Unexpected lack of memory location for stack object : "
+              + stackObject.toString();
+        });
       }
     }
+
+    return resultBuilder.build();
   }
 
-  private void updateResultMemoryPaths(SetMultimap<Integer, SMGMemoryPath> pDependentPathFields,
-      Set<SMGAddress> pFieldDependency, Map<SMGObject, SMGAddress> pMemoryPathMap,
-      PathPositionMemoryPathDependencys pPositionDependency, int pPos)
-      throws RefinementFailedException {
+  private Set<SMGMemoryPath> createMemoryPathsForPosition(Set<SMGAddress> pFieldDependency,
+      Map<SMGObject, SMGAddress> pMemoryPathMap,
+      int pPathPosition) throws RefinementFailedException {
+
+    ImmutableSet.Builder<SMGMemoryPath> resultMemoryPathsBuilder = ImmutableSet.builder();
 
     Map<SMGAddress, SMGMemoryPath> alreadyCreated = new HashMap<>();
+    PathPositionMemoryPathDependencys positionDependency =
+        pathPositionMemoryPathDependencys.get(pPathPosition);
 
     for (SMGAddress field : pFieldDependency) {
 
-      SMGMemoryPath result =
-          createMemoryPath(field, pPositionDependency, pMemoryPathMap, alreadyCreated);
+      SMGMemoryPath resultPath =
+          createMemoryPath(field, positionDependency, pMemoryPathMap, alreadyCreated);
 
-      if(result == null) {
+      if (resultPath == null) {
         continue;
       }
 
-      pDependentPathFields.put(pPos, result);
+      resultMemoryPathsBuilder.add(resultPath);
     }
+
+    return resultMemoryPathsBuilder.build();
   }
 
   private SMGMemoryPath createMemoryPath(SMGAddress pField,
