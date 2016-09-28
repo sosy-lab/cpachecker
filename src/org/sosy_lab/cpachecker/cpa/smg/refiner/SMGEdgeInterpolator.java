@@ -98,7 +98,8 @@ public class SMGEdgeInterpolator {
     postOperator = pStrongestPostOperator;
     interpolantManager = pInterpolantManager;
 
-    strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator, pCFA);
+    strongPrecision =
+        SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator, pCFA, false, false);
     shutdownNotifier = pShutdownNotifier;
     heapAbstractionInterpolator =
         new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker);
@@ -173,7 +174,7 @@ public class SMGEdgeInterpolator {
     SMGPrecision currentPrecision = SMGCEGARUtils.extractSMGPrecision(pReached, pSuccessorARGstate);
 
     if (noChange
-        && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
+        && !currentPrecision.useHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       resultingInterpolants.add(pInputInterpolant);
       return resultingInterpolants;
     }
@@ -182,7 +183,7 @@ public class SMGEdgeInterpolator {
     // (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
     if (onlySuccessor && isOnlyVariableRenamingEdge(pCurrentEdge)
-        && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
+        && !currentPrecision.useHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       SMGInterpolant interpolant =
           interpolantManager.createInterpolant(Iterables.getOnlyElement(successors));
       resultingInterpolants.add(interpolant);
@@ -193,15 +194,15 @@ public class SMGEdgeInterpolator {
 
     for (SMGState state : successors) {
 
-      if (currentPrecision.allowsStackAbstraction()) {
+      if (currentPrecision.useStackAbstraction()) {
         interpolateStackVariables(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
-      if (currentPrecision.allowsFieldAbstraction()) {
+      if (currentPrecision.useFieldAbstraction()) {
         interpolateFields(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
-      if (currentPrecision.allowsHeapAbstraction()) {
+      if (currentPrecision.useHeapAbstraction()) {
         SMGState originalState = new SMGState(state);
         SMGHeapAbstractionInterpoaltionResult heapInterpoaltionResult =
             interpolateHeapAbstraction(state, remainingErrorPath,

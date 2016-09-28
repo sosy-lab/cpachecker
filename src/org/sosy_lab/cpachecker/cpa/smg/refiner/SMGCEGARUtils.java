@@ -31,6 +31,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import java.util.Collection;
+import java.util.Iterator;
+
 public class SMGCEGARUtils {
 
   private SMGCEGARUtils() {}
@@ -45,5 +48,31 @@ public class SMGCEGARUtils {
     });
 
     return (SMGPrecision) Iterables.getOnlyElement(precisions);
+  }
+
+  public static SMGPrecision extractSMGPrecision(ARGReachedSet pReached) {
+
+    Collection<Precision> precisions = pReached.asReachedSet().getPrecisions();
+    Iterator<Precision> it = precisions.iterator();
+    Precision firstPrecision = it.next();
+
+    SMGPrecision smgPrecision =
+
+        (SMGPrecision) Iterables
+            .getOnlyElement(Precisions.asIterable(firstPrecision).filter((Precision prec) -> {
+              return prec instanceof SMGPrecision;
+            }));
+
+    while (it.hasNext()) {
+      SMGPrecision nextPrecision =
+
+          (SMGPrecision) Iterables
+              .getOnlyElement(Precisions.asIterable(it.next()).filter((Precision prec) -> {
+                return prec instanceof SMGPrecision;
+              }));
+      smgPrecision = smgPrecision.join(nextPrecision);
+    }
+
+    return smgPrecision;
   }
 }

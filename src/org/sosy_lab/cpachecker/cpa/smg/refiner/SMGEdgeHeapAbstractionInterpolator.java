@@ -70,7 +70,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     SMGState state = pState;
 
-    if (!pPrecision.allowsHeapAbstractionOnNode(pStateLocation)) {
+    if (!pPrecision.useHeapAbstractionOnNode(pStateLocation)) {
       return SMGHeapAbstractionInterpoaltionResult.emptyAndUnchanged();
     }
 

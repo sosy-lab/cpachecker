@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGAnalysisRefiner.SMGAnalysisRefinerResult;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -102,6 +103,13 @@ public class SMGRefiner implements Refiner {
 
   private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
+  @Option(secure = true, description = "use heap interpoaltion when refining reached set.")
+  private boolean useInterpoaltion = false;
+
+  @Option(secure = true, description = "use analysis refinment when refining reached set."
+      + "Features that cause imprecise results, for example merges of different paths, are deactivated if a spurious counterexample is found.")
+  private boolean useAnalysisRefinment = false;
+
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
@@ -134,7 +142,7 @@ public class SMGRefiner implements Refiner {
     SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
     BlockOperator blockOperator = smgCpa.getBlockOperator();
 
-    smgCpa.injectRefinablePrecision();
+    smgCpa.injectRefinablePrecision(useInterpoaltion);
     smgCpa.setTransferRelationToRefinment(exportRefinmentSMGs);
 
     SMGStrongestPostOperator strongestPostOpForCEX =
@@ -204,10 +212,12 @@ public class SMGRefiner implements Refiner {
     Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
 
-    if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          targetPaths.get(0));
-    }
+    /*Only check if we made progress if we actually use interpoaltion*/
+    if (useInterpoaltion && !madeProgress(targetPaths.get(0))) {
+      throw new RefinementFailedException(
+            Reason.RepeatedCounterexample,
+            targetPaths.get(0));
+     }
 
     return performRefinementForPaths(pReached, targets, targetPaths);
   }
@@ -250,12 +260,53 @@ public class SMGRefiner implements Refiner {
     CounterexampleInfo cex = isAnyPathFeasible(pReached, pTargetPaths);
 
     if (cex.isSpurious()) {
-      SMGInterpolationTree interpolationTree = obtainInterpolants(pTargetPaths, pReached);
-      refineUsingInterpolants(pReached, interpolationTree);
+
+      if (useInterpoaltion) {
+        SMGInterpolationTree interpolationTree = obtainInterpolants(pTargetPaths, pReached);
+        refineUsingInterpolants(pReached, interpolationTree);
+      }
+
+      if (useAnalysisRefinment) {
+        refineAnalysis(pReached, pTargetPaths);
+      }
     }
 
     logger.log(Level.FINEST, "refinement finished");
     return cex;
+  }
+
+  private void refineAnalysis(ARGReachedSet pReached, List<ARGPath> pTargetPaths) throws RefinementFailedException, InterruptedException {
+    SMGPrecision originalPrecision = SMGCEGARUtils.extractSMGPrecision(pReached);
+
+    SMGPrecision refinedPrecision = originalPrecision;
+
+    SMGAnalysisRefiner analysisRefiner = new SMGAnalysisRefiner(refinedPrecision);
+    SMGAnalysisRefinerResult refinedAnalysisResult = analysisRefiner.refineAnalysis();
+    refinedPrecision = refinedAnalysisResult.getPrecision();
+    boolean analysisChanged = refinedAnalysisResult.isChanged();
+
+    if (!analysisChanged && !useInterpoaltion) {
+      throw new RefinementFailedException(
+        Reason.RepeatedCounterexample, pTargetPaths.get(0));
+    }
+
+    if (analysisChanged) {
+      /*Just restart the analysis*/
+      ARGState refinmentRoot = pTargetPaths.iterator().next().pathIterator().getNextAbstractState();
+      refineUsingNewGlobalPrecision(pReached, refinedPrecision, refinmentRoot);
+    }
+  }
+
+  private void refineUsingNewGlobalPrecision(ARGReachedSet pReached,
+      SMGPrecision pNewGlobalPrecision, ARGState refinmentRoot) throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+
+    Predicate<Precision> precisionType = (Precision pPrecision) -> {
+      return pPrecision instanceof SMGPrecision;
+    };
+
+    pReached.removeSubtree(refinmentRoot);
+    pReached.updatePrecisionGlobally(pNewGlobalPrecision, precisionType);
   }
 
   private CounterexampleInfo isAnyPathFeasible(

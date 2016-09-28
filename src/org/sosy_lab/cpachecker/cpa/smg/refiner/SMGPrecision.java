@@ -66,27 +66,33 @@ public abstract class SMGPrecision implements Precision {
   }
 
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction,
-      LogManager pLogger, BlockOperator pBlockOperator, CFA pCFA) {
+      LogManager pLogger, BlockOperator pBlockOperator, CFA pCFA, boolean pUseSMGMerge,
+      boolean pUseLiveVariableAnalysis) {
     SMGPrecisionAbstractionOptions options =
-        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false, true);
+        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false,
+            pUseLiveVariableAnalysis, false, pUseSMGMerge);
     return new SMGStaticPrecision(pLogger, options, pBlockOperator,
         pCFA.getVarClassification().orElse(VariableClassification.empty(pLogger)),
         pCFA.getLiveVariables());
   }
 
+  public abstract SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions);
+
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
 
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
-  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
+  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision,
+      boolean useInterpoaltion) {
 
     SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
     SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
     SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
 
     return new SMGRefineablePrecision(pPrecision.logger,
-        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true,
-            pPrecision.forgetDeadVariables()),
+        new SMGPrecisionAbstractionOptions(pPrecision.useHeapAbstraction(), useInterpoaltion,
+            useInterpoaltion,
+            pPrecision.forgetDeadVariables(), useInterpoaltion, pPrecision.useSMGMerge()),
         pPrecision.getBlockOperator(),
         emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable, pPrecision.getVarClass(),
         pPrecision.getLiveVars());
@@ -94,6 +100,10 @@ public abstract class SMGPrecision implements Precision {
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  public final boolean useInterpoaltion() {
+    return options.useInterpoaltion();
   }
 
   public abstract boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode);
@@ -127,24 +137,28 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract boolean usesHeapInterpoaltion();
 
-  public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode) {
-    return options.allowsHeapAbstraction() && blockOperator.isBlockEnd(pCfaNode, threshold);
+  public boolean useHeapAbstractionOnNode(CFANode pCfaNode) {
+    return options.useHeapAbstraction() && blockOperator.isBlockEnd(pCfaNode, threshold);
   }
 
-  public final boolean allowsHeapAbstraction() {
-    return options.allowsHeapAbstraction();
+  public final boolean useHeapAbstraction() {
+    return options.useHeapAbstraction();
   }
 
-  public final boolean allowsFieldAbstraction() {
-    return options.allowsFieldAbstraction();
+  public final boolean useFieldAbstraction() {
+    return options.useFieldAbstraction();
   }
 
-  public final boolean allowsStackAbstraction() {
-    return options.allowsStackAbstraction();
+  public final boolean useStackAbstraction() {
+    return options.useStackAbstraction();
   }
 
   public boolean forgetDeadVariables() {
     return options.forgetDeadVariables();
+  }
+
+  public boolean useSMGMerge() {
+    return options.useSMGMerge();
   }
 
   protected SMGPrecisionAbstractionOptions getAbstractionOptions() {
@@ -185,7 +199,7 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean usesHeapInterpoaltion() {
-      return allowsHeapAbstraction();
+      return useHeapAbstraction();
     }
 
     @Override
@@ -251,9 +265,15 @@ public abstract class SMGPrecision implements Precision {
       resultAbstractionBlocks.putAll(abstractionBlocks);
       resultAbstractionBlocks.putAll(other.abstractionBlocks);
 
-      assert getAbstractionOptions().equals(pPrecision.getAbstractionOptions());
+      SMGPrecisionAbstractionOptions options = new SMGPrecisionAbstractionOptions(
+          useHeapAbstraction() && pPrecision.useHeapAbstraction(),
+          useFieldAbstraction() && pPrecision.useFieldAbstraction(),
+          useStackAbstraction() && pPrecision.useStackAbstraction(),
+          forgetDeadVariables() && pPrecision.forgetDeadVariables(),
+          useInterpoaltion() && pPrecision.useInterpoaltion(),
+          useSMGMerge());
 
-      return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
+      return new SMGRefineablePrecision(getLogger(), options, getBlockOperator(),
           resultMemoryPaths,
           resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars());
     }
@@ -279,6 +299,13 @@ public abstract class SMGPrecision implements Precision {
       return "SMGRefineablePrecision [trackedMemoryPaths=" + trackedMemoryPaths
           + ", trackedStackVariables=" + trackedStackVariables + ", abstractionBlocks="
           + abstractionBlocks + "]";
+    }
+
+    @Override
+    public SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions) {
+      return new SMGRefineablePrecision(getLogger(), pNewOptions, getBlockOperator(),
+          trackedMemoryPaths,
+          abstractionBlocks, trackedStackVariables, getVarClass(), getLiveVars());
     }
   }
 
@@ -329,37 +356,55 @@ public abstract class SMGPrecision implements Precision {
     public String toString() {
       return "Static precision " + getAbstractionOptions().toString();
     }
+
+    @Override
+    public SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions) {
+      return this;
+    }
   }
 
-  private static final class SMGPrecisionAbstractionOptions {
+  public static final class SMGPrecisionAbstractionOptions {
 
     private final boolean heapAbstraction;
     private final boolean fieldAbstraction;
     private final boolean stackAbstraction;
     private final boolean liveVariableAnalysis;
+    private final boolean useInterpoaltion;
+    private final boolean smgMerge;
 
     public SMGPrecisionAbstractionOptions(boolean pHeapAbstraction, boolean pFieldAbstraction,
-        boolean pStackAbstraction, boolean pLiveVariableAnalysis) {
+        boolean pStackAbstraction, boolean pLiveVariableAnalysis,
+        boolean pUseInterpoaltion, boolean pUseSMGMerge) {
       super();
       heapAbstraction = pHeapAbstraction;
       fieldAbstraction = pFieldAbstraction;
       stackAbstraction = pStackAbstraction;
       liveVariableAnalysis = pLiveVariableAnalysis;
+      useInterpoaltion = pUseInterpoaltion;
+      smgMerge = pUseSMGMerge;
+    }
+
+    public boolean useInterpoaltion() {
+      return useInterpoaltion;
+    }
+
+    public boolean useSMGMerge() {
+      return smgMerge;
     }
 
     public boolean forgetDeadVariables() {
       return liveVariableAnalysis;
     }
 
-    public boolean allowsHeapAbstraction() {
+    public boolean useHeapAbstraction() {
       return heapAbstraction;
     }
 
-    public boolean allowsFieldAbstraction() {
+    public boolean useFieldAbstraction() {
       return fieldAbstraction;
     }
 
-    public boolean allowsStackAbstraction() {
+    public boolean useStackAbstraction() {
       return stackAbstraction;
     }
 
@@ -371,6 +416,8 @@ public abstract class SMGPrecision implements Precision {
       result = prime * result + (heapAbstraction ? 1231 : 1237);
       result = prime * result + (stackAbstraction ? 1231 : 1237);
       result = prime * result + (liveVariableAnalysis ? 1231 : 1237);
+      result = prime * result + (useInterpoaltion ? 1231 : 1237);
+      result = prime * result + (smgMerge ? 1231 : 1237);
       return result;
     }
 
@@ -398,6 +445,12 @@ public abstract class SMGPrecision implements Precision {
       if (liveVariableAnalysis != other.liveVariableAnalysis) {
         return false;
       }
+      if (useInterpoaltion != other.useInterpoaltion) {
+        return false;
+      }
+      if (smgMerge != other.smgMerge) {
+        return false;
+      }
       return true;
     }
 
@@ -405,7 +458,9 @@ public abstract class SMGPrecision implements Precision {
     public String toString() {
       return "SMGPrecisionAbstractionOptions [heapAbstraction=" + heapAbstraction
           + ", fieldAbstraction=" + fieldAbstraction + ", stackAbstraction=" + stackAbstraction
-          + ", liveVariableAnalysis=" + liveVariableAnalysis + "]";
+          + ", liveVariableAnalysis=" + liveVariableAnalysis
+          + ", interpolation=" + useInterpoaltion
+          + ", smgMerge=" + smgMerge + "]";
     }
   }
 }

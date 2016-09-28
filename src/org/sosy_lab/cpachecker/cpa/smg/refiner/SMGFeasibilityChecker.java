@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
+import org.sosy_lab.cpachecker.cpa.smg.SMGPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -65,6 +67,7 @@ public class SMGFeasibilityChecker {
   private final SMGPrecision precision;
   private final CFANode mainFunction;
   private final Set<ControlAutomatonCPA> automatonCPA;
+  private final SMGPrecisionAdjustment precisionAdjustment;
 
   public SMGFeasibilityChecker(SMGStrongestPostOperator pStrongestPostOp, LogManager pLogger,
       CFA pCfa, SMGState pInitialState, Set<ControlAutomatonCPA> pAutomatonCPA,
@@ -72,9 +75,11 @@ public class SMGFeasibilityChecker {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
-    precision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator, pCfa);
+    precision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator, pCfa, false, false);
     mainFunction = pCfa.getMainFunction();
     automatonCPA = pAutomatonCPA;
+    precisionAdjustment =
+        new SMGPrecisionAdjustment(logger, SMGExportDotOption.getNoExportInstance());
   }
 
   private ReachabilityResult isReachable(
@@ -95,22 +100,8 @@ public class SMGFeasibilityChecker {
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
-//        int c = 0;
-
-//        for (SMGState state : next) {
-//          SMGDebugTest.dumpPlot("beforeStrongest" + c, state);
-//          c++;
-//        }
-
         Collection<SMGState> successors =
             strongestPostOp.getStrongestPost(next, precision, edge);
-
-//        c = 0;
-//
-//        for (SMGState state : successors) {
-//          SMGDebugTest.dumpPlot("afterStrongest" + c, state);
-//          c++;
-//        }
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
@@ -121,6 +112,25 @@ public class SMGFeasibilityChecker {
         }
 
         iterator.advance();
+
+        try {
+          successors = FluentIterable.from(successors).transform((SMGState smgState) -> {
+            try {
+              return (SMGState) precisionAdjustment
+                  .prec(smgState, precision, iterator.getLocation())
+                  .get().abstractState();
+            } catch (CPAException e) {
+              throw new RuntimeException(e);
+            }
+          }).toList();
+        } catch (RuntimeException e) {
+          if (e.getCause() instanceof CPAException) {
+            throw (CPAException) e.getCause();
+          } else {
+            throw e;
+          }
+        }
+
         next.clear();
         next.addAll(successors);
       }
