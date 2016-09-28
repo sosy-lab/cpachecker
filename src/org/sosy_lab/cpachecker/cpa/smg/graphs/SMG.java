@@ -672,6 +672,10 @@ public class SMG {
     addPointsToEdge(nullPointer);
   }
 
+  /**
+   * Remove all objects in this smg except the null object
+   * and the return objects of the function frames.
+   */
   public void clearObjects() {
     objects.clear();
     object_validity.clear();

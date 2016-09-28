@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
@@ -50,9 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class SMGStateTest {
@@ -153,10 +150,7 @@ public class SMGStateTest {
     smg1.setValidity(l4, true);
     smg1.setValidity(l5, true);
 
-    Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
-    SMGState smg1State = new SMGState(logger, true,
-        true, SMGRuntimeCheck.NONE, smg1,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+    SMGState smg1State = new SMGState(logger, smg1);
 
     SMGObject head = smg1State.addGlobalVariable(8, "head");
     smg1State.addPointsToEdge(head, 0, 5);
@@ -269,10 +263,7 @@ public class SMGStateTest {
    heap.setValidity(l4, true);
    heap.setValidity(l5, true);
 
-    Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
-    SMGState smg1State = new SMGState(logger, true,
-        true, SMGRuntimeCheck.NONE, heap,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+    SMGState smg1State = new SMGState(logger, heap);
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(8, "head");

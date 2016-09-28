@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
@@ -93,28 +94,80 @@ import javax.annotation.Nullable;
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
 
   // Properties:
+  /**
+   * This property is satisfied if free is called on an address that was
+   * not allocated through malloc, or was already free.
+   */
   public static final String HAS_INVALID_FREES = "has-invalid-frees";
+
+  /**
+   * This property is satisfied if a pointer to an unknown or inaccessible part
+   * of the memory is dereferenced.
+   */
   public static final String HAS_INVALID_READS = "has-invalid-reads";
+
+  /**
+   * This property is satisfied if we write to an unknown or inaccessible part
+   * of the memory.
+   */
   public static final String HAS_INVALID_WRITES = "has-invalid-writes";
+
+  /**
+   * This property is satisfied if the smg contains allocated memory that is
+   * inaccessible.
+   */
   public static final String HAS_LEAKS = "has-leaks";
 
   private final boolean memoryErrors;
   private final boolean unknownOnUndefined;
-  private final boolean morePreciseIsLessOrEqual;
 
+  /**
+   * Calculate smgState1 is less or equal smgState2 precisely by comparing
+   * the join of smgstate1 with smgstate2 to smgstate2. Is needed when
+   * enabling heap abstraction. Is less or equal is used for the stop operator.
+   */
+  private final boolean preciseIsLessOrEqualThroughJoin;
+
+  /**
+   * Creates a unique id for every smg.
+   */
   private final AtomicInteger id_counter;
 
+  /**
+   * Assigns symbolic values of the smg explicit values.
+   */
   private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
+
   private final CLangSMG heap;
   private final LogManager logger;
+
+  /**
+   * The unique id of the smg that was used in the transfer relation
+   * to create this smg.
+   */
   private final int predecessorId;
+
+  /**
+   * The unique id of this smg.
+   */
   private final int id;
 
+  /**
+   * There are several constraints for a smg to be a valid smg.
+   * This option enables checking if these constraints are still
+   * satisfied for this smg.
+   */
   private final SMGRuntimeCheck runtimeCheckLevel;
   private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
   private final int externalAllocationSize;
   private final boolean trackPredicates;
 
+  /**
+   * This flag signals if this smg was created at the end of a block.
+   * Blocks can be configured with the {@link BlockOperator} class.
+   * It is used to determine, when to merge or to calculate coverage with
+   * the stop operator.
+   */
   private boolean blockEnded;
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
@@ -158,10 +211,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pTargetMemoryErrors targets property false valid memtrack
    * @param pUnknownOnUndefined assumes unknown value if undefined
    * @param pSMGRuntimeCheck consistency check threshold
+   * @param pPreciseIsLessOrEqualThroughJoin should is less or equal method be performed with a join
    */
   public SMGState(LogManager pLogger, MachineModel pMachineModel, boolean pTargetMemoryErrors,
       boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, int pExternalAllocationSize,
-      boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
+      boolean pTrackPredicates, boolean pPreciseIsLessOrEqualThroughJoin) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     id_counter = new AtomicInteger(0);
@@ -181,33 +235,48 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = false;
     externalAllocationSize = pExternalAllocationSize;
     trackPredicates = pTrackPredicates;
-    morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
+    preciseIsLessOrEqualThroughJoin = pPreciseIsLessOrEqualThroughJoin;
     blockEnded = false;
   }
 
-  public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
-      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, CLangSMG pHeap,
-      AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues,
-      int pExternalAllocationSize, boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
+  /**
+   * Merge Constructor.
+   *
+   * Keeps Consistency: Yes.
+   *
+   * @param pWeakenedState The smg that is weakened through the merge operator.
+   * @param pHeap the merged smg.
+   * @param pMergedExplicitValues the explicit values of the merges smg.
+   */
+  public SMGState(SMGState pWeakenedState, CLangSMG pHeap,
+      Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
     // merge
     heap = pHeap;
-    logger = pLogger;
-    id_counter = pId;
-    predecessorId = pPredId;
+    logger = pWeakenedState.logger;
+    id_counter = pWeakenedState.id_counter;
+    predecessorId = pWeakenedState.predecessorId;
     id = id_counter.getAndIncrement();
-    memoryErrors = pTargetMemoryErrors;
-    unknownOnUndefined = pUnknownOnUndefined;
-    runtimeCheckLevel = pSMGRuntimeCheck;
-    invalidFree = false;
-    invalidRead = false;
-    invalidWrite = false;
+    memoryErrors = pWeakenedState.memoryErrors;
+    unknownOnUndefined = pWeakenedState.unknownOnUndefined;
+    runtimeCheckLevel = pWeakenedState.runtimeCheckLevel;
+    invalidFree = pWeakenedState.invalidFree;
+    invalidRead = pWeakenedState.invalidRead;
+    invalidWrite = pWeakenedState.invalidWrite;
     explicitValues.putAll(pMergedExplicitValues);
-    trackPredicates = pTrackPredicates;
-    externalAllocationSize = pExternalAllocationSize;
-    morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
-    blockEnded = false;
+    trackPredicates = pWeakenedState.trackPredicates;
+    externalAllocationSize = pWeakenedState.externalAllocationSize;
+    preciseIsLessOrEqualThroughJoin = pWeakenedState.preciseIsLessOrEqualThroughJoin;
+    blockEnded = pWeakenedState.blockEnded;
   }
 
+  /**
+   * Copy constructor for junit Test.
+   *
+   * Keeps Consistency: Yes.
+   *
+   * @param pOriginalState copy of this smg.
+   * @param pSMGRuntimeCheck level of runtime consistency check
+   */
   SMGState(SMGState pOriginalState, SMGRuntimeCheck pSMGRuntimeCheck) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
@@ -223,7 +292,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pOriginalState.invalidWrite;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     trackPredicates = pOriginalState.trackPredicates;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    preciseIsLessOrEqualThroughJoin = pOriginalState.preciseIsLessOrEqualThroughJoin;
     blockEnded = pOriginalState.blockEnded;
   }
 
@@ -250,14 +319,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pOriginalState.invalidWrite;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     trackPredicates = pOriginalState.trackPredicates;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    preciseIsLessOrEqualThroughJoin = pOriginalState.preciseIsLessOrEqualThroughJoin;
     blockEnded = pOriginalState.blockEnded;
   }
 
-  public void setBlockEnded(boolean pBlockEnded) {
-    blockEnded = pBlockEnded;
-  }
-
+  /**
+   * Constructor.
+   *
+   * Keeps Consistency: Yes
+   *
+   * Used when identifying a satisfied property.
+   *
+   * @param pOriginalState state that satisfied a property
+   * @param pProperty property that was satisfied.
+   */
   private SMGState(SMGState pOriginalState, Property pProperty) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
@@ -268,7 +343,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     memoryErrors = pOriginalState.memoryErrors;
     unknownOnUndefined = pOriginalState.unknownOnUndefined;
     runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
+    preciseIsLessOrEqualThroughJoin = pOriginalState.preciseIsLessOrEqualThroughJoin;
     trackPredicates = pOriginalState.trackPredicates;
     externalAllocationSize = pOriginalState.externalAllocationSize;
     blockEnded = pOriginalState.blockEnded;
@@ -297,49 +372,33 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pInvalidRead;
     invalidWrite = pInvalidWrite;
   }
-
-  public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      CLangSMG pHeap, LogManager pLogger, int pExternalAllocationSize,
-      boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
-
-    heap = pHeap;
+/**
+ * Constructor.
+ *
+ * Keeps Consistency: Yes.
+ *
+ * Used for JUnit Testing.
+ *
+ * @param pLogger used to log messages
+ * @param pSmg smg of smgState.
+ */
+  SMGState(LogManager pLogger,
+      CLangSMG pSmg) {
+    heap = pSmg;
     logger = pLogger;
-    explicitValues.putAll(pExplicitValues);
-
-    unknownOnUndefined = false;
-    runtimeCheckLevel = SMGRuntimeCheck.NONE;
-    predecessorId = -1;
-    memoryErrors = false;
-    invalidWrite = false;
-    invalidRead = false;
-    invalidFree = false;
+    predecessorId = 0;
     id_counter = new AtomicInteger(1);
-    id = 0;
-
-    externalAllocationSize = pExternalAllocationSize;
-    trackPredicates = pTrackPredicates;
-    morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
-    blockEnded = false;
-  }
-
-  public SMGState(SMGState pOriginalState, CLangSMG pDestSMG,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pCombinedMap) {
-    heap = pDestSMG;
-    logger = pOriginalState.logger;
-    predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
-    explicitValues.putAll(pCombinedMap);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
-    invalidFree = pOriginalState.invalidFree;
-    invalidRead = pOriginalState.invalidRead;
-    invalidWrite = pOriginalState.invalidWrite;
-    trackPredicates = pOriginalState.trackPredicates;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
-    blockEnded = pOriginalState.blockEnded;
+    memoryErrors = false;
+    unknownOnUndefined = false;
+    runtimeCheckLevel = SMGRuntimeCheck.FULL;
+    invalidFree = false;
+    invalidRead = false;
+    invalidWrite = false;
+    externalAllocationSize = 5;
+    trackPredicates = false;
+    preciseIsLessOrEqualThroughJoin = false;
+    blockEnded = false;
   }
 
   /**
@@ -361,6 +420,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addGlobalObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return new_object;
+  }
+
+  /**
+   * Change if the current smg represents the end of a block defined by {@link BlockOperator}.
+   *
+   * @param pBlockEnded true, if block ends, false otherwise.
+   */
+  public void setBlockEnded(boolean pBlockEnded) {
+    blockEnded = pBlockEnded;
   }
 
   /**
@@ -426,10 +494,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addStackFrame(pFunctionDefinition);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
-
-  /* ********************************************* */
-  /* Non-modifying functions: getters and the like */
-  /* ********************************************* */
 
   /**
    * Constant.
@@ -518,7 +582,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * Returns a address leading from a value. If the target is an abstract heap segment,
    * materialize heap segment.
    *
-   * Constant.
+   * Keeps Consistency.
    *
    * @param pValue A value for which to return the address.
    * @return the address represented by the passed value. The value needs to be
@@ -1201,7 +1265,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Checks, if a symbolic value is an address.
+   * Checks, if a symbolic value has a points-to edge.
+   * Usually, this means the symbolic value represents an address,
+   * but it may also be the end of a heap abstraction after materializing the
+   * points-to edge.
+   *
    *
    * Constant.
    *
@@ -1297,6 +1365,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGValueAndState.of(this);
   }
 
+  /**
+   * Indicates to the smg, that the property invalid read is satisfied.
+   * @return Returns a new smg, that is a copy of this smg and is a target for the
+   * property invalid read.
+   */
   public SMGState setInvalidRead() {
     return new SMGState(this, Property.INVALID_READ);
   }
@@ -1344,6 +1417,42 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return writeValue(pObject, pOffset, pType, value);
   }
 
+  /**
+   * Writes a unknown value to an unknown field consisting of an unknown offset and
+   * the given object. Always leads to invalid read. The result is that every field
+   * of the target object should return an unknown value.
+   *
+   * @param target this object is part of the unknown field that should be written to the smg.
+   */
+  public void writeUnknownValueInUnknownField(SMGObject target) {
+    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(target));
+    hves.forEach((SMGEdgeHasValue hve) -> {
+      heap.removeHasValueEdge(hve);
+    });
+  }
+
+  /**
+   * Write an unknown value to an unknown field.
+   * Essentially this overwrites the complete smg and should
+   * cause an invalid write.
+   */
+  public void unknownWrite() {
+    heap.unknownWrite();
+  }
+
+  /**
+   * Adds a points-to edge to the smg.
+   *
+   * Keeps Consistency: No. The Consistency is violated, if two different
+   * points to edges point to the same address.
+   *
+   * This will override a points-to-edge if the given value
+   * already is a pointer.
+   *
+   * @param pObject the target object of the pointer.
+   * @param pOffset the target offset of the pointer.
+   * @param pValue the value of the points to edge.
+   */
   public void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
@@ -1418,14 +1527,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return new SMGStateEdgePair(this, new_edge);
   }
 
-  public boolean isObjectExternallyAllocated(SMGObject pObject) {
-    return heap.isObjectExternallyAllocated(pObject);
-  }
-
-  public boolean isBlockEnded() {
-    return blockEnded;
-  }
-
+  /**
+   * This class represents a pair of a {@link SMGState} state and a {@link SMGEdgeHasValue} edge.
+   */
   public static class SMGStateEdgePair {
 
     private final SMGState smgState;
@@ -1452,6 +1556,24 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     public SMGState getState() {
       return smgState;
     }
+
+    @Override
+    public String toString() {
+      return "SMGStateEdgePair [smgState=" + smgState + ", edge=" + edge + "]";
+    }
+  }
+
+  public boolean isObjectExternallyAllocated(SMGObject pObject) {
+    return heap.isObjectExternallyAllocated(pObject);
+  }
+
+  /**
+   * Indicates if the smg represents the end of a block. Configured by {@link BlockOperator}.
+   *
+   * @return true iff this smg represents the end of a block.
+   */
+  public boolean isBlockEnded() {
+    return blockEnded;
   }
 
   private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
@@ -1502,8 +1624,31 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public SMGState join(SMGState reachedState) {
-    // Not necessary if merge_SEP or SMGMerge and stop_SEP is used.
-    throw new UnsupportedOperationException();
+
+    SMGJoin join;
+
+    try {
+      join = new SMGJoin(heap, reachedState.heap, this, reachedState);
+    } catch (SMGInconsistentException e) {
+      logger.log(Level.WARNING, () -> {
+        return "Coarse join due to exception:" + e.toString();
+      });
+
+      return reachedState.createEmptyState();
+    }
+
+    if (!join.isDefined()) {
+      return reachedState.createEmptyState();
+    }
+
+    return createStateFromJoin(join, reachedState, true);
+  }
+
+  private SMGState createEmptyState() {
+    SMGState emptyState = new SMGState(this);
+    emptyState.clearValues();
+    emptyState.clearObjects();
+    return emptyState;
   }
 
   /**
@@ -1552,11 +1697,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         mergeExplicitValues(explicitValues, pState.explicitValues, pJoinExplicitValues,
             join.getMapping1(), join.getMapping2());
 
-    SMGState result =
-        new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
-            id_counter, predecessorId, mergedExplicitValues, pState.externalAllocationSize,
-            pState.trackPredicates, morePreciseIsLessOrEqual);
+    SMGState result = new SMGState(pState, destHeap, mergedExplicitValues);
 
+    SMGDebugExporter.dumpPlot("Merge-" + id + "-" + pState.getId() + "-" + result.getId(), result);
 
     return result;
   }
@@ -1618,7 +1761,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return false;
     }
 
-    if(morePreciseIsLessOrEqual) {
+    if(preciseIsLessOrEqualThroughJoin) {
 
       SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 
@@ -1698,24 +1841,64 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
+  /**
+   * Add a global object to the SMG
+   *
+   * Keeps consistency: no
+   *
+   * With checks: throws {@link IllegalArgumentException} when asked to add
+   * an object already present, or an global object with a label identifying
+   * different object
+
+   * @param newObject Object to add
+   */
   public void addGlobalObject(SMGRegion newObject) {
     heap.addGlobalObject(newObject);
   }
 
+  /**
+   * Checks if the variable name is global in the current scope.
+   *
+   * @param variable the identifier of the variable
+   * @return true iff the variable name is assigned an object in this smg in
+   *              the current scope and the object is a global object.
+   */
   public boolean isGlobal(String variable) {
     return heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
   }
 
+  /**
+   * Checks if the given object is a global object.
+   *
+   * @param object the object to be checked
+   * @return true iff the given object is global.
+   */
   public boolean isGlobal(SMGObject object) {
     return heap.getGlobalObjects().containsValue(object);
   }
 
+  /**
+   * Checks if the given object is a heap object
+   * and not part of the stack.
+   *
+   * @param object the object to be checked
+   * @return true iff the given object is part of the heap
+   *                and not the stack.
+   */
   public boolean isHeapObject(SMGObject object) {
     return heap.getHeapObjects().contains(object);
   }
 
-  /** memory allocated in the heap has to be freed by the user,
-   * otherwise this is a memory-leak. */
+  /**
+   * Memory allocated in the heap.
+   * Has to be freed by the user, otherwise this is a memory-leak.
+   *
+   * @param pSize the size of the heap allocation in bytes.
+   * @param pLabel the label of the heap allocation.
+   * @return the address value of the newly allocated heap allocation
+   * @throws SMGInconsistentException thrown if the current smg became inconsistent
+   *                                  due to adding the current heap allocation. (Only checked if runtimeCheck is enabled and half or finer.)
+   */
   public SMGAddressValue addNewHeapAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
@@ -1745,7 +1928,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGKnownAddVal.valueOf(new_value, new_object, externalAllocationSize/2);
   }
 
-  /** memory allocated on the stack is automatically freed when leaving the current function scope */
+  /**
+   * Memory allocated on the stack.
+   * It is automatically freed when leaving the current function scope.
+   *
+   * @param pSize the size of the stack allocation in bytes.
+   * @param pLabel the label of the stack allocation.
+   * @return the address value of the newly allocated stack allocation
+   * @throws SMGInconsistentException thrown if the current smg became inconsistent
+   *                                  due to adding the current stack allocation. (Only checked if runtimeCheck is enabled and half or finer.)
+   */
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
@@ -1758,10 +1950,22 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGKnownAddVal.valueOf(new_value, new_object, 0);
   }
 
+  /**
+   * Sets a flag indicating this SMG is a successor over the edge causing a
+   * memory leak.
+   *
+   * Keeps consistency: yes
+   */
   public void setMemLeak() {
     heap.setMemoryLeak();
   }
 
+  /**
+   * Check if the given symbolic value is part of the smg.
+   *
+   * @param value check this symbolic value
+   * @return true iff the value is in the smg.
+   */
   public boolean containsValue(int value) {
     return heap.getValues().contains(value);
   }
@@ -1883,6 +2087,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
+  /**
+   * Prune the SMG: remove all unreachable objects (heap ones: global and stack
+   * are always reachable) and values.
+   *
+   * Keeps consistency: yes
+   */
   public void pruneUnreachable() throws SMGInconsistentException {
     heap.pruneUnreachable();
     //TODO: Explicit values pruning
@@ -1890,16 +2100,29 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
+   *
    *  Signals an invalid free call.
+   *
+   * @return a new smgState that indicates the given property is satisfied.
    */
   public SMGState setInvalidFree() {
     return new SMGState(this, Property.INVALID_FREE);
   }
 
+  /**
+   * Getter for obtaining unmodifiable view on Has-Value edges set, filtered by
+   * a certain set of criteria.
+   * @param pFilter Filtering object
+   * @return A set of Has-Value edges for which the criteria in p hold
+   */
   public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return heap.getHVEdges(pFilter);
   }
 
+  /**
+   * Getter for obtaining unmodifiable view on Has-Value edges set. Constant.
+   * @return Unmodifiable view on Has-Value edges set.
+   */
   public Set<SMGEdgeHasValue> getHVEdges() {
     return heap.getHVEdges();
   }
@@ -2007,11 +2230,24 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return new SMGState(this, Property.INVALID_WRITE);
   }
 
+  /**
+   * Getter for obtaining designated NULL object. Constant.
+   * @return An object guaranteed to be the only NULL object in the SMG
+   */
   public SMGObject getNullObject() {
     return heap.getNullObject();
   }
 
-  public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+  /**
+   * Merge these two symbolic values, that were identified to be the
+   * same value through an assumption. Replaces the second value in the smg with the first.
+   *
+   * Analysis becomes unsound if the two values are actually different.
+   *
+   * @param pKnownVal1 first symbolic value to be merged
+   * @param pKnownVal2 second symbolic value to be merged
+   */
+  public void mergeEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
 
     assert !isInNeq(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
@@ -2024,7 +2260,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+  /**
+   * Identifies two symbolic values as explicitly different.
+   *
+   * Analysis becomes unsound if the two values are actually different.
+   *
+   * @param pKnownVal1 first symbolic value
+   * @param pKnownVal2 second symbolic value
+   */
+  public void setNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
@@ -2096,6 +2340,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.resetErrorRelation();
   }
 
+  /**
+   * Assign a symbolic value an explicit value.
+   * If the explicit value already exists, merge the symbolic values with
+   * the same explicit value. This method will always replace the other symbolic
+   * value when merging, so that the given symbolic values is guaranteed to be
+   * assigned the given explicit value.
+   *
+   * @param pKey assign the explicit value this symbolic value.
+   * @param pValue assign this explicit value the given symbolic value
+   */
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
 
     if (explicitValues.inverse().containsKey(pValue)) {
@@ -2113,10 +2367,21 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     explicitValues.put(pKey, pValue);
   }
 
+  /**
+   * Remove the explicit value of the given symbolic value.
+   *
+   * @param pKey remove the explicit value of this symbolic value.
+   */
   public void clearExplicit(SMGKnownSymValue pKey) {
     explicitValues.remove(pKey);
   }
 
+  /**
+   * Checks, if the given symbolic values has an explicit value assigned.
+   *
+   * @param value check this symbolic value
+   * @return true iff the given symbolic value has an explicit value assigned.
+   */
   boolean isExplicit(int value) {
     SMGKnownSymValue key = SMGKnownSymValue.valueOf(value);
 
@@ -2130,6 +2395,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return explicitValues.get(key);
   }
 
+  /**
+   * Get the assigned explicit value of the given symbolic value, or an unknown explicit
+   * value if no explicit value has been assigned to the given symbolic value.
+   *
+   * @param pKey get explicit value assigned to this symbolic value.
+   * @return an explicit value assigned to the given symbolic value
+   */
   public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
     if (explicitValues.containsKey(pKey)) {
       return explicitValues.get(pKey);
@@ -2149,6 +2421,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return invalidFree || invalidRead || invalidWrite || heap.hasMemoryLeaks();
   }
 
+  /**
+   * Check if the given symbolic values are explicitly different.
+   * This method only checks if the given values are in the not equal relation.
+   *
+   * @param pValue1 first symbolic value
+   * @param pValue2 second symbolic value
+   * @return true iff the given symbolic values are explicitly different.
+   */
   public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {
 
     if (pValue1.isUnknown() || pValue2.isUnknown()) {
@@ -2162,6 +2442,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.createIDExpression(pObject);
   }
 
+  /**
+   * Get an unique object representing a function declaration with an unknown
+   * size.
+   *
+   * @param pDeclaration get the unique object for the function of this declaration.
+   * @return returns an object that represents the given function.
+   */
   public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
 
     /* Treat functions as global objects with unnkown memory size.
@@ -2171,6 +2458,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
   }
 
+  /**
+   * Create an unique object representing a function declaration with an unknown
+   * size and add it to the smg.
+   *
+   * @param pDeclaration create the unique object for the function of this declaration.
+   * @return returns an object that represents the given function.
+   */
   public SMGObject createObjectForFunction(CFunctionDeclaration pDeclaration)
       throws SMGInconsistentException {
 
@@ -2196,8 +2490,25 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
+   * Try to abstract heap segments meaningfully. Execute exactly one step of the heap abstraction.
+   *
+   *
+   * @param pResult The blocks that prevent specified objects to be abstracted.
+   * @return the abstraction executed in this step represented by the returned abstraction candidate.
+   *          If no abstraction was executed, returns a unknown instance of the abstraction candidate.
+   * @throws SMGInconsistentException Heap abstraction constructed an inconsistent smg.
+   */
+  public SMGAbstractionCandidate executeHeapAbstractionOneStep(Set<SMGAbstractionBlock> pResult)
+      throws SMGInconsistentException {
+    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, pResult, 2, 2, 2);
+    SMGAbstractionCandidate result = manager.executeOneStep();
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return result;
+  }
+
+  /**
    * Try to abstract heap segments meaningfully.
-   * @throws SMGInconsistentException Join lead to inconsistent smg.
+   * @throws SMGInconsistentException Heap abstraction constructed an inconsistent smg.
    */
   public void executeHeapAbstraction() throws SMGInconsistentException {
     SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this);
@@ -2205,6 +2516,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
+  /**
+   * Try to abstract heap segments meaningfully.
+   *
+   * @param blocks blocks heap abstraction on specified objects with specified shape.
+   * @param pThreshold configures the minimum threshold of the number of segments in a abstraction
+   * @return true, iff at least one new heap abstraction was executed.
+   * @throws SMGInconsistentException Heap abstraction constructed an inconsistent smg.
+   */
   public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks,
       SMGHeapAbstractionThreshold pThreshold)
       throws SMGInconsistentException {
@@ -2270,60 +2589,126 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getPointer(pSymbolicValue);
   }
 
+  /**
+   * Returns the size of the has-value-edges in the smg.
+   *
+   * @return Returns the size of the has-value-edges in the smg.
+   */
   public int sizeOfHveEdges() {
     return heap.getHVEdges().size();
   }
 
+  /**
+   * Calculates the memory paths of this smg.
+   *
+   * This method goes through the smg and calculates for each reachable
+   * field in the smg exactly one memory path.
+   * This method makes no guarantees which path to a field is given,
+   * except that no path will contain redundant edges due to cycles in the path.
+   *
+   * A set of memory paths remains stable, meaning the field it points to can be found
+   * if it still exists, when adding has-value-edges. It also remains stable when
+   * removing has-value-edges iff the value of the edge is not a pointer, or the pointer
+   * is not part of the prefix of a memory path in the set.
+   *
+   *
+   * @return A set of memory paths representing all fields of the smg.
+   */
   public Set<SMGMemoryPath> getMemoryPaths() {
     return heap.getMemoryPaths();
   }
 
-  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath location) {
-    return heap.forget(location);
+  /**
+   * Tries to remove the has-value-edge from the smg, that is represented
+   * by the given memory path. If the given has-value-edge can be found and
+   * removed, this method returns the has-value-edge that was just removed.
+   *
+   * @param pLocation remove the has-value-edge represented by this memory path.
+   * @return Returns the removed has-value-edge, or nothing if the removal was not
+   * successful.
+   */
+  public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) {
+    return heap.forget(pLocation);
   }
 
+  /**
+   * Creates an interpolant based on this smg and the given abstraction blocks.
+   *
+   * @param pAbstractionBlocks include these abstraction blocks in the interpolant.
+   * @return Interpolant based on this state.
+   */
   public SMGInterpolant createInterpolant(Set<SMGAbstractionBlock> pAbstractionBlocks) {
     return new SMGInterpolant(ImmutableSet.of(this), pAbstractionBlocks);
   }
 
+  /**
+   * Creates an interpolant based on this smg.
+   *
+   * @return Interpolant based on this state.
+   */
   public SMGInterpolant createInterpolant() {
     return new SMGInterpolant(ImmutableSet.of(this));
   }
 
+  /**
+   * Remove all values and every edge from the smg, except the 0 edge, so that
+   * the smg remains consistent.
+   */
   public void clearValues() {
     heap.clearValues();
   }
 
-  public void writeUnknownValueInUnknownField(SMGObject target) {
-    Set<SMGEdgeHasValue> hves = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(target));
-    hves.forEach((SMGEdgeHasValue hve) -> {
-      heap.removeHasValueEdge(hve);
-    });
-  }
-
+  /**
+   * Remove all objects in this smg except the null object
+   * and the return objects of the function frames.
+   */
   public void clearObjects() {
     heap.clearObjects();
   }
 
+  /**
+   * Calculate the intersection of two smgs. The resulting smg represents the states
+   * that both this state and the given state represents.
+   *
+   * @param pOtherState the state, that this state will be intersected with.
+   * @return the intersection of this and the given state, or unknown, if no
+   *         intersection can be calculated.
+   */
   public SMGIntersectionResult intersectStates(SMGState pOtherState) {
     return SMGIntersectStates.intersect(this, heap, pOtherState, pOtherState.heap, explicitValues,
         pOtherState.explicitValues);
   }
 
-  public SMGAbstractionCandidate executeHeapAbstractionOneStep(Set<SMGAbstractionBlock> pResult)
-      throws SMGInconsistentException {
-    SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, pResult, 2, 2, 2);
-    SMGAbstractionCandidate result = manager.executeOneStep();
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return result;
-  }
-
+  /**
+   * Calculates the memory paths of this smg.
+   *
+   * This method goes through the smg and calculates for each reachable
+   * heap object in the smg exactly one memory path.
+   * This method makes no guarantees which path to a heap object is given,
+   * except that no path will contain redundant edges due to cycles in the path.
+   *
+   * A set of memory paths remains stable, meaning the heap object it points to can be found
+   * if it still exists, when adding has-value-edges. It also remains stable when
+   * removing has-value-edges iff the value of the edge is not a pointer, or the pointer
+   * is not part of the prefix of a memory path in the set.
+   *
+   *
+   * @return A map of heap objects as keys and memory paths as values, representing all heap objects of the smg.
+   */
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
     return heap.getHeapObjectMemoryPaths();
   }
 
+  /**
+   * Remove all has-value-edges not represented by the given set of memory paths.
+   *
+   * @param pMempaths A set of memory paths representing has-value-edges. All has-value-edges not represented
+   *                  by the given path will be erased.
+   * @return true iff at least one has-value-edge was removed by this method.
+   */
   public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) {
 
+    /* First, get all hves that are represented by the given memory paths.*/
     Set<SMGEdgeHasValue> trackkedHves = new HashSet<>(pMempaths.size());
     Set<Integer> trackedValues = new HashSet<>();
     trackedValues.add(0);
@@ -2339,6 +2724,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     boolean change = false;
 
+    /*Second, remove edges not found. At the moment, we won't remove abstraction edges, due to errors that may occur because of them.*/
     for (SMGEdgeHasValue edge : heap.getHVEdges()) {
 
       //TODO Robust heap abstraction?
@@ -2353,6 +2739,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       }
     }
 
+    /*
+     * Lastly, remove all values, that don't occur in the has-value-edges anymore.
+     */
     if (change) {
       for (Integer value : ImmutableSet.copyOf(heap.getValues())) {
         if (!trackedValues.contains(value)) {
@@ -2366,14 +2755,30 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return change;
   }
 
+  /**
+   * Remove given has-value-edge.
+   *
+   * @param pHveEdge remove this edge.
+   */
   public void forget(SMGEdgeHasValue pHveEdge) {
     heap.removeHasValueEdge(pHveEdge);
   }
 
+  /**
+   * Add given has-value-edge.
+   *
+   * @param pHveEdge Add this edge.
+   */
   public void remember(SMGEdgeHasValue pHveEdge) {
     heap.addHasValueEdge(pHveEdge);
   }
 
+  /**
+   * Calculate a map of all stack variable memory locations, and their regions.
+   * This method only has a defined behavior if their is no recursion in the program.
+   *
+   * @return Returns a map with memory locations as keys and region as objects.
+   */
   public Map<MemoryLocation, SMGRegion> getStackVariables() {
 
     Map<MemoryLocation, SMGRegion> result = new HashMap<>();
@@ -2397,6 +2802,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return result;
   }
 
+  /**
+   * Remove all stack variable objects except the variables represented by the given memory locations.
+   *
+   * This method has only defined behavior, if the program has no recursions.
+   *
+   * @param pTrackedStackVariables the memory locations represent variables that should not be removed.
+   * @return true iff at least one variable was removed.
+   */
   public boolean forgetNonTrackedStackVariables(Set<MemoryLocation> pTrackedStackVariables) {
 
     boolean change = false;
@@ -2425,23 +2838,46 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return change;
   }
 
+  /**
+   * Remove the stack variable represented by the given memory location.
+   * @param pMemoryLocation memory location representing a stack variable that should be removed.
+   * @return information on the removed variable. If the variable could not be found, this is empty.
+   */
   public SMGStateInformation forgetStackVariable(MemoryLocation pMemoryLocation) {
     return heap.forgetStackVariable(pMemoryLocation);
   }
 
+  /**
+   * Add a variable to the smg to the location that is represented by the given memory location.
+   * The given region, representing the stack variable, is added to the smg.
+   * Further edges are added based on the given information.
+   *
+   * @param pMemoryLocation represents the stack variable to be added to the smg.
+   * @param pRegion region to be added to the smg
+   * @param pInfo contains edges that contain fields of the variable to be added to the smg
+   */
   public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
       SMGStateInformation pInfo) {
     heap.remember(pMemoryLocation, pRegion, pInfo);
   }
 
-  public void unknownWrite() {
-    heap.unknownWrite();
-  }
-
+  /**
+   * Get the current top stack frame representing the current scope.
+   *
+   * @return the current top stack frame.
+   */
   public CLangStackFrame getStackFrame() {
     return heap.getStackFrames().peek();
   }
 
+  /**
+   * Filter the given dead variables for refereces that could indirectly cause
+   * them to be referenced, even though they are not directly called, or pointer
+   * that could lead to memory leaks if they are dropped.
+   *
+   * @param pDeadVarsMap a map that represent a set of possible dead variables.
+   * @return a set of memory locations that contain no live references, causing them to be definitely dead.
+   */
   public Set<MemoryLocation> filterLiveReference(Map<MemoryLocation, SMGRegion> pDeadVarsMap) {
     Predicate<? super Entry<MemoryLocation, SMGRegion>> liveReferenceFilter =
         (Entry<MemoryLocation, SMGRegion> pEntry) -> {

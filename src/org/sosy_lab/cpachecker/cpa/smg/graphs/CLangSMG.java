@@ -761,6 +761,22 @@ public class CLangSMG extends SMG {
     return super.hashCode();
   }
 
+  /**
+   * Calculates the memory paths of this smg.
+   *
+   * This method goes through the smg and calculates for each reachable
+   * field in the smg exactly one memory path.
+   * This method makes no guarantees which path to a field is given,
+   * except that no path will contain redundant edges due to cycles in the path.
+   *
+   * A set of memory paths remains stable, meaning the field it points to can be found
+   * if it still exists, when adding has-value-edges. It also remains stable when
+   * removing has-value-edges iff the value of the edge is not a pointer, or the pointer
+   * is not part of the prefix of a memory path in the set.
+   *
+   *
+   * @return A set of memory paths representing all fields of the smg.
+   */
   public Set<SMGMemoryPath> getMemoryPaths() {
 
     Set<SMGMemoryPath> result = new HashSet<>();
@@ -873,7 +889,8 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * Remove all values and every edge from the smg.
+   * Remove all values and every edge from the smg, except the 0 edge, so that
+   * the smg remains consistent.
    */
   public void clearValues() {
     clearValuesHvePte();
@@ -897,6 +914,22 @@ public class CLangSMG extends SMG {
     heap_objects.add(getNullObject());
   }
 
+  /**
+   * Calculates the memory paths of this smg.
+   *
+   * This method goes through the smg and calculates for each reachable
+   * heap object in the smg exactly one memory path.
+   * This method makes no guarantees which path to a heap object is given,
+   * except that no path will contain redundant edges due to cycles in the path.
+   *
+   * A set of memory paths remains stable, meaning the heap object it points to can be found
+   * if it still exists, when adding has-value-edges. It also remains stable when
+   * removing has-value-edges iff the value of the edge is not a pointer, or the pointer
+   * is not part of the prefix of a memory path in the set.
+   *
+   *
+   * @return A map of heap objects as keys and memory paths as values, representing all heap objects of the smg.
+   */
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
 
     Map<SMGObject, SMGMemoryPath> result = new HashMap<>();
@@ -1015,6 +1048,15 @@ public class CLangSMG extends SMG {
     removeObjectAndEdges(obj);
   }
 
+  /**
+   * Tries to remove the has-value-edge from the smg, that is represented
+   * by the given memory path. If the given has-value-edge can be found and
+   * removed, this method returns the has-value-edge that was just removed.
+   *
+   * @param pLocation remove the has-value-edge represented by this memory path.
+   * @return Returns the removed has-value-edge, or nothing if the removal was not
+   * successful.
+   */
   public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) {
 
     Optional<SMGEdgeHasValue> edgeToForget = getHVEdgeFromMemoryLocation(pLocation);
@@ -1130,6 +1172,11 @@ public class CLangSMG extends SMG {
     addObject(pRegion, pInfo.isValid(), pInfo.isExternal());
   }
 
+  /**
+   * Write an unknown value to an unknown field.
+   * Essentially this overwrites the complete smg and should
+   * cause an invalid write.
+   */
   public void unknownWrite() {
     clearValues();
   }
