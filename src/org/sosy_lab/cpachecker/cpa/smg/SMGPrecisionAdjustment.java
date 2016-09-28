@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -50,6 +51,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -107,9 +110,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     boolean allowsStackAbstraction = pPrecision.useStackAbstraction();
     boolean forgetDeadVariables = pPrecision.forgetDeadVariables();
 
-    if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
+    if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction
+        && !forgetDeadVariables) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
-    }
+      }
 
     totalAbstraction.start();
 
@@ -117,8 +121,16 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     SMGState newState = new SMGState(pState);
 
     if (forgetDeadVariables) {
-      Set<MemoryLocation> stackVars = newState.getStackVariables().keySet();
-      Set<MemoryLocation> deadVars = pPrecision.getDeadVariablesOnLocation(pLocation, stackVars);
+      Map<MemoryLocation, SMGRegion> stackVars = newState.getStackVariables();
+      Set<MemoryLocation> deadVars =
+          pPrecision.getDeadVariablesOnLocation(pLocation, stackVars.keySet());
+      Map<MemoryLocation, SMGRegion> deadVarsMap = new HashMap<>(deadVars.size());
+
+      deadVars.forEach((MemoryLocation pDeadVar) -> {
+        deadVarsMap.put(pDeadVar, stackVars.get(pDeadVar));
+      });
+
+      deadVars = newState.filterLiveReference(deadVarsMap);
 
       boolean liveVarChange = false;
 

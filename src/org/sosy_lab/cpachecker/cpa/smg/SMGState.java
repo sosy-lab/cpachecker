@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -2406,5 +2409,35 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public CLangStackFrame getStackFrame() {
     return heap.getStackFrames().peek();
+  }
+
+  public Set<MemoryLocation> filterLiveReference(Map<MemoryLocation, SMGRegion> pDeadVarsMap) {
+    Predicate<? super Entry<MemoryLocation, SMGRegion>> liveReferenceFilter =
+        (Entry<MemoryLocation, SMGRegion> pEntry) -> {
+          return !hasLiveReference(pEntry.getValue());
+        };
+
+    Function<Entry<MemoryLocation, SMGRegion>, MemoryLocation> toKeySet =
+        (Entry<MemoryLocation, SMGRegion> pEnntry) -> {
+          return pEnntry.getKey();
+        };
+
+    return FluentIterable.from(pDeadVarsMap.entrySet()).filter((liveReferenceFilter))
+        .transform(toKeySet).toSet();
+  }
+
+  private boolean hasLiveReference(SMGRegion pRegion) {
+
+    for (SMGEdgeHasValue hve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pRegion))) {
+      int value = hve.getValue();
+      if (isPointer(value)) {
+        SMGObject target = getPointsToEdge(value).getObject();
+        if (heap.isHeapObject(target) && heap.isObjectValid(target)) {
+          return true;
+        }
+      }
+    }
+
+    return heap.getPointerToObject(pRegion).size() > 0;
   }
 }
