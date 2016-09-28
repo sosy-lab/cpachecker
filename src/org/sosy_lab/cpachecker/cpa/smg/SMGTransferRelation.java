@@ -3251,6 +3251,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     public static SMGAddress getUnknownInstance() {
       return UNKNOWN;
     }
+
+    public boolean isTargetObjectUnknown() {
+      return object == null;
+    }
   }
 
   public void changeKindToRefinment() {

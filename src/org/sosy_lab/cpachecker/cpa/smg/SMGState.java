@@ -1713,7 +1713,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
     if(pAddress.isUnknown()) {
-      unknownWrite();
+
+      if(pAddress.isTargetObjectUnknown()) {
+        unknownWrite();
+      } else {
+        writeUnknownValueInUnknownField(pAddress.getObject());
+      }
+
       return new SMGStateEdgePair(setInvalidWrite());
     }
 
@@ -1737,11 +1743,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return new SMGStateEdgePair(this, new_edge);
     }
 
-    // If the value is not in the SMG, we need to add it
-    if (!heap.getValues().contains(pValue.getAsInt())) {
-      heap.addValue(pValue.getAsInt());
-    }
-
     HashSet<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
 
     /* We need to remove all non-zero overlapping edges
@@ -1762,6 +1763,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
+
+    if (offset.getAsInt() < 0 || object.getSize() < (offset.getAsInt()
+        + new_edge.getSizeInBytes(heap.getMachineModel()))) {
+
+      return new SMGStateEdgePair(this, new_edge);
+    }
+
+    // If the value is not in the SMG, we need to add it
+    if (!heap.getValues().contains(pValue.getAsInt())) {
+      heap.addValue(pValue.getAsInt());
+    }
 
     heap.addHasValueEdge(new_edge);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
