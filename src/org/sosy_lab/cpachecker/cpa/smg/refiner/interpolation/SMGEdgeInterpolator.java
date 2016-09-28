@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -46,6 +46,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGCEGARUtils;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;

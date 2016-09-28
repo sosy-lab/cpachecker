@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -46,9 +46,16 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPathDependence.PathPositionMemoryPathDependencys;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGCEGARUtils;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStrongestPostOperator;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGEdgeHeapAbstractionInterpolator;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGPathDependence.PathPositionMemoryPathDependencys;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;

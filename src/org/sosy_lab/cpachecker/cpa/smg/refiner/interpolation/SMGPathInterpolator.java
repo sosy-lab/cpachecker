@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.MoreFiles;
@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGFlowDependenceBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;

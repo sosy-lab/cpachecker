@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,7 +30,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.HashSet;

@@ -21,23 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
 
-import java.util.Set;
+public interface SMGFlowDependenceEdge<V extends SMGFlowDependenceVertice> {
 
-public interface SMGInterpolant {
+  public V getSource();
+  public V getTarget();
 
-  public Set<SMGMemoryPath> getMemoryLocations();
-
-  public boolean isTrue();
-
-  public boolean isFalse();
-
-  public boolean isTrivial();
-
-  public SMGInterpolant join(SMGInterpolant other);
-
-  public SMGPrecisionIncrement getPrecisionIncrement();
 }

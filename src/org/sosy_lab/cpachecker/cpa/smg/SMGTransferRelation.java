@@ -103,8 +103,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndStateLi
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHveSources.SMGAddressAndSource;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHveSources.SMGKnownExpValueAndSource;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGHveSources.SMGAddressAndSource;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGHveSources.SMGKnownExpValueAndSource;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;

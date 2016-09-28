@@ -21,14 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Set;

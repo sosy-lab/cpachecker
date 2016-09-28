@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -43,7 +43,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFlowDependenceGraph.SMGUseRange;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGSimpleInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGFlowDependenceGraph.SMGUseRange;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 

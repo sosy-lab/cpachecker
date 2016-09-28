@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.refiner;
+package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,7 +47,12 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStateInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGCEGARUtils;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStrongestPostOperator;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
