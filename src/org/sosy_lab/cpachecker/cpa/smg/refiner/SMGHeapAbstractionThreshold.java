@@ -89,4 +89,20 @@ public class SMGHeapAbstractionThreshold {
     return "SMGHeapAbstractionThreshold [equalThreshold=" + equalThreshold + ", entailThreshold="
         + entailThreshold + ", incombarableThreshold=" + incombarableThreshold + "]";
   }
+
+  public static SMGHeapAbstractionThreshold defaultThreshold() {
+    return new SMGHeapAbstractionThreshold(2, 2, 3);
+  }
+
+  public SMGHeapAbstractionThreshold join(SMGHeapAbstractionThreshold pHeapAbsThreshold) {
+
+    if (this.equals(pHeapAbsThreshold)) {
+      return this;
+    }
+
+    return new SMGHeapAbstractionThreshold(
+        Math.max(equalThreshold, pHeapAbsThreshold.equalThreshold),
+        Math.max(entailThreshold, pHeapAbsThreshold.entailThreshold),
+        Math.max(incombarableThreshold, pHeapAbsThreshold.incombarableThreshold));
+  }
 }

@@ -75,7 +75,19 @@ public abstract class SMGPrecision implements Precision {
             pUseLiveVariableAnalysis, false, pUseSMGMerge, false);
     return new SMGStaticPrecision(pLogger, options, pBlockOperator,
         pCFA.getVarClassification().orElse(VariableClassification.empty(pLogger)),
-        pCFA.getLiveVariables(), new SMGHeapAbstractionThreshold(2, 2, 3));
+        pCFA.getLiveVariables(), SMGHeapAbstractionThreshold.defaultThreshold());
+  }
+
+  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction,
+      LogManager pLogger, BlockOperator pBlockOperator, boolean pUseSMGMerge,
+      boolean pUseLiveVariableAnalysis, VariableClassification pVariableClassification,
+      Optional<LiveVariables> pLiveVariables, SMGHeapAbstractionThreshold pThreshold) {
+    SMGPrecisionAbstractionOptions options =
+        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false,
+            pUseLiveVariableAnalysis, false, pUseSMGMerge, false);
+    return new SMGStaticPrecision(pLogger, options, pBlockOperator,
+        pVariableClassification,
+        pLiveVariables, pThreshold);
   }
 
   public abstract SMGPrecision refineOptions(SMGPrecisionAbstractionOptions pNewOptions, SMGHeapAbstractionThreshold pNewThreshold);
@@ -286,9 +298,11 @@ public abstract class SMGPrecision implements Precision {
           useSMGMerge() && pPrecision.useSMGMerge(),
           joinIntegerWhenMerging() && pPrecision.joinIntegerWhenMerging());
 
+      SMGHeapAbstractionThreshold threshold = getHeapAbsThreshold().join(pPrecision.getHeapAbsThreshold());
+
       return new SMGRefineablePrecision(getLogger(), options, getBlockOperator(),
           resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars(), getHeapAbsThreshold());
+          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars(), threshold);
     }
 
     @Override

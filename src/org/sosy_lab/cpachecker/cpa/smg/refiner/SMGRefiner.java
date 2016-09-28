@@ -276,15 +276,19 @@ public class SMGRefiner implements Refiner {
     return cex;
   }
 
-  private void refineAnalysis(ARGReachedSet pReached, List<ARGPath> pTargetPaths) throws RefinementFailedException, InterruptedException {
+  private void refineAnalysis(ARGReachedSet pReached, List<ARGPath> pTargetPaths) throws InterruptedException, CPAException {
     SMGPrecision originalPrecision = SMGCEGARUtils.extractSMGPrecision(pReached);
 
     SMGPrecision refinedPrecision = originalPrecision;
+    boolean analysisChanged = false;
 
-    SMGAnalysisRefiner analysisRefiner = new SMGAnalysisRefiner(refinedPrecision, logger);
-    SMGAnalysisRefinerResult refinedAnalysisResult = analysisRefiner.refineAnalysis();
-    refinedPrecision = refinedAnalysisResult.getPrecision();
-    boolean analysisChanged = refinedAnalysisResult.isChanged();
+    for (ARGPath targetPath : pTargetPaths) {
+      SMGAnalysisRefiner analysisRefiner =
+          new SMGAnalysisRefiner(originalPrecision, logger, targetPath, checker);
+      SMGAnalysisRefinerResult refinedAnalysisResult = analysisRefiner.refineAnalysis();
+      refinedPrecision = refinedPrecision.join(refinedAnalysisResult.getPrecision());
+      analysisChanged = analysisChanged || refinedAnalysisResult.isChanged();
+    }
 
     if (!analysisChanged && !useInterpoaltion) {
       throw new RefinementFailedException(

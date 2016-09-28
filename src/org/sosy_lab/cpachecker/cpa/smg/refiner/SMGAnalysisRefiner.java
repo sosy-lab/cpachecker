@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision.SMGPrecisionAbstractionOptions;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.util.logging.Level;
 
@@ -32,13 +36,17 @@ public class SMGAnalysisRefiner {
 
   private final LogManager logger;
   private final SMGPrecision originalPrecision;
+  private final SMGFeasibilityChecker checker;
+  private final ARGPath errorPath;
 
-  public SMGAnalysisRefiner(SMGPrecision pOriginalPrecision, LogManager pLogger) {
+  public SMGAnalysisRefiner(SMGPrecision pOriginalPrecision, LogManager pLogger, ARGPath pErrorPath, SMGFeasibilityChecker pChecker) {
     logger = pLogger;
     originalPrecision = pOriginalPrecision;
+    checker = pChecker;
+    errorPath = pErrorPath;
   }
 
-  public SMGAnalysisRefinerResult refineAnalysis() {
+  public SMGAnalysisRefinerResult refineAnalysis() throws CPAException, InterruptedException {
 
     if (originalPrecision.forgetDeadVariables() || originalPrecision.useSMGMerge()
         || originalPrecision.useHeapAbstraction()) {
@@ -50,47 +58,88 @@ public class SMGAnalysisRefiner {
     }
   }
 
-  private SMGPrecision disableNextFeature() {
+  private SMGPrecision disableNextFeature() throws CPAException, InterruptedException {
 
     SMGPrecisionAbstractionOptions options = originalPrecision.getAbstractionOptions();
     SMGHeapAbstractionThreshold threshold = originalPrecision.getHeapAbsThreshold();
 
-    if (threshold.getIncombarableThreshold() == 2) {
+    boolean noChange = true;
+
+    if (originalPrecision.useHeapAbstraction()
+        && threshold.getIncombarableThreshold() == 2
+        && heapAbstractionCausesError(threshold)) {
       logger.log(Level.INFO, "Increase heap abstraction threshold.");
       threshold = new SMGHeapAbstractionThreshold(2, 2, 3);
-    } else if (originalPrecision.useSMGMerge() && originalPrecision.joinIntegerWhenMerging()) {
-      logger.log(Level.INFO, "Don't join explicit values when merging.");
-      options = new SMGPrecisionAbstractionOptions(
-          originalPrecision.useHeapAbstraction(),
+      noChange = false;
+    }
+
+    if (originalPrecision.useHeapAbstraction()
+        && heapAbstractionCausesError(threshold)) {
+      logger.log(Level.INFO, "Disable heap abstraction.");
+      options = new SMGPrecisionAbstractionOptions(false,
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
-          false);
-    } else if (originalPrecision.useSMGMerge()) {
-      logger.log(Level.INFO, "Disable merge.");
-      options = new SMGPrecisionAbstractionOptions(
-          originalPrecision.useHeapAbstraction(),
-          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
-          false);
-    } else if (originalPrecision.forgetDeadVariables()) {
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),
+          originalPrecision.useSMGMerge(), originalPrecision.joinIntegerWhenMerging());
+      noChange = false;
+    }
+
+    if (originalPrecision.forgetDeadVariables() && liveAnalysisCausesError()) {
       logger.log(Level.INFO, "Disable live variable Analysis.");
       options = new SMGPrecisionAbstractionOptions(
           originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
           false, originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge(),
           originalPrecision.joinIntegerWhenMerging());
-    } else if (originalPrecision.useHeapAbstraction()) {
-      logger.log(Level.INFO, "Disable heap abstraction.");
-      options = new SMGPrecisionAbstractionOptions(false,
+      noChange = false;
+    }
+
+    if (originalPrecision.useSMGMerge() && originalPrecision.joinIntegerWhenMerging() && noChange) {
+      logger.log(Level.INFO, "Don't join explicit values when merging.");
+      options = new SMGPrecisionAbstractionOptions(
+          originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),
-          originalPrecision.useSMGMerge(), originalPrecision.joinIntegerWhenMerging());
-    } else {
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
+          false);
+      noChange = false;
+    }
+
+    if (originalPrecision.useSMGMerge() && !originalPrecision.joinIntegerWhenMerging() && noChange) {
+      logger.log(Level.INFO, "Disable merge.");
+      options = new SMGPrecisionAbstractionOptions(
+          originalPrecision.useHeapAbstraction(),
+          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
+          false);
+      noChange = false;
+    }
+
+    if(noChange) {
       logger.log(Level.INFO, "Use strongest precision.");
       options = new SMGPrecisionAbstractionOptions(false, false, false, false, false, false, false);
     }
 
     return originalPrecision.refineOptions(options, threshold);
+  }
+
+  private boolean liveAnalysisCausesError() throws CPAException, InterruptedException {
+
+    SMGPrecision precision =
+        SMGPrecision.createStaticPrecision(false, logger, originalPrecision.getBlockOperator(),
+            false, true, originalPrecision.getVarClass(), originalPrecision.getLiveVars(), SMGHeapAbstractionThreshold.defaultThreshold());
+    return checker.isFeasible(errorPath,
+        AbstractStates.extractStateByType(errorPath.getFirstState(), SMGState.class), precision,
+        true);
+  }
+
+  private boolean heapAbstractionCausesError(SMGHeapAbstractionThreshold pThreshold)
+      throws CPAException, InterruptedException {
+
+    SMGPrecision precision = SMGPrecision.createStaticPrecision(true, logger,
+        originalPrecision.getBlockOperator(), false, false, originalPrecision.getVarClass(),
+        originalPrecision.getLiveVars(), pThreshold);
+    return checker.isFeasible(errorPath,
+        AbstractStates.extractStateByType(errorPath.getFirstState(), SMGState.class), precision,
+        true);
   }
 
   public static class SMGAnalysisRefinerResult {
