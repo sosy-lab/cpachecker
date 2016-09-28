@@ -34,13 +34,23 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import java.io.PrintStream;
 import java.util.Optional;
 
-
-public class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
+/**
+ * Class intended to support so called B&B memory model or spatial-separation logic.
+ *
+ * In B&B model fields of struct-types can exist in separate memory space from other fields and
+ * pointers of the same type if there is no address-taking of the field in program. Otherwise the
+ * field would exist in the memory space with entities mentioned above. That allows to eliminate
+ * false positives that are caused by the assumptions made by the instrument due to unknown body
+ * of the memory-returning function.
+ *
+ * B&B stands for Rod Burstall and Richard Bornat.
+ */
+class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
   private static final String GLOBAL = "global";
   private static final String SEPARATOR = "_";
 
 
-  protected static class GlobalBnBRegion implements MemoryRegion {
+  private static class GlobalBnBRegion implements MemoryRegion {
     @Override
     public String toString() {
       return "GlobalBnBRegion [type=" + type + "]";
@@ -97,7 +107,7 @@ public class BnBRegionManager extends AbstractMemoryRegionManager implements Mem
 
   }
 
-  protected static class FieldBnBRegion implements MemoryRegion {
+  private static class FieldBnBRegion implements MemoryRegion {
 
     private final CType fieldOwnerType;
     private final CType fieldType;
@@ -178,7 +188,7 @@ public class BnBRegionManager extends AbstractMemoryRegionManager implements Mem
   private final Optional<VariableClassification> varClassification;
   private final Multimap<CType, String> fieldRegions;
 
-  public BnBRegionManager(Optional<VariableClassification> var, Multimap<CType, String> fieldRegions) {
+  BnBRegionManager(Optional<VariableClassification> var, Multimap<CType, String> fieldRegions) {
     this.fieldRegions = fieldRegions;
     this.varClassification = var;
   }

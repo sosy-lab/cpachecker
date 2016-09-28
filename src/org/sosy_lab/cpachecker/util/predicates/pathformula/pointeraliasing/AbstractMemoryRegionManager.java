@@ -30,8 +30,8 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
-  Map<Pair<CFAEdge,String>, Integer> targetStats = new HashMap<>();
+abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
+  private Map<Pair<CFAEdge,String>, Integer> targetStats = new HashMap<>();
 
   @Override
   public void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget) {

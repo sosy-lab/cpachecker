@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import java.util.Map;
 import java.util.Optional;
 
-public class BnBRegionsBuilder {
+class BnBRegionsBuilder {
   @SuppressWarnings("unused")
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final Optional<VariableClassification> variableClassification;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
-  public BnBRegionsBuilder(FormulaEncodingWithPointerAliasingOptions pOptions,
+  BnBRegionsBuilder(FormulaEncodingWithPointerAliasingOptions pOptions,
       Optional<VariableClassification> pVariableClassification,
       TypeHandlerWithPointerAliasing pTypeHandler) {
     options = pOptions;
