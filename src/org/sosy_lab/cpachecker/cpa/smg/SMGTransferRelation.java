@@ -892,7 +892,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     for (SMGState smg : successors) {
-      SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.toString(), logger,
+      String location = cfaEdge.getPredecessor().getFunctionName() + " " + cfaEdge.toString();
+
+      SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, location, logger,
           SMGExportLevel.EVERY, exportSMGOptions);
       logger.log(Level.ALL, "state id ", smg.getId(), " -> state id ", state.getId());
       smg.setBlockEnded(blockOperator.isBlockEnd(cfaEdge.getSuccessor(), 0));

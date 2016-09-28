@@ -2917,7 +2917,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       int value = hve.getValue();
       if (isPointer(value)) {
         SMGObject target = getPointsToEdge(value).getObject();
-        if (heap.isHeapObject(target) && heap.isObjectValid(target)) {
+        if (heap.isHeapObject(target)) {
           return true;
         }
       }
