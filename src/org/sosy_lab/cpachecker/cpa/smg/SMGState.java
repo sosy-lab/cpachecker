@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHeapAbstractionThreshold;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -1530,45 +1532,84 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Computes the join of this abstract State and the reached abstract State,
-   * or returns the reached state, if no join is defined.
+   * Computes the merge of this abstract State and the given abstract State based on the
+   * join of both states, or returns the reached state, if no join is defined.
    *
-   * @param reachedState the abstract state this state will be joined to.
+   * @param pState the abstract state this state will be joined to.
+   * @param pPrecision determines the precision of the merge
    * @return the join of the two states or reached state.
-   * @throws SMGInconsistentException inconsistent smgs while
+   * @throws SMGInconsistentException inconsistent smgs calculated while merging both smgs
    */
-  public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
+  public SMGState mergeSMG(SMGState pState, SMGPrecision pPrecision)
+      throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
-    SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);
+    SMGJoin join = new SMGJoin(this.heap, pState.heap, this, pState);
 
-    if(join.getStatus() != SMGJoinStatus.INCOMPARABLE) {
-      return reachedState;
+    /* If JoinStatus is Equal or right entail, we stop anyway and
+       * don't need to merge.*/
+
+    switch (join.getStatus()) {
+      case EQUAL:
+      case RIGHT_ENTAIL:
+        return pState;
+      default:
     }
 
     if (join.isDefined()) {
 
       CLangSMG destHeap = join.getJointSMG();
 
-      Map<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
-
-      for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
-        if (destHeap.getValues().contains(entry.getKey().getAsInt())) {
-          mergedExplicitValues.put(entry.getKey(), entry.getValue());
-        }
-      }
-
-      for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : reachedState.explicitValues
-          .entrySet()) {
-        mergedExplicitValues.put(entry.getKey(), entry.getValue());
-      }
+      BiMap<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues =
+          mergeExplicitValues(explicitValues, pState.explicitValues, pPrecision,
+              join.getMapping1(), join.getMapping2());
 
       return new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
-          id_counter, predecessorId, mergedExplicitValues, reachedState.externalAllocationSize,
-          reachedState.trackPredicates, morePreciseIsLessOrEqual);
+          id_counter, predecessorId, mergedExplicitValues, pState.externalAllocationSize,
+          pState.trackPredicates, morePreciseIsLessOrEqual);
     } else {
-      return reachedState;
+      return pState;
     }
+  }
+
+  private BiMap<SMGKnownSymValue, SMGKnownExpValue> mergeExplicitValues(
+      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2, SMGPrecision pPrecision,
+      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
+
+    BiMap<SMGKnownSymValue, SMGKnownExpValue> result = HashBiMap.create();
+
+    pExplicitValues2.entrySet().forEach((Entry<SMGKnownSymValue, SMGKnownExpValue> pEntry) -> {
+      SMGKnownSymValue originalSymbolicValue = pEntry.getKey();
+      SMGKnownExpValue originalExplicitValue = pEntry.getValue();
+
+      if (pMapping2.containsKey(originalSymbolicValue.getAsInt())) {
+        result.put(SMGKnownSymValue.valueOf(pMapping2.get(originalSymbolicValue.getAsInt())),
+            originalExplicitValue);
+      } else {
+        result.put(originalSymbolicValue, originalExplicitValue);
+      }
+    });
+
+    if (pPrecision.joinIntegerWhenMerging()) {
+
+      pMapping1.getValue_mapEntrySet().forEach((Entry<Integer, Integer> pEntry) -> {
+
+        SMGKnownSymValue joinedValue = SMGKnownSymValue.valueOf(pEntry.getValue());
+
+        if (result.containsKey(joinedValue)) {
+          SMGKnownExpValue explicitJoinedValue = result.get(joinedValue);
+          SMGKnownSymValue originalSymValue = SMGKnownSymValue.valueOf(pEntry.getKey());
+
+          if (!pExplicitValues.containsKey(originalSymValue)
+              || !pExplicitValues.get(originalSymValue).equals(explicitJoinedValue)) {
+            result.remove(joinedValue);
+          }
+        }
+      });
+    }
+
+    return result;
   }
 
   /**

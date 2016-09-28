@@ -42,22 +42,23 @@ public class SMGMerge implements MergeOperator {
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException {
 
-    if (!(pState1 instanceof SMGState) || !(pState2 instanceof SMGState)) { 
-      return pState2; 
+    if (!(pState1 instanceof SMGState) || !(pState2 instanceof SMGState)) {
+      return pState2;
     }
 
     SMGState smgState1 = (SMGState) pState1;
     SMGState smgState2 = (SMGState) pState2;
+    SMGPrecision smgPrecision = (SMGPrecision) pPrecision;
 
-    if (smgState1.isBlockEnded()) { 
-      return pState2; 
+    if (!smgState1.isBlockEnded()) {
+      return pState2;
     }
 
-    if (!((SMGPrecision) pPrecision).useSMGMerge()) { 
-      return pState2; 
+    if (!smgPrecision.useSMGMerge()) {
+      return pState2;
     }
 
-    return smgState1.joinSMG(smgState2);
+    return smgState1.mergeSMG(smgState2, smgPrecision);
   }
 
   public static MergeOperator getInstance() {

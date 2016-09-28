@@ -72,7 +72,7 @@ public abstract class SMGPrecision implements Precision {
       boolean pUseLiveVariableAnalysis) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false,
-            pUseLiveVariableAnalysis, false, pUseSMGMerge);
+            pUseLiveVariableAnalysis, false, pUseSMGMerge, false);
     return new SMGStaticPrecision(pLogger, options, pBlockOperator,
         pCFA.getVarClassification().orElse(VariableClassification.empty(pLogger)),
         pCFA.getLiveVariables(), new SMGHeapAbstractionThreshold(2, 2, 3));
@@ -94,7 +94,7 @@ public abstract class SMGPrecision implements Precision {
     return new SMGRefineablePrecision(pPrecision.logger,
         new SMGPrecisionAbstractionOptions(pPrecision.useHeapAbstraction(), useInterpoaltion,
             useInterpoaltion,
-            pPrecision.forgetDeadVariables(), useInterpoaltion, pPrecision.useSMGMerge()),
+            pPrecision.forgetDeadVariables(), useInterpoaltion, pPrecision.useSMGMerge(), true),
         pPrecision.getBlockOperator(),
         emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable, pPrecision.getVarClass(),
         pPrecision.getLiveVars(),
@@ -182,6 +182,10 @@ public abstract class SMGPrecision implements Precision {
 
   public SMGHeapAbstractionThreshold getHeapAbsThreshold() {
     return heapAbsThreshold;
+  }
+
+  public boolean joinIntegerWhenMerging() {
+    return options.joinIntegerWhenMerging();
   }
 
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
@@ -279,7 +283,8 @@ public abstract class SMGPrecision implements Precision {
           useStackAbstraction() && pPrecision.useStackAbstraction(),
           forgetDeadVariables() && pPrecision.forgetDeadVariables(),
           useInterpoaltion() && pPrecision.useInterpoaltion(),
-          useSMGMerge());
+          useSMGMerge() && pPrecision.useSMGMerge(),
+          joinIntegerWhenMerging() && pPrecision.joinIntegerWhenMerging());
 
       return new SMGRefineablePrecision(getLogger(), options, getBlockOperator(),
           resultMemoryPaths,
@@ -383,10 +388,11 @@ public abstract class SMGPrecision implements Precision {
     private final boolean liveVariableAnalysis;
     private final boolean useInterpoaltion;
     private final boolean smgMerge;
+    private final boolean joinIntegerWhenMerging;
 
     public SMGPrecisionAbstractionOptions(boolean pHeapAbstraction, boolean pFieldAbstraction,
         boolean pStackAbstraction, boolean pLiveVariableAnalysis,
-        boolean pUseInterpoaltion, boolean pUseSMGMerge) {
+        boolean pUseInterpoaltion, boolean pUseSMGMerge, boolean pJoinIntegerWhenMerging) {
       super();
       heapAbstraction = pHeapAbstraction;
       fieldAbstraction = pFieldAbstraction;
@@ -394,6 +400,11 @@ public abstract class SMGPrecision implements Precision {
       liveVariableAnalysis = pLiveVariableAnalysis;
       useInterpoaltion = pUseInterpoaltion;
       smgMerge = pUseSMGMerge;
+      joinIntegerWhenMerging = pJoinIntegerWhenMerging;
+    }
+
+    public boolean joinIntegerWhenMerging() {
+      return joinIntegerWhenMerging;
     }
 
     public boolean useInterpoaltion() {
@@ -430,6 +441,7 @@ public abstract class SMGPrecision implements Precision {
       result = prime * result + (liveVariableAnalysis ? 1231 : 1237);
       result = prime * result + (useInterpoaltion ? 1231 : 1237);
       result = prime * result + (smgMerge ? 1231 : 1237);
+      result = prime * result + (joinIntegerWhenMerging ? 1231 : 1237);
       return result;
     }
 
@@ -463,6 +475,9 @@ public abstract class SMGPrecision implements Precision {
       if (smgMerge != other.smgMerge) {
         return false;
       }
+      if (joinIntegerWhenMerging != other.joinIntegerWhenMerging) {
+        return false;
+      }
       return true;
     }
 
@@ -472,7 +487,8 @@ public abstract class SMGPrecision implements Precision {
           + ", fieldAbstraction=" + fieldAbstraction + ", stackAbstraction=" + stackAbstraction
           + ", liveVariableAnalysis=" + liveVariableAnalysis
           + ", interpolation=" + useInterpoaltion
-          + ", smgMerge=" + smgMerge + "]";
+          + ", smgMerge=" + smgMerge
+          + ", joinIntegerWhenMerging=" + joinIntegerWhenMerging +"]";
     }
   }
 }

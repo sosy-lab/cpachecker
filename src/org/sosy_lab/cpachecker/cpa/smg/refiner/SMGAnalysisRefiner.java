@@ -58,27 +58,36 @@ public class SMGAnalysisRefiner {
     if (threshold.getIncombarableThreshold() == 2) {
       logger.log(Level.INFO, "Increase heap abstraction threshold.");
       threshold = new SMGHeapAbstractionThreshold(2, 2, 3);
+    } else if (originalPrecision.useSMGMerge() && !originalPrecision.joinIntegerWhenMerging()) {
+      logger.log(Level.INFO, "Don't join explicit values when merging.");
+      options = new SMGPrecisionAbstractionOptions(
+          originalPrecision.useHeapAbstraction(),
+          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
+          false);
     } else if (originalPrecision.useSMGMerge()) {
       logger.log(Level.INFO, "Disable merge.");
       options = new SMGPrecisionAbstractionOptions(
           originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false);
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
+          false);
     } else if (originalPrecision.forgetDeadVariables()) {
       logger.log(Level.INFO, "Disable live variable Analysis.");
       options = new SMGPrecisionAbstractionOptions(
           originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
-          false, originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge());
+          false, originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge(),
+          originalPrecision.joinIntegerWhenMerging());
     } else if (originalPrecision.useHeapAbstraction()) {
       logger.log(Level.INFO, "Disable heap abstraction.");
       options = new SMGPrecisionAbstractionOptions(false,
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
           originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),
-          originalPrecision.useSMGMerge());
+          originalPrecision.useSMGMerge(), originalPrecision.joinIntegerWhenMerging());
     } else {
       logger.log(Level.INFO, "Use strongest precision.");
-      options = new SMGPrecisionAbstractionOptions(false, false, false, false, false, false);
+      options = new SMGPrecisionAbstractionOptions(false, false, false, false, false, false, false);
     }
 
     return originalPrecision.refineOptions(options, threshold);

@@ -2008,6 +2008,14 @@ cpa.smg.refinement.exportRefinmentSMGs = "smg/refinment-%d/smg-%s"
 # export interpolation trees to this file template
 cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 
+# use analysis refinment when refining reached set.Features that cause
+# imprecise results, for example merges of different paths, are deactivated
+# if a spurious counterexample is found.
+cpa.smg.refinement.useAnalysisRefinment = false
+
+# use heap interpoaltion when refining reached set.
+cpa.smg.refinement.useInterpoaltion = false
+
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
@@ -2021,6 +2029,13 @@ cpa.smg.trackPredicates = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Enable forgetting dead Variables. May be imprecise when dealing with
+# memsafety properties and pointer aliasing.
+cpa.smg.useLiveVariableAnalysis = false
+
+# Enable joining SMGs on the end of blocks when enabled.
+cpa.smg.useSMGMerge = false
 
 # Allow SMG to check predicates
 cpa.smg.verifyPredicates = false

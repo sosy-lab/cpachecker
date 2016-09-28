@@ -47,13 +47,16 @@ final public class SMGJoin {
   private final CLangSMG smg;
   SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
+  private final SMGNodeMapping mapping1;
+  private final SMGNodeMapping mapping2;
+
   public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
     CLangSMG opSMG1 = new CLangSMG(pSMG1);
     CLangSMG opSMG2 = new CLangSMG(pSMG2);
     smg = new CLangSMG(opSMG1.getMachineModel());
 
-    SMGNodeMapping mapping1 = new SMGNodeMapping();
-    SMGNodeMapping mapping2 = new SMGNodeMapping();
+    mapping1 = new SMGNodeMapping();
+    mapping2 = new SMGNodeMapping();
 
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
     Deque<CLangStackFrame> stack_in_smg1 = opSMG1.getStackFrames();
@@ -67,14 +70,16 @@ final public class SMGJoin {
     for (String globalVar : globalVars) {
       SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
       SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
-      if (globalInSMG1 == null || globalInSMG2 == null) {
-        // This weird situation happens with function static variables, which are created
-        // as globals when a declaration is met. So if one path goes through function and other
-        // does not, then one SMG will have that global and the other one won't.
-        // TODO: We could actually just add that object, as that should not influence the result of
-        // the join. For now, we will treat this situation as unjoinable.
-        return;
+      if (globalInSMG1 == null) {
+        globalInSMG1 = globalInSMG2;
+        opSMG1.addGlobalObject(globalInSMG1);
       }
+
+      if (globalInSMG2 == null) {
+        globalInSMG2 = globalInSMG1;
+        opSMG2.addGlobalObject(globalInSMG2);
+      }
+
       SMGRegion finalObject = globalInSMG1;
       smg.addGlobalObject(finalObject);
       mapping1.map(globalInSMG1, finalObject);
@@ -83,8 +88,6 @@ final public class SMGJoin {
 
     Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
     Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
-
-    //TODO assert stack smg1 == stack smg2
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -172,5 +175,13 @@ final public class SMGJoin {
 
   public CLangSMG getJointSMG() {
     return smg;
+  }
+
+  public SMGNodeMapping getMapping1() {
+    return mapping1;
+  }
+
+  public SMGNodeMapping getMapping2() {
+    return mapping2;
   }
 }
