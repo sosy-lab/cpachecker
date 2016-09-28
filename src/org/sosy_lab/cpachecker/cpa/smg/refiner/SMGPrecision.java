@@ -29,16 +29,20 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 public abstract class SMGPrecision implements Precision {
@@ -47,27 +51,33 @@ public abstract class SMGPrecision implements Precision {
   private final BlockOperator blockOperator;
   private final LogManager logger;
   private final int threshold = 0;
+  private final VariableClassification varClass;
+  private final Optional<LiveVariables> liveVars;
 
   public SMGPrecision(LogManager pLogger, SMGPrecisionAbstractionOptions pOptions,
-      BlockOperator pBlockOperator) {
+      BlockOperator pBlockOperator, VariableClassification pVarClass,
+      Optional<LiveVariables> pLiveVars) {
     logger = pLogger;
     options = pOptions;
     blockOperator = pBlockOperator;
+    varClass = pVarClass;
+    liveVars = pLiveVars;
   }
 
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction,
-      LogManager pLogger, BlockOperator pBlockOperator) {
+      LogManager pLogger, BlockOperator pBlockOperator, CFA pCFA) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
-    return new SMGStaticPrecision(pLogger, options, pBlockOperator);
+    return new SMGStaticPrecision(pLogger, options, pBlockOperator,
+        pCFA.getVarClassification().orElse(VariableClassification.empty(pLogger)),
+        pCFA.getLiveVariables());
   }
 
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
 
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
-  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision)
-  {
+  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
 
     SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
     SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
@@ -76,7 +86,7 @@ public abstract class SMGPrecision implements Precision {
     return new SMGRefineablePrecision(pPrecision.logger,
         new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
         pPrecision.getBlockOperator(),
-        emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable);
+        emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable, pPrecision.getVarClass(), pPrecision.getLiveVars());
   }
 
   public LogManager getLogger() {
@@ -115,6 +125,14 @@ public abstract class SMGPrecision implements Precision {
     return blockOperator;
   }
 
+  public VariableClassification getVarClass() {
+    return varClass;
+  }
+
+  public Optional<LiveVariables> getLiveVars() {
+    return liveVars;
+  }
+
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
 
   private static class SMGRefineablePrecision extends SMGPrecision {
@@ -127,8 +145,9 @@ public abstract class SMGPrecision implements Precision {
         BlockOperator pBlockOperator,
         SetMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
         SetMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
-        SetMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
-      super(pLogger, pOptions, pBlockOperator);
+        SetMultimap<CFANode, MemoryLocation> pTrackedStackVariables,
+        VariableClassification pVarClass, Optional<LiveVariables> pLiveVars) {
+      super(pLogger, pOptions, pBlockOperator, pVarClass, pLiveVars);
       trackedMemoryPaths = ImmutableSetMultimap.copyOf(pTrackedMemoryPaths);
       abstractionBlocks = ImmutableSetMultimap.copyOf(pAbstractionBlocks);
       trackedStackVariables = ImmutableSetMultimap.copyOf(pTrackedStackVariables);
@@ -180,7 +199,7 @@ public abstract class SMGPrecision implements Precision {
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
           resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables);
+          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars());
     }
 
     @Override
@@ -206,7 +225,7 @@ public abstract class SMGPrecision implements Precision {
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
           resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables);
+          resultAbstractionBlocks, resultStackVariables, getVarClass(), getLiveVars());
     }
 
     @Override
@@ -236,8 +255,9 @@ public abstract class SMGPrecision implements Precision {
   private static class SMGStaticPrecision extends SMGPrecision {
 
     private SMGStaticPrecision(LogManager pLogger,
-        SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, BlockOperator pBlockOperator) {
-      super(pLogger, pAllowsHeapAbstraction, pBlockOperator);
+        SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, BlockOperator pBlockOperator,
+        VariableClassification pVarClass, Optional<LiveVariables> pOptional) {
+      super(pLogger, pAllowsHeapAbstraction, pBlockOperator, pVarClass, pOptional);
     }
 
     @Override

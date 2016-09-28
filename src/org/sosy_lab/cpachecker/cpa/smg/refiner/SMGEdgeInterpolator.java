@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -91,13 +92,13 @@ public class SMGEdgeInterpolator {
   public SMGEdgeInterpolator(SMGFeasibilityChecker pFeasibilityChecker,
       SMGStrongestPostOperator pStrongestPostOperator, SMGInterpolantManager pInterpolantManager,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger, BlockOperator pBlockOperator) {
+      LogManager pLogger, BlockOperator pBlockOperator, CFA pCFA) {
 
     checker = pFeasibilityChecker;
     postOperator = pStrongestPostOperator;
     interpolantManager = pInterpolantManager;
 
-    strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator);
+    strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator, pCFA);
     shutdownNotifier = pShutdownNotifier;
     heapAbstractionInterpolator =
         new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker);

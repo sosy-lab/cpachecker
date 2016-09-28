@@ -244,7 +244,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   private SMGPrecision initializePrecision() {
-    return SMGPrecision.createStaticPrecision(enableHeapAbstraction, logger, blockOperator);
+    return SMGPrecision.createStaticPrecision(enableHeapAbstraction, logger, blockOperator, cfa);
   }
 
   @Override

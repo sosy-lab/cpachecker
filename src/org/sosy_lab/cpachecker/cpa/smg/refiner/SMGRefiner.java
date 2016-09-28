@@ -158,7 +158,7 @@ public class SMGRefiner implements Refiner {
     SMGEdgeInterpolator edgeInterpolator =
         new SMGEdgeInterpolator(checkerForInterpolation, strongestPostOpForInterpolation,
             interpolantManager,
-            smgCpa.getShutdownNotifier(), logger, smgCpa.getBlockOperator());
+            smgCpa.getShutdownNotifier(), logger, smgCpa.getBlockOperator(), smgCpa.getCFA());
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
