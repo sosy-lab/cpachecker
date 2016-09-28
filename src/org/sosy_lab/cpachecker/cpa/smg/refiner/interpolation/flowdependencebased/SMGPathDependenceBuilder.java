@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGEdgeHeapAbstractionInterpolator;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGPathDependence.PathPositionMemoryPathDependencys;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -127,16 +127,17 @@ public class SMGPathDependenceBuilder {
 
     int pos = it.getIndex();
 
+    SMGPathDependenceResultBuilder pathDependenceResultBuilder =
+        new SMGPathDependenceResultBuilder();
+
     for (SMGEdgeHasValue hve : initialState.getHVEdges()) {
       SMGKnownAddress field = SMGKnownAddress.valueOf(hve.getObject(), hve.getOffset());
       SMGFlowDependenceFieldVertice vertice = new SMGFlowDependenceFieldVertice(field, pos);
       scope.put(field, vertice);
+      pathDependenceResultBuilder.addNewFlowDependenceVertice(vertice);
     }
 
     SMGState nextState = initialState;
-
-    SMGPathDependenceResultBuilder pathDependenceResultBuilder =
-        new SMGPathDependenceResultBuilder();
 
     Builder<SMGPathDependence> result =
         createMemoryDependenceForPaths(pPath, nextState,
@@ -270,6 +271,7 @@ public class SMGPathDependenceBuilder {
     for (SMGKnownAddress field : newFields) {
       SMGFlowDependenceFieldVertice newVertice = new SMGFlowDependenceFieldVertice(field, pos);
       newVertices.put(field, newVertice);
+      pPathDependenceResultBuilder.addNewFlowDependenceVertice(newVertice);
 
       for (SMGKnownAddress source : pNewObjectSizeMap.get(field.getObject())) {
         if (!scope.containsKey(source)) {
@@ -420,7 +422,7 @@ public class SMGPathDependenceBuilder {
     return absResult.getBlocks();
   }
 
-  public static class SMGTargets {
+  public static final class SMGTargets {
 
     private final boolean invalidDereference;
     private final boolean invalidFree;
@@ -497,14 +499,16 @@ public class SMGPathDependenceBuilder {
     }
   }
 
-  public static class SMGPathDependenceResultBuilder {
+  public static final class SMGPathDependenceResultBuilder {
 
     private final Set<SMGFlowDependenceFieldEdge> graphEdges;
+    private final Set<SMGFlowDependenceFieldVertice> graphVertices;
     private final Map<Integer, PathPositionMemoryPathDependencys> pathPositionMemoryPathDependencys;
     private final Map<SMGRegion, Integer> variableSizeStackMemoryLocationDeclarationPosition;
 
     public SMGPathDependenceResultBuilder() {
       graphEdges = new HashSet<>();
+      graphVertices = new HashSet<>();
       pathPositionMemoryPathDependencys = new HashMap<>();
       variableSizeStackMemoryLocationDeclarationPosition = new HashMap<>();
     }
@@ -513,7 +517,7 @@ public class SMGPathDependenceBuilder {
         int pPathEnd) {
 
       SMGFlowDependenceGraph<SMGFlowDependenceFieldVertice, SMGFlowDependenceFieldEdge> smgUseGraph =
-          new SMGFlowDependenceGraph<>(graphEdges);
+          new SMGFlowDependenceGraph<>(graphEdges, graphVertices);
 
       SMGPathDependence memoryDependenceOfPath =
           new SMGPathDependence(pLogger, pPath, smgUseGraph, pathPositionMemoryPathDependencys,
@@ -525,10 +529,13 @@ public class SMGPathDependenceBuilder {
 
     public SMGPathDependenceResultBuilder(Set<SMGFlowDependenceFieldEdge> pGraphEdges,
         Map<Integer, PathPositionMemoryPathDependencys> pPathPositionMemoryPathDependencys,
-        Map<SMGRegion, Integer> pVariableSizeStackMemoryLocationDeclarationPosition) {
+        Map<SMGRegion, Integer> pVariableSizeStackMemoryLocationDeclarationPosition,
+        Set<SMGFlowDependenceFieldVertice> pGraphVertices) {
       graphEdges = new HashSet<>();
       pathPositionMemoryPathDependencys = new HashMap<>();
       variableSizeStackMemoryLocationDeclarationPosition = new HashMap<>();
+      graphVertices = new HashSet<>();
+      graphVertices.addAll(pGraphVertices);
       graphEdges.addAll(pGraphEdges);
       pathPositionMemoryPathDependencys.putAll(pPathPositionMemoryPathDependencys);
       variableSizeStackMemoryLocationDeclarationPosition
@@ -539,7 +546,8 @@ public class SMGPathDependenceBuilder {
         SMGPathDependenceResultBuilder pPathDependenceResultBuilder) {
       this(pPathDependenceResultBuilder.graphEdges,
           pPathDependenceResultBuilder.pathPositionMemoryPathDependencys,
-          pPathDependenceResultBuilder.variableSizeStackMemoryLocationDeclarationPosition);
+          pPathDependenceResultBuilder.variableSizeStackMemoryLocationDeclarationPosition,
+          pPathDependenceResultBuilder.graphVertices);
     }
 
     public void updateTargets(int pPos, Set<SMGKnownAddress> pNewObjTarg) {
@@ -551,6 +559,14 @@ public class SMGPathDependenceBuilder {
     public void addPathDependenceOfPosition(PathPositionMemoryPathDependencys pDependenceOfIndex,
         int pPos) {
       pathPositionMemoryPathDependencys.put(pPos, pDependenceOfIndex);
+    }
+
+    public void addNewFlowDependenceVertice(SMGFlowDependenceFieldVertice pNewVertice) {
+      graphVertices.add(pNewVertice);
+    }
+
+    public Set<SMGFlowDependenceFieldVertice> getGraphVertices() {
+      return ImmutableSet.copyOf(graphVertices);
     }
 
     public void addNewFlowDependenceEdge(SMGFlowDependenceFieldEdge pNewEdge) {
@@ -586,15 +602,15 @@ public class SMGPathDependenceBuilder {
     }
 
     public Set<SMGFlowDependenceFieldEdge> getGraphEdges() {
-      return graphEdges;
+      return ImmutableSet.copyOf(graphEdges);
     }
 
     public Map<Integer, PathPositionMemoryPathDependencys> getPathPositionMemoryPathDependencys() {
-      return pathPositionMemoryPathDependencys;
+      return ImmutableMap.copyOf(pathPositionMemoryPathDependencys);
     }
 
     public Map<SMGRegion, Integer> getVariableSizeStackMemoryLocationDeclarationPosition() {
-      return variableSizeStackMemoryLocationDeclarationPosition;
+      return ImmutableMap.copyOf(variableSizeStackMemoryLocationDeclarationPosition);
     }
   }
 }
