@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -74,7 +76,7 @@ public abstract class SMGPrecision implements Precision {
       boolean pUseLiveVariableAnalysis) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false,
-            pUseLiveVariableAnalysis, false, pUseSMGMerge, false);
+            pUseLiveVariableAnalysis, false, pUseSMGMerge, false, pUseLiveVariableAnalysis);
     return new SMGStaticPrecision(pLogger, options, pBlockOperator,
         pCFA.getVarClassification().orElse(VariableClassification.empty(pLogger)),
         pCFA.getLiveVariables(), SMGHeapAbstractionThreshold.defaultThreshold());
@@ -83,10 +85,11 @@ public abstract class SMGPrecision implements Precision {
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction,
       LogManager pLogger, BlockOperator pBlockOperator, boolean pUseSMGMerge,
       boolean pUseLiveVariableAnalysis, VariableClassification pVariableClassification,
-      Optional<LiveVariables> pLiveVariables, SMGHeapAbstractionThreshold pThreshold) {
+      Optional<LiveVariables> pLiveVariables, SMGHeapAbstractionThreshold pThreshold,
+      boolean pForgetDeadVars) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false,
-            pUseLiveVariableAnalysis, false, pUseSMGMerge, false);
+            pUseLiveVariableAnalysis, false, pUseSMGMerge, false, pForgetDeadVars);
     return new SMGStaticPrecision(pLogger, options, pBlockOperator,
         pVariableClassification,
         pLiveVariables, pThreshold);
@@ -108,7 +111,7 @@ public abstract class SMGPrecision implements Precision {
     return new SMGRefineablePrecision(pPrecision.logger,
         new SMGPrecisionAbstractionOptions(pPrecision.useHeapAbstraction(), useInterpoaltion,
             useInterpoaltion,
-            pPrecision.forgetDeadVariables(), useInterpoaltion, pPrecision.useSMGMerge(), true),
+            pPrecision.forgetDeadVariables(), useInterpoaltion, pPrecision.useSMGMerge(), true, pPrecision.forgetNonRelevantVariables()),
         pPrecision.getBlockOperator(),
         emptyMemoryPaths, emptyAbstractionBlocks, emptyStackVariable, pPrecision.getVarClass(),
         pPrecision.getLiveVars(),
@@ -156,7 +159,19 @@ public abstract class SMGPrecision implements Precision {
         return !liveVariablesDcl.contains(loc.getIdentifier());
       }
     }).toSet();
+  }
 
+  public Set<SMGRegion> getNonRelevantVariables(Map<MemoryLocation, SMGRegion> pStackVariables) {
+
+    Set<String> relevantVar = varClass.getRelevantVariables();
+    Set<SMGRegion> result = new HashSet<>();
+    for (Entry<MemoryLocation, SMGRegion> entry : pStackVariables.entrySet()) {
+      if (!relevantVar.contains(entry.getKey().getAsSimpleString())) {
+        result.add(entry.getValue());
+      }
+    }
+
+    return result;
   }
 
   public abstract boolean usesHeapInterpoaltion();
@@ -207,6 +222,10 @@ public abstract class SMGPrecision implements Precision {
 
   public boolean joinIntegerWhenMerging() {
     return options.joinIntegerWhenMerging();
+  }
+
+  public boolean forgetNonRelevantVariables() {
+    return options.forgetNonRelevantVariables();
   }
 
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
@@ -305,7 +324,8 @@ public abstract class SMGPrecision implements Precision {
           forgetDeadVariables() && pPrecision.forgetDeadVariables(),
           useInterpoaltion() && pPrecision.useInterpoaltion(),
           useSMGMerge() && pPrecision.useSMGMerge(),
-          joinIntegerWhenMerging() && pPrecision.joinIntegerWhenMerging());
+          joinIntegerWhenMerging() && pPrecision.joinIntegerWhenMerging(),
+          forgetDeadVariables() && pPrecision.forgetNonRelevantVariables());
 
       SMGHeapAbstractionThreshold threshold = getHeapAbsThreshold().join(pPrecision.getHeapAbsThreshold());
 
@@ -412,10 +432,11 @@ public abstract class SMGPrecision implements Precision {
     private final boolean useInterpoaltion;
     private final boolean smgMerge;
     private final boolean joinIntegerWhenMerging;
+    private final boolean forgetNonRelevantVariables;
 
     public SMGPrecisionAbstractionOptions(boolean pHeapAbstraction, boolean pFieldAbstraction,
         boolean pStackAbstraction, boolean pLiveVariableAnalysis,
-        boolean pUseInterpoaltion, boolean pUseSMGMerge, boolean pJoinIntegerWhenMerging) {
+        boolean pUseInterpoaltion, boolean pUseSMGMerge, boolean pJoinIntegerWhenMerging, boolean pForgetNonRelevantVariables) {
       super();
       heapAbstraction = pHeapAbstraction;
       fieldAbstraction = pFieldAbstraction;
@@ -424,6 +445,11 @@ public abstract class SMGPrecision implements Precision {
       useInterpoaltion = pUseInterpoaltion;
       smgMerge = pUseSMGMerge;
       joinIntegerWhenMerging = pJoinIntegerWhenMerging;
+      forgetNonRelevantVariables = pForgetNonRelevantVariables;
+    }
+
+    public boolean forgetNonRelevantVariables() {
+      return forgetNonRelevantVariables;
     }
 
     public boolean joinIntegerWhenMerging() {
@@ -465,6 +491,7 @@ public abstract class SMGPrecision implements Precision {
       result = prime * result + (useInterpoaltion ? 1231 : 1237);
       result = prime * result + (smgMerge ? 1231 : 1237);
       result = prime * result + (joinIntegerWhenMerging ? 1231 : 1237);
+      result = prime * result + (forgetNonRelevantVariables ? 1231 : 1237);
       return result;
     }
 
@@ -498,6 +525,9 @@ public abstract class SMGPrecision implements Precision {
       if (smgMerge != other.smgMerge) {
         return false;
       }
+      if (forgetNonRelevantVariables != other.forgetNonRelevantVariables) {
+        return false;
+      }
       if (joinIntegerWhenMerging != other.joinIntegerWhenMerging) {
         return false;
       }
@@ -511,6 +541,7 @@ public abstract class SMGPrecision implements Precision {
           + ", liveVariableAnalysis=" + liveVariableAnalysis
           + ", interpolation=" + useInterpoaltion
           + ", smgMerge=" + smgMerge
+          + ", forgetNonRelevantVariables=" + forgetNonRelevantVariables
           + ", joinIntegerWhenMerging=" + joinIntegerWhenMerging +"]";
     }
   }

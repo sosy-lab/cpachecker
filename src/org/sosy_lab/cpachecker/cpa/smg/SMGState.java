@@ -2927,12 +2927,39 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Get all has value edges that are not relevant according to the variable classification.
+   * Get all has value edges that are not relevant according to the precision.
    *
-   * @param pVarClass relevance is decided according to this variable classification.
-   * @return A set of has value edges that are not relevant according to the variable classification.
+   * @param pPrecision relevance is decided according to this precision.
+   * @return A set of has value edges that are not relevant according to the precision.
    */
-  public Set<SMGEdgeHasValue> getNonRelevantFields(VariableClassification pVarClass) {
+  public Set<SMGEdgeHasValue> getNonRelevantFields(SMGPrecision pPrecision) {
+    Set<SMGEdgeHasValue> result = getNonRelevantFieldsOfHeapObjects(pPrecision.getVarClass());
+    result.addAll(getNonRelevantStackVariables(pPrecision));
+    return result;
+  }
+
+  private Set<SMGEdgeHasValue> getNonRelevantStackVariables(
+      SMGPrecision pPrecision) {
+
+    Map<MemoryLocation, SMGRegion> stackVariables = getStackVariables();
+    Set<SMGRegion> regions = pPrecision.getNonRelevantVariables(stackVariables);
+
+    regions = FluentIterable.from(regions).filter((SMGRegion region) -> {
+      return !hasLiveReference(region);
+    }).toSet();
+
+    Set<SMGEdgeHasValue> result = new HashSet<>();
+
+    for (SMGEdgeHasValue edge : getHVEdges()) {
+      if (regions.contains(edge.getObject())) {
+        result.add(edge);
+      }
+    }
+
+    return result;
+  }
+
+  private Set<SMGEdgeHasValue> getNonRelevantFieldsOfHeapObjects(VariableClassification pVarClass) {
 
     Multimap<CCompositeType, String> relevantFields = pVarClass.getRelevantFields();
     Set<SMGEdgeHasValue> result = new HashSet<>();
@@ -2942,7 +2969,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       for (Entry<Integer, CType> entry : typesOfObject.entries()) {
 
-        if(entry.getKey() != 0) {
+        if (entry.getKey() != 0) {
           /*We don't calculate inner fields yet.*/
           continue;
         }
@@ -2955,10 +2982,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
         CCompositeType compositeType = (CCompositeType) realType;
 
-        if(relevantFields.containsKey(compositeType)) {
+        if (relevantFields.containsKey(compositeType)) {
 
           Collection<String> relevantMembers = relevantFields.get(compositeType);
-          List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(compositeType.getMembers());
+          List<CCompositeTypeMemberDeclaration> members =
+              new ArrayList<>(compositeType.getMembers());
 
           if (relevantMembers.size() == members.size()) {
             continue;
@@ -2968,9 +2996,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
             return relevantMembers.contains(memberType.getName());
           });
 
-          Map<CCompositeTypeMemberDeclaration, Integer> offsetMap = SMGUtils.getOffsetOfFields(compositeType, heap.getMachineModel());
+          Map<CCompositeTypeMemberDeclaration, Integer> offsetMap =
+              SMGUtils.getOffsetOfFields(compositeType, heap.getMachineModel());
 
-          for(CCompositeTypeMemberDeclaration member : members) {
+          for (CCompositeTypeMemberDeclaration member : members) {
             if (offsetMap.containsKey(member)) {
               result.addAll(getHVEdges(SMGEdgeHasValueFilter.objectFilter(object)
                   .filterAtOffset(offsetMap.get(member))));

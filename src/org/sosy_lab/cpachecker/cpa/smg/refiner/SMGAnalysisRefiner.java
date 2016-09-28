@@ -79,17 +79,28 @@ public class SMGAnalysisRefiner {
       options = new SMGPrecisionAbstractionOptions(false,
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
           originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),
-          originalPrecision.useSMGMerge(), originalPrecision.joinIntegerWhenMerging());
+          originalPrecision.useSMGMerge(), originalPrecision.joinIntegerWhenMerging(), originalPrecision.forgetNonRelevantVariables());
       noChange = false;
     }
 
-    if (originalPrecision.forgetDeadVariables() && liveAnalysisCausesError()) {
+    if (originalPrecision.forgetDeadVariables() &&
+        originalPrecision.forgetNonRelevantVariables() && liveAnalysisCausesError(true)) {
+      logger.log(Level.INFO, "Disable forgetting non relevant variables.");
+      options = new SMGPrecisionAbstractionOptions(
+          originalPrecision.useHeapAbstraction(),
+          originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
+          originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge(),
+          originalPrecision.joinIntegerWhenMerging(), false);
+      noChange = false;
+    }
+
+    if (originalPrecision.forgetDeadVariables() && liveAnalysisCausesError(false)) {
       logger.log(Level.INFO, "Disable live variable Analysis.");
       options = new SMGPrecisionAbstractionOptions(
           originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
           false, originalPrecision.useInterpoaltion(), originalPrecision.useSMGMerge(),
-          originalPrecision.joinIntegerWhenMerging());
+          originalPrecision.joinIntegerWhenMerging(), false);
       noChange = false;
     }
 
@@ -99,7 +110,7 @@ public class SMGAnalysisRefiner {
           originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
           originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
-          false);
+          false, originalPrecision.forgetNonRelevantVariables());
       noChange = false;
     }
 
@@ -109,23 +120,23 @@ public class SMGAnalysisRefiner {
           originalPrecision.useHeapAbstraction(),
           originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
           originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(), false,
-          false);
+          false, originalPrecision.forgetNonRelevantVariables());
       noChange = false;
     }
 
     if(noChange) {
       logger.log(Level.INFO, "Use strongest precision.");
-      options = new SMGPrecisionAbstractionOptions(false, false, false, false, false, false, false);
+      options = new SMGPrecisionAbstractionOptions(false, false, false, false, false, false, false, false);
     }
 
     return originalPrecision.refineOptions(options, threshold);
   }
 
-  private boolean liveAnalysisCausesError() throws CPAException, InterruptedException {
+  private boolean liveAnalysisCausesError(boolean forgetNonRelevantVariables) throws CPAException, InterruptedException {
 
     SMGPrecision precision =
         SMGPrecision.createStaticPrecision(false, logger, originalPrecision.getBlockOperator(),
-            false, true, originalPrecision.getVarClass(), originalPrecision.getLiveVars(), SMGHeapAbstractionThreshold.defaultThreshold());
+            false, true, originalPrecision.getVarClass(), originalPrecision.getLiveVars(), SMGHeapAbstractionThreshold.defaultThreshold(), forgetNonRelevantVariables);
     return checker.isFeasible(errorPath,
         AbstractStates.extractStateByType(errorPath.getFirstState(), SMGState.class), precision,
         true);
@@ -136,7 +147,7 @@ public class SMGAnalysisRefiner {
 
     SMGPrecision precision = SMGPrecision.createStaticPrecision(true, logger,
         originalPrecision.getBlockOperator(), false, false, originalPrecision.getVarClass(),
-        originalPrecision.getLiveVars(), pThreshold);
+        originalPrecision.getLiveVars(), pThreshold, false);
     return checker.isFeasible(errorPath,
         AbstractStates.extractStateByType(errorPath.getFirstState(), SMGState.class), precision,
         true);
