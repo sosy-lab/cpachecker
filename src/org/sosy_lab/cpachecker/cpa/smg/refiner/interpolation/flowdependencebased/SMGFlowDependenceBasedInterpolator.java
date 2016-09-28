@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -120,7 +122,7 @@ public class SMGFlowDependenceBasedInterpolator {
 
       if (newInterpolants.equals(prevInterpolants)) {
 
-        exportInterpolants(pErrorPath, pRoot, pInterpolationId, newPrec, newInterpolants);
+        exportInterpolants(pErrorPath, pRoot, pInterpolationId, newPrec, newInterpolants, pReached);
 
         throw new RefinementFailedException(
           Reason.InterpolationFailed, pErrorPath);
@@ -130,10 +132,10 @@ public class SMGFlowDependenceBasedInterpolator {
       newPrec = (SMGPrecision) newPrec.withIncrement(getNewPrecInc(newInterpolants));
 
     } while (checker.isFeasible(pErrorPath,
-        AbstractStates.extractStateByType(pRoot, SMGState.class), newPrec));
+        AbstractStates.extractStateByType(pRoot, SMGState.class), pReached, newPrec));
 
     if (smgExportLevel == SMGExportLevel.EVERY) {
-      exportInterpolants(pErrorPath, pRoot, pInterpolationId, newPrec, prevInterpolants);
+      exportInterpolants(pErrorPath, pRoot, pInterpolationId, newPrec, prevInterpolants, pReached);
     }
 
     return prevInterpolants;
@@ -244,7 +246,7 @@ public class SMGFlowDependenceBasedInterpolator {
   }
 
   private void exportInterpolants(ARGPath pErrorPath, ARGState root, int pInterpolationId,
-      SMGPrecision pNewPrec, Map<ARGState, SMGInterpolant> interpolants) throws CPAException, InterruptedException {
+      SMGPrecision pNewPrec, Map<ARGState, SMGInterpolant> interpolants, ARGReachedSet pReached) throws CPAException, InterruptedException {
 
     if (pErrorPath.size() <= 1) {
       return;
@@ -261,19 +263,15 @@ public class SMGFlowDependenceBasedInterpolator {
       it.advance();
     }
 
-    SMGPrecisionAdjustment precAdj =
-        new SMGPrecisionAdjustment(logger, SMGExportDotOption.getNoExportInstance());
-    precAdj.prec(initialState, pNewPrec, it.getLocation());
-
-    initialState = adjustState(initialState, pNewPrec, it.getLocation());
+    initialState = adjustState(initialState, pNewPrec, it, pReached);
     exportState(initialState, it, pInterpolationId, it.getLocation(), 1, 0);
 
     AtomicInteger pathIdCounter = new AtomicInteger(1);
-    exportStatePath(it.getSuffixInclusive(), initialState, pNewPrec, pInterpolationId, pathIdCounter.getAndIncrement(), pathIdCounter, it.getIndex());
+    exportStatePath(it.getSuffixInclusive(), initialState, pNewPrec, pInterpolationId, pathIdCounter.getAndIncrement(), pathIdCounter, it.getIndex(), pReached);
   }
 
   private void exportStatePath(ARGPath pPath, SMGState pInitialState, SMGPrecision pNewPrec, int pInterpolationId, int pathId,
-      AtomicInteger pPathIdCounter, int pOriginalStartPosition) throws CPAException, InterruptedException {
+      AtomicInteger pPathIdCounter, int pOriginalStartPosition, ARGReachedSet pReached) throws CPAException, InterruptedException {
 
     PathIterator it = pPath.fullPathIterator();
     SMGState nextState = pInitialState;
@@ -304,33 +302,37 @@ public class SMGFlowDependenceBasedInterpolator {
         ARGPath newPath= it.getSuffixInclusive();
 
         if (it.isPositionWithState()) {
-          newInitialPathState = adjustState(newInitialPathState, pNewPrec, edge.getSuccessor());
+          newInitialPathState = adjustState(newInitialPathState, pNewPrec, it, pReached);
         }
 
         exportState(newInitialPathState, it, pInterpolationId, edge.getSuccessor(),
             newPathId, pOriginalStartPosition);
         exportStatePath(newPath, newInitialPathState, pNewPrec, pInterpolationId, newPathId,
-            pPathIdCounter, it.getIndex() + pOriginalStartPosition);
+            pPathIdCounter, it.getIndex() + pOriginalStartPosition, pReached);
       }
 
       if(it.isPositionWithState()) {
-        nextState = adjustState(nextState, pNewPrec, edge.getSuccessor());
+        nextState = adjustState(nextState, pNewPrec, it, pReached);
       }
 
       exportState(nextState, it, pInterpolationId, edge.getSuccessor(), pathId, pOriginalStartPosition);
     }
-
-
   }
 
-  private SMGState adjustState(SMGState pState, SMGPrecision prec, CFANode node)
+  private SMGState adjustState(SMGState pState, SMGPrecision pNewPrecision, PathIterator pIterator,
+      ARGReachedSet pReachedSet)
       throws CPAException {
 
     SMGPrecisionAdjustment precAdj =
         new SMGPrecisionAdjustment(logger, SMGExportDotOption.getNoExportInstance());
 
-      SMGState resultState = (SMGState) precAdj.prec(pState, prec, node).get().abstractState();
+    SMGPrecision originalPrecision =
+        SMGCEGARUtils.extractSMGPrecision(pReachedSet, pIterator.getAbstractState());
 
+    SMGPrecision precision = originalPrecision.join(pNewPrecision);
+
+    SMGState resultState = (SMGState) precAdj.prec(pState, precision, pIterator.getLocation())
+        .orElse(PrecisionAdjustmentResult.create(pState, precision, Action.BREAK)).abstractState();
 
     return resultState;
   }

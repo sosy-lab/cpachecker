@@ -37,12 +37,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
@@ -59,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -99,7 +103,9 @@ public class SMGFeasibilityChecker {
   private ReachabilityResult isReachable(
        ARGPath pPath,
        SMGState pStartingPoint,
-       SMGPrecision precision) throws CPAException, InterruptedException {
+       SMGPrecision precision,
+       boolean pJoinPrecisionWithOriginal,
+       Optional<ARGReachedSet> pReachedSet) throws CPAException, InterruptedException {
 
  // We don't want sideffects of smg transfer relation for smg state propagating.
     SMGState start = new SMGState(pStartingPoint);
@@ -127,29 +133,8 @@ public class SMGFeasibilityChecker {
 
         iterator.advance();
 
-        final CFANode location = edge.getSuccessor();
-
-        try {
-          successors = FluentIterable.from(successors).transform((SMGState smgState) -> {
-
-            if (!iterator.isPositionWithState()) {
-              return smgState;
-            }
-
-            try {
-              return (SMGState) precisionAdjustment
-                  .prec(smgState, precision, location)
-                  .get().abstractState();
-            } catch (CPAException e) {
-              throw new RuntimeException(e);
-            }
-          }).toList();
-        } catch (RuntimeException e) {
-          if (e.getCause() instanceof CPAException) {
-            throw (CPAException) e.getCause();
-          } else {
-            throw e;
-          }
+        if (iterator.isPositionWithState()) {
+          successors = adjustPrecision(successors, iterator, precision, pJoinPrecisionWithOriginal, pReachedSet);
         }
 
         next.clear();
@@ -159,6 +144,35 @@ public class SMGFeasibilityChecker {
       return ReachabilityResult.isReachable(next, edge, iterator.getPosition());
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+    }
+  }
+
+  private Collection<SMGState> adjustPrecision(Collection<SMGState> pSuccessors,
+      PathIterator pIterator, SMGPrecision pPrecision, boolean pJoinPrecisionWithOriginal, Optional<ARGReachedSet> pReachedSet) throws CPAException {
+
+    Set<SMGState> adjustetForPrecision = new HashSet<>();
+
+    SMGPrecision precision = getPrecision(pPrecision, pJoinPrecisionWithOriginal, pReachedSet, pIterator);
+
+    for (SMGState state : pSuccessors) {
+      Optional<PrecisionAdjustmentResult> precResult =
+          precisionAdjustment.prec(state, precision, pIterator.getLocation());
+      state = (SMGState) precResult
+          .orElse(PrecisionAdjustmentResult.create(state, precision, Action.BREAK)).abstractState();
+      adjustetForPrecision.add(state);
+    }
+
+    return adjustetForPrecision;
+  }
+
+  private SMGPrecision getPrecision(SMGPrecision pPrecision, boolean pJoinPrecisionWithOriginal,
+      Optional<ARGReachedSet> pReachedSet, PathIterator pIterator) {
+
+    if (pJoinPrecisionWithOriginal) {
+      SMGPrecision originalPrecisionAtState = SMGCEGARUtils.extractSMGPrecision(pReachedSet.get(), pIterator.getAbstractState());
+      return originalPrecisionAtState.join(pPrecision);
+    } else {
+      return pPrecision;
     }
   }
 
@@ -256,16 +270,18 @@ public class SMGFeasibilityChecker {
   public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint,
       SMGPrecision pPrecision)
       throws CPAException, InterruptedException {
-    return isFeasible(pPath, pStartingPoint, pPrecision, false);
+    return isFeasible(pPath, pStartingPoint, pPrecision, false, false, Optional.empty());
   }
 
-  public boolean isFeasible(ARGPath pPath, SMGState pStartingPoint,
-      SMGPrecision pPrecision, boolean pAllTargets)
+  private boolean isFeasible(ARGPath pPath, SMGState pStartingPoint,
+      SMGPrecision pPrecision, boolean pAllTargets, boolean pJoinWithReachedSetPrecision, Optional<ARGReachedSet> pReachedSet)
           throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pPath.getInnerEdges().size() > 0);
+    Preconditions.checkArgument(pReachedSet.isPresent() == pJoinWithReachedSetPrecision);
 
-    ReachabilityResult result = isReachable(pPath, pStartingPoint, pPrecision);
+    ReachabilityResult result =
+        isReachable(pPath, pStartingPoint, pPrecision, pJoinWithReachedSetPrecision, pReachedSet);
 
     if (result.isReachable()) {
 
@@ -352,7 +368,9 @@ public class SMGFeasibilityChecker {
       return true;
     }
 
-    return isReachable(pErrorPath, pInitialState, precision).isReachable();
+    ReachabilityResult reachabilityResult =
+        isReachable(pErrorPath, pInitialState, precision, false, Optional.empty());
+    return reachabilityResult.isReachable();
   }
 
   public boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pState,
@@ -379,7 +397,8 @@ public class SMGFeasibilityChecker {
     PathPosition result = pErrorPath.fullPathIterator().getPosition();
 
     for (SMGState startPoint : pStartingPoints) {
-      ReachabilityResult reachabilityResult = isReachable(pErrorPath, startPoint, precision);
+      ReachabilityResult reachabilityResult =
+          isReachable(pErrorPath, startPoint, precision, false, Optional.empty());
       PathPosition reachabilityResultPosition = reachabilityResult.getLastPosition();
 
       if (result.iterator().getIndex() < reachabilityResultPosition.iterator().getIndex()) {
@@ -392,10 +411,8 @@ public class SMGFeasibilityChecker {
 
   public boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
       throws CPAException, InterruptedException {
-    return isFeasible(pErrorPath, initialState, precision, pAllTargets);
+    return isFeasible(pErrorPath, initialState, precision, pAllTargets, false, Optional.empty());
   }
-
-
 
   public List<Pair<SMGState, List<CFAEdge>>> createMostPreciseSMGStatePath(ARGPath pPath)
       throws CPAException, InterruptedException {
@@ -437,5 +454,17 @@ public class SMGFeasibilityChecker {
 
   public Precision getStrongestPrecision() {
     return precision;
+  }
+
+  public boolean isFeasible(ARGPath pErrorPath, SMGState pInitialState,
+      ARGReachedSet pReached, SMGPrecision precisionToJoin)
+      throws CPAException, InterruptedException {
+    return isFeasible(pErrorPath, pInitialState, precisionToJoin, false, true,
+        Optional.of(pReached));
+  }
+
+  public boolean isFeasible(ARGPath pErrorPath, SMGState pInitialState,
+      SMGPrecision pPrecision, boolean pAllTargets) throws CPAException, InterruptedException {
+    return isFeasible(pErrorPath, pInitialState, pPrecision, pAllTargets, false, Optional.empty());
   }
 }
