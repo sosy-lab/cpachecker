@@ -895,6 +895,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.toString(), logger,
           SMGExportLevel.EVERY, exportSMGOptions);
       logger.log(Level.ALL, "state id ", smg.getId(), " -> state id ", state.getId());
+      smg.setBlockEnded(blockOperator.isBlockEnd(cfaEdge.getSuccessor(), 0));
     }
 
     return successors;
@@ -950,7 +951,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
-    SMGState newState = new SMGState(smgState, blockOperator, functionReturnEdge.getSuccessor());
+    SMGState newState = new SMGState(smgState);
 
     if (smgPredicateManager.isErrorPathFeasible(newState)) {
       newState = newState.setInvalidRead();
@@ -1027,7 +1028,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     logger.log(Level.ALL, "Handling function call: ", functionEntryNode.getFunctionName());
 
-    SMGState initialNewState = new SMGState(pSmgState, blockOperator, callEdge.getSuccessor());
+    SMGState initialNewState = new SMGState(pSmgState);
 
     CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
 
@@ -1145,7 +1146,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleAssumption(SMGState pSmgState, CExpression expression, CFAEdge cfaEdge,
       boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
-    SMGState smgState = new SMGState(pSmgState, blockOperator, cfaEdge.getSuccessor());
+    SMGState smgState = new SMGState(pSmgState);
 
     if (smgPredicateManager.isErrorPathFeasible(smgState)) {
       smgState = smgState.setInvalidRead();
@@ -1217,7 +1218,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGState newState;
 
         if (createNewStateIfNecessary) {
-          newState = new SMGState(smgState, blockOperator, cfaEdge.getSuccessor());
+          newState = new SMGState(smgState);
         } else {
           // Don't continuously create new states when strengthening.
           newState = smgState;
@@ -1314,7 +1315,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       String functionName = fileNameExpression.toASTString();
 
       if (builtins.isABuiltIn(functionName)) {
-        SMGState newState = new SMGState(pState, blockOperator, pCfaEdge.getSuccessor());
+        SMGState newState = new SMGState(pState);
         if (builtins.isConfigurableAllocationFunction(functionName)) {
           logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
               "Calling ", functionName, " and not using the result, resulting in memory leak.");
@@ -1351,7 +1352,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           newStates = result.asSMGStateList();
           break;
         case "printf":
-          return ImmutableList.of(new SMGState(pState, blockOperator, pCfaEdge.getSuccessor()));
+          return ImmutableList.of(new SMGState(pState));
         default:
           // nothing to do here
         }
@@ -1392,7 +1393,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        SMGState resultState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
+        SMGState resultState = new SMGState(state);
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
             readValueToBeAssiged(resultState, cfaEdge, rValue).asSMGStateList();
@@ -1581,7 +1582,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pLFieldType, CRightHandSide rValue)
       throws CPATransferException {
 
-    SMGState newState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
+    SMGState newState = new SMGState(state);
 
     List<SMGState> newStates = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
 
@@ -1589,7 +1590,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     // alternate State (don't create state if not enabled)
     if (possibleMallocFail && enableMallocFailure) {
       possibleMallocFail = false;
-      SMGState otherState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
+      SMGState otherState = new SMGState(state);
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
       SMGState mallocFailState =
           writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
@@ -1636,7 +1637,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of(smgState);
     }
 
-    SMGState newState = new SMGState(smgState, blockOperator, edge.getSuccessor());
+    SMGState newState = new SMGState(smgState);
 
     List<SMGState> newStates = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
 

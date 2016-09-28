@@ -58,7 +58,7 @@ public class SMGAnalysisRefiner {
     if (threshold.getIncombarableThreshold() == 2) {
       logger.log(Level.INFO, "Increase heap abstraction threshold.");
       threshold = new SMGHeapAbstractionThreshold(2, 2, 3);
-    } else if (originalPrecision.useSMGMerge() && !originalPrecision.joinIntegerWhenMerging()) {
+    } else if (originalPrecision.useSMGMerge() && originalPrecision.joinIntegerWhenMerging()) {
       logger.log(Level.INFO, "Don't join explicit values when merging.");
       options = new SMGPrecisionAbstractionOptions(
           originalPrecision.useHeapAbstraction(),

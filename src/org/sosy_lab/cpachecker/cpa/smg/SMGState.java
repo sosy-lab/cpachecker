@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -74,7 +73,6 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
@@ -117,7 +115,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final int externalAllocationSize;
   private final boolean trackPredicates;
 
-  private final boolean blockEnded;
+  private boolean blockEnded;
 
   //TODO These flags are not enough, they should contain more about the nature of the error.
   private final boolean invalidWrite;
@@ -256,31 +254,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     blockEnded = pOriginalState.blockEnded;
   }
 
-  /**
-   * Copy constructor.
-   *
-   * Keeps consistency: yes
-   *
-   * @param pOriginalState Original state. Will be the predecessor of the
-   * new state
-   */
-  public SMGState(SMGState pOriginalState, BlockOperator pBlockOperator, CFANode pCurrentLocation) {
-    heap = new CLangSMG(pOriginalState.heap);
-    logger = pOriginalState.logger;
-    predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
-    id = id_counter.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
-    invalidFree = pOriginalState.invalidFree;
-    invalidRead = pOriginalState.invalidRead;
-    invalidWrite = pOriginalState.invalidWrite;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
-    blockEnded = pBlockOperator.isBlockEnd(pCurrentLocation, 0);
-    trackPredicates = pOriginalState.trackPredicates;
+  public void setBlockEnded(boolean pBlockEnded) {
+    blockEnded = pBlockEnded;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
@@ -1648,7 +1623,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           s1.pruneUnreachable();
           s2.pruneUnreachable();
 
-          logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
+          logger.log(Level.INFO, this.getId(), " is Less or Equal ", reachedState.getId());
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {
