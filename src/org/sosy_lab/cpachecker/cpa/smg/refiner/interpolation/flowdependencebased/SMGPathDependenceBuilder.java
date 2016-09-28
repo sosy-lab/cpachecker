@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -76,50 +76,47 @@ public class SMGPathDependenceBuilder {
   public final SMGFeasibilityChecker checker;
   private final SMGStrongestPostOperator strongestPostOp;
   private final SMGEdgeHeapAbstractionInterpolator heapAbsInterpolator;
+  private final ARGPath path;
+  private final ARGState root;
+  private final Map<ARGState, SMGInterpolant> previousInterpolants;
+  private final ARGReachedSet reached;
+  private final SMGTargets targets;
 
   public SMGPathDependenceBuilder(LogManager pLogger, SMGFeasibilityChecker pChecker,
-      SMGStrongestPostOperator pStrongestPostOperatorForInterpolationBasedOnFlowDependence) {
+      SMGStrongestPostOperator pStrongestPostOp,
+      SMGEdgeHeapAbstractionInterpolator pHeapAbsInterpolator, ARGPath pPath, ARGState pRoot,
+      Map<ARGState, SMGInterpolant> pPreviousInterpolants, ARGReachedSet pReached) {
     logger = pLogger;
     checker = pChecker;
-    strongestPostOp = pStrongestPostOperatorForInterpolationBasedOnFlowDependence;
-    heapAbsInterpolator =
-        new SMGEdgeHeapAbstractionInterpolator(logger, checker);
+    strongestPostOp = pStrongestPostOp;
+    heapAbsInterpolator = pHeapAbsInterpolator;
+    path = pPath;
+    root = pRoot;
+    previousInterpolants = pPreviousInterpolants;
+    reached = pReached;
+    ARGState pTargetState = pPath.getLastState();
+    targets = new SMGTargets(pTargetState);
   }
 
   public SMGStrongestPostOperator getStrongestPostOp() {
     return strongestPostOp;
   }
 
-  public Set<SMGPathDependence> createMemoryDependences(ARGPath path, ARGState pRoot,
-      Map<ARGState, SMGInterpolant> pPreviousInterpolants, ARGReachedSet pReached)
+  public Set<SMGPathDependence> buildMemoryDependences()
       throws CPAException, InterruptedException {
 
-    ARGState targetState = path.getLastState();
-
-    Set<SMGPathDependence> result;
-    SMGTargets targets = new SMGTargets(targetState);
-
-    result = createMemoryDependences(path, pRoot, targets, pPreviousInterpolants, pReached);
-
-    return result;
-  }
-
-  private Set<SMGPathDependence> createMemoryDependences(ARGPath pPath, ARGState pRoot,
-      SMGTargets pTargets, Map<ARGState, SMGInterpolant> pPreviousInterpolants,
-      ARGReachedSet pReached) throws CPAException, InterruptedException {
-
-    if (pPath.size() == 0) {
+    if (path.size() == 0) {
       return ImmutableSet.of();
     }
 
-    PathIterator it = pPath.fullPathIterator();
+    PathIterator it = path.fullPathIterator();
     SMGState initialState =
-        AbstractStates.extractStateByType(pRoot, SMGState.class);
+        AbstractStates.extractStateByType(root, SMGState.class);
     initialState = new SMGState(initialState);
 
     PathScope pathScope = new PathScope();
 
-    while (!it.isPositionWithState() && it.getAbstractState() != pRoot) {
+    while (!it.isPositionWithState() && it.getAbstractState() != root) {
       it.advance();
     }
 
@@ -128,32 +125,34 @@ public class SMGPathDependenceBuilder {
     SMGPathDependenceResultBuilder pathDependenceResultBuilder =
         new SMGPathDependenceResultBuilder();
 
-    pathScope.initializePathScope(initialState, pathDependenceResultBuilder, pathPosition);
+    pathScope =
+        pathScope.initializePathScope(initialState, pathDependenceResultBuilder, pathPosition);
 
     SMGState nextState = initialState;
 
     Builder<SMGPathDependence> result =
-        createMemoryDependenceForPaths(pPath, nextState, pTargets,
-            pPreviousInterpolants, pReached, pathPosition,
+        createMemoryDependenceForPaths(nextState, pathPosition,
             pathDependenceResultBuilder, pathScope);
 
     return result.build();
   }
 
-  private Builder<SMGPathDependence> createMemoryDependenceForPaths(ARGPath pPath, SMGState nextState,
-      SMGTargets pTargets, Map<ARGState, SMGInterpolant> pPreviousInterpolants,
-      ARGReachedSet pReached, int pStartPos, SMGPathDependenceResultBuilder pPathDependenceResultBuilder, PathScope pPathScope)
+  private Builder<SMGPathDependence> createMemoryDependenceForPaths(SMGState nextState,
+      int pStartPos, SMGPathDependenceResultBuilder pPathDependenceResultBuilder,
+      PathScope pPathScope)
       throws CPAException, InterruptedException {
 
     Builder<SMGPathDependence> resultBuilder = ImmutableSet.builder();
 
-    PathIterator it = pPath.fullPathIterator();
+    PathIterator it = path.fullPathIterator();
 
     int pathPosition = pStartPos;
 
     while (it.getIndex() != pathPosition) {
       it.advance();
     }
+
+    PathScope currentPathScope = pPathScope;
 
     while (it.advanceIfPossible() && !nextState.getSourcesOfHve().isPathEnd()) {
 
@@ -178,7 +177,7 @@ public class SMGPathDependenceBuilder {
           strongestPostOp.getStrongestPost(nextState, checker.getStrongestPrecision(), edge);
 
       if(resultStates.isEmpty()) {
-        throw new RefinementFailedException(Reason.InterpolationFailed, pPath);
+        throw new RefinementFailedException(Reason.InterpolationFailed, path);
       }
 
       pathPosition = it.getIndex();
@@ -188,19 +187,17 @@ public class SMGPathDependenceBuilder {
 
       while (resultStateIterator.hasNext()) {
         SMGState newPathStart = resultStateIterator.next();
-        PathScope newPathScope = new PathScope(pPathScope);
+        PathScope newPathScope = new PathScope(currentPathScope);
         SMGPathDependenceResultBuilder newPathResultBuilder =
             new SMGPathDependenceResultBuilder(pPathDependenceResultBuilder);
 
         if (it.isPositionWithState()) {
-          updateMemoryPathDependenceBuildStep(pPath, newPathStart, it,
-              pPreviousInterpolants, pTargets, pReached,
+          newPathScope = updateMemoryPathDependenceBuildStep(newPathStart, it,
               newPathResultBuilder, newPathScope);
         }
 
-        Builder<SMGPathDependence> otherPaths = createMemoryDependenceForPaths(pPath, newPathStart,
-            pTargets, pPreviousInterpolants,
-            pReached, pathPosition, newPathResultBuilder, newPathScope);
+        Builder<SMGPathDependence> otherPaths = createMemoryDependenceForPaths(newPathStart,
+            pathPosition, newPathResultBuilder, newPathScope);
         resultBuilder.addAll(otherPaths.build());
       }
 
@@ -208,9 +205,8 @@ public class SMGPathDependenceBuilder {
         continue;
       }
 
-      updateMemoryPathDependenceBuildStep(pPath, nextState,
-          it, pPreviousInterpolants, pTargets, pReached,
-          pPathDependenceResultBuilder, pPathScope);
+      currentPathScope = updateMemoryPathDependenceBuildStep(nextState,
+          it, pPathDependenceResultBuilder, currentPathScope);
     }
 
     int lastStatePosition;
@@ -222,36 +218,35 @@ public class SMGPathDependenceBuilder {
     }
 
     SMGPathDependence memoryDependenceOfPath =
-        pPathDependenceResultBuilder.build(logger, pPath, pTargets, lastStatePosition);
+        pPathDependenceResultBuilder.build(logger, path, targets, lastStatePosition);
 
     resultBuilder.add(memoryDependenceOfPath);
     return resultBuilder;
   }
 
-  private void updateMemoryPathDependenceBuildStep(ARGPath pPath, SMGState pState,
-      PathIterator it, Map<ARGState, SMGInterpolant> pPrevInterpolants,
-      SMGTargets pTargets, ARGReachedSet pReached,
-      SMGPathDependenceResultBuilder pPathDependenceResultBuilder,
-      PathScope pPathScope) throws CPAException, InterruptedException {
+  private PathScope updateMemoryPathDependenceBuildStep(SMGState pState,
+      PathIterator it, SMGPathDependenceResultBuilder pPathDependenceResultBuilder, PathScope pPathScope) throws CPAException, InterruptedException {
 
     int pathPosition = it.getIndex();
 
+    PathScope newPathScope = pPathScope;
+
     Set<SMGAbstractionBlock> blocks =
-        edgeBasedHeapAbstractionInterpolation(pState, pPrevInterpolants, it, pReached);
+        edgeBasedHeapAbstractionInterpolation(pState, it);
 
     SMGHveSources sources = pState.getSourcesOfHve();
 
     if (sources.isPathEnd()) {
       pPathDependenceResultBuilder.addTargetAddressesNeededToContradictAssumeEdge(pathPosition,
           pState);
-      return;
+      return newPathScope;
     }
 
     Set<SMGKnownAddress> newFields = sources.getNewFields();
     Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> newVertices =
         new HashMap<>(newFields.size());
 
-    pPathScope.addObjectAllocations(sources, pathPosition);
+    newPathScope = newPathScope.addObjectAllocations(sources, pathPosition);
 
     Set<SMGRegion> variablesWithVariableSizes = sources.getVariableTypeDclRegion();
 
@@ -262,14 +257,14 @@ public class SMGPathDependenceBuilder {
       newVertices.put(field, newVertice);
       pPathDependenceResultBuilder.addNewFlowDependenceVertice(newVertice);
 
-      Set<SMGKnownAddress> sourcesOfAllocationSize = pPathScope.getSourcesForSizeAllocationOfObject(field.getObject());
+      Set<SMGKnownAddress> sourcesOfAllocationSize = newPathScope.getSourcesForSizeAllocationOfObject(field.getObject());
 
       for (SMGKnownAddress source : sourcesOfAllocationSize) {
-        if (!pPathScope.containsVerticeForField(source)) {
-          throw new RefinementFailedException(Reason.InterpolationFailed, pPath);
+        if (!newPathScope.containsVerticeForField(source)) {
+          throw new RefinementFailedException(Reason.InterpolationFailed, path);
         }
 
-        SMGFlowDependenceFieldVertice sourceVertice = pPathScope.getVerticeForField(source);
+        SMGFlowDependenceFieldVertice sourceVertice = newPathScope.getVerticeForField(source);
         SMGFlowDependenceFieldEdge newEdge =
             new SMGFlowDependenceFieldEdge(sourceVertice, newVertice);
         pPathDependenceResultBuilder.addNewFlowDependenceEdge(newEdge);
@@ -282,12 +277,12 @@ public class SMGPathDependenceBuilder {
       SMGKnownAddress source = entry.getValue();
       SMGKnownAddress field = SMGKnownAddress.valueOf(hve.getObject(), hve.getOffset());
 
-      if (!pPathScope.containsVerticeForField(source)
+      if (!newPathScope.containsVerticeForField(source)
           || !newVertices.containsKey(field)) {
-        throw new RefinementFailedException(Reason.InterpolationFailed, pPath);
+        throw new RefinementFailedException(Reason.InterpolationFailed, path);
       }
 
-      SMGFlowDependenceFieldVertice sourceVertice = pPathScope.getVerticeForField(source);
+      SMGFlowDependenceFieldVertice sourceVertice = newPathScope.getVerticeForField(source);
       SMGFlowDependenceFieldVertice targetVertice = newVertices.get(field);
       SMGFlowDependenceFieldEdge newEdge =
           new SMGFlowDependenceFieldEdge(sourceVertice, targetVertice);
@@ -304,20 +299,20 @@ public class SMGPathDependenceBuilder {
       for (SMGEdgeHasValue hve : pState.getHVEdges(filter)) {
         SMGKnownAddress field = SMGKnownAddress.valueOf(hve.getObject(), hve.getOffset());
 
-        if (!pPathScope.containsVerticeForField(source)) {
-          throw new RefinementFailedException(Reason.InterpolationFailed, pPath);
+        if (!newPathScope.containsVerticeForField(source)) {
+          throw new RefinementFailedException(Reason.InterpolationFailed, path);
         }
 
-        SMGFlowDependenceFieldVertice sourceVertice = pPathScope.getVerticeForField(source);
+        SMGFlowDependenceFieldVertice sourceVertice = newPathScope.getVerticeForField(source);
 
         SMGFlowDependenceFieldVertice targetVertice;
 
         if (newVertices.containsKey(field)) {
           targetVertice = newVertices.get(field);
-        } else if (pPathScope.containsVerticeForField(field)) {
-          targetVertice = pPathScope.getVerticeForField(field);
+        } else if (newPathScope.containsVerticeForField(field)) {
+          targetVertice = newPathScope.getVerticeForField(field);
         } else {
-          throw new RefinementFailedException(Reason.InterpolationFailed, pPath);
+          throw new RefinementFailedException(Reason.InterpolationFailed, path);
         }
 
         SMGFlowDependenceFieldEdge newEdge =
@@ -326,26 +321,28 @@ public class SMGPathDependenceBuilder {
       }
     }
 
-    pPathScope.updateScopeForNextStep(newFields, newVertices);
+    newPathScope = newPathScope.updateScopeForNextStep(newFields, newVertices);
 
     Set<SMGKnownAddress> pPathTargets = new HashSet<>();
-    Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> pScope = pPathScope.getFieldVerticeScope();
+    Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> pScope = newPathScope.getFieldVerticeScope();
     PathPositionMemoryPathDependencys dependenceOfIndex =
         pState.calculatePathDependence(pScope, pPathTargets, blocks);
 
-    if (pTargets.isInvalidDereference() || pTargets.isInvalidFree()) {
+    if (targets.isInvalidDereference() || targets.isInvalidFree()) {
       Set<SMGKnownAddress> newTargets = pState.getSourcesOfHve().getSourcesOfDereferences();
 
       dependenceOfIndex = dependenceOfIndex.updateTarget(newTargets);
     }
 
     pPathDependenceResultBuilder.addPathDependenceOfPosition(dependenceOfIndex, pathPosition);
-    pPathDependenceResultBuilder.updateTargetsForObjectSizeAllocations(pPathScope, sources);
+    pPathDependenceResultBuilder.updateTargetsForObjectSizeAllocations(newPathScope, sources);
     pPathDependenceResultBuilder.updateTargetsForUnknownWrites(pathPosition, sources);
+
+    return newPathScope;
   }
 
   private Set<SMGAbstractionBlock> edgeBasedHeapAbstractionInterpolation(SMGState pState,
-      Map<ARGState, SMGInterpolant> pPrevInterpolants, PathIterator it, ARGReachedSet pReached)
+      PathIterator it)
       throws CPAException, InterruptedException {
 
     if (!it.isPositionWithState()) {
@@ -354,18 +351,18 @@ public class SMGPathDependenceBuilder {
 
     ARGState argStateOfPos = it.getAbstractState();
 
-    SMGPrecision currentPrecAtPos = SMGCEGARUtils.extractSMGPrecision(pReached, argStateOfPos);
+    SMGPrecision currentPrecAtPos = SMGCEGARUtils.extractSMGPrecision(reached, argStateOfPos);
 
     if (!currentPrecAtPos.useHeapAbstractionOnNode(it.getLocation())) {
       return ImmutableSet.of();
     }
 
-    if (!pPrevInterpolants.containsKey(argStateOfPos)) {
+    if (!previousInterpolants.containsKey(argStateOfPos)) {
       return ImmutableSet.of();
     }
 
     SMGPrecisionIncrement inc =
-        pPrevInterpolants.get(argStateOfPos).getPrecisionIncrement();
+        previousInterpolants.get(argStateOfPos).getPrecisionIncrement();
     Set<SMGMemoryPath> previouslyTrackedPath = FluentIterable.from(inc.getPathsToTrack()).toSet();
     Set<MemoryLocation> prevTrackedVar = FluentIterable.from(inc.getStackVariablesToTrack()).toSet();
     Set<SMGAbstractionBlock> prevBlocks = FluentIterable.from(inc.getAbstractionBlock()).toSet();
@@ -619,9 +616,22 @@ public class SMGPathDependenceBuilder {
     private final Map<SMGObject, Integer> objectAllocationPosition;
 
     public PathScope() {
-      scope = new HashMap<>();
-      objectSizeSources = HashMultimap.create();
-      objectAllocationPosition = new HashMap<>();
+      scope = ImmutableMap.of();
+      objectSizeSources = ImmutableSetMultimap.of();
+      objectAllocationPosition = ImmutableMap.of();
+    }
+
+    public PathScope(PathScope pOldPathScope) {
+      this(pOldPathScope.scope, pOldPathScope.objectSizeSources,
+          pOldPathScope.objectAllocationPosition);
+    }
+
+    public PathScope(Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> pScope,
+        SetMultimap<SMGObject, SMGKnownAddress> pObjectSizeSources,
+        Map<SMGObject, Integer> pObjectAllocationPosition) {
+      scope = ImmutableMap.copyOf(pScope);
+      objectSizeSources = ImmutableSetMultimap.copyOf(pObjectSizeSources);
+      objectAllocationPosition = ImmutableMap.copyOf(pObjectAllocationPosition);
     }
 
     public int getAllocationPosition(SMGObject pObject) {
@@ -629,7 +639,7 @@ public class SMGPathDependenceBuilder {
     }
 
     public Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> getFieldVerticeScope() {
-      return ImmutableMap.copyOf(scope);
+      return scope;
     }
 
     public SMGFlowDependenceFieldVertice getVerticeForField(SMGKnownAddress pSource) {
@@ -644,49 +654,73 @@ public class SMGPathDependenceBuilder {
       return objectSizeSources.get(pObject);
     }
 
-    public void updateScopeForNextStep(Set<SMGKnownAddress> pNewFields,
+    public PathScope updateScopeForNextStep(Set<SMGKnownAddress> pNewFields,
         Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> pNewVertices) {
+
+      ImmutableMap.Builder<SMGKnownAddress, SMGFlowDependenceFieldVertice> builder =
+          ImmutableMap.builder();
+
       for (SMGAddress field : pNewFields) {
         SMGKnownAddress newField = field.getAsKnownAddress();
         SMGFlowDependenceFieldVertice newFieldVertice = pNewVertices.get(field.getAsKnownAddress());
-        scope.put(newField, newFieldVertice);
+        builder.put(newField, newFieldVertice);
       }
+
+      Set<SMGKnownAddress> newKeys = Sets.difference(scope.keySet(), pNewFields);
+
+      for (SMGKnownAddress field : newKeys) {
+        builder.put(field, scope.get(field));
+      }
+
+      Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> newScope = builder.build();
+      return new PathScope(newScope, objectSizeSources, objectAllocationPosition);
     }
 
-    public void addObjectAllocations(SMGHveSources pSources, int pPathPosition) {
+    public PathScope addObjectAllocations(SMGHveSources pSources, int pPathPosition) {
+
+      ImmutableSetMultimap.Builder<SMGObject, SMGKnownAddress> sizeSourceBuilder =
+          ImmutableSetMultimap.builder();
+      ImmutableMap.Builder<SMGObject, Integer> allocationPositionBuilder =
+          ImmutableMap.builder();
+
+      Set<SMGObject> newKeys = new HashSet<>();
+
       for (Entry<SMGObject, SMGKnownAddress> entry : pSources.getObjectMap()) {
-        objectSizeSources.put(entry.getKey(), entry.getValue());
-        objectAllocationPosition.put(entry.getKey(), pPathPosition);
+        sizeSourceBuilder.put(entry.getKey(), entry.getValue());
+        allocationPositionBuilder.put(entry.getKey(), pPathPosition);
+        newKeys.add(entry.getKey());
       }
+
+      Set<SMGObject> oldKeyObjectAllocationPosition =
+          Sets.difference(objectAllocationPosition.keySet(), newKeys);
+
+      for (SMGObject oldKey : oldKeyObjectAllocationPosition) {
+        allocationPositionBuilder.put(oldKey, objectAllocationPosition.get(oldKey));
+      }
+
+      sizeSourceBuilder.putAll(objectSizeSources);
+
+      SetMultimap<SMGObject, SMGKnownAddress> newObjectSizeSources = sizeSourceBuilder.build();
+      Map<SMGObject, Integer> newObjectAllocationPosition = allocationPositionBuilder.build();
+      return new PathScope(scope, newObjectSizeSources, newObjectAllocationPosition);
     }
 
-    public void initializePathScope(SMGState pInitialState,
+    public PathScope initializePathScope(SMGState pInitialState,
         SMGPathDependenceResultBuilder pPathDependenceResultBuilder,
         int pStartPathPosition) {
+
+      ImmutableMap.Builder<SMGKnownAddress, SMGFlowDependenceFieldVertice> builder = ImmutableMap.builder();
 
       for (SMGEdgeHasValue hve : pInitialState.getHVEdges()) {
         SMGKnownAddress field = SMGKnownAddress.valueOf(hve.getObject(), hve.getOffset());
         SMGFlowDependenceFieldVertice vertice =
             new SMGFlowDependenceFieldVertice(field, pStartPathPosition);
-        scope.put(field, vertice);
+        builder.put(field, vertice);
         pPathDependenceResultBuilder.addNewFlowDependenceVertice(vertice);
       }
-    }
 
-    public PathScope(PathScope pOldPathScope) {
-      this(pOldPathScope.scope, pOldPathScope.objectSizeSources,
-          pOldPathScope.objectAllocationPosition);
-    }
-
-    public PathScope(Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> pScope,
-        SetMultimap<SMGObject, SMGKnownAddress> pObjectSizeSources,
-        Map<SMGObject, Integer> pObjectAllocationPosition) {
-      scope = new HashMap<>();
-      objectSizeSources = HashMultimap.create();
-      objectAllocationPosition = new HashMap<>();
-      scope.putAll(pScope);
-      pObjectSizeSources.putAll(pObjectSizeSources);
-      pObjectAllocationPosition.putAll(pObjectAllocationPosition);
+      Map<SMGKnownAddress, SMGFlowDependenceFieldVertice> newScope = builder.build();
+      return new PathScope(newScope, objectSizeSources, objectAllocationPosition);
     }
 
     @Override

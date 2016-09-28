@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGCEGARUtils;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGStrongestPostOperator;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGEdgeHeapAbstractionInterpolator;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -75,10 +76,10 @@ public class SMGFlowDependenceBasedInterpolator {
 
   private final LogManager logger;
   private final SMGFeasibilityChecker checker;
-  private final SMGPathDependenceBuilder useGraphBuilder;
-
   private final PathTemplate exportPath;
   private final SMGExportLevel smgExportLevel;
+  private final SMGStrongestPostOperator strongestPostOp;
+  private final SMGEdgeHeapAbstractionInterpolator heapAbstractionInterpolator;
 
   public SMGFlowDependenceBasedInterpolator(LogManager pLogger, SMGFeasibilityChecker pChecker,
       Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
@@ -91,11 +92,10 @@ public class SMGFlowDependenceBasedInterpolator {
             pSMGPredicateManager, pBlockOperator);
     checker = new SMGFeasibilityChecker(pChecker, postOpForInterpolation);
 
-    SMGStrongestPostOperator strongestPostOp =
+    strongestPostOp =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForUseGraph(pLogger, pConfig, pCfa,
             pSMGPredicateManager, pBlockOperator);
-    useGraphBuilder =
-        new SMGPathDependenceBuilder(logger, pChecker, strongestPostOp);
+    heapAbstractionInterpolator = new SMGEdgeHeapAbstractionInterpolator(logger, checker);
     exportPath = pExportPath;
     smgExportLevel = pSmgExportLevel;
   }
@@ -161,8 +161,11 @@ public class SMGFlowDependenceBasedInterpolator {
   private Map<ARGState, SMGInterpolant> interpolatePath(ARGPath pErrorPath, ARGState pRoot,
       Map<ARGState, SMGInterpolant> pPrevInterpolants, ARGReachedSet pReached, int pCurrentDependencePathcreationIndex, int pInterpolationId) throws CPAException, InterruptedException {
 
-    Set<SMGPathDependence> memoryDependence =
-        useGraphBuilder.createMemoryDependences(pErrorPath, pRoot, pPrevInterpolants, pReached);
+    SMGPathDependenceBuilder builder =
+        new SMGPathDependenceBuilder(logger, checker, strongestPostOp, heapAbstractionInterpolator,
+            pErrorPath, pRoot, pPrevInterpolants, pReached);
+
+    Set<SMGPathDependence> memoryDependence = builder.buildMemoryDependences();
 
     if (smgExportLevel == SMGExportLevel.EVERY) {
       exportPathDependence(memoryDependence, pCurrentDependencePathcreationIndex, pInterpolationId);
