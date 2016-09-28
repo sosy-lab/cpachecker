@@ -112,8 +112,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -555,7 +555,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         if (address.isUnknown()) {
           if(kind == SMGTransferRelationKind.STATIC) {
-            logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
+            logger.log(Level.ALL, "Free on expression ", pointerExp.toASTString(),
                 " is invalid, because the target of the address could not be calculated.");
           }
           SMGState invalidFreeState = currentState.setInvalidFree();
@@ -564,7 +564,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (address.getAsInt() == 0 && kind == SMGTransferRelationKind.STATIC) {
-          logger.log(Level.INFO, pFunctionCall.getFileLocation(), ":",
+          logger.log(Level.ALL, pFunctionCall.getFileLocation(), ":",
               "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
         }
@@ -1264,7 +1264,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (builtins.isABuiltIn(functionName)) {
         SMGState newState = pState.createSuccessor();
         if (builtins.isConfigurableAllocationFunction(functionName)) {
-          logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
+          logger.log(Level.ALL, pCfaEdge.getFileLocation(), ":",
               "Calling ", functionName, " and not using the result, resulting in memory leak.");
           newStates = builtins.evaluateConfigurableAllocationFunction(cFCExpression, newState, pCfaEdge).asSMGStateList();
 
@@ -1286,7 +1286,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           builtins.evaluateVBPlot(cFCExpression, newState);
           break;
         case "__builtin_alloca":
-          logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
+          logger.log(Level.ALL, pCfaEdge.getFileLocation(), ":",
               "Calling alloc and not using the result.");
           newStates = builtins.evaluateAlloca(cFCExpression, newState, pCfaEdge).asSMGStateList();
           break;
@@ -1460,7 +1460,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (memoryOfField.getSize() < sizeOfField.getAsInt()) {
 
       if (kind == SMGTransferRelationKind.STATIC) {
-        logger.log(Level.INFO, () -> {
+        logger.log(Level.ALL, () -> {
           String log =
               String.format("%s: Attempting to write %d bytes into a field with size %d bytes: %s",
                   pCfaEdge.getFileLocation(), sizeOfField.getAsInt(), memoryOfField.getSize(),
@@ -1496,7 +1496,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
       if (kind == SMGTransferRelationKind.STATIC) {
-        logger.log(Level.INFO, () -> {
+        logger.log(Level.ALL, () -> {
           String msg =
               String.format("%s: Field (%d, %s) does not fit object %s.", pEdge.getFileLocation(),
                   fieldOffset, pRValueType.toASTString(""), fieldObject.toString());
@@ -1639,7 +1639,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Type cannot be resolved
-    logger.log(Level.INFO,() -> {
+    logger.log(Level.ALL,() -> {
           String msg =
               String.format("Type %s cannot be resolved sufficiently to handle initializer %s",
                   realCType.toASTString(""), pNewInitializer);
@@ -1910,7 +1910,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
-        getLogger().log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
+        getLogger().log(Level.ALL, pEdge.getFileLocation(), ":", "Field ", "(",
              fieldOffset, ", ", pType.toASTString(""), ")",
             " does not fit object ", object, ".");
 
