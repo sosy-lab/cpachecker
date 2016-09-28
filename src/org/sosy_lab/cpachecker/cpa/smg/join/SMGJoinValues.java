@@ -1189,6 +1189,11 @@ final class SMGJoinValues {
             pDestSMG.addPointsToEdge(newPtEdge);
           }
         }
+      } else {
+        if (!pDestSMG.getValues().contains(newVal)) {
+          pDestSMG.addValue(newVal);
+          pMapping.map(subDlsValue, newVal);
+        }
       }
 
       if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).isEmpty()) {
