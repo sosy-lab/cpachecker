@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
@@ -263,23 +264,33 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
 
-    // TODO Investigate, is this okay?
     if(nonSharedValues2.contains(pValue)) {
       nonSharedValues2.remove(pValue);
+    }
+
+    Set<SMGEdgePointsTo> prevPointer = pSmg.getPtEdges(
+        SMGEdgePointsToFilter.targetObjectFilter(startObject).filterAtTargetOffset(hfo));
+
+    prevPointer = FluentIterable.from(prevPointer).filter((SMGEdgePointsTo pte) -> {
+      return pte.getTargetSpecifier() != SMGTargetSpecifier.ALL;
+    }).toSet();
+
+    if (!prevPointer.isEmpty()) {
+      int prevValue = Iterables.getOnlyElement(prevPointer).getValue();
+
+      if (nonSharedValues1.contains(prevValue)) {
+        nonSharedValues1.remove(prevValue);
+      }
     }
 
     // Third, calculate if the respective nfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
         valuesOfSubSmg1, startObject)) {
-      isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
-          valuesOfSubSmg1, startObject);
       return;
     }
 
     if (!isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
         valuesOfSubSmg2, nextObject)) {
-      isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
-          valuesOfSubSmg2, nextObject);
       return;
     }
 
@@ -300,15 +311,33 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         if (!nonSharedValues2.contains(pte.getValue())) {
           return;
         }
-      } else {
 
-        /* Nothing besides the one link from the prev object pointer may
-         * point to the next object in a sll
+      } else if (nextObject.getKind() == SMGObjectKind.SLL
+          && pte.getTargetSpecifier() == SMGTargetSpecifier.FIRST) {
+
+        /* Nothing besides the start object may point to the beginning of the next object.
          */
         Set<SMGEdgeHasValue> prevs =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
+          return;
+        }
+      } else if(nextObject.getKind() ==  SMGObjectKind.REG) {
+        /*We only allow pointer from non shared object at successor.*/
+
+        Set<SMGEdgeHasValue> hves =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+
+        /* If we want to continue abstracting in this sequence there may be only these two edges, and the edges from the subSmg.*/
+        int count = 0;
+        for (SMGEdgeHasValue hve : hves) {
+          if (!nonSharedObject2.contains(hve.getObject())) {
+            count = count + 1;
+          }
+        }
+
+        if (count != 1) {
           return;
         }
       }
