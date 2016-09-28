@@ -28,6 +28,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 import java.util.ArrayList;
@@ -376,5 +379,39 @@ public class SMGFeasibilityChecker {
   public boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
       throws CPAException, InterruptedException {
     return isFeasible(pErrorPath, initialState, precision, pAllTargets);
+  }
+
+  public List<Pair<SMGState, List<CFAEdge>>> createMostPreciseSMGStatePath(ARGPath pPath)
+      throws CPAException, InterruptedException {
+
+    List<CFAEdge> fullPath = pPath.getFullPath();
+    List<Pair<SMGState, List<CFAEdge>>> path = new ArrayList<>(fullPath.size());
+
+    SMGState successor = initialState;
+
+    boolean bottom = false;
+
+    for (CFAEdge edge : fullPath) {
+      Collection<SMGState> successors =
+          strongestPostOp.getStrongestPost(successor, precision, edge);
+
+      if (successors.isEmpty()) {
+        /*Continue creating templates for top state*/
+        bottom = true;
+      } else {
+        successor = Iterables.getOnlyElement(successors);
+      }
+
+      if (bottom) {
+        successor.clearObjects();
+        successor.clearValues();
+      }
+
+      List<CFAEdge> edges = Lists.newArrayList(edge);
+      path.add(Pair.of(successor, edges));
+
+    }
+
+    return path;
   }
 }

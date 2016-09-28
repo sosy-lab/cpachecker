@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGAnalysisRefiner.SMGAnalysisRefinerResult;
@@ -359,8 +360,9 @@ public class SMGRefiner implements Refiner {
    */
   private CFAPathWithAssumptions createModel(ARGPath errorPath)
       throws InterruptedException, CPAException {
-    return CFAPathWithAssumptions.of(smgCpa.createConcreteStatePath(errorPath),
-        smgCpa.getAssumptionToEdgeAllocator());
+    SMGConcreteErrorPathAllocator alloc =
+        new SMGConcreteErrorPathAllocator(smgCpa.getAssumptionToEdgeAllocator());
+    return alloc.createFullModelForPath(checker, errorPath);
   }
 
   private SMGInterpolationTree obtainInterpolants(List<ARGPath> pTargetPaths, ARGReachedSet pReachedSet)
