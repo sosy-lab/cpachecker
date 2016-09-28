@@ -31,6 +31,7 @@ import com.google.common.collect.SetMultimap;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -137,9 +138,9 @@ public abstract class SMGPrecision implements Precision {
     LiveVariables liveVariables = liveVars.get();
 
     FluentIterable<String> liveVariablesDcl =
-        liveVariables.getLiveVariablesForNode(node).filter(CVariableDeclaration.class)
-            .transform((CVariableDeclaration dcl) -> {
-              if (dcl.isGlobal()) {
+        liveVariables.getLiveVariablesForNode(node).filter(CSimpleDeclaration.class)
+            .transform((CSimpleDeclaration dcl) -> {
+              if (dcl instanceof CVariableDeclaration && ((CVariableDeclaration) dcl).isGlobal()) {
                 return dcl.getName();
               } else {
                 return dcl.getQualifiedName();
