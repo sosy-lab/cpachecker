@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState.SMGStateEdgePair;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddVal;
@@ -95,9 +96,13 @@ public class SMGHveSources {
   }
 
   public void registerWriteValueSource(SMGAddress pAddress, SMGSymbolicValue pValue,
-      SMGEdgeHasValue pResultEdge) {
+      SMGStateEdgePair pResult) {
 
     SMGExplicitValue offset = pAddress.getOffset();
+
+    if (!pResult.smgStateHasNewEdge()) {
+      return;
+    }
 
     if (!pValue.containsSourceAddreses() && !offset.containsSourceAddreses()) {
       return;
@@ -113,7 +118,7 @@ public class SMGHveSources {
       source.addAll(offset.getSourceAdresses());
     }
 
-    hveMap.putAll(pResultEdge, source);
+    hveMap.putAll(pResult.getNewEdge(), source);
   }
 
   public void registerHasValueEdge(SMGObject pSourceObject, int pSourceOffset,
@@ -416,9 +421,20 @@ public class SMGHveSources {
     hveMap.putAll(pNewEdge, sources);
   }
 
-  public void registerMemsetCount(SMGExplicitValue pCountValue, SMGEdgeHasValue pNewEdge) {
-    if (pCountValue.containsSourceAddreses()) {
-      hveMap.putAll(pNewEdge, pCountValue.getSourceAdresses());
+  public void registerMemsetCount(SMGExplicitValue pCountValue,
+      SMGStateEdgePair pResultStateAndEdge) {
+    if (pCountValue.containsSourceAddreses() && pResultStateAndEdge.smgStateHasNewEdge()) {
+      hveMap.putAll(pResultStateAndEdge.getNewEdge(), pCountValue.getSourceAdresses());
+    }
+  }
+
+  public void registerHasValueEdgeFromCopy(SMGObject pObject, int pOffset,
+      SMGStateEdgePair pNewSMGStateAndEdge, SMGExplicitValue pCopyRange,
+      SMGKnownExpValue pTargetRangeOffset) {
+
+    if (pNewSMGStateAndEdge.smgStateHasNewEdge()) {
+      registerHasValueEdgeFromCopy(pObject, pOffset, pNewSMGStateAndEdge.getNewEdge(), pCopyRange,
+          pTargetRangeOffset);
     }
   }
 }

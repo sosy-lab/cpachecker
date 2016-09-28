@@ -1591,7 +1591,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGStateEdgePair resultStateAndEdge = writeValue(bufferAddress.getAddress(),
           AnonymousTypes.createTypeWithLength(count * signedCharSize), ch);
       resultState = resultStateAndEdge.getState();
-      sourcesOfHve.registerMemsetCount(countValue, resultStateAndEdge.getNewEdge());
+      sourcesOfHve.registerMemsetCount(countValue, resultStateAndEdge);
 
     } else {
       // We need to create many edges, one for each character written
@@ -1604,7 +1604,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGStateEdgePair resultStateAndEdge =
             resultState.writeValue(bufferAddressTarget, CNumericTypes.SIGNED_CHAR, ch);
         resultState = resultStateAndEdge.getState();
-        sourcesOfHve.registerMemsetCount(countValue, resultStateAndEdge.getNewEdge());
+        sourcesOfHve.registerMemsetCount(countValue, resultStateAndEdge);
       }
 
       if (!expValue.isUnknown()) {
@@ -1656,7 +1656,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     SMGStateEdgePair result = writeValue(pAddress, pType, value);
 
-    sourcesOfHve.registerWriteValueSource(pAddress, pValue, result.getNewEdge());
+    sourcesOfHve.registerWriteValueSource(pAddress, pValue, result);
     return result;
   }
 
@@ -2475,7 +2475,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGStateEdgePair newSMGStateAndEdge = newSMGState.writeValue(SMGAddress.valueOf(pTarget, offset), edge.getType(), value);
         newSMGState = newSMGStateAndEdge.getState();
         sourcesOfHve.registerHasValueEdgeFromCopy(edge.getObject(), edge.getOffset(),
-            newSMGStateAndEdge.getNewEdge(), copyRange, pTargetRangeOffset);
+            newSMGStateAndEdge, copyRange, pTargetRangeOffset);
       }
     }
 

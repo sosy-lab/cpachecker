@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState.SMGStateEdgePair;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
@@ -78,8 +79,21 @@ public class SMGHveUnkownSources extends SMGHveSources {
   }
 
   @Override
+  public void registerHasValueEdgeFromCopy(SMGObject pObject, int pOffset,
+      SMGStateEdgePair pNewSMGStateAndEdge, SMGExplicitValue pCopyRange,
+      SMGKnownExpValue pTargetRangeOffset) {
+    return;
+  }
+
+  @Override
   public void registerWriteValueSource(SMGAddress pAddress, SMGSymbolicValue pValue,
-      SMGEdgeHasValue pResultEdge) {
+      SMGStateEdgePair pResult) {
+    return;
+  }
+
+  @Override
+  public void registerMemsetCount(SMGExplicitValue pCountValue,
+      SMGStateEdgePair pResultStateAndEdge) {
     return;
   }
 
