@@ -1533,23 +1533,37 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     if (join.isDefined()) {
 
-      CLangSMG destHeap = join.getJointSMG();
+      SMGState result = createStateFromJoin(join, pState, pPrecision.joinIntegerWhenMerging());
 
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues =
-          mergeExplicitValues(explicitValues, pState.explicitValues, pPrecision,
-              join.getMapping1(), join.getMapping2());
+      SMGDebugExporter.dumpPlot("merge_" + id + "_" + pState.getId() + "_" + result.getId(),
+          result);
 
-      return new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
-          id_counter, predecessorId, mergedExplicitValues, pState.externalAllocationSize,
-          pState.trackPredicates, morePreciseIsLessOrEqual);
+      return result;
     } else {
       return pState;
     }
   }
 
+  private SMGState createStateFromJoin(SMGJoin join, SMGState pState, boolean pJoinExplicitValues) {
+
+    CLangSMG destHeap = join.getJointSMG();
+
+    BiMap<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues =
+        mergeExplicitValues(explicitValues, pState.explicitValues, pJoinExplicitValues,
+            join.getMapping1(), join.getMapping2());
+
+    SMGState result =
+        new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
+            id_counter, predecessorId, mergedExplicitValues, pState.externalAllocationSize,
+            pState.trackPredicates, morePreciseIsLessOrEqual);
+
+
+    return result;
+  }
+
   private BiMap<SMGKnownSymValue, SMGKnownExpValue> mergeExplicitValues(
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2, SMGPrecision pPrecision,
+      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2, boolean pJoinExplicitValues,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
 
     BiMap<SMGKnownSymValue, SMGKnownExpValue> result = HashBiMap.create();
@@ -1566,7 +1580,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       }
     });
 
-    if (pPrecision.joinIntegerWhenMerging()) {
+    if (pJoinExplicitValues) {
 
       pMapping1.getValue_mapEntrySet().forEach((Entry<Integer, Integer> pEntry) -> {
 
@@ -1624,6 +1638,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           s2.pruneUnreachable();
 
           logger.log(Level.INFO, this.getId(), " is Less or Equal ", reachedState.getId());
+
+          SMGDebugExporter.dumpPlot("isLessOrEqual_" + id + "_" + reachedState.getId(),
+              createStateFromJoin(join, reachedState, true));
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {
