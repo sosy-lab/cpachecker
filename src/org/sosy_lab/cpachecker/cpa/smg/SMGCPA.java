@@ -263,7 +263,13 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
 
-    return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
+    SMGConcreteErrorPathAllocator alloc =
+        new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator);
+    return alloc.allocateAssignmentsToPath(pPath);
+  }
+
+  public AssumptionToEdgeAllocator getAssumptionToEdgeAllocator() {
+    return assumptionToEdgeAllocator;
   }
 
   public LogManager getLogger() {

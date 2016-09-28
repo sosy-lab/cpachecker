@@ -95,7 +95,7 @@ public class SMGFeasibilityChecker {
     try {
       CFAEdge edge = null;
 
-      PathIterator iterator = pPath.pathIterator();
+      PathIterator iterator = pPath.fullPathIterator();
 
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
@@ -113,11 +113,13 @@ public class SMGFeasibilityChecker {
 
         iterator.advance();
 
+        final CFANode location = edge.getSuccessor();
+
         try {
           successors = FluentIterable.from(successors).transform((SMGState smgState) -> {
             try {
               return (SMGState) precisionAdjustment
-                  .prec(smgState, precision, iterator.getLocation())
+                  .prec(smgState, precision, location)
                   .get().abstractState();
             } catch (CPAException e) {
               throw new RuntimeException(e);

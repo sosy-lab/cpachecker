@@ -359,9 +359,8 @@ public class SMGRefiner implements Refiner {
    */
   private CFAPathWithAssumptions createModel(ARGPath errorPath)
       throws InterruptedException, CPAException {
-
-    //TODO Fix creating a model.
-    return CFAPathWithAssumptions.empty();
+    return CFAPathWithAssumptions.of(smgCpa.createConcreteStatePath(errorPath),
+        smgCpa.getAssumptionToEdgeAllocator());
   }
 
   private SMGInterpolationTree obtainInterpolants(List<ARGPath> pTargetPaths, ARGReachedSet pReachedSet)
