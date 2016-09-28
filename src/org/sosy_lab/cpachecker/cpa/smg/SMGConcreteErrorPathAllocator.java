@@ -150,8 +150,8 @@ public class SMGConcreteErrorPathAllocator {
 
             // last edge of (dynamic) multi edge
           } else {
-            result.addAll(Lists.reverse(intermediateStates));
             result.add(new SingleConcreteState(innerEdge, state));
+            result.addAll(Lists.reverse(intermediateStates));
           }
         }
 
