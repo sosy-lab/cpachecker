@@ -199,18 +199,17 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
           newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(pLocation), pPrecision.getHeapAbsThreshold());
 
       if (heapAbstractionChange) {
-        String name = String.format("%03d-before-heap-abstraction", result.getId());
-        String name2 = String.format("%03d-after-heap-abstraction", result.getId());
-        String description = "before-heap-abstraction-of-smg-" + result.getId();
-        String description2 = "after-heap-abstraction-of-smg-" + result.getId();
+
+        String name =
+            String.format("%03d-%03d-after-heap-abstraction", result.getId(), newState.getId());
+        String description = "after-heap-abstraction-of-smg-" + result.getId();
         SMGUtils.plotWhenConfigured(name, result, description, logger,
-            SMGExportLevel.EVERY, exportOptions);
-        SMGUtils.plotWhenConfigured(name2, newState, description2, logger,
             SMGExportLevel.EVERY, exportOptions);
         logger.log(Level.ALL, "Heap abstraction on node ", pLocation.getNodeNumber(),
             " with state id: ", pState.getId());
-        SMGDebugExporter.dumpPlot("node" + pLocation.getNodeNumber() + "_" + name, result);
-        SMGDebugExporter.dumpPlot("node" + pLocation.getNodeNumber() + "_" + name2, newState);
+        String name2 = String.format("%03d-before-heap-abstraction", result.getId());
+        SMGDebugExporter.dumpPlot("node" + pLocation.getNodeNumber() + "_" + name2, result);
+        SMGDebugExporter.dumpPlot("node" + pLocation.getNodeNumber() + "_" + name, newState);
         result = newState;
       }
     }
