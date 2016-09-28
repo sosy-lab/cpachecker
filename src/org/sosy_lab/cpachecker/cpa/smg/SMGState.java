@@ -626,14 +626,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
           SMGState removalState = new SMGState(this);
           SMGAddressValueAndStateList removalResult =
-              removalState.removeDls(dllListSeg, pointerToAbstractObject);
+              removalState.removeDll(dllListSeg, pointerToAbstractObject);
           result.addAll(removalResult.asAddressValueAndStateList());
           SMGAddressValueAndState resultOfMaterilisation =
-              materialiseDls(dllListSeg, pointerToAbstractObject);
+              materialiseDll(dllListSeg, pointerToAbstractObject);
           result.add(resultOfMaterilisation);
           return SMGAddressValueAndStateList.copyOfAddressValueList(result);
         } else {
-          SMGAddressValueAndState result = materialiseDls(dllListSeg, pointerToAbstractObject);
+          SMGAddressValueAndState result = materialiseDll(dllListSeg, pointerToAbstractObject);
           return SMGAddressValueAndStateList.of(result);
         }
       case SLL:
@@ -756,9 +756,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     int nfo = pListSeg.getNfo();
     int hfo = pListSeg.getHfo();
 
-    SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
-
+    SMGEdgeHasValue nextEdge = getHveEdgePointerForMaterialsation(pListSeg, nfo);
     SMGEdgePointsTo nextPointerEdge = heap.getPointer(nextEdge.getValue());
 
     Integer firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
@@ -776,7 +774,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  private SMGAddressValueAndStateList removeDls(SMGDoublyLinkedList pListSeg,
+  private SMGAddressValueAndStateList removeDll(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
@@ -793,10 +791,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     int pfo = pListSeg.getPfo();
     int hfo = pListSeg.getHfo();
 
-    SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
-    SMGEdgeHasValue prevEdge = Iterables.getOnlyElement(
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(pfo)));
+    SMGEdgeHasValue nextEdge = getHveEdgePointerForMaterialsation(pListSeg, nfo);
+    SMGEdgeHasValue prevEdge = getHveEdgePointerForMaterialsation(pListSeg, pfo);
 
     SMGEdgePointsTo nextPointerEdge = heap.getPointer(nextEdge.getValue());
     SMGEdgePointsTo prevPointerEdge = heap.getPointer(prevEdge.getValue());
@@ -834,10 +830,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
 
     if (pPointerToAbstractObject
-        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) { throw new SMGInconsistentException(
+        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
+    throw new SMGInconsistentException(
             "Target specifier of pointer " + pPointerToAbstractObject.getValue()
                 + "that leads to a sll has unexpected target specifier "
-                + pPointerToAbstractObject.getTargetSpecifier().toString()); }
+                + pPointerToAbstractObject.getTargetSpecifier().toString());
+      }
 
     SMGRegion newConcreteRegion = new SMGRegion(pListSeg.getSize(),
         "concrete sll segment ID " + SMGValueFactory.getNewValue(), 0);
@@ -850,9 +848,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     int hfo = pListSeg.getHfo();
     int nfo = pListSeg.getNfo();
 
-    SMGEdgeHasValue oldSllFieldToOldRegion =
-        Iterables.getOnlyElement(
-            heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
+    SMGEdgeHasValue oldSllFieldToOldRegion = getHveEdgePointerForMaterialsation(pListSeg, nfo);
 
     int oldPointerToSll = pPointerToAbstractObject.getValue();
 
@@ -922,7 +918,27 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGKnownAddVal.valueOf(oldPointerToSll, newConcreteRegion, hfo));
   }
 
-  private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
+  private SMGEdgeHasValue getHveEdgePointerForMaterialsation(SMGObject pObject, int pOffset) throws SMGInconsistentException {
+
+    Set<SMGEdgeHasValue> edges =
+        getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pOffset));
+
+    if (edges.size() == 1) {
+      return Iterables.getOnlyElement(edges);
+    }
+
+    if (heap.isCoveredByNullifiedBlocks(
+        new SMGEdgeHasValue(heap.getMachineModel().getSizeofPtr(), pOffset, pObject, 0))) {
+      SMGStateEdgePair result = writeValue(pObject, pOffset, CPointerType.POINTER_TO_VOID, 0);
+      return result.getNewEdge();
+    } else {
+      SMGStateEdgePair result =
+          writeValue(pObject, pOffset, CPointerType.POINTER_TO_VOID, SMGValueFactory.getNewValue());
+      return result.getNewEdge();
+    }
+  }
+
+  private SMGAddressValueAndState materialiseDll(SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
@@ -957,10 +973,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     int hfo = pListSeg.getHfo();
 
-    SMGEdgeHasValue oldDllFieldToOldRegion =
-        Iterables.getOnlyElement(heap.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion)));
-
+    SMGEdgeHasValue oldDllFieldToOldRegion = getHveEdgePointerForMaterialsation(pListSeg, offsetPointingToRegion);
     int oldPointerToDll = pPointerToAbstractObject.getValue();
 
     heap.removeHasValueEdge(oldDllFieldToOldRegion);
