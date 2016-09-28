@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -44,13 +43,11 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 final class SMGJoinValues {
@@ -65,8 +62,6 @@ final class SMGJoinValues {
 
   private final SMGState smgState1;
   private final SMGState smgState2;
-
-  private List<SMGGenericAbstractionCandidate> abstractionCandidates;
   private boolean recoverable;
 
   private static boolean joinValuesIdentical(SMGJoinValues pJV, Integer pV1, Integer pV2) {
@@ -119,7 +114,6 @@ final class SMGJoinValues {
             pJV.status = SMGJoinStatus.updateStatus(pJV.status, v2isLessOrEqualV1);
           }
         }
-
       }
 
       if (pLevelV1 - pLevelV2 < lDiff) {
@@ -156,7 +150,6 @@ final class SMGJoinValues {
       pJV.mapping2 = jto.getMapping2();
       pJV.value = jto.getValue();
       pJV.defined = true;
-      pJV.abstractionCandidates = jto.getAbstractionCandidates();
       pJV.recoverable = jto.isRecoverable();
       return true;
     }
@@ -168,7 +161,6 @@ final class SMGJoinValues {
 
     pJV.defined = false;
     pJV.recoverable = false;
-    pJV.abstractionCandidates = ImmutableList.of();
     return false;
   }
 
@@ -187,7 +179,6 @@ final class SMGJoinValues {
 
 
     if (identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
-      abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       mapping1.map(pValue1, pValue1);
       mapping2.map(pValue2, pValue1);
@@ -195,19 +186,16 @@ final class SMGJoinValues {
     }
 
     if (SMGJoinValues.joinValuesAlreadyJoined(this, pValue1, pValue2)) {
-      abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
     }
 
     if (SMGJoinValues.joinValuesNonPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff)) {
-      abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
     }
 
     if (SMGJoinValues.joinValuesMixedPointers(this, pValue1, pValue2)) {
-      abstractionCandidates = ImmutableList.of();
       recoverable = true;
       return;
     }
@@ -215,8 +203,6 @@ final class SMGJoinValues {
     if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
 
       if(defined) {
-        abstractionCandidates = ImmutableList.of();
-        recoverable = false;
         return;
       }
 
@@ -238,7 +224,6 @@ final class SMGJoinValues {
                 return;
               }
             } else {
-              recoverable = false;
               return;
             }
           }
@@ -255,7 +240,6 @@ final class SMGJoinValues {
                 return;
               }
             } else {
-              recoverable = false;
               return;
             }
           }
@@ -271,7 +255,6 @@ final class SMGJoinValues {
             return;
           }
         } else {
-          recoverable = false;
           return;
         }
 
@@ -284,17 +267,12 @@ final class SMGJoinValues {
             return;
           }
         } else {
-          recoverable = false;
           return;
         }
       } else {
-        recoverable = false;
         return;
       }
     }
-
-    abstractionCandidates = ImmutableList.of();
-    recoverable = false;
   }
 
   private Pair<Boolean, Boolean> insertRightObjectAsOptional(SMGJoinStatus pStatus, SMG pInputSMG1,
@@ -1249,24 +1227,5 @@ final class SMGJoinValues {
 
   public boolean isDefined() {
     return defined;
-  }
-
-  /**
-   * Signifies, if the part of the sub-smg rooted at the
-   * given value can possibly be joined through abstraction.
-   *
-   * @return true, if join is defined, or join through abstraction may be a possibility,
-   * false otherwise.
-   */
-  public boolean isRecoverable() {
-    return recoverable;
-  }
-
-  public boolean subSmgHasAbstractionsCandidates() {
-    return false;
-  }
-
-  public List<SMGGenericAbstractionCandidate> getAbstractionCandidates() {
-    return abstractionCandidates;
   }
 }

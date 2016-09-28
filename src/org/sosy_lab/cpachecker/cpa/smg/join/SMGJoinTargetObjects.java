@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -36,11 +34,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 final class SMGJoinTargetObjects {
@@ -53,8 +49,6 @@ final class SMGJoinTargetObjects {
   private Integer value;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
-
-  private List<SMGGenericAbstractionCandidate> abstractionCandidates;
 
   private static boolean matchOffsets(SMGJoinTargetObjects pJto, SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
     if (pt1.getOffset() != pt2.getOffset()) {
@@ -120,7 +114,6 @@ final class SMGJoinTargetObjects {
     }
 
     if (SMGJoinTargetObjects.matchOffsets(this, pt1, pt2)) {
-      abstractionCandidates = ImmutableList.of();
       return;
     }
 
@@ -128,7 +121,6 @@ final class SMGJoinTargetObjects {
     SMGObject target2 = pt2.getObject();
 
     if (SMGJoinTargetObjects.checkAlreadyJoined(this, target1, target2, pAddress1, pAddress2)) {
-      abstractionCandidates = ImmutableList.of();
       return;
     }
 
@@ -148,7 +140,6 @@ final class SMGJoinTargetObjects {
     }
 
     if (SMGJoinTargetObjects.checkObjectMatch(this, target1, target2)) {
-      abstractionCandidates = ImmutableList.of();
       return;
     }
 
@@ -180,10 +171,7 @@ final class SMGJoinTargetObjects {
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();
-      abstractionCandidates = jss.getSubSmgAbstractionCandidates();
     }
-
-    abstractionCandidates = ImmutableList.of();
   }
 
   private void delayedJoin(SMGObject pTarget1, SMGObject pTarget2, SMGObject targetObject) {
@@ -333,9 +321,5 @@ final class SMGJoinTargetObjects {
 
   public SMGNodeMapping getMapping2() {
     return mapping2;
-  }
-
-  public List<SMGGenericAbstractionCandidate> getAbstractionCandidates() {
-    return abstractionCandidates;
   }
 }

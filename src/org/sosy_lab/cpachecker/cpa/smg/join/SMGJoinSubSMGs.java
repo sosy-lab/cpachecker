@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -36,11 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGGenericAbstractionCandidate;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -59,7 +54,6 @@ final class SMGJoinSubSMGs {
 
   private SMGNodeMapping mapping1 = null;
   private SMGNodeMapping mapping2 = null;
-  private final List<SMGGenericAbstractionCandidate> subSmgAbstractionCandidates;
 
   public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
       SMG pSMG1, SMG pSMG2, SMG pDestSMG,
@@ -70,7 +64,6 @@ final class SMGJoinSubSMGs {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
 
-    subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
 
@@ -94,9 +87,6 @@ final class SMGJoinSubSMGs {
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
 
     Set<SMGEdgeHasValue> edgesOnObject1 = Sets.newHashSet(inputSMG1.getHVEdges(filterOnSMG1));
-
-    Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
-    boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
@@ -127,10 +117,8 @@ final class SMGJoinSubSMGs {
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
           mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
 
-      /* If the join of the values is not defined and can't be
-       * recovered through abstraction, the join fails.*/
-      if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
-        //subSmgAbstractionCandidates = ImmutableList.of();
+      /* If the join of the values is not defined the join fails.*/
+      if (!joinValues.isDefined()) {
         return;
       }
 
@@ -141,57 +129,17 @@ final class SMGJoinSubSMGs {
       mapping1 = joinValues.getMapping1();
       mapping2 = joinValues.getMapping2();
 
-      if (joinValues.isDefined()) {
+      SMGEdgeHasValue newHV;
 
-        SMGEdgeHasValue newHV;
-
-        if (hvIn1.getObject().equals(pNewObject)
-            && joinValues.getValue().equals(hvIn1.getValue())) {
-          newHV = hvIn1;
-        } else {
-          newHV = new SMGEdgeHasValue(hvIn1.getType(), hvIn1.getOffset(), pNewObject,
-              joinValues.getValue());
-        }
-
-        destSMG.addHasValueEdge(newHV);
-
-        if(joinValues.subSmgHasAbstractionsCandidates()) {
-          valueAbstractionCandidates.put(joinValues.getValue(), joinValues.getAbstractionCandidates());
-        }
+      if (hvIn1.getObject().equals(pNewObject)
+          && joinValues.getValue().equals(hvIn1.getValue())) {
+        newHV = hvIn1;
       } else {
-        allValuesDefined = false;
+        newHV = new SMGEdgeHasValue(hvIn1.getType(), hvIn1.getOffset(), pNewObject,
+            joinValues.getValue());
       }
-    }
 
-    /* If the join is defined without abstraction candidates in
-       sub smgs, we don't need to perform abstraction.*/
-    if (allValuesDefined && valueAbstractionCandidates.isEmpty()) {
-      defined = true;
-      //subSmgAbstractionCandidates = ImmutableList.of();
-      return;
-    }
-
-    //SMGJoinAbstractionManager abstractionManager = new SMGJoinAbstractionManager(pObj1, pObj2, inputSMG1, inputSMG2, pNewObject, destSMG);
-    //subSmgAbstractionCandidates = abstractionManager.calculateCandidates(valueAbstractionCandidates);
-
-    /*If abstraction candidates can be found for this sub Smg, then the join for this sub smg
-     *  is defined under the assumption, that the abstraction of one abstraction candidate is executed.*/
-    //if (!subSmgAbstractionCandidates.isEmpty()) {
-      //defined = true;
-      //return;
-    //}
-
-    /* If no abstraction can be found for this sub Smg, then the join is only defined,
-     * if all values are defined. For values that are defined under the assumption,
-     * that a abstraction candidate is execued for the destination smg, execute the abstraction
-     * so that the join of this sub SMG is complete.*/
-    if(!allValuesDefined) {
-      defined = false;
-      return;
-    }
-
-    for(List<SMGGenericAbstractionCandidate> abstractionCandidates : valueAbstractionCandidates.values()) {
-      abstractionCandidates.iterator().next().execute(destSMG);
+      destSMG.addHasValueEdge(newHV);
     }
 
     defined = true;
@@ -277,9 +225,5 @@ final class SMGJoinSubSMGs {
 
   public SMGNodeMapping getMapping2() {
     return mapping2;
-  }
-
-  public List<SMGGenericAbstractionCandidate> getSubSmgAbstractionCandidates() {
-    return subSmgAbstractionCandidates;
   }
 }
