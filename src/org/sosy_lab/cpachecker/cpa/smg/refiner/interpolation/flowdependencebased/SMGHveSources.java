@@ -215,7 +215,8 @@ public class SMGHveSources {
       return;
     }
 
-    if (!pValue.containsSourceAddreses() && !offset.containsSourceAddreses()) {
+    if (!pValue.containsSourceAddreses() && !offset.containsSourceAddreses()
+        && !pAddress.containsSourceAddreses()) {
       return;
     }
 
@@ -227,6 +228,10 @@ public class SMGHveSources {
 
     if (offset.containsSourceAddreses()) {
       source.addAll(offset.getSourceAdresses());
+    }
+
+    if (pAddress.containsSourceAddreses()) {
+      source.addAll(pAddress.getSourceAdresses());
     }
 
     hveMap.putAll(pResult.getNewEdge(), source);
