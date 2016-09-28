@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -157,13 +158,15 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
       Collection<CType> typesOfThisObject = SMGUtils.getTypesOfHeapObject(pObject, pSmg).get(hfo);
 
+      typesOfThisObject.remove(CVoidType.VOID);
+
       CType nextType = hveNext.getType();
 
       if (nextType instanceof CPointerType) {
         nextType = ((CPointerType) nextType).getType();
       }
 
-      if (!typesOfThisObject.contains(nextType)) {
+      if (!typesOfThisObject.isEmpty() && !typesOfThisObject.contains(nextType)) {
         continue;
       }
 
