@@ -730,6 +730,13 @@ final class SMGJoinValues {
 
         mapping1.map(pointer1, resultPointer);
       } else {
+
+        if (!mapping2.containsKey(pointer2)) {
+          /*Pointer2 was never joined with another value,
+           * meaning this would just result in a cycle. Abort*/
+          return Pair.of(false, false);
+        }
+
         this.value = mapping1.get(pointer1);
         this.defined = true;
         this.inputSMG1 = inputSMG1;
@@ -920,6 +927,15 @@ final class SMGJoinValues {
 
         mapping2.map(pointer2, resultPointer);
       } else {
+
+        if (!mapping1.containsKey(pointer1)) {
+          /* Pointer1 was never joined with another value,
+           * meaning this would just result in a cycle. Abort*/
+
+          //TODO : Is this always correct?
+          return Pair.of(false, false);
+        }
+
         this.value = mapping2.get(pointer2);
         this.defined = true;
         this.inputSMG1 = inputSMG1;
