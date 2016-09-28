@@ -23,17 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.PathTemplate;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+
 public class SMGDebugExporter {
 
-//  public static void dumpPlot(String name, SMGState state) {
-//    Path path = PathTemplate.ofFormatString("output/smg/smgspec/" + name).getPath();
-//
-//    try {
-//      String dot = state.toDot(name, name);
-//      MoreFiles.writeFile(path, Charset.defaultCharset(), dot);
-//    } catch (IOException e) {
-//
-//    }
-//  }
+    public static void dumpPlot(String name, SMGState state) {
+      Path path = PathTemplate.ofFormatString("output/smg/smgspec/" + name).getPath();
+
+      try {
+        String dot = state.toDot(name, name);
+        MoreFiles.writeFile(path, Charset.defaultCharset(), dot);
+      } catch (IOException e) {
+
+      }
+    }
 
 }

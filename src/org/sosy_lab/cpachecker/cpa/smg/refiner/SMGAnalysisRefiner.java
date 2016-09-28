@@ -23,13 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision.SMGPrecisionAbstractionOptions;
+
+import java.util.logging.Level;
 
 public class SMGAnalysisRefiner {
 
+  private final LogManager logger;
   private final SMGPrecision originalPrecision;
 
-  public SMGAnalysisRefiner(SMGPrecision pOriginalPrecision) {
+  public SMGAnalysisRefiner(SMGPrecision pOriginalPrecision, LogManager pLogger) {
+    logger = pLogger;
     originalPrecision = pOriginalPrecision;
   }
 
@@ -49,6 +54,7 @@ public class SMGAnalysisRefiner {
   private SMGPrecisionAbstractionOptions disableNextFeature() {
 
     if (originalPrecision.useSMGMerge()) {
+      logger.log(Level.INFO, "Disable merge.");
       return new SMGPrecisionAbstractionOptions(
         originalPrecision.useHeapAbstraction(),
         originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
@@ -56,6 +62,7 @@ public class SMGAnalysisRefiner {
     }
 
     if (originalPrecision.forgetDeadVariables()) {
+      logger.log(Level.INFO, "Disable live variable Analysis.");
       return new SMGPrecisionAbstractionOptions(
         originalPrecision.useHeapAbstraction(),
         originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
@@ -63,6 +70,7 @@ public class SMGAnalysisRefiner {
     }
 
     if (originalPrecision.useHeapAbstraction()) {
+      logger.log(Level.INFO, "Disable heap abstraction.");
       return new SMGPrecisionAbstractionOptions(false,
         originalPrecision.useFieldAbstraction(), originalPrecision.useStackAbstraction(),
         originalPrecision.forgetDeadVariables(), originalPrecision.useInterpoaltion(),

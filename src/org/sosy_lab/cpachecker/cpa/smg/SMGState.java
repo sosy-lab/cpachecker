@@ -1606,7 +1606,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           s1.pruneUnreachable();
           s2.pruneUnreachable();
 
-          logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
+          logger.log(Level.INFO, this.getId(), " is Less or Equal ", reachedState.getId());
 
           return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
         } else {

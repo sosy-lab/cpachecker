@@ -253,8 +253,8 @@ public class SMGRefiner implements Refiner {
   private CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached,
       Collection<ARGState> pTargets,
       List<ARGPath> pTargetPaths) throws CPAException, InterruptedException {
-    logger.log(Level.FINEST, "performing refinement ...");
     refinementCounter.inc();
+    logger.log(Level.INFO, "performing refinement ..." + refinementCounter);
     numberOfTargets.setNextValue(pTargets.size());
 
     CounterexampleInfo cex = isAnyPathFeasible(pReached, pTargetPaths);
@@ -271,7 +271,7 @@ public class SMGRefiner implements Refiner {
       }
     }
 
-    logger.log(Level.FINEST, "refinement finished");
+    logger.log(Level.INFO, "refinement finished");
     return cex;
   }
 
@@ -280,7 +280,7 @@ public class SMGRefiner implements Refiner {
 
     SMGPrecision refinedPrecision = originalPrecision;
 
-    SMGAnalysisRefiner analysisRefiner = new SMGAnalysisRefiner(refinedPrecision);
+    SMGAnalysisRefiner analysisRefiner = new SMGAnalysisRefiner(refinedPrecision, logger);
     SMGAnalysisRefinerResult refinedAnalysisResult = analysisRefiner.refineAnalysis();
     refinedPrecision = refinedAnalysisResult.getPrecision();
     boolean analysisChanged = refinedAnalysisResult.isChanged();

@@ -116,10 +116,10 @@ public class SMGAbstractionManager {
 
     if (hasCandidates()) {
       SMGAbstractionCandidate best = getBestCandidate();
-      logger.log(Level.ALL, "Execute abstraction of ", best);
+      logger.log(Level.INFO, "Execute abstraction of ", best);
       best.execute(smg, smgState);
       invalidateCandidates();
-      logger.log(Level.ALL, "Finish executing abstraction of ", best);
+      logger.log(Level.INFO, "Finish executing abstraction of ", best);
       return best;
     } else {
       return new SMGAbstractionCandidate() {
