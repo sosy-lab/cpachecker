@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
@@ -53,7 +56,9 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -79,6 +84,53 @@ public final class SMGUtils {
   }
 
   private SMGUtils() {}
+
+  public static Multimap<Integer, CType> getTypesOfHeapObject(SMGObject pObject, CLangSMG pSmg) {
+    assert pSmg.isHeapObject(pObject);
+
+    Multimap<Integer, CType> typesOfThisObject = HashMultimap.create();
+
+    Set<SMGEdgePointsTo> pointsToThis = getPointerToThisObject(pObject, pSmg);
+
+    for (SMGEdgePointsTo edge : pointsToThis) {
+      Set<SMGEdgeHasValue> hves =
+          pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
+      for (SMGEdgeHasValue hve : hves) {
+        CType type = hve.getType().getCanonicalType();
+
+        if (type instanceof CPointerType) {
+          typesOfThisObject.put(edge.getOffset(),
+              ((CPointerType) type).getType().getCanonicalType());
+        } else {
+          typesOfThisObject.put(edge.getOffset(), type);
+        }
+      }
+    }
+
+    return typesOfThisObject;
+  }
+
+  public static Map<CCompositeType.CCompositeTypeMemberDeclaration, Integer> getOffsetOfFields(
+      CCompositeType type, MachineModel model) {
+    Map<CCompositeType.CCompositeTypeMemberDeclaration, Integer> result = new HashMap<>();
+
+    List<CCompositeTypeMemberDeclaration> members = type.getMembers();
+
+    int currentOffset = 0;
+
+    for (CCompositeTypeMemberDeclaration member : members) {
+      CType memberType = member.getType();
+      result.put(member, currentOffset);
+
+      if (memberType instanceof CSimpleType || memberType instanceof CPointerType) {
+        currentOffset = currentOffset + model.getSizeof(memberType);
+      } else {
+        break;
+      }
+    }
+
+    return result;
+  }
 
   public static Set<SMGEdgeHasValue> getFieldsOfObject(SMGObject pSmgObject, SMG pInputSMG) {
 

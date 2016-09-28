@@ -139,6 +139,13 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
         liveVarChange = !info.equals(SMGStateInformation.of());
       }
 
+      Set<SMGEdgeHasValue> edges = newState.getNonRelevantFields(pPrecision.getVarClass());
+
+      for (SMGEdgeHasValue edge : edges) {
+        newState.forget(edge);
+        liveVarChange = true;
+      }
+
       if (liveVarChange) {
         String name =
             String.format("%03d-%03d-after-forgetting-dead-variables-", result.getId(),

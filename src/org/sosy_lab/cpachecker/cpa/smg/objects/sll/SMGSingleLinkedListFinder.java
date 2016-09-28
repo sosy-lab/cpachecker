@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.util.Pair;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -153,19 +155,13 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
         continue;
       }
 
-      Set<SMGEdgePointsTo> pointsToThis = SMGUtils.getPointerToThisObject(pObject, pSmg);
-
-      Set<CType> typesOfThisObject = new HashSet<>();
-
-      for (SMGEdgePointsTo edge : pointsToThis) {
-        Set<SMGEdgeHasValue> hves =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
-        for (SMGEdgeHasValue hve : hves) {
-          typesOfThisObject.add(hve.getType());
-        }
-      }
+      Collection<CType> typesOfThisObject = SMGUtils.getTypesOfHeapObject(pObject, pSmg).get(hfo);
 
       CType nextType = hveNext.getType();
+
+      if (nextType instanceof CPointerType) {
+        nextType = ((CPointerType) nextType).getType();
+      }
 
       if (!typesOfThisObject.contains(nextType)) {
         continue;

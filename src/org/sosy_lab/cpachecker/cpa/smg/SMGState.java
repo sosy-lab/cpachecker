@@ -30,6 +30,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -38,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
@@ -73,10 +76,12 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -2919,5 +2924,68 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     return heap.getPointerToObject(pRegion).size() > 0;
+  }
+
+  /**
+   * Get all has value edges that are not relevant according to the variable classification.
+   *
+   * @param pVarClass relevance is decided according to this variable classification.
+   * @return A set of has value edges that are not relevant according to the variable classification.
+   */
+  public Set<SMGEdgeHasValue> getNonRelevantFields(VariableClassification pVarClass) {
+
+    Multimap<CCompositeType, String> relevantFields = pVarClass.getRelevantFields();
+    Set<SMGEdgeHasValue> result = new HashSet<>();
+
+    for (SMGObject object : heap.getHeapObjects()) {
+      Multimap<Integer, CType> typesOfObject = SMGUtils.getTypesOfHeapObject(object, heap);
+
+      for (Entry<Integer, CType> entry : typesOfObject.entries()) {
+
+        if(entry.getKey() != 0) {
+          /*We don't calculate inner fields yet.*/
+          continue;
+        }
+
+        CType realType = entry.getValue().getCanonicalType();
+
+        if (!(realType instanceof CCompositeType)) {
+          continue;
+        }
+
+        CCompositeType compositeType = (CCompositeType) realType;
+
+        if(relevantFields.containsKey(compositeType)) {
+
+          Collection<String> relevantMembers = relevantFields.get(compositeType);
+          List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(compositeType.getMembers());
+
+          if (relevantMembers.size() == members.size()) {
+            continue;
+          }
+
+          members.removeIf((CCompositeTypeMemberDeclaration memberType) -> {
+            return relevantMembers.contains(memberType.getName());
+          });
+
+          Map<CCompositeTypeMemberDeclaration, Integer> offsetMap = SMGUtils.getOffsetOfFields(compositeType, heap.getMachineModel());
+
+          for(CCompositeTypeMemberDeclaration member : members) {
+            if (offsetMap.containsKey(member)) {
+              result.addAll(getHVEdges(SMGEdgeHasValueFilter.objectFilter(object)
+                  .filterAtOffset(offsetMap.get(member))));
+            } else {
+              /*Cannot get size of succesor type if offset of this type can't be calculated*/
+              break;
+            }
+          }
+
+        } else {
+          result.addAll(getHVEdges(SMGEdgeHasValueFilter.objectFilter(object)));
+        }
+      }
+    }
+
+    return result;
   }
 }
