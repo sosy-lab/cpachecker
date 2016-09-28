@@ -50,16 +50,19 @@ class SMGJoinFields {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
     }
 
-    final SMG origSMG1 = new SMG(pSMG1);
-    final SMG origSMG2 = new SMG(pSMG2);
+    BitSet origNull1 = pSMG1.getNullBytesForObject(pObj1);
+    BitSet origNull2 = pSMG2.getNullBytesForObject(pObj2);
 
     Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
     pSMG1.replaceHVSet(H1Prime);
     Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
     pSMG2.replaceHVSet(H2Prime);
 
-    status = joinFieldsRelaxStatus(origSMG1, pSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
-    status = joinFieldsRelaxStatus(origSMG2, pSMG2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
+    BitSet newNull1 = pSMG1.getNullBytesForObject(pObj1);
+    BitSet newNull2 = pSMG2.getNullBytesForObject(pObj2);
+
+    status = joinFieldsRelaxStatus(origNull1, newNull1, status, SMGJoinStatus.RIGHT_ENTAIL);
+    status = joinFieldsRelaxStatus(origNull2, newNull2, status, SMGJoinStatus.LEFT_ENTAIL);
 
     Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
@@ -103,13 +106,11 @@ class SMGJoinFields {
     return Collections.unmodifiableSet(returnSet);
   }
 
-  public static SMGJoinStatus joinFieldsRelaxStatus(SMG pOrigSMG, SMG pNewSMG,
-      SMGJoinStatus pCurStatus, SMGJoinStatus pNewStatus, SMGObject pObject) {
-    BitSet origNull = pOrigSMG.getNullBytesForObject(pObject);
-    BitSet newNull = pNewSMG.getNullBytesForObject(pObject);
+  public static SMGJoinStatus joinFieldsRelaxStatus(BitSet pOrigNull, BitSet pNewNull,
+      SMGJoinStatus pCurStatus, SMGJoinStatus pNewStatus) {
 
-    for (int i = 0; i < origNull.length(); i++) {
-      if (origNull.get(i) && (! newNull.get(i))) {
+    for (int i = 0; i < pOrigNull.length(); i++) {
+      if (pOrigNull.get(i) && (!pNewNull.get(i))) {
         return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
       }
     }
