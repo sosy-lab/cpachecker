@@ -76,12 +76,12 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGHeapAbstractionThreshold;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.SMGStateInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGFlowDependenceFieldVertice;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGHveSources;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGHveUnkownSources;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGPathDependence.PathPositionMemoryPathDependencys;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -1139,7 +1139,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addPointsToEdge(newPtEToDll);
 
     heap.addHasValueEdge(newFieldFromDllToNewRegion);
-
+    sourcesOfHve.registerHasValueEdge(newFieldFromDllToNewRegion);
 
     return SMGAddressValueAndState.of(this,
         SMGKnownAddVal.valueOf(oldPointerToDll, newConcreteRegion, hfo));
