@@ -386,6 +386,10 @@ public class SMGPathDependenceBuilder {
     abstractStateTest.forgetNonTrackedHve(previouslyTrackedPath);
     ARGPath remainingErrorPath = it.getSuffixInclusive();
 
+    if (remainingErrorPath.size() <= 1) {
+      return ImmutableSet.of();
+    }
+
     if (checker.isFeasible(remainingErrorPath, abstractStateTest)) {
       return ImmutableSet.of();
     } else {

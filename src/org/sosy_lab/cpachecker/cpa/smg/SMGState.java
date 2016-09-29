@@ -2757,6 +2757,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return invalidFree || invalidRead || invalidWrite || heap.hasMemoryLeaks();
   }
 
+  public boolean hasMemoryLeaks() throws SMGInconsistentException {
+    SMGState testState = new SMGState(this);
+    testState.pruneUnreachable();
+    return heap.hasMemoryLeaks() || testState.heap.hasMemoryLeaks();
+  }
+
   /**
    * Check if the given symbolic values are explicitly different.
    * This method only checks if the given values are in the not equal relation.

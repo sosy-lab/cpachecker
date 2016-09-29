@@ -50,8 +50,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased.SMGPathDependenceBuilder.SMGTargets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -106,6 +109,10 @@ public class SMGFeasibilityChecker {
        SMGPrecision precision,
        boolean pJoinPrecisionWithOriginal,
        Optional<ARGReachedSet> pReachedSet) throws CPAException, InterruptedException {
+
+    if(pPath.size() == 1) {
+      return ReachabilityResult.isReachable(pStartingPoint);
+    }
 
  // We don't want sideffects of smg transfer relation for smg state propagating.
     SMGState start = new SMGState(pStartingPoint);
@@ -277,13 +284,20 @@ public class SMGFeasibilityChecker {
       SMGPrecision pPrecision, boolean pAllTargets, boolean pJoinWithReachedSetPrecision, Optional<ARGReachedSet> pReachedSet)
           throws CPAException, InterruptedException {
 
-    Preconditions.checkArgument(pPath.getInnerEdges().size() > 0);
     Preconditions.checkArgument(pReachedSet.isPresent() == pJoinWithReachedSetPrecision);
+
+    if (pPath.size() == 0) {
+      return false;
+    }
 
     ReachabilityResult result =
         isReachable(pPath, pStartingPoint, pPrecision, pJoinWithReachedSetPrecision, pReachedSet);
 
     if (result.isReachable()) {
+
+      if (result.isSingleState()) {
+        return isSingleStateTarget(pPath.getFirstState(), Iterables.getOnlyElement(result.getLastState()), pAllTargets);
+      }
 
       return isTarget(result.getLastState(), result.getLastEdge(), pPath.getLastState(), pAllTargets);
     } else {
@@ -291,8 +305,26 @@ public class SMGFeasibilityChecker {
     }
   }
 
+  private boolean isSingleStateTarget(ARGState pOnlyARGState, SMGState pOnlyState,
+      boolean pAllMemeoryErrorTargets) throws SMGInconsistentException {
+
+    SMGTargets targets = new SMGTargets(pOnlyARGState);
+
+    /*Paths with one state are always reachable.*/
+    if (targets.isReachabilityError()) {
+      return true;
+    }
+
+    if (targets.hasMemoryLeak() || pAllMemeoryErrorTargets) {
+      return pOnlyState.hasMemoryLeaks();
+    }
+
+    return false;
+  }
+
   private static class ReachabilityResult {
 
+    private final boolean isSingleState;
     private final boolean isReachable;
     private final Collection<SMGState> lastStates;
     private final CFAEdge lastEdge;
@@ -308,6 +340,15 @@ public class SMGFeasibilityChecker {
       lastStates = pLastStates;
       lastEdge = pLastEdge;
       lastPosition = pLastPosition;
+      isSingleState = false;
+    }
+
+    public ReachabilityResult(SMGState state) {
+      lastStates = Collections.singleton(state);
+      lastEdge = null;
+      lastPosition = null;
+      isSingleState = true;
+      isReachable = true;
     }
 
     public ReachabilityResult(PathPosition pLastPosition) {
@@ -315,6 +356,15 @@ public class SMGFeasibilityChecker {
       lastStates = null;
       lastEdge = null;
       lastPosition = pLastPosition;
+      isSingleState = false;
+    }
+
+    public static ReachabilityResult isReachable(SMGState pState) {
+      return new ReachabilityResult(pState);
+    }
+
+    public boolean isSingleState() {
+      return isSingleState;
     }
 
     public boolean isReachable() {
