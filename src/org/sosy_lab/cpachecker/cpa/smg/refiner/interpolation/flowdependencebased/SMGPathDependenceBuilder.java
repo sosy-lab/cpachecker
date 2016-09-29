@@ -298,6 +298,11 @@ public class SMGPathDependenceBuilder {
       SMGKnownSymValue val = entry.getKey();
       SMGKnownAddress source = entry.getValue();
 
+      /*0 symbolic value is already explicit*/
+      if (val.getAsInt() == 0) {
+        continue;
+      }
+
       SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.valueFilter(val.getAsInt());
 
       for (SMGEdgeHasValue hve : pState.getHVEdges(filter)) {
