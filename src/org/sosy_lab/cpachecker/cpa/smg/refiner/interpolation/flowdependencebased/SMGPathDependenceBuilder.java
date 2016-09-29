@@ -279,6 +279,10 @@ public class SMGPathDependenceBuilder {
 
       if (!newPathScope.containsVerticeForField(source)
           || !newVertices.containsKey(field)) {
+//
+//        SMGFlowDependenceFieldVertice vertice1 = newPathScope.getVerticeForField(source);
+//        SMGFlowDependenceFieldVertice vertice2 = newVertices.get(field);
+
         throw new RefinementFailedException(Reason.InterpolationFailed, path);
       }
 

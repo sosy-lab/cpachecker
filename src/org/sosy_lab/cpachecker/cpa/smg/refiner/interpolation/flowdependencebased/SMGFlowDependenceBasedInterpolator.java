@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner.interpolation.flowdependencebased;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
@@ -188,18 +190,23 @@ public class SMGFlowDependenceBasedInterpolator {
       if(newInterpolants == null) {
         newInterpolants = dependence.obtainInterpolantsBasedOnDependency();
       } else {
-        Map<ARGState, SMGInterpolant> newInterpolants2 = dependence.obtainInterpolantsBasedOnDependency();
+        Map<ARGState, SMGInterpolant> newInterpolants2 =
+            dependence.obtainInterpolantsBasedOnDependency();
+        Map<ARGState, SMGInterpolant> joinedInterpolants = new HashMap<>();
+        joinedInterpolants.putAll(newInterpolants);
 
         for (Entry<ARGState, SMGInterpolant> entry : newInterpolants2.entrySet()) {
           ARGState state = entry.getKey();
           SMGInterpolant value = entry.getValue();
           if (newInterpolants.containsKey(state)) {
             SMGInterpolant oldInterpolant = newInterpolants.get(state);
-            newInterpolants.put(state, oldInterpolant.join(value));
+            joinedInterpolants.put(state, oldInterpolant.join(value));
           } else {
-            newInterpolants.put(state, value);
+            joinedInterpolants.put(state, value);
           }
         }
+
+        newInterpolants = ImmutableMap.copyOf(joinedInterpolants);
       }
     }
 
