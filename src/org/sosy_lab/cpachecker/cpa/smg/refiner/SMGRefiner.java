@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -399,7 +398,7 @@ public class SMGRefiner implements Refiner {
 
   private void refineUsingInterpolants(ARGReachedSet pReached, SMGInterpolationTree pInterpolationTree) throws InterruptedException {
 
-    Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
+    Map<ARGState, Precision> refinementInformation = new HashMap<>();
     Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(pReached);
 
     for (ARGState root : refinementRoots) {
@@ -410,27 +409,28 @@ public class SMGRefiner implements Refiner {
         root = relocateRepeatedRefinementRoot(root);
       }
 
-      List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
-      precisions.add(mergeSMGPrecisionsForSubgraph(root, pReached)
-          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
+      Precision precision = mergeSMGPrecisionsForSubgraph(root, pReached)
+          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root));
 
-      refinementInformation.put(root, precisions);
+      refinementInformation.put(root, precision);
     }
 
-    for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+    for (Entry<ARGState, Precision> info : refinementInformation.entrySet()) {
       shutdownNotifier.shutdownIfNecessary();
-      List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
 
-      precisionTypes.add(new Predicate<Precision>() {
+      Predicate<? super Precision> precisionType = (Precision precision) -> {
+        return precision instanceof SMGPrecision;
+      };
 
-        @Override
-        public boolean apply(Precision pPrecision) {
-          return pPrecision instanceof SMGPrecision;
-        }
-      });
+      ARGState state = info.getKey();
+      Collection<ARGState> parents = state.getParents();
 
-      pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
+      for (ARGState parent : parents) {
+        pReached.readdToWaitlist(parent, info.getValue(), precisionType);
+      }
+
+      pReached.removeSubtree(info.getKey());
     }
   }
 

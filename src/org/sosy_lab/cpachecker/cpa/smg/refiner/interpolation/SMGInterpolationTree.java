@@ -306,7 +306,7 @@ public class SMGInterpolationTree {
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
-      if (stateHasNonTrivialInterpolant(currentState) && !currentState.isTarget()) {
+      if (stateHasNonTrivialInterpolant(currentState)) {
         SMGInterpolant itp = interpolants.get(currentState);
         SMGPrecisionIncrement inc = itp.getPrecisionIncrement();
         CFANode loc = AbstractStates.extractLocation(currentState);
