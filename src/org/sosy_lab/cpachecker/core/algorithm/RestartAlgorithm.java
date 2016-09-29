@@ -29,7 +29,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -41,6 +40,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -75,19 +75,17 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
-
-  private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on("::").trimResults().limit(2);
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
@@ -153,13 +151,18 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  @Option(secure=true, required=true, description = "List of files with configurations to use. "
-      + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
-      + "which means that this configuration will only be used if the previous configuration "
-      + "ended with a matching condition. What also can be added is :use-reached then the "
-      + "reached set of the preceding analysis is taken and provided to the next analysis.")
+  @Option(
+    secure = true,
+    required = true,
+    description =
+        "List of files with configurations to use. "
+            + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
+            + "which means that this configuration will only be used if the previous configuration "
+            + "ended with a matching condition. What also can be added is :use-reached then the "
+            + "reached set of the preceding analysis is taken and provided to the next analysis."
+  )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<Path> configFiles;
+  private List<AnnotatedValue<Path>> configFiles;
 
   @Option(
     secure = true,
@@ -248,7 +251,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
     CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
 
-    PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
+    PeekingIterator<AnnotatedValue<Path>> configFilesIterator =
+        Iterators.peekingIterator(configFiles.iterator());
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
     boolean provideReachedForNextAlgorithm = false;
@@ -268,9 +272,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       boolean concurrencyFound = false;
 
       try {
-        Path singleConfigFileName = configFilesIterator.next();
-        // extract first part out of file name
-        singleConfigFileName = Paths.get(CONFIG_FILE_CONDITION_SPLITTER.split(singleConfigFileName.toString()).iterator().next());
+        Path singleConfigFileName = configFilesIterator.next().value();
 
         try {
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
@@ -375,11 +377,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         boolean foundConfig;
         do {
           foundConfig = true;
-          String nextConfigFile = configFilesIterator.peek().toString();
-          List<String> parts = CONFIG_FILE_CONDITION_SPLITTER.splitToList(nextConfigFile);
-          if (parts.size() == 2) {
-            String condition = parts.get(1);
-            switch (condition) {
+          Optional<String> condition = configFilesIterator.peek().annotation();
+          if (condition.isPresent()) {
+            switch (condition.get()) {
             case "if-interrupted":
               foundConfig = lastAnalysisInterrupted;
               break;
@@ -404,7 +404,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               foundConfig = true;
             }
             if (!foundConfig) {
-              logger.logf(Level.INFO, "Ignoring restart configuration '%s' because condition %s did not match.", parts.get(0), condition);
+              logger.logf(
+                  Level.INFO,
+                  "Ignoring restart configuration '%s' because condition %s did not match.",
+                  configFilesIterator.peek().value(),
+                  condition);
               configFilesIterator.next();
               stats.noOfAlgorithmsUsed++;
             }

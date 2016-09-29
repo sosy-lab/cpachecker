@@ -31,7 +31,6 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -42,6 +41,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -74,11 +74,9 @@ import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -104,9 +102,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             + " to make this work properly."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<Path> configFiles;
+  private List<AnnotatedValue<Path>> configFiles;
 
-  private static final Splitter CONFIG_FILE_CONDITION_SPLITTER = Splitter.on("::").trimResults();
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
@@ -152,7 +149,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     ListeningExecutorService exec = listeningDecorator(newFixedThreadPool(configFiles.size()));
     List<ListenableFuture<ParallelAnalysisResult>> futures = new ArrayList<>();
 
-    for (Path p : configFiles) {
+    for (AnnotatedValue<Path> p : configFiles) {
       futures.add(exec.submit(createParallelAnalysis(p, ++stats.noOfAlgorithmsUsed)));
     }
 
@@ -229,18 +226,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
-      final Path pSingleConfigFileName,
-      final int analysisNumber) {
-
-    Iterable<String> parts =
-        CONFIG_FILE_CONDITION_SPLITTER.split(pSingleConfigFileName.toString());
-    int size = Iterables.size(parts);
-
-    Iterator<String> configIt = parts.iterator();
-    Path singleConfigFileName = Paths.get(configIt.next());
-
-    final boolean supplyReached = Iterables.contains(parts, "supply-reached");
-    final boolean supplyRefinableReached = Iterables.contains(parts, "supply-reached-refinable");
+      final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber) {
+    final Path singleConfigFileName = pSingleConfigFileName.value();
+    final boolean supplyReached;
+    final boolean supplyRefinableReached;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
     if (singleConfig == null) {
@@ -252,7 +241,27 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final ResourceLimitChecker singleAnalysisOverallLimit;
     final CoreComponentsFactory coreComponents;
     try {
-      checkIsValidConfig(supplyReached, supplyRefinableReached, singleConfigFileName, size);
+      if (pSingleConfigFileName.annotation().isPresent()) {
+        switch (pSingleConfigFileName.annotation().get()) {
+          case "supply-reached":
+            supplyReached = true;
+            supplyRefinableReached = false;
+            break;
+          case "supply-reached-refinable":
+            supplyReached = false;
+            supplyRefinableReached = true;
+            break;
+          default:
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Annotation %s is not valid for config %s in option parallelAlgorithm.configFiles",
+                    pSingleConfigFileName.annotation(),
+                    pSingleConfigFileName.value()));
+        }
+      } else {
+        supplyReached = false;
+        supplyRefinableReached = false;
+      }
 
       singleAnalysisOverallLimit =
           ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
@@ -316,21 +325,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           supplyRefinableReached,
           coreComponents);
     };
-  }
-
-  private void checkIsValidConfig(
-      final boolean supplyReached,
-      final boolean supplyRefinableReached,
-      Path singleConfigFileName,
-      int size)
-      throws InvalidConfigurationException {
-    if (size > 2
-        || (size == 2 && !(supplyReached ^ supplyRefinableReached))
-        || (size == 1 && (supplyReached || supplyRefinableReached))) {
-      throw new InvalidConfigurationException(
-          singleConfigFileName.toString()
-              + " is not a valid configuration for a parallel analysis.");
-    }
   }
 
   private ParallelAnalysisResult runParallelAnalysis(

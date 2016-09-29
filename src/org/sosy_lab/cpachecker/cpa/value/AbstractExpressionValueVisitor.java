@@ -1429,7 +1429,7 @@ public abstract class AbstractExpressionValueVisitor
       return createSymbolicExpression(valueObject, operandType, unaryOperator, expressionType);
 
     } else {
-      logger.logf(Level.FINE, errorMsg);
+      logger.log(Level.FINE, errorMsg);
       return UnknownValue.getInstance();
     }
   }

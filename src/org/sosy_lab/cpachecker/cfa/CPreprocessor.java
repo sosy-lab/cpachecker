@@ -69,7 +69,7 @@ public class CPreprocessor {
     name = "preprocessor.dumpDirectory",
     description = "Directory where to dump the results of the preprocessor."
   )
-  @FileOption(Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_DIRECTORY)
   private Path dumpDirectory = Paths.get("preprocessed");
 
   private final LogManager logger;
