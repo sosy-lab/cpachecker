@@ -728,7 +728,7 @@ public class SMGHveSources {
   public SMGAddressValue createNewPointer(SMGSymbolicValue pOldAddressValue,
       SMGAddressValue pNewAddressValue) {
 
-    if (!pOldAddressValue.containsSourceAddreses()) {
+    if (pOldAddressValue.containsSourceAddreses()) {
 
       Set<SMGKnownAddress> sources = new HashSet<>();
 
