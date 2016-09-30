@@ -1169,7 +1169,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     sourcesOfHve.registerHasValueEdge(newFieldFromDllToNewRegion);
 
     SMGAddressValue resultAddress = SMGKnownAddVal.valueOf(oldPointerToDll, newConcreteRegion, hfo);
-    sourcesOfHve.createNewPointer(pOldAddressValue, resultAddress);
+    resultAddress = sourcesOfHve.createNewPointer(pOldAddressValue, resultAddress);
     return SMGAddressValueAndState.of(this,
         resultAddress);
   }
