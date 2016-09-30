@@ -427,7 +427,7 @@ public class SMGHveSources {
       source = FluentIterable.from(pSource).transform(dropSource).toSet();
     }
 
-    public static SMGSymbolicValue valueOf(SMGSymbolicValue pValue, Set<SMGKnownAddress> pSource) {
+    public static SMGKnownSymValueAndSource valueOf(SMGSymbolicValue pValue, Set<SMGKnownAddress> pSource) {
       return new SMGKnownSymValueAndSource(pValue.getValue(), pSource);
     }
 
@@ -693,13 +693,59 @@ public class SMGHveSources {
 
   public SMGAddressValue createPointer(SMGKnownSymValue pValue, SMGEdgePointsTo pAddressValue) {
     if (pValue.containsSourceAddreses()) {
-      return SMGKnownAddValueAndSource.valueOf(pValue,
+
+      SMGAddressAndSource resultAddress =
           SMGAddressAndSource.valueOf(pAddressValue.getObject(), pAddressValue.getOffset(),
-              pValue.getSourceAdresses()),
-          pValue.getSourceAdresses());
+              pValue.getSourceAdresses());
+
+      return SMGKnownAddValueAndSource.valueOf(pValue, resultAddress, pValue.getSourceAdresses());
     } else {
-      return SMGKnownAddVal.valueOf(pAddressValue.getValue(),
-          pAddressValue.getObject(), pAddressValue.getOffset());
+
+      int resultAddressValue = pAddressValue.getValue();
+      SMGObject resultAddressObject = pAddressValue.getObject();
+      int resultAddressOffset = pAddressValue.getOffset();
+      return SMGKnownAddVal.valueOf(resultAddressValue,
+          resultAddressObject, resultAddressOffset);
+    }
+  }
+
+  public SMGKnownSymValue createNewValue(SMGKnownSymValue pNewValue, SMGSymbolicValue pOldValue) {
+
+    if (pOldValue.containsSourceAddreses()) {
+      Set<SMGKnownAddress> sources = new HashSet<>();
+
+      if (pNewValue.containsSourceAddreses()) {
+        sources.addAll(pNewValue.getSourceAdresses());
+      }
+
+      sources.addAll(pOldValue.getSourceAdresses());
+      return SMGKnownSymValueAndSource.valueOf(pNewValue, sources);
+    } else {
+      return pNewValue;
+    }
+  }
+
+  public SMGAddressValue createNewPointer(SMGSymbolicValue pOldAddressValue,
+      SMGAddressValue pNewAddressValue) {
+
+    if (!pOldAddressValue.containsSourceAddreses()) {
+
+      Set<SMGKnownAddress> sources = new HashSet<>();
+
+      if (pNewAddressValue.containsSourceAddreses()) {
+        sources.addAll(pNewAddressValue.getSourceAdresses());
+      }
+
+      sources.addAll(pOldAddressValue.getSourceAdresses());
+
+      SMGAddressAndSource resultAddress =
+          SMGAddressAndSource.valueOf(pNewAddressValue.getObject(),
+              pNewAddressValue.getOffset().getAsInt(),
+              sources);
+
+      return SMGKnownAddValueAndSource.valueOf(pNewAddressValue.getValue(), resultAddress, sources);
+    } else {
+      return pNewAddressValue;
     }
   }
 

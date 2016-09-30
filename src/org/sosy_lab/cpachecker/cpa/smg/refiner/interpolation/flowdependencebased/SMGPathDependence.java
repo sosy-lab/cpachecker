@@ -315,7 +315,8 @@ public class SMGPathDependence {
 
     SMGFlowDependenceFieldVertice source = pPositionDependency.getScope().get(defaultAddress);
 
-    if(source == null) {
+    if (source == null) {
+      logger.log(Level.INFO, "Missing scope information of :" + defaultAddress.toString());
       return;
     }
 
@@ -417,6 +418,7 @@ public class SMGPathDependence {
     SMGObject currentObject = pField.getObject();
 
     if (currentObject.getLabel() == "___cpa_temp_result_var_") {
+      logger.log(Level.SEVERE, "Found no memory path to object " + currentObject.toString());
       return null;
     }
 
@@ -563,7 +565,9 @@ public class SMGPathDependence {
       int pCurrentDependencePathcreationIndex, int pInterpolationId,
       int pPathDependenceId) {
 
-    if (pExportPath == null) { return; }
+    if (pExportPath == null) {
+      return;
+    }
 
     SMGFlowDependencePlotter plotter = new SMGFlowDependencePlotter(smgUseGraph);
     String pathDependenceDot = plotter.toDot();

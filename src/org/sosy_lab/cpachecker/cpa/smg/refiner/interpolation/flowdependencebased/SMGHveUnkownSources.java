@@ -61,6 +61,17 @@ public class SMGHveUnkownSources extends SMGHveSources {
   }
 
   @Override
+  public SMGAddressValue createNewPointer(SMGSymbolicValue pOldAddressValue,
+      SMGAddressValue pNewAddressValue) {
+    return pNewAddressValue;
+  }
+
+  @Override
+  public SMGKnownSymValue createNewValue(SMGKnownSymValue pNewValue, SMGSymbolicValue pOldValue) {
+    return pNewValue;
+  }
+
+  @Override
   public SMGSymbolicValue createReadValueSource(SMGAddress pAddress,
       SMGSymbolicValue pReadValueResult, Set<SMGKnownAddress> pAdditionalSources,
       boolean pOverlappingZeroEdges) {

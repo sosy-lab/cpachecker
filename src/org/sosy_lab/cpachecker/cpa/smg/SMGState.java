@@ -693,7 +693,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       if (obj.isAbstract()) {
         SMGAddressValueAndStateList result =
-            handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
+            handleMaterilisation(pValue, ((SMGAbstractObject) obj));
         performConsistencyCheck(SMGRuntimeCheck.HALF);
         return result;
       }
@@ -705,8 +705,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
 
-  private SMGAddressValueAndStateList handleMaterilisation(SMGEdgePointsTo pointerToAbstractObject,
+  private SMGAddressValueAndStateList handleMaterilisation(SMGSymbolicValue pValue,
       SMGAbstractObject pSmgAbstractObject) throws SMGInconsistentException {
+
+    SMGEdgePointsTo pointerToAbstractObject = heap.getPointer(pValue.getAsInt());
 
     switch (pSmgAbstractObject.getKind()) {
       case DLL:
@@ -716,14 +718,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
           SMGState removalState = this.createSuccessor();
           SMGAddressValueAndStateList removalResult =
-              removalState.removeDll(dllListSeg, pointerToAbstractObject);
+              removalState.removeDll(pValue, dllListSeg, pointerToAbstractObject);
           result.addAll(removalResult.asAddressValueAndStateList());
           SMGAddressValueAndState resultOfMaterilisation =
-              materialiseDll(dllListSeg, pointerToAbstractObject);
+              materialiseDll(pValue, dllListSeg, pointerToAbstractObject);
           result.add(resultOfMaterilisation);
           return SMGAddressValueAndStateList.copyOfAddressValueList(result);
         } else {
-          SMGAddressValueAndState result = materialiseDll(dllListSeg, pointerToAbstractObject);
+          SMGAddressValueAndState result = materialiseDll(pValue, dllListSeg, pointerToAbstractObject);
           return SMGAddressValueAndStateList.of(result);
         }
       case SLL:
@@ -733,14 +735,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           List<SMGAddressValueAndState> result = new ArrayList<>(2);
           SMGState removalState = this.createSuccessor();
           SMGAddressValueAndStateList resultOfRemoval =
-              removalState.removeSll(sllListSeg, pointerToAbstractObject);
+              removalState.removeSll(pValue, sllListSeg, pointerToAbstractObject);
           result.addAll(resultOfRemoval.asAddressValueAndStateList());
           SMGAddressValueAndState resultOfMaterilisation =
-              materialiseSll(sllListSeg, pointerToAbstractObject);
+              materialiseSll(pValue, sllListSeg, pointerToAbstractObject);
           result.add(resultOfMaterilisation);
           return SMGAddressValueAndStateList.copyOfAddressValueList(result);
         } else {
-          SMGAddressValueAndState result = materialiseSll(sllListSeg, pointerToAbstractObject);
+          SMGAddressValueAndState result = materialiseSll(pValue, sllListSeg, pointerToAbstractObject);
           return SMGAddressValueAndStateList.of(result);
         }
       case OPTIONAL:
@@ -748,10 +750,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         SMGOptionalObject optionalObject = (SMGOptionalObject) pSmgAbstractObject;
         SMGState removalState = this.createSuccessor();
         SMGAddressValueAndStateList resultOfRemoval =
-            removalState.removeOptionalObject(optionalObject);
+            removalState.removeOptionalObject(pValue, optionalObject);
         result.addAll(resultOfRemoval.asAddressValueAndStateList());
         SMGAddressValueAndState resultOfMaterilisation =
-            materialiseOptionalObject(optionalObject, pointerToAbstractObject);
+            materialiseOptionalObject(pValue, optionalObject, pointerToAbstractObject);
         result.add(resultOfMaterilisation);
         return SMGAddressValueAndStateList.copyOfAddressValueList(result);
       default:
@@ -760,7 +762,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  private SMGAddressValueAndStateList removeOptionalObject(SMGOptionalObject pOptionalObject)
+  private SMGAddressValueAndStateList removeOptionalObject(SMGSymbolicValue pOldAddressValue, SMGOptionalObject pOptionalObject)
       throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Remove ", pOptionalObject, " in state id ", this.getId());
@@ -790,12 +792,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       heap.mergeValues(pointerValue, edge.getValue());
     }
 
-    SMGAddressValueAndStateList result = getPointerFromValue(SMGKnownSymValue.valueOf(pointerValue));
+    SMGKnownSymValue newPointerValue = SMGKnownSymValue.valueOf(pointerValue);
+
+    newPointerValue = sourcesOfHve.createNewValue(newPointerValue, pOldAddressValue);
+
+    SMGAddressValueAndStateList result = getPointerFromValue(newPointerValue);
 
     return result;
   }
 
-  private SMGAddressValueAndState materialiseOptionalObject(SMGOptionalObject pOptionalObject,
+  private SMGAddressValueAndState materialiseOptionalObject(SMGSymbolicValue pOldAddressValue, SMGOptionalObject pOptionalObject,
       SMGEdgePointsTo pPointerToAbstractObject) {
 
     /*Just replace the optional object with a region*/
@@ -824,14 +830,18 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       heap.addPointsToEdge(new SMGEdgePointsTo(edge.getValue(), newObject, edge.getOffset()));
     }
 
+    SMGAddressValue newAddressValue = SMGKnownAddVal.valueOf(pPointerToAbstractObject.getValue(),
+        newObject, pPointerToAbstractObject.getOffset());
+
+    newAddressValue = sourcesOfHve.createNewPointer(pOldAddressValue, newAddressValue);
+
     SMGAddressValueAndState result =
-        SMGAddressValueAndState.of(this, SMGKnownAddVal.valueOf(pPointerToAbstractObject.getValue(),
-            newObject, pPointerToAbstractObject.getOffset()));
+        SMGAddressValueAndState.of(this, newAddressValue);
 
     return result;
   }
 
-  private SMGAddressValueAndStateList removeSll(SMGSingleLinkedList pListSeg,
+  private SMGAddressValueAndStateList removeSll(SMGSymbolicValue pOldAddressValue, SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
@@ -856,7 +866,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.mergeValues(nextEdge.getValue(), firstPointer);
 
     if (firstPointer == pPointerToAbstractObject.getValue()) {
-      return getPointerFromValue(SMGKnownSymValue.valueOf(nextPointerEdge.getValue()));
+      SMGKnownSymValue newAddressValue = SMGKnownSymValue.valueOf(nextPointerEdge.getValue());
+
+      newAddressValue = sourcesOfHve.createNewValue(newAddressValue, pOldAddressValue);
+
+      return getPointerFromValue(newAddressValue);
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
@@ -864,7 +878,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  private SMGAddressValueAndStateList removeDll(SMGDoublyLinkedList pListSeg,
+  private SMGAddressValueAndStateList removeDll(SMGSymbolicValue pOldAddressValue, SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
@@ -904,9 +918,19 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     if (firstPointer != null && firstPointer == pPointerToAbstractObject.getValue()) {
-      return getPointerFromValue(SMGKnownSymValue.valueOf(nextPointerEdge.getValue()));
+
+      SMGKnownSymValue newAddressValue = SMGKnownSymValue.valueOf(nextPointerEdge.getValue());
+
+      newAddressValue = sourcesOfHve.createNewValue(newAddressValue, pOldAddressValue);
+
+      return getPointerFromValue(newAddressValue);
     } else if (lastPointer != null && lastPointer == pPointerToAbstractObject.getValue()) {
-      return getPointerFromValue(SMGKnownSymValue.valueOf(prevPointerEdge.getValue()));
+
+      SMGKnownSymValue newAddressValue = SMGKnownSymValue.valueOf(prevPointerEdge.getValue());
+
+      newAddressValue = sourcesOfHve.createNewValue(newAddressValue, pOldAddressValue);
+
+      return getPointerFromValue(newAddressValue);
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
@@ -914,7 +938,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  private SMGAddressValueAndState materialiseSll(SMGSingleLinkedList pListSeg,
+  private SMGAddressValueAndState materialiseSll(SMGSymbolicValue pOldAddressValue, SMGSingleLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
@@ -1005,8 +1029,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     sourcesOfHve.registerHasValueEdge(newFieldFromNewRegionToSll);
     heap.addPointsToEdge(newPtEToSll);
 
+    SMGAddressValue resultAddress = SMGKnownAddVal.valueOf(oldPointerToSll, newConcreteRegion, hfo);
+    resultAddress = sourcesOfHve.createNewPointer(pOldAddressValue, resultAddress);
     return SMGAddressValueAndState.of(this,
-        SMGKnownAddVal.valueOf(oldPointerToSll, newConcreteRegion, hfo));
+        resultAddress);
   }
 
   private SMGEdgeHasValue getHveEdgePointerForMaterialsation(SMGObject pObject, int pOffset) throws SMGInconsistentException {
@@ -1031,7 +1057,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  private SMGAddressValueAndState materialiseDll(SMGDoublyLinkedList pListSeg,
+  private SMGAddressValueAndState materialiseDll(SMGSymbolicValue pOldAddressValue,
+      SMGDoublyLinkedList pListSeg,
       SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
 
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
@@ -1141,8 +1168,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addHasValueEdge(newFieldFromDllToNewRegion);
     sourcesOfHve.registerHasValueEdge(newFieldFromDllToNewRegion);
 
+    SMGAddressValue resultAddress = SMGKnownAddVal.valueOf(oldPointerToDll, newConcreteRegion, hfo);
+    sourcesOfHve.createNewPointer(pOldAddressValue, resultAddress);
     return SMGAddressValueAndState.of(this,
-        SMGKnownAddVal.valueOf(oldPointerToDll, newConcreteRegion, hfo));
+        resultAddress);
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
