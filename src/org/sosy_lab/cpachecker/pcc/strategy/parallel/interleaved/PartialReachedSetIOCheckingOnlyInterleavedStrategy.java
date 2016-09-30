@@ -32,6 +32,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -61,7 +63,6 @@ import org.sosy_lab.cpachecker.util.Triple;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
@@ -100,8 +101,14 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
     logger.log(Level.INFO, "Create reading thread");
     Thread readingThread = new Thread(new PartitionReader(checkResult, partitionsAvailable));
+
+    ExecutorService executors = null;
     try {
       readingThread.start();
+
+      if (numThreads > 2) {
+        executors = Executors.newFixedThreadPool(numThreads - 1);
+      }
 
       PartitioningCheckingHelper checkInfo = new PartitioningCheckingHelper() {
         @Override
@@ -114,9 +121,16 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
           checkResult.set(false);
         }
       };
-      PartitionChecker checker =
-          new PartitionChecker(initPrec, cpa.getStopOperator(), cpa.getTransferRelation(), ioHelper, checkInfo,
-              shutdownNotifier, logger);
+      PartitionChecker checker;
+      if (executors == null) {
+        checker =
+            new PartitionChecker(initPrec, cpa.getStopOperator(), cpa.getTransferRelation(), ioHelper, checkInfo,
+                shutdownNotifier, logger, stats.getStopTimer(), stats.getTransferTimer());
+      } else {
+        checker =
+            new PartitionChecker(initPrec, cpa.getStopOperator(), cpa.getTransferRelation(), ioHelper, checkInfo,
+                shutdownNotifier, logger, executors, numThreads-1);
+      }
 
       for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
         partitionsAvailable.acquire();
@@ -162,6 +176,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     } finally {
       checkResult.set(false);
       readingThread.interrupt();
+      if(executors != null) {
+        executors.shutdown();
+      }
     }
   }
 

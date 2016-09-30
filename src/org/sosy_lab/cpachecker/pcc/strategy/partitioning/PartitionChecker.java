@@ -27,11 +27,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -41,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -62,6 +68,14 @@ public class PartitionChecker {
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
+  private final Timer transferTime;
+  private final Timer stopTime;
+
+  private  ExecutorService executors = null;
+  private Semaphore sem;
+  private Lock lock;
+  private int numThreads;
+
   public PartitionChecker(final Precision pInitPrecision, final StopOperator pStop, final TransferRelation pTransfer,
       final PartitioningIOHelper pIOHelper, final PartitioningCheckingHelper pHelperInfo,
       final ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
@@ -74,6 +88,52 @@ public class PartitionChecker {
 
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
+
+    transferTime = new Timer();
+    stopTime = new Timer();
+  }
+
+  public PartitionChecker(final Precision pInitPrec, final StopOperator pStopOperator,
+      final TransferRelation pTransferRelation, final PartitioningIOHelper pIoHelper,
+      final PartitioningCheckingHelper pCheckInfo, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger, final Timer pStopTimer, final Timer pTransferTimer) {
+    initPrec = pInitPrec;
+    stop = pStopOperator;
+    transfer = pTransferRelation;
+
+    ioHelper = pIoHelper;
+    partitionHelper = pCheckInfo;
+
+    shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
+
+    transferTime = pTransferTimer;
+    stopTime = pStopTimer;
+  }
+
+
+  public PartitionChecker(final Precision pInitPrec, final StopOperator pStopOperator,
+      final TransferRelation pTransferRelation, final PartitioningIOHelper pIoHelper,
+      final PartitioningCheckingHelper pCheckInfo, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger, final ExecutorService pExecutorService, final int pNumThreads) {
+    initPrec = pInitPrec;
+    stop = pStopOperator;
+    transfer = pTransferRelation;
+
+    ioHelper = pIoHelper;
+    partitionHelper = pCheckInfo;
+
+    shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
+
+    transferTime = new Timer();
+    stopTime = new Timer();
+
+    numThreads = pNumThreads;
+
+    executors = pExecutorService;
+    sem = new Semaphore(0);
+    lock = new ReentrantLock();
   }
 
   public void checkPartition(int pIndex){
@@ -91,6 +151,15 @@ public class PartitionChecker {
       addElement(adjacentNode, false, statesPerLocation);
     }
 
+    if (executors == null) {
+      inspectPartitionElementSequential(statesPerLocation);
+    } else {
+      inspectPartitionElementParallel(statesPerLocation);
+    }
+  }
+
+  private void inspectPartitionElementSequential(Multimap<CFANode, AbstractState> statesPerLocation) {
+    boolean isCovered;
     AbstractState checkedState;
     CFANode loc;
     Collection<? extends AbstractState> successors;
@@ -113,25 +182,48 @@ public class PartitionChecker {
 
       // compute successors
       try {
+        transferTime.start();
         successors = transfer.getAbstractSuccessors(checkedState, initPrec);
+        transferTime.stop();
 
 
         for (AbstractState successor : successors) {
           // check if covered
           loc = AbstractStates.extractLocation(successor);
-          if (!stop.stop(successor, statesPerLocation.get(loc), initPrec)) {
+
+          stopTime.start();
+          isCovered = stop.stop(successor, statesPerLocation.get(loc), initPrec);
+          stopTime.stop();
+          if (!isCovered) {
             certificatePart.add(successor);
           }
         }
       } catch (CPATransferException | InterruptedException e) {
+        stopTime.stopIfRunning();
+        transferTime.stopIfRunning();
         logger.log(Level.SEVERE, "Checking failed, successor computation failed");
         partitionHelper.abortCheckingPreparation();
         return;
       } catch (CPAException e) {
+        stopTime.stopIfRunning();
+        transferTime.stopIfRunning();
         logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
         partitionHelper.abortCheckingPreparation();
         return;
       }
+    }
+  }
+
+  private void inspectPartitionElementParallel(Multimap<CFANode, AbstractState> statesPerLocation) {
+    AtomicInteger counter = new AtomicInteger(0);
+    for (int i = 0; i < numThreads; i++) {
+      executors.execute(new PartitionElementParallelChecker(counter, statesPerLocation));
+    }
+
+    try {
+      sem.acquire(numThreads);
+    } catch (InterruptedException e) {
+      partitionHelper.abortCheckingPreparation();
     }
   }
 
@@ -166,6 +258,82 @@ public class PartitionChecker {
       certificatePart.add(element);
     } else {
       mustBeInCertificate.add(element);
+    }
+  }
+
+  private class PartitionElementParallelChecker implements Runnable {
+
+    private AtomicInteger counter;
+    private Multimap<CFANode, AbstractState> statesPerLocation;
+
+    public PartitionElementParallelChecker(final AtomicInteger pCount,
+        final Multimap<CFANode, AbstractState> pStatesPerLocation) {
+      counter = pCount;
+      statesPerLocation = pStatesPerLocation;
+    }
+
+    @Override
+    public void run() {
+      Collection<AbstractState> recomputedElements = new ArrayList<>();
+      try {
+        boolean isCovered;
+        AbstractState checkedState;
+        CFANode loc;
+        Collection<? extends AbstractState> successors;
+        int next;
+        while ((next = counter.getAndIncrement()) < certificatePart.size()) {
+          if (shutdownNotifier.shouldShutdown()) {
+            partitionHelper.abortCheckingPreparation();
+            return;
+          }
+
+          if (certificatePart.size() + partitionHelper.getCurrentCertificateSize() + recomputedElements.size() > ioHelper
+              .getSavedReachedSetSize()) {
+            logger.log(Level.SEVERE, "Checking failed, recomputed certificate bigger than original reached set.");
+            partitionHelper.abortCheckingPreparation();
+            return;
+          }
+
+          checkedState = certificatePart.get(next);
+
+          // compute successors
+          try {
+            transferTime.start();
+            successors = transfer.getAbstractSuccessors(checkedState, initPrec);
+            transferTime.stop();
+
+
+            for (AbstractState successor : successors) {
+              // check if covered
+              loc = AbstractStates.extractLocation(successor);
+
+              stopTime.start();
+              isCovered = stop.stop(successor, statesPerLocation.get(loc), initPrec);
+              stopTime.stop();
+              if (!isCovered) {
+                recomputedElements.add(successor);
+              }
+            }
+          } catch (CPATransferException | InterruptedException e) {
+            stopTime.stopIfRunning();
+            transferTime.stopIfRunning();
+            logger.log(Level.SEVERE, "Checking failed, successor computation failed");
+            partitionHelper.abortCheckingPreparation();
+            return;
+          } catch (CPAException e) {
+            stopTime.stopIfRunning();
+            transferTime.stopIfRunning();
+            logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
+            partitionHelper.abortCheckingPreparation();
+            return;
+          }
+        }
+      } finally {
+        lock.lock();
+        certificatePart.addAll(recomputedElements);
+        lock.unlock();
+        sem.release();
+      }
     }
   }
 }
