@@ -28,6 +28,9 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -163,8 +166,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       //create BnB regions here
       //get referenced fields and addressed fields from variable classification
       //use aliasingTypeHandler to simplify types
-      BnBRegionsBuilder bnb = new BnBRegionsBuilder(options, pVariableClassification, pTypeHandler);
-      regionMgr = bnb.build();
+      regionMgr = buildBnBMemoryRegions();
     } else {
       //if !useMemoryRegions then create default regions - all in one for each type
       regionMgr = new DefaultRegionManager();
@@ -175,6 +177,24 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
+  }
+
+  private MemoryRegionManager buildBnBMemoryRegions() {
+    if(!variableClassification.isPresent()) {
+      return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>of());
+    }
+    VariableClassification var = variableClassification.get();
+    Multimap<CCompositeType, String> relevant = var.getRelevantFields();
+    Multimap<CCompositeType, String> addressed = var.getAddressedFields();
+
+    Multimap<CType, String> bnb = HashMultimap.create();
+    for(Map.Entry<CCompositeType, String> p : relevant.entries()) {
+      if(!addressed.containsEntry(p.getKey(), p.getValue())) {
+        CType type = typeHandler.simplifyType(p.getKey());
+        bnb.put(type, p.getValue());
+      }
+    }
+    return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>copyOf(bnb));
   }
 
   /**
