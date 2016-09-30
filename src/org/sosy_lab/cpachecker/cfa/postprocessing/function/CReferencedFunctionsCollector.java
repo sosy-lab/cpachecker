@@ -65,8 +65,12 @@ import java.util.Set;
  */
 class CReferencedFunctionsCollector {
 
-  private final Set<String> collectedFunctions = new HashSet<>();
-  private final CollectFunctionsVisitor collector = new CollectFunctionsVisitor(collectedFunctions);
+  protected final Set<String> collectedFunctions = new HashSet<>();
+  private final CollectFunctionsVisitor collector;
+
+  public CReferencedFunctionsCollector() {
+    collector = new CollectFunctionsVisitor(collectedFunctions);
+  }
 
   public Set<String> getCollectedFunctions() {
     return collectedFunctions;
@@ -112,12 +116,12 @@ class CReferencedFunctionsCollector {
     }
   }
 
-  private static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
+  protected static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
                                                implements CRightHandSideVisitor<Void, RuntimeException>,
                                                           CStatementVisitor<Void, RuntimeException>,
                                                           CInitializerVisitor<Void, RuntimeException> {
 
-    private final Set<String> collectedFunctions;
+    protected final Set<String> collectedFunctions;
 
     public CollectFunctionsVisitor(Set<String> pCollectedVars) {
       collectedFunctions = pCollectedVars;

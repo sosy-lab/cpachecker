@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -73,8 +74,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -101,6 +104,10 @@ public class CFunctionPointerResolver {
       description="Create edge for skipping a function pointer call if its value is unknown.")
   private boolean createUndefinedFunctionCall = true;
 
+  @Option(secure=true, name="analysis.matchAssignedFunctionPointers",
+      description="Use as targets for call edges only those shich are assigned to the particular expression (structure field).")
+  private boolean matchAssignedFunctionPointers = false;
+
   private enum FunctionSet {
     // The items here need to be declared in the order they should be used when checking function.
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
@@ -113,9 +120,11 @@ public class CFunctionPointerResolver {
 
   @Option(secure=true, name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_TYPES, FunctionSet.RETURN_VALUE);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
+
+  private Map<String, Collection<String>> candidateFunctionsForField;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
@@ -132,7 +141,12 @@ public class CFunctionPointerResolver {
     matchingFunctionCall = getFunctionSetPredicate(functionSets);
 
     if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
-      CReferencedFunctionsCollector varCollector = new CReferencedFunctionsCollector();
+      CReferencedFunctionsCollector varCollector;
+      if (matchAssignedFunctionPointers) {
+        varCollector = new CReferencedFunctionsCollectorWithFieldsMatching();
+      } else {
+        varCollector = new CReferencedFunctionsCollector();
+      }
       for (CFANode node : cfa.getAllNodes()) {
         for (CFAEdge edge : leavingEdges(node)) {
           varCollector.visitEdge(edge);
@@ -149,6 +163,10 @@ public class CFunctionPointerResolver {
           from(Sets.intersection(addressedFunctions, cfa.getAllFunctionNames()))
               .transform(Functions.forMap(cfa.getAllFunctions()))
               .toList();
+
+      if (matchAssignedFunctionPointers) {
+        candidateFunctionsForField = ((CReferencedFunctionsCollectorWithFieldsMatching)varCollector).getFieldMatching();
+      }
 
       if (logger.wouldBeLogged(Level.ALL)) {
         logger.log(Level.ALL, "Possible target functions of function pointers:\n",
@@ -266,6 +284,25 @@ public class CFunctionPointerResolver {
 
     CExpression nameExp = fExp.getFunctionNameExpression();
     Collection<CFunctionEntryNode> funcs = getFunctionSet(functionCall);
+    if (matchAssignedFunctionPointers) {
+      CExpression expression = nameExp;
+      if (expression instanceof CPointerExpression) {
+        expression = ((CPointerExpression) expression).getOperand();
+      }
+      if( expression instanceof CFieldReference) {
+        String fieldName = ((CFieldReference)expression).getFieldName();
+        Collection<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
+        if (matchedFuncs == null) {
+          //means, that our heuristics missed something
+          //TODO
+          funcs = Collections.emptySet();
+        } else {
+          funcs = from(funcs).
+              filter(f -> matchedFuncs.contains(f.getFunctionName())).
+              toSet();
+        }
+      }
+    }
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
