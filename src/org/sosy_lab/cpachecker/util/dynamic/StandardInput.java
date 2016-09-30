@@ -27,18 +27,22 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.stream.Collector.Characteristics;
+import java.util.logging.Level;
 
 /**
  * Provides information given to a program as standard input at runtime.
@@ -55,6 +59,8 @@ public class StandardInput {
           + " e.g. a newline represents a press of 'Enter'")
   private String inputFile = null;
 
+  private final LogManager logger;
+
   private List<String> lines;
   private Iterator<String> nextLine;
   private Deque<Character> currentlyRemainingLine = new LinkedList<>();
@@ -67,10 +73,15 @@ public class StandardInput {
     Scanner s = new Scanner(pInputString);
     lines = getContentsAsList(s);
     nextLine = lines.iterator();
+
+    logger = LogManager.createTestLogManager();
   }
 
-  public StandardInput(final Configuration pConfig) throws InvalidConfigurationException {
+  public StandardInput(final Configuration pConfig, final LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    logger = pLogger;
 
     try {
       lines = readFile(inputFile);
@@ -137,13 +148,13 @@ public class StandardInput {
    *                string
    * formatting
    */
-  public List<String> getNext(final String pFormat) {
+  public List<InputValue> getNext(final String pFormat) {
     if (currentlyRemainingLine.isEmpty()) {
       final String rawLine = getNext();
       currentlyRemainingLine = buildStack(rawLine);
     }
 
-    List<String> formattedStrings = new ArrayList<>();
+    List<InputValue> formattedStrings = new ArrayList<>();
     FormatElement currentFormatElement = new RootElement();
 
     // FormatElement objects are supposed to handle the case that the remaining line is empty,
@@ -151,10 +162,10 @@ public class StandardInput {
     for (int p = 0; p < pFormat.length(); p++) {
       currentFormatElement = currentFormatElement.feed(pFormat.charAt(p));
       if (currentFormatElement.isComplete()) {
-        Optional<String> producedString =
+        Optional<InputValue> producedValue =
             currentFormatElement.applyToString(currentlyRemainingLine);
-        if (producedString.isPresent()) {
-          formattedStrings.add(producedString.get());
+        if (producedValue.isPresent()) {
+          formattedStrings.add(producedValue.get());
         }
         currentFormatElement = new RootElement();
       }
@@ -177,7 +188,7 @@ public class StandardInput {
   private interface FormatElement {
     FormatElement feed(char pNextChar);
     boolean isComplete();
-    Optional<String> applyToString(Deque<Character> pCharStack);
+    Optional<InputValue> applyToString(Deque<Character> pCharStack);
   }
 
   private static abstract class IncompleteElement implements FormatElement {
@@ -188,7 +199,7 @@ public class StandardInput {
     }
 
     @Override
-    public Optional<String> applyToString(final Deque<Character> pCharStack) {
+    public Optional<InputValue> applyToString(final Deque<Character> pCharStack) {
       throw new IllegalStateException("Element not complete!");
     }
   }
@@ -220,7 +231,7 @@ public class StandardInput {
     }
   }
 
-  private static class RootElement extends IncompleteElement {
+  private class RootElement extends IncompleteElement {
 
     @Override
     public FormatElement feed(final char pNextChar) {
@@ -238,12 +249,12 @@ public class StandardInput {
       return false;
     }
 
-    public Optional<String> applyToString(final Deque<Character> pCharStack) {
+    public Optional<InputValue> applyToString(final Deque<Character> pCharStack) {
       throw new IllegalStateException("FormatElement not complete!");
     }
   }
 
-  private static class ConstantElement extends CompleteElement {
+  private class ConstantElement extends CompleteElement {
 
     private char character;
 
@@ -252,7 +263,7 @@ public class StandardInput {
     }
 
     @Override
-    public Optional<String> applyToString(Deque<Character> pCharStack) {
+    public Optional<InputValue> applyToString(Deque<Character> pCharStack) {
       Character nextChar = pCharStack.peek();
 
       if (nextChar == character) {
@@ -263,7 +274,7 @@ public class StandardInput {
     }
   }
 
-  private static class PlaceHolder extends IncompleteElement {
+  private class PlaceHolder extends IncompleteElement {
 
     private boolean lineWidthSpecified = false;
     private int lineWidth = 0;
@@ -293,7 +304,7 @@ public class StandardInput {
     }
   }
 
-  private static class IntegerDec extends CompleteElement {
+  private class IntegerDec extends CompleteElement {
 
     public IntegerDec() {
       super();
@@ -304,7 +315,7 @@ public class StandardInput {
     }
 
     @Override
-    public Optional<String> applyToString(final Deque<Character> pCharStack) {
+    public Optional<InputValue> applyToString(final Deque<Character> pCharStack) {
       StringBuilder number = new StringBuilder();
       for (int p = 0; p < getLineWidth(); p++) {
         if (pCharStack.isEmpty()) {
@@ -323,24 +334,23 @@ public class StandardInput {
         }
       }
 
-      assert number.length() == 0 || isInteger(number.toString());
-      return Optional.of(number.toString());
-    }
-
-    private boolean isInteger(final String pString) {
+      Value value;
       try {
-        Integer.parseInt(pString);
-        return true;
+        value = new NumericValue(Integer.parseInt(number.toString()));
       } catch (NumberFormatException e) {
-        return false;
+        logger.log(Level.WARNING, "Format '%d' for scanf did not match any input."
+            + " Behavior is not defined");
+        value = UnknownValue.getInstance();
       }
+
+      return Optional.of(new InputValue(value, CNumericTypes.INT));
     }
   }
 
   private static class WhiteSpace extends CompleteElement {
 
     @Override
-    public Optional<String> applyToString(final Deque<Character> pCharStack) {
+    public Optional<InputValue> applyToString(final Deque<Character> pCharStack) {
       if (!pCharStack.isEmpty()) {
         char currentChar = pCharStack.peek();
         while (!pCharStack.isEmpty() && Character.isSpaceChar(currentChar)) {

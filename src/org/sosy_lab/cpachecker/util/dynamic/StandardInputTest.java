@@ -28,7 +28,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runners.JUnit4;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import java.util.List;
 
@@ -57,16 +58,19 @@ public class StandardInputTest {
   @Test
   public void getNext() throws Exception {
     String format = "%d %d %d";
+    NumericValue actualValue;
 
     // Should read: "   0  1"
     //  1. %d <-> whitespace => ""
     //  2. %d <-> 0
     //  3. %d <-> 1
-    List<String> actual = stdin.getNext(format);
+    List<InputValue> actual = stdin.getNext(format);
     assertTrue(actual.size() == 3);
-    assertTrue(actual.get(0).isEmpty());
-    assertTrue(actual.get(1).equals("0"));
-    assertTrue(actual.get(2).equals("1"));
+    assertTrue(actual.get(0).getValue().isUnknown());
+    actualValue = (NumericValue) actual.get(1).getValue();
+    assertTrue(actualValue.getNumber().equals(0));
+    actualValue = (NumericValue) actual.get(2).getValue();
+    assertTrue(actualValue.getNumber().equals(1));
 
     // Should read: " 2 3\n"
     //  1. %d <-> whitespace => ""
@@ -77,11 +81,13 @@ public class StandardInputTest {
     format = "%d %d%d %d %d";
     actual = stdin.getNext(format);
     assertTrue(actual.size() == 5);
-    assertTrue(actual.get(0).isEmpty());
-    assertTrue(actual.get(1).equals("2"));
-    assertTrue(actual.get(2).isEmpty());
-    assertTrue(actual.get(3).equals("3"));
-    assertTrue(actual.get(4).isEmpty());
+    assertTrue(actual.get(0).getValue().isUnknown());
+    actualValue = (NumericValue) actual.get(1).getValue();
+    assertTrue(actualValue.getNumber().equals(2));
+    assertTrue(actual.get(2).getValue().isUnknown());
+    actualValue = (NumericValue) actual.get(3).getValue();
+    assertTrue(actualValue.getNumber().equals(3));
+    assertTrue(actual.get(4).getValue().isUnknown());
 
     // Should read: "-5 123456789     123\n"
     // 1. %d <-> -5
@@ -92,11 +98,15 @@ public class StandardInputTest {
     format = "%d %3d%100d%d %d";
     actual = stdin.getNext(format);
     assertTrue(actual.size() == 5);
-    assertTrue(actual.get(0).equals("-5"));
-    assertTrue(actual.get(1).equals("123"));
-    assertTrue(actual.get(2).equals("456789"));
-    assertTrue(actual.get(3).isEmpty());
-    assertTrue(actual.get(4).equals("123"));
+    actualValue = (NumericValue) actual.get(0).getValue();
+    assertTrue(actualValue.getNumber().equals(-5));
+    actualValue = (NumericValue) actual.get(1).getValue();
+    assertTrue(actualValue.getNumber().equals(123));
+    actualValue = (NumericValue) actual.get(2).getValue();
+    assertTrue(actualValue.getNumber().equals(456789));
+    assertTrue(actual.get(3).getValue().isUnknown());
+    actualValue = (NumericValue) actual.get(4).getValue();
+    assertTrue(actualValue.getNumber().equals(123));
 
     // Should read: "5%   10%dd106";
     // 1. %d <-> 5
@@ -105,9 +115,12 @@ public class StandardInputTest {
     format = "%d%% %d%%dd1%1d6";
     actual = stdin.getNext(format);
     assertTrue(actual.size() == 3);
-    assertTrue(actual.get(0).equals("5"));
-    assertTrue(actual.get(1).equals("10"));
-    assertTrue(actual.get(2).equals("0"));
+    actualValue = (NumericValue) actual.get(0).getValue();
+    assertTrue(actualValue.getNumber().equals(5));
+    actualValue = (NumericValue) actual.get(1).getValue();
+    assertTrue(actualValue.getNumber().equals(10));
+    actualValue = (NumericValue) actual.get(2).getValue();
+    assertTrue(actualValue.getNumber().equals(0));
   }
 
 }
