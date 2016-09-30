@@ -71,11 +71,4 @@
 
     </tasks>
   </rundefinition>
-
-  <rundefinition>
-    <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
-    <tasks>
-      <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.i</include>
-    </tasks>
-  </rundefinition>
 </benchmark>
