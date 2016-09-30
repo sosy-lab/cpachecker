@@ -11,9 +11,9 @@
   <option name="-ldv"/>
 
   <rundefinition>
-    <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
-
     <tasks>
+      <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+
       <include>../programs/ldv-benchmarks/validator/*/*.c</include>
       <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--md--md-mod.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
@@ -68,7 +68,16 @@
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-net--wireless--cfg80211.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main11_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.12-rc1/fs--nilfs2--nilfs2.ko-ldv_main10_false-unreach-label.cil.out.c</exclude>
+    </tasks>
 
+    <tasks>
+      <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
+      <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.i</include>
+    </tasks>
+
+    <tasks>
+      <propertyfile>../programs/ldv-benchmarks/bnb/ALL.prp</propertyfile>
+      <includesfile>../programs/ldv-benchmarks/bnb/bnb.set</includesfile>
     </tasks>
   </rundefinition>
 </benchmark>
