@@ -96,10 +96,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
-  //New memory model for pointer analysis with regions
-  //Regions are based not only on type, but also on structure field names (so called Burstall&Bornat model).
-  //If the field is not accessed by address then it is placed in a separate region.
-  @Option(secure=true, description = "Use regions for pointer analysis")
+  @Option(secure=true, description = "Use regions for pointer analysis. "
+      + "So called Burstall&Bornat (BnB) memory regions will be used for pointer analysis. "
+      + "BnB regions are based not only on type, but also on structure field names. "
+      + "If the field is not accessed by an address then it is placed into a separate region.")
   private boolean useMemoryRegions = false;
 
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
