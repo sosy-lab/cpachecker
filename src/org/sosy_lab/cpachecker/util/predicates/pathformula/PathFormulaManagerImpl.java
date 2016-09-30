@@ -75,6 +75,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -175,6 +176,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
 
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
+
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
@@ -498,6 +500,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         merger.addMergeAssumptions(
             pF1.getFormula(), pF1.getSsa(), pF1.getPointerTargetSet(), pF2.getSsa()),
         bfmgr.not(bF));
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    converter.printStatistics(out);
   }
 
 }

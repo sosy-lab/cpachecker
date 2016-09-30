@@ -37,6 +37,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -140,4 +141,9 @@ public interface PathFormulaManager {
    * @return pF1.getFormula() and assumptions and not pF2.getFormula()
    */
   public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
+
+  /**
+   * Prints some information about the PathFormulaManager.
+   */
+  public void printStatistics(PrintStream out);
 }

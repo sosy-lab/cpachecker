@@ -87,6 +87,7 @@ class DynamicMemoryHandler {
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
+  private final MemoryRegionManager regionMgr;
 
   /**
    * Creates a new DynamicMemoryHandler
@@ -101,7 +102,7 @@ class DynamicMemoryHandler {
   DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints,
-      ErrorConditions pErrorConditions) {
+      ErrorConditions pErrorConditions, MemoryRegionManager pRegionMgr) {
     conv = pConv;
     typeHandler = pConv.typeHandler;
     edge = pEdge;
@@ -109,6 +110,7 @@ class DynamicMemoryHandler {
     pts = pPts;
     constraints = pConstraints;
     errorConditions = pErrorConditions;
+    regionMgr = pRegionMgr;
   }
 
   /**
@@ -344,7 +346,7 @@ class DynamicMemoryHandler {
     final CType baseType = CTypeUtils.getBaseType(type);
     final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
     if (isZeroing) {
-      AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions);
+      AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
       final BooleanFormula initialization = assignmentHandler.makeAssignment(
         type,
         CNumericTypes.SIGNED_CHAR,
@@ -372,7 +374,7 @@ class DynamicMemoryHandler {
       final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
     return functionName
         + "_"
-        + CToFormulaConverterWithPointerAliasing.getPointerAccessName(type)
+        + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
         + conv.makeFreshIndex(
             CToFormulaConverterWithPointerAliasing.SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX

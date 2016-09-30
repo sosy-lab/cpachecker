@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -285,11 +284,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     PredicateAbstractionManager.Stats as = amgr.stats;
 
-    CachingPathFormulaManager pfMgr = null;
-    if (pfmgr instanceof CachingPathFormulaManager) {
-      pfMgr = (CachingPathFormulaManager) pfmgr;
-    }
-
     out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
     if (prec.numAbstractions > 0) {
       out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
@@ -362,19 +356,9 @@ class PredicateCPAStatistics extends AbstractStatistics {
       }
     }
     out.println();
-    if (pfMgr != null) {
-      int pathFormulaCacheHits = pfMgr.pathFormulaCacheHits;
-      int totalPathFormulaComputations = pfMgr.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
-      out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
-    }
-
-    out.println();
 
     out.println("Time for post operator:              " + trans.postTimer);
     out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
-    if (pfMgr != null) {
-      out.println("    Actual computation:              " + pfMgr.pathFormulaComputationTimer);
-    }
     if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
     }
@@ -423,6 +407,8 @@ class PredicateCPAStatistics extends AbstractStatistics {
       out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
       out.println("Time for unsat checks:             " + trans.satCheckTimer + " (Calls: " + trans.satCheckTimer.getNumberOfIntervals() + ")");
     }
+    out.println();
+    pfmgr.printStatistics(out);
     out.println();
     rmgr.printStatistics(out);
   }

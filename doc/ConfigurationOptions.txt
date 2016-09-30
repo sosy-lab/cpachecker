@@ -1849,6 +1849,12 @@ cpa.predicate.useArraysForHeap = false
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
+# regions will be used for pointer analysis. BnB regions are based not only
+# on type, but also on structure field names. If the field is not accessed by
+# an address then it is placed into a separate region.
+cpa.predicate.useMemoryRegions = false
+
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 

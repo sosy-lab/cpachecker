@@ -95,6 +95,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
+  @Option(secure=true, description = "Use regions for pointer analysis. "
+      + "So called Burstall&Bornat (BnB) memory regions will be used for pointer analysis. "
+      + "BnB regions are based not only on type, but also on structure field names. "
+      + "If the field is not accessed by an address then it is placed into a separate region.")
+  private boolean useMemoryRegions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
@@ -182,5 +188,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
+  }
+
+  public boolean useMemoryRegions() {
+    return useMemoryRegions;
   }
 }

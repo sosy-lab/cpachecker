@@ -146,7 +146,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final SSAMapBuilder ssa,
                                           final Constraints constraints,
                                           final ErrorConditions errorConditions,
-                                          final PointerTargetSetBuilder pts) {
+                                          final PointerTargetSetBuilder pts,
+                                          final MemoryRegionManager regionMgr) {
 
     delegate =
         new ExpressionToFormulaVisitor(
@@ -172,7 +173,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.constraints = constraints;
     this.errorConditions = errorConditions;
     this.pts = pts;
-
+    this.regionMgr = regionMgr;
     this.baseVisitor = new BaseVisitor(cfaEdge, pts, typeHandler);
   }
 
@@ -211,8 +212,12 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.isAliasedLocation()) {
-      return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions) :
-                       conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa);
+      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
+      if(region == null) {
+        region = regionMgr.makeMemoryRegion(type);
+      }
+      return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region) :
+                       conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
     } else { // Unaliased location
       return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
     }
@@ -336,7 +341,9 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
-        return AliasedLocation.ofAddress(address);
+        final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
+        final MemoryRegion region = regionMgr.makeMemoryRegion(fieldOwnerType, fieldType, fieldName);
+        return AliasedLocation.ofAddressWithRegion(address, region);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -514,7 +521,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                        base,
                                        initializedFields,
                                        ssa,
-                                       constraints);
+                                       constraints,
+                                       null);
         if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
           ssa.deleteVariable(base.getName());
         }
@@ -627,7 +635,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       final String functionName = ((CIdExpression)functionNameExpression).getName();
 
       if (conv.options.isDynamicMemoryFunction(functionName)) {
-        DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
+        DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
         try {
           return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
         } catch (InterruptedException exc) {
@@ -756,6 +764,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
   private final PointerTargetSetBuilder pts;
+  private final MemoryRegionManager regionMgr;
 
   private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;

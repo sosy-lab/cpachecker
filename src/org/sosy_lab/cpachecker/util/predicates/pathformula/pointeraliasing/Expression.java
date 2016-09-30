@@ -37,7 +37,12 @@ abstract class Expression {
     static final class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
+        this(address, null);
+      }
+
+      private AliasedLocation(final Formula address, final MemoryRegion region) {
         this.address = address;
+        this.region = region;
       }
 
       Formula getAddress() {
@@ -81,6 +86,12 @@ abstract class Expression {
       }
 
       private final Formula address;
+
+      private final MemoryRegion region;
+
+      public MemoryRegion getMemoryRegion() {
+        return region;
+      }
     }
 
     static final class UnaliasedLocation extends Location {
@@ -134,6 +145,10 @@ abstract class Expression {
 
     static AliasedLocation ofAddress(final Formula address) {
       return new AliasedLocation(checkNotNull(address));
+    }
+
+    static AliasedLocation ofAddressWithRegion(final Formula address, final MemoryRegion region) {
+      return new AliasedLocation(checkNotNull(address), checkNotNull(region));
     }
 
     static UnaliasedLocation ofVariableName(final String variableName) {
