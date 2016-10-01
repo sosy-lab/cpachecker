@@ -72,7 +72,7 @@ public class CalculationHelper {
         new BufferedReader(new InputStreamReader(sympy.getErrorStream(), Charset.defaultCharset()));
 
     try {
-      calculateGroebnerBasis(state, log, stdin, stdout, stderr);
+      calculateGroebnerBasis(state, log, stdin, stdout);
       log.log(Level.INFO, readAllFromStream(stderr));
     } catch (IOException e) {
       Error er = new Error("Communication with the sympy subprocess failed.");
@@ -82,7 +82,7 @@ public class CalculationHelper {
   }
 
   private static void calculateGroebnerBasis(LoopInvariantsState state, LogManager log,
-      BufferedWriter stdin, BufferedReader stdout, BufferedReader stderr) throws IOException {
+      BufferedWriter stdin, BufferedReader stdout) throws IOException {
 
     CollectVariablesVisitor collector = new CollectVariablesVisitor();
     Set<String> variables = new HashSet<>();
@@ -205,6 +205,7 @@ public class CalculationHelper {
     }
   }
 
+  @SuppressWarnings("resource")
   private static List<String> preprocessingOfPolynomialsHelper(LoopInvariantsState state, LogManager log)
       throws IOException {
     String outPrefix = "sympyout:";
