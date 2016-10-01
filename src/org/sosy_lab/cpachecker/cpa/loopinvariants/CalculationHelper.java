@@ -32,6 +32,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -63,10 +64,13 @@ public class CalculationHelper {
       throw er;
     }
 
-    BufferedWriter stdin = new BufferedWriter(new OutputStreamWriter(sympy.getOutputStream()));
-    BufferedReader stdout = new BufferedReader(new InputStreamReader(sympy.getInputStream()));
+    BufferedWriter stdin =
+        new BufferedWriter(
+            new OutputStreamWriter(sympy.getOutputStream(), Charset.defaultCharset()));
+    BufferedReader stdout =
+        new BufferedReader(new InputStreamReader(sympy.getInputStream(), Charset.defaultCharset()));
     BufferedReader stderr =
-        new BufferedReader(new InputStreamReader(sympy.getErrorStream()));
+        new BufferedReader(new InputStreamReader(sympy.getErrorStream(), Charset.defaultCharset()));
 
     try {
       calculateGroebnerBasis(state, log, stdin, stdout, stderr);
@@ -225,10 +229,15 @@ public class CalculationHelper {
         throw er;
       }
 
-      BufferedWriter stdin = new BufferedWriter(new OutputStreamWriter(sympy.getOutputStream()));
-      BufferedReader stdout = new BufferedReader(new InputStreamReader(sympy.getInputStream()));
+      BufferedWriter stdin =
+          new BufferedWriter(
+              new OutputStreamWriter(sympy.getOutputStream(), Charset.defaultCharset()));
+      BufferedReader stdout =
+          new BufferedReader(
+              new InputStreamReader(sympy.getInputStream(), Charset.defaultCharset()));
       BufferedReader stderr =
-          new BufferedReader(new InputStreamReader(sympy.getErrorStream()));
+          new BufferedReader(
+              new InputStreamReader(sympy.getErrorStream(), Charset.defaultCharset()));
 
       variables = polynom.accept(collector);
       String polyStr = polynom.toString();
