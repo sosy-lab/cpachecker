@@ -178,4 +178,10 @@ public class LoopInvariantsState
     }
     return false;
   }
+
+  @Override
+  public int hashCode() {
+    // TODO check for better hashcode based on the invariant!
+    return super.hashCode();
+  }
 }
