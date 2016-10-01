@@ -45,8 +45,6 @@ public class CalculationHelper {
 
   /**
    * Calculates for a state
-   * @param state
-   * @param log
    */
 
   public static void calculateGroebnerBasis(LoopInvariantsState state, LogManager log) {
