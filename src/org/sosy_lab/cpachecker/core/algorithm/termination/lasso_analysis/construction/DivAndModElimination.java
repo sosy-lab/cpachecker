@@ -30,8 +30,6 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MODULO;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
-
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -45,6 +43,8 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 import java.util.Collection;
 import java.util.List;
+
+import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
 
 class DivAndModElimination extends BooleanFormulaTransformationVisitor {
 
@@ -203,9 +203,9 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
        * or
        * ((divisor < 0 and dividend >= 0) ==> quotientAuxVar * divisor <= dividend < (quotientAuxVar-1) * divisor)
        * or
-       * ((divisor > 0 and dividend < 0) ==> quotientAuxVar * divisor => dividend > (quotientAuxVar+1) * divisor)
+       * ((divisor > 0 and dividend < 0) ==> quotientAuxVar * divisor => dividend > (quotientAuxVar-1) * divisor)
        * or
-       * ((divisor < 0 and dividend < 0) ==> quotientAuxVar * divisor => dividend > (quotientAuxVar-1) * divisor)
+       * ((divisor < 0 and dividend < 0) ==> quotientAuxVar * divisor => dividend > (quotientAuxVar+1) * divisor)
        */
 
       Formula one = fmgrView.makeNumber(formulaType, 1);
@@ -221,18 +221,18 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
       BooleanFormula isUpperBoundNegDivident =
           fmgrView.makeGreaterOrEqual(quotientMulDivisor, dividend, true);
 
-      Formula stictBoundPosDivisor =
+      Formula stictBoundPosResult =
           fmgrView.makeMultiply(fmgrView.makePlus(quotientAuxVar, one), divisor);
-      Formula strictBoundNegDivisor =
+      Formula strictBoundNegResult =
           fmgrView.makeMultiply(fmgrView.makeMinus(quotientAuxVar, one), divisor);
       BooleanFormula isUpperBoundPosDivisorPosDivident =
-          fmgrView.makeLessThan(dividend, stictBoundPosDivisor, true);
+          fmgrView.makeLessThan(dividend, stictBoundPosResult, true);
       BooleanFormula isUpperBoundNegDivisorPosDivident =
-          fmgrView.makeLessThan(dividend, strictBoundNegDivisor, true);
+          fmgrView.makeLessThan(dividend, strictBoundNegResult, true);
       BooleanFormula isLowerBoundPosDivisorNegDivident =
-          fmgrView.makeGreaterThan(dividend, stictBoundPosDivisor, true);
+          fmgrView.makeGreaterThan(dividend, strictBoundNegResult, true);
       BooleanFormula isLowerBoundNegDivisorNegDivident =
-          fmgrView.makeGreaterThan(dividend, strictBoundNegDivisor, true);
+          fmgrView.makeGreaterThan(dividend, stictBoundPosResult, true);
 
       BooleanFormula posDivisorPosDividentFormula =
           booleanFormulaManager.and(
