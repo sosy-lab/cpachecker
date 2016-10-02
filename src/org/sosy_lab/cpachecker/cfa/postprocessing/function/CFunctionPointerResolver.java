@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -77,7 +78,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -124,7 +124,7 @@ public class CFunctionPointerResolver {
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private Map<String, Collection<String>> candidateFunctionsForField;
+  private final ImmutableSetMultimap<String, String> candidateFunctionsForField;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
@@ -165,17 +165,23 @@ public class CFunctionPointerResolver {
               .toList();
 
       if (matchAssignedFunctionPointers) {
-        candidateFunctionsForField = ((CReferencedFunctionsCollectorWithFieldsMatching)varCollector).getFieldMatching();
+        candidateFunctionsForField =
+            ImmutableSetMultimap.copyOf(
+                ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
+                    .getFieldMatching());
+      } else {
+        candidateFunctionsForField = null;
       }
 
       if (logger.wouldBeLogged(Level.ALL)) {
         logger.log(Level.ALL, "Possible target functions of function pointers:\n",
             Joiner.on('\n').join(candidateFunctions));
       }
+
     } else {
       candidateFunctions = cfa.getAllFunctionHeads();
+      candidateFunctionsForField = null;
     }
-
   }
 
   private BiPredicate<CFunctionCall, CFunctionType> getFunctionSetPredicate(
@@ -291,10 +297,9 @@ public class CFunctionPointerResolver {
       }
       if( expression instanceof CFieldReference) {
         String fieldName = ((CFieldReference)expression).getFieldName();
-        Collection<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
-        if (matchedFuncs == null) {
-          //means, that our heuristics missed something
-          //TODO
+        Set<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
+        if (matchedFuncs.isEmpty()) {
+          //TODO means, that our heuristics missed something
           funcs = Collections.emptySet();
         } else {
           funcs = from(funcs).

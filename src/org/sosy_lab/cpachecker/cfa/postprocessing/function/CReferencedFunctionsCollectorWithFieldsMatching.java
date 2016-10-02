@@ -22,8 +22,11 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -34,11 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -48,11 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -60,58 +54,16 @@ import java.util.Set;
  * not counting those that are called directly.
  * (Only functions that have their address taken (implicitly) are returned.)
  */
-public class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctionsCollector {
+class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctionsCollector {
 
   private final CollectFunctionsVisitorWithFieldMatching collector;
-
 
   public CReferencedFunctionsCollectorWithFieldsMatching() {
     collector = new CollectFunctionsVisitorWithFieldMatching(collectedFunctions);
   }
 
-  public Map<String, Collection<String>> getFieldMatching() {
+  Multimap<String, String> getFieldMatching() {
     return collector.functionToFieldMatching;
-  }
-
-  @Override
-  public void visitEdge(CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-    case AssumeEdge:
-      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      assumeEdge.getExpression().accept(collector);
-      break;
-    case BlankEdge:
-      //nothing to do
-      break;
-    case CallToReturnEdge:
-      //nothing to do
-      assert false;
-      break;
-    case DeclarationEdge:
-      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if (declaration instanceof CVariableDeclaration) {
-        CInitializer init = ((CVariableDeclaration)declaration).getInitializer();
-        if (init != null) {
-          init.accept(collector);
-          saveDeclaration(declaration.getType(), init);
-        }
-
-      }
-      break;
-    case ReturnStatementEdge:
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      if (returnEdge.getExpression().isPresent()) {
-        returnEdge.getExpression().get().accept(collector);
-      }
-      break;
-    case StatementEdge:
-      CStatementEdge statementEdge = (CStatementEdge)edge;
-      statementEdge.getStatement().accept(collector);
-      break;
-
-    default:
-      throw new AssertionError();
-    }
   }
 
   @Override
@@ -166,18 +118,17 @@ public class CReferencedFunctionsCollectorWithFieldsMatching extends CReferenced
             initExpression = ((CUnaryExpression)initExpression).getOperand();
           }
           if (initExpression instanceof CIdExpression) {
-            collector.saveInfoIntoMap(fieldName, ((CIdExpression)initExpression).getName());
+            collector.functionToFieldMatching.put(
+                fieldName, ((CIdExpression) initExpression).getName());
           }
         }
       }
     }
   }
 
-
-
   private static class CollectFunctionsVisitorWithFieldMatching extends CollectFunctionsVisitor {
 
-    public final Map<String, Collection<String>> functionToFieldMatching = new HashMap<>();
+    private final Multimap<String, String> functionToFieldMatching = HashMultimap.create();
     private String lastFunction;
 
     public CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
@@ -203,21 +154,10 @@ public class CReferencedFunctionsCollectorWithFieldsMatching extends CReferenced
         // - one value of 'lastFunction' is enough
         CLeftHandSide left = pIastExpressionAssignmentStatement.getLeftHandSide();
         if (left instanceof CFieldReference) {
-          saveInfoIntoMap(((CFieldReference) left).getFieldName(), lastFunction);
+          functionToFieldMatching.put(((CFieldReference) left).getFieldName(), lastFunction);
         }
       }
       return null;
-    }
-
-    private void saveInfoIntoMap(String field, String funcName) {
-      Collection<String> result;
-      if (functionToFieldMatching.containsKey(field)) {
-        result = functionToFieldMatching.get(field);
-      } else {
-        result = new HashSet<>();
-        functionToFieldMatching.put(field, result);
-      }
-      result.add(funcName);
     }
   }
 }
