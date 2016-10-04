@@ -10,6 +10,7 @@
 /FindBugs.diff.html
 /FindBugs.diff.xml
 /JUnit.html
+/.apt-generated
 /.factorypath
 *.pyc
 
