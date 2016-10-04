@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -46,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
  * no conditions are considered. Assignments can only contain linear expressions.
  * To compute the invariant an isympy installation is necessary.
  */
-@Options( prefix = "cpa.loopinvariants" )
+@Options(prefix = "cpa.loopinvariants")
 public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
 
   /**
@@ -55,7 +54,6 @@ public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgra
    * @return a factory for creating LoopInvariantsCPAs.
    */
   public static CPAFactory factory() {
-    // return AutomaticCPAFactory.forType(ApronCPA.class);
     return AutomaticCPAFactory.forType(LoopInvariantsCPA.class);
   }
 
@@ -66,8 +64,9 @@ public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgra
       description = "this option determines which merge operator to use")
   private String mergeType = "SEP";
 
-  public LoopInvariantsCPA(Configuration pConfig, CFA pCFA, LogManager log) throws InvalidConfigurationException {
-    super("SEP", "SEP", new FlatLatticeDomain(), new LoopInvariantsTransferRelation(pCFA, log)); //TODO FlatLattice ?
+  public LoopInvariantsCPA(Configuration pConfig, CFA pCFA, LogManager log)
+      throws InvalidConfigurationException {
+    super("SEP", "SEP", new FlatLatticeDomain(), new LoopInvariantsTransferRelation(pCFA, log));
     pConfig.inject(this, LoopInvariantsCPA.class);
   }
 
@@ -80,10 +79,5 @@ public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgra
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return SingletonPrecision.getInstance();
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return new FlatLatticeDomain();
   }
 }

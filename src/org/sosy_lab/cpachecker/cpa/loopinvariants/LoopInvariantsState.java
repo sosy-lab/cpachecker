@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class LoopInvariantsState
     implements AbstractState { //, LatticeAbstractState<LoopInvariantsState> {
@@ -144,10 +145,17 @@ public class LoopInvariantsState
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof LoopInvariantsState) {
+    if (this == obj) {
+      return true;
+    } else if (obj instanceof LoopInvariantsState) {
       LoopInvariantsState oState = (LoopInvariantsState) obj;
-      if (this.invariant != null && oState.invariant != null) {
-        return this.invariant.toString().equals(oState.invariant.toString());
+      if (this.invariant != null && oState.invariant != null
+          && this.invariant.toString().equals(oState.invariant.toString())
+          && this.inLoop == oState.inLoop && this.isLoopHead == oState.isLoopHead
+          && this.polynoms.equals(oState.polynoms)
+          && this.polynomsOutsideOfLoop.equals(oState.polynomsOutsideOfLoop)
+          && this.variableValueMap.equals(oState.variableValueMap)) {
+        return true;
       }
     }
     return false;
@@ -155,7 +163,7 @@ public class LoopInvariantsState
 
   @Override
   public int hashCode() {
-    // TODO check for better hashcode based on the invariant!
-    return super.hashCode();
+    return Objects.hash(this.inLoop, this.isLoopHead, this.invariant, this.polynoms,
+        this.polynomsOutsideOfLoop, this.variableValueMap) ;
   }
 }
