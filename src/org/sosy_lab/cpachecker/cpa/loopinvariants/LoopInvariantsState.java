@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 public class LoopInvariantsState
-    implements AbstractState, LatticeAbstractState<LoopInvariantsState> {
+    implements AbstractState { //, LatticeAbstractState<LoopInvariantsState> {
 
   private static final LoopInvariantsState TOP = new LoopInvariantsState();
 
@@ -70,12 +68,6 @@ public class LoopInvariantsState
     isLoopHead = pIsLoopHead;
   }
 
-  @Override
-  public boolean isLessOrEqual(LoopInvariantsState pOther)
-      throws CPAException, InterruptedException {
-    return this.equals(pOther);
-  }
-
   public boolean getInLoop() {
     return inLoop;
   }
@@ -94,24 +86,6 @@ public class LoopInvariantsState
 
   public static LoopInvariantsState getTop() {
     return TOP;
-  }
-
-  //TODO überarbeiten
-  @Override
-  public LoopInvariantsState join(LoopInvariantsState pOther) {
-    if (inLoop && pOther.inLoop) {
-      LoopInvariantsState newState = new LoopInvariantsState();
-
-      newState.polynoms.addAll(polynoms);
-      newState.polynoms.addAll(pOther.polynoms);
-
-      newState.variableValueMap.putAll(variableValueMap);
-      newState.variableValueMap.putAll(pOther.variableValueMap);
-
-      return newState;
-    }
-
-    return null;
   }
 
   public void setInvariant(List<Polynom> pPoly) {

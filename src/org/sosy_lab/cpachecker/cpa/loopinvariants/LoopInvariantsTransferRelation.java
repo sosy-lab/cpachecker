@@ -75,7 +75,7 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
       Precision pPrecision, CFAEdge pCfaEdge) {
 
     LoopInvariantsState state = (LoopInvariantsState) pState;
-    LoopInvariantsState newState = new LoopInvariantsState();
+    LoopInvariantsState newState;
 
     newState = setEdgeInLoop(pCfaEdge, state);
 
@@ -104,18 +104,16 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
                       if (value.isPresent()) {
                         newState.addVariableValue(variableName, value.getAsDouble());
                       } else {
-                        if (poly != null) {
-                          if (newState.getInLoop()) {
-                            newState.addPolynom(new Addition(
-                                new Multiplication(new Constant(-1),
-                                    new Variable(variableName + "(n+1)")),
-                                (AddExpression) poly));
-                          } else {
-                            newState.addPolynomOutsideOfLoop(new Addition(
-                                new Multiplication(new Constant(-1),
-                                    new Variable(variableName + "(n+1)")),
-                                (AddExpression) poly));
-                          }
+                        if (newState.getInLoop()) {
+                          newState.addPolynom(new Addition(
+                              new Multiplication(new Constant(-1),
+                                  new Variable(variableName + "(n+1)")),
+                              (AddExpression) poly));
+                        } else {
+                          newState.addPolynomOutsideOfLoop(new Addition(
+                              new Multiplication(new Constant(-1),
+                                  new Variable(variableName + "(n+1)")),
+                              (AddExpression) poly));
                         }
                       }
                     }

@@ -32,8 +32,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -66,8 +67,7 @@ public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgra
   private String mergeType = "SEP";
 
   public LoopInvariantsCPA(Configuration pConfig, CFA pCFA, LogManager log) throws InvalidConfigurationException {
-    super("SEP", "SEP", DelegateAbstractDomain.<LoopInvariantsState> getInstance(),
-        new LoopInvariantsTransferRelation(pCFA, log));
+    super("SEP", "SEP", new FlatLatticeDomain(), new LoopInvariantsTransferRelation(pCFA, log)); //TODO FlatLattice ?
     pConfig.inject(this, LoopInvariantsCPA.class);
   }
 
@@ -82,4 +82,8 @@ public class LoopInvariantsCPA extends AbstractCPA implements ConfigurableProgra
     return SingletonPrecision.getInstance();
   }
 
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new FlatLatticeDomain();
+  }
 }

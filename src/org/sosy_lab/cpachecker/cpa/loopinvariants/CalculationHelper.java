@@ -87,11 +87,8 @@ public class CalculationHelper {
     CollectVariablesVisitor collector = new CollectVariablesVisitor();
     Set<String> variables = new HashSet<>();
 
-    List<String> polynomials = new LinkedList<>();
-
     for (PolynomExpression polynom : state.getPolynomies()) {
       variables.addAll(polynom.accept(collector));
-      polynomials.add(polynom.toString());
     }
 
     String polynomsStr = preprocessingOfPolynomials(state, log).toString();
@@ -211,7 +208,7 @@ public class CalculationHelper {
     String outPrefix = "sympyout:";
 
     CollectVariablesVisitor collector = new CollectVariablesVisitor();
-    Set<String> variables = new HashSet<>();
+    Set<String> variables;
     List<String> closedFormPolynomials = new LinkedList<>();
 
     for (PolynomExpression polynom : state.getPolynomies()) {
