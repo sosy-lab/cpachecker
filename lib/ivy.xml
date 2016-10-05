@@ -92,7 +92,7 @@
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.1" conf="format-source->default"/>
 
         <!-- FindBugs -->
         <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
