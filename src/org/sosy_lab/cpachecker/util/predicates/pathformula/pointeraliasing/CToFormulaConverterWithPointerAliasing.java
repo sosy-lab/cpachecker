@@ -513,7 +513,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                  final List<Pair<CCompositeType, String>> fields,
                                  final SSAMapBuilder ssa,
                                  final Constraints constraints,
-                                 final MemoryRegion region) throws UnrecognizedCCodeException {
+                                 @Nullable final MemoryRegion region) throws
+                                                                  UnrecognizedCCodeException {
     final CType baseType = base.getType();
     if (baseType instanceof CArrayType) {
       throw new UnrecognizedCCodeException("Array access can't be encoded as a variable", cfaEdge);

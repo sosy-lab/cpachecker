@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.CheckReturnValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.java_smt.api.Formula;
@@ -40,7 +41,7 @@ abstract class Expression {
         this(address, null);
       }
 
-      private AliasedLocation(final Formula address, final MemoryRegion region) {
+      private AliasedLocation(final Formula address, @Nullable final MemoryRegion region) {
         this.address = address;
         this.region = region;
       }
@@ -89,6 +90,7 @@ abstract class Expression {
 
       private final MemoryRegion region;
 
+      @CheckReturnValue
       public MemoryRegion getMemoryRegion() {
         return region;
       }

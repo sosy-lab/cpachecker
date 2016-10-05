@@ -53,10 +53,10 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
       Integer v = entry.getValue();
       if(v!=null) {
         perUf.put(key, v+1);
+        totalTargets += v;
       } else {
         perUf.put(key, 1);
       }
-      totalTargets += v;
     }
     out.println("Total number of created targets for pointer analysis: " + totalTargets);
     for(Map.Entry<String, Integer> entry : perUf.entrySet()) {

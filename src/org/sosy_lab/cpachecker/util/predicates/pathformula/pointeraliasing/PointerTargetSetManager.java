@@ -703,7 +703,7 @@ class PointerTargetSetManager {
   @CheckReturnValue
   PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
       final String base,
-      final MemoryRegion region,
+      final @Nullable MemoryRegion region,
       final CType cType,
       final @Nullable CType containerType,
       final int properOffset,
