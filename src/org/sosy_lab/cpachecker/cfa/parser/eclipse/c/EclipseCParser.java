@@ -572,7 +572,7 @@ class EclipseCParser implements CParser {
       final String analysisFile = fileNameMapping.getOrDefault(pAnalysisFile, pAnalysisFile);
 
       Pair<String, Integer> result =
-          delegate.getOriginLineFromAnalysisCodeLine(pAnalysisFile, pAnalysisCodeLine);
+          delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);
 
       if (result.getFirst().equals(analysisFile)) {
         // reverse mapping
