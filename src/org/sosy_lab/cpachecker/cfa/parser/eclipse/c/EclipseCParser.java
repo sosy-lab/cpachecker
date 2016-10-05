@@ -32,7 +32,16 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -69,17 +78,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
@@ -143,10 +141,12 @@ class EclipseCParser implements CParser {
     public FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
   }
 
-  private ParseResult parseSomething(List<? extends FileToParse> pInput,
+  private ParseResult parseSomething(
+      List<? extends FileToParse> pInput,
       CSourceOriginMapping pSourceOriginMapping,
+      CProgramScope scope,
       FileParseWrapper pWrapperFunction)
-          throws CParserException, InvalidConfigurationException {
+      throws CParserException, InvalidConfigurationException {
 
     Preconditions.checkNotNull(pInput);
     Preconditions.checkNotNull(pSourceOriginMapping);
@@ -167,17 +167,18 @@ class EclipseCParser implements CParser {
     }
 
     return buildCFA(
-        astUnits,
-        new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping),
-        CProgramScope.empty());
+        astUnits, new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping), scope);
   }
 
   @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping)
+  public ParseResult parseFile(List<String> pFilenames)
       throws CParserException, IOException, InvalidConfigurationException {
 
     return parseSomething(
-        pFilenames, sourceOriginMapping, (pFileName, pContent) -> wrapFile(pFileName));
+        Lists.transform(pFilenames, FileToParse::new),
+        new CSourceOriginMapping(),
+        CProgramScope.empty(),
+        (pFileName, pContent) -> wrapFile(pFileName));
   }
 
   @Override
@@ -187,6 +188,7 @@ class EclipseCParser implements CParser {
     return parseSomething(
         pCodeFragments,
         sourceOriginMapping,
+        CProgramScope.empty(),
         (pFileName, pContent) -> {
           Preconditions.checkArgument(pContent instanceof FileContentToParse);
           return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
@@ -194,32 +196,12 @@ class EclipseCParser implements CParser {
 
   }
 
-  /**
-   * This method parses a single file where no prefix for static variables is needed.
-   */
+  /** This method parses a single file where no prefix for static variables is needed. */
   @Override
-  public ParseResult parseFile(String pFileName, CSourceOriginMapping sourceOriginMapping)
+  public ParseResult parseFile(String pFileName)
       throws CParserException, IOException, InvalidConfigurationException {
 
-    String fileName = fixPath(pFileName);
-    Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
-    IASTTranslationUnit unit = parse(wrapFile(fileName));
-
-    return buildCFA(
-        ImmutableList.of(unit),
-        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping),
-        CProgramScope.empty());
-  }
-
-  /**
-   * This method parses a single string, where no prefix for static variables is needed.
-   */
-  @Override
-  public ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException, InvalidConfigurationException {
-
-    return parseString(pFileName, pCode, sourceOriginMapping, CProgramScope.empty());
+    return parseFile(ImmutableList.of(pFileName));
   }
 
   /**
@@ -230,14 +212,14 @@ class EclipseCParser implements CParser {
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
       throws CParserException, InvalidConfigurationException {
 
-    String fileName = fixPath(pFileName);
-    Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
-    IASTTranslationUnit unit = parse(wrapCode(fileName, pCode));
-
-    return buildCFA(
-        ImmutableList.of(unit),
-        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping),
-        pScope);
+    return parseSomething(
+        ImmutableList.of(new FileContentToParse(pFileName, pCode)),
+        sourceOriginMapping,
+        CProgramScope.empty(),
+        (fileName, content) -> {
+          Preconditions.checkArgument(content instanceof FileContentToParse);
+          return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
+        });
   }
 
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {

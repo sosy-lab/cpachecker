@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Abstraction of a C parser that creates CFAs from C code.
@@ -73,17 +73,29 @@ public interface CParser extends Parser {
   }
 
   /**
+   * Parse the content of a String into a CFA.
+   *
+   * @param code The code to parse.
+   * @return The CFA.
+   * @throws ParserException If parser or CFA builder cannot handle the code.
+   */
+  @Override
+  default ParseResult parseString(String filename, String code)
+      throws ParserException, InvalidConfigurationException {
+    return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
+  }
+
+  /**
    * Parse the content of files into a single CFA.
    *
-   * @param filenames  The List of files to parse. The first part of the pair
-   *                   should be the filename, the second part should be the
-   *                   prefix which will be appended to static variables
-   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
+   * @param filenames The List of files to parse. The first part of the pair should be the filename,
+   *     the second part should be the prefix which will be appended to static variables
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
+  ParseResult parseFile(List<String> filenames)
+      throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.

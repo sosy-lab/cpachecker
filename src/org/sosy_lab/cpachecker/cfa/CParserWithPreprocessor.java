@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -49,17 +48,13 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
+  public ParseResult parseFile(String pFilename)
+      throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
     String programCode = preprocessor.preprocess(pFilename);
     if (programCode.isEmpty()) {
       throw new CParserException("Preprocessor returned empty program");
     }
-    return realParser.parseString(pFilename, programCode, sourceOriginMapping);
-  }
-
-  @Override
-  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
-    return parseString(pFilename, pCode, sourceOriginMapping, CProgramScope.empty());
+    return realParser.parseString(pFilename, programCode);
   }
 
   @Override
@@ -81,18 +76,18 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException,
-      InvalidConfigurationException, InterruptedException {
+  public ParseResult parseFile(List<String> pFilenames)
+      throws CParserException, IOException, InvalidConfigurationException, InterruptedException {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
-    for (FileToParse p : pFilenames) {
-      String programCode = preprocessor.preprocess(p.getFileName());
+    for (String f : pFilenames) {
+      String programCode = preprocessor.preprocess(f);
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(new FileContentToParse(p.getFileName(), programCode));
+      programs.add(new FileContentToParse(f, programCode));
     }
-    return realParser.parseString(programs, sourceOriginMapping);
+    return realParser.parseString(programs, new CSourceOriginMapping());
   }
 
   @Override

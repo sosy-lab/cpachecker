@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
-
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -42,23 +41,23 @@ public interface Parser {
   /**
    * Parse the content of a file into a CFA.
    *
-   * @param filename  The file to parse.
-   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
+   * @param filename The file to parse.
    * @return The CFA.
    * @throws IOException If file cannot be read.
-   * @throws ParserException If parser or CFA builder cannot handle the  code.
+   * @throws ParserException If parser or CFA builder cannot handle the code.
    */
-  ParseResult parseFile(String filename, CSourceOriginMapping sourceOriginMapping) throws ParserException, IOException, InvalidConfigurationException, InterruptedException;
+  ParseResult parseFile(String filename)
+      throws ParserException, IOException, InvalidConfigurationException, InterruptedException;
 
   /**
    * Parse the content of a String into a CFA.
    *
-   * @param code  The code to parse.
-   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
+   * @param code The code to parse.
    * @return The CFA.
-   * @throws ParserException If parser or CFA builder cannot handle the C code.
+   * @throws ParserException If parser or CFA builder cannot handle the code.
    */
-  ParseResult parseString(String filename, String code, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException;
+  ParseResult parseString(String filename, String code)
+      throws ParserException, InvalidConfigurationException;
 
   /**
    * Return a timer that measured the time needed for parsing.

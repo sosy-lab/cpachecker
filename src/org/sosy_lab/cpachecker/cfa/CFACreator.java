@@ -29,7 +29,21 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,7 +54,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -93,22 +106,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -482,9 +479,7 @@ private boolean classifyNodes = false;
       throws InvalidConfigurationException, ParserException {
     final ParseResult parseResult;
 
-    final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
-
-    parseResult = parser.parseString("test", program, sourceOriginMapping);
+    parseResult = parser.parseString("test", program);
 
     if (parseResult.isEmpty()) {
       switch (language) {
@@ -510,10 +505,8 @@ private boolean classifyNodes = false;
       checkIfValidFiles(sourceFiles);
     }
 
-    final CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
-
     if (sourceFiles.size() == 1) {
-      parseResult = parser.parseFile(sourceFiles.get(0), sourceOriginMapping);
+      parseResult = parser.parseFile(sourceFiles.get(0));
     } else {
       // when there is more than one file which should be evaluated, the
       // programdenotations are separated from each other and a prefix for
@@ -522,12 +515,7 @@ private boolean classifyNodes = false;
         throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
       }
 
-      final List<FileToParse> programFragments = new ArrayList<>();
-      for (final String fileName : sourceFiles) {
-        programFragments.add(new FileToParse(fileName));
-      }
-
-      parseResult = ((CParser)parser).parseFile(programFragments, sourceOriginMapping);
+      parseResult = ((CParser) parser).parseFile(sourceFiles);
     }
 
     if (parseResult.isEmpty()) {
