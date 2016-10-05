@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +37,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -153,21 +153,27 @@ class EclipseCParser implements CParser {
     Preconditions.checkNotNull(pWrapperFunction);
 
     Map<String, String> fileNameMapping = new HashMap<>();
-    List<IASTTranslationUnit> astUnits = new ArrayList<>();
+    for (FileToParse f : pInput) {
+      fileNameMapping.put(fixPath(f.getFileName()), f.getFileName());
+    }
+    FixedPathSourceOriginMapping sourceOriginMapping =
+        new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping);
+    ParseContext parseContext =
+        new ParseContext(createNiceFileNameFunction(fileNameMapping.keySet()), sourceOriginMapping);
+
+    List<IASTTranslationUnit> astUnits = new ArrayList<>(pInput.size());
 
     for (FileToParse f : pInput) {
       final String fileName = fixPath(f.getFileName());
-      fileNameMapping.put(fileName, f.getFileName());
 
       try {
-        astUnits.add(parse(pWrapperFunction.wrap(fileName, f)));
+        astUnits.add(parse(pWrapperFunction.wrap(fileName, f), parseContext));
       } catch (IOException e) {
         throw new CParserException("IO failed!", e);
       }
     }
 
-    return buildCFA(
-        astUnits, new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping), scope);
+    return buildCFA(astUnits, parseContext, scope);
   }
 
   @Override
@@ -224,7 +230,7 @@ class EclipseCParser implements CParser {
 
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {
     // parse
-    IASTTranslationUnit ast = parse(wrapCode("", pCode));
+    IASTTranslationUnit ast = parse(wrapCode("", pCode), ParseContext.dummy());
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
@@ -249,8 +255,14 @@ class EclipseCParser implements CParser {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
 
-    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
-        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
+    return new ASTConverter(
+        config,
+        scope,
+        new LogManagerWithoutDuplicates(logger),
+        ParseContext.dummy(),
+        machine,
+        "",
+        sa);
   }
 
   @Override
@@ -294,7 +306,8 @@ class EclipseCParser implements CParser {
           | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
           ;
 
-  private IASTTranslationUnit parse(FileContent codeReader) throws CParserException {
+  private IASTTranslationUnit parse(FileContent codeReader, ParseContext parseContext)
+      throws CParserException {
     parseTimer.start();
     try {
       IASTTranslationUnit result = getASTTranslationUnit(codeReader);
@@ -306,7 +319,8 @@ class EclipseCParser implements CParser {
           if (include.isSystemInclude()) {
             throw new CFAGenerationRuntimeException("File includes system headers, either preprocess it manually or specify -preprocess.");
           } else {
-            throw new CFAGenerationRuntimeException("Included file " + include.getName() + " is missing", include, Functions.<String>identity());
+            throw parseContext.parseError(
+                "Included file " + include.getName() + " is missing", include);
           }
         }
       }
@@ -314,7 +328,7 @@ class EclipseCParser implements CParser {
       // Report the preprocessor problems.
       // TODO this shows only the first problem
       for (IASTProblem problem : result.getPreprocessorProblems()) {
-        throw new CFAGenerationRuntimeException(problem, Functions.<String>identity());
+        throw parseContext.parseError(problem);
       }
 
       return result;
@@ -338,20 +352,21 @@ class EclipseCParser implements CParser {
   }
 
   /**
-   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for static variables
+   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
+   * static variables
    *
-   * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
+   * @param asts a List of Pairs of translation units and the appropriate prefix for static
+   *     variables
    */
   private ParseResult buildCFA(
-      List<IASTTranslationUnit> asts, CSourceOriginMapping sourceOriginMapping, Scope pScope)
+      List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
       throws CParserException, InvalidConfigurationException {
 
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
-    Function<String, String> niceFileNameFunction = createNiceFileNameFunction(asts);
     try {
-      CFABuilder builder = new CFABuilder(config, logger, niceFileNameFunction, sourceOriginMapping, machine);
+      CFABuilder builder = new CFABuilder(config, logger, parseContext, machine);
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
@@ -363,13 +378,12 @@ class EclipseCParser implements CParser {
         // the prefix
       } else {
         for (IASTTranslationUnit ast : asts) {
-          builder.analyzeTranslationUnit(
-              ast,
-              niceFileNameFunction
-                  .apply(ast.getFilePath())
+          String staticVariablePrefix =
+              parseContext
+                  .mapFileNameToNameForHumans(ast.getFilePath())
                   .replace("/", "_")
-                  .replaceAll("\\W", "_"),
-              pScope);
+                  .replaceAll("\\W", "_");
+          builder.analyzeTranslationUnit(ast, staticVariablePrefix, pScope);
         }
       }
 
@@ -383,16 +397,15 @@ class EclipseCParser implements CParser {
   }
 
   /**
-   * Given a file name, this function returns a "nice" representation of it.
-   * This should be used for situations where the name is going
-   * to be presented to the user.
-   * The result may be the empty string, if for example CPAchecker only uses
-   * one file (we expect the user to know its name in this case).
+   * Given a file name, this function returns a "nice" representation of it. This should be used for
+   * situations where the name is going to be presented to the user. The result may be the empty
+   * string, if for example CPAchecker only uses one file (we expect the user to know its name in
+   * this case).
    */
-  private Function<String, String> createNiceFileNameFunction(List<IASTTranslationUnit> asts) {
-    Iterator<String> fileNames = Lists.transform(asts, IASTTranslationUnit::getFilePath).iterator();
+  private Function<String, String> createNiceFileNameFunction(Collection<String> pFileNames) {
+    Iterator<String> fileNames = pFileNames.iterator();
 
-    if (asts.size() == 1) {
+    if (pFileNames.size() == 1) {
       final String mainFileName = fileNames.next();
       return pInput ->
           (mainFileName.equals(pInput)
