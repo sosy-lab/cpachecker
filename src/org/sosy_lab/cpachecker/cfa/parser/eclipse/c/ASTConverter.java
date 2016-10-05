@@ -1635,8 +1635,8 @@ class ASTConverter {
       return declaration;
 
     } else {
-      throw parseContext.parseError(
-          "Declaration without declarator, but type is unknown: " + type.toASTString(""), d);
+      throw new CFAGenerationRuntimeException(
+          "Declaration without declarator, but type is unknown: " + type.toASTString(""));
     }
 
   }
