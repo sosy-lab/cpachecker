@@ -95,10 +95,6 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -147,6 +143,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -176,7 +173,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-@Options(prefix="cfa")
 class ASTConverter {
 
   // Calls to this functions are handled by this class and replaced with regular C code.
@@ -184,19 +180,11 @@ class ASTConverter {
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
-  @Option(secure=true,
-      description="simplify pointer expressions like s->f to (*s).f with this option " +
-        "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
-  private boolean simplifyPointerExpressions = false;
-
-  @Option(secure=true,
-      description="simplify simple const expressions like 1+2")
-  private boolean simplifyConstExpressions = true;
-
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
   private final CBinaryExpressionBuilder binExprBuilder;
 
+  private final EclipseCParserOptions options;
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
   private final ASTOperatorConverter operatorConverter;
@@ -218,17 +206,14 @@ class ASTConverter {
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
   public ASTConverter(
-      Configuration pConfig,
+      EclipseCParserOptions pOptions,
       Scope pScope,
       LogManagerWithoutDuplicates pLogger,
       ParseContext pParseContext,
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
-      Sideassignments pSideAssignmentStack)
-      throws InvalidConfigurationException {
-
-    pConfig.inject(this);
-
+      Sideassignments pSideAssignmentStack) {
+    this.options = pOptions;
     this.scope = pScope;
     this.logger = pLogger;
     this.typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix, pParseContext);
@@ -331,7 +316,7 @@ class ASTConverter {
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
-    if (!simplifyConstExpressions || !(converted instanceof CExpression)) {
+    if (!options.simplifyConstExpressions() || !(converted instanceof CExpression)) {
       return converted;
     }
 
@@ -893,7 +878,9 @@ class ASTConverter {
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
-    if (simplifyPointerExpressions && (wayToInnerField.size() > 1 || owner instanceof CFieldReference) && !scope.isGlobalScope()) {
+    if (options.simplifyPointerExpressions()
+        && (wayToInnerField.size() > 1 || owner instanceof CFieldReference)
+        && !scope.isGlobalScope()) {
       CExpression tmp = fullFieldReference;
       Deque<Pair<CType, String>> fields = new LinkedList<>();
       while (tmp != owner) {
@@ -940,9 +927,9 @@ class ASTConverter {
 
       return (CFieldReference) owner;
 
-    // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
-    // if there is a "var->field" convert it to (*var).field
-    } else if (simplifyPointerExpressions) {
+      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+      // if there is a "var->field" convert it to (*var).field
+    } else if (options.simplifyPointerExpressions()) {
       return ((CFieldReference) fullFieldReference).withExplicitPointerDereference();
     }
 
@@ -1200,9 +1187,9 @@ class ASTConverter {
     }
     case IASTUnaryExpression.op_amper: {
 
-      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
-      // in case of *& both can be left out
-      if (simplifyPointerExpressions && operand instanceof CPointerExpression) {
+          // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+          // in case of *& both can be left out
+          if (options.simplifyPointerExpressions() && operand instanceof CPointerExpression) {
         return ((CPointerExpression)operand).getOperand();
       }
 
@@ -1297,7 +1284,7 @@ class ASTConverter {
           final CExpression operand, final FileLocation fileLoc, final CType type) {
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
-    if (simplifyPointerExpressions) {
+    if (options.simplifyPointerExpressions()) {
 
       final CType operandType = operand.getExpressionType();
 

@@ -74,10 +74,6 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -116,6 +112,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -133,7 +130,6 @@ import org.sosy_lab.cpachecker.util.Pair;
  * -- K&R style function definitions not implemented
  * -- Inlined assembler code is ignored
  */
-@Options(prefix="cfa")
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
@@ -166,40 +162,28 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final FunctionScope scope;
   private final ASTConverter astCreator;
   private final ParseContext parseContext;
-
+  private final EclipseCParserOptions options;
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
 
   private boolean encounteredAsm = false;
 
-  @Option(secure=true, description="Also initialize local variables with default values, "
-      + "or leave them uninitialized.")
-  private boolean initializeAllVariables = false;
-
-  @Option(secure=true, description="Show messages when dead code is encountered during parsing.")
-  private boolean showDeadCode = true;
-
-  @Option(secure=true, description="Allow then/else branches to be swapped in order to obtain simpler conditions.")
-  private boolean allowBranchSwapping = true;
-
   public CFAFunctionBuilder(
-      Configuration config,
+      EclipseCParserOptions pOptions,
       LogManagerWithoutDuplicates pLogger,
       FunctionScope pScope,
       ParseContext pParseContext,
       MachineModel pMachine,
       String staticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      CheckBindingVisitor pCheckBinding)
-      throws InvalidConfigurationException {
-    config.inject(this);
-
+      CheckBindingVisitor pCheckBinding) {
+    options = pOptions;
     logger = pLogger;
     scope = pScope;
     astCreator =
         new ASTConverter(
-            config,
+            pOptions,
             pScope,
             pLogger,
             pParseContext,
@@ -366,7 +350,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
           return prevNode;
 
-        } else if (initializeAllVariables) {
+        } else if (options.initializeAllVariables()) {
           CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
           newD = new CVariableDeclaration(newD.getFileLocation(),
                                           newD.isGlobal(),
@@ -873,7 +857,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category helper
    */
   private void addToCFA(CFAEdge edge) {
-    CFACreationUtils.addEdgeToCFA(edge, logger, showDeadCode);
+    CFACreationUtils.addEdgeToCFA(edge, logger, options.showDeadCode());
   }
 
   /**
@@ -1158,7 +1142,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
      CExpression expression = exp;
-      if (flippedThenElse && !allowBranchSwapping) {
+      if (flippedThenElse && !options.allowBranchSwapping()) {
         expression = buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
         CFANode tmp = thenNodeForLastThen;
         thenNodeForLastThen = elseNodeForLastElse;
@@ -1170,7 +1154,7 @@ class CFAFunctionBuilder extends ASTVisitor {
             loc);
         return Optional.of(exp);
 
-      } else if (allowBranchSwapping) {
+      } else if (options.allowBranchSwapping()) {
         // build new boolean expression: a==0 and swap branches
         CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 

@@ -33,9 +33,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Abstraction of a C parser that creates CFAs from C code.
@@ -77,11 +77,10 @@ public interface CParser extends Parser {
    *
    * @param code The code to parse.
    * @return The CFA.
-   * @throws ParserException If parser or CFA builder cannot handle the code.
+   * @throws CParserException If parser or CFA builder cannot handle the code.
    */
   @Override
-  default ParseResult parseString(String filename, String code)
-      throws ParserException, InvalidConfigurationException {
+  default ParseResult parseString(String filename, String code) throws CParserException {
     return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
 
@@ -95,72 +94,75 @@ public interface CParser extends Parser {
    * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
   ParseResult parseFile(List<String> filenames)
-      throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
+      throws CParserException, IOException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.
    *
-   * @param code  The List of code fragments to parse. The first part of the pair
-   *                   should be the code, the second part should be the
-   *                   prefix which will be appended to static variables
-   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
+   * @param code The List of code fragments to parse. The first part of the pair should be the code,
+   *     the second part should be the prefix which will be appended to static variables
+   * @param sourceOriginMapping A mapping from real input file locations to original file locations
+   *     (before pre-processing).
    * @return The CFA.
    * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException;
+  ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException;
 
   /**
    * Parse the content of a String into a CFA.
    *
    * @param pFileName the file name.
    * @param pCode the code to parse.
-   * @param pSourceOriginMapping a mapping from real input file locations to original file locations (before pre-processing).
+   * @param pSourceOriginMapping a mapping from real input file locations to original file locations
+   *     (before pre-processing).
    * @param pScope an optional external scope to be used.
    * @return the parse result.
    * @throws CParserException if the parser cannot handle the C code.
-   * @throws InvalidConfigurationException if the configuration is invalid.
    */
   ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException, InvalidConfigurationException;
+      throws CParserException;
 
   /**
-   * Method for parsing a string that contains exactly one function with exactly
-   * one statement. Only the AST for the statement is returned, the function
-   * declaration is stripped.
+   * Method for parsing a string that contains exactly one function with exactly one statement. Only
+   * the AST for the statement is returned, the function declaration is stripped.
    *
-   * Example input:
-   * void foo() { bar(); }
-   * Example output:
-   * AST for "bar();"
+   * <p>Example input: <code>
+   * void foo() {
+   *   bar();
+   * }
+   * </code> Example output: AST for "bar();"
    *
-   * This method guarantees that the AST does not contain CProblem nodes.
+   * <p>This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
    * @param scope The scope is needed to resolve the type bindings in the statement.
    * @return The AST for the statement.
    * @throws CParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code, Scope scope) throws CParserException, InvalidConfigurationException;
+  CAstNode parseSingleStatement(String code, Scope scope) throws CParserException;
 
   /**
-   * Method for parsing a block of statements that contains exactly one function with exactly
-   * one block of statements. Only the List of ASTs for the block of statement is returned, the function
+   * Method for parsing a block of statements that contains exactly one function with exactly one
+   * block of statements. Only the List of ASTs for the block of statement is returned, the function
    * declaration is stripped.
    *
-   * Example input:
-   * void foo() { bar();a = 2; }
-   * Example output:
-   * AST for "<bar();, a = 2;>"
+   * <p>Example input: <code>
+   * void foo() {
+   *   bar();
+   *   a = 2;
+   *   }
+   * </code> Example output: AST for "<bar();, a = 2;>"
    *
-   * This method guarantees that the AST does not contain CProblem nodes.
+   * <p>This method guarantees that the AST does not contain CProblem nodes.
    *
    * @param code The code snippet as described above.
    * @param scope The scope is needed to resolve the type bindings in the statement.
    * @return The list of ASTs for the statement.
    * @throws CParserException If parsing fails.
    */
-  List<CAstNode> parseStatements(String code, Scope scope) throws CParserException, InvalidConfigurationException;
+  List<CAstNode> parseStatements(String code, Scope scope) throws CParserException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.
@@ -171,13 +173,17 @@ public interface CParser extends Parser {
     ;
   }
 
-  @Options(prefix="parser")
-  public final static class ParserOptions {
+  @Options(prefix = "parser")
+  public abstract static class ParserOptions {
 
     @Option(secure=true, description="C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
-    private ParserOptions() { }
+    protected ParserOptions() {}
+
+    public Dialect getDialect() {
+      return dialect;
+    }
   }
 
   /**
@@ -188,17 +194,18 @@ public interface CParser extends Parser {
 
 
     public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
-      ParserOptions result = new ParserOptions();
-      config.inject(result);
+      ParserOptions result = new EclipseCParserOptions();
+      config.recursiveInject(result);
       return result;
     }
 
     public static ParserOptions getDefaultOptions() {
-      return new ParserOptions();
+      return new EclipseCParserOptions();
     }
 
-    public static CParser getParser(Configuration config, LogManager logger, ParserOptions options, MachineModel machine) {
-      return EclipseParsers.getCParser(config, logger, options.dialect, machine);
+    public static CParser getParser(
+        LogManager logger, ParserOptions options, MachineModel machine) {
+      return EclipseParsers.getCParser(logger, (EclipseCParserOptions) options, machine);
     }
   }
 }

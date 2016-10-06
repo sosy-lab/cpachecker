@@ -23,15 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
-import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -39,6 +30,16 @@ import java.net.URLClassLoader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
+import org.sosy_lab.cpachecker.cfa.Parser;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 
 /**
@@ -49,9 +50,63 @@ import java.util.regex.Pattern;
  */
 public class EclipseParsers {
 
+  @Options(prefix = "cfa")
+  public static class EclipseCParserOptions extends ParserOptions {
+
+    @Option(
+      secure = true,
+      description =
+          "Also initialize local variables with default values, or leave them uninitialized."
+    )
+    private boolean initializeAllVariables = false;
+
+    @Option(
+      secure = true,
+      description = "Show messages when dead code is encountered during parsing."
+    )
+    private boolean showDeadCode = true;
+
+    @Option(
+      secure = true,
+      description = "Allow then/else branches to be swapped in order to obtain simpler conditions."
+    )
+    private boolean allowBranchSwapping = true;
+
+    @Option(
+      secure = true,
+      description =
+          "simplify pointer expressions like s->f to (*s).f with this option "
+              + "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide"
+    )
+    private boolean simplifyPointerExpressions = false;
+
+    @Option(secure = true, description = "simplify simple const expressions like 1+2")
+    private boolean simplifyConstExpressions = true;
+
+    public boolean initializeAllVariables() {
+      return initializeAllVariables;
+    }
+
+    public boolean showDeadCode() {
+      return showDeadCode;
+    }
+
+    public boolean allowBranchSwapping() {
+      return allowBranchSwapping;
+    }
+
+    public boolean simplifyPointerExpressions() {
+      return simplifyPointerExpressions;
+    }
+
+    public boolean simplifyConstExpressions() {
+      return simplifyConstExpressions;
+    }
+  }
+
   private EclipseParsers() { }
 
-  private static final Pattern OUR_CLASSES = Pattern.compile("^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.eclipse)\\..*");
+  private static final Pattern OUR_CLASSES = Pattern.compile("^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.eclipse\\..*\\.*)\\..*");
 
   private static final String C_PARSER_CLASS    = "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
   private static final String JAVA_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
@@ -87,7 +142,8 @@ public class EclipseParsers {
     return classLoader;
   }
 
-  public static CParser getCParser(Configuration config, LogManager logger, CParser.Dialect dialect, MachineModel machine) {
+  public static CParser getCParser(
+      LogManager logger, EclipseCParserOptions options, MachineModel machine) {
 
     try {
       Constructor<? extends CParser> parserConstructor = loadedCParser.get();
@@ -97,12 +153,14 @@ public class EclipseParsers {
 
         @SuppressWarnings("unchecked")
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
-        parserConstructor = parserClass.getConstructor(new Class<?>[]{ Configuration.class, LogManager.class, Dialect.class, MachineModel.class });
+        parserConstructor =
+            parserClass.getConstructor(
+                new Class<?>[] {LogManager.class, EclipseCParserOptions.class, MachineModel.class});
         parserConstructor.setAccessible(true);
         loadedCParser = new WeakReference<>(parserConstructor);
       }
 
-      return parserConstructor.newInstance(config, logger, dialect, machine);
+      return parserConstructor.newInstance(logger, options, machine);
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create Eclipse CDT parser", e);
     }

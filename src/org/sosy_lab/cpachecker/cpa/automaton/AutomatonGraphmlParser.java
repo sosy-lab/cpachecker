@@ -38,7 +38,38 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
-
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -103,40 +134,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
@@ -246,7 +243,7 @@ public class AutomatonGraphmlParser {
   private List<Automaton> parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException {
     final CParser cparser =
-        CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
+        CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machine);
     try {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -776,7 +773,7 @@ public class AutomatonGraphmlParser {
 
   private Collection<CStatement> parseStatements(
       Set<String> pStatements, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+      throws CParserException, InvalidAutomatonException {
     if (!pStatements.isEmpty()) {
 
       Set<CStatement> result = new HashSet<>();
@@ -792,7 +789,7 @@ public class AutomatonGraphmlParser {
   }
 
   private Collection<CStatement> parseAsCStatements(String pCode, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+      throws CParserException, InvalidAutomatonException {
     Collection<CStatement> result = new HashSet<>();
     boolean fallBack = false;
     ExpressionTree<AExpression> tree = parseStatement(pCode, pScope, pCParser);
@@ -828,8 +825,7 @@ public class AutomatonGraphmlParser {
   }
 
   private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
-      Set<String> pStatements, Scope pScope, CParser pCParser)
-      throws InvalidAutomatonException, InvalidConfigurationException {
+      Set<String> pStatements, Scope pScope, CParser pCParser) throws InvalidAutomatonException {
     ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     for (String assumeCode : pStatements) {
       try {
@@ -844,7 +840,7 @@ public class AutomatonGraphmlParser {
 
   private ExpressionTree<AExpression> parseStatement(
       String pAssumeCode, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+      throws CParserException, InvalidAutomatonException {
 
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
@@ -920,8 +916,7 @@ public class AutomatonGraphmlParser {
   }
 
   private ExpressionTree<AExpression> parseExpression(
-      String pAssumeCode, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidConfigurationException {
+      String pAssumeCode, Scope pScope, CParser pCParser) throws CParserException {
     String assumeCode = pAssumeCode.trim();
     while (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();

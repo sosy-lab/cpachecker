@@ -35,15 +35,19 @@ import com.google.common.io.CharStreams;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
 import com.google.common.truth.SubjectFactory;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
-
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -54,24 +58,12 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.io.IOException;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
  */
 public class AutomatonInternalTest {
 
-  private final Configuration config;
   private final LogManager logger;
   private final CParser parser;
 
@@ -79,12 +71,11 @@ public class AutomatonInternalTest {
   private static final CharSource defaultSpec =
       MoreFiles.asCharSource(defaultSpecPath, StandardCharsets.UTF_8);
 
-  public AutomatonInternalTest() throws InvalidConfigurationException {
-    config = TestDataTools.configurationForTest().build();
+  public AutomatonInternalTest() {
     logger = LogManager.createTestLogManager();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);
+    parser = CParser.Factory.getParser(logger, options, MachineModel.LINUX32);
   }
 
   @Test
@@ -312,7 +303,7 @@ public class AutomatonInternalTest {
       super(pFailureStrategy, pPattern);
     }
 
-    private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
+    private boolean matches0(String src) throws InvalidAutomatonException {
       CAstNode sourceAST;
       ASTMatcher matcher;
       sourceAST = CParserUtils.parseSingleStatement(src, parser, CProgramScope.empty());
@@ -325,7 +316,7 @@ public class AutomatonInternalTest {
       boolean matches;
       try {
         matches = matches0(src);
-      } catch (InvalidAutomatonException | InvalidConfigurationException e) {
+      } catch (InvalidAutomatonException e) {
         failureStrategy.fail("Cannot parse source or pattern", e);
         return new Matches() {
               @Override
@@ -366,7 +357,7 @@ public class AutomatonInternalTest {
         if (matches0(src)) {
           fail("does not match", src);
         }
-      } catch (InvalidAutomatonException | InvalidConfigurationException e) {
+      } catch (InvalidAutomatonException e) {
         failureStrategy.fail("Cannot parse source or pattern", e);
       }
     }

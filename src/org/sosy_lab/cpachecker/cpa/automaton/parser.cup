@@ -136,7 +136,7 @@ parser code {:
 
     switch (pLanguage) {
     case C:
-      CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
+      CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
       automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
       break;
     default:

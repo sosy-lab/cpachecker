@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.util.List;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -49,14 +48,14 @@ public class DummyParser implements CParser {
 
   @Override
   public ParseResult parseFile(String pFilename)
-      throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
+      throws ParserException, IOException, InterruptedException {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException {
     throw new UnsupportedOperationException();
   }
 
@@ -72,25 +71,24 @@ public class DummyParser implements CParser {
 
   @Override
   public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, IOException, InvalidConfigurationException, InterruptedException {
+      throws CParserException, IOException, InterruptedException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> pCode, CSourceOriginMapping pSourceOriginMapping)
-      throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(
+      List<FileContentToParse> pCode, CSourceOriginMapping pSourceOriginMapping)
+      throws CParserException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException,
-      InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException,
-      InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException {
     throw new UnsupportedOperationException();
   }
 }

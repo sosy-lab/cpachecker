@@ -89,7 +89,7 @@ public class CParserWithLocationMapper implements CParser {
 
   @Override
   public ParseResult parseFile(String pFilename)
-      throws ParserException, IOException, InvalidConfigurationException, InterruptedException {
+      throws ParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
     String tokenizedCode = tokenizeSourcefile(pFilename, sourceOriginMapping);
     return realParser.parseString(
@@ -197,7 +197,7 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseString(
       String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException {
     String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
 
     return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
@@ -215,7 +215,7 @@ public class CParserWithLocationMapper implements CParser {
 
   @Override
   public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, IOException, InvalidConfigurationException, InterruptedException {
+      throws CParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
@@ -230,8 +230,9 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping) throws CParserException,
-      InvalidConfigurationException {
+  public ParseResult parseString(
+      List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
@@ -246,12 +247,12 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException {
     return realParser.parseSingleStatement(pCode, pScope);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException {
     return realParser.parseStatements(pCode, pScope);
   }
 }

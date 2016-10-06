@@ -279,10 +279,12 @@ private boolean classifyNodes = false;
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      CParser outerParser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
+      CParser outerParser =
+          CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machineModel);
 
-      outerParser = new CParserWithLocationMapper(config, logger, outerParser,
-          readLineDirectives || usePreprocessor);
+      outerParser =
+          new CParserWithLocationMapper(
+              config, logger, outerParser, readLineDirectives || usePreprocessor);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
@@ -473,10 +475,11 @@ private boolean classifyNodes = false;
     return immutableCFA;
   }
 
-  /** This method parses the program from the String and builds a CFA for each function.
-   * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
-  private ParseResult parseToCFAs(final String program)
-      throws InvalidConfigurationException, ParserException {
+  /**
+   * This method parses the program from the String and builds a CFA for each function. The
+   * ParseResult is only a Wrapper for the CFAs of the functions and global declarations.
+   */
+  private ParseResult parseToCFAs(final String program) throws ParserException {
     final ParseResult parseResult;
 
     parseResult = parser.parseString("test", program);

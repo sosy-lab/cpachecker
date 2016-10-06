@@ -63,8 +63,6 @@ import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -75,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -91,19 +90,18 @@ class EclipseCParser implements CParser {
   private final MachineModel machine;
 
   private final LogManager logger;
-  private final Configuration config;
+  private final EclipseCParserOptions options;
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  public EclipseCParser(Configuration pConfig, LogManager pLogger,
-      Dialect pDialect, MachineModel pMachine) {
+  public EclipseCParser(LogManager pLogger, EclipseCParserOptions pOptions, MachineModel pMachine) {
 
     this.logger = pLogger;
     this.machine = pMachine;
-    this.config = pConfig;
+    this.options = pOptions;
 
-    switch (pDialect) {
+    switch (pOptions.getDialect()) {
     case C99:
       language = new CLanguage(new ANSICParserExtensionConfiguration());
       break;
@@ -146,7 +144,7 @@ class EclipseCParser implements CParser {
       CSourceOriginMapping pSourceOriginMapping,
       CProgramScope scope,
       FileParseWrapper pWrapperFunction)
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException {
 
     Preconditions.checkNotNull(pInput);
     Preconditions.checkNotNull(pSourceOriginMapping);
@@ -177,8 +175,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
 
     return parseSomething(
         Lists.transform(pFilenames, FileToParse::new),
@@ -188,8 +185,9 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(
+      List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException {
 
     return parseSomething(
         pCodeFragments,
@@ -204,19 +202,16 @@ class EclipseCParser implements CParser {
 
   /** This method parses a single file where no prefix for static variables is needed. */
   @Override
-  public ParseResult parseFile(String pFileName)
-      throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(String pFileName) throws CParserException, IOException {
 
     return parseFile(ImmutableList.of(pFileName));
   }
 
-  /**
-   * This method parses a single string, where no prefix for static variables is needed.
-   */
+  /** This method parses a single string, where no prefix for static variables is needed. */
   @Override
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException {
 
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
@@ -251,12 +246,12 @@ class EclipseCParser implements CParser {
     return statements;
   }
 
-  private ASTConverter prepareTemporaryConverter(Scope scope) throws InvalidConfigurationException {
+  private ASTConverter prepareTemporaryConverter(Scope scope) {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
 
     return new ASTConverter(
-        config,
+        options,
         scope,
         new LogManagerWithoutDuplicates(logger),
         ParseContext.dummy(),
@@ -266,8 +261,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope scope)
-      throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException {
 
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
@@ -280,8 +274,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope scope)
-      throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException {
 
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
@@ -360,13 +353,13 @@ class EclipseCParser implements CParser {
    */
   private ParseResult buildCFA(
       List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
-      throws CParserException, InvalidConfigurationException {
+      throws CParserException {
 
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
     try {
-      CFABuilder builder = new CFABuilder(config, logger, parseContext, machine);
+      CFABuilder builder = new CFABuilder(options, logger, parseContext, machine);
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {

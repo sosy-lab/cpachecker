@@ -48,8 +48,6 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -67,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -102,25 +101,23 @@ class CFABuilder extends ASTVisitor {
   private ASTConverter astCreator;
   private final ParseContext parseContext;
 
+  private final EclipseCParserOptions options;
   private final MachineModel machine;
   private final LogManagerWithoutDuplicates logger;
   private final CheckBindingVisitor checkBinding;
-
-  private final Configuration config;
 
   private boolean encounteredAsm = false;
   private Sideassignments sideAssignmentStack = null;
 
   public CFABuilder(
-      Configuration pConfig,
+      EclipseCParserOptions pOptions,
       LogManager pLogger,
       ParseContext pParseContext,
       MachineModel pMachine) {
-
+    options = pOptions;
     logger = new LogManagerWithoutDuplicates(pLogger);
     parseContext = pParseContext;
     machine = pMachine;
-    config = pConfig;
 
     checkBinding = new CheckBindingVisitor(pLogger);
 
@@ -131,8 +128,7 @@ class CFABuilder extends ASTVisitor {
   }
 
   public void analyzeTranslationUnit(
-      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope)
-      throws InvalidConfigurationException {
+      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope) {
     sideAssignmentStack = new Sideassignments();
     artificialScope = pFallbackScope;
     fileScope =
@@ -147,7 +143,7 @@ class CFABuilder extends ASTVisitor {
             artificialScope);
     astCreator =
         new ASTConverter(
-            config,
+            options,
             fileScope,
             logger,
             parseContext,
@@ -364,23 +360,16 @@ class CFABuilder extends ASTVisitor {
 
     FunctionScope localScope =
         new FunctionScope(functions, types, typedefs, globalVars, fileName, artificialScope);
-    CFAFunctionBuilder functionBuilder;
-
-    try {
-      functionBuilder =
-          new CFAFunctionBuilder(
-              config,
-              logger,
-              localScope,
-              parseContext,
-              machine,
-              fileName,
-              sideAssignmentStack,
-              checkBinding);
-    } catch (InvalidConfigurationException e) {
-      throw new CFAGenerationRuntimeException("Invalid configuration");
-    }
-
+    CFAFunctionBuilder functionBuilder =
+        new CFAFunctionBuilder(
+            options,
+            logger,
+            localScope,
+            parseContext,
+            machine,
+            fileName,
+            sideAssignmentStack,
+            checkBinding);
     declaration.accept(functionBuilder);
 
     FunctionEntryNode startNode = functionBuilder.getStartNode();
