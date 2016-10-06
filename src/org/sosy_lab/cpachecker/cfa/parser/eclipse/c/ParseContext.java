@@ -146,8 +146,9 @@ class ParseContext {
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, endingLineInInput);
     verify(
         startingInOrigin.getFirst().equals(endingInOrigin.getFirst()),
-        "Unexpected token '%s' spanning files %s and %s",
-        n,
+        "Unexpected token '%s' of class %s spanning files %s and %s",
+        n.getRawSignature(),
+        n.getClass().getSimpleName(),
         startingInOrigin.getFirst(),
         endingInOrigin.getFirst());
     final int endingLineInOrigin = endingInOrigin.getSecond();
