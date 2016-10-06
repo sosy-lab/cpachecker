@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.Before;
@@ -144,6 +145,7 @@ public class CParserLocationTest {
   }
 
   @Test
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public void multiFileTest() throws CParserException {
     String mainCode = "void main() { }";
     FileContentToParse main = new FileContentToParse(fileName, mainCode);
