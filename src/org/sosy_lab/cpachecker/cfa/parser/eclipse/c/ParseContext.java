@@ -134,28 +134,29 @@ class ParseContext {
       return FileLocation.DUMMY;
     }
 
-    String fileName = l.getFileName();
-    int startingLineInInput = l.getStartingLineNumber();
-    int endingLineInInput = l.getEndingLineNumber();
+    final String fileName = l.getFileName();
+    final int startingLineInInput = l.getStartingLineNumber();
+    final int endingLineInInput = l.getEndingLineNumber();
 
-    Pair<String, Integer> startingInOrigin =
+    final Pair<String, Integer> startingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, startingLineInInput);
-    fileName = startingInOrigin.getFirst();
-    int startingLineInOrigin = startingInOrigin.getSecond();
+    final int startingLineInOrigin = startingInOrigin.getSecond();
 
-    Pair<String, Integer> endingInOrigin =
+    final Pair<String, Integer> endingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, endingLineInInput);
     verify(
-        fileName.equals(endingInOrigin.getFirst()),
+        startingInOrigin.getFirst().equals(endingInOrigin.getFirst()),
         "Unexpected token '%s' spanning files %s and %s",
         n,
-        fileName,
+        startingInOrigin.getFirst(),
         endingInOrigin.getFirst());
-    int endingLineInOrigin = endingInOrigin.getSecond();
+    final int endingLineInOrigin = endingInOrigin.getSecond();
+
+    final String originFileName = startingInOrigin.getFirst();
 
     return new FileLocation(
-        fileName,
-        mapFileNameToNameForHumans(fileName),
+        originFileName,
+        mapFileNameToNameForHumans(originFileName),
         l.getNodeOffset(),
         l.getNodeLength(),
         startingLineInInput,
