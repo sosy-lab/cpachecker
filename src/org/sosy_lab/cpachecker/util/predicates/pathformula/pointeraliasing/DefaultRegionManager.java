@@ -57,7 +57,7 @@ class DefaultRegionManager extends AbstractMemoryRegionManager implements Memory
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      result = prime * result + type.hashCode();
       return result;
     }
 
@@ -73,14 +73,7 @@ class DefaultRegionManager extends AbstractMemoryRegionManager implements Memory
         return false;
       }
       DefaultMemoryRegion other = (DefaultMemoryRegion) obj;
-      if (type == null) {
-        if (other.type != null) {
-          return false;
-        }
-      } else if (!type.equals(other.type)) {
-        return false;
-      }
-      return true;
+      return type.equals(other.type);
     }
   }
 

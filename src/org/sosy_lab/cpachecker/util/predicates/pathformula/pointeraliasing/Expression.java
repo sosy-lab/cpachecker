@@ -26,12 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.java_smt.api.Formula;
-
-import javax.annotation.Nullable;
 
 abstract class Expression {
   static abstract class Location extends Expression {
@@ -88,10 +86,10 @@ abstract class Expression {
 
       private final Formula address;
 
-      private final MemoryRegion region;
+      private final @Nullable MemoryRegion region;
 
-      @CheckReturnValue
-      public MemoryRegion getMemoryRegion() {
+      @Nullable
+      MemoryRegion getMemoryRegion() {
         return region;
       }
     }

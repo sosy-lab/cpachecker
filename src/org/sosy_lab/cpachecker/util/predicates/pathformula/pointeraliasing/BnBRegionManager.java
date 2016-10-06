@@ -27,12 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.VariableClassification;
-
 import java.io.PrintStream;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 
 /**
  * Class implements so called B&B memory model.
@@ -79,7 +77,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      result = prime * result + type.hashCode();
       return result;
     }
 
@@ -95,14 +93,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
         return false;
       }
       GlobalBnBRegion other = (GlobalBnBRegion) obj;
-      if (type == null) {
-        if (other.type != null) {
-          return false;
-        }
-      } else if (!type.equals(other.type)) {
-        return false;
-      }
-      return true;
+      return type.equals(other.type);
     }
 
   }
@@ -142,9 +133,9 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((fieldName == null) ? 0 : fieldName.hashCode());
-      result = prime * result + ((fieldType == null) ? 0 : fieldType.hashCode());
-      result = prime * result + ((fieldOwnerType == null) ? 0 : fieldOwnerType.hashCode());
+      result = prime * result + fieldName.hashCode();
+      result = prime * result + fieldType.hashCode();
+      result = prime * result + fieldOwnerType.hashCode();
       return result;
     }
 
@@ -160,28 +151,9 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
         return false;
       }
       FieldBnBRegion other = (FieldBnBRegion) obj;
-      if (fieldName == null) {
-        if (other.fieldName != null) {
-          return false;
-        }
-      } else if (!fieldName.equals(other.fieldName)) {
-        return false;
-      }
-      if (fieldType == null) {
-        if (other.fieldType != null) {
-          return false;
-        }
-      } else if (!fieldType.equals(other.fieldType)) {
-        return false;
-      }
-      if (fieldOwnerType == null) {
-        if (other.fieldOwnerType != null) {
-          return false;
-        }
-      } else if (!fieldOwnerType.equals(other.fieldOwnerType)) {
-        return false;
-      }
-      return true;
+      return fieldName.equals(other.fieldName)
+          && fieldType.equals(other.fieldType)
+          && fieldOwnerType.equals(other.fieldOwnerType);
     }
   }
 
