@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -107,7 +106,6 @@ public class CParserLocationTest {
   }
 
   @Test
-  @Ignore("Bug?")
   public void singleFileTest_lineDirective()
       throws CParserException, InvalidConfigurationException {
     parser =
@@ -126,7 +124,6 @@ public class CParserLocationTest {
   }
 
   @Test
-  @Ignore("Bug?")
   public void singleFileTest_lineDirectiveWithFilename()
       throws CParserException, InvalidConfigurationException {
     parser =

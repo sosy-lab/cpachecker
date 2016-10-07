@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
@@ -560,16 +559,16 @@ class EclipseCParser implements CParser {
     }
 
     @Override
-    public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(
+    public CodePosition getOriginLineFromAnalysisCodeLine(
         final String pAnalysisFile, final int pAnalysisCodeLine) {
       final String analysisFile = fileNameMapping.getOrDefault(pAnalysisFile, pAnalysisFile);
 
-      Pair<String, Integer> result =
+      CodePosition result =
           delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);
 
-      if (result.getFirst().equals(analysisFile)) {
+      if (result.getFileName().equals(analysisFile)) {
         // reverse mapping
-        result = Pair.of(pAnalysisFile, result.getSecond());
+        result = result.withFileName(pAnalysisFile);
       }
       return result;
     }

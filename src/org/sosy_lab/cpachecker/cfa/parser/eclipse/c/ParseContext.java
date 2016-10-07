@@ -36,9 +36,9 @@ import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemHolder;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping.CodePosition;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.util.Pair;
 
 class ParseContext {
 
@@ -138,22 +138,22 @@ class ParseContext {
     final int startingLineInInput = l.getStartingLineNumber();
     final int endingLineInInput = l.getEndingLineNumber();
 
-    final Pair<String, Integer> startingInOrigin =
+    final CodePosition startingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, startingLineInInput);
-    final int startingLineInOrigin = startingInOrigin.getSecond();
+    final int startingLineInOrigin = startingInOrigin.getLineNumber();
 
-    final Pair<String, Integer> endingInOrigin =
+    final CodePosition endingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, endingLineInInput);
     verify(
-        startingInOrigin.getFirst().equals(endingInOrigin.getFirst()),
+        startingInOrigin.getFileName().equals(endingInOrigin.getFileName()),
         "Unexpected token '%s' of class %s spanning files %s and %s",
         n.getRawSignature(),
         n.getClass().getSimpleName(),
-        startingInOrigin.getFirst(),
-        endingInOrigin.getFirst());
-    final int endingLineInOrigin = endingInOrigin.getSecond();
+        startingInOrigin.getFileName(),
+        endingInOrigin.getFileName());
+    final int endingLineInOrigin = endingInOrigin.getLineNumber();
 
-    final String originFileName = startingInOrigin.getFirst();
+    final String originFileName = startingInOrigin.getFileName();
 
     return new FileLocation(
         originFileName,

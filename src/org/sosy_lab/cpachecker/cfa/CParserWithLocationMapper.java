@@ -116,7 +116,7 @@ public class CParserWithLocationMapper implements CParser {
       int relativeLineNumber = absoluteLineNumber;
 
       String rangeLinesOriginFilename = fileName;
-      int includeStartedWithAbsoluteLine = 0;
+      int includeStartedWithAbsoluteLine = 1;
 
       Token token;
       while ((token = lx.nextToken()).getType() != Token.tEND_OF_INPUT) {
@@ -176,7 +176,12 @@ public class CParserWithLocationMapper implements CParser {
       }
 
       if (readLineDirectives) {
-        sourceOriginMapping.mapInputLineRangeToDelta(fileName, rangeLinesOriginFilename, includeStartedWithAbsoluteLine + 1, absoluteLineNumber, relativeLineNumber - absoluteLineNumber);
+        sourceOriginMapping.mapInputLineRangeToDelta(
+            fileName,
+            rangeLinesOriginFilename,
+            includeStartedWithAbsoluteLine,
+            absoluteLineNumber + 1,
+            relativeLineNumber - absoluteLineNumber);
       }
     } catch (OffsetLimitReachedException e) {
       throw new CParserException("Tokenizing failed", e);
