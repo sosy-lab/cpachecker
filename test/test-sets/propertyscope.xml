@@ -5,12 +5,25 @@
   <rundefinition name="base">
   </rundefinition>
 
+
+    <resultfiles>**prop_scope_callgraph*.graphml</resultfiles>
+    <rundefinition name="output">
+
+    </rundefinition>
+
+    <rundefinition name="output_no_basic_blocks">
+      <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+
+  </rundefinition>
+
   <rundefinition name="onlynewentry">
       <option name="-setprop">cpa.predicate.propertyscope.onlyFindNewEntryFunction=true</option>
+      <option name="-noout"/>
   </rundefinition>
 
   <rundefinition name="loc_inst">
     <option name="-setprop">cpa.predicate.precision.sharing=LOCATION_INSTANCE</option>
+    <option name="-noout"/>
   </rundefinition>
 
   <rundefinition name="DOMAIN_MIN-WIDTH_MIN-LENGTH_MIN">
@@ -22,6 +35,7 @@
       <option name="-setprop">analysis.checkCounterexamples=false</option>
       <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,WIDTH_MIN,LENGTH_MIN</option>
       <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+      <option name="-noout"/>
 
   </rundefinition>
   <rundefinition name="WIDTH_WIDTH_MIN-LOOPS_MIN">
@@ -33,6 +47,7 @@
       <option name="-setprop">analysis.checkCounterexamples=false</option>
       <option name="-setprop">cpa.predicate.refinement.prefixPreference=WIDTH_MIN,LOOPS_MIN</option>
       <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+      <option name="-noout"/>
 
   </rundefinition>
 
@@ -45,6 +60,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN,PIVOT_MAX,LENGTH_MAX,LOOPS_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
 
     </rundefinition>
 
@@ -57,6 +73,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=WIDTH_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
 
     </rundefinition>
 
@@ -69,6 +86,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=WIDTH_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="DOMAIN_MIN">
@@ -80,6 +98,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="DOMAIN_MAX">
@@ -91,6 +110,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=DOMAIN_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="PIVOT_MIN">
@@ -102,6 +122,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=PIVOT_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="PIVOT_MAX">
@@ -113,6 +134,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=PIVOT_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="ASSIGNMENTS_MIN">
@@ -124,6 +146,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSIGNMENTS_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="ASSIGNMENTS_MAX">
@@ -135,6 +158,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSIGNMENTS_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
 
@@ -147,6 +171,7 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSUMPTIONS_MAX</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
     <rundefinition name="ASSUMPTIONS_MIN">
@@ -158,12 +183,12 @@
         <option name="-setprop">analysis.checkCounterexamples=false</option>
         <option name="-setprop">cpa.predicate.refinement.prefixPreference=ASSUMPTIONS_MIN</option>
         <option name="-setprop">cpa.predicate.abstraction.identifyTrivialPredicates=false</option>
+  	<option name="-noout"/>
     </rundefinition>
 
 
     <option name="-heap">12000M</option>
   <option name="-propertyScope"/>
-  <option name="-noout"/>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <!-- Witness files are several GB in total, ignore them for now.
