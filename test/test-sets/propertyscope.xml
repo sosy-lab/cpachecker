@@ -288,6 +288,7 @@
 
     <column title="abs_formula_glob_other_sw_avg">Abs formula glob->other switch avg:</column>
     <column title="abs_formula_true_glob_other_sw_avg">Abs formula TRUE->glob->other switch avg:</column>
+    <column title="preferred_scope_reason">preferred scope reason:</column>
 
 
 

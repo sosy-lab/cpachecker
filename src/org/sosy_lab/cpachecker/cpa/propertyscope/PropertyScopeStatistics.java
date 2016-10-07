@@ -532,6 +532,14 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       }
     }
 
+    boolean any_var_class = graph.getNodes().values().stream().anyMatch(node -> node
+        .getScopedCFAEdgesCount(Reason.ABS_FORMULA_VAR_CLASSIFICATION) > 0);
+    boolean any_automaton_match = graph.getNodes().values().stream().anyMatch(node -> node
+        .getScopedCFAEdgesCount(Reason.AUTOMATON_MATCH) > 0);
+
+    addKeyValueStatistic("preferred scope reason",
+        any_var_class ? "ABS_FORMULA_VAR_CLASSIFICATION" : any_automaton_match ? "AUTOMATON_MATCH"
+                                                                               : "<unknown>");
     super.printStatistics(pOut, pResult, pReached);
   }
 
