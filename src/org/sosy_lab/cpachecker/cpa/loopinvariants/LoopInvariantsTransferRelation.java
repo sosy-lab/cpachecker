@@ -25,7 +25,14 @@ package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -51,14 +58,6 @@ import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Variable;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.Set;
-import java.util.logging.Level;
-
 public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private CFA cfa;
@@ -73,11 +72,13 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState,
       Precision pPrecision, CFAEdge pCfaEdge) {
-
     LoopInvariantsState state = (LoopInvariantsState) pState;
-    LoopInvariantsState newState;
 
-    newState = setEdgeInLoop(pCfaEdge, state);
+    boolean inLoop = setEdgeInLoop(pCfaEdge);
+    boolean isLoopHead = isLoopHead(pCfaEdge);
+    Map<String, Double> valueMap = state.getVariableValueMap();
+    List<PolynomExpression> polynomials = state.getPolynomials();
+    List<PolynomExpression> polynomialsOutside = state.getPolynomialsOutsideOfLoop();
 
     switch (pCfaEdge.getEdgeType()) {
       case DeclarationEdge:
@@ -97,20 +98,20 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
 
                   if (poly != null) {
                     if (poly instanceof Constant) {
-                      newState.addVariableValue(variableName, ((Constant) poly).getValue());
+                      valueMap.put(variableName, ((Constant) poly).getValue());
                     } else {
                       Polynom polynom = new Polynom(poly, logger);
                       OptionalDouble value = polynom.evalPolynom(null);
                       if (value.isPresent()) {
-                        newState.addVariableValue(variableName, value.getAsDouble());
+                        valueMap.put(variableName, value.getAsDouble());
                       } else {
-                        if (newState.getInLoop()) {
-                          newState.addPolynom(new Addition(
+                        if (inLoop) {
+                          polynomials.add(new Addition(
                               new Multiplication(new Constant(-1),
                                   new Variable(variableName + "(n+1)")),
                               (AddExpression) poly));
                         } else {
-                          newState.addPolynomOutsideOfLoop(new Addition(
+                          polynomialsOutside.add(new Addition(
                               new Multiplication(new Constant(-1),
                                   new Variable(variableName + "(n+1)")),
                               (AddExpression) poly));
@@ -132,10 +133,10 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
         StatementVisitor v = new StatementVisitor();
         PolynomExpression poly = statement.accept(v);
         if (poly != null) {
-          if (newState.getInLoop()) {
-            newState.addPolynom(poly);
+          if (inLoop) {
+            polynomials.add(poly);
           } else {
-            newState.addPolynomOutsideOfLoop(poly);
+            polynomialsOutside.add(poly);
           }
         }
 
@@ -147,10 +148,10 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (optExpr.isPresent()) {
           PolynomExpression newPoly = handleExpression(optExpr.get());
           if (newPoly != null) {
-            if (newState.getInLoop()) {
-              newState.addPolynom(newPoly);
+            if (inLoop) {
+              polynomials.add(newPoly);
             } else {
-              newState.addPolynomOutsideOfLoop(newPoly);
+              polynomialsOutside.add(newPoly);
             }
           }
         }
@@ -159,18 +160,35 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
         break;
     }
 
-    if (state.getInLoop() && newState.isLoopHead()) {
-      CalculationHelper.calculateGroebnerBasis(newState, logger);
-      logger.log(Level.INFO, "Resulting invariants: " + newState.getInvariant().toString());
-      newState.setPolynoms(new LinkedList<PolynomExpression>());
+    List<Polynom> invariants = null;
+    if (state.getInLoop() && isLoopHead) {
+      invariants = CalculationHelper.calculateGroebnerBasis(polynomials,
+          valueMap, logger);
+      logger.log(Level.INFO, "Resulting invariants: " + invariants.toString());
     }
+    LoopInvariantsState newState = new LoopInvariantsState(inLoop, isLoopHead, polynomialsOutside,
+        polynomialsOutside, valueMap, invariants);
     return Collections.singleton(newState);
   }
 
-  private LoopInvariantsState setEdgeInLoop(CFAEdge pCfaEdge, LoopInvariantsState state) {
-    LoopInvariantsState newState;
-    newState = state.copy();
+  private boolean setEdgeInLoop(CFAEdge pCfaEdge) {
+    CFANode node = pCfaEdge.getPredecessor();
 
+    if (cfa.getLoopStructure().isPresent()) {
+      LoopStructure loopStructure = cfa.getLoopStructure().get();
+      if (loopStructure.getCount() == 1) {
+        Loop singleLoop = Iterables.getOnlyElement(loopStructure.getAllLoops());
+        if (singleLoop.getLoopHeads().size() == 1) {
+          ImmutableCollection<Loop> loops = loopStructure.getAllLoops();
+          Set<CFANode> loopNodes = loops.iterator().next().getLoopNodes();
+          return loopNodes.contains(node);
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean isLoopHead(CFAEdge pCfaEdge) {
     CFANode node = pCfaEdge.getPredecessor();
 
     if (cfa.getLoopStructure().isPresent()) {
@@ -179,14 +197,11 @@ public class LoopInvariantsTransferRelation extends SingleEdgeTransferRelation {
         Loop singleLoop = Iterables.getOnlyElement(loopStructure.getAllLoops());
         if (singleLoop.getLoopHeads().size() == 1) {
           CFANode loopHead = Iterables.getOnlyElement(singleLoop.getLoopHeads());
-          ImmutableCollection<Loop> loops = loopStructure.getAllLoops();
-          Set<CFANode> loopNodes = loops.iterator().next().getLoopNodes();
-          newState.setInLoop(loopNodes.contains(node));
-          newState.setLoopHead(loopHead.equals(node));
+          return loopHead.equals(node);
         }
       }
     }
-    return newState;
+    return false;
   }
 
   private PolynomExpression handleExpression(AExpression expression) {

@@ -23,60 +23,58 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
-
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
 
-public class LoopInvariantsState
-    implements AbstractState { //, LatticeAbstractState<LoopInvariantsState> {
+public class LoopInvariantsState implements AbstractState {
 
   private static final LoopInvariantsState TOP = new LoopInvariantsState();
 
   private boolean inLoop;
   private boolean isLoopHead;
-
-  private List<PolynomExpression> polynoms;
-
-
-
-  private List<PolynomExpression> polynomsOutsideOfLoop;
-  private HashMap<String, Double> variableValueMap;
-  private List<Polynom> invariant;
+  private List<PolynomExpression> polynomials;
+  private List<PolynomExpression> polynomialsOutsideOfLoop;
+  private Map<String, Double> variableValueMap;
+  private List<Polynom> invariants;
 
   public LoopInvariantsState() {
+    isLoopHead = false;
     inLoop = false;
-    polynoms = new LinkedList<>();
-    polynomsOutsideOfLoop = new LinkedList<>();
+    polynomials = new LinkedList<>();
+    polynomialsOutsideOfLoop = new LinkedList<>();
     variableValueMap = new HashMap<>();
-    invariant = null;
+    invariants = null;
+  }
+
+  public LoopInvariantsState(boolean isInLoop, boolean isLoopHead,
+      List<PolynomExpression> polynomials, List<PolynomExpression> polynomialsOutsideOfLoop,
+      Map<String, Double> variableValueMap, List<Polynom> invariantList) {
+    this.inLoop = isInLoop;
+    this.isLoopHead = isLoopHead;
+    this.polynomials = polynomials;
+    this.polynomialsOutsideOfLoop = polynomialsOutsideOfLoop;
+    this.variableValueMap = variableValueMap;
+    this.invariants = invariantList;
   }
 
   /**
-   * @param pPolynoms the polynoms to set
+   * @return the polynomialsOutsideOfLoop
    */
-  public void setPolynoms(List<PolynomExpression> pPolynoms) {
-    polynoms = pPolynoms;
+  public List<PolynomExpression> getPolynomialsOutsideOfLoop() {
+    return polynomialsOutsideOfLoop;
   }
 
   /**
-   * @param pIsLoopHead the isLoopHead to set
+   * @return if the state is part of a loop
    */
-  public void setLoopHead(boolean pIsLoopHead) {
-    isLoopHead = pIsLoopHead;
-  }
-
   public boolean getInLoop() {
     return inLoop;
   }
-
-  public void setInLoop(boolean inloop) {
-    this.inLoop = inloop;
-  }
-
 
   /**
    * @return the isLoopHead
@@ -89,58 +87,25 @@ public class LoopInvariantsState
     return TOP;
   }
 
-  public void setInvariant(List<Polynom> pPoly) {
-    this.invariant = pPoly;
-  }
-
+  /**
+   * @return invariants or null, if no invariant is available
+   */
   public List<Polynom> getInvariant() {
-    return this.invariant;
-  }
-
-  public void addPolynom(PolynomExpression polynom) {
-    polynoms.add(polynom);
-  }
-
-  public void addPolynomOutsideOfLoop(PolynomExpression polynom) {
-    polynomsOutsideOfLoop.add(polynom);
-  }
-
-  public void addVariableValue(String quantifier, double value) {
-    if (variableValueMap.get(quantifier) != null) {
-      variableValueMap.replace(quantifier, value);
-    } else {
-      variableValueMap.put(quantifier, value);
-    }
+    return this.invariants;
   }
 
   /**
    * @return the polynomies
    */
-  public List<PolynomExpression> getPolynomies() {
-    return polynoms;
+  public List<PolynomExpression> getPolynomials() {
+    return polynomials;
   }
 
   /**
    * @return the variableValueMap
    */
-  public HashMap<String, Double> getVariableValueMap() {
+  public Map<String, Double> getVariableValueMap() {
     return variableValueMap;
-  }
-
-  @SuppressWarnings("unchecked")
-  public LoopInvariantsState copy() {
-    LoopInvariantsState newState = new LoopInvariantsState();
-
-    for (PolynomExpression polynom : polynoms) {
-      newState.addPolynom(polynom);
-    }
-
-    for (PolynomExpression polynom : polynomsOutsideOfLoop) {
-      newState.addPolynomOutsideOfLoop(polynom);
-    }
-
-    newState.variableValueMap = (HashMap<String, Double>) this.variableValueMap.clone();
-    return newState;
   }
 
   @Override
@@ -149,21 +114,19 @@ public class LoopInvariantsState
       return true;
     } else if (obj instanceof LoopInvariantsState) {
       LoopInvariantsState oState = (LoopInvariantsState) obj;
-      if (this.invariant != null && oState.invariant != null
-          && this.invariant.toString().equals(oState.invariant.toString())
+      if (this.invariants != null && oState.invariants != null
+          && this.invariants.toString().equals(oState.invariants.toString())
           && this.inLoop == oState.inLoop && this.isLoopHead == oState.isLoopHead
-          && this.polynoms.equals(oState.polynoms)
-          && this.polynomsOutsideOfLoop.equals(oState.polynomsOutsideOfLoop)
-          && this.variableValueMap.equals(oState.variableValueMap)) {
-        return true;
-      }
+          && this.polynomials.equals(oState.polynomials)
+          && this.polynomialsOutsideOfLoop.equals(oState.polynomialsOutsideOfLoop)
+          && this.variableValueMap.equals(oState.variableValueMap)) { return true; }
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.inLoop, this.isLoopHead, this.invariant, this.polynoms,
-        this.polynomsOutsideOfLoop, this.variableValueMap) ;
+    return Objects.hash(this.inLoop, this.isLoopHead, this.invariants, this.polynomials,
+        this.polynomialsOutsideOfLoop, this.variableValueMap);
   }
 }

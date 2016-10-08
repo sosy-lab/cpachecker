@@ -110,7 +110,7 @@ public class LoopInvariantsExpressionVisitor
           return new Addition((MultExpression) op1Exp,
               new Multiplication(new Constant(-1), (MultExpression) op2Exp));
         //              if (operand1.accept(this) instanceof Variable && operand2.accept(this) )
-        //              return new Exponent((Variable) operand1.accept(this), operand2.accept(this)); //TODO
+        //              return new Exponent((Variable) operand1.accept(this), operand2.accept(this));
         case "*":
           return new Multiplication((ExpoExpression) op1Exp,
               (MultExpression) op2Exp);

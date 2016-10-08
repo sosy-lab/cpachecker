@@ -51,7 +51,7 @@ public class StatementVisitor implements AStatementVisitor< PolynomExpression, N
     ALeftHandSide leftExpr = pAExpressionAssignmentStatement.getLeftHandSide();
     if (leftExpr instanceof AIdExpression) {
       AIdExpression idExpr = (AIdExpression) leftExpr;
-      String f2 = idExpr.getName(); //TODO QualifiedName oder nur Name?
+      String f2 = idExpr.getName();
       ASimpleDeclaration declariation = idExpr.getDeclaration();
       f2 = declariation.getName() + "(n+1)";
 
@@ -59,26 +59,23 @@ public class StatementVisitor implements AStatementVisitor< PolynomExpression, N
       PolynomExpression poly = rightExpr.accept(expressionVisitor);
 
       return new Addition(new Multiplication(new Constant(-1), new Variable(f2)), (AddExpression) poly);
-    } //TODO evtl. AArraySubscriptExpression
-    return null; // oder throw exception
+    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public PolynomExpression visit(AExpressionStatement pAExpressionStatement){
-    //not necessary
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public PolynomExpression visit(AFunctionCallAssignmentStatement pAFunctionCallAssignmentStatement) {
-    // TODO evtl. wichtig
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public PolynomExpression visit(AFunctionCallStatement pAFunctionCallStatement) {
-    // not necessary
-    return null;
+    throw new UnsupportedOperationException();
   }
 
 }

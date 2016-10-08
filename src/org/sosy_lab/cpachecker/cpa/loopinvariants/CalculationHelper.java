@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopinvariants;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
-import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.CollectVariablesVisitor;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -36,21 +32,23 @@ import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
+import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.CollectVariablesVisitor;
 
 public class CalculationHelper {
 
   /**
    * Calculates for a state
-   * Calculates for a state
    */
-
-  public static void calculateGroebnerBasis(LoopInvariantsState state, LogManager log) {
+  public static List<Polynom> calculateGroebnerBasis(List<PolynomExpression> polynomials,
+      Map<String, Double> valueMap, LogManager log) {
     String sympyCommand = "isympy";
-    //    String sympyCommand = "/home/ecklbarb/Documents/Uni/SoSe16/Seminar/sympy/bin/isympy";
 
     ProcessBuilder pb = new ProcessBuilder(sympyCommand);
     Process sympy = null;
@@ -68,12 +66,9 @@ public class CalculationHelper {
             new OutputStreamWriter(sympy.getOutputStream(), Charset.defaultCharset()));
     BufferedReader stdout =
         new BufferedReader(new InputStreamReader(sympy.getInputStream(), Charset.defaultCharset()));
-    BufferedReader stderr =
-        new BufferedReader(new InputStreamReader(sympy.getErrorStream(), Charset.defaultCharset()));
 
     try {
-      calculateGroebnerBasis(state, log, stdin, stdout);
-      log.log(Level.INFO, readAllFromStream(stderr));
+      return calculateGroebnerBasis(polynomials, valueMap, log, stdin, stdout);
     } catch (IOException e) {
       Error er = new Error("Communication with the sympy subprocess failed.");
       er.initCause(e);
@@ -81,17 +76,19 @@ public class CalculationHelper {
     }
   }
 
-  private static void calculateGroebnerBasis(LoopInvariantsState state, LogManager log,
+  private static List<Polynom> calculateGroebnerBasis(List<PolynomExpression> polynomials,
+      Map<String, Double> valueMap, LogManager log,
       BufferedWriter stdin, BufferedReader stdout) throws IOException {
 
     CollectVariablesVisitor collector = new CollectVariablesVisitor();
     Set<String> variables = new HashSet<>();
 
-    for (PolynomExpression polynom : state.getPolynomies()) {
+    for (PolynomExpression polynom : polynomials) {
       variables.addAll(polynom.accept(collector));
     }
 
-    String polynomsStr = preprocessingOfPolynomials(state, log).toString();
+    String polynomsStr =
+        preprocessingOfPolynomials(polynomials, valueMap, log).toString();
 
     String outPrefix = "sympyout:";
 
@@ -126,7 +123,7 @@ public class CalculationHelper {
       polynoms.add(poly);
     }
 
-    state.setInvariant(polynoms);
+    return polynoms;
   }
 
   private static void writeToSympy(BufferedWriter stdin, String msg) throws IOException {
@@ -190,11 +187,12 @@ public class CalculationHelper {
     return res;
   }
 
-  private static List<String> preprocessingOfPolynomials(LoopInvariantsState state,
+  private static List<String> preprocessingOfPolynomials(List<PolynomExpression> polynomials,
+      Map<String, Double> valueMap,
       LogManager log) {
 
     try {
-      return preprocessingOfPolynomialsHelper(state, log);
+      return preprocessingOfPolynomialsHelper(polynomials, valueMap, log);
     } catch (IOException e) {
       Error er = new Error("Communication with the sympy subprocess failed.");
       er.initCause(e);
@@ -203,7 +201,8 @@ public class CalculationHelper {
   }
 
   @SuppressWarnings("resource")
-  private static List<String> preprocessingOfPolynomialsHelper(LoopInvariantsState state, LogManager log)
+  private static List<String> preprocessingOfPolynomialsHelper(List<PolynomExpression> polynomials,
+      Map<String, Double> valueMap, LogManager log)
       throws IOException {
     String outPrefix = "sympyout:";
 
@@ -211,9 +210,8 @@ public class CalculationHelper {
     Set<String> variables;
     List<String> closedFormPolynomials = new LinkedList<>();
 
-    for (PolynomExpression polynom : state.getPolynomies()) {
+    for (PolynomExpression polynom : polynomials) {
       String sympyCommand = "isympy";
-      //    String sympyCommand = "/home/ecklbarb/Documents/Uni/SoSe16/Seminar/sympy/bin/isympy";
 
       ProcessBuilder pb = new ProcessBuilder(sympyCommand);
       Process sympy = null;
@@ -248,8 +246,8 @@ public class CalculationHelper {
       sb.append(startVar + "(n)");
 
       //Startwert
-      if (state.getVariableValueMap().containsKey(startVar)) {
-        sb.append(", {" + startVar + "(0):" + state.getVariableValueMap().get(startVar) + "}");
+      if (valueMap.containsKey(startVar)) {
+        sb.append(", {" + startVar + "(0):" + valueMap.get(startVar) + "}");
       }
 
       sb.append(")");
@@ -260,6 +258,7 @@ public class CalculationHelper {
       List<String> closedFormPoly = getMatchesFromStream(stdout, outPrefix, startVar);
       if (!closedFormPoly.isEmpty()) {
         closedFormPolynomials.add(closedFormPoly.get(0) + " - " + startVar + "(n)");
+        log.log(Level.INFO, "Closed form of " + polyStr + " : " + closedFormPoly.get(0).toString());
       } else {
         throw new RuntimeException(
             "The closed form of the polynomial '" + polyStr + "' can not be computed.");
