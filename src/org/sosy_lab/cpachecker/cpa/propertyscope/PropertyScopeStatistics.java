@@ -101,7 +101,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       + "only the reached ones")
   private boolean prepopulateCallgraph = true;
 
-  @Option(secure = true, description = "Where to export the property scope callgraph to")
+  @Option(description = "Where to export the property scope callgraph to")
   @FileOption(Type.OUTPUT_FILE)
   private Path callgraphGraphmlFile = Paths.get("prop_scope_callgraph-%s.graphml");
 
