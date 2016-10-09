@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -47,9 +48,17 @@ public class PropertyScopeCallGraph {
   private FunctionNode entryNode;
 
   public static PropertyScopeCallGraph create(ARGState root) {
+    return create(root, Collections.emptySet());
+  }
+
+  public static PropertyScopeCallGraph create(
+      ARGState root, Collection<String> prepopulateFunctions) {
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(root);
     PropertyScopeCallGraph graph = new PropertyScopeCallGraph();
+
+    // prepopulate the graph with the given functions
+    prepopulateFunctions.forEach(graph::functionNodeFor);
 
     // handle entry name
     CallstackState rootCsState = extractStateByType(root, CallstackState.class);
