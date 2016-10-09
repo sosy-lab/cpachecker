@@ -1951,6 +1951,11 @@ cpa.propertyscope.callgraphGraphmlFile = "prop_scope_callgraph-%s.graphml"
 # function and closely related statistics
 cpa.propertyscope.onlyFindNewEntryFunction = false
 
+# Add all functions from the CFA as nodes of the PropertyScopeCallGraph, this
+# assures that the graph contains all function nodes, not only the reached
+# ones
+cpa.propertyscope.prepopulateCallgraph = true
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]

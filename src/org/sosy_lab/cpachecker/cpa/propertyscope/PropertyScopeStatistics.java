@@ -96,6 +96,11 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       + "new entry function and closely related statistics")
   private boolean onlyFindNewEntryFunction = false;
 
+  @Option(secure=true, description="Add all functions from the CFA as nodes of the "
+      + "PropertyScopeCallGraph, this assures that the graph contains all function nodes, not "
+      + "only the reached ones")
+  private boolean prepopulateCallgraph = true;
+
   @Option(secure = true, description = "Where to export the property scope callgraph to")
   @FileOption(Type.OUTPUT_FILE)
   private Path callgraphGraphmlFile = Paths.get("prop_scope_callgraph-%s.graphml");
@@ -522,7 +527,9 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
     }
 
-    PropertyScopeCallGraph graph = PropertyScopeCallGraph.create(root);
+    PropertyScopeCallGraph graph = prepopulateCallgraph ?
+                                   PropertyScopeCallGraph.create(root, cfa.getAllFunctionNames()) :
+                                   PropertyScopeCallGraph.create(root);
     for (Reason reason: Reason.values()) {
       Path outpath = Paths.get(String.format(this.callgraphGraphmlFile.toString(), reason.name()));
       try (Writer w = MoreFiles.openOutputFile(outpath, Charset.defaultCharset())) {
