@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -85,21 +83,18 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public String toString() {
-    return toASTString(
-        Strings.nullToEmpty(getName()), Functions.toStringFunction(), getParameters());
+    return toASTString(Strings.nullToEmpty(getName()), getParameters());
   }
 
   @Override
   public String toASTString(final String pDeclarator) {
     return toASTString(
         pDeclarator,
-        pInput -> pInput.toASTString(""),
         Lists.transform(getParameters(), pInput -> pInput.toASTString("")));
   }
 
   String toASTString(
       final String pDeclarator,
-      final Function<? super CType, String> pTypeToString,
       final Iterable<?> pParameters) {
     checkNotNull(pDeclarator);
     final StringBuilder lASTString = new StringBuilder();
@@ -110,9 +105,6 @@ public class CFunctionType extends AFunctionType implements CType {
     if (isVolatile()) {
       lASTString.append("volatile ");
     }
-
-    lASTString.append(pTypeToString.apply(getReturnType()));
-    lASTString.append(" ");
 
     if (pDeclarator.startsWith("*")) {
       // this is a function pointer, insert parentheses
@@ -133,7 +125,9 @@ public class CFunctionType extends AFunctionType implements CType {
     }
     lASTString.append(")");
 
-    return lASTString.toString();
+    // The return type can span the rest of the type, so we cannot prefix but need this trick.
+    String nameAndParams = lASTString.toString();
+    return getReturnType().toASTString(nameAndParams);
   }
 
   @Override

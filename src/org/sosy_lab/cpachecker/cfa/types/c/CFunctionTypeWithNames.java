@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import com.google.common.base.Functions;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -69,13 +68,12 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Override
   public String toString() {
-    return toASTString(
-        Strings.nullToEmpty(getName()), Functions.toStringFunction(), getParameterDeclarations());
+    return toASTString(Strings.nullToEmpty(getName()), getParameterDeclarations());
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    return toASTString(pDeclarator, pInput -> pInput.toASTString(""), getParameterDeclarations());
+    return toASTString(pDeclarator, getParameterDeclarations());
   }
 
   @Override
