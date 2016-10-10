@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -79,11 +78,6 @@ public class CFunctionType extends AFunctionType implements CType {
   @Override
   public List<CType> getParameters() {
     return (List<CType>) super.getParameters();
-  }
-
-  @Override
-  public String toString() {
-    return toASTString(Strings.nullToEmpty(getName()), getParameters());
   }
 
   @Override
