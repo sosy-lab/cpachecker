@@ -85,7 +85,7 @@ public abstract class PartitioningHeuristic {
 
       Set<CFANode> subtree = getBlockForNode(node);
       if (subtree != null) {
-        builder.addBlock(subtree, mainFunction, node);
+        builder.addBlock(subtree, node);
       }
 
       for (CFANode nextNode : CFAUtils.successorsOf(node)) {

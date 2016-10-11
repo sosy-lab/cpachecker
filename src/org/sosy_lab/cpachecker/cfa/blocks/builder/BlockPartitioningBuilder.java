@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -106,14 +105,12 @@ public class BlockPartitioningBuilder {
    * @param nodes Nodes from which Block should be created;
    *              if the set of nodes contains inner function calls, the called
    *              function body should NOT be included.
-   * @param mainFunction Head of the starting point for the entire CFA.
    * @param blockHead Entry point for the block.
    */
-
-  public void addBlock(Set<CFANode> nodes, CFANode mainFunction, CFANode blockHead) {
+  public void addBlock(Set<CFANode> nodes, CFANode blockHead) {
     Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
-    Set<CFANode> callNodes = collectCallNodes(nodes, mainFunction);
-    Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);
+    Set<CFANode> callNodes = collectCallNodes(nodes);
+    Set<CFANode> returnNodes = collectReturnNodes(nodes);
     Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
     if (callNodes.isEmpty()) {
@@ -148,25 +145,25 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes, CFANode mainFunction) {
+  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
-      if (node instanceof FunctionEntryNode &&
-         node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
-        //main definition is always a call edge
-        result.add(node);
-        continue;
-      }
       if (node.getEnteringSummaryEdge() != null) {
-        CFANode pred = node.getEnteringSummaryEdge().getPredecessor();
-        if (!pNodes.contains(pred)) {
+        // if we have an ingoing summaryEdge and the predecessor is not in the block, add the current node.
+        // TODO what happens when the block begins inside the called function
+        if (!pNodes.contains(node.getEnteringSummaryEdge().getPredecessor())) {
           result.add(node);
         }
         //ignore inner function calls
         continue;
       }
-      for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
-        CFANode pred = edge.getPredecessor();
+      if (node.getNumEnteringEdges() == 0) {
+        assert node.getEnteringSummaryEdge() == null;
+        // entry of main function
+        result.add(node);
+        continue;
+      }
+      for (CFANode pred : CFAUtils.predecessorsOf(node)) {
         if (!pNodes.contains(pred)) {
           //entering edge from "outside" of the given set of nodes
           //-> this is a call-node
@@ -177,12 +174,11 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes, CFANode mainFunction) {
+  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
-      if (node instanceof FunctionExitNode &&
-         node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
-        //main exit nodes are always return nodes
+      if (node.getNumLeavingEdges() == 0) {
+        // exit of main function
         result.add(node);
         continue;
       }
