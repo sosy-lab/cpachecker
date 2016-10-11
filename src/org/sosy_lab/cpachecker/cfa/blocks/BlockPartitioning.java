@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
@@ -40,43 +40,27 @@ import com.google.common.collect.ImmutableSet;
 public class BlockPartitioning {
   private final Block mainBlock;
   private final Map<CFANode, Block> callNodeToBlock;
-  private final Map<CFANode, Block> returnNodeToBlock;
-  private final Set<Block> blocks;
+  private final ImmutableMultimap<CFANode, Block> returnNodeToBlock;
+  private final ImmutableSet<Block> blocks;
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
-    Block mainBlock = null;
-    final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = new ImmutableMap.Builder<>();
-    final ImmutableMap.Builder<CFANode, Block> returnNodeToBlock = new ImmutableMap.Builder<>();
-    final ImmutableSet.Builder<Block> blocks = new ImmutableSet.Builder<>();
-
-    // this set is needed for special cases, when different blocks have the same returnNode.
-    // TODO can we avoid this?
-    final Set<CFANode> returnNodes = new HashSet<>();
+    final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = ImmutableMap.builder();
+    final ImmutableMultimap.Builder<CFANode, Block> returnNodeToBlock = ImmutableMultimap.builder();
 
     for (Block subtree : subtrees) {
-      blocks.add(subtree);
       for (CFANode callNode : subtree.getCallNodes()) {
-        if (callNode instanceof FunctionEntryNode &&
-           callNode.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
-          assert mainBlock == null;
-          mainBlock = subtree;
-        }
         callNodeToSubtree.put(callNode, subtree);
       }
 
       for (CFANode returnNode : subtree.getReturnNodes()) {
-        if (returnNodes.add(returnNode)) {
-          returnNodeToBlock.put(returnNode, subtree);
-        }
+        returnNodeToBlock.put(returnNode, subtree);
       }
     }
 
-    assert mainBlock != null;
-    this.mainBlock = mainBlock;
-
     this.callNodeToBlock = callNodeToSubtree.build();
     this.returnNodeToBlock = returnNodeToBlock.build();
-    this.blocks = blocks.build();
+    this.blocks = ImmutableSet.copyOf(subtrees);
+    this.mainBlock = callNodeToBlock.get(mainFunction);
   }
 
   /**
@@ -101,15 +85,16 @@ public class BlockPartitioning {
   }
 
   public boolean isReturnNode(CFANode node) {
-   return returnNodeToBlock.containsKey(node);
+    return returnNodeToBlock.containsKey(node);
   }
 
+  @Deprecated
+  // reason for deprecation: there can be several blocks for the same return-node
   public Block getBlockForReturnNode(CFANode pCurrentNode) {
-    return returnNodeToBlock.get(pCurrentNode);
+    return Iterables.getFirst(returnNodeToBlock.get(pCurrentNode), null);
   }
 
   public Set<Block> getBlocks() {
     return blocks;
   }
-
 }
