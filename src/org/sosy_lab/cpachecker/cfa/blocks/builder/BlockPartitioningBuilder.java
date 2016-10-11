@@ -154,7 +154,7 @@ public class BlockPartitioningBuilder {
         if (!pNodes.contains(node.getEnteringSummaryEdge().getPredecessor())) {
           result.add(node);
         }
-        //ignore inner function calls
+        // ignore inner function calls, when the inner function is fully included
         continue;
       }
       if (node.getNumEnteringEdges() == 0) {
@@ -165,8 +165,7 @@ public class BlockPartitioningBuilder {
       }
       for (CFANode pred : CFAUtils.predecessorsOf(node)) {
         if (!pNodes.contains(pred)) {
-          //entering edge from "outside" of the given set of nodes
-          //-> this is a call-node
+          // entering edge from "outside" of the given set of nodes
           result.add(node);
         }
       }
@@ -186,17 +185,17 @@ public class BlockPartitioningBuilder {
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         CFANode succ = leavingEdge.getSuccessor();
         if (!pNodes.contains(succ)) {
-          //leaving edge from inside of the given set of nodes to outside
-          //-> this is a either return-node or a function call
+          // leaving edge from inside of the given set of nodes to outside
+          // -> this is a either return-node or a function call
           if (!(leavingEdge instanceof CFunctionCallEdge)) {
-            //-> only add if its not a function call
+            // -> only add if its not a function call
             result.add(node);
           } else {
-            //otherwise check if the summary edge is inside of the block
-            CFANode sumSucc = ((CFunctionCallEdge)leavingEdge).getSummaryEdge().getSuccessor();
+            // otherwise check if the summary edge is inside of the block
+            CFANode sumSucc = ((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor();
             if (!pNodes.contains(sumSucc)) {
-              //summary edge successor not in nodes set; this is a leaving edge
-              //add entering nodes
+              // summary edge successor not in nodes set; this is a leaving edge
+              // add entering nodes
               Iterables.addAll(result, CFAUtils.predecessorsOf(sumSucc));
             }
           }

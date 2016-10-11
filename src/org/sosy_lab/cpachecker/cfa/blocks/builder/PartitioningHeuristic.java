@@ -100,6 +100,15 @@ public abstract class PartitioningHeuristic {
   }
 
   /**
+   * Compute the nodes of a block,
+   * such that the entry-node and all possible exit-nodes should be part of the block.
+   * For efficiency a block should not contain the nodes of inner function calls,
+   * because we will add them automatically later.
+   * <p>
+   * (TODO This case never happened before, but who knows... :
+   * If a block contains a partial body of a called function,
+   * we expect that either the function entry or the function exit is not part of the block.)
+   *
    * @param pBlockHead CFANode that should be cached.
    * @return set of nodes that represent a {@link Block},
    *         or NULL, if no block should be build for this node.
