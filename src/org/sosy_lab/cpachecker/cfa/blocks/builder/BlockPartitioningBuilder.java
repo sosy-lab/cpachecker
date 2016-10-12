@@ -134,6 +134,11 @@ public class BlockPartitioningBuilder {
     blockNodesMap.put(registerNode, nodes);
   }
 
+  /** get all inner function calls of the current block.
+   * Precondition: the block does not yet include function-calls
+   * (except we have a function-block of a recursive function)
+   *
+   *  @return all directly called functions (transitive function calls not included) */
   private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
     Set<FunctionEntryNode> result = new HashSet<>();
     for (CFANode node : pNodes) {
@@ -144,6 +149,9 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
+  /** get all call-nodes of the current block.
+   * Precondition: the block does not yet include function-calls
+   * (except we have a function-block of a recursive function) */
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
@@ -164,7 +172,9 @@ public class BlockPartitioningBuilder {
       }
       for (CFANode pred : CFAUtils.predecessorsOf(node)) {
         if (!pNodes.contains(pred)) {
-          // entering edge from "outside" of the given set of nodes
+          // entering edge from "outside" of the given set of nodes.
+          // this case also handles blocks from recursive function-calls,
+          // because at least one callee should be outside of the block.
           result.add(node);
         }
       }
@@ -172,6 +182,9 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
+  /** get all exit-nodes of the current block.
+   * Precondition: the block does not yet include function-calls
+   * (except we have a function-block of a recursive function) */
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
