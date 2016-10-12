@@ -31,9 +31,12 @@ import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -111,20 +114,31 @@ public class PropertyScopeCallGraphToGraphMLWriter {
     relevantPropElement.setAttribute("attr.type", "string");
     rootElement.appendChild(relevantPropElement);
 
+    Element readableRelevantPropElement = doc.createElement("key");
+    readableRelevantPropElement.setAttribute("id", "relevant_properties_readable");
+    readableRelevantPropElement.setAttribute("attr.name", "relevant_properties_readable");
+    readableRelevantPropElement.setAttribute("for", "graph");
+    readableRelevantPropElement.setAttribute("attr.type", "string");
+    rootElement.appendChild(readableRelevantPropElement);
+
     Element graphElement = doc.createElement("graph");
     graphElement.setAttribute("id", "graph");
     graphElement.setAttribute("edgedefault", "directed");
     rootElement.appendChild(graphElement);
 
-    int relPropId = 0;
-    for (String prop : relevantProps) {
-      Element relevantPropDataElem = doc.createElement("data");
-      relevantPropDataElem.setAttribute("key", "relevant_properties");
-      relevantPropDataElem.setAttribute("id", "property_" + Objects.toString(relPropId++));
-      relevantPropDataElem.setTextContent(prop);
-      graphElement.appendChild(relevantPropDataElem);
-    }
+    String b64props = relevantProps.stream()
+        .map(p ->  Base64.getEncoder().encodeToString(p.getBytes(StandardCharsets.UTF_8)))
+        .collect(Collectors.joining(";"));
+    Element relevantPropDataElem = doc.createElement("data");
+    relevantPropDataElem.setAttribute("key", "relevant_properties");
+    relevantPropDataElem.setTextContent(b64props);
+    graphElement.appendChild(relevantPropDataElem);
 
+    String props = relevantProps.stream().collect(Collectors.joining(";"));
+    Element readableRelevantPropDataElem = doc.createElement("data");
+    readableRelevantPropDataElem.setAttribute("key", "relevant_properties_readable");
+    readableRelevantPropDataElem.setTextContent(props);
+    graphElement.appendChild(readableRelevantPropDataElem);
 
     for (FunctionNode node : graph.getNodes().values()) {
       Element nodeElement = doc.createElement("node");
