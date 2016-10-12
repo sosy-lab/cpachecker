@@ -30,7 +30,13 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
-
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -73,14 +79,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 @RunWith(Parameterized.class)
 public class CPAsTest {
 
@@ -96,7 +94,7 @@ public class CPAsTest {
             .filter(ConfigurableProgramAnalysis.class::isAssignableFrom)
             .filter(candidate -> !candidate.isAnnotationPresent(Unmaintained.class))
             .filter(candidate -> !candidate.getPackage().isAnnotationPresent(Unmaintained.class))
-            .collect(Collectors.toCollection(() -> new HashSet<>()));
+            .collect(Collectors.toCollection(HashSet::new));
 
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);

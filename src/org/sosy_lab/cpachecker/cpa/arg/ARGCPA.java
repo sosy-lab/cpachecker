@@ -30,7 +30,10 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -69,11 +72,6 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampl
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
-
 @Options
 public class ARGCPA extends AbstractSingleWrapperCPA implements
     ConfigurableProgramAnalysisWithBAM, ProofChecker {
@@ -103,8 +101,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
-      ImmutableList.of(
-          (config, logger, cpa) -> new PathEqualityCounterexampleFilter(config, logger, cpa));
+      ImmutableList.of(PathEqualityCounterexampleFilter::new);
   private final CounterexampleFilter cexFilter;
 
   @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",

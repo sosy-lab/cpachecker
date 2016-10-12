@@ -92,8 +92,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
             + "or any class that implements a PartitioningHeuristic"
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
-  private PartitioningHeuristic.Factory blockHeuristic =
-      (logger, cfa, config) -> new FunctionAndLoopPartitioning(logger, cfa, config);
+  private PartitioningHeuristic.Factory blockHeuristic = FunctionAndLoopPartitioning::new;
 
   @Option(secure=true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
