@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -58,10 +60,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
 
 
 @Options(prefix = "cpa.bam")
@@ -206,8 +204,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     } else {
       blockBuilder = new BlockPartitioningBuilder();
     }
-    BlockPartitioning partitioning =
-        heuristic.buildPartitioning(pCfa.getMainFunction(), blockBuilder);
+    BlockPartitioning partitioning = heuristic.buildPartitioning(pCfa, blockBuilder);
 
     if (exportBlocksPath != null) {
       BlockToDotWriter writer = new BlockToDotWriter(partitioning);

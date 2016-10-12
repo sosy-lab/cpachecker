@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
@@ -34,14 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 
 /**
@@ -59,7 +58,7 @@ public class BlockPartitioningBuilder {
 
   public BlockPartitioningBuilder() {}
 
-  public BlockPartitioning build(CFANode mainFunction) {
+  public BlockPartitioning build(CFA cfa) {
     //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
     boolean changed = true;
     outer: while (changed) {
@@ -98,7 +97,7 @@ public class BlockPartitioningBuilder {
       CFANode key = entry.getKey();
       blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), entry.getValue(), blockNodesMap.get(key)));
     }
-    return new BlockPartitioning(blocks, mainFunction);
+    return new BlockPartitioning(blocks, cfa.getMainFunction());
   }
 
   /**
