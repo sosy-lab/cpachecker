@@ -67,6 +67,6 @@ public abstract class PropertyScopeInstance {
 
   @Override
   public String toString() {
-    return String.format("%s (%d)", getClass().getName(), id);
+    return String.format("%s (%d)", getClass().getSimpleName(), id);
   }
 }
