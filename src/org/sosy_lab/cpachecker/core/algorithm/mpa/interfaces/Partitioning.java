@@ -47,7 +47,8 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
     CHECK_IRRELEVANCE,
     CHEAPEST_BISECT,
     NOT_EXHAUSTED_ONLY,
-    MORE_PARTITIONS
+    MORE_PARTITIONS,
+    PREDEFINED
   }
 
   public ImmutableList<ImmutableSet<Property>> getPartitions();

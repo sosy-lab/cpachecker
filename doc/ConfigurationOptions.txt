@@ -264,6 +264,10 @@ analysis.mpa.partition.k = 5
 # checked.
 analysis.mpa.partition.operator = AllThenSepOperator.class
 
+# XML File which describes a static partitioning to be used with
+# FromFileOperator. Look into FromFileOperator.java for an example.
+analysis.mpa.partition.partitioningFile = no default value
+
 # Limit for cpu time of one property (use seconds or specify a unit; -1 for
 # infinite)
 analysis.mpa.partition.property.time.cpu = -1ns
