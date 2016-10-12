@@ -31,6 +31,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -85,7 +86,8 @@ public class BlockPartitioningBuilder {
 
     //now we can create the Blocks   for the BlockPartitioning
     Collection<Block> blocks = new ArrayList<>();
-    for (CFANode callNode : callNodesMap.keySet()) {
+    for (Entry<CFANode, Set<CFANode>> entry : callNodesMap.entrySet()) {
+      CFANode callNode = entry.getKey();
 
       // we collect nodes and variables from all inner function calls
       Collection<Iterable<ReferencedVariable>> variables = new ArrayList<>();
@@ -98,8 +100,12 @@ public class BlockPartitioningBuilder {
         variables.add(referencedVariables.get(calledFunction));
       }
 
-      blocks.add(new Block(Iterables.concat(variables), callNodesMap.get(callNode),
-          returnNodesMap.get(callNode), Iterables.concat(blockNodes)));
+      blocks.add(
+          new Block(
+              Iterables.concat(variables),
+              entry.getValue(),
+              returnNodesMap.get(callNode),
+              Iterables.concat(blockNodes)));
     }
 
     return new BlockPartitioning(blocks, cfa.getMainFunction());
