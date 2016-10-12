@@ -59,4 +59,10 @@
     </tasks>
     <option name="-predicateAnalysis-bam"/>
   </rundefinition>
+
+  <columns>
+    <column title="block building time">Time for building block partitioning</column>
+    <column title="#blocks">Number of blocks</column>
+  </columns>
+
 </benchmark>
