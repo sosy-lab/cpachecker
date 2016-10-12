@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
@@ -83,6 +84,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
   private final BAMPCCManager bamPccManager;
+
+  final Timer blockPartitioningTimer = new Timer();
 
   @Option(
     secure = true,
@@ -142,7 +145,11 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     heuristic = blockHeuristic.create(pLogger, pCfa, config);
+
+    blockPartitioningTimer.start();
     blockPartitioning = buildBlockPartitioning(pCfa);
+    blockPartitioningTimer.stop();
+
     bamPccManager = new BAMPCCManager(
         wrappedProofChecker,
         config,

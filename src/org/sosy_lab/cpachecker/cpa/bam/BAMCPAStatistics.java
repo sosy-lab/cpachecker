@@ -122,6 +122,7 @@ class BAMCPAStatistics implements Statistics {
     }
 
     out.println("Total size of all ARGs:                                         " + sumARTElemets);
+    out.println("Number of blocks:                                               " + cpa.getBlockPartitioning().getBlocks().size());
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
     out.println("Total number of recursive CPA calls:                            " + sumCalls);
     out.println("  Number of cache misses:                                       " + data.bamCache.cacheMisses + " (" + toPercent(data.bamCache.cacheMisses, sumCalls) + " of all calls)");
@@ -133,6 +134,7 @@ class BAMCPAStatistics implements Statistics {
       out.println("  Number of precision caused misses:                            " + data.bamCache.precisionCausedMisses + " (" + toPercent(data.bamCache.precisionCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
       out.println("  Number of misses with no similar elements:                    " + data.bamCache.noSimilarCausedMisses + " (" + toPercent(data.bamCache.noSimilarCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
     }
+    out.println("Time for building block partitioning:                         " + cpa.blockPartitioningTimer);
     out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
     out.println("Time for checking equality of abstract states:                " + data.bamCache.equalsTimer + " (Calls: " + data.bamCache.equalsTimer.getNumberOfIntervals() + ")");
