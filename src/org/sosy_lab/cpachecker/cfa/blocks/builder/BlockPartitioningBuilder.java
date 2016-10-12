@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -59,45 +60,64 @@ public class BlockPartitioningBuilder {
   public BlockPartitioningBuilder() {}
 
   public BlockPartitioning build(CFA cfa) {
-    //fixpoint iteration to take inner function calls into account for referencedVariables and callNodesMap
-    boolean changed = true;
-    outer: while (changed) {
-      changed = false;
-      for (Entry<CFANode, Set<ReferencedVariable>> entry : referencedVariablesMap.entrySet()) {
-        CFANode node = entry.getKey();
-        for (CFANode calledFun : innerFunctionCallsMap.get(node)) {
-          Set<ReferencedVariable> functionVars = referencedVariablesMap.get(calledFun);
-          Set<CFANode> functionBody = blockNodesMap.get(calledFun);
-          if (functionVars == null || functionBody == null) {
-            assert functionVars == null && functionBody == null;
-            //compute it only the fly
-            functionBody = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(calledFun);
-            functionVars = collectReferencedVariables(functionBody);
-            //and save it
-            blockNodesMap.put(calledFun, functionBody);
-            referencedVariablesMap.put(calledFun, functionVars);
-            innerFunctionCallsMap.put(calledFun, collectInnerFunctionCalls(functionBody));
-            changed = true;
-            continue outer;
-          }
 
-          if (entry.getValue().addAll(functionVars)) {
-            changed = true;
-          }
-          if (blockNodesMap.get(node).addAll(functionBody)) {
-            changed = true;
-          }
-        }
-      }
+    // using Multimaps causes an overhead here,
+    // because large sets could be copied once at 'putAll' and then they are thrown away
+
+    // first pre-compute the block-structure for functions. we use it for optimization
+    Map<FunctionEntryNode, Set<CFANode>> functions = new HashMap<>();
+    Map<FunctionEntryNode, Set<ReferencedVariable>> referencedVariables = new HashMap<>();
+    Map<FunctionEntryNode, Set<FunctionEntryNode>> innerFunctionCalls = new HashMap<>();
+    for (FunctionEntryNode head : cfa.getAllFunctionHeads()) {
+      final Set<CFANode> body = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(head);
+      functions.put(head, body);
+      referencedVariables.put(head, collectReferencedVariables(body));
+      innerFunctionCalls.put(head, collectInnerFunctionCalls(body));
+    }
+
+    // then get directly called functions and sum up all indirectly called functions
+    Map<CFANode, Set<FunctionEntryNode>> blockFunctionCalls = new HashMap<>();
+    for (CFANode callNode : callNodesMap.keySet()) {
+      Set<FunctionEntryNode> calledFunctions = getAllCalledFunctions(innerFunctionCalls,
+          collectInnerFunctionCalls(blockNodesMap.get(callNode)));
+      blockFunctionCalls.put(callNode, calledFunctions);
     }
 
     //now we can create the Blocks   for the BlockPartitioning
-    Collection<Block> blocks = new ArrayList<>(returnNodesMap.keySet().size());
-    for (Entry<CFANode, Set<CFANode>> entry : returnNodesMap.entrySet()) {
-      CFANode key = entry.getKey();
-      blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), entry.getValue(), blockNodesMap.get(key)));
+    Collection<Block> blocks = new ArrayList<>();
+    for (CFANode callNode : callNodesMap.keySet()) {
+
+      // we collect nodes and variables from all inner function calls
+      Collection<Iterable<ReferencedVariable>> variables = new ArrayList<>();
+      Collection<Iterable<CFANode>> blockNodes = new ArrayList<>();
+      Set<CFANode> directNodes = blockNodesMap.get(callNode);
+      blockNodes.add(directNodes);
+      variables.add(referencedVariablesMap.get(callNode));
+      for (FunctionEntryNode calledFunction : blockFunctionCalls.get(callNode)) {
+        blockNodes.add(functions.get(calledFunction));
+        variables.add(referencedVariables.get(calledFunction));
+      }
+
+      blocks.add(new Block(Iterables.concat(variables), callNodesMap.get(callNode),
+          returnNodesMap.get(callNode), Iterables.concat(blockNodes)));
     }
+
     return new BlockPartitioning(blocks, cfa.getMainFunction());
+  }
+
+  private static Set<FunctionEntryNode> getAllCalledFunctions(
+      Map<FunctionEntryNode, Set<FunctionEntryNode>> innerFunctionCalls,
+      Set<FunctionEntryNode> directFunctions) {
+    Set<FunctionEntryNode> calledFunctions = new HashSet<>();
+    Deque<FunctionEntryNode> waitlist = new ArrayDeque<>();
+    waitlist.addAll(directFunctions);
+    while (!waitlist.isEmpty()) {
+      FunctionEntryNode entry  = waitlist.pop();
+      if (calledFunctions.add(entry)) {
+        waitlist.addAll(innerFunctionCalls.get(entry));
+      }
+    }
+    return calledFunctions;
   }
 
   /**
