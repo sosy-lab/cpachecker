@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -48,10 +49,15 @@ public class PropertyScopeCallGraphToGraphMLWriter {
 
   private final PropertyScopeCallGraph graph;
   private final Reason reason;
+  private final Set<String> relevantProps;
 
-  public PropertyScopeCallGraphToGraphMLWriter(PropertyScopeCallGraph pGraph, Reason pReason) {
+  public PropertyScopeCallGraphToGraphMLWriter(
+      PropertyScopeCallGraph pGraph,
+      Reason pReason,
+      Set<String> pRelevantProps) {
     graph = pGraph;
     reason = pReason;
+    relevantProps = pRelevantProps;
   }
 
   public void writeTo(Writer writer)
@@ -98,10 +104,27 @@ public class PropertyScopeCallGraphToGraphMLWriter {
     functionARGCountElement.setAttribute("attr.type", "int");
     rootElement.appendChild(functionARGCountElement);
 
+    Element relevantPropElement = doc.createElement("key");
+    relevantPropElement.setAttribute("id", "relevant_properties");
+    relevantPropElement.setAttribute("attr.name", "relevant_properties");
+    relevantPropElement.setAttribute("for", "graph");
+    relevantPropElement.setAttribute("attr.type", "string");
+    rootElement.appendChild(relevantPropElement);
+
     Element graphElement = doc.createElement("graph");
     graphElement.setAttribute("id", "graph");
     graphElement.setAttribute("edgedefault", "directed");
     rootElement.appendChild(graphElement);
+
+    int relPropId = 0;
+    for (String prop : relevantProps) {
+      Element relevantPropDataElem = doc.createElement("data");
+      relevantPropDataElem.setAttribute("key", "relevant_properties");
+      relevantPropDataElem.setAttribute("id", "property_" + Objects.toString(relPropId++));
+      relevantPropDataElem.setTextContent(prop);
+      graphElement.appendChild(relevantPropDataElem);
+    }
+
 
     for (FunctionNode node : graph.getNodes().values()) {
       Element nodeElement = doc.createElement("node");

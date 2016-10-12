@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import static java.util.stream.StreamSupport.stream;
 import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
@@ -45,7 +46,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -57,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.FormulaGlobalsInspector;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.FormulaVariableResult;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.holder.Holder;
@@ -66,8 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -86,7 +86,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 
 @Options(prefix="cpa.propertyscope")
@@ -268,7 +267,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       }
 
       FluentIterable<AutomatonState> automStates =
-          AbstractStates.asIterable(absSt).filter(AutomatonState.class);
+          asIterable(absSt).filter(AutomatonState.class);
 
       LocationState locst = extractStateByType(absSt, LocationState.class);
       Set<CFAEdge> outgoingEdges = stream(locst.getOutgoingEdges().spliterator(), false)
@@ -312,7 +311,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       }
 
       FluentIterable<AutomatonState> automStates =
-          AbstractStates.asIterable(absSt).filter(AutomatonState.class);
+          asIterable(absSt).filter(AutomatonState.class);
 
       LocationState locst = extractStateByType(absSt, LocationState.class);
       Set<CFAEdge> outgoingEdges = stream(locst.getOutgoingEdges().spliterator(), false)
@@ -527,13 +526,19 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
     }
 
+    // Write callgraph //
+
+    Set<String> relevantProperties = PropertyStats.INSTANCE.getRelevantProperties().stream()
+        .map(Object::toString).collect(Collectors.toSet());
+
+
     PropertyScopeCallGraph graph = prepopulateCallgraph ?
                                    PropertyScopeCallGraph.create(root, cfa.getAllFunctionNames()) :
                                    PropertyScopeCallGraph.create(root);
     for (Reason reason: Reason.values()) {
       Path outpath = Paths.get(String.format(this.callgraphGraphmlFile.toString(), reason.name()));
       try (Writer w = MoreFiles.openOutputFile(outpath, Charset.defaultCharset())) {
-        new PropertyScopeCallGraphToGraphMLWriter(graph, reason).writeTo(w);
+        new PropertyScopeCallGraphToGraphMLWriter(graph, reason, relevantProperties).writeTo(w);
       } catch (IOException | ParserConfigurationException | TransformerException e) {
         logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeCallGraph to file");
       }
@@ -547,6 +552,9 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     addKeyValueStatistic("preferred scope reason",
         any_var_class ? "ABS_FORMULA_VAR_CLASSIFICATION" : any_automaton_match ? "AUTOMATON_MATCH"
                                                                                : "<unknown>");
+
+    // --- //
+
     super.printStatistics(pOut, pResult, pReached);
   }
 
