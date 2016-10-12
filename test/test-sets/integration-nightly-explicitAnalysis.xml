@@ -18,6 +18,16 @@
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem07_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem08_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem09_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem11_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem12_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem13_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem14_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem16_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem17_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem19_*</exclude>
   </tasks>
   <tasks name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
@@ -27,6 +37,7 @@
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <exclude reason="timeout">../programs/benchmarks/product-lines/elevator*</exclude>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
