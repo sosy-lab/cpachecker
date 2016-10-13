@@ -25,7 +25,12 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -38,24 +43,16 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 
 /**
  * <code>PartitioningHeuristic</code> that creates blocks for each loop-body.
  */
 public class LoopPartitioning extends PartitioningHeuristic {
 
-  private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody;
+  private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody = null;
 
   public LoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig) {
     super(pLogger, pCfa, pConfig);
-    loopHeaderToLoopBody = null;
   }
 
   private void initLoopMap() {
@@ -70,7 +67,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
     }
   }
 
-  private boolean isMainFunction(CFANode pNode) {
+  private static boolean isMainFunction(CFANode pNode) {
     return pNode instanceof FunctionEntryNode && pNode.getNumEnteringEdges() == 0;
   }
 

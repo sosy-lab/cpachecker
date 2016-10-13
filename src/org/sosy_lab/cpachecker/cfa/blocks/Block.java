@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -51,7 +50,7 @@ public class Block {
   }
 
   public Set<CFANode> getCallNodes() {
-    return Collections.unmodifiableSet(callNodes);
+    return callNodes;
   }
 
   public CFANode getCallNode() {
