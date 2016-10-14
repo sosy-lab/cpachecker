@@ -1576,8 +1576,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
   //FIXME Does not work with variable array length.
+    //TODO: write value with bit precise size
     boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType, pNewState) > pMemoryOfField.getSize();
+        || pFieldOffset + expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState) >
+        pMemoryOfField.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory

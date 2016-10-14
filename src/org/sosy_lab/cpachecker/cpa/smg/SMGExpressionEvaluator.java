@@ -174,6 +174,21 @@ public class SMGExpressionEvaluator {
     }
   }
 
+  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
+    CSizeOfVisitor v;
+    if (machineModel.isBitFieldsSupportEnabled()) {
+      v = getBitSizeOfVisitor(pEdge, pState);
+    } else {
+      v = getSizeOfVisitor(pEdge, pState);
+    }
+
+    try {
+      return pType.accept(v);
+    } catch (IllegalArgumentException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);
+    }
+  }
   /**
    * This visitor evaluates the address of a LValue. It is predominantly
    * used to evaluate the left hand side of a Assignment.
@@ -2298,6 +2313,10 @@ public class SMGExpressionEvaluator {
     return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
   }
 
+  protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
+    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger);
+  }
+
   protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
       CExpression pExpression) {
     return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
@@ -2534,6 +2553,65 @@ public class SMGExpressionEvaluator {
     @Override
     public String toString() {
       return object.toString() + " StateId: " + smgState.getId();
+    }
+  }
+
+  public static class CBitSizeOfVisitor extends CSizeOfVisitor {
+
+    public CBitSizeOfVisitor(
+        MachineModel pModel,
+        CFAEdge pEdge,
+        SMGState pState,
+        LogManagerWithoutDuplicates logger,
+        CExpression pExpression) {
+      super(pModel, pEdge, pState, logger, pExpression);
+    }
+
+    public CBitSizeOfVisitor(
+        MachineModel pModel,
+        CFAEdge pEdge,
+        SMGState pState, LogManagerWithoutDuplicates pLogger) {
+      super(pModel, pEdge, pState, pLogger);
+    }
+
+    @Override
+    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
+      if (pEnumType.isBitField()) {
+        return pEnumType.getBitFieldSize();
+      }
+      return super.visit(pEnumType);
+    }
+
+    @Override
+    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      if (pSimpleType.isBitField()) {
+        return pSimpleType.getBitFieldSize();
+      }
+      return super.visit(pSimpleType);
+    }
+
+    @Override
+    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+      if (pTypedefType.isBitField()) {
+        return pTypedefType.getBitFieldSize();
+      }
+      return super.visit(pTypedefType);
+    }
+
+    @Override
+    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+      if (pCompositeType.isBitField()) {
+        return pCompositeType.getBitFieldSize();
+      }
+      return super.visit(pCompositeType);
+    }
+
+    @Override
+    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+      if (pElaboratedType.isBitField()) {
+        return pElaboratedType.getBitFieldSize();
+      }
+      return super.visit(pElaboratedType);
     }
   }
 
