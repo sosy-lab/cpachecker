@@ -1087,19 +1087,35 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         for(SMGValueAndState stateValue : stateValues.getValueAndStateList()) {
           SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
           SMGSymbolicValue value = stateValue.getObject();
-          List<SMGState> newStatesWithExpVal = assignExplicitValueToSymbolicValue(newStateWithReadSymbolicValue, callEdge, value, exp);
 
-          for (SMGState newStateWithExpVal : newStatesWithExpVal) {
+          List<Pair<SMGState, SMGKnownSymValue>> newStatesWithExpVal = assignExplicitValueToSymbolicValue(newStateWithReadSymbolicValue, callEdge, value, exp);
 
-            if (!valuesMap.containsKey(newStateWithExpVal)) {
+          for (Pair<SMGState, SMGKnownSymValue> newStateWithExpVal : newStatesWithExpVal) {
+
+            SMGState curState = newStateWithExpVal.getFirst();
+            if (!valuesMap.containsKey(curState)) {
               List<Pair<SMGRegion, SMGSymbolicValue>> newValues = new ArrayList<>(paramDecl.size());
               newValues.addAll(valuesMap.get(newState));
-              valuesMap.put(newStateWithExpVal, newValues);
+              valuesMap.put(curState, newValues);
             }
 
             Pair<SMGRegion, SMGSymbolicValue> lhsValuePair = Pair.of(paramObj, value);
-            valuesMap.get(newStateWithExpVal).add(i, lhsValuePair);
-            result.add(newStateWithExpVal);
+            valuesMap.get(curState).add(i, lhsValuePair);
+            result.add(curState);
+
+            //Check that previous values are not merged with new one
+            if (newStateWithExpVal.getSecond() != null) {
+              for (int j = i - 1; j >= 0; j--) {
+                Pair<SMGRegion, SMGSymbolicValue> lhsCheckValuePair = valuesMap.get(curState).get(j);
+                SMGSymbolicValue symbolicValue = lhsCheckValuePair.getSecond();
+                if (newStateWithExpVal.getSecond().equals(symbolicValue)) {
+                  //Previous value was merged, replace with new value
+                  Pair<SMGRegion, SMGSymbolicValue> newLhsValuePair = Pair.of(lhsCheckValuePair.getFirst(), value);
+                  valuesMap.get(curState).remove(j);
+                  valuesMap.get(curState).add(j, newLhsValuePair);
+                }
+              }
+            }
           }
         }
       }
@@ -1467,9 +1483,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
       rValueType = pLFieldType;
 
-      List<SMGState> newStates = assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue);
+      List<Pair<SMGState, SMGKnownSymValue>> newStatesWithMergedValues =
+          assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue);
 
-      for (SMGState currentNewState : newStates) {
+      for (Pair<SMGState, SMGKnownSymValue> currentNewStateWithMergedValue : newStatesWithMergedValues) {
+        SMGState currentNewState = currentNewStateWithMergedValue.getFirst();
         newState = assignFieldToState(currentNewState, cfaEdge, memoryOfField, fieldOffset, value, rValueType);
         result.add(newState);
       }
@@ -1479,7 +1497,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   // Assign symbolic value to the explicit value calculated from pRvalue
-  private List<SMGState> assignExplicitValueToSymbolicValue(SMGState pNewState,
+  private List<Pair<SMGState, SMGKnownSymValue>> assignExplicitValueToSymbolicValue(SMGState pNewState,
       CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
           throws CPATransferException {
 
@@ -1487,24 +1505,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         machineModel);
 
     List<SMGExplicitValueAndState> expValueAndStates = expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue);
+    List<Pair<SMGState, SMGKnownSymValue>> result = new ArrayList<>(expValueAndStates.size());
 
     for (SMGExplicitValueAndState expValueAndState : expValueAndStates) {
       SMGExplicitValue expValue = expValueAndState.getObject();
       SMGState newState = expValueAndState.getSmgState();
 
       if (!expValue.isUnknown()) {
-        newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
+        SMGKnownSymValue mergedSymValue = newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
+        result.add(Pair.of(newState, mergedSymValue));
+      } else {
+        result.add(Pair.of(newState, null));
       }
     }
-
-    List<SMGState> result =
-        FluentIterable.from(expValueAndStates).transform(new Function<SMGExplicitValueAndState, SMGState>() {
-
-          @Override
-          public SMGState apply(SMGExplicitValueAndState valueAndState) {
-            return valueAndState.getSmgState();
-          }
-        }).toList();
 
     return result;
   }

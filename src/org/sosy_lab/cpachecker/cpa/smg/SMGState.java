@@ -2065,7 +2065,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.resetErrorRelation();
   }
 
-  public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+  /**
+   *
+   * @param pKey
+   * @param pValue
+   * @return explicit value merged with pKey, or Null if not merged
+   */
+  public SMGKnownSymValue putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
 
     if (explicitValues.inverse().containsKey(pValue)) {
       SMGKnownSymValue symValue = explicitValues.inverse().get(pValue);
@@ -2074,12 +2080,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         explicitValues.remove(symValue);
         heap.mergeValues(pKey.getAsInt(), symValue.getAsInt());
         explicitValues.put(pKey, pValue);
+        return symValue;
       }
 
-      return;
+      return null;
     }
 
     explicitValues.put(pKey, pValue);
+    return null;
   }
 
   public void clearExplicit(SMGKnownSymValue pKey) {
