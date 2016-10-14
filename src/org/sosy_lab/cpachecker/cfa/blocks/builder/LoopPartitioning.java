@@ -144,8 +144,10 @@ public class LoopPartitioning extends PartitioningHeuristic {
     while (!waitlist.isEmpty()) {
       final CFANode node = waitlist.remove(0);
       if (pLoopBody.add(node)) {
-        for (CFANode pred : CFAUtils.predecessorsOf(node)) {
-          waitlist.add(pred);
+        for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
+          if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge) {
+            waitlist.add(edge.getPredecessor());
+          }
         }
       }
     }
