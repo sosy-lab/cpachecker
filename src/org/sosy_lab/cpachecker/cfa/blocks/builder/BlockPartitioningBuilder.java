@@ -176,9 +176,11 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  /** get all call-nodes of the current block.
-   * Precondition: the block does not yet include function-calls
-   * (except we have a function-block of a recursive function) */
+  /**
+   * get all call-nodes of the current block.
+   *
+   * <p>Precondition: the block does not yet include function-calls
+   */
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
@@ -207,9 +209,11 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
-  /** get all exit-nodes of the current block.
-   * Precondition: the block does not yet include function-calls
-   * (except we have a function-block of a recursive function) */
+  /**
+   * get all exit-nodes of the current block
+   *
+   * <p>Precondition: the block does not yet include function-calls
+   */
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
