@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -181,23 +182,21 @@ public class BlockPartitioningBuilder {
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
-      if (node.getEnteringSummaryEdge() != null) {
-        // if we have an ingoing summaryEdge and the predecessor is not in the block, add the current node.
-        // TODO what happens when the block begins inside the called function
-        if (!pNodes.contains(node.getEnteringSummaryEdge().getPredecessor())) {
-          result.add(node);
-        }
-        // ignore inner function calls, when the inner function is fully included
+
+      // handle a bug in CFA creation: there are ugly CFA-nodes ... and we ignore them.
+      if (node.getNumEnteringEdges() == 0 && node.getNumLeavingEdges() == 0) {
         continue;
       }
-      if (node.getNumEnteringEdges() == 0) {
-        assert node.getEnteringSummaryEdge() == null;
+
+      if (node.getNumEnteringEdges() == 0 && node.getEnteringSummaryEdge() == null) {
         // entry of main function
         result.add(node);
         continue;
       }
-      for (CFANode pred : CFAUtils.predecessorsOf(node)) {
-        if (!pNodes.contains(pred)) {
+
+      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
+        if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
+            && !pNodes.contains(edge.getPredecessor())) {
           // entering edge from "outside" of the given set of nodes.
           // this case also handles blocks from recursive function-calls,
           // because at least one callee should be outside of the block.
@@ -214,29 +213,26 @@ public class BlockPartitioningBuilder {
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
+
+      // handle a bug in CFA creation: there are ugly CFA-nodes ... and we ignore them.
+      if (node.getNumEnteringEdges() == 0 && node.getNumLeavingEdges() == 0) {
+        continue;
+      }
+
       if (node.getNumLeavingEdges() == 0) {
         // exit of main function
         result.add(node);
         continue;
       }
 
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
-        CFANode succ = leavingEdge.getSuccessor();
-        if (!pNodes.contains(succ)) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (edge.getEdgeType() != CFAEdgeType.FunctionCallEdge
+            && !pNodes.contains(edge.getSuccessor())) {
           // leaving edge from inside of the given set of nodes to outside
           // -> this is a either return-node or a function call
-          if (!(leavingEdge instanceof CFunctionCallEdge)) {
-            // -> only add if its not a function call
-            result.add(node);
-          } else {
-            // otherwise check if the summary edge is inside of the block
-            CFANode sumSucc = ((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor();
-            if (!pNodes.contains(sumSucc)) {
-              // summary edge successor not in nodes set; this is a leaving edge
-              // add entering nodes
-              Iterables.addAll(result, CFAUtils.predecessorsOf(sumSucc));
-            }
-          }
+          // this case also handles blocks from recursive function-calls,
+          // because at least one callee should be outside of the block.
+          result.add(node);
         }
       }
     }
