@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.pdr;
 
 import com.google.common.base.Optional;
-
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Objects;
 
 /**
  * Represents the attempt to prove that a state is unreachable from a location at a certain frame
@@ -49,12 +47,13 @@ public class ProofObligation implements Comparable<ProofObligation> {
   private final Optional<ProofObligation> cause;
 
   /**
-   * Creates a new ProofObligation that says: Try to prove that {@code pState} can't be reached
-   * from {@code pLocation} in at most {@code pFrameLevel} steps. The ProofObligation {@code pCause}
-   * is one that could not be resolved previously and lead to the creation of this one.
-   * <p>
-   * If the created ProofObligation should not have a cause associated with it, use
-   * {@link #ProofObligation(int, CFANode, BooleanFormula)} instead.
+   * Creates a new ProofObligation that says: Try to prove that {@code pState} can't be reached from
+   * {@code pLocation} in at most {@code pFrameLevel} steps. The ProofObligation {@code pCause} is
+   * one that could not be resolved previously and lead to the creation of this one.
+   *
+   * <p>If the created ProofObligation should not have a cause associated with it, use {@link
+   * #ProofObligation(int, CFANode, BooleanFormula)} instead.
+   *
    * @param pFrameLevel the level the state should be blocked at
    * @param pLocation the location the state should be blocked at
    * @param pState the state to be blocked
@@ -66,18 +65,20 @@ public class ProofObligation implements Comparable<ProofObligation> {
   }
 
   /**
-   * Creates a new ProofObligation that says: Try to prove that {@code pState} can't be reached
-   * from {@code pLocation} in at most {@code pFrameLevel} steps. It doesn't have a cause associated
-   * with it (see {@link #getCause()}).
-   * <p>
-   * If the created ProofObligation should have a cause, use
-   * {@link #ProofObligation(int, CFANode, BooleanFormula, ProofObligation)} instead.
+   * Creates a new ProofObligation that says: Try to prove that {@code pState} can't be reached from
+   * {@code pLocation} in at most {@code pFrameLevel} steps. It doesn't have a cause associated with
+   * it (see {@link #getCause()}).
+   *
+   * <p>If the created ProofObligation should have a cause, use {@link #ProofObligation(int,
+   * CFANode, BooleanFormula, ProofObligation)} instead.
+   *
    * @param pFrameLevel the level the state should be blocked at
    * @param pLocation the location the state should be blocked at
    * @param pState the state to be blocked
    */
   public ProofObligation(int pFrameLevel, CFANode pLocation, BooleanFormula pState) {
     this(pFrameLevel, pLocation, pState, Optional.<ProofObligation>absent());
+
   }
 
   private ProofObligation(
@@ -107,9 +108,9 @@ public class ProofObligation implements Comparable<ProofObligation> {
   }
 
   /**
-   * Returns the state component of this ProofObligation. It defines the state that should be
-   * blocked.
-   * @return the BooleanFormula representing the state to be blocked
+   * Returns the state component of this ProofObligation. It defines the of the state to be blocked.
+   *
+   * @return the BooleanFormula representing state to be blocked
    */
   public BooleanFormula getState() {
     return state;
@@ -153,8 +154,8 @@ public class ProofObligation implements Comparable<ProofObligation> {
     }
     ProofObligation otherObl = (ProofObligation) other;
     return this.frameLevel == otherObl.getFrameLevel()
-        && this.state.equals(otherObl.getState())
         && this.location.equals(otherObl.getLocation())
+        && this.state.equals(otherObl.getState())
         && this.cause.equals(otherObl.getCause());
   }
 
