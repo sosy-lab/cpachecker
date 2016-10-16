@@ -287,7 +287,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
         if (result.consecutionSuccess()) {
           BooleanFormula blockableStates = result.getResultFormula();
-          frameSet.blockState(blockableStates, p.getFrameLevel(), p.getLocation());
+          frameSet.blockStates(blockableStates, p.getFrameLevel(), p.getLocation());
         } else {
           BooleanFormula predecessorState = result.getResultFormula();
           CFANode predLocation = block.getPredecessorLocation();

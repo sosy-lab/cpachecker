@@ -23,29 +23,26 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr;
 
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverException;
-
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * A structure that contains an over-approximation of reachable states for any number of steps
@@ -61,8 +58,6 @@ public class DynamicFrameSet implements FrameSet {
    * at level 'j' for j from i to current maximum level.
    */
 
-  private static final int DEFAULT_LOWEST_SSA_INDEX = 1;
-
   /** The frames per location. */
   private final Map<CFANode, List<ApproximationFrame>> frames;
 
@@ -70,7 +65,6 @@ public class DynamicFrameSet implements FrameSet {
   private int currentMaxLevel;
 
   private final BooleanFormulaManager bfmgr;
-  private final FormulaManagerView fmgr;
   private final BackwardTransition backwardTransition;
 
   /**
@@ -84,7 +78,6 @@ public class DynamicFrameSet implements FrameSet {
       CFANode pStartLocation, FormulaManagerView pFmgr, BackwardTransition pBackwardTransition) {
     currentMaxLevel = 0;
     frames = Maps.newHashMap();
-    fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     backwardTransition = pBackwardTransition;
 
@@ -156,146 +149,133 @@ public class DynamicFrameSet implements FrameSet {
   }
 
   @Override
-  public void blockState(BooleanFormula pState, int pMaxLevel, CFANode pLocation) {
-    Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel);
+  public void blockStates(BooleanFormula pState, int pMaxLevel, CFANode pLocation) {
+    Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel + 1);
     if (!frames.containsKey(pLocation)) {
       initFrameSetForLocation(pLocation);
     }
 
-    // TODO subsume here too?
+    ApproximationFrame targetFrame = frames.get(pLocation).get(pMaxLevel);
+
     // Only need to add to highest level (delta encoding)
-    frames.get(pLocation).get(pMaxLevel).addState(bfmgr.not(pState));
+    targetFrame.addState(bfmgr.not(pState));
   }
 
   @Override
-  public void propagate(ProverEnvironment pProver, ProverEnvironment pSubsumptionProver)
+  public boolean propagate(
+      PDRSat pPDRSat,
+      ShutdownNotifier pShutdownNotifier)
       throws InterruptedException, CPAException, SolverException {
 
     /*
-     * For all levels i till max, for all locations l', for all predecessors l of l'
-     * for all states s in F(i,l), check if s is inductive an add to F(i+1,l') if it is
-     * the case. Inductivity means: F(i,l) & T(l->l') & not(s_prime) is unsatisfiable.
+     * For all levels i till max, for all locations l', for all predecessors l of l',
+     * for all clauses s in all l', if s is inductive relative to all l' :
+     * Take s from F(i,l') and also add it to F(i+1,l)
      */
-    for (int level = 1; level <= currentMaxLevel - 1; ++level) { // TODO bounds ok ?
+    for (int level = 0; level <= currentMaxLevel; ++level) {
+      final int lvl = level;
 
-      // For each location
+      // For each location to propagate TO
       for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
-        CFANode location = mapEntry.getKey();
-        FluentIterable<Block> blocksToLocation = backwardTransition.getBlocksTo(location);
+        CFANode propTarget = mapEntry.getKey();
+        FluentIterable<Block> blocksToPropTarget = backwardTransition.getBlocksTo(propTarget);
+        FluentIterable<BooleanFormula> allClausesInPropTargetPreds = blocksToPropTarget
+            .transform(Block::getPredecessorLocation)
+            .transformAndConcat(loc -> getStatesForLocation(loc, lvl));
 
-        // For each predecessor location
-        for (Block predBlock : blocksToLocation) {
-          CFANode predLocation = predBlock.getPredecessorLocation();
-          Set<BooleanFormula> predFrameStates = getStatesForLocation(predLocation, level);
-          int numberFrameStates = predFrameStates.size();
+        for (BooleanFormula clause : allClausesInPropTargetPreds) {
+          boolean canPropFromAllPreds = true;
 
-          for (BooleanFormula state : predFrameStates) { // Push F(i,l) [unprimed]
-            pProver.push(
-                fmgr.instantiate(
-                    state, SSAMap.emptySSAMap().withDefault(DEFAULT_LOWEST_SSA_INDEX)));
-          }
-
-          // Invert blocks so that the SSA indices for the predecessors
-          // ("unprimed" variables) match
-          BooleanFormula transitionFormula = Blocks.formulaWithInvertedIndices(predBlock, fmgr);
-          pProver.push(transitionFormula); // Push transition
-
-          for (BooleanFormula state : predFrameStates) {
-
-            // Push state [primed] // TODO SSA correct ? must be highest ones
-            pProver.push(bfmgr.not(fmgr.instantiate(state, predBlock.getPrimedContext().getSsa())));
-
-            if (pProver.isUnsat()) {
-              if (location.equals(predLocation)) {
-                removeStateFromDeltaLayers(state, predLocation, level);
-              }
-
-              // Add state to location at level + 1
-              addWithSubsumption(state, location, level + 1, pSubsumptionProver);
+          // Check if propagation possible FROM ALL predecessors
+          for (Block predBlock : blocksToPropTarget) {
+            if (!pPDRSat.canPropagate(clause, lvl, predBlock)) {
+              canPropFromAllPreds = false;
+              break;
             }
-            pProver.pop(); // Pop state [primed]
+            pShutdownNotifier.shutdownIfNecessary();
           }
-          pProver.pop(); // Pop transition
-          for (int i = 0; i < numberFrameStates; ++i) { // Pop F(i,l) [unprimed]
-            pProver.pop();
+
+          // Add TO successor location if all predecessors allowed propagation
+          if (canPropFromAllPreds) {
+            blockStates(clause, lvl + 1, propTarget);
           }
         }
       }
-    }
-  }
 
-  /** Searches the frames of pLocation starting at pLevel for pState and removes it. */
-  private void removeStateFromDeltaLayers(BooleanFormula pState, CFANode pLocation, int pLevel) {
-    frames
-        .get(pLocation)
-        .stream()
-        .skip(pLevel) // pState is at pLevel or higher
-        .filter(frame -> frame.contains(pState))
-        .findFirst()
-        .get()
-        .removeState(pState);
-  }
-
-  @Override
-  public boolean isConvergent() { // TODO Use only when subsumption is fully implemented
-
-    // Check if one delta layer is empty for all locations at the same level
-    Iterator<CFANode> it = frames.keySet().iterator();
-    for (int currentLevel = 1; currentLevel <= currentMaxLevel; ++currentLevel) {
-      boolean isLayerEmpty = true;
-
-      while (isLayerEmpty && it.hasNext()) {
-        isLayerEmpty = frames.get(it.next()).get(currentLevel).isEmpty();
+      /*
+       *  Early termination if layer at current iteration became empty for all locations.
+       *  Propagation not continued beyond that iteration.
+       */
+      if (clearRedundantClauses(lvl + 1, pPDRSat, pShutdownNotifier)) {
+        return true;
       }
-      if (isLayerEmpty) {
+    }
+
+    /*
+     *  Usual termination if no layer became empty for all locations.
+     *  Full cycle of propagation was executed.
+     */
+    return false;
+  }
+
+  /**
+   * For each location, goes over all frame clauses for levels <= pMaxCheckedLevel
+   * and removes redundant ones. If some frame below pMaxCheckedLevel became empty
+   * for all locations, returns true, else false.
+   */
+  private boolean clearRedundantClauses(int pMaxCheckedLevel, PDRSat pPDRSat, ShutdownNotifier pShutdownNotifier)
+      throws SolverException, InterruptedException {
+
+    // For all levels till provided maximum
+    for (int frameLevel = 0; frameLevel <= pMaxCheckedLevel; ++frameLevel) {
+
+      // For all frames per location
+      for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
+        List<ApproximationFrame> framesForCurrentLoc = mapEntry.getValue();
+
+        // TODO deep copy like below necessary?
+        Set<BooleanFormula> potentiallySubsumingClauses = Sets.newHashSet();
+        for (BooleanFormula clause : framesForCurrentLoc.get(frameLevel).getStates()) {
+          potentiallySubsumingClauses.add(bfmgr.and(clause, bfmgr.makeTrue()));
+        }
+
+        // For all clauses in frame at current level at current location
+        for (BooleanFormula maybeSubsumingClause : potentiallySubsumingClauses) {
+
+          // For all levels up to current
+          for (int searchedLevel = frameLevel; searchedLevel >= 0; --searchedLevel) {
+            ApproximationFrame checkedLayer = framesForCurrentLoc.get(searchedLevel);
+            Set<BooleanFormula> checkedClauses = checkedLayer.getStates();
+
+            // Be careful to not subsume itself
+            if (searchedLevel == frameLevel) {
+              checkedClauses.remove(maybeSubsumingClause);
+            }
+
+            // For all clauses to be checked against
+            Iterator<BooleanFormula> it = checkedClauses.iterator();
+            while (it.hasNext()) {
+
+              // Finally check redundancy
+              if (pPDRSat.subsumes(maybeSubsumingClause, it.next())) {
+                it.remove();
+                pShutdownNotifier.shutdownIfNecessary();
+              }
+            }
+          }
+        }
+      }
+
+      // Check if layer at current iteration became empty for all locations.
+      int lvl = frameLevel;
+      if (frames.entrySet()
+          .stream()
+          .map(entry -> entry.getValue().get(lvl))
+          .allMatch(ApproximationFrame::isEmpty)) {
         return true;
       }
     }
     return false;
-  }
-
-  /** Adds a state to a frame while also removing all redundant states. */
-  private void addWithSubsumption(
-      BooleanFormula pState, CFANode pLocation, int pLevel, ProverEnvironment pProver)
-      throws SolverException, InterruptedException {
-
-    boolean addState = true;
-
-    for (int level = 0; level <= currentMaxLevel; ++level) {
-      ApproximationFrame currentFrame = frames.get(pLocation).get(level);
-
-      for (BooleanFormula stateInFrame :
-          currentFrame
-              .getStates()
-              .stream()
-              .filter(bf -> !bfmgr.isFalse(bf))
-              .collect(Collectors.toList())) {
-
-        /*
-         * Check if other state is stronger than pState. If implication holds :
-         * Do not add.
-         */
-        pProver.push(bfmgr.implication(stateInFrame, pState));
-        if (!pProver.isUnsat()) {
-          addState = false;
-        }
-        pProver.pop();
-
-        /*
-         * Check if pState state is stronger than other one. If implication holds :
-         * Remove other one and add pState later.
-         */
-        pProver.push(bfmgr.implication(pState, stateInFrame));
-        if (!pProver.isUnsat()) {
-          currentFrame.removeState(stateInFrame);
-        }
-        pProver.pop();
-      }
-    }
-
-    if (addState) {
-      frames.get(pLocation).get(pLevel).addState(pState);
-    }
   }
 
   @Override
@@ -330,16 +310,8 @@ public class DynamicFrameSet implements FrameSet {
       states.add(pState);
     }
 
-    private void removeState(BooleanFormula pState) {
-      states.remove(pState);
-    }
-
     private Set<BooleanFormula> getStates() {
       return states;
-    }
-
-    private boolean contains(BooleanFormula pState) {
-      return states.contains(pState);
     }
 
     private boolean isEmpty() {

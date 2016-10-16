@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr;
 
+import java.util.Map;
+import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.Map;
-import java.util.Set;
 
 /**
  * A list of sets of reachable states for locations. More specifically, for any location, the
@@ -61,44 +60,35 @@ public interface FrameSet {
   Set<BooleanFormula> getStatesForLocation(CFANode pLocation, int pLevel);
 
   /**
-   * Gets all reached states of <strong>every</strong> location at the specified level.
-   * This is the same as calling {@link #getStatesForLocation(CFANode, int)} for every
-   * location.
-   * @param pLevel the frame level
-   * @return a map containing sets of formulas representing an over-approximation of states
-   * reachable at the respective location in at most {@code pLevel} steps from the start
-   * location
+   * Only included temporarily for debugging purposes. To be removed at a later point.
    */
   Map<CFANode, Set<BooleanFormula>> getStatesForAllLocations(int pLevel);
 
   /**
-   * Blocks a state, i.e. adds its negation to the frames belonging to the specified
-   * location at <strong>all</strong> levels up till the provided maximum.
-   * @param pState the state to be blocked
-   * @param pMaxLevel the highest level the state should be blocked at
-   * @param pLocation the program location the state should be blocked at
+   * Blocks states, i.e. adds their negation to the frames belonging to
+   * the specified location at <strong>all</strong> levels up till the provided maximum.
+   * @param pStates the formula representing the blockable states
+   * @param pMaxLevel the highest level the states should be blocked at
+   * @param pLocation the program location the states should be blocked at
    */
-  void blockState(BooleanFormula pState, int pMaxLevel, CFANode pLocation);
+  void blockStates(BooleanFormula pStates, int pMaxLevel, CFANode pLocation);
 
-  /**
-   * Checks if there exists any level <i>i</i> so that two neighboring frames F(i,l)
-   * and F(i+1,l) are equal for all locations <i>l</i>.
-   * @return {@code true} if a level as described above exists, {@code false} otherwise
-   */
-  boolean isConvergent();
 
   /**
    * Tries to push states forward along the local transition between locations/blocks if they
    * are inductive relative to frame states. Subsumes redundant states during the process.
-   * @param pProver the prover environment used to make more complicated sat checks
-   * @param pSubsumptionProver the prover environment used to make simple implication checks
-   * for subsumption
+   * Returns whether 2 adjacent sets of frame clauses became equal for all locations.
+   * @param pShutdownNotifier the notifier that checks if propagation takes too long and
+   * should be interrupted
+   * @return True if there exists any level i so that for all locations l, the states in frame F(i,l)
+   *         are equal to the states in frame F(i+1,l)
    * @throws SolverException if one of the SAT checks performed during
-   * propagation throws an exception.
+   *         propagation throws an exception.
    * @throws InterruptedException if propagation was interrupted.
    * @throws CPAException if the analysis creating the transition formula
    * encounters an exception.
    */
-  void propagate(ProverEnvironment pProver, ProverEnvironment pSubsumptionProver)
+  boolean propagate(PDRSat pPDRSat,
+      ShutdownNotifier pShutdownNotifier)
       throws SolverException, InterruptedException, CPAException;
 }
