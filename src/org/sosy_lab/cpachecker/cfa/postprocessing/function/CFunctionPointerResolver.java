@@ -31,7 +31,14 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -73,15 +80,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.logging.Level;
-
 /**
  * This class is responsible for replacing calls via function pointers like (*fp)()
  * with code similar to the following:
@@ -120,7 +118,7 @@ public class CFunctionPointerResolver {
 
   @Option(secure=true, name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_TYPES, FunctionSet.RETURN_VALUE);
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
