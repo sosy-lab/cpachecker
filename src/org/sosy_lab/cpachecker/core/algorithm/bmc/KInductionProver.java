@@ -36,7 +36,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -76,17 +84,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of this class are used to prove the safety of a program by
@@ -439,7 +436,7 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Assert the known invariants at the loop head at the first iteration.
-    FluentIterable<AbstractState> stopStates = getStopStates(reached).filter(
+    FluentIterable<AbstractState> stopStates = getUnslicedStopStates(reached).filter(
         s -> loopHeads.contains(AbstractStates.extractLocation(s))
     );
 
@@ -465,7 +462,7 @@ class KInductionProver implements AutoCloseable {
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
-    stopStates = getStopStates(reached).filter(
+    stopStates = getUnslicedStopStates(reached).filter(
         s -> loopHeads.contains(AbstractStates.extractLocation(s))
     );
 
@@ -665,8 +662,10 @@ class KInductionProver implements AutoCloseable {
     }
   }
 
-  private static FluentIterable<AbstractState> getStopStates(ReachedSet pReachedSet) {
-    return from(pReachedSet).filter(BMCAlgorithm.IS_STOP_STATE);
+  private static FluentIterable<AbstractState> getUnslicedStopStates(ReachedSet pReachedSet) {
+    return from(pReachedSet)
+        .filter(AbstractBMCAlgorithm.IS_STOP_STATE)
+        .filter(Predicates.not(AbstractBMCAlgorithm.IS_SLICED_STATE));
   }
 
 }

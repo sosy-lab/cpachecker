@@ -34,7 +34,12 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -68,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -79,18 +85,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
@@ -103,6 +101,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
                              }
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
+
+  static final Predicate<AbstractState> IS_SLICED_STATE = (state) ->
+    AbstractStates.extractStateByType(state, ReachabilityState.class) == ReachabilityState.IRRELEVANT_TO_TARGET;
 
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
@@ -546,7 +547,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover)
       throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
-                                                    .filter(IS_STOP_STATE);
+        .filter(IS_STOP_STATE)
+        .filter(Predicates.not(IS_SLICED_STATE));
 
     if (boundingAssertions) {
       // create formula for unwinding assertions
