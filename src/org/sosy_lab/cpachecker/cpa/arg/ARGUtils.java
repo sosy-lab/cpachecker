@@ -372,17 +372,6 @@ public class ARGUtils {
         Map<Integer, ARGState> stateIdToState = Maps.newTreeMap();
         Map<Integer, CFAEdge> childStateIdToEdge = Maps.newTreeMap();
 
-//        CFANode loc = AbstractStates.extractLocation(currentElement);
-//        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-//          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), pArg).immutableCopy();
-//          if (candidates.size() != 1) {
-//            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
-//          }
-//          child = Iterables.getOnlyElement(candidates);
-//          edge = currentElement.getEdgeToChild(child);
-//          break;
-//        }
-
         edge = null;
         child = null;
 
@@ -436,7 +425,10 @@ public class ARGUtils {
         throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
-      Preconditions.checkState(edge != null, "No 'null' edges are allowed along an ARGPath!");
+      // Precondition
+      //    checkState(edge != null, "No 'null' edges are allowed along an ARGPath!");
+      // removed because:
+      //    null-edges might appear because of 'cpa.composite.aggregateBasicBlocks=true'!!
       builder.add(currentElement, edge);
       currentElement = child;
     }
