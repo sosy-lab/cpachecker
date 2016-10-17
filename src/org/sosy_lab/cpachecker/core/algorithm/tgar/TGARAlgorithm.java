@@ -37,7 +37,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
-import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -49,14 +48,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats.StatHandle;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.comparator.DeeperLevelFirstComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tgar.interfaces.TestificationOperator;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -236,7 +233,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
           final boolean eliminated;
           try (StatHandle stat = PropertyStats.INSTANCE.startRefinement(targetProperties)) {
-            eliminated = refine(pReached, targetState);
+            eliminated = refine(pReached, targetState, targetProperties);
           }
 
           if (eliminated) {
@@ -339,7 +336,10 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
 
 
   @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
-  private boolean refine(ReachedSet pReached, AbstractState pTarget)
+  private boolean refine(
+      ReachedSet pReached,
+      AbstractState pTarget,
+      Set<? extends Property> pTargetProperties)
       throws CPAException, InterruptedException {
     Preconditions.checkArgument(pTarget instanceof ARGState);
     final ARGState target = (ARGState) pTarget;
@@ -363,7 +363,7 @@ public class TGARAlgorithm implements Algorithm, AlgorithmWithResult, Statistics
           final int removedTargets = targetCandidatesBeforeRefinement -
               targetCandidatesAfterRefinement;
           final boolean allCandidatesEliminated = (targetCandidatesAfterRefinement == 0);
-          stats.endWithInfeasible(pReached, target, removedTargets, allCandidatesEliminated);
+          stats.endWithInfeasible(pReached, target, removedTargets, allCandidatesEliminated, pTargetProperties);
         } else {
           feasibleStateIds.add(target.getStateId());
           stats.endWithFeasible(pReached, target);

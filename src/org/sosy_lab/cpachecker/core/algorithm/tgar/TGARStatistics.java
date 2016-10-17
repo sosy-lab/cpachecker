@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -191,12 +192,14 @@ public class TGARStatistics extends AbstractStatistics {
   void endWithInfeasible(
       ReachedSet pReachedSetAfterRefine,
       ARGState pTargetState,
-      int pRemovedTargets, boolean pAllCandidatesEliminated) {
+      int pRemovedTargets,
+      boolean pAllCandidatesEliminated,
+      Collection<? extends Property> pViolatedProperties) {
     countSuccessfulRefinements++;
     totalReachedSizeAfterRefinement += pReachedSetAfterRefine.size();
     maxReachedSizeAfterRefinement = Math.max(maxReachedSizeAfterRefinement, pReachedSetAfterRefine.size());
     refinementTimer.stop();
-    timesInfeasible.addAll(pTargetState.getViolatedProperties());
+    timesInfeasible.addAll(pViolatedProperties);
     maxRemovedTargets = Math.max(maxRemovedTargets, pRemovedTargets);
     totalRemovedTargets = totalRemovedTargets + maxRemovedTargets;
     if (pAllCandidatesEliminated) {
