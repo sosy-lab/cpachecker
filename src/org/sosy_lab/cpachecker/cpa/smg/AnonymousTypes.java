@@ -41,8 +41,8 @@ public class AnonymousTypes {
           CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBits / 8));
       return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
-      CSimpleType bitFieldType = new CSimpleType(false, false, CBasicType.CHAR, false, false, true,  false, false, false, false);
-      bitFieldType.setBitFieldSize(pSizeInBits);
+      CSimpleType fieldType = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+      CType bitFieldType = fieldType.setBitFieldSize(pSizeInBits);
       return bitFieldType;
     }
   }

@@ -1734,7 +1734,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of(pNewState);
   }
 
-  private Triple<Integer, Integer, Boolean> calculateOffsetAndPostionOfFieldAndIsPrevBitfieldFromDesignator(
+  private Pair<Integer, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
       int offsetAtStartOfStruct,
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
@@ -1748,18 +1748,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
 
     int offset = offsetAtStartOfStruct;
-    boolean isPrevbitfield = false;
-
     for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
 
       CCompositeTypeMemberDeclaration memberDcl = pMemberTypes.get(listCounter);
 
       if (memberDcl.getName().equals(fieldDesignator)) {
-        return Triple.of(offset, listCounter, isPrevbitfield);
+        return Pair.of(offset, listCounter);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
           offset += machineModel.getBitSizeof(memberDcl.getType());
-          if (!(isPrevbitfield && memberDcl.getType().isBitField())) {
+          if (!(machineModel.isBitFieldsSupportEnabled() && memberDcl.getType().isBitField())) {
             int overByte = offset % MachineModel.getSizeofCharInBits();
             if (overByte > 0) {
               offset += MachineModel.getSizeofCharInBits() - overByte;
@@ -1768,7 +1766,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
         }
       }
-      isPrevbitfield = memberDcl.getType().isBitField();
     }
     throw new UnrecognizedCCodeException("CDesignator field name not in struct.", pInitializer);
   }
@@ -1812,16 +1809,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
 
-    boolean isPrevBitfield = false;
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
       if (initializer instanceof CDesignatedInitializer) {
-        Triple<Integer, Integer, Boolean> offsetAndPositionAndIsPrevBitfield =
-            calculateOffsetAndPostionOfFieldAndIsPrevBitfieldFromDesignator(pOffset, memberTypes,
+        Pair<Integer, Integer> offsetAndPosition =
+            calculateOffsetAndPositionOfFieldFromDesignator(pOffset, memberTypes,
                 (CDesignatedInitializer) initializer, pEdge, pNewState, pLValueType);
-        int offset = offsetAndPositionAndIsPrevBitfield.getFirst();
-        listCounter = offsetAndPositionAndIsPrevBitfield.getSecond();
-        isPrevBitfield = offsetAndPositionAndIsPrevBitfield.getThird();
+        int offset = offsetAndPosition.getFirst();
+        listCounter = offsetAndPosition.getSecond();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
 
         List<Pair<SMGState, Integer>> resultOffsetAndStatesDesignated = new ArrayList<>();
@@ -1846,7 +1841,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
 
         int offset = offsetAndState.getSecond();
-        if (!(isPrevBitfield && memberType.isBitField())) {
+        if (!(machineModel.isBitFieldsSupportEnabled() && memberType.isBitField())) {
           int overByte = offset % MachineModel.getSizeofCharInBits();
           if (overByte > 0) {
             offset += MachineModel.getSizeofCharInBits() - overByte;
@@ -1856,9 +1851,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGState newState = offsetAndState.getFirst();
 
         List<SMGState> pNewStates =
-            handleInitializer(pNewState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
+            handleInitializer(newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
-        isPrevBitfield = memberType.isBitField();
         offset = offset + machineModel.getBitSizeof(memberType);
 
         List<? extends Pair<SMGState, Integer>> newStatesAndOffset =
