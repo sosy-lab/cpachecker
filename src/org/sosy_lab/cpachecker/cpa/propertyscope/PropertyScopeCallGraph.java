@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -85,11 +86,11 @@ public class PropertyScopeCallGraph {
           FunctionNode fnode = graph.functionNodeFor(toChEdge.getSuccessor().getFunctionName());
           fnode.cfaEdges += 1;
           for (Reason reason : Reason.values()) {
-            int edgeCount = fnode.scopedCFAEdgesCounts.get(reason);
-            edgeCount += psState.getScopeLocations().stream()
-                             .anyMatch(sloc -> sloc.getEdge().equals(toChEdge)
-                                 && sloc.getReason() == reason) ? 1 : 0;
-            fnode.scopedCFAEdgesCounts.put(reason, edgeCount);
+            if (psState.getScopeLocations().stream()
+                .anyMatch(sloc -> sloc.getEdge().equals(toChEdge)
+                    && sloc.getReason() == reason)) {
+              fnode.scopedCFAEdges.get(reason).add(toChEdge);
+            }
           }
         }
 
@@ -152,15 +153,16 @@ public class PropertyScopeCallGraph {
     private final String name;
     private int argOccurenceCount = 0; // how often the name gets called
     private int cfaEdges = 0; // passed CFAEdges in ARG
-    private final Map<ScopeLocation.Reason, Integer> scopedCFAEdgesCounts;
+    private final Map<ScopeLocation.Reason, Set<CFAEdge>> scopedCFAEdges;
+
     private final Set<CallEdge> callEdges = new HashSet<>();
 
     private FunctionNode(int pId, String pName) {
       id = pId;
       name = pName;
-      scopedCFAEdgesCounts = new TreeMap<>();
+      scopedCFAEdges = new TreeMap<>();
       for (Reason r : Reason.values()) {
-        scopedCFAEdgesCounts.put(r,0);
+        scopedCFAEdges.put(r, new LinkedHashSet<>());
       }
     }
 
@@ -181,15 +183,15 @@ public class PropertyScopeCallGraph {
     }
 
     public int getScopedCFAEdgesCount(Reason reason) {
-      return scopedCFAEdgesCounts.get(reason);
+      return scopedCFAEdges.get(reason).size();
+    }
+
+    public Set<CFAEdge> getScopedCFAEdges(Reason pReason) {
+      return Collections.unmodifiableSet(scopedCFAEdges.get(pReason));
     }
 
     public double calculatePropertyScopeImportance(Reason reason) {
-      return cfaEdges == 0 ? 0 : (double) scopedCFAEdgesCounts.get(reason) / (double) cfaEdges;
-    }
-
-    public Map<Reason, Integer> getScopedCFAEdgesCounts() {
-      return Collections.unmodifiableMap(scopedCFAEdgesCounts);
+      return cfaEdges == 0 ? 0 : (double) scopedCFAEdges.get(reason).size() / (double) cfaEdges;
     }
 
     public Set<CallEdge> getCallEdges() {
