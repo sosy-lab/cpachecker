@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.CallEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeCallGraph.FunctionNode;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
@@ -93,6 +94,21 @@ public class PropertyScopeCallGraphToGraphMLWriter {
     propertyRelevantCFAEdgesElement.setAttribute("attr.type", "int");
     rootElement.appendChild(propertyRelevantCFAEdgesElement);
 
+    Element cFAEdgesInScopeNamesElement = doc.createElement("key");
+    cFAEdgesInScopeNamesElement.setAttribute("id", "cfa_edges_in_scope_names");
+    cFAEdgesInScopeNamesElement.setAttribute("attr.name", "cfa_edges_in_scope_names");
+    cFAEdgesInScopeNamesElement.setAttribute("for", "node");
+    cFAEdgesInScopeNamesElement.setAttribute("attr.type", "string");
+    rootElement.appendChild(cFAEdgesInScopeNamesElement);
+
+    Element cFAEdgesInScopeNamesReadableElement = doc.createElement("key");
+    cFAEdgesInScopeNamesReadableElement.setAttribute("id", "cfa_edges_in_scope_names_readable");
+    cFAEdgesInScopeNamesReadableElement.setAttribute(
+        "attr.name", "cfa_edges_in_scope_names_readable");
+    cFAEdgesInScopeNamesReadableElement.setAttribute("for", "node");
+    cFAEdgesInScopeNamesReadableElement.setAttribute("attr.type", "string");
+    rootElement.appendChild(cFAEdgesInScopeNamesReadableElement);
+
     Element propertyScopeRelevanceElement = doc.createElement("key");
     propertyScopeRelevanceElement.setAttribute("id", "prop_scope_relevance");
     propertyScopeRelevanceElement.setAttribute("attr.name", "prop_scope_relevance");
@@ -154,6 +170,23 @@ public class PropertyScopeCallGraphToGraphMLWriter {
       nodeCFAEdInScopeDataElem.setAttribute("key", "cfa_edges_in_scope");
       nodeCFAEdInScopeDataElem.setTextContent(Integer.toString(node.getScopedCFAEdgesCount(reason)));
       nodeElement.appendChild(nodeCFAEdInScopeDataElem);
+
+      String b64scopedEdges = node.getScopedCFAEdges(reason).stream()
+          .map(p -> Base64.getEncoder()
+              .encodeToString(p.toString().getBytes(StandardCharsets.UTF_8)))
+          .collect(Collectors.joining(";"));
+      Element cFAEdgesInScopeNamesDataElement = doc.createElement("data");
+      cFAEdgesInScopeNamesDataElement.setAttribute("key", "cfa_edges_in_scope_names");
+      cFAEdgesInScopeNamesDataElement.setTextContent(b64scopedEdges);
+      nodeElement.appendChild(cFAEdgesInScopeNamesDataElement);
+
+      String scopedEdges = node.getScopedCFAEdges(reason).stream()
+          .map(Object::toString).collect(Collectors.joining(";"));
+      Element cFAEdgesInScopeNamesReadableDataElement = doc.createElement("data");
+      cFAEdgesInScopeNamesReadableDataElement
+          .setAttribute("key", "cfa_edges_in_scope_names_readable");
+      cFAEdgesInScopeNamesReadableDataElement.setTextContent(scopedEdges);
+      nodeElement.appendChild(cFAEdgesInScopeNamesReadableDataElement);
 
       Element nodeScopeRelevanceDataElem = doc.createElement("data");
       nodeScopeRelevanceDataElem.setAttribute("key", "prop_scope_relevance");
