@@ -244,7 +244,7 @@ public class BAMPredicateReducer implements Reducer {
         globalPredicates);
   }
 
-  private static class ReducedPredicatePrecision extends PredicatePrecision {
+  static class ReducedPredicatePrecision extends PredicatePrecision {
 
     /* the top-level-precision of the main-block */
     private final PredicatePrecision rootPredicatePrecision;
@@ -260,7 +260,7 @@ public class BAMPredicateReducer implements Reducer {
       this.rootPredicatePrecision = pRootPredicatePrecision;
     }
 
-    private PredicatePrecision getRootPredicatePrecision() {
+    PredicatePrecision getRootPredicatePrecision() {
       return rootPredicatePrecision;
     }
 
