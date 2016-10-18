@@ -186,7 +186,7 @@ analysis.functionPointerCalls = true
 analysis.functionPointerEdgesForUnknownPointer = true
 
 # potential targets for call edges created for function pointer calls
-analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_TYPES, FunctionSet.RETURN_VALUE}
+analysis.functionPointerTargets = {FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE}
 
 # What CFA nodes should be the starting point of the analysis?
 analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
