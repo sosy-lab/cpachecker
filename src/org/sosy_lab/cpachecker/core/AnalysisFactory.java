@@ -103,7 +103,11 @@ public class AnalysisFactory {
     CoreComponentsFactory factory = new CoreComponentsFactory(config, logger, pShutdownManager.getNotifier());
 
     ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, speComposition, pSpecificationAutomata);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+    if (config.getProperty("analysis.algorithm.tiger").equals("true")) {
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa, config, logger, pShutdownManager.getNotifier(), cfa);
+    } else {
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+    }
 
     Algorithm algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, mainStats, true);
 

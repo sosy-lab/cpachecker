@@ -313,7 +313,11 @@ public class CPAchecker {
             ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
           }
 
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+          if (config.getProperty("analysis.algorithm.tiger").equals("true")) {
+            GlobalInfo.getInstance().setUpInfoFromCPA(cpa, config, logger, shutdownNotifier, cfa);
+          } else {
+            GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+          }
 
           algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 

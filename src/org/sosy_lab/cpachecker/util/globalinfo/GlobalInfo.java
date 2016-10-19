@@ -26,22 +26,26 @@ package org.sosy_lab.cpachecker.util.globalinfo;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronManager;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.presence.binary.BinaryPresenceConditionManager;
+import org.sosy_lab.cpachecker.util.presence.formula.FormulaPresenceConditionManager;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
-import org.sosy_lab.cpachecker.util.presence.region.RegionPresenceConditionManager;
 
 
 public class GlobalInfo {
@@ -115,6 +119,30 @@ public class GlobalInfo {
 
   public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
     setUpInfoFromCPA(pCpa, new BinaryPresenceConditionManager());
+  }
+
+  public void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa, Configuration pConfig,
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException {
+    FormulaManagerView lPredicateFormulaManagerView = null;
+    Solver lPredicateSolver = null;
+
+    if (pCpa != null) {
+      for (ConfigurableProgramAnalysis c : CPAs.asIterable(pCpa)) {
+        if (c instanceof PredicateCPA) {
+          lPredicateFormulaManagerView = ((PredicateCPA) c).getSolver().getFormulaManager();
+          lPredicateSolver = ((PredicateCPA) c).getSolver();
+        }
+      }
+    }
+
+    if (lPredicateFormulaManagerView == null || lPredicateSolver == null) {
+      setUpInfoFromCPA(pCpa, new BinaryPresenceConditionManager());
+    } else {
+      setUpInfoFromCPA(pCpa,
+          new FormulaPresenceConditionManager(new PathFormulaManagerImpl(lPredicateFormulaManagerView,
+              pConfig, pLogger, pShutdownNotifier, pCfa, AnalysisDirection.FORWARD),
+              lPredicateSolver));
+    }
   }
 
   public AutomatonInfo getAutomatonInfo() {
