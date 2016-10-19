@@ -106,6 +106,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.io.FileNotFoundException;
@@ -313,7 +314,7 @@ public class CPAchecker {
             ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
           }
 
-          if (config.getProperty("analysis.algorithm.tiger").equals("true")) {
+          if (Objects.equals(config.getProperty("analysis.algorithm.tiger"), "true")) {
             GlobalInfo.getInstance().setUpInfoFromCPA(cpa, config, logger, shutdownNotifier, cfa);
           } else {
             GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
