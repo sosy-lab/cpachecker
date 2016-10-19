@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.util.List;
-
 import javax.annotation.Nullable;
+
+import java.util.List;
 
 public class AnalysisFactory {
 
@@ -103,7 +103,7 @@ public class AnalysisFactory {
     CoreComponentsFactory factory = new CoreComponentsFactory(config, logger, pShutdownManager.getNotifier());
 
     ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, speComposition, pSpecificationAutomata);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa, config, logger, pShutdownManager.getNotifier(), cfa);
 
     Algorithm algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, mainStats, true);
 

@@ -39,14 +39,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
 
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.ShutdownManager;
@@ -99,27 +91,20 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
+import javax.annotation.Nullable;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 @Options
 public class CPAchecker {
@@ -313,7 +298,7 @@ public class CPAchecker {
             ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
           }
 
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+          GlobalInfo.getInstance().setUpInfoFromCPA(cpa, config, logger, shutdownNotifier, cfa);
 
           algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 
