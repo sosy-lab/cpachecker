@@ -23,7 +23,16 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.zip.ZipInputStream;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,20 +59,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
+import com.google.common.collect.Sets;
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
 
-  private final CFA cfa;
   private final Configuration config;
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
@@ -76,7 +75,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     super(pConfig, pLogger);
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCFA);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
-    cfa = pCFA;
     config = pConfig;
     logger = pLogger;
     shutdown = pShutdownNotifier;
@@ -210,7 +208,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     try {
       ReachedSet reached;
       for (int i = 0; i < partialReachedSets.size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i), config, logger, shutdown, cfa);
+        GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i));
         reached = partialReachedSets.get(i);
 
         unexplored = Sets.newHashSetWithExpectedSize(reached.getWaitlist().size());
@@ -282,7 +280,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             break;
           }
           cpas[i] = (PropertyCheckerCPA) cpa;
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i], config, logger, shutdown, cfa);
+          GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
 
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
 

@@ -71,8 +71,6 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -81,6 +79,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider {
@@ -435,7 +435,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
     }
 
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa, globalConfig, logger, shutdownNotifier, cfa);
+    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
     algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
     reached =

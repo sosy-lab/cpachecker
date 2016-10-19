@@ -160,7 +160,7 @@ public class ParallelAlgorithm implements Algorithm {
       ConfigurableProgramAnalysis cpa =
           coreComponents.createCPA(cfa, SpecAutomatonCompositionType.TARGET_SPEC, null);
 
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa, globalConfig, logger, shutdownManager.getNotifier(), cfa);
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, filename, cfa);
       reached = createInitialReachedSet(cpa, mainEntryNode, coreComponents.getReachedSetFactory());

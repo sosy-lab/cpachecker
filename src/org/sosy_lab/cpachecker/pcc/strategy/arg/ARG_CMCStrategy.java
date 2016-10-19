@@ -63,7 +63,6 @@ import java.util.zip.ZipInputStream;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
 
-  private final CFA cfa;
   private final Configuration globalConfig;
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
@@ -76,7 +75,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       final CFA pCfa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     //pConfig.inject(this);
-    cfa = pCfa;
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa);
@@ -131,7 +129,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       pOut.writeInt(roots.length);
 
       for (int i=0; i<historyReached.getCPAs().size();i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i), globalConfig, logger, shutdown, cfa);
+        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i));
         pOut.writeObject(roots[i]);
       }
     }
@@ -167,7 +165,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
           cpa = cpaBuilder.buildPartialCPA(i, factory);
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa, globalConfig, logger, shutdown, cfa);
+          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
           readARG = o.readObject();
           if (!(readARG instanceof ARGState)) { return false; }
 
@@ -247,7 +245,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
             for (int i = 0; i < roots.length && checkResult.get(); i++) {
               logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
               cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
-              GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i], globalConfig, logger, shutdown, cfa);
+              GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
               readARG = o.readObject();
               if (!(readARG instanceof ARGState)) {
                 abortPreparation();
