@@ -131,10 +131,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     if (options.splitOnTargetStatesToInactive) {
       if (targetStates.size() > 0) {
-        // The order of the states is important (!!) because
-        //    the CPAAlgorithm terminates after it has found the target state
-        //    --> The target state should not be the first element here!
-        firstToReturnStates.add(intermediateState);
+        // If there is one target state
+        if (basicResult.size() != targetStates.size() * 2) {
+          // Only if the automata does not SPLIT itself.
+
+          // The order of the states is important (!!) because
+          //    the CPAAlgorithm terminates after it has found the target state
+          //    --> The target state should not be the first element here!
+          firstToReturnStates.add(intermediateState);
+        }
       }
     }
 
