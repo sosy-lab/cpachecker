@@ -203,7 +203,12 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public PresenceCondition getRemainingPresenceCondition(Goal pGoal) {
-    return PresenceConditions.orTrue(remainingPresenceConditions.get(pGoal));
+    PresenceCondition pc = remainingPresenceConditions.get(pGoal);
+    if (pc == null) {
+      return pcm().makeTrue();
+    } else {
+      return pc;
+    }
   }
 
   private void setRemainingPresenceCondition(Goal pGoal, PresenceCondition presenceCondtion) {
@@ -245,37 +250,24 @@ public class TestSuite implements AlgorithmResult {
               pcm().makeNegation(pPresenceCondition)));
     }
 
-    if (!isVariabilityAware()) {
+    if (isGoalCovered(goal)) {
+      partiallyFeasibleGoals.remove(goal);
       feasibleGoals.add(goal);
     } else {
-      PresenceCondition remainingPC = getRemainingPresenceCondition(goal);
-
-      if (pcm().checkEqualsFalse(remainingPC)) {
-        partiallyFeasibleGoals.remove(goal);
-        feasibleGoals.add(goal);
-      } else {
-        partiallyFeasibleGoals.add(goal);
-      }
+      partiallyFeasibleGoals.add(goal);
     }
 
     return testcaseExisted;
   }
 
-  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition) {
-    if (isVariabilityAware()) {
-      setRemainingPresenceCondition(pGoal, pcm().makeFalse());
+  public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition) throws InterruptedException {
+    setRemainingPresenceCondition(pGoal, pcm().makeFalse());
+    infeasiblePresenceConditions.put(pGoal, pPresenceCondition);
 
-      infeasiblePresenceConditions.put(pGoal, pPresenceCondition);
-    }
-
-    if (!isVariabilityAware()) {
+    if (pcm().checkEqualsTrue(getInfeasiblePresenceCondition(pGoal))) {
       infeasibleGoals.add(pGoal);
     } else {
-      if (partiallyFeasibleGoals.contains(pGoal)) {
-        partiallyInfeasibleGoals.add(pGoal);
-      } else {
-        infeasibleGoals.add(pGoal);
-      }
+      partiallyInfeasibleGoals.add(pGoal);
     }
   }
 
@@ -361,12 +353,12 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public boolean isGoalCovered(Goal pGoal) throws InterruptedException {
-    if (isVariabilityAware()) {
-      return pcm().checkEqualsFalse(getRemainingPresenceCondition(pGoal));
-    } else {
-      List<TestCase> testCases = coveringTestCases.get(pGoal);
-      return (testCases != null && testCases.size() > 0);
-    }
+    return pcm().checkEqualsFalse(getRemainingPresenceCondition(pGoal));
+  }
+
+  public boolean isGoalPartiallyCovered(Goal pGoal) throws InterruptedException {
+    return !isGoalCoveredOrInfeasible(pGoal) && getCoveringTestCases(pGoal) != null
+        && !getCoveringTestCases(pGoal).isEmpty();
   }
 
   public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) throws InterruptedException {
@@ -479,7 +471,7 @@ public class TestSuite implements AlgorithmResult {
         PresenceCondition presenceCondition = infeasiblePresenceConditions.get(entry);
         if (presenceCondition != null) {
           str.append(": cannot be covered with PC ");
-          str.append(pcm().dump(presenceCondition).toString().replace(" & TRUE", ""));
+          str.append(presenceCondition.toString().replace(" & TRUE", ""));
         }
         str.append("\n");
       }
@@ -498,7 +490,7 @@ public class TestSuite implements AlgorithmResult {
         PresenceCondition presenceCondition = entry.getValue().getSecond();
         if (presenceCondition != null) {
           str.append(": timed out for PC ");
-          str.append(pcm().dump(presenceCondition));
+          str.append(presenceCondition);
         }
         str.append("\n");
       }

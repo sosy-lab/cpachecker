@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult.CounterexampleInfoResult;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysisFullReset;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.TargetSummary;
@@ -63,11 +62,11 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.MarkingAutomatonBuilder;
-import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
+
+import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -78,8 +77,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 @Options(prefix = "analysis.tigerdc")
 public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
@@ -117,7 +114,12 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   @Override
   protected void signalSatisfied(ImmutableSet<Property> pActive) {
     for (Goal g: Iterables.filter(pActive, Goal.class)) {
-      tg.handleInfeasibleTestGoal(g);
+      try {
+        tg.handleInfeasibleTestGoal(g);
+      } catch (Exception e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not determine infeasible presence condition for goal " + g.getIndex() + "!");
+      }
     }
   }
 

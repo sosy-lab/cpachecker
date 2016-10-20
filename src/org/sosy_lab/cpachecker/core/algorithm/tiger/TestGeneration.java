@@ -220,7 +220,7 @@ public class TestGeneration implements Statistics {
     for (Goal goal : goalsUnderAnalysis()) {
       if (testsuite.isGoalCoveredOrInfeasible(goal)) {
         toBlacklist.put(goal, Optional.of(pcm().makeTrue()));
-      } else if (cfg.useTigerAlgorithm_with_pc) {
+      } else if (testsuite.isGoalPartiallyCovered(goal)){
         PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
         PresenceCondition coveredFor = pcm().makeNegation(remainingPc);
         toBlacklist.put(goal, Optional.of(coveredFor));
@@ -366,7 +366,7 @@ public class TestGeneration implements Statistics {
         }
 
         // test goal is already covered by an existing test case
-        if (pTestcase.getPresenceCondition() != null) {
+        if (!pcm().checkEqualsTrue(pTestcase.getPresenceCondition())) {
           Pair<ARGState, PresenceCondition> critical = findStateAfterCriticalEdge(goal, pArgPath);
           if (critical == null) {
             throw new RuntimeException(String.format(
@@ -399,7 +399,7 @@ public class TestGeneration implements Statistics {
           }
 
         } else {
-          testsuite.addTestCase(pTestcase, goal, null);
+          testsuite.addTestCase(pTestcase, goal, pcm().makeTrue());
           logger.logf(Level.FINE, "Covered Goal %d (%s) by test case %d!",
               goal.getIndex(),
               testsuite.getTestGoalLabel(goal),
@@ -628,14 +628,9 @@ public class TestGeneration implements Statistics {
   }
 
 
-  void handleInfeasibleTestGoal(Goal pGoal) {
-    if (cfg.useTigerAlgorithm_with_pc) {
-      testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
-      logger.logf(Level.FINE, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
-    } else {
-      logger.logf(Level.FINE, "Goal %d is infeasible!", pGoal.getIndex());
-      testsuite.addInfeasibleGoal(pGoal, null);
-    }
+  void handleInfeasibleTestGoal(Goal pGoal) throws InterruptedException {
+    testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
+    logger.logf(Level.FINE, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
   }
 
   void handleTimedoutTestGoal() {
