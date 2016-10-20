@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -461,10 +462,14 @@ public class TestSuite implements AlgorithmResult {
       str.append("\n");
     }
 
-    if (!infeasibleGoals.isEmpty()) {
+    if (!infeasibleGoals.isEmpty() || !partiallyInfeasibleGoals.isEmpty()) {
       str.append("infeasible:\n");
 
-      for (Goal entry : infeasibleGoals) {
+      Set<Goal> infeasibleOrPartiallyInfeasibleGoals = new HashSet<>();
+      infeasibleOrPartiallyInfeasibleGoals.addAll(infeasibleGoals);
+      infeasibleOrPartiallyInfeasibleGoals.addAll(partiallyInfeasibleGoals);
+
+      for (Goal entry : infeasibleOrPartiallyInfeasibleGoals) {
         str.append("Goal ");
         str.append(getTestGoalLabel(entry));
 
