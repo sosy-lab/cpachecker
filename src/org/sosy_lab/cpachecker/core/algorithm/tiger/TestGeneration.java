@@ -96,7 +96,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -249,6 +248,7 @@ public class TestGeneration implements Statistics {
     }
   }
 
+  @SuppressWarnings("unused")
   private Pair<Boolean, LinkedList<Edges>> initializeInfisabilityPropagation() {
     Pair<Boolean, LinkedList<Edges>> propagation;
 
@@ -567,7 +567,7 @@ public class TestGeneration implements Statistics {
 
       Set<Property> props = pCex.getTargetPath().getLastState().getViolatedProperties();
 
-      if (cfg.useTigerAlgorithm_with_pc) {
+      if (pPresenceCondition != null) {
         logger.logf(Level.FINE, "Generated new test case %d for %s with a PC in the last state.",
             testcase.getId(), props);
       } else {
@@ -706,8 +706,6 @@ public class TestGeneration implements Statistics {
         pOut.println("Timeout occured during processing of a test goal!");
       }
     }
-
-    dumpTestSuite();
 
     if (cfg.printPathFormulasPerGoal) {
       dumpPathFormulas();
