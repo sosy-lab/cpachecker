@@ -135,7 +135,7 @@ public class TestCase {
 
   @Override
   public String toString() {
-    String returnStr = testSteps.toString();
+    String returnStr = "[]";
 
     if (presenceCondition != null) {
       returnStr += " with configurations "
