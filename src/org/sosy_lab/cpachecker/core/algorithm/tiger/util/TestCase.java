@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
-import java.util.List;
-
 import javax.management.JMException;
+
+import java.util.List;
 
 
 public class TestCase {
@@ -139,7 +139,7 @@ public class TestCase {
 
     if (presenceCondition != null) {
       returnStr += " with configurations "
-          + pcManager.dump(getPresenceCondition());
+          + getPresenceCondition();
     }
 
     return returnStr;
