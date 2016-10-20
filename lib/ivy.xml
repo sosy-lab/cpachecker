@@ -88,7 +88,7 @@
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.5.2" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.6.1" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
