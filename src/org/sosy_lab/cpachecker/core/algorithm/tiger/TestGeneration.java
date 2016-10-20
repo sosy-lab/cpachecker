@@ -366,7 +366,7 @@ public class TestGeneration implements Statistics {
         }
 
         // test goal is already covered by an existing test case
-        if (cfg.useTigerAlgorithm_with_pc) {
+        if (pTestcase.getPresenceCondition() != null) {
           Pair<ARGState, PresenceCondition> critical = findStateAfterCriticalEdge(goal, pArgPath);
           if (critical == null) {
             throw new RuntimeException(String.format(
@@ -558,6 +558,7 @@ public class TestGeneration implements Statistics {
 
 
   private TestCase createTestcase(final CounterexampleInfo pCex, final PresenceCondition pPresenceCondition) {
+    Preconditions.checkNotNull(pPresenceCondition);
 
     try (StatCpuTimer t = stats.createTestcaseTime.start()) {
       CFAPathWithAssumptions model = pCex.getCFAPathWithAssignments();
@@ -567,12 +568,8 @@ public class TestGeneration implements Statistics {
 
       Set<Property> props = pCex.getTargetPath().getLastState().getViolatedProperties();
 
-      if (pPresenceCondition != null) {
-        logger.logf(Level.FINE, "Generated new test case %d for %s with a PC in the last state.",
-            testcase.getId(), props);
-      } else {
-        logger.logf(Level.FINE, "Generated new test case %d for %s.", testcase.getId(), props);
-      }
+      logger.logf(Level.FINE, "Generated new test case %d for %s with a PC in the last state.",
+          testcase.getId(), props);
 
       return testcase;
     }

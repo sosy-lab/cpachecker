@@ -237,7 +237,7 @@ public class TestSuite implements AlgorithmResult {
     goalsCovByTC.add(goal);
     covTCs.add(testcase);
 
-    if (isVariabilityAware()) {
+    if (pPresenceCondition != null) {
       coveringPresenceConditions.put(Pair.of(testcase, goal), pPresenceCondition);
 
       setRemainingPresenceCondition(goal,
@@ -445,7 +445,7 @@ public class TestSuite implements AlgorithmResult {
         PresenceCondition presenceCondition =
             coveringPresenceConditions.get(Pair.of(testcase, goal));
         if (presenceCondition != null) {
-          str.append(": " + pcm().dump(presenceCondition).toString().replace(" & TRUE", ""));
+          str.append(": " + presenceCondition.toString().replace(" & TRUE", ""));
         }
         str.append("\n");
       }
