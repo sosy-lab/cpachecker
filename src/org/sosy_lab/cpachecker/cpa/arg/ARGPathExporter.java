@@ -45,7 +45,26 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
-
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +76,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -78,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -120,28 +142,6 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-import javax.xml.parsers.ParserConfigurationException;
 
 @Options(prefix = "cpa.arg.witness")
 public class ARGPathExporter {
@@ -548,6 +548,8 @@ public class ARGPathExporter {
         TransitionCondition result) {
 
       List<ExpressionTree<Object>> code = new ArrayList<>();
+      Optional<AIdExpression> resultVariable = Optional.empty();
+      Optional<String> resultFunction = Optional.empty();
       String functionName = pEdge.getPredecessor().getFunctionName();
       boolean isFunctionScope = this.isFunctionScope;
 
@@ -618,7 +620,7 @@ public class ARGPathExporter {
           }
 
           // Do not export our own temporary variables
-          Predicate<CIdExpression> isTmpVariable =
+          Predicate<AIdExpression> isTmpVariable =
               idExpression ->
                   idExpression
                       .getDeclaration()
@@ -633,6 +635,38 @@ public class ARGPathExporter {
                           && !CFAUtils.getIdExpressionsOfExpression(
                                   (CExpression) statement.getExpression())
                               .anyMatch(isTmpVariable));
+
+          // Export function return value for cases where it is not explicitly assigned to a variable
+          if (pEdge instanceof AStatementEdge) {
+            AStatementEdge edge = (AStatementEdge) pEdge;
+            if (edge.getStatement() instanceof AFunctionCallAssignmentStatement) {
+              AFunctionCallAssignmentStatement assignment =
+                  (AFunctionCallAssignmentStatement) edge.getStatement();
+              if (assignment.getLeftHandSide() instanceof AIdExpression
+                  && assignment.getFunctionCallExpression().getFunctionNameExpression()
+                      instanceof AIdExpression) {
+                AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+                if (isTmpVariable.apply(idExpression)) {
+                  assignments =
+                      Collections2.filter(
+                          cfaEdgeWithAssignments.getExpStmts(),
+                          statement ->
+                              statement.getExpression() instanceof CExpression
+                                  && !CFAUtils.getIdExpressionsOfExpression(
+                                          (CExpression) statement.getExpression())
+                                      .anyMatch(
+                                          id ->
+                                              isTmpVariable.apply(id) && !id.equals(idExpression)));
+                  resultVariable = Optional.of(idExpression);
+                  AIdExpression resultFunctionName =
+                      (AIdExpression)
+                          assignment.getFunctionCallExpression().getFunctionNameExpression();
+                  resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                }
+              }
+            }
+          }
+          assert resultVariable.isPresent() == resultFunction.isPresent();
 
           if (!assignments.isEmpty()) {
             code.add(
@@ -651,14 +685,18 @@ public class ARGPathExporter {
 
       if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
         ExpressionTree<Object> invariant = factory.or(code);
+        CExpressionToOrinalCodeVisitor transformer =
+            resultVariable.isPresent()
+                ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
+                    (CIdExpression) resultVariable.get(), "\\result")
+                : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
         final Function<Object, String> converter =
             new Function<Object, String>() {
 
               @Override
               public String apply(Object pLeafExpression) {
                 if (pLeafExpression instanceof CExpression) {
-                  return ((CExpression) pLeafExpression)
-                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                  return ((CExpression) pLeafExpression).accept(transformer);
                 }
                 if (pLeafExpression == null) {
                   return "(0)";
@@ -686,6 +724,9 @@ public class ARGPathExporter {
             functionName = CFACloner.extractFunctionName(functionName);
           }
           result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
+        }
+        if (resultFunction.isPresent()) {
+          result = result.putAndCopy(KeyDef.RESULTFUNCTION, resultFunction.get());
         }
       }
 

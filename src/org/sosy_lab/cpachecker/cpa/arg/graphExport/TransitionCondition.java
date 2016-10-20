@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.graphExport;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
-
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /** an immutable map of facts about the transition. */
 public class TransitionCondition implements Comparable<TransitionCondition> {
@@ -97,7 +96,8 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     for (KeyDef keyDef : KeyDef.values()) {
       if (!keyDef.equals(KeyDef.ASSUMPTION)
           && !keyDef.equals(KeyDef.INVARIANT)
-          && !(ignoreAssumptionScope && keyDef.equals(KeyDef.ASSUMPTIONSCOPE))
+          && !(ignoreAssumptionScope
+              && (keyDef.equals(KeyDef.ASSUMPTIONSCOPE) || keyDef.equals(KeyDef.RESULTFUNCTION)))
           && !(ignoreInvariantScope && keyDef.equals(KeyDef.INVARIANTSCOPE))
           && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
         return false;

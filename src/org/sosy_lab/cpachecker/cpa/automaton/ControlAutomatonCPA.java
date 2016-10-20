@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -62,14 +69,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -123,7 +122,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger);
+    this.transferRelation = new AutomatonTransferRelation(this, pLogger, pCFA.getMachineModel());
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
 
     if (pAutomaton != null) {

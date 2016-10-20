@@ -31,7 +31,24 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
-
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -49,26 +66,6 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 public class AutomatonGraphmlCommon {
 
@@ -121,6 +118,7 @@ public class AutomatonGraphmlCommon {
     LINECOLS("lineCols", ElementType.EDGE, "lineColSet", "string"),
     CONTROLCASE("control", ElementType.EDGE, "control", "string"),
     ASSUMPTION("assumption", ElementType.EDGE, "assumption", "string"),
+    RESULTFUNCTION("resultfunction", ElementType.EDGE, "resultfunction", "string"),
     ASSUMPTIONSCOPE("assumption.scope", ElementType.EDGE, "assumption.scope", "string"),
     FUNCTIONENTRY("enterFunction", ElementType.EDGE, "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),

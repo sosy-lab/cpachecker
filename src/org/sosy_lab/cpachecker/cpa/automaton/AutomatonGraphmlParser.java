@@ -479,12 +479,13 @@ public class AutomatonGraphmlParser {
         if (considerAssumptions) {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
           Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
+          Set<String> resultFunctions =
+              GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.RESULTFUNCTION);
+          Scope scope = determineScope(assumptionScopes, newStack);
+          Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
           assumptions.addAll(
               CParserUtils.convertStatementsToAssumptions(
-                  parseStatements(
-                      transAssumes, determineScope(assumptionScopes, newStack), cparser),
-                  machine,
-                  logger));
+                  parseStatements(transAssumes, resultFunction, scope, cparser), machine, logger));
           if (graphType == GraphType.PROOF_WITNESS && !assumptions.isEmpty()) {
             throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
           }
@@ -495,6 +496,9 @@ public class AutomatonGraphmlParser {
         Set<String> candidateScopes =
             GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
         final Scope candidateScope = determineScope(candidateScopes, newStack);
+        Set<String> resultFunctions =
+            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.RESULTFUNCTION);
+        Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
         if (!candidates.isEmpty()) {
           if (graphType == GraphType.ERROR_WITNESS) {
             throw new WitnessParseException("Invariants are not allowed for error witnesses.");
@@ -502,7 +506,8 @@ public class AutomatonGraphmlParser {
           candidateInvariants =
               And.of(
                   candidateInvariants,
-                  parseStatementsAsExpressionTree(candidates, candidateScope, cparser));
+                  parseStatementsAsExpressionTree(
+                      candidates, resultFunction, candidateScope, cparser));
         }
 
         if (matchOriginLine) {
@@ -756,8 +761,24 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  private Optional<String> determineResultFunction(Set<String> pResultFunctions, Scope pScope) {
+    checkParsable(
+        pResultFunctions.size() <= 1,
+        "At most one result function must be provided for a transition.");
+    if (!pResultFunctions.isEmpty()) {
+      return Optional.of(pResultFunctions.iterator().next());
+    }
+    if (pScope instanceof CProgramScope) {
+      CProgramScope scope = (CProgramScope) pScope;
+      if (!scope.isGlobalScope()) {
+        return Optional.of(scope.getCurrentFunctionName());
+      }
+    }
+    return Optional.empty();
+  }
+
   private Scope determineScope(Set<String> pScopes, Deque<String> pFunctionStack) {
-    checkParsable(pScopes.size() <= 1, "At most one scope must be provided for a statement.");
+    checkParsable(pScopes.size() <= 1, "At most one scope must be provided for a transition.");
     Scope result = this.scope;
     if (result instanceof CProgramScope && (!pScopes.isEmpty() || !pFunctionStack.isEmpty())) {
       final String functionName;
@@ -772,7 +793,7 @@ public class AutomatonGraphmlParser {
   }
 
   private Collection<CStatement> parseStatements(
-      Set<String> pStatements, Scope pScope, CParser pCParser)
+      Set<String> pStatements, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException {
     if (!pStatements.isEmpty()) {
 
@@ -780,7 +801,8 @@ public class AutomatonGraphmlParser {
       for (String assumeCode : pStatements) {
         Collection<CStatement> statements =
             removeDuplicates(
-                adjustCharAssignments(parseAsCStatements(assumeCode, pScope, pCParser)));
+                adjustCharAssignments(
+                    parseAsCStatements(assumeCode, pResultFunction, pScope, pCParser)));
         result.addAll(statements);
       }
       return result;
@@ -788,11 +810,12 @@ public class AutomatonGraphmlParser {
     return Collections.emptySet();
   }
 
-  private Collection<CStatement> parseAsCStatements(String pCode, Scope pScope, CParser pCParser)
+  private Collection<CStatement> parseAsCStatements(
+      String pCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException {
     Collection<CStatement> result = new HashSet<>();
     boolean fallBack = false;
-    ExpressionTree<AExpression> tree = parseStatement(pCode, pScope, pCParser);
+    ExpressionTree<AExpression> tree = parseStatement(pCode, pResultFunction, pScope, pCParser);
     if (!tree.equals(ExpressionTrees.getTrue())) {
       if (tree.equals(ExpressionTrees.getFalse())) {
         return Collections.<CStatement>singleton(
@@ -819,17 +842,20 @@ public class AutomatonGraphmlParser {
       }
     }
     if (fallBack) {
-      return CParserUtils.parseListOfStatements(tryFixArrayInitializers(pCode), pCParser, pScope);
+      return CParserUtils.parseListOfStatements(
+          tryFixACSL(tryFixArrayInitializers(pCode), pResultFunction, pScope), pCParser, pScope);
     }
     return result;
   }
 
   private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
-      Set<String> pStatements, Scope pScope, CParser pCParser) throws InvalidAutomatonException {
+      Set<String> pStatements, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
+      throws InvalidAutomatonException {
     ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     for (String assumeCode : pStatements) {
       try {
-        ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
+        ExpressionTree<AExpression> expressionTree =
+            parseStatement(assumeCode, pResultFunction, pScope, pCParser);
         result = And.of(result, expressionTree);
       } catch (CParserException e) {
         logger.log(Level.WARNING, "Cannot parse code: " + assumeCode);
@@ -839,7 +865,7 @@ public class AutomatonGraphmlParser {
   }
 
   private ExpressionTree<AExpression> parseStatement(
-      String pAssumeCode, Scope pScope, CParser pCParser)
+      String pAssumeCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException {
 
     // Try the old method first; it works for simple expressions
@@ -851,13 +877,15 @@ public class AutomatonGraphmlParser {
     } catch (RuntimeException e) {
       if (e.getMessage() != null && e.getMessage().contains("Syntax error:")) {
         statements =
-            CParserUtils.parseListOfStatements(tryFixACSL(assumeCode, pScope), pCParser, pScope);
+            CParserUtils.parseListOfStatements(
+                tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
       } else {
         throw e;
       }
     } catch (CParserException e) {
       statements =
-          CParserUtils.parseListOfStatements(tryFixACSL(assumeCode, pScope), pCParser, pScope);
+          CParserUtils.parseListOfStatements(
+              tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
     }
     statements = removeDuplicates(adjustCharAssignments(statements));
     // Check that no expressions were split
@@ -869,7 +897,7 @@ public class AutomatonGraphmlParser {
     // For complex expressions, assume we are dealing with expression statements
     ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     try {
-      result = parseExpression(pAssumeCode, pScope, pCParser);
+      result = parseExpression(pAssumeCode, pResultFunction, pScope, pCParser);
     } catch (CParserException e) {
       // Try splitting on ';' to support legacy code:
       Splitter semicolonSplitter = Splitter.on(';').omitEmptyStrings().trimResults();
@@ -879,32 +907,30 @@ public class AutomatonGraphmlParser {
       }
       List<ExpressionTree<AExpression>> clauses = new ArrayList<>(clausesStrings.size());
       for (String statement : clausesStrings) {
-        clauses.add(parseExpression(statement, pScope, pCParser));
+        clauses.add(parseExpression(statement, pResultFunction, pScope, pCParser));
       }
       result = And.of(clauses);
     }
     return result;
   }
 
-  private String tryFixACSL(String pAssumeCode, Scope pScope) {
+  private String tryFixACSL(String pAssumeCode, Optional<String> pResultFunction, Scope pScope) {
     String assumeCode = pAssumeCode.trim();
     if (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
     }
 
-    if (pScope instanceof CProgramScope) {
-      CProgramScope scope = (CProgramScope) pScope;
-      if (!scope.isGlobalScope()) {
-        String functionName = scope.getCurrentFunctionName();
-        FunctionEntryNode head = cfa.getFunctionHead(functionName);
-        if (head != null && head.getReturnVariable().isPresent()) {
-          assumeCode =
-              assumeCode.replace(
-                  " \\result ", " " + head.getReturnVariable().get().getName() + " ");
-        }
-      }
+    if (pResultFunction.isPresent() && pScope instanceof CProgramScope) {
+      assumeCode =
+          assumeCode.replace(
+              "\\result",
+              " "
+                  + ((CProgramScope) pScope)
+                      .getFunctionReturnVariable(pResultFunction.get())
+                      .getName());
+    } else {
+      assumeCode = assumeCode.replace("\\result", " ___CPAchecker_foo() ");
     }
-    assumeCode = assumeCode.replace(" \\result ", " ___CPAchecker_foo() ");
 
     Splitter splitter = Splitter.on("==>").limit(2);
     while (assumeCode.contains("==>")) {
@@ -916,7 +942,8 @@ public class AutomatonGraphmlParser {
   }
 
   private ExpressionTree<AExpression> parseExpression(
-      String pAssumeCode, Scope pScope, CParser pCParser) throws CParserException {
+      String pAssumeCode, Optional<String> pResultFunction, Scope pScope, CParser pCParser)
+      throws CParserException {
     String assumeCode = pAssumeCode.trim();
     while (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();
@@ -928,7 +955,7 @@ public class AutomatonGraphmlParser {
     try {
       parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
     } catch (ParserException e) {
-      assumeCode = tryFixACSL(assumeCode, pScope);
+      assumeCode = tryFixACSL(assumeCode, pResultFunction, pScope);
       testCode = String.format(formatString, assumeCode);
       parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
     }
