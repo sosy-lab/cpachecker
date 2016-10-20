@@ -425,6 +425,7 @@ public class TestSuite implements AlgorithmResult {
         for (VariableAssignment assignment : testStep.getAssignments()) {
           str.append("    " + assignment + "\n");
         }
+        cnt++;
       }
 
       List<CFAEdge> errorPath = testcase.getErrorPath();

@@ -590,7 +590,8 @@ public class TestGeneration implements Statistics {
         if (expStmt.getExpression() instanceof CBinaryExpression) {
           CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();
 
-          if (inputVariables.contains(exp.getOperand1().toString())) {
+          if (inputVariables.contains(exp.getOperand1().toString())
+              && edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_")) {
             if (lastValueWasOuput) {
               if (curStep != null) {
                 testSteps.add(curStep);

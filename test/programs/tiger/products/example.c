@@ -2,7 +2,6 @@ extern int __VERIFIER_nondet_int();
 
 int foobar(int x, int y, int z) {
 	int a = 0;
-	int o = 0;
 	
 	if (x < y) {
 		G1: a = x;
@@ -17,10 +16,10 @@ int foobar(int x, int y, int z) {
 		if ((z - a) < 0) {
 			G4: a *= -1;
 		}
-		G5: o -= a;
+		G5: z -= a;
 	}
 	
-	return o;
+	return z;
 }
 
 
@@ -29,7 +28,8 @@ int main() {
 	int y = __VERIFIER_nondet_int();
 	int z = __VERIFIER_nondet_int();
 
-	int o = foobar(x, y, z);
+	int tmp = foobar(x, y, z);
+	int o = tmp;
 	
 	printf("%i", o);
 	
