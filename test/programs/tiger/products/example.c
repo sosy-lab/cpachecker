@@ -1,8 +1,8 @@
 extern int __VERIFIER_nondet_int();
-extern int input();
 
 int foobar(int x, int y, int z) {
 	int a = 0;
+	int o = 0;
 	
 	if (x < y) {
 		G1: a = x;
@@ -17,19 +17,21 @@ int foobar(int x, int y, int z) {
 		if ((z - a) < 0) {
 			G4: a *= -1;
 		}
-		G5: z -= a;
+		G5: o -= a;
 	}
 	
-	return z;
+	return o;
 }
 
 
 int main() {
-	int x = input();
-	int y = input();
-	int z = input();
+	int x = __VERIFIER_nondet_int();
+	int y = __VERIFIER_nondet_int();
+	int z = __VERIFIER_nondet_int();
 
-	foobar(x, y, z);
+	int o = foobar(x, y, z);
+	
+	printf("%i", o);
 	
 	return 0;
 }
