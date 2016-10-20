@@ -641,6 +641,20 @@ public class TestGeneration implements Statistics {
     }
   }
 
+  void handleTimedoutTestGoal() {
+    // TODO: fix for variability aware
+    Set<Goal> goals = testsuite.getGoals();
+    Set<Goal> timedout = new HashSet<>();
+    for (Goal goal : goals) {
+      try {
+        if (!testsuite.isGoalCoveredOrInfeasible(goal)) {
+          timedout.add(goal);
+        }
+      } catch (InterruptedException e) {}
+    }
+    testsuite.addTimedOutGoals(timedout);
+  }
+
   private static TestCase getLastTestCase(List<TestCase> pTests) {
     TestCase lastTestCase = null;
     for (TestCase testCase : pTests) {
@@ -655,20 +669,6 @@ public class TestGeneration implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
     stats.printStatistics(pOut, pResult, pReached);
-
-    // fix test suite and set timedout goals as timedout
-    // TODO: move this fix to a more adequate place
-    // TODO: fix for variability aware
-    Set<Goal> goals = testsuite.getGoals();
-    Set<Goal> timedout = new HashSet<>();
-    for (Goal goal : goals) {
-      try {
-        if (!testsuite.isGoalCoveredOrInfeasible(goal)) {
-          timedout.add(goal);
-        }
-      } catch (InterruptedException e) {}
-    }
-    testsuite.addTimedOutGoals(timedout);
 
     pOut.println(
         "Number of test cases:                              " + testsuite.getNumberOfTestCases());

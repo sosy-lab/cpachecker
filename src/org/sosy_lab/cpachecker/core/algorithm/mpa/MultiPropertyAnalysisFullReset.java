@@ -527,10 +527,15 @@ public class MultiPropertyAnalysisFullReset implements MultiPropertyAlgorithm, S
 
     } finally {
       lastRunPropertySummary = Optional.<PropertySummary>of(createSummary(all, relevant, violated.getViolatedProperties(), satisfied, violated));
+      signalFinished();
     }
   }
 
   protected void signalSatisfied(ImmutableSet<Property> pActive) {
+    // Hook
+  }
+
+  protected void signalFinished() {
     // Hook
   }
 

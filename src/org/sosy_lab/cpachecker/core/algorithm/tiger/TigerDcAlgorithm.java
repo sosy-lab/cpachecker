@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -120,6 +119,11 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
     for (Goal g: Iterables.filter(pActive, Goal.class)) {
       tg.handleInfeasibleTestGoal(g);
     }
+  }
+
+  @Override
+  protected void signalFinished() {
+    tg.handleTimedoutTestGoal();
   }
 
   @Override
