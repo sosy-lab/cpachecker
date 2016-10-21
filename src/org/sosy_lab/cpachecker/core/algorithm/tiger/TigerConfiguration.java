@@ -161,12 +161,6 @@ public class TigerConfiguration {
 
   @Option(
       secure = true,
-      name = "tiger_with_presenceConditions",
-      description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions.")
-  boolean useTigerAlgorithm_with_pc = false;
-
-  @Option(
-      secure = true,
       name = "useBddForPresenceCondtion",
       description = "Use BDDCPA to model product line presence conditions.")
   boolean useBddForPresenceCondtion = false;
@@ -219,5 +213,5 @@ public class TigerConfiguration {
       description = "Filename for output of path formulas")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   Path pathFormulaFile = Paths.get("pathFormulas.txt");
-  
+
 }

@@ -112,12 +112,8 @@ public class TigerTestHelper {
       if (pSuite.isGoalCovered(goal)) {
         // Goal is (partially) feasible
         BooleanFormula goalPC = null;
-        if (pSuite.isVariabilityAware()) {
-          String regionString = pSuite.dumpRegion(pSuite.getGoalCoverage(goal)).toString();
-          goalPC = helper.parseFormula(regionString);
-        } else {
-          goalPC = bfm.makeBoolean(true);
-        }
+        String regionString = pSuite.dumpRegion(pSuite.getGoalCoverage(goal)).toString();
+        goalPC = helper.parseFormula(regionString);
 
         if (fm != null) {
           expectedPC = appendFeatureModel(helper, fm, expectedPC);
@@ -140,13 +136,9 @@ public class TigerTestHelper {
       if (pSuite.isGoalInfeasible(goal)) {
         // Goal is (partially) infeasible
         BooleanFormula goalPC = null;
-        if (pSuite.isVariabilityAware()) {
-          expectedPC = bfm.not(expectedPC);
-          goalPC = helper.parseFormula(
-              pSuite.dumpRegion(pSuite.getInfeasiblePresenceCondition(goal)).toString());
-        } else {
-          goalPC = bfm.makeBoolean(false);
-        }
+        expectedPC = bfm.not(expectedPC);
+        goalPC = helper.parseFormula(
+            pSuite.dumpRegion(pSuite.getInfeasiblePresenceCondition(goal)).toString());
 
         if (fm != null) {
           expectedPC = appendFeatureModel(helper, fm, expectedPC);

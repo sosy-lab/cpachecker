@@ -68,7 +68,6 @@ public class TestGoalUtils {
       CoverageSpecificationTranslator pCoverageSpecificationTranslator,
       boolean pOptimizeGoalAutomata,
       boolean pUseOmegaLabel,
-      boolean removeFeaturesAsTestGoals,
       GuardedEdgeLabel pAlphaLabel,
       GuardedEdgeLabel pInverseAlphaLabel,
       GuardedLabel pOmegaLabel) {
@@ -81,7 +80,7 @@ public class TestGoalUtils {
     for (int i = 0; i < goalPatterns.size(); i++) {
       ElementaryCoveragePattern pattern = goalPatterns.get(i);
       Goal lGoal = constructGoal(i + 1, pattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel,
-          pOptimizeGoalAutomata, pUseOmegaLabel, removeFeaturesAsTestGoals);
+          pOptimizeGoalAutomata, pUseOmegaLabel);
       if (lGoal != null) {
         goalsToCover.add(lGoal);
       }
@@ -118,20 +117,19 @@ public class TestGoalUtils {
    * @param pOmegaLabel
    * @param pUseAutomatonOptimization
    * @param pUseOmegaLabel
-   * @param pRemoveFeaturesAsTestGoals
    * @return
    */
   public static Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
       GuardedEdgeLabel pAlphaLabel,
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel,
-      boolean pUseAutomatonOptimization, boolean pUseOmegaLabel, boolean pRemoveFeaturesAsTestGoals) {
+      boolean pUseAutomatonOptimization, boolean pUseOmegaLabel) {
 
     NFA<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
             pOmegaLabel, pUseOmegaLabel);
 
     // remove all automatons where features are test goals
-    if (pRemoveFeaturesAsTestGoals && isFeatureAutomaton(automaton)) {
+    if (isFeatureAutomaton(automaton)) {
       return null;
     }
 

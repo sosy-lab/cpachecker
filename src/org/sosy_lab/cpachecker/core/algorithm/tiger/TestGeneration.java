@@ -188,8 +188,8 @@ public class TestGeneration implements Statistics {
 
     Set<Goal> goalsToCover = TestGoalUtils.extractTestGoalPatterns(fqlSpecification,
         mCoverageSpecificationTranslator, cfg.optimizeGoalAutomata,
-        cfg.useOmegaLabel, cfg.useTigerAlgorithm_with_pc, alphaLabel, inverseAlphaLabel, omegaLabel);
-    testsuite = new TestSuite(goalsToCover, cfg.printLabels, cfg.useTigerAlgorithm_with_pc);
+        cfg.useOmegaLabel, alphaLabel, inverseAlphaLabel, omegaLabel);
+    testsuite = new TestSuite(goalsToCover, cfg.printLabels);
 
     statistics_numberOfTestGoals = goalsToCover.size();
     logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
@@ -675,35 +675,22 @@ public class TestGeneration implements Statistics {
     pOut.println("Number of processed test goals:                    "
         + statistics_numberOfProcessedTestGoals);
 
-    if (cfg.useTigerAlgorithm_with_pc) {
-      pOut.println("Number of feasible test goals:                     "
-          + testsuite.getNumberOfFeasibleTestGoals());
-      pOut.println("Number of partially feasible test goals:           "
-          + testsuite.getNumberOfPartiallyFeasibleTestGoals());
-      pOut.println("Number of infeasible test goals:                   "
-          + testsuite.getNumberOfInfeasibleTestGoals());
-      pOut.println("Number of partially infeasible test goals:         "
-          + testsuite.getNumberOfPartiallyInfeasibleTestGoals());
-      pOut.println("Number of timedout test goals:                     "
-          + testsuite.getNumberOfTimedoutTestGoals());
-      pOut.println("Number of partially timedout test goals:           "
-          + testsuite.getNumberOfPartiallyTimedOutTestGoals());
+    pOut.println("Number of feasible test goals:                     "
+        + testsuite.getNumberOfFeasibleTestGoals());
+    pOut.println("Number of partially feasible test goals:           "
+        + testsuite.getNumberOfPartiallyFeasibleTestGoals());
+    pOut.println("Number of infeasible test goals:                   "
+        + testsuite.getNumberOfInfeasibleTestGoals());
+    pOut.println("Number of partially infeasible test goals:         "
+        + testsuite.getNumberOfPartiallyInfeasibleTestGoals());
+    pOut.println("Number of timedout test goals:                     "
+        + testsuite.getNumberOfTimedoutTestGoals());
+    pOut.println("Number of partially timedout test goals:           "
+        + testsuite.getNumberOfPartiallyTimedOutTestGoals());
 
-      if (testsuite.getNumberOfTimedoutTestGoals() > 0
-          || testsuite.getNumberOfPartiallyTimedOutTestGoals() > 0) {
-        pOut.println("Timeout occured during processing of a test goal!");
-      }
-    } else {
-      pOut.println("Number of feasible test goals:                     "
-          + testsuite.getNumberOfFeasibleTestGoals());
-      pOut.println("Number of infeasible test goals:                   "
-          + testsuite.getNumberOfInfeasibleTestGoals());
-      pOut.println("Number of timedout test goals:                     "
-          + testsuite.getNumberOfTimedoutTestGoals());
-
-      if (testsuite.getNumberOfTimedoutTestGoals() > 0) {
-        pOut.println("Timeout occured during processing of a test goal!");
-      }
+    if (testsuite.getNumberOfTimedoutTestGoals() > 0
+        || testsuite.getNumberOfPartiallyTimedOutTestGoals() > 0) {
+      pOut.println("Timeout occured during processing of a test goal!");
     }
 
     if (cfg.printPathFormulasPerGoal) {
@@ -728,49 +715,39 @@ public class TestGeneration implements Statistics {
           }
         });
 
-        if (cfg.useTigerAlgorithm_with_pc) {
-          Set<Goal> feasible = Sets.newLinkedHashSet();
-          feasible.addAll(testsuite.getFeasibleGoals());
-          feasible.addAll(testsuite.getPartiallyFeasibleGoals());
-          feasible.removeAll(testsuite.getPartiallyTimedOutGoals());
-          for (Goal goal : feasible) {
-            List<TestCase> tests = testsuite.getCoveringTestCases(goal);
-            TestCase lastTestCase = getLastTestCase(tests);
-            lastTestCase.incrementNumberOfNewlyCoveredGoals();
-          }
-          Set<Goal> partially = Sets.newLinkedHashSet();
-          partially.addAll(testsuite.getFeasibleGoals());
-          partially.addAll(testsuite.getPartiallyFeasibleGoals());
-          partially.removeAll(testsuite.getPartiallyTimedOutGoals());
-          for (Goal goal : partially) {
-            List<TestCase> tests = testsuite.getCoveringTestCases(goal);
-            TestCase lastTestCase = getLastTestCase(tests);
-            lastTestCase.incrementNumberOfNewlyPartiallyCoveredGoals();
-          }
+        Set<Goal> feasible = Sets.newLinkedHashSet();
+        feasible.addAll(testsuite.getFeasibleGoals());
+        feasible.addAll(testsuite.getPartiallyFeasibleGoals());
+        feasible.removeAll(testsuite.getPartiallyTimedOutGoals());
+        for (Goal goal : feasible) {
+          List<TestCase> tests = testsuite.getCoveringTestCases(goal);
+          TestCase lastTestCase = getLastTestCase(tests);
+          lastTestCase.incrementNumberOfNewlyCoveredGoals();
+        }
+        Set<Goal> partially = Sets.newLinkedHashSet();
+        partially.addAll(testsuite.getFeasibleGoals());
+        partially.addAll(testsuite.getPartiallyFeasibleGoals());
+        partially.removeAll(testsuite.getPartiallyTimedOutGoals());
+        for (Goal goal : partially) {
+          List<TestCase> tests = testsuite.getCoveringTestCases(goal);
+          TestCase lastTestCase = getLastTestCase(tests);
+          lastTestCase.incrementNumberOfNewlyPartiallyCoveredGoals();
+        }
 
-          writer.write(
-              "Test Case;Generation Time;Covered Goals After Generation;Completely Covered Goals After Generation;Partially Covered Goals After Generation\n");
-          int completelyCoveredGoals = 0;
-          int partiallyCoveredGoals = 0;
-          for (TestCase testCase : testcases) {
-            int newCoveredGoals = testCase.getNumberOfNewlyCoveredGoals();
-            int newPartiallyCoveredGoals = testCase.getNumberOfNewlyPartiallyCoveredGoals();
-            completelyCoveredGoals += newCoveredGoals;
-            partiallyCoveredGoals += newPartiallyCoveredGoals;
+        writer.write(
+            "Test Case;Generation Time;Covered Goals After Generation;Completely Covered Goals After Generation;Partially Covered Goals After Generation\n");
+        int completelyCoveredGoals = 0;
+        int partiallyCoveredGoals = 0;
+        for (TestCase testCase : testcases) {
+          int newCoveredGoals = testCase.getNumberOfNewlyCoveredGoals();
+          int newPartiallyCoveredGoals = testCase.getNumberOfNewlyPartiallyCoveredGoals();
+          completelyCoveredGoals += newCoveredGoals;
+          partiallyCoveredGoals += newPartiallyCoveredGoals;
 
-            writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
-                + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals
-                + ";"
-                + partiallyCoveredGoals + "\n");
-          }
-        } else {
-          Set<Goal> coveredGoals = Sets.newLinkedHashSet();
-          writer.write("Test Case;Generation Time;Covered Goals After Generation\n");
-          for (TestCase testCase : testcases) {
-            coveredGoals.addAll(testsuite.getTestGoalsCoveredByTestCase(testCase));
-            writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
-                + coveredGoals.size() + "\n");
-          }
+          writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
+              + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals
+              + ";"
+              + partiallyCoveredGoals + "\n");
         }
       } catch (IOException e) {
         throw new RuntimeException(e);

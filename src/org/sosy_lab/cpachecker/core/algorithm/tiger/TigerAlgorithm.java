@@ -247,15 +247,15 @@ public class TigerAlgorithm
         tg.removeGoalsFromRemaining(goalsToBeProcessed);
         logGoals(goalsToBeProcessed);
 
-        if (cfg.useTigerAlgorithm_with_pc) {
-          /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
-           * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
-           * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
-           * Keyword: overapproximation
-           */
-          //assert false;
-          reachedSet = null;
-        }
+//         if (cfg.useTigerAlgorithm_with_pc) {
+//           /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
+//            * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
+//            * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
+//            * Keyword: overapproximation
+//            */
+//           //assert false;
+//           reachedSet = null;
+//         }
 
         ReachabilityAnalysisResult result = runReachabilityAnalysis(tg.getRemainingGoals(), goalsToBeProcessed);
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {

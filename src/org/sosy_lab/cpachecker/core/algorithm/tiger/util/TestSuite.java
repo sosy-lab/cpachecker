@@ -55,7 +55,6 @@ import java.util.Set;
 public class TestSuite implements AlgorithmResult {
 
   private final boolean printLabels;
-  private final boolean useTigerAlgorithm_with_pc;
   private long generationStartTime = 0;
 
   private final Map<TestCase, List<Goal>> mapping;
@@ -77,7 +76,7 @@ public class TestSuite implements AlgorithmResult {
 
   private final ImmutableMap<CFAEdge, List<NFA<GuardedEdgeLabel>>> edgeToTgaMapping;
 
-  public TestSuite(Set<Goal> pGoalsToCover, boolean pPrintLabels, boolean pUseTigerAlgorithm_with_pc) {
+  public TestSuite(Set<Goal> pGoalsToCover, boolean pPrintLabels) {
     mapping = new HashMap<>();
     coveringTestCases = new HashMap<>();
     coveringPresenceConditions = new HashMap<>();
@@ -89,16 +88,9 @@ public class TestSuite implements AlgorithmResult {
     partiallyTimedOutGoals = Sets.newLinkedHashSet();
     timedOutPresenceCondition = new HashMap<>();
     printLabels = pPrintLabels;
-    useTigerAlgorithm_with_pc = pUseTigerAlgorithm_with_pc;
     remainingPresenceConditions = new HashMap<>();
     remainingPresenceConditionsBeforeTimeout = new HashMap<>();
     infeasiblePresenceConditions = new HashMap<>();
-
-    if (isVariabilityAware()) {
-      for (Goal goal : pGoalsToCover) {
-        remainingPresenceConditions.remove(goal); // null equals 'true'
-      }
-    }
 
     testGoals = ImmutableSet.copyOf(pGoalsToCover);
     edgeToTgaMapping = createEdgeToTgaMapping(pGoalsToCover);
@@ -136,10 +128,6 @@ public class TestSuite implements AlgorithmResult {
 
   private PresenceConditionManager pcm() {
     return PresenceConditions.manager();
-  }
-
-  public boolean isVariabilityAware() {
-    return useTigerAlgorithm_with_pc;
   }
 
   public Set<TestCase> getTestCases() {
@@ -187,11 +175,7 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public int getNumberOfTimedoutTestGoals() {
-    if (useTigerAlgorithm_with_pc) {
-      return timedOutPresenceCondition.size();
-    } else {
-      return timedOutGoals.size();
-    }
+    return timedOutGoals.size();
   }
 
   public Set<Goal> getPartiallyTimedOutGoals() {
