@@ -265,7 +265,7 @@ public class TestGeneration implements Statistics {
     return testsuite;
   }
 
-  public Map<Integer, Pair<Goal, PresenceCondition>> getTimedOutGoals() {
+  public Map<Goal, PresenceCondition> getTimedOutGoals() {
     return testsuite.getTimedOutGoals();
   }
 
@@ -634,17 +634,28 @@ public class TestGeneration implements Statistics {
   }
 
   void handleTimedoutTestGoal() {
-    // TODO: fix for variability aware
     Set<Goal> goals = testsuite.getGoals();
-    Set<Goal> timedout = new HashSet<>();
     for (Goal goal : goals) {
       try {
-        if (!testsuite.isGoalCoveredOrInfeasible(goal)) {
-          timedout.add(goal);
+        if (testsuite.isGoalCoveredOrInfeasible(goal)) {
+          // goal is either covered or infeasible in each variant and, therefore, not timedout
+          continue;
+        }
+
+        if (testsuite.isGoalPartiallyCovered(goal)) {
+          if (testsuite.isGoalPartiallyInfeasible(goal)) {
+            // for each variant it is known if a goal is feasible or infeasible
+            continue;
+          } else {
+            // for some variants the status of the goal is not clear => it is partially timedout
+            testsuite.addTimedOutGoal(goal, testsuite.getRemainingPresenceCondition(goal));
+          }
+        } else {
+          // the status of the goal is not clear for any variant => timeout on each variant
+          testsuite.addTimedOutGoal(goal, pcm().makeTrue());
         }
       } catch (InterruptedException e) {}
     }
-    testsuite.addTimedOutGoals(timedout);
   }
 
   private static TestCase getLastTestCase(List<TestCase> pTests) {

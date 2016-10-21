@@ -73,7 +73,7 @@ public class TestSuite implements AlgorithmResult {
   private final Map<Goal, PresenceCondition> remainingPresenceConditionsBeforeTimeout;
   private final Map<Pair<TestCase, Goal>, PresenceCondition> coveringPresenceConditions;
   private final Map<Goal, PresenceCondition> infeasiblePresenceConditions;
-  private final Map<Integer, Pair<Goal, PresenceCondition>> timedOutPresenceCondition;
+  private final Map<Goal, PresenceCondition> timedOutPresenceCondition;
 
   private final ImmutableMap<CFAEdge, List<NFA<GuardedEdgeLabel>>> edgeToTgaMapping;
 
@@ -182,7 +182,7 @@ public class TestSuite implements AlgorithmResult {
     return partiallyInfeasibleGoals.size();
   }
 
-  public Map<Integer, Pair<Goal, PresenceCondition>> getTimedOutGoals() {
+  public Map<Goal, PresenceCondition> getTimedOutGoals() {
     return timedOutPresenceCondition;
   }
 
@@ -262,35 +262,29 @@ public class TestSuite implements AlgorithmResult {
 
   public void addInfeasibleGoal(Goal pGoal, PresenceCondition pPresenceCondition) throws InterruptedException {
     setRemainingPresenceCondition(pGoal, pcm().makeFalse());
-    infeasiblePresenceConditions.put(pGoal, pPresenceCondition);
 
-    if (pcm().checkEqualsTrue(getInfeasiblePresenceCondition(pGoal))) {
+    if (pPresenceCondition == null || pcm().checkEqualsTrue(pPresenceCondition)) {
+      infeasiblePresenceConditions.put(pGoal, pcm().makeTrue());
       infeasibleGoals.add(pGoal);
     } else {
+      infeasiblePresenceConditions.put(pGoal, pPresenceCondition);
       partiallyInfeasibleGoals.add(pGoal);
     }
   }
 
-  private void addTimedOutGoal(Goal pGoal, PresenceCondition pPresenceCondition) {
-    if (isVariabilityAware()) {
-      remainingPresenceConditionsBeforeTimeout.put(pGoal, getRemainingPresenceCondition(pGoal));
-      setRemainingPresenceCondition(pGoal, pcm().makeFalse());
+  public void addTimedOutGoal(Goal pGoal, PresenceCondition pPresenceCondition) throws InterruptedException {
+    setRemainingPresenceCondition(pGoal, pcm().makeFalse());
 
-      timedOutPresenceCondition.put(pGoal.getIndex(), Pair.of(pGoal, pPresenceCondition));
-    }
-
-    if (!isVariabilityAware()) {
+    if (pPresenceCondition == null || pcm().checkEqualsTrue(pPresenceCondition)) {
+      timedOutPresenceCondition.put(pGoal, pcm().makeTrue());
       timedOutGoals.add(pGoal);
     } else {
-      if (partiallyFeasibleGoals.contains(pGoal)) {
-        partiallyTimedOutGoals.add(pGoal);
-      } else {
-        timedOutGoals.add(pGoal);
-      }
+      timedOutPresenceCondition.put(pGoal, pPresenceCondition);
+      partiallyTimedOutGoals.add(pGoal);
     }
   }
 
-  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed) {
+  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed) throws InterruptedException {
     for (Goal goal : pTestGoalsToBeProcessed) {
       addTimedOutGoal(goal, getRemainingPresenceCondition(goal));
     }
@@ -359,6 +353,10 @@ public class TestSuite implements AlgorithmResult {
   public boolean isGoalPartiallyCovered(Goal pGoal) throws InterruptedException {
     return !isGoalCoveredOrInfeasible(pGoal) && getCoveringTestCases(pGoal) != null
         && !getCoveringTestCases(pGoal).isEmpty();
+  }
+
+  public boolean isGoalPartiallyInfeasible(Goal pGoal) {
+    return partiallyInfeasibleGoals.contains(pGoal);
   }
 
   public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) throws InterruptedException {
@@ -492,8 +490,7 @@ public class TestSuite implements AlgorithmResult {
         str.append("Goal ");
         str.append(getTestGoalLabel(entry));
 
-        PresenceCondition presenceCondition =
-            timedOutPresenceCondition.get(entry.getIndex()).getSecond();
+        PresenceCondition presenceCondition = timedOutPresenceCondition.get(entry);
         if (presenceCondition != null) {
           str.append(": timed out for PC ");
           str.append(presenceCondition.toString().replace(" & TRUE", ""));
