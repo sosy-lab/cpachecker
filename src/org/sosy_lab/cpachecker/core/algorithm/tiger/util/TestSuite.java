@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -465,9 +464,8 @@ public class TestSuite implements AlgorithmResult {
     if (!infeasibleGoals.isEmpty() || !partiallyInfeasibleGoals.isEmpty()) {
       str.append("infeasible:\n");
 
-      Set<Goal> infeasibleOrPartiallyInfeasibleGoals = new HashSet<>();
-      infeasibleOrPartiallyInfeasibleGoals.addAll(infeasibleGoals);
-      infeasibleOrPartiallyInfeasibleGoals.addAll(partiallyInfeasibleGoals);
+      Set<Goal> infeasibleOrPartiallyInfeasibleGoals =
+          Sets.union(infeasibleGoals, partiallyInfeasibleGoals);
 
       for (Goal entry : infeasibleOrPartiallyInfeasibleGoals) {
         str.append("Goal ");
@@ -484,31 +482,22 @@ public class TestSuite implements AlgorithmResult {
       str.append("\n");
     }
 
-    if (useTigerAlgorithm_with_pc && !timedOutPresenceCondition.isEmpty()) {
-      str.append("timed out:\n");
+    if (!timedOutGoals.isEmpty() || !partiallyTimedOutGoals.isEmpty()) {
+      str.append("timedout:\n");
 
-      for (Entry<Integer, Pair<Goal, PresenceCondition>> entry : timedOutPresenceCondition
-          .entrySet()) {
+      Set<Goal> timedoutOrPartiallyTimedoutGoals =
+          Sets.union(timedOutGoals, partiallyTimedOutGoals);
+
+      for (Goal entry : timedoutOrPartiallyTimedoutGoals) {
         str.append("Goal ");
-        str.append(getTestGoalLabel(entry.getValue().getFirst()));
+        str.append(getTestGoalLabel(entry));
 
-        PresenceCondition presenceCondition = entry.getValue().getSecond();
+        PresenceCondition presenceCondition =
+            timedOutPresenceCondition.get(entry.getIndex()).getSecond();
         if (presenceCondition != null) {
           str.append(": timed out for PC ");
-          str.append(presenceCondition);
+          str.append(presenceCondition.toString().replace(" & TRUE", ""));
         }
-        str.append("\n");
-      }
-
-      str.append("\n");
-    }
-
-    if (!timedOutGoals.isEmpty()) {
-      str.append("timed out:\n");
-
-      for (Goal goal : timedOutGoals) {
-        str.append("Goal ");
-        str.append(getTestGoalLabel(goal));
         str.append("\n");
       }
 
