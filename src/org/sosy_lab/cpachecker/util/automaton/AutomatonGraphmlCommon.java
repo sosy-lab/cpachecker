@@ -118,7 +118,7 @@ public class AutomatonGraphmlCommon {
     LINECOLS("lineCols", ElementType.EDGE, "lineColSet", "string"),
     CONTROLCASE("control", ElementType.EDGE, "control", "string"),
     ASSUMPTION("assumption", ElementType.EDGE, "assumption", "string"),
-    RESULTFUNCTION("resultfunction", ElementType.EDGE, "resultfunction", "string"),
+    ASSUMPTIONRESULTFUNCTION("assumption.resultfunction", ElementType.EDGE, "assumption.resultfunction", "string"),
     ASSUMPTIONSCOPE("assumption.scope", ElementType.EDGE, "assumption.scope", "string"),
     FUNCTIONENTRY("enterFunction", ElementType.EDGE, "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),
