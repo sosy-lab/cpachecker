@@ -726,7 +726,7 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
         }
         if (resultFunction.isPresent()) {
-          result = result.putAndCopy(KeyDef.RESULTFUNCTION, resultFunction.get());
+          result = result.putAndCopy(KeyDef.ASSUMPTIONRESULTFUNCTION, resultFunction.get());
         }
       }
 

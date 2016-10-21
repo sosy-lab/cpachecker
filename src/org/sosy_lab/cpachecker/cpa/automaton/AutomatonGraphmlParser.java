@@ -480,7 +480,7 @@ public class AutomatonGraphmlParser {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
           Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
           Set<String> resultFunctions =
-              GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.RESULTFUNCTION);
+              GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
           Scope scope = determineScope(assumptionScopes, newStack);
           Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
           assumptions.addAll(
@@ -497,7 +497,7 @@ public class AutomatonGraphmlParser {
             GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
         final Scope candidateScope = determineScope(candidateScopes, newStack);
         Set<String> resultFunctions =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.RESULTFUNCTION);
+            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
         if (!candidates.isEmpty()) {
           if (graphType == GraphType.ERROR_WITNESS) {
