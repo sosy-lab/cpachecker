@@ -333,12 +333,12 @@ public class TigerAlgorithm
         algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm, pTestGoalsToBeProcessed.size());
 
       } while ((reachedSet.hasWaitingState()
-          && !tg.getTestSuite().areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
+          && !tg.getTestSuite().areGoalsCovered(pTestGoalsToBeProcessed))
           && (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT));
 
       if (algorithmStatus == ReachabilityAnalysisResult.TIMEOUT) {
         logger.logf(Level.FINE, "Test goal timed out!");
-        tg.getTestSuite().addTimedOutGoals(pTestGoalsToBeProcessed);
+        tg.getTestSuite().setGoalsTimedout(pTestGoalsToBeProcessed);
       } else {
         // set test goals infeasible
         for (Goal goal : pTestGoalsToBeProcessed) {

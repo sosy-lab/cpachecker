@@ -217,7 +217,7 @@ public class TestGeneration implements Statistics {
     // Exclude covered goals from further exploration
     Map<SafetyProperty, Optional<PresenceCondition>> toBlacklist = Maps.newHashMap();
     for (Goal goal : goalsUnderAnalysis()) {
-      if (testsuite.isGoalCoveredOrInfeasible(goal)) {
+      if (testsuite.isGoalCovered(goal)) {
         toBlacklist.put(goal, Optional.of(pcm().makeTrue()));
       } else if (testsuite.isGoalPartiallyCovered(goal)){
         PresenceCondition remainingPc = testsuite.getRemainingPresenceCondition(goal);
@@ -625,7 +625,7 @@ public class TestGeneration implements Statistics {
 
 
   void handleInfeasibleTestGoal(Goal pGoal) throws InterruptedException {
-    testsuite.addInfeasibleGoal(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
+    testsuite.setGoalInfeasible(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
     logger.logf(Level.FINE, "Goal %d is infeasible for remaining PC!", pGoal.getIndex());
   }
 
@@ -633,17 +633,17 @@ public class TestGeneration implements Statistics {
     Set<Goal> goals = testsuite.getGoals();
     for (Goal goal : goals) {
       try {
-        if (testsuite.isGoalCoveredOrInfeasible(goal)) {
+        if (testsuite.isGoalCovered(goal)) {
           // for each variant it is known if a goal is feasible or infeasible
           continue;
         }
 
         if (testsuite.isGoalPartiallyCovered(goal)) {
           // for some variants the status of the goal is not clear => it is partially timedout
-          testsuite.addTimedOutGoal(goal, testsuite.getRemainingPresenceCondition(goal));
+          testsuite.setGoalTimedout(goal, testsuite.getRemainingPresenceCondition(goal));
         } else {
           // the status of the goal is not clear for any variant => timeout on each variant
-          testsuite.addTimedOutGoal(goal, pcm().makeTrue());
+          testsuite.setGoalTimedout(goal, pcm().makeTrue());
         }
       } catch (InterruptedException e) {}
     }
