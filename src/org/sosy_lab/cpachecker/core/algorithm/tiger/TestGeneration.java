@@ -638,18 +638,13 @@ public class TestGeneration implements Statistics {
     for (Goal goal : goals) {
       try {
         if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-          // goal is either covered or infeasible in each variant and, therefore, not timedout
+          // for each variant it is known if a goal is feasible or infeasible
           continue;
         }
 
         if (testsuite.isGoalPartiallyCovered(goal)) {
-          if (testsuite.isGoalPartiallyInfeasible(goal)) {
-            // for each variant it is known if a goal is feasible or infeasible
-            continue;
-          } else {
-            // for some variants the status of the goal is not clear => it is partially timedout
-            testsuite.addTimedOutGoal(goal, testsuite.getRemainingPresenceCondition(goal));
-          }
+          // for some variants the status of the goal is not clear => it is partially timedout
+          testsuite.addTimedOutGoal(goal, testsuite.getRemainingPresenceCondition(goal));
         } else {
           // the status of the goal is not clear for any variant => timeout on each variant
           testsuite.addTimedOutGoal(goal, pcm().makeTrue());
