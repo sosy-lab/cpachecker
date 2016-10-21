@@ -97,7 +97,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       if (!keyDef.equals(KeyDef.ASSUMPTION)
           && !keyDef.equals(KeyDef.INVARIANT)
           && !(ignoreAssumptionScope
-              && (keyDef.equals(KeyDef.ASSUMPTIONSCOPE) || keyDef.equals(KeyDef.RESULTFUNCTION)))
+              && (keyDef.equals(KeyDef.ASSUMPTIONSCOPE) || keyDef.equals(KeyDef.ASSUMPTIONRESULTFUNCTION)))
           && !(ignoreInvariantScope && keyDef.equals(KeyDef.INVARIANTSCOPE))
           && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
         return false;
