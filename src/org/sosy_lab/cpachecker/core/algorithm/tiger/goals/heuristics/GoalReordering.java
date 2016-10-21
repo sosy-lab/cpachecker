@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals.heuristics;
 
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-
 public class GoalReordering {
 
+  @SuppressWarnings("unused")
   private static class WeightComparator implements Comparator<Goal> {
 
     private final Map<Goal, Integer> mWeights;
@@ -48,7 +49,7 @@ public class GoalReordering {
 
   }
 
-  public static Deque<Goal> reorder(Deque<Goal> pGoals) {
+  public static Deque<Goal> reorder(@SuppressWarnings("unused") Deque<Goal> pGoals) {
     throw new UnsupportedOperationException("Implement reordering!!!");
 
     /*

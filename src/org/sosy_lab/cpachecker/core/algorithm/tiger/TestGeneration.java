@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import javax.annotation.Nullable;
@@ -520,11 +519,8 @@ public class TestGeneration implements Statistics {
    *  * Add the test case for the goals that it would also cover;
    *    this gets checked by running all (uncovered) goal automata on the ARG path of the test case.
    *
-   * @param pRemainingGoals
-   * @param pCex
-   *
-   * @throws InterruptedException
-   * @throws SolverException
+   * @param pRemainingGoals Uncovered goals.
+   * @param pCex Counterexample.
    */
   private Set<Goal> addTestToSuite(Set<Goal> pRemainingGoals, CounterexampleInfo pCex)
       throws InterruptedException {
@@ -533,7 +529,7 @@ public class TestGeneration implements Statistics {
       Preconditions.checkNotNull(pRemainingGoals);
       Preconditions.checkNotNull(pCex);
 
-      ARGPathWithPresenceConditions argPath = computePathWithPresenceConditions(pRemainingGoals, pCex);
+      ARGPathWithPresenceConditions argPath = computePathWithPresenceConditions(pCex);
 
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
 
@@ -545,7 +541,7 @@ public class TestGeneration implements Statistics {
   }
 
 
-  private ARGPathWithPresenceConditions computePathWithPresenceConditions(Set<Goal> goals, CounterexampleInfo pCex)
+  private ARGPathWithPresenceConditions computePathWithPresenceConditions(CounterexampleInfo pCex)
       throws InterruptedException {
 
     try {

@@ -213,7 +213,7 @@ public class TigerDcAlgorithm extends MultiPropertyAnalysisFullReset{
   /**
    * Check some properties of the automaton to ensure that it works as expected.
    *
-   * @param pAutomaton
+   * @param pAutomaton Test goal automaton to be checked.
    */
   private static void checkAutomaton(Automaton pAutomaton) {
     for (AutomatonInternalState q: pAutomaton.getStates()) {

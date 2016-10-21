@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
-import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceConditionManager;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 import javax.management.JMException;
@@ -59,7 +57,6 @@ public class TestCase {
   private List<TestStep> testSteps;
   private ARGPath argPath;
   private List<CFAEdge> errorPath;
-  private PresenceConditionManager pcManager;
   private PresenceCondition presenceCondition;
 
   public TestCase(List<TestStep> pTestSteps, ARGPath pArgPath,
@@ -74,7 +71,6 @@ public class TestCase {
     testSteps = pTestSteps;
     argPath = pArgPath;
     errorPath = pList;
-    pcManager = PresenceConditions.manager();
     presenceCondition = pPresenceCondition;
     generationTime = pGenerationTime;
   }

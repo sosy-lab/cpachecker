@@ -44,6 +44,6 @@ public interface AlgorithmResult {
 
     public Optional<CounterexampleInfo> getCounterexampleInfo() {
       return counterexampleInfo;
-    };
+    }
   }
 }

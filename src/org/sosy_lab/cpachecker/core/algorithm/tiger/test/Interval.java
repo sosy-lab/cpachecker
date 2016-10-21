@@ -42,6 +42,7 @@ public class Interval {
   private int indexOfValue;
   private Comparators lowerBoundComparator;
   private Comparators upperBoundComparator;
+  @SuppressWarnings("unused")
   private Comparators valueComparator;
 
 
@@ -55,7 +56,7 @@ public class Interval {
     valueComparator = pValueComparator;
   }
 
-  public boolean compare(BigInteger pVar, TestCase testcase) {
+  public boolean compare(BigInteger pVar, @SuppressWarnings("unused") TestCase testcase) {
     if (lowerBound != null) {
       if (!compare(pVar, lowerBound, lowerBoundComparator)) { return false; }
     }

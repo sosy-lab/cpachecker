@@ -128,4 +128,9 @@ public class Path implements Iterable<Edge> {
     return mEdges.iterator();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
 }

@@ -111,13 +111,14 @@ public class TestGoalUtils {
 
   /**
    * Constructs a test goal from the given pattern.
-   * @param pGoalPattern
-   * @param pAlphaLabel
-   * @param pInverseAlphaLabel
-   * @param pOmegaLabel
-   * @param pUseAutomatonOptimization
-   * @param pUseOmegaLabel
-   * @return
+   * @param pIndex Index of the test goal.
+   * @param pGoalPattern Elementary coverage pattern of the test goal.
+   * @param pAlphaLabel Entry CFA edge of a program.
+   * @param pInverseAlphaLabel Inverse edge of the alpha label edge.
+   * @param pOmegaLabel Exit CFA edge of a program.
+   * @param pUseAutomatonOptimization Flag to enable optimizations of the test goal automaton.
+   * @param pUseOmegaLabel true if a test case should run to the end of the program; false otherwise.
+   * @return Returns a test goal.
    */
   public static Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
       GuardedEdgeLabel pAlphaLabel,

@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class StandardECPEdgeSet implements ECPEdgeSet {
 

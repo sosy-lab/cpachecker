@@ -125,7 +125,7 @@ public class TigerTestHelper {
                 + goal.getName() + " does not match with expected feasible presence condition."); }
 
         List<TestCase> testCases = pSuite.getCoveringTestCases(goal);
-        for (TestCase testCase : testCases) {
+        for (@SuppressWarnings("unused") TestCase testCase : testCases) {
           // TODO: fix
 //          if (!checkInputs(testCase.getInputs(),
 //              expectedGoal.getSecond().getSecond(), testCase)) { throw new AssertionFailedError(
@@ -154,6 +154,7 @@ public class TigerTestHelper {
     return true;
   }
 
+  @SuppressWarnings("unused")
   private static boolean checkInputs(List<BigInteger> pInputs,
       List<Interval> pList, TestCase testCase) {
     if (pInputs.size() != pList.size()) { return false; }

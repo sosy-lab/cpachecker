@@ -181,6 +181,7 @@ public class TigerAlgorithm
     tg = new TestGeneration(cfg, pCfa, pLogger);
   }
 
+  @SuppressWarnings("unused")
   private PresenceConditionManager pcm() {
     return PresenceConditions.manager();
   }
@@ -257,7 +258,7 @@ public class TigerAlgorithm
 //           reachedSet = null;
 //         }
 
-        ReachabilityAnalysisResult result = runReachabilityAnalysis(tg.getRemainingGoals(), goalsToBeProcessed);
+        ReachabilityAnalysisResult result = runReachabilityAnalysis(goalsToBeProcessed);
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
@@ -299,7 +300,7 @@ public class TigerAlgorithm
     }
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pUncoveredGoals, Set<Goal> pTestGoalsToBeProcessed)
+  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
     ARGCPA cpa = composeCPA(pTestGoalsToBeProcessed, false);
@@ -317,10 +318,10 @@ public class TigerAlgorithm
     Preconditions.checkState(algorithm instanceof TGARAlgorithm);
     TGARAlgorithm tgarAlgorithm = (TGARAlgorithm) algorithm;
 
-    return runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, shutdownManager, tgarAlgorithm);
+    return runAlgorithm(pTestGoalsToBeProcessed, shutdownManager, tgarAlgorithm);
   }
 
-  private ReachabilityAnalysisResult runAlgorithm(Set<Goal> pUncoveredGoals, final Set<Goal> pTestGoalsToBeProcessed,
+  private ReachabilityAnalysisResult runAlgorithm(final Set<Goal> pTestGoalsToBeProcessed,
       final ShutdownManager pShutdownNotifier, final TGARAlgorithm pAlgorithm)
       throws CPAException, InterruptedException {
 
@@ -456,7 +457,7 @@ public class TigerAlgorithm
   /**
    * Check some properties of the automaton to ensure that it works as expected.
    *
-   * @param pAutomaton
+   * @param pAutomaton Test goal automaton to be checked.
    */
   private static void checkAutomaton(Automaton pAutomaton) {
     for (AutomatonInternalState q: pAutomaton.getStates()) {

@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
+import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,7 +35,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.logging.Logger;
 
 public class SolverHelper {
 

@@ -23,18 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -50,8 +40,18 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 
 public class WrapperUtil {
@@ -111,16 +111,9 @@ public class WrapperUtil {
     File f = File.createTempFile(CPAtiger_MAIN, ".c", null);
     f.deleteOnExit();
 
-    Writer writer = null;
-
-    try {
-        writer = new BufferedWriter(new OutputStreamWriter(
-              new FileOutputStream(f), "utf-8"));
-        writer.write(lWrapperFunction.toString());
-    } catch (IOException ex) {
-      // TODO report
-    } finally {
-       try {writer.close();} catch (Exception ex) {}
+    try (Writer writer = new BufferedWriter(new OutputStreamWriter(
+        new FileOutputStream(f), "utf-8"))) {
+      writer.write(lWrapperFunction.toString());
     }
 
     //return new FileToParse(f.getAbsolutePath(), CPAtiger_MAIN + "__");

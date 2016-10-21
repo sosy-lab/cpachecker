@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class SingletonECPEdgeSet implements ECPEdgeSet {
 
@@ -110,7 +110,6 @@ public class SingletonECPEdgeSet implements ECPEdgeSet {
       return pOther;
     }
 
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -156,6 +155,11 @@ public class SingletonECPEdgeSet implements ECPEdgeSet {
   @Override
   public String toString() {
     return mCFAEdge.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 
 }
