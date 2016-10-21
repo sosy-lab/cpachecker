@@ -131,11 +131,10 @@ public class TestCase {
 
   @Override
   public String toString() {
-    String returnStr = "[]";
+    String returnStr = "Test Case " + id + ": ";
 
     if (presenceCondition != null) {
-      returnStr += " with configurations "
-          + getPresenceCondition();
+      returnStr += getPresenceCondition();
     }
 
     return returnStr;

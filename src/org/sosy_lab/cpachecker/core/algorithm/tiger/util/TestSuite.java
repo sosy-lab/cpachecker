@@ -377,8 +377,8 @@ public class TestSuite implements AlgorithmResult {
     StringBuffer str = new StringBuffer();
 
     List<TestCase> testcases = new ArrayList<>(mapping.keySet());
+    // sort test cases by generation time
     Collections.sort(testcases, new Comparator<TestCase>() {
-
       @Override
       public int compare(TestCase pTestCase1, TestCase pTestCase2) {
         if (pTestCase1.getGenerationTime() > pTestCase2.getGenerationTime()) {
@@ -392,40 +392,42 @@ public class TestSuite implements AlgorithmResult {
       str.append(testcase.toString() + "\n");
 
       List<TestStep> testSteps = testcase.getTestSteps();
+      if (!testSteps.isEmpty()) {
       int cnt = 0;
-      str.append("Test Steps:\n");
-      for (TestStep testStep : testSteps) {
-        str.append("  Test Step " + cnt + "\n");
-        for (VariableAssignment assignment : testStep.getAssignments()) {
-          str.append("    " + assignment + "\n");
+        str.append("Test Steps:\n");
+        for (TestStep testStep : testSteps) {
+          str.append("  Test Step " + cnt + "\n");
+          for (VariableAssignment assignment : testStep.getAssignments()) {
+            str.append("    " + assignment + "\n");
+          }
+          cnt++;
         }
-        cnt++;
       }
 
-      List<CFAEdge> errorPath = testcase.getErrorPath();
       if (testcase.getGenerationTime() != -1) {
         str.append(
             "Generation Time: " + (testcase.getGenerationTime() - getGenerationStartTime()) + "\n");
       }
+
+      List<CFAEdge> errorPath = testcase.getErrorPath();
       if (errorPath != null) {
         str.append("Errorpath Length: " + testcase.getErrorPath().size() + "\n");
       }
 
       List<Goal> goals = mapping.get(testcase);
+      str.append("Covered Goals:\n");
       for (Goal goal : goals) {
-        str.append("Goal ");
+        str.append("  Goal ");
         str.append(getTestGoalLabel(goal));
 
         PresenceCondition presenceCondition =
             coveringPresenceConditions.get(Pair.of(testcase, goal));
-        if (presenceCondition != null) {
-          str.append(": " + presenceCondition.toString().replace(" & TRUE", ""));
-        }
+        str.append(": " + presenceCondition.toString().replace(" & TRUE", ""));
         str.append("\n");
       }
 
       if (printLabels) {
-        str.append("Labels: ");
+        str.append("Covered Labels: ");
         for (CFAEdge edge : testcase.getErrorPath()) {
           if (edge == null) {
             continue;
@@ -444,20 +446,17 @@ public class TestSuite implements AlgorithmResult {
     }
 
     if (!infeasibleGoals.isEmpty() || !partiallyInfeasibleGoals.isEmpty()) {
-      str.append("infeasible:\n");
+      str.append("Infeasible Goals:\n");
 
       Set<Goal> infeasibleOrPartiallyInfeasibleGoals =
           Sets.union(infeasibleGoals, partiallyInfeasibleGoals);
 
       for (Goal entry : infeasibleOrPartiallyInfeasibleGoals) {
-        str.append("Goal ");
-        str.append(getTestGoalLabel(entry));
+        str.append("  Goal ");
+        str.append(getTestGoalLabel(entry) + ": ");
 
         PresenceCondition presenceCondition = infeasiblePresenceConditions.get(entry);
-        if (presenceCondition != null) {
-          str.append(": cannot be covered with PC ");
-          str.append(presenceCondition.toString().replace(" & TRUE", ""));
-        }
+        str.append(presenceCondition.toString().replace(" & TRUE", ""));
         str.append("\n");
       }
 
@@ -465,20 +464,17 @@ public class TestSuite implements AlgorithmResult {
     }
 
     if (!timedOutGoals.isEmpty() || !partiallyTimedOutGoals.isEmpty()) {
-      str.append("timedout:\n");
+      str.append("Timedout Goals:\n");
 
       Set<Goal> timedoutOrPartiallyTimedoutGoals =
           Sets.union(timedOutGoals, partiallyTimedOutGoals);
 
       for (Goal entry : timedoutOrPartiallyTimedoutGoals) {
-        str.append("Goal ");
-        str.append(getTestGoalLabel(entry));
+        str.append("  Goal ");
+        str.append(getTestGoalLabel(entry) + ": ");
 
         PresenceCondition presenceCondition = timedOutPresenceCondition.get(entry);
-        if (presenceCondition != null) {
-          str.append(": timed out for PC ");
-          str.append(presenceCondition.toString().replace(" & TRUE", ""));
-        }
+        str.append(presenceCondition.toString().replace(" & TRUE", ""));
         str.append("\n");
       }
 
