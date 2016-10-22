@@ -21,11 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg.graphExport;
+package org.sosy_lab.cpachecker.cpa.arg.graphexport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-
 import java.util.Objects;
 
 /**
