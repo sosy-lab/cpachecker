@@ -26,7 +26,13 @@ package org.sosy_lab.cpachecker.core;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableList;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -38,14 +44,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -90,7 +88,7 @@ public final class Specification {
 
       if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa, cfa.getMachineModel(), scope);
+            new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
         automata = graphmlParser.parseAutomatonFile(specFile);
 
       } else {

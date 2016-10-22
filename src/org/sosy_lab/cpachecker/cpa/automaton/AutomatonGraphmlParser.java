@@ -77,7 +77,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -168,7 +167,6 @@ public class AutomatonGraphmlParser {
   private Path automatonDumpFile = null;
 
   private Scope scope;
-  private final CFA cfa;
   private final LogManager logger;
   private final Configuration config;
   private final MachineModel machine;
@@ -178,11 +176,10 @@ public class AutomatonGraphmlParser {
   private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier(factory);
 
   public AutomatonGraphmlParser(
-      Configuration pConfig, LogManager pLogger, CFA pCFA, MachineModel pMachine, Scope pScope)
+      Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    this.cfa = pCFA;
     this.scope = pScope;
     this.machine = pMachine;
     this.logger = pLogger;
