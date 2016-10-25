@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.CallToReturnEdge;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.ReturnStatementEdge;
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
@@ -49,6 +50,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -464,6 +466,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
                         || et.equals(ReturnStatementEdge)
                         || et.equals(CallToReturnEdge))) {
           return false; // main exit state ==> terminating
+        }
+        if (extractLocation(state) instanceof CFATerminationNode) {
+          return false; // terminating state after __VERIFIER_assume ==> terminating
         }
       }
       return true; // no terminating state found ==> never terminating
