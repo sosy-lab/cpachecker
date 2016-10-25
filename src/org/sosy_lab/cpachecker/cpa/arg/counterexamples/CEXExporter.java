@@ -28,7 +28,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,14 +56,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -108,6 +107,13 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(secure = true, name = "exportHarness", description = "export test harness")
+  private boolean exportHarness = false;
+
+  @Option(secure = true, name = "harness", description = "export test harness to file as code")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate testHarnessFile = PathTemplate.ofFormatString("Counterexample.%d.harness.c");
+
   @Option(
     secure = true,
     name = "compressErrorWitness",
@@ -121,12 +127,18 @@ public class CEXExporter {
 
   private final LogManager logger;
   private final ARGPathExporter witnessExporter;
+  private final HarnessExporter harnessExporter;
 
-
-  public CEXExporter(Configuration config, LogManager logger, ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
+  public CEXExporter(
+      Configuration config,
+      LogManager logger,
+      ARGPathExporter pARGPathExporter,
+      HarnessExporter pHarnessExporter)
+      throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
     this.witnessExporter = pARGPathExporter;
+    this.harnessExporter = pHarnessExporter;
 
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -261,6 +273,16 @@ public class CEXExporter {
                     isTargetPathEdge,
                     counterexample),
         compressErrorWitness);
+
+    if (exportHarness) {
+      writeErrorPathFile(
+          testHarnessFile,
+          uniqueId,
+          (Appender)
+              pAppendable ->
+                  harnessExporter.writeHarness(
+                      pAppendable, rootState, Predicates.in(pathElements), isTargetPathEdge));
+    }
   }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {

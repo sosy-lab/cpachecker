@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.NullCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampleFilter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 
 @Options
 public class ARGCPA extends AbstractSingleWrapperCPA implements
@@ -124,7 +125,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
     ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa);
-    cexExporter = new CEXExporter(config, logger, argPathExporter);
+    HarnessExporter harnessExporter = new HarnessExporter(config, logger, cfa);
+    cexExporter = new CEXExporter(config, logger, argPathExporter, harnessExporter);
     stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
         dumpErrorPathImmediately ? null : cexExporter, argPathExporter);
     machineModel = cfa.getMachineModel();

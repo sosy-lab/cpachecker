@@ -632,6 +632,9 @@ counterexample.export.enabled = true
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
+# export test harness
+counterexample.export.exportHarness = false
+
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
 
@@ -656,6 +659,9 @@ counterexample.export.graph = "Counterexample.%d.dot"
 
 # export counterexample to file as GraphML automaton
 counterexample.export.graphml = "Counterexample.%d.graphml"
+
+# export test harness to file as code
+counterexample.export.harness = "Counterexample.%d.harness.c"
 
 # where to dump the counterexample model in case a specification violation is
 # found
