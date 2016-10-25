@@ -138,7 +138,7 @@ public class TestVector {
 
     @Override
     public int compareTo(ComparableFunctionDeclaration pOther) {
-      if (declaration.equals(pOther)) {
+      if (declaration.equals(pOther.declaration)) {
         return 0;
       }
       return ComparisonChain.start()
