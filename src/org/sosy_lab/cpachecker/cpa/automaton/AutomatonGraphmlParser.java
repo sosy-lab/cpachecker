@@ -473,19 +473,24 @@ public class AutomatonGraphmlParser {
         }
 
         // Add assumptions to the transition
+        Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
+        Scope scope = determineScope(assumptionScopes, newStack);
+        Set<String> assumptionResultFunctions =
+            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
+        Optional<String> assumptionResultFunction = determineResultFunction(assumptionResultFunctions, scope);
         if (considerAssumptions) {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
-          Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
-          Set<String> resultFunctions =
-              GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
-          Scope scope = determineScope(assumptionScopes, newStack);
-          Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
           assumptions.addAll(
               CParserUtils.convertStatementsToAssumptions(
-                  parseStatements(transAssumes, resultFunction, scope, cparser), machine, logger));
+                  parseStatements(transAssumes, assumptionResultFunction, scope, cparser), machine, logger));
           if (graphType == GraphType.PROOF_WITNESS && !assumptions.isEmpty()) {
             throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
           }
+        }
+
+        if (graphType == GraphType.ERROR_WITNESS && !assumptionResultFunctions.isEmpty()) {
+          String resultFunctionName = assumptionResultFunction.get();
+          conjunctedTriggers = and(conjunctedTriggers, new AutomatonBoolExpr.MatchFunctionCall(resultFunctionName));
         }
 
         Set<String> candidates =
@@ -615,6 +620,8 @@ public class AutomatonGraphmlParser {
             conjunctedTriggers = and(conjunctedTriggers, assumeCaseMatchingExpr);
           }
         }
+
+
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
         transitions.add(

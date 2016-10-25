@@ -29,10 +29,20 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,13 +61,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -262,6 +265,41 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         return pExpr;
       }
       return new EpsilonMatch(pExpr, pForward, pContinueAtBranching);
+    }
+
+  }
+
+  static class MatchFunctionCall implements AutomatonBoolExpr {
+
+    private final String functionName;
+
+    MatchFunctionCall(String pFunctionName) {
+      this.functionName = pFunctionName;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof AStatementEdge) {
+        AStatement statement = ((AStatementEdge) edge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          AFunctionCall functionCall = (AFunctionCall) statement;
+          AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+          if (functionCallExpression.getFunctionNameExpression() instanceof AIdExpression) {
+            AIdExpression idExpression = (AIdExpression) functionCallExpression.getFunctionNameExpression();
+            if (idExpression.getName().equals(functionName)) {
+              return CONST_TRUE;
+            }
+          }
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH FUNCTION CALL";
     }
 
   }
