@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-@Options(prefix = "testharness")
 public class HarnessExporter {
 
   private static final String RETVAL_NAME = "retval";
