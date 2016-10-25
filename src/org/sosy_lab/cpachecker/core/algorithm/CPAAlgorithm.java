@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.CallToReturnEdge;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.ReturnStatementEdge;
-import static org.sosy_lab.cpachecker.util.AbstractStates.asFlatIterable;
+import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
@@ -446,16 +446,30 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       String entryFunctionName = locationState.getLocationNode().getFunctionName();
 
       // The program never terminates if no program end state is in the reached set.
-      return !asFlatIterable(reachedSet).filter(AutomatonState.class).anyMatch(as -> as.getInternalStateName().equals("STOP"))
-          && !reachedSet.asCollection().stream().anyMatch(as -> isTargetState(as))
-          && !asFlatIterable(reachedSet)
-              .filter(LocationState.class)
-              .transform(LocationState::getLocationNode)
-              .filter(n -> n.getFunctionName().equals(entryFunctionName))
-              .transformAndConcat(n -> CFAUtils.allEnteringEdges(n))
-              .transform(CFAEdge::getEdgeType)
-              .anyMatch(et -> et.equals(FunctionReturnEdge) || et.equals(ReturnStatementEdge) || et.equals(CallToReturnEdge));
-
+      for (AbstractState state : reachedSet) {
+        if (asIterable(state)
+            .filter(AutomatonState.class)
+            .anyMatch(as -> as.getInternalStateName().equals("STOP"))) {
+          return false; // sink state ==> terminating
+        }
+        if (isTargetState(state)) {
+          return false; // target state ==> terminating
+        }
+        if (asIterable(state)
+            .filter(LocationState.class)
+            .transform(LocationState::getLocationNode)
+            .filter(n -> n.getFunctionName().equals(entryFunctionName))
+            .transformAndConcat(n -> CFAUtils.allEnteringEdges(n))
+            .transform(CFAEdge::getEdgeType)
+            .anyMatch(
+                et ->
+                    et.equals(FunctionReturnEdge)
+                        || et.equals(ReturnStatementEdge)
+                        || et.equals(CallToReturnEdge))) {
+          return false; // main exit state ==> terminating
+        }
+      }
+      return true; // no terminating state found ==> never terminating
     } else {
       return false;
     }
