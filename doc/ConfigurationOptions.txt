@@ -2654,7 +2654,7 @@ precision.template.includeFunctionParameters = false
 precision.template.maxExpressionSize = 1
 
 # Perform refinement using enumerative template synthesis.
-precision.template.performEnumerativeRefinement = no default value
+precision.template.performEnumerativeRefinement = true
 
 # Do not generate templates with threshold larger than specified. Set to '-1'
 # for no limit.

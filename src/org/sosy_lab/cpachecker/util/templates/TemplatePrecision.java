@@ -99,7 +99,7 @@ public class TemplatePrecision implements Precision {
   private int maxExpressionSize = 1;
 
   @Option(secure=true, description="Perform refinement using enumerative template synthesis.")
-  private boolean performEnumerativeRefinement;
+  private boolean performEnumerativeRefinement = true;
 
   @Option(secure=true, description="Generate difference constraints."
       + "This option is redundant for `maxExpressionSize` >= 2.")
