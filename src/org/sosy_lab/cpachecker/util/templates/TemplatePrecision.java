@@ -665,7 +665,17 @@ public class TemplatePrecision implements Precision {
     }
   }
 
+  /**
+   * Add template {@code t} to a set {@code extraTemplates}.
+   * Ignore the template if it is not valid.
+   *
+   * @return Whether the template was added.
+   */
   private boolean addTemplateToExtra(Template t) {
+    return shouldAddTemplate(t) && extraTemplates.add(t);
+  }
+
+  private boolean shouldAddTemplate(Template t) {
     // Do not add intervals.
     if (t.size() == 1) {
       return false;
@@ -676,12 +686,11 @@ public class TemplatePrecision implements Precision {
       if (templateToFormulaConversionManager.isOverflowing(t, e.getValue())) {
         return false;
       } else if (templateConstantThreshold != -1 &&
-          e.getValue().compareTo(Rational.ofLong(templateConstantThreshold)) >= 1) {
+          e.getValue().abs().compareTo(Rational.ofLong(templateConstantThreshold)) >= 1) {
         return false;
       }
     }
-
-    return extraTemplates.add(t);
+    return true;
   }
 
 
