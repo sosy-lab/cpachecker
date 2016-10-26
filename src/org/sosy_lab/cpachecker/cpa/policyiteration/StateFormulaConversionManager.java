@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class StateFormulaConversionManager {
 
   @Option(description="Remove redundant items when abstract values.")
-  private boolean simplifyDotOutput = true;
+  private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;

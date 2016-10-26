@@ -22,6 +22,7 @@ public class PolicyDotWriter {
 
     // Pretty-printing is tricky.
     Map<LinearExpression<?>, Rational> lessThan = new HashMap<>();
+    Map<LinearExpression<?>, Rational> greaterThan = new HashMap<>();
     Map<LinearExpression<?>, Pair<Rational, Rational>> bounded
         = new HashMap<>();
     Map<LinearExpression<?>, Rational> equal = new HashMap<>();
@@ -39,15 +40,12 @@ public class PolicyDotWriter {
 
       toSort.remove(template);
 
+      // Rotate the inequality if necessary.
+      boolean negated = isNegated(template);
+
       if (toSort.containsKey(negTemplate)) {
         Rational lowerBound = toSort.get(negTemplate).getBound().negate();
         toSort.remove(negTemplate);
-
-        // Rotate the pair if necessary.
-        boolean negated = false;
-        if (template.toString().trim().startsWith("-")) {
-          negated = true;
-        }
 
         if (lowerBound.equals(upperBound)) {
           if (negated) {
@@ -65,7 +63,11 @@ public class PolicyDotWriter {
           }
         }
       } else {
-        lessThan.put(template, upperBound);
+        if (negated) {
+          greaterThan.put(template.negate(), upperBound.negate());
+        } else {
+          lessThan.put(template, upperBound);
+        }
       }
     }
 
@@ -78,8 +80,7 @@ public class PolicyDotWriter {
     }
 
     // Print bounded.
-    for (Map.Entry<LinearExpression<?>, Pair<Rational, Rational>> entry
-        : bounded.entrySet()) {
+    for (Map.Entry<LinearExpression<?>, Pair<Rational, Rational>> entry : bounded.entrySet()) {
       b
           .append(entry.getValue().getFirst())
           .append("≤")
@@ -98,5 +99,9 @@ public class PolicyDotWriter {
     }
 
     return b.toString();
+  }
+
+  private boolean isNegated(LinearExpression<?> pTemplate) {
+   return pTemplate.toString().trim().startsWith("-");
   }
 }

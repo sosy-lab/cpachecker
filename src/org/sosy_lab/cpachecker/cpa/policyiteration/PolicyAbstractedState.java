@@ -208,9 +208,8 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s, locID=%s, SSA=%s)%s%n",
-        getNode(), locationID, ssaMap,
-        manager.toDOTLabel(upperBounds)
+        "(node=%s, locID=%s)%s%n",
+        getNode(), locationID, manager.toDOTLabel(upperBounds)
     );
   }
 
