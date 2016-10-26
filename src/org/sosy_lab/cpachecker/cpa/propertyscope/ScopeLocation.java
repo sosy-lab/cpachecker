@@ -37,7 +37,8 @@ public class ScopeLocation {
   public enum Reason {
     AUTOMATON_MATCH,
     ABS_FORMULA_VAR_CLASSIFICATION,
-    ABS_FORMULA_IMPLICATION;
+    ABS_FORMULA_IMPLICATION,
+    ABS_FORMULA
   }
 
   public ScopeLocation(CFAEdge pEdge, List<String> pCallstack, Reason pReason) {

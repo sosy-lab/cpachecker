@@ -106,9 +106,6 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
     java.util.Optional<AbstractionPropertyScopeInstance> absScopeInstance = state.getAbsScopeInstance();
 
-
-    HolderBoolean hIsAbsScopeLoc = HolderBoolean.of(false);
-
     Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
         .forEach(st -> {
           scopeLocations.addAll(st.getScopeLocations());
@@ -119,12 +116,17 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
             hAfterGlobalInitAbsFormula.value = predState.getAbstractionFormula();
           }
 
+          // simple non-true abs formula scope
+          if(!predState.getAbstractionFormula().isTrue()) {
+            scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
+                Reason.ABS_FORMULA));
+          }
+
           // variables in edge occur in abs formula -> edge in scope
           if (fmgr.extractVariableNames(formula).stream()
               .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
             scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
                 Reason.ABS_FORMULA_VAR_CLASSIFICATION));
-            hIsAbsScopeLoc.value = true;
           }
         });
 
