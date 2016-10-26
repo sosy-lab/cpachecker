@@ -98,6 +98,9 @@ public class TemplatePrecision implements Precision {
   @Option(secure=true, description="Maximum size for the generated template")
   private int maxExpressionSize = 1;
 
+  @Option(secure=true, description="Perform refinement using enumerative template synthesis.")
+  private boolean performEnumerativeRefinement;
+
   @Option(secure=true, description="Generate difference constraints."
       + "This option is redundant for `maxExpressionSize` >= 2.")
   private boolean generateDifferences = false;
@@ -121,6 +124,7 @@ public class TemplatePrecision implements Precision {
       description="Force the inclusion of function parameters into the "
           + "generated templates. Required for summaries computation.")
   private boolean includeFunctionParameters = false;
+
 
   public enum VarFilteringStrategy {
 
@@ -616,6 +620,12 @@ public class TemplatePrecision implements Precision {
     generatedTemplates.addAll(templates);
   }
 
+  /**
+   * Generate a new set of templates for each location subject to a higher precision.
+   * Invalidates the cache of already generated templates.
+   *
+   * @return Whether refinement was performed.
+   */
   public boolean adjustPrecision() {
     boolean changed = false;
     for (Template t : generatedTemplates) {
@@ -636,6 +646,10 @@ public class TemplatePrecision implements Precision {
         generateFromStatements = true;
         extractedTemplates = ImmutableSet.copyOf(extractTemplates());
         return true;
+      }
+
+      if (!performEnumerativeRefinement) {
+        return false;
       }
 
       if (maxExpressionSize == 1) {

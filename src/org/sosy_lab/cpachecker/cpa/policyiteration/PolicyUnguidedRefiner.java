@@ -26,7 +26,8 @@ import java.util.logging.Level;
 public class PolicyUnguidedRefiner implements Refiner {
 
   @Option(secure=true,
-      description="Number of refinements after which the unrolling depth is increased")
+      description="Number of refinements after which the unrolling depth is increased."
+          + "Set to -1 to never increase the depth.")
   private int unrollingRefinementThreshold = 2;
 
   private final PolicyCPA policyCPA;
@@ -67,8 +68,8 @@ public class PolicyUnguidedRefiner implements Refiner {
     boolean out = policyCPA.adjustPrecision();
     if (out) {
 
-      if (refinementsPerformed == unrollingRefinementThreshold
-            && loopstackCPA != null) {
+      if (unrollingRefinementThreshold != -1 &&
+          refinementsPerformed == unrollingRefinementThreshold && loopstackCPA != null) {
         loopstackCPA.incLoopIterationsBeforeAbstraction();
         logger.log(Level.INFO, "LPI Refinement: increasing unrolling bound.");
       }
