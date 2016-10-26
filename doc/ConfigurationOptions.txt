@@ -3022,10 +3022,6 @@ tiger.testcaseGeneartionTimesFile = "generationTimes.csv"
 # Filename for output of generated test suite
 tiger.testsuiteFile = "testsuite.txt"
 
-# Use Test Input Generator algorithm with an extension using the BDDCPA to
-# model product line presence conditions.
-tiger.tiger_with_presenceConditions = false
-
 # How to proceed with timed-out goals if some time remains after processing
 # all other goals.
 tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
