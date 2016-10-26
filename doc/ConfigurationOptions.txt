@@ -1255,7 +1255,7 @@ cpa.lpi.linearizePolicy = true
 cpa.lpi.runHopefulValueDetermination = true
 
 # Remove redundant items when abstract values.
-cpa.lpi.simplifyDotOutput = true
+cpa.lpi.simplifyDotOutput = false
 
 # Algorithm for converting a formula to a set of lemmas
 cpa.lpi.toLemmasAlgorithm = "RCNF"
