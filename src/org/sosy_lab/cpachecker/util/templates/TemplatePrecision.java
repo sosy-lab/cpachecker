@@ -631,7 +631,8 @@ public class TemplatePrecision implements Precision {
       }
 
       if (!generateFromStatements) {
-        logger.log(Level.INFO, "Generating templates from all program statements.");
+        logger.log(Level.INFO, "Template Refinement: Generating templates from all program "
+            + "statements.");
         generateFromStatements = true;
         extractedTemplates = ImmutableSet.copyOf(extractTemplates());
         return true;
