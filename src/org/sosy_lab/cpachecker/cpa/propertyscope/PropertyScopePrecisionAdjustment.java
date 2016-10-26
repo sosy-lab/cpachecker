@@ -127,6 +127,8 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
               .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
             scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
                 Reason.ABS_FORMULA_VAR_CLASSIFICATION));
+            scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
+                Reason.ABS_FORMULA_VAR_CLASSIFICATION_OR_AUTOMATON_MATCH));
           }
         });
 
