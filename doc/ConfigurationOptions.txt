@@ -1261,7 +1261,8 @@ cpa.lpi.simplifyDotOutput = false
 cpa.lpi.toLemmasAlgorithm = "RCNF"
   allowed values: [CNF, RCNF, NONE]
 
-# Number of refinements after which the unrolling depth is increased
+# Number of refinements after which the unrolling depth is increased.Set to
+# -1 to never increase the depth.
 cpa.lpi.unrollingRefinementThreshold = 2
 
 # Use caching optimization solver
@@ -2651,6 +2652,9 @@ precision.template.includeFunctionParameters = false
 
 # Maximum size for the generated template
 precision.template.maxExpressionSize = 1
+
+# Perform refinement using enumerative template synthesis.
+precision.template.performEnumerativeRefinement = no default value
 
 # Do not generate templates with threshold larger than specified. Set to '-1'
 # for no limit.
