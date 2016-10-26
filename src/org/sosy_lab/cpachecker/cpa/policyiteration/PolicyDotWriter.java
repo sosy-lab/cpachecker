@@ -98,6 +98,13 @@ public class PolicyDotWriter {
           .append("\n");
     }
 
+    // Printing greater-than.
+    for (Map.Entry<LinearExpression<?>, Rational> entry : greaterThan.entrySet()) {
+      b.append(entry.getKey())
+          .append("≥")
+          .append(entry.getValue())
+          .append("\n");
+    }
     return b.toString();
   }
 
