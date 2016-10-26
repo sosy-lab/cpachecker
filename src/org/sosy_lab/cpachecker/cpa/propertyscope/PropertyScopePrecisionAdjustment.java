@@ -33,6 +33,10 @@ import com.google.common.collect.Multimap;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,6 +64,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+@Options(prefix="cpa.propertyscope")
 public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
   private final CFA cfa;
@@ -67,9 +72,15 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
   private final VariableClassification varClassification;
   private final Multimap<?,?> cfaEdgeToUsedVar;
 
-  public PropertyScopePrecisionAdjustment(CFA pCfa, LogManager pLogger) {
+  @Option(secure=true, description="Try to find a scope with ABS_FORMULA_IMPLICATION (many solver"
+      + " queries)")
+  private boolean collectImplicationScope = false;
+
+  public PropertyScopePrecisionAdjustment(Configuration pConfig, CFA pCfa, LogManager pLogger)
+      throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
+    pConfig.inject(this);
     varClassification = Optionals.fromGuavaOptional(cfa.getVarClassification())
         .orElseThrow(() -> new IllegalStateException("CFA is missing a VariableClassification!"));
 
@@ -132,7 +143,8 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
           }
         });
 
-    if (predState.isAbstractionState() && hAfterGlobalInitAbsFormula.value != null) {
+    if (collectImplicationScope && predState.isAbstractionState()
+        && hAfterGlobalInitAbsFormula.value != null) {
       try {
         boolean implication =
             solver.implies(hAfterGlobalInitAbsFormula.value.asInstantiatedFormula(),

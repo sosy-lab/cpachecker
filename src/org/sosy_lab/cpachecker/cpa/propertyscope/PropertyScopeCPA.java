@@ -81,7 +81,7 @@ public class PropertyScopeCPA implements StatisticsProvider, ConfigurableProgram
     shutdownNotifier = pShutdownNotifier;
     statistics = new PropertyScopeStatistics(config, logger, pCfa);
     transfer = new PropertyScopeTransferRelation(logger);
-    propertyScopePrecisionAdjustment = new PropertyScopePrecisionAdjustment(pCfa, logger);
+    propertyScopePrecisionAdjustment = new PropertyScopePrecisionAdjustment(config, pCfa, logger);
   }
 
   @Override
