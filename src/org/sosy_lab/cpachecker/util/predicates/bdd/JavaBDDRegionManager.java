@@ -426,7 +426,7 @@ class JavaBDDRegionManager implements RegionManager {
   public Region makeExists(Region pF1, Region... pF2) {
     cleanupReferences();
 
-    if (pF2.length == 0) {
+    if (pF2.length == 0 || pF1.isTrue() || pF1.isFalse()) {
       return pF1;
     }
 
