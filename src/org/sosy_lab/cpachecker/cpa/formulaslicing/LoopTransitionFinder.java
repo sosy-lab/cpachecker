@@ -54,9 +54,6 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 /**
  * Return a path-formula describing all possible transitions inside the loop.
- *
- * <p><b>Warning: </b></p> this class is deprecated and probably should not be
- * used, it's better to find transitions dynamically using CPAs.
  */
 @Options(prefix="cpa.slicing")
 public class LoopTransitionFinder implements StatisticsProvider {
@@ -174,18 +171,113 @@ public class LoopTransitionFinder implements StatisticsProvider {
       }
       return ImmutableList.copyOf(out);
     } else {
-      EdgeCollectingCFAVisitor v1 = new EdgeCollectingCFAVisitor();
-      EdgeCollectingCFAVisitor v2 = new EdgeCollectingCFAVisitor();
+      SummarizingVisitor forwardVisitor = new SummarizingVisitorForward();
+      SummarizingVisitor backwardsVisitor = new SummarizingVisitorBackwards();
 
-      // Note that we CAN NOT ignore function calls, as the loop
-      // may contain functions inside which do affect the global state.
-      CFATraversal.dfs().ignoreSummaryEdges().traverse(node, v1);
-      CFATraversal.dfs().ignoreSummaryEdges().backwards().traverse(node, v2);
+      CFATraversal.dfs().traverse(node, forwardVisitor);
+      CFATraversal.dfs().backwards().traverse(node, backwardsVisitor);
 
-      Set<CFAEdge> s1 = ImmutableSet.copyOf(v1.getVisitedEdges());
-      Set<CFAEdge> s2 = ImmutableSet.copyOf(v2.getVisitedEdges());
-      Set<CFAEdge> intersection = Sets.intersection(s1, s2);
+      Set<CFAEdge> forwardsReachable = ImmutableSet.copyOf(forwardVisitor.getVisitedEdges());
+      Set<CFAEdge> backwardsReachable = ImmutableSet.copyOf(backwardsVisitor.getVisitedEdges());
+
+      Set<CFAEdge> intersection = Sets.intersection(forwardsReachable, backwardsReachable);
       return ImmutableList.copyOf(intersection);
+    }
+  }
+
+
+  /**
+   * Traverse the CFA, *including* function calls, yet on return edge, return only to functions
+   * we have already been to.
+   *
+   * <p>Otherwise, inter-procedural traversal quickly traverses entire CFA, even unreachable
+   * parts (e.g. consider a {@code log()} function called from everywhere).
+   */
+  private abstract static class SummarizingVisitor implements CFAVisitor {
+    final Set<CFAEdge> visitedEdges = new HashSet<>();
+    @Override
+    public TraversalProcess visitEdge(CFAEdge edge) {
+      if (visitedEdges.contains(edge)) {
+        return TraversalProcess.SKIP;
+      }
+      if (edge instanceof FunctionCallEdge) {
+        return onCallEdge(edge);
+
+      } else if (edge instanceof FunctionReturnEdge) {
+        return onReturnEdge(edge);
+      } else if (edge instanceof FunctionSummaryEdge) {
+        return TraversalProcess.SKIP;
+      } else {
+        visitedEdges.add(edge);
+        return TraversalProcess.CONTINUE;
+      }
+    }
+
+    abstract TraversalProcess onCallEdge(CFAEdge callEdge);
+
+    abstract TraversalProcess onReturnEdge(CFAEdge returnEdge);
+
+    @Override
+    public TraversalProcess visitNode(CFANode node) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    private ImmutableSet<CFAEdge> getVisitedEdges() {
+      return ImmutableSet.copyOf(visitedEdges);
+    }
+  }
+
+  /**
+   * Jump only to join points which are reachable.
+   */
+  private static class SummarizingVisitorForward extends SummarizingVisitor {
+    private final Set<CFANode> expectedJoinNodes = new HashSet<>();
+
+    @Override
+    TraversalProcess onCallEdge(CFAEdge callEdge) {
+      visitedEdges.add(callEdge);
+      expectedJoinNodes.add(callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor());
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    TraversalProcess onReturnEdge(CFAEdge returnEdge) {
+      if (expectedJoinNodes.contains(returnEdge.getSuccessor())) {
+        visitedEdges.add(returnEdge);
+        return TraversalProcess.CONTINUE;
+      } else {
+
+        // Returning to a function we can never get to.
+        return TraversalProcess.SKIP;
+      }
+    }
+  }
+
+  /**
+   * Jump only to callsites which are reachable.
+   */
+  private static final class SummarizingVisitorBackwards extends SummarizingVisitor {
+
+    private final Set<CFANode> expectedCallsites = new HashSet<>();
+
+    @Override
+    TraversalProcess onReturnEdge(CFAEdge edge) {
+      CFANode callsite = edge.getSuccessor().getEnteringSummaryEdge().getPredecessor();
+      expectedCallsites.add(callsite);
+      visitedEdges.add(edge);
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    TraversalProcess onCallEdge(CFAEdge edge) {
+      if (expectedCallsites.contains(edge.getPredecessor())) {
+        visitedEdges.add(edge);
+        return TraversalProcess.CONTINUE;
+      } else {
+
+        // Returning to a function we can never get to.
+        return TraversalProcess.SKIP;
+      }
     }
   }
 
