@@ -356,7 +356,7 @@ public class CFATraversal {
    * and ABORT is returned.
    * If one visitor returns SKIP, the other visitors will still be called,
    * and SKIP is returned if none of them returned ABORT.
-   * Otherweise CONTINUE is returned.
+   * Otherwise CONTINUE is returned.
    */
   public static class CompositeCFAVisitor implements CFAVisitor {
 
