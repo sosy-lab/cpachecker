@@ -288,9 +288,14 @@ public class TestDataTools {
    * Convert a given string to a {@link CFA},
    * assuming it is a body of a single function.
    */
-  public static CFA toCFA(CFACreator creator, String... parts)
+  public static CFA toSingleFunctionCFA(CFACreator creator, String... parts)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     return creator.parseSourceAndCreateCFA(getProgram(parts));
+  }
+
+  public static CFA toMultiFunctionCFA(CFACreator creator, String... parts)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(parts));
   }
 
   private static String getProgram(String... parts) {

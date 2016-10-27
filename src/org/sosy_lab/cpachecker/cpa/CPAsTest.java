@@ -147,7 +147,7 @@ public class CPAsTest {
     tempFolder.newFile("immediatechecks.conf");
 
     cfa =
-        TestDataTools.toCFA(
+        TestDataTools.toSingleFunctionCFA(
             new CFACreator(config, logManager, shutdownNotifier),
             "  int a;",
             "  a = 1;",
