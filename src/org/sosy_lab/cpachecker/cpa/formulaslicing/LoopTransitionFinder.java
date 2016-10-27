@@ -8,7 +8,17 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -21,13 +31,17 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -35,21 +49,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 /**
  * Return a path-formula describing all possible transitions inside the loop.
@@ -139,14 +140,14 @@ public class LoopTransitionFinder implements StatisticsProvider {
       WalltimeLimit l = WalltimeLimit.fromNowOn(timeForLoopGeneration);
       limits =
           new ResourceLimitChecker(
-              loopGenerationShutdown, Collections.<ResourceLimit>singletonList(l));
+              loopGenerationShutdown, Collections.singletonList(l));
       limits.start();
     }
 
     PathFormula out;
     statistics.LBEencodingTimer.start();
     try {
-      out = LBE(loopHead, start, pts);
+      out = performLargeBlockEncoding(loopHead, start, pts);
     } finally {
       statistics.LBEencodingTimer.stop();
     }
@@ -200,7 +201,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
    * Runs in (at most) quadratic time.
    *
    */
-  private PathFormula LBE(
+  private PathFormula performLargeBlockEncoding(
       CFANode loopHead,
       SSAMap start,
       PointerTargetSet pts)
@@ -225,7 +226,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       do {
         shutdownNotifier.shutdownIfNecessary();
         changed = false;
-        if (applyLBETransformation && applyLBETransformation(out)) {
+        if (applyLBETransformation && applyLargeBlockEncodingTransformationPass(out)) {
           changed = true;
         }
       } while (changed);
@@ -249,7 +250,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
    * Apply and- and or- LBE transformation,
    * return whether the passed table was changed.
    */
-  private boolean applyLBETransformation(
+  private boolean applyLargeBlockEncodingTransformationPass(
       Table<CFANode, CFANode, EdgeWrapper> out) {
 
     // successor (row) -> predecessor (column) -> EdgeWrapper (value)
@@ -258,32 +259,42 @@ public class LoopTransitionFinder implements StatisticsProvider {
       EdgeWrapper e = cell.getValue();
       CFANode predecessor = e.getPredecessor();
 
-      // Do not perform reduction on nodes ending in a loop-head.
+      // Do not perform reduction on edges which predecessor is a loop-head.
       if (loopStructure.getAllLoopHeads().contains(predecessor)) {
         continue;
       }
+      if (e.getPredecessor().equals(e.getSuccessor())) {
 
-      // Successor equivalent to our predecessor.
+        // Can not process self-looping edges.
+        continue;
+      }
+
+      // Edges which successor node equal to the predecessor of the currently processed edge.
       Collection<EdgeWrapper> candidates = out.row(predecessor).values();
-      if (candidates.size() == 1) {
-        EdgeWrapper candidate = candidates.iterator().next();
-        EdgeWrapper added = new AndEdge(ImmutableList.of(candidate, e));
 
-        // We need to check whether adding "added" would create a double entry.
-        EdgeWrapper alternative = out.get(
-            added.getSuccessor(), added.getPredecessor());
-
-        out.remove(candidate.getSuccessor(), candidate.getPredecessor());
+      if (candidates.size() >= 1) {
         out.remove(e.getSuccessor(), e.getPredecessor());
-        logger.log(Level.ALL, "Removing", e, "and", candidate);
+        logger.log(Level.ALL, "Removing", e);
 
-        if (alternative != null) {
-          added = new OrEdge(ImmutableList.of(added, alternative));
-          out.remove(alternative.getSuccessor(), alternative.getPredecessor());
-          logger.log(Level.ALL, "Removing", alternative);
+        for (EdgeWrapper candidate : ImmutableList.copyOf(candidates)) {
+          logger.log(Level.ALL, "Removing", candidate);
+          out.remove(candidate.getSuccessor(), candidate.getPredecessor());
+
+          EdgeWrapper added = new AndEdge(ImmutableList.of(candidate, e));
+
+          // We need to check whether adding "added" would create a double entry.
+          // We maintain invariant that there is always at most one alternative edge.
+          EdgeWrapper alternative = out.get(added.getSuccessor(), added.getPredecessor());
+          if (alternative != null) {
+            added = new OrEdge(ImmutableList.of(added, alternative));
+
+            logger.log(Level.ALL, "Removing", alternative);
+            out.remove(alternative.getSuccessor(), alternative.getPredecessor());
+          }
+
+          logger.log(Level.ALL, "Adding", added);
+          out.put(added.getSuccessor(), added.getPredecessor(), added);
         }
-        out.put(added.getSuccessor(), added.getPredecessor(), added);
-        logger.log(Level.ALL, "Adding", added);
 
         // Terminate the iteration on first change.
         return true;
