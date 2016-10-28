@@ -386,12 +386,8 @@ public abstract class PathTranslator {
     int maxSizeOfStack = 0;
 
     for (FunctionBody stack : pIncomingStacks) {
-      while (true) {
-        if (stack.getCurrentBlock().isClosedBefore()) {
-          stack.leaveBlock();
-        } else {
-          break;
-        }
+      while (stack.getCurrentBlock().isClosedBefore()) {
+        stack.leaveBlock();
       }
       if (stack.size() > maxSizeOfStack) {
         maxStack = stack;
