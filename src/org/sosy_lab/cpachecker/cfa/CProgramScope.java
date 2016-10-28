@@ -711,8 +711,17 @@ public class CProgramScope implements Scope {
     }
   }
 
+  public boolean hasFunctionReturnVariable(String pFunctionName) {
+    return retValDeclarations.containsKey(pFunctionName);
+  }
+
   public CSimpleDeclaration getFunctionReturnVariable(String pFunctionName) {
-    return retValDeclarations.get(pFunctionName);
+    CSimpleDeclaration result = retValDeclarations.get(pFunctionName);
+    if (result == null) {
+      throw new IllegalArgumentException(
+          "Function unknown or does not have a return value: " + pFunctionName);
+    }
+    return result;
   }
 
   private static CSimpleDeclaration getArtificialFunctionReturnVariable(
