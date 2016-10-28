@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigDecimal;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -56,11 +55,6 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   @Override
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    return getValue().toString();
   }
 
   @Override

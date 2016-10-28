@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.math.BigDecimal;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -46,7 +45,11 @@ public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
   @Override
   public String toASTString() {
-   return value.toString();
+    // If the value is integral and has no zeroes after the decimal point yet, add one
+    if (value.scale() <= 0) {
+      return String.format("%.1f", value);
+    }
+    return value.toString();
   }
 
   /* (non-Javadoc)
