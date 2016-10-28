@@ -281,7 +281,11 @@ public class CEXExporter {
           (Appender)
               pAppendable ->
                   harnessExporter.writeHarness(
-                      pAppendable, rootState, Predicates.in(pathElements), isTargetPathEdge));
+                      pAppendable,
+                      rootState,
+                      Predicates.in(pathElements),
+                      isTargetPathEdge,
+                      counterexample));
     }
   }
 

@@ -2894,3 +2894,6 @@ termination.resetReachedSetStrategy = REMOVE_LOOP
 # A human readable representation of the synthesized (non-)termination
 # arguments is exported to this file.
 termination.resultFile = "terminationAnalysisResult.txt"
+
+# Use the counterexample model to provide test-vector values
+testHarnessExport.useModel = true
