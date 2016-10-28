@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -50,17 +52,27 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -125,7 +137,7 @@ public class HarnessExporter {
         if (inputValues.size() > 1) {
           appendVectorIndexDeclaration(pTarget, inputFunctionVectorIndexName);
         }
-        pTarget.append(inputFunction.getType().toASTString(inputFunction.getName()));
+        pTarget.append(declare(inputFunction));
         appendln(pTarget, " {");
         Type returnType = inputFunction.getType().getReturnType();
         pTarget.append("  ");
@@ -161,6 +173,71 @@ public class HarnessExporter {
       logger.log(
           Level.INFO, "Could not export a test harness, some test-vector values are missing.");
     }
+  }
+
+  private String declare(AFunctionDeclaration pInputFunction) {
+    return enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName());
+  }
+
+  private AFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
+    IAFunctionType functionType = pInputFunction.getType();
+    if (functionType instanceof CFunctionType) {
+      CFunctionType cFunctionType = (CFunctionType) functionType;
+      return new CFunctionTypeWithNames(
+          cFunctionType.isConst(),
+          cFunctionType.isVolatile(),
+          cFunctionType.getReturnType(),
+          FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
+              .filter(CParameterDeclaration.class)
+              .toList(),
+          functionType.takesVarArgs());
+    }
+    if (functionType instanceof JMethodType) {
+      JMethodType methodType = (JMethodType) functionType;
+      return new JMethodType(
+          methodType.getReturnType(),
+          FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
+              .filter(JType.class)
+              .toList(),
+          functionType.takesVarArgs());
+    }
+    throw new AssertionError("Unsupported function type: " + functionType.getClass());
+  }
+
+  private List<AParameterDeclaration> enforceParameterNames(
+      List<? extends AParameterDeclaration> pParameters) {
+    Set<String> usedNames = Sets.newHashSetWithExpectedSize(pParameters.size());
+    int i = 0;
+    List<AParameterDeclaration> result = Lists.newArrayListWithCapacity(pParameters.size());
+    for (AParameterDeclaration parameter : pParameters) {
+      AParameterDeclaration declaration = parameter;
+      if (!declaration.getName().isEmpty()) {
+        usedNames.add(declaration.getName());
+      } else {
+        String name;
+        while (!usedNames.add(name = "p" + i)) {
+          ++i;
+        }
+        if (declaration instanceof CParameterDeclaration) {
+          declaration =
+              new CParameterDeclaration(FileLocation.DUMMY, (CType) declaration.getType(), name);
+        } else if (declaration instanceof JParameterDeclaration) {
+          JParameterDeclaration jDecl = (JParameterDeclaration) declaration;
+          declaration =
+              new JParameterDeclaration(
+                  FileLocation.DUMMY,
+                  jDecl.getType(),
+                  name,
+                  jDecl.getQualifiedName() + name,
+                  jDecl.isFinal());
+        } else {
+          throw new AssertionError(
+              "Unsupported parameter declaration type: " + declaration.getClass());
+        }
+      }
+      result.add(declaration);
+    }
+    return result;
   }
 
   private Optional<TestVector> extractTestVector(
