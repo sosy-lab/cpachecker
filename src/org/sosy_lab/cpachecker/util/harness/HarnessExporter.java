@@ -253,7 +253,7 @@ public class HarnessExporter {
 
   private Map<ARGState, CFAEdgeWithAssumptions> getValueMap(
       CounterexampleInfo pCounterexampleInfo) {
-    if (useModel) {
+    if (useModel && pCounterexampleInfo.isPreciseCounterExample()) {
       return pCounterexampleInfo.getExactVariableValues();
     }
     return Collections.emptyMap();
