@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.errorprone.annotations.ForOverride;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -39,12 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
