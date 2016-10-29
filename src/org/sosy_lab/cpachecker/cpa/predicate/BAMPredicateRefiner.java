@@ -337,8 +337,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
         }
       }
 
-      @SuppressWarnings("unused") // always False
-      boolean trackFurtherCEX = super.performRefinement(
+      super.performRefinement(
           pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
 
       return furtherCEXTrackingNeeded;
