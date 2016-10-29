@@ -72,18 +72,18 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
   }
 
   @Override
-  public void performRefinement(
+  public boolean performRefinement(
       final ARGReachedSet pReached,
       final List<ARGState> pAbstractionStatesTrace,
       final List<BooleanFormula> pInterpolants,
-      final boolean pRepeatedCounterexample
-  ) throws CPAException, InterruptedException {
+      final boolean pRepeatedCounterexample)
+      throws CPAException, InterruptedException {
     if (pRepeatedCounterexample) {
       throw new CPAException("Refinement using predicate refinement failed."
           + "Try using cpa.value.symbolic.refiner.SymbolicValueAnalysisRefiner");
     }
 
-    super.performRefinement(pReached, pAbstractionStatesTrace, pInterpolants,
+    return super.performRefinement(pReached, pAbstractionStatesTrace, pInterpolants,
         pRepeatedCounterexample);
   }
 

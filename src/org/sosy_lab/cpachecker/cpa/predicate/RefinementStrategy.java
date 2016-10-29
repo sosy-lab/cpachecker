@@ -90,8 +90,17 @@ public abstract class RefinementStrategy {
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
 
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
+  /**
+   * @return whether previous counterexamples should be kept for comparison, such that we can
+   *     determine a repeated counterexample through multiple iterations of refinements. To keep
+   *     only the current counterexample, return <code>false</code>.
+   */
+  public boolean performRefinement(
+      ARGReachedSet pReached,
+      List<ARGState> abstractionStatesTrace,
+      List<BooleanFormula> pInterpolants,
+      boolean pRepeatedCounterexample)
+      throws CPAException, InterruptedException {
     // Hook
     startRefinementOfPath();
 
@@ -118,6 +127,8 @@ public abstract class RefinementStrategy {
     // this assert doesn't hold, as the updated elements are removed from the
     // reached set one step later
     // assert !pReached.asReachedSet().contains(lastElement);
+
+    return false; // no tracking of previous counterexamples needed
   }
 
   // returns a pair consisting of the root of the infeasible part of the ARG and a list of all

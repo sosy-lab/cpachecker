@@ -140,7 +140,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   }
 
   @Override
-  public void performRefinement(
+  public boolean performRefinement(
       ARGReachedSet pReached,
       List<ARGState> pAbstractionStatesTrace,
       List<BooleanFormula> pInterpolants,
@@ -156,7 +156,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
       throw new IllegalStateException("During global refinement, reached set may not be changed.");
     }
 
-    super.performRefinement(
+    return super.performRefinement(
         reached, pAbstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
   }
 

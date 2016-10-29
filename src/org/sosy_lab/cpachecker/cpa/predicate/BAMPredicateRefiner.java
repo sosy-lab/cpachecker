@@ -283,11 +283,13 @@ public abstract class BAMPredicateRefiner implements Refiner {
     }
 
     @Override
-    public void performRefinement(
+    public boolean performRefinement(
         ARGReachedSet pReached,
         List<ARGState> abstractionStatesTrace,
         List<BooleanFormula> pInterpolants,
         boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
+
+      boolean furtherCEXTrackingNeeded = true;
 
       // overriding this method is needed, as, in principle, it is possible
       // -- to get two successive spurious counterexamples, which only differ in its abstractions (with 'aggressive caching').
@@ -327,6 +329,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
             // reset flags and continue
             pRepeatedCounterexample = false;
             secondRepeatedCEX = false;
+            furtherCEXTrackingNeeded = false;
           }
 
         } else {
@@ -334,7 +337,11 @@ public abstract class BAMPredicateRefiner implements Refiner {
         }
       }
 
-      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+      @SuppressWarnings("unused") // always False
+      boolean trackFurtherCEX = super.performRefinement(
+          pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+
+      return furtherCEXTrackingNeeded;
     }
 
     /**

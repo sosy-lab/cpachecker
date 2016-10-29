@@ -351,8 +351,10 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
     // to remove it, for having proper arguments to call performRefinement
     interpolants.remove(interpolants.size() - 1);
 
-    // TODO repeated counterexample is always false currently
-    strategy.performRefinement(reached, pAbstractionStatesTrace, interpolants, false);
+    // TODO repeated counterexample is always false currently, we also ignore the return value
+    @SuppressWarnings("unused")
+    boolean trackFurtherCEX =
+        strategy.performRefinement(reached, pAbstractionStatesTrace, interpolants, false);
   }
 
   @Override
