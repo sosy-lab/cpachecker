@@ -61,6 +61,7 @@ public class PropertyScopeState implements AbstractState, Graphable {
   private final AbstractionPropertyScopeInstance absScopeInstance;
   private final Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts;
   private final AbstractionFormula afterGlobalInitAbsFormula;
+  private final AbstractionFormula lastVarClassScopeAbsFormula;
 
   public static PropertyScopeState initial(CFANode pNode) {
     return new PropertyScopeState(
@@ -74,6 +75,7 @@ public class PropertyScopeState implements AbstractState, Graphable {
         Collections.emptyMap(),
         null,
         Collections.emptyMap(),
+        null,
         null);
   }
 
@@ -88,7 +90,8 @@ public class PropertyScopeState implements AbstractState, Graphable {
       Map<Automaton, AutomatonState> pAutomatonStates,
       AbstractionPropertyScopeInstance pAbsScopeInstance,
       Map<Automaton, AutomatonPropertyScopeInstance> pAutomScopeInsts,
-      AbstractionFormula pAfterGlobalInitAbsFormula) {
+      AbstractionFormula pAfterGlobalInitAbsFormula,
+      AbstractionFormula pLastVarClassScopeAbsFormula) {
 
     prevBlockStates = pPrevBlockStates;
     propertyDependantMatches = pPropertyDependantMatches;
@@ -101,6 +104,7 @@ public class PropertyScopeState implements AbstractState, Graphable {
     absScopeInstance = pAbsScopeInstance;
     automScopeInsts = Collections.unmodifiableMap(pAutomScopeInsts);
     afterGlobalInitAbsFormula = pAfterGlobalInitAbsFormula;
+    lastVarClassScopeAbsFormula = pLastVarClassScopeAbsFormula;
   }
 
 
@@ -147,6 +151,10 @@ public class PropertyScopeState implements AbstractState, Graphable {
 
   public Optional<AbstractionPropertyScopeInstance> getAbsScopeInstance() {
     return Optional.ofNullable(absScopeInstance);
+  }
+
+  public AbstractionFormula getLastVarClassScopeAbsFormula() {
+    return lastVarClassScopeAbsFormula;
   }
 
   public Stream<PropertyScopeState> prevStateStream() {

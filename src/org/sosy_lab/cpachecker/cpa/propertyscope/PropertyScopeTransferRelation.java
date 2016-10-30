@@ -73,7 +73,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
         -1, cfaEdge, emptyList(), emptySet(), state, null,
         Collections.emptyMap(), state.getAbsScopeInstance().orElse(null),
         state.getAutomScopeInsts(),
-        state.getAfterGlobalInitAbsFormula());
+        state.getAfterGlobalInitAbsFormula(),
+        state.getLastVarClassScopeAbsFormula());
     return Collections.singleton(newState);
   }
 
@@ -146,7 +147,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
             automatonStateMap,
             state.getAbsScopeInstance().orElse(null),
             automScopeInsts,
-            state.getAfterGlobalInitAbsFormula()));
+            state.getAfterGlobalInitAbsFormula(),
+            state.getLastVarClassScopeAbsFormula()));
 
   }
 }

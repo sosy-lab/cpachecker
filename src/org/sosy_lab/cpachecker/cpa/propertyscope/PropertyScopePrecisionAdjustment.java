@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
-import static java.util.function.Function.identity;
 import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.generateCFAEdgeToUsedVar;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
+import org.matheclipse.core.reflection.system.Hold;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.holder.Holder;
-import org.sosy_lab.cpachecker.util.holder.HolderBoolean;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -117,6 +116,13 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
     java.util.Optional<AbstractionPropertyScopeInstance> absScopeInstance = state.getAbsScopeInstance();
 
+    Holder<AbstractionFormula> hVarClassScopeAbsFormula = Holder.of(state
+        .getLastVarClassScopeAbsFormula());
+    // TODO: String equality may not be the finest way to do this
+    boolean considerVarClassScope = hVarClassScopeAbsFormula.value == null || !instFormula
+        .toString().equals(hVarClassScopeAbsFormula.value.asInstantiatedFormula().toString());
+
+
     Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
         .forEach(st -> {
           scopeLocations.addAll(st.getScopeLocations());
@@ -134,12 +140,13 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
           }
 
           // variables in edge occur in abs formula -> edge in scope
-          if (fmgr.extractVariableNames(formula).stream()
+          if (considerVarClassScope && fmgr.extractVariableNames(formula).stream()
               .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
             scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
                 Reason.ABS_FORMULA_VAR_CLASSIFICATION));
             scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
                 Reason.ABS_FORMULA_VAR_CLASSIFICATION_OR_AUTOMATON_MATCH));
+            hVarClassScopeAbsFormula.value = predState.getAbstractionFormula();
           }
         });
 
@@ -206,10 +213,11 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         state.getAutomatonStates(),
         absScopeInstance.orElse(null),
         state.getAutomScopeInsts(),
-        hAfterGlobalInitAbsFormula.value));
+        hAfterGlobalInitAbsFormula.value,
+        hVarClassScopeAbsFormula.value));
 
   }
-
+  
   private static PredicateAbstractState getPredicateAbstractState(List<AbstractState> otherStates)
       throws CPAException {
     PredicateAbstractState predState = otherStates.stream()
