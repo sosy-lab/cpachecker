@@ -72,7 +72,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -112,13 +115,18 @@ public class CFunctionPointerResolver {
     USED_IN_CODE, //includes only functions which address is taken in the code
     EQ_PARAM_COUNT, //all functions with matching number of parameters considered
     EQ_PARAM_SIZES, //all functions with parameters with matching sizes
-    EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
+    EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered
     RETURN_VALUE,   //void functions are not considered for assignments
   }
 
-  @Option(secure=true, name="analysis.functionPointerTargets",
-      description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
+  @Option(
+    secure = true,
+    name = "analysis.functionPointerTargets",
+    description = "potential targets for call edges created for function pointer calls"
+  )
+  private Set<FunctionSet> functionSets =
+      ImmutableSet.of(
+          FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
@@ -533,16 +541,67 @@ public class CFunctionPointerResolver {
   /**
    * Check whether two types are assignment compatible.
    *
-   * @param declaredType The type that is declared (e.g., as variable type).
-   * @param actualType The type that is actually used (e.g., as type of an expression).
-   * @return True if a value of actualType may be assigned to a variable of declaredType.
+   * @param pDeclaredType The type that is declared (e.g., as variable type).
+   * @param pActualType The type that is actually used (e.g., as type of an expression).
+   * @return {@code true} if a value of actualType may be assigned to a variable of declaredType.
    */
-  private boolean isCompatibleType(CType declaredType, CType actualType) {
-    // TODO this needs to be implemented
-    // Type equality is too strong.
-    // After this is implemented, change the default of functionSets
-    // to USED_IN_CODE, EQ_PARAM_TYPES
-    return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
+  private boolean isCompatibleType(CType pDeclaredType, CType pActualType) {
+    // Check canonical types
+    CType declaredType = pDeclaredType.getCanonicalType();
+    CType actualType = pActualType.getCanonicalType();
+
+    // If types are equal, they are trivially compatible
+    if (declaredType.equals(actualType)) {
+      return true;
+    }
+
+    // Implicit conversions among basic types
+    if (declaredType instanceof CSimpleType && actualType instanceof CSimpleType) {
+      return true;
+    }
+
+    // Void pointer can be converted to any other pointer or integer
+    if (declaredType instanceof CPointerType) {
+      CPointerType declaredPointerType = (CPointerType) declaredType;
+      if (declaredPointerType.getType() == CVoidType.VOID) {
+        if (actualType instanceof CSimpleType) {
+          CSimpleType actualSimpleType = (CSimpleType) actualType;
+          CBasicType actualBasicType = actualSimpleType.getType();
+          if (actualBasicType.isIntegerType()) {
+            return true;
+          }
+        } else if (actualType instanceof CPointerType) {
+          return true;
+        }
+      }
+    }
+
+    // Any pointer or integer can be converted to a void pointer
+    if (actualType instanceof CPointerType) {
+      CPointerType actualPointerType = (CPointerType) actualType;
+      if (actualPointerType.getType() == CVoidType.VOID) {
+        if (declaredType instanceof CSimpleType) {
+          CSimpleType declaredSimpleType = (CSimpleType) declaredType;
+          CBasicType declaredBasicType = declaredSimpleType.getType();
+          if (declaredBasicType.isIntegerType()) {
+            return true;
+          }
+        } else if (declaredType instanceof CPointerType) {
+          return true;
+        }
+      }
+    }
+
+    // If both types are pointers, check if the inner types are compatible
+    if (declaredType instanceof CPointerType && actualType instanceof CPointerType) {
+      CPointerType declaredPointerType = (CPointerType) declaredType;
+      CPointerType actualPointerType = (CPointerType) actualType;
+      if (isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private boolean checkParamCount(CFunctionCall functionCall, CFunctionType functionType) {
