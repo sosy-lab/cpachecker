@@ -4,16 +4,17 @@
   <option name="-noout"/>
   <option name="-heap">1200M</option>
 
-  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
-
   <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
   <tasks name="Nested">
     <includesfile>nested.set</includesfile>

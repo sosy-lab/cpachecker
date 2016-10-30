@@ -5,8 +5,6 @@
   <option name="-heap">2000M</option>
   <option name="-noout"/>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <!-- result files are not needed for buildbot.
   <resultfiles>**.graphml</resultfiles>
   -->
@@ -14,6 +12,7 @@
 
   <tasks name="value-concurrency">
     <option name="-valueAnalysis-concurrency"/>
+    <propertyfile>../programs/benchmarks/Concurrency.prp</propertyfile>
 
     <include>../programs/benchmarks/pthread-atomic/*_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/mix000_*opt_false-unreach-call.i</include>
@@ -38,6 +37,7 @@
     <option name="-valueAnalysis-concurrency"/>
     <option name="-setprop">analysis.algorithm.CEGAR=true</option>
     <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
+    <propertyfile>../programs/benchmarks/Concurrency.prp</propertyfile>
 
     <include>../programs/benchmarks/pthread-wmm/mix000_*oepc_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/mix009_*oepc_false-unreach-call.i</include>
@@ -56,6 +56,7 @@
   
   <tasks name="bdd-concurrency">
     <option name="-bddAnalysis-concurrency"/>
+    <propertyfile>../programs/benchmarks/Concurrency.prp</propertyfile>
 
     <include>../programs/benchmarks/pthread-wmm/rfi005_*_false-unreach-call.i</include>
     <include>../programs/benchmarks/pthread-wmm/rfi010_*_false-unreach-call.i</include>

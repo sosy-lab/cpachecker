@@ -10,11 +10,10 @@
     <option name="-skipRecursion" />
     <option name="-disable-java-assertions"/>
 
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
     <tasks name="DeviceDriversHard">
         <!--<includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>-->
         <includesfile>../programs/benchmarks/DeviceDriversHardLinux64.set</includesfile>
+        <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     </tasks>
 
     <rundefinition name="predicateAnalysis-bitprecise">

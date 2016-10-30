@@ -4,20 +4,22 @@
   <option name="-heap">13000M</option>
   <option name="-noout"/>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <tasks name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem07_*</exclude>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem08_*</exclude>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem09_*</exclude>
@@ -31,19 +33,24 @@
   </tasks>
   <tasks name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
     <exclude reason="timeout">../programs/benchmarks/product-lines/elevator*</exclude>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
   </tasks>
 
   <rundefinition>

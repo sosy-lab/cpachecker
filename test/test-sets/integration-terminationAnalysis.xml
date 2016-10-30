@@ -5,7 +5,7 @@
   <option name="-noout"/>
   <option name="-64"/>
 
-  <propertyfile>../programs/benchmarks/termination-numeric/ALL.prp</propertyfile>
+  <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
 
   <tasks>  <!--  name="Termination-SV-COMP" -->
     <includesfile>../programs/benchmarks/Termination.set</includesfile>

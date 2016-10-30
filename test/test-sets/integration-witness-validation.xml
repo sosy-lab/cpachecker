@@ -9,7 +9,6 @@
   If one file is changed, please also update the other one.
   -->
 
-  <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
   <resultfiles>**.graphml</resultfiles>
 
   <rundefinition name="witness-validation">
@@ -24,48 +23,62 @@
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/BitVectorsOverflows-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/BitVectorsOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/HeapReach-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/HeapMemSafety-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/Floats-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/Floats.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/Recursive-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
     <includesfile>../programs/benchmarks/BusyBox-validate.set</includesfile>
+    <propertyfile>../programs/benchmarks/BusyBox.prp</propertyfile>
     <option name="-64"/>
   </tasks>
 

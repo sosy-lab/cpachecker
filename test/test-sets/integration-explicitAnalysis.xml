@@ -9,26 +9,38 @@
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <resultfiles>dummy</resultfiles>
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
     <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+
+      <!-- exclude close-to-timeout tasks -->
+      <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
       <!-- exclude tasks from Forester set -->
       <exclude>../programs/benchmarks/forester-heap/*</exclude>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
 
       <!-- exclude close-to-timeout tasks -->
-      <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>
