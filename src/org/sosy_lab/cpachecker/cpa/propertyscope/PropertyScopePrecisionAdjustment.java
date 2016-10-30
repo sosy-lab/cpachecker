@@ -140,13 +140,15 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
           }
 
           // variables in edge occur in abs formula -> edge in scope
-          if (considerVarClassScope && fmgr.extractVariableNames(formula).stream()
+          if (fmgr.extractVariableNames(formula).stream()
               .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
             scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
                 Reason.ABS_FORMULA_VAR_CLASSIFICATION));
-            scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
-                Reason.ABS_FORMULA_VAR_CLASSIFICATION_OR_AUTOMATON_MATCH));
-            hVarClassScopeAbsFormula.value = predState.getAbstractionFormula();
+            if (considerVarClassScope) {
+              scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
+                  Reason.ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE));
+              hVarClassScopeAbsFormula.value = predState.getAbstractionFormula();
+            }
           }
         });
 

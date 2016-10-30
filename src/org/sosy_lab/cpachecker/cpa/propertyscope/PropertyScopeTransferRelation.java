@@ -130,8 +130,6 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
         .map(PropertyScopeState::getPropertyDependantMatches)
         .filter(oldMatches -> propDepMatches > oldMatches).ifPresent(p -> {
       scopeLocations.add(new ScopeLocation(cfaEdge, callstack, Reason.AUTOMATON_MATCH));
-      scopeLocations.add(new ScopeLocation(cfaEdge, callstack,
-          Reason.ABS_FORMULA_VAR_CLASSIFICATION_OR_AUTOMATON_MATCH));
     });
 
 
