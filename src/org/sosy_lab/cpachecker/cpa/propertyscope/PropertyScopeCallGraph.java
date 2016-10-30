@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class PropertyScopeCallGraph {
 
@@ -182,16 +183,29 @@ public class PropertyScopeCallGraph {
       return cfaEdges;
     }
 
-    public int getScopedCFAEdgesCount(Reason reason) {
-      return scopedCFAEdges.get(reason).size();
+    public int getScopedCFAEdgesCount(Collection<Reason> reasons) {
+      return getScopedCFAEdges(reasons).size();
     }
 
-    public Set<CFAEdge> getScopedCFAEdges(Reason pReason) {
-      return Collections.unmodifiableSet(scopedCFAEdges.get(pReason));
+    public int getScopedCFAEdgesCount(Reason reason) {
+      return getScopedCFAEdgesCount(Collections.singleton(reason));
+    }
+
+    public Set<CFAEdge> getScopedCFAEdges(Collection<Reason> reasons) {
+      return reasons.stream().flatMap(r -> scopedCFAEdges.get(r).stream())
+          .collect(Collectors.toSet());
+    }
+
+    public Set<CFAEdge> getScopedCFAEdges(Reason reason) {
+      return getScopedCFAEdges(Collections.singleton(reason));
+    }
+
+    public double calculatePropertyScopeImportance(Collection<Reason> reasons) {
+      return cfaEdges == 0 ? 0 : (double) getScopedCFAEdgesCount(reasons) / (double) cfaEdges;
     }
 
     public double calculatePropertyScopeImportance(Reason reason) {
-      return cfaEdges == 0 ? 0 : (double) scopedCFAEdges.get(reason).size() / (double) cfaEdges;
+      return calculatePropertyScopeImportance(Collections.singleton(reason));
     }
 
     public Set<CallEdge> getCallEdges() {
