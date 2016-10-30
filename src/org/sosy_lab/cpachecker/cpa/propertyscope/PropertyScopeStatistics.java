@@ -535,10 +535,23 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     PropertyScopeCallGraph graph = prepopulateCallgraph ?
                                    PropertyScopeCallGraph.create(root, cfa.getAllFunctionNames()) :
                                    PropertyScopeCallGraph.create(root);
-    for (Reason reason: Reason.values()) {
-      Path outpath = Paths.get(String.format(this.callgraphGraphmlFile.toString(), reason.name()));
+
+    @SuppressWarnings("unchecked")
+    ArrayList<ArrayList<Reason>> outputScopeReasonCombinations = Lists.newArrayList(
+        Lists.newArrayList(Reason.ABS_FORMULA),
+        Lists.newArrayList(Reason.AUTOMATON_MATCH),
+        Lists.newArrayList(Reason.ABS_FORMULA_VAR_CLASSIFICATION),
+        Lists.newArrayList(Reason.ABS_FORMULA_VAR_CLASSIFICATION, Reason.AUTOMATON_MATCH),
+        Lists.newArrayList(Reason.ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE, Reason
+            .AUTOMATON_MATCH),
+        Lists.newArrayList(Reason.ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE)
+    );
+
+    for (ArrayList<Reason> reasons : outputScopeReasonCombinations) {
+      String reasonsName = reasons.stream().map(Reason::name).collect(Collectors.joining("-"));
+      Path outpath = Paths.get(String.format(this.callgraphGraphmlFile.toString(), reasonsName));
       try (Writer w = MoreFiles.openOutputFile(outpath, Charset.defaultCharset())) {
-        new PropertyScopeCallGraphToGraphMLWriter(graph, reason, relevantProperties).writeTo(w);
+        new PropertyScopeCallGraphToGraphMLWriter(graph, reasons, relevantProperties).writeTo(w);
       } catch (IOException | ParserConfigurationException | TransformerException e) {
         logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeCallGraph to file");
       }

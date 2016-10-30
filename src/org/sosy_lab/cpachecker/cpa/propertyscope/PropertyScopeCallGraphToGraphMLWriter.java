@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -52,15 +53,15 @@ import javax.xml.transform.stream.StreamResult;
 public class PropertyScopeCallGraphToGraphMLWriter {
 
   private final PropertyScopeCallGraph graph;
-  private final Reason reason;
+  private final Collection<Reason> reasons;
   private final Set<String> relevantProps;
 
   public PropertyScopeCallGraphToGraphMLWriter(
       PropertyScopeCallGraph pGraph,
-      Reason pReason,
+      Collection<Reason> pReasons,
       Set<String> pRelevantProps) {
     graph = pGraph;
-    reason = pReason;
+    reasons = pReasons;
     relevantProps = pRelevantProps;
   }
 
@@ -168,10 +169,11 @@ public class PropertyScopeCallGraphToGraphMLWriter {
 
       Element nodeCFAEdInScopeDataElem = doc.createElement("data");
       nodeCFAEdInScopeDataElem.setAttribute("key", "cfa_edges_in_scope");
-      nodeCFAEdInScopeDataElem.setTextContent(Integer.toString(node.getScopedCFAEdgesCount(reason)));
+      nodeCFAEdInScopeDataElem.setTextContent(Integer.toString(node.getScopedCFAEdgesCount
+          (reasons)));
       nodeElement.appendChild(nodeCFAEdInScopeDataElem);
 
-      String b64scopedEdges = node.getScopedCFAEdges(reason).stream()
+      String b64scopedEdges = node.getScopedCFAEdges(reasons).stream()
           .map(p -> Base64.getEncoder()
               .encodeToString(p.toString().getBytes(StandardCharsets.UTF_8)))
           .collect(Collectors.joining(";"));
@@ -180,7 +182,7 @@ public class PropertyScopeCallGraphToGraphMLWriter {
       cFAEdgesInScopeNamesDataElement.setTextContent(b64scopedEdges);
       nodeElement.appendChild(cFAEdgesInScopeNamesDataElement);
 
-      String scopedEdges = node.getScopedCFAEdges(reason).stream()
+      String scopedEdges = node.getScopedCFAEdges(reasons).stream()
           .map(Object::toString).collect(Collectors.joining(";"));
       Element cFAEdgesInScopeNamesReadableDataElement = doc.createElement("data");
       cFAEdgesInScopeNamesReadableDataElement
@@ -191,7 +193,7 @@ public class PropertyScopeCallGraphToGraphMLWriter {
       Element nodeScopeRelevanceDataElem = doc.createElement("data");
       nodeScopeRelevanceDataElem.setAttribute("key", "prop_scope_relevance");
       nodeScopeRelevanceDataElem.setTextContent(String.format(Locale.ROOT, "%f",
-          node.calculatePropertyScopeImportance(reason)));
+          node.calculatePropertyScopeImportance(reasons)));
       nodeElement.appendChild(nodeScopeRelevanceDataElem);
 
       Element argCountDataElement = doc.createElement("data");
