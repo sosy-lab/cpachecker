@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -57,15 +65,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 /**
  * CPA-Transfer-Relation for tracking which variables/functions are depends on which other variables/functions
@@ -351,11 +350,11 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     for(AbstractState astate: pOtherStates){
       if(astate instanceof PointerState){
         PointerState pointerstate=(PointerState)astate;
-        Map<MemoryLocation, LocationSet>  map = pointerstate.getPointsToMap();
-        for(Entry<MemoryLocation, LocationSet> memloc: map.entrySet()){
-          String varname=memloc.getKey().getIdentifier();
+        Map<LocationSet, LocationSet>  map = pointerstate.getPointsToMap();
+        for(Entry<LocationSet, LocationSet> locSet: map.entrySet()){
+          String varname=locSet.getKey().toString();
           Variable var=new Variable(varname);
-          LocationSet lset=memloc.getValue();
+          LocationSet lset=locSet.getValue();
           for(Variable var2: state.getDependencies().keySet()){
             if(lset.mayPointTo(MemoryLocation.valueOf(var2.toString()))){
               SortedSet<Variable> varset1=state.getDependencies().get(var);

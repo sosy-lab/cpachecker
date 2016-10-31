@@ -38,12 +38,20 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
  */
 public class PointerCPA extends AbstractCPA {
 
+  private PointerState pointerAnalysis;
+
   @Options(prefix="cpa.pointer2")
   public static class PointerOptions {
 
     @Option(secure=true, values={"JOIN", "SEP"}, toUppercase=true,
         description="which merge operator to use for PointerCPA")
     private String merge = "JOIN";
+
+    @Option(secure=true, values={"Steensgaard", "Andersen"}, description="which pointer-alias analysis to use for PointerCPA")
+    private String pointerAnalysis = "Steensgaard";
+
+    @Option(secure=true, values={"true", "false"}, description="enable idividual tracking of pointer variables?")
+    private boolean idividualTracking = false;
 
   }
 
@@ -62,12 +70,17 @@ public class PointerCPA extends AbstractCPA {
    * @param options the configured options.
    */
   public PointerCPA(PointerOptions options) {
-    super(options.merge, "SEP", PointerDomain.INSTANCE, PointerTransferRelation.INSTANCE);
+    super(options.merge, "SEP", PointerDomain.INSTANCE, new PointerTransferRelation(options.idividualTracking));
+    if (options.pointerAnalysis.equals("Steensgaard")) {
+      pointerAnalysis = SteensgaardState.INITIAL_STATE;
+    } else {
+      pointerAnalysis = AndersenState.INITIAL_STATE;
+    }
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return PointerState.INITIAL_STATE;
+    return pointerAnalysis;
   }
 
 }

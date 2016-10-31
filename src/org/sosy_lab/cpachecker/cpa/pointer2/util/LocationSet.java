@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
-public interface LocationSet {
+public interface LocationSet extends Comparable<LocationSet> {
 
   boolean mayPointTo(MemoryLocation pLocation);
 

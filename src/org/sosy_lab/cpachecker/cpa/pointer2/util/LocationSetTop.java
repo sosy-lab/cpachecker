@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 
-public enum LocationSetTop implements LocationSet {
+public class LocationSetTop implements LocationSet {
 
-  INSTANCE;
+  public static final LocationSetTop INSTANCE = new LocationSetTop();
 
   @Override
   public boolean mayPointTo(MemoryLocation pTarget) {
@@ -85,6 +85,15 @@ public enum LocationSetTop implements LocationSet {
   @Override
   public String toString() {
     return Character.toString('\u22A4');
+  }
+
+  @Override
+  public int compareTo(LocationSet pO) {
+    if (this.equals(pO)) {
+      return 0;
+    } else {
+      return 1;
+    }
   }
 
 }

@@ -1318,6 +1318,10 @@ cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
+# which pointer-alias analysis to use for PointerCPA
+cpa.pointer2.pointerAnalysis = "Andersen"
+  allowed values: [Steensgaard, Andersen]
+
 # which merge operator to use for PointerACPA
 cpa.pointerA.merge = "JOIN"
   allowed values: [SEP, JOIN]

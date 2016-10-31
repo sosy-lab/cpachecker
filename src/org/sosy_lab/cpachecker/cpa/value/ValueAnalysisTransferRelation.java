@@ -27,7 +27,17 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -87,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -135,20 +146,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
@@ -529,9 +526,10 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if (returnVarName.isPresent()) {
-      newElement.forget(functionReturnVar);
-    }
+    // NOW IN STRENGTHEN!!
+//    if (returnVarName.isPresent()) {
+//      newElement.forget(functionReturnVar);
+//    }
 
     return newElement;
   }
@@ -1361,13 +1359,20 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           ValueAnalysisState newState =
-              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable);
+              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, edge);
           result.add(newState);
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
       }
 
+    }
+
+    if (cfaEdge instanceof CFunctionReturnEdge) {
+      Optional<CVariableDeclaration> returnVar = ((CFunctionReturnEdge) cfaEdge).getFunctionEntry().getReturnVariable();
+      if (returnVar.isPresent()) {
+        state.forget(MemoryLocation.valueOf(returnVar.get().getQualifiedName()));
+      }
     }
 
     // Do post processing
@@ -1393,92 +1398,90 @@ public class ValueAnalysisTransferRelation
       ARightHandSide pRightHandSide,
       Type pLeftHandType,
       ALeftHandSide pLeftHandSide,
-      String pLeftHandVariable) throws UnrecognizedCCodeException {
+      String pLeftHandVariable,
+      CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
+    Set<MemoryLocation> leftHandSide = Collections.emptySet();
     ValueAnalysisState newState = pValueState;
+    Value rhsValue = UnknownValue.getInstance();
+    Type pRightHandType = null;
+    boolean isLhsPointerDeref = false;
+    boolean isRhsPointerDeref = false;
 
-    Value value = UnknownValue.getInstance();
-    MemoryLocation target = null;
-    if (pLeftHandVariable != null) {
-      target = MemoryLocation.valueOf(pLeftHandVariable);
-    }
-    Type type = pLeftHandType;
-    boolean shouldAssign = false;
-
-    if (target == null && pLeftHandSide instanceof CPointerExpression) {
-      CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
-      CExpression addressExpression = pointerExpression.getOperand();
-
-      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
-
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariable = pointsToIterator.next();
-            if (!pointsToIterator.hasNext()) {
-              target = otherVariable;
-              shouldAssign = true;
-            }
-          }
-        }
+    //*p = foo(i);
+    if (cfaEdge instanceof CFunctionReturnEdge) {
+      CFunctionReturnEdge funcReturnEdge = (CFunctionReturnEdge) cfaEdge;
+      if (funcReturnEdge.getSummaryEdge().getExpression() instanceof CFunctionCallAssignmentStatement) {
+      pLeftHandSide = ((CFunctionCallAssignmentStatement) funcReturnEdge.getSummaryEdge().getExpression()).getLeftHandSide();
+      pLeftHandVariable = pLeftHandSide.toString();
+      pLeftHandType = pLeftHandSide.getExpressionType();
+      Optional<CVariableDeclaration> returnVar = funcReturnEdge.getFunctionEntry().getReturnVariable();
+      if (returnVar.isPresent()) {
+        MemoryLocation returnMemLoc = MemoryLocation.valueOf(returnVar.get().getQualifiedName());
+        rhsValue = newState.getValueFor(returnMemLoc);
+        pRightHandType = newState.getTypeForMemoryLocation(returnMemLoc);
       }
-
+      }
     }
 
+    //*p = ...
+    if (pLeftHandSide instanceof CPointerExpression) {
+      CPointerExpression pointerExpLhs = (CPointerExpression) pLeftHandSide;
+      LocationSet pointsToSetLhs = PointerTransferRelation.asLocations(pointerExpLhs, pPointerInfo);
+      if (pointsToSetLhs instanceof ExplicitLocationSet) {
+        pLeftHandType = pointerExpLhs.getExpressionType();
+        ExplicitLocationSet explicitSetLhs = (ExplicitLocationSet) pointsToSetLhs;
+        leftHandSide = explicitSetLhs.getExplicitLocations();
+        isLhsPointerDeref = true;
+      }
+    } else {
+      if (pLeftHandVariable != null) {
+      leftHandSide = Collections.singleton(MemoryLocation.valueOf(pLeftHandVariable));
+      }
+    }
+
+    //... = *q;
     if (pRightHandSide instanceof CPointerExpression) {
-      if (target == null) {
-        return pValueState;
+      CPointerExpression pointerExpRhs = (CPointerExpression) pRightHandSide;
+      LocationSet pointsToSetRhs = PointerTransferRelation.asLocations(pointerExpRhs, pPointerInfo);
+      if (pointsToSetRhs instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitSetRhs = (ExplicitLocationSet) pointsToSetRhs;
+        MemoryLocation memLoc = explicitSetRhs.iterator().next();
+        if (pValueState.contains(memLoc)) {
+          isRhsPointerDeref = true;
+        if (explicitSetRhs.getSize() == 1) {
+          rhsValue = newState.getValueFor(memLoc);
+          pRightHandType = newState.getTypeForMemoryLocation(explicitSetRhs.iterator().next());
+        }
+        }
       }
+    } else {
+      if (pRightHandSide != null) {
+        pRightHandType = pRightHandSide.getExpressionType();
+        rhsValue = getVisitor().evaluate((CRightHandSide) pRightHandSide, (CType) pRightHandType);
+      }
+    }
 
-      CPointerExpression rhs = (CPointerExpression) pRightHandSide;
-      CExpression addressExpression = rhs.getOperand();
-
-      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
-
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          CType variableType = rhs.getExpressionType().getCanonicalType();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
-
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariableLocation = pointsToIterator.next();
-            if (!pointsToIterator.hasNext()) {
-
-              Type otherVariableType = pValueState.getTypeForMemoryLocation(otherVariableLocation);
-              if (otherVariableType != null) {
-                Value otherVariableValue = pValueState.getValueFor(otherVariableLocation);
-                if (otherVariableValue != null) {
-                  if (variableType.equals(otherVariableType)
-                      || (variableType.equals(CNumericTypes.FLOAT)
-                          && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                          && otherVariableValue.isExplicitlyKnown()
-                          && Long.valueOf(0)
-                              .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
-                    value = otherVariableValue;
-                    shouldAssign = true;
-                  }
-                }
-              }
-            }
+    if (pLeftHandSide != null && pLeftHandType != null) {
+      if (isLhsPointerDeref) {
+        if (rhsValue.isExplicitlyKnown() && pLeftHandType.equals(pRightHandType)) {
+          for (MemoryLocation lhsVariable : leftHandSide) {
+            newState.assignConstant(lhsVariable, rhsValue, pLeftHandType);
           }
+        } else {
+          for (MemoryLocation lhsVariable : leftHandSide) {
+            newState.forget(lhsVariable);
+          }
+        }
+      } else if (isRhsPointerDeref) {
+        if (pRightHandSide != null && pLeftHandType.equals(pRightHandType)) {
+          MemoryLocation memLoc = leftHandSide.iterator().next();
+          newState.assignConstant(memLoc.getAsSimpleString(), rhsValue);
+        } else {
+          newState.forget(leftHandSide.iterator().next());
         }
       }
     }
-
-    if (target != null && type != null && shouldAssign) {
-      newState = ValueAnalysisState.copyOf(pValueState);
-      newState.assignConstant(target, value, type);
-    }
-
     return newState;
   }
 
