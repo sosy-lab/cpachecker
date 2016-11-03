@@ -27,13 +27,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -43,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -64,8 +59,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampleFilter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -87,20 +80,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(
-    secure = true,
-    name = "counterexample.export.filters",
-    deprecatedName = "cpa.arg.errorPath.filters",
-    description =
-        "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-            + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-            + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
-  )
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
-  private List<CounterexampleFilter.Factory> cexFilterClasses =
-      ImmutableList.of(PathEqualityCounterexampleFilter::new);
-  private final CounterexampleFilter cexFilter;
-
   @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",
           description="export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
@@ -111,7 +90,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final ARGStatistics stats;
 
   private final CEXExporter cexExporter;
-  private final MachineModel machineModel;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
@@ -119,12 +97,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     this.logger = logger;
 
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
-    cexFilter =
-        CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
-    cexExporter = new CEXExporter(config, logger, cfa);
+    cexExporter = new CEXExporter(config, logger, cfa, cpa);
     stats =
         new ARGStatistics(config, logger, this, cfa, dumpErrorPathImmediately ? null : cexExporter);
-    machineModel = cfa.getMachineModel();
   }
 
   @Override
@@ -237,16 +212,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   void exportCounterexampleOnTheFly(ARGState pTargetState,
     CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
     if (dumpErrorPathImmediately) {
-      if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo);
-      } else {
-        logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
-      }
+      cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
     }
-  }
-
-  public MachineModel getMachineModel() {
-    return machineModel;
   }
 
   @Override
