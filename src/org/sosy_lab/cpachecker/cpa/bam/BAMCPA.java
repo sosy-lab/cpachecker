@@ -74,9 +74,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final LogManager logger;
   private final TimedReducer reducer;
   private final BAMTransferRelation transfer;
-  private final BAMPrecisionAdjustment prec;
-  private final BAMMergeOperator merge;
-  private final BAMStopOperator stop;
   private final BAMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final ProofChecker wrappedProofChecker;
@@ -172,7 +169,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
               data,
               pShutdownNotifier,
               blockPartitioning);
-      stop = new BAMStopOperatorForRecursion(pCpa.getStopOperator(), transfer);
     } else {
       transfer =
           new BAMTransferRelation(
@@ -183,16 +179,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
               data,
               pShutdownNotifier,
               blockPartitioning);
-      stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
     }
-
-    prec =
-        new BAMPrecisionAdjustment(
-            pCpa.getPrecisionAdjustment(), data, transfer, bamPccManager,
-            logger, blockPartitioning);
-    merge = new BAMMergeOperator(
-        pCpa.getMergeOperator(), bamPccManager, transfer);
-
     stats = new BAMCPAStatistics(this, data, config, logger);
   }
 
@@ -215,17 +202,21 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager, transfer);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    return handleRecursiveProcedures
+        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator(), transfer)
+        : new BAMStopOperator(getWrappedCpa().getStopOperator(), transfer);
   }
 
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return new BAMPrecisionAdjustment(
+        getWrappedCpa().getPrecisionAdjustment(), data, transfer, bamPccManager,
+        logger, blockPartitioning);
   }
 
   @Override
