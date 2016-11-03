@@ -29,7 +29,20 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -106,22 +119,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
@@ -1336,7 +1333,7 @@ public class AssumptionToEdgeAllocator {
         return createUnknownValueLiterals();
       }
 
-      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
+      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address, machineModel);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1357,7 +1354,7 @@ public class AssumptionToEdgeAllocator {
         return createUnknownValueLiterals();
       }
 
-      valueLiteral = ExplicitValueLiteral.valueOf(address);
+      valueLiteral = ExplicitValueLiteral.valueOf(address, machineModel);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1422,7 +1419,7 @@ public class AssumptionToEdgeAllocator {
         return createUnknownValueLiterals();
       }
 
-      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
+      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address, machineModel);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1708,7 +1705,7 @@ public class AssumptionToEdgeAllocator {
             return;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
         Pair<CType, Address> visits = Pair.of(expectedType, fieldAddress);
@@ -1798,7 +1795,7 @@ public class AssumptionToEdgeAllocator {
             return false;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
         if (!valueLiteral.isUnknown()) {
@@ -1859,7 +1856,7 @@ public class AssumptionToEdgeAllocator {
             return null;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
         if (!valueLiteral.isUnknown()) {
@@ -1982,7 +1979,7 @@ public class AssumptionToEdgeAllocator {
             return;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
 
@@ -2089,7 +2086,7 @@ public class AssumptionToEdgeAllocator {
       explicitValueLiteral = pValueLiteral;
     }
 
-    public static ValueLiteral valueOf(Address address) {
+    public static ValueLiteral valueOf(Address address, MachineModel pMachineModel) {
 
       if (address.isUnknown() || address.isSymbolic()) {
         return UnknownValueLiteral.getInstance();
@@ -2097,8 +2094,14 @@ public class AssumptionToEdgeAllocator {
 
       BigInteger value = address.getAddressValue();
 
-      CLiteralExpression lit = new CIntegerLiteralExpression(
-          FileLocation.DUMMY, CNumericTypes.LONG_LONG_INT, value);
+      CSimpleType type = CNumericTypes.LONG_LONG_INT;
+
+      BigInteger upperInclusiveBound = pMachineModel.getMaximalIntegerValue(type);
+      if (upperInclusiveBound.compareTo(value) < 0) {
+        type = CNumericTypes.UNSIGNED_LONG_LONG_INT;
+      }
+
+      CLiteralExpression lit = new CIntegerLiteralExpression(FileLocation.DUMMY, type, value);
       return new ExplicitValueLiteral(lit);
     }
 
