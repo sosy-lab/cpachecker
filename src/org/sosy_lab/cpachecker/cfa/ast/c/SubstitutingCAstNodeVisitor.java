@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 
 import java.util.List;
@@ -319,6 +320,14 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Un
     final CExpression newOp1 = (CExpression) pNode.getOperand().accept(this);
 
     if (oldOp1 != newOp1) {
+      // Replace a '&(*ptr)' by a 'ptr'
+      if (newOp1 instanceof CUnaryExpression) {
+        CUnaryExpression unaryOperand = (CUnaryExpression)newOp1;
+        if (unaryOperand.getOperator().equals(UnaryOperator.AMPER)) {
+          return unaryOperand.getOperand();
+        }
+      }
+
       CExpression op = firstNotNull(newOp1, oldOp1);
       return new CPointerExpression(
           pNode.getFileLocation(),
