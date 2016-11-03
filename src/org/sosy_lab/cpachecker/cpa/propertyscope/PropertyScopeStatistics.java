@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -248,44 +249,20 @@ public class PropertyScopeStatistics extends AbstractStatistics {
   }
 
 
-  private Optional<String> computeNewEntryFunction(ReachedSet reached) {
-    Set<MatchInfo> matches = ControlAutomatonCPA.getGlobalMatchInfo();
+  private Optional<String> computeNewEntryFunction(ReachedSet reached, Collection<Reason> reasons) {
     List<String> longestPrefix = null;
-    List<String> matchLongestPrefix = null;
 
     for (AbstractState absSt : reached) {
-      CallstackState csSt = extractStateByType(absSt, CallstackState.class);
-      Optional<PredicateAbstractState> absState = asNonTrueAbstractionState(absSt);
-      Multimap<String, String> funcToUsedVars = generateFuncToUsedVars();
-      if (absState.isPresent() && !onlyUnusedVarsInAbstraction(absState.get(), csSt
-          .getCurrentFunction(), funcToUsedVars)) {
+      PropertyScopeState propState = extractStateByType(absSt, PropertyScopeState.class);
+
+      if (propState.getScopeLocations().stream()
+          .anyMatch(sloc -> reasons.contains(sloc.getReason()))) {
         if (longestPrefix == null) {
-          longestPrefix = getStack(csSt);
+          longestPrefix = propState.getCallstack();
         } else {
-          longestPrefix = longestPrefixOf(longestPrefix, getStack(csSt));
+          longestPrefix = longestPrefixOf(longestPrefix, propState.getCallstack());
         }
       }
-
-      FluentIterable<AutomatonState> automStates =
-          asIterable(absSt).filter(AutomatonState.class);
-
-      LocationState locst = extractStateByType(absSt, LocationState.class);
-      Set<CFAEdge> outgoingEdges = stream(locst.getOutgoingEdges().spliterator(), false)
-          .collect(Collectors.toSet());
-
-      if(matches.stream()
-          .anyMatch(mi -> outgoingEdges.contains(mi.edge) && automStates.contains(mi.state))) {
-        if (matchLongestPrefix == null) {
-          matchLongestPrefix = getStack(csSt);
-        } else {
-          matchLongestPrefix = longestPrefixOf(matchLongestPrefix, getStack(csSt));
-        }
-
-      }
-    }
-
-    if (longestPrefix == null) {
-      longestPrefix = matchLongestPrefix;
     }
 
     return longestPrefix == null ? Optional.empty()
@@ -451,7 +428,9 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       PrintStream pOut, Result pResult, ReachedSet pReached) {
     fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
 
-    String newEntry = computeNewEntryFunction(pReached).orElse("<unknown>");
+    String newEntry = computeNewEntryFunction(pReached, ImmutableSet.of(Reason
+        .ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE, Reason.AUTOMATON_MATCH))
+        .orElse("<unknown>");
     addKeyValueStatistic("New entry Function Candidate", newEntry);
 
     computeDepthOfHighestNonTrueAbstractionInCallstack(pReached);
