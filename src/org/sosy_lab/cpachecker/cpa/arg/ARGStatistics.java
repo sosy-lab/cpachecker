@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -101,7 +102,7 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  private final ARGCPA cpa;
+  private final ConfigurableProgramAnalysis cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
@@ -111,7 +112,7 @@ public class ARGStatistics implements Statistics {
 
   private final LogManager logger;
 
-  public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
+  public ARGStatistics(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa,
       MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
       ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
     config.inject(this);
