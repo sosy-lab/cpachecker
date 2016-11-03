@@ -24,9 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.math.BigInteger;
-
 import javax.annotation.Nullable;
-
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -44,9 +43,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 /**
@@ -252,6 +251,11 @@ public class BDDVectorCExpressionVisitor
   @Override
   public Region[] visit(CImaginaryLiteralExpression pE) {
     return pE.getValue().accept(this);
+  }
+
+  @Override
+  public Region[] visit(final CArraySubscriptExpression expression) {
+    throw new UnsupportedOperationException("BDD-analysis does not support arrays: " + expression);
   }
 
   @Override
