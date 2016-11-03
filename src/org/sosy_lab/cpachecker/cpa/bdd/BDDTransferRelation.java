@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
@@ -150,7 +151,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function handles statements like "a = 0;" and "b = !a;" and
    * calls of external functions. */
   @Override
-  protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement) {
+  protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement)
+      throws UnsupportedCCodeException {
 
     BDDState result = state;
 
@@ -173,7 +175,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge) {
+  private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge)
+      throws UnsupportedCCodeException {
     CExpression lhs = assignment.getLeftHandSide();
 
     if (!(lhs instanceof CIdExpression)) {
@@ -271,7 +274,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * variable (bitvector) at the left side.
    * These equalities are added to the BDDstate to get the next state. */
   @Override
-  protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl) {
+  protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
+      throws UnsupportedCCodeException {
 
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
@@ -309,8 +313,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * to a param ("int a") of the function. The equalities of
    * all arg-param-pairs are added to the BDDstate to get the next state. */
   @Override
-  protected BDDState handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
-                                            List<CExpression> args, List<CParameterDeclaration> params, String calledFunction) {
+  protected BDDState handleFunctionCallEdge(
+      CFunctionCallEdge cfaEdge,
+      List<CExpression> args,
+      List<CParameterDeclaration> params,
+      String calledFunction)
+      throws UnsupportedCCodeException {
     BDDState newState = state;
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
@@ -377,7 +385,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
    * evaluated right side ("x") is added to the new state. */
   @Override
-  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge) {
+  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
+      throws UnsupportedCCodeException {
     BDDState newState = state;
     String returnVar = "";
 
@@ -437,8 +446,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * If the next state is False, the assumption is not fulfilled.
    * In this case NULL is returned. */
   @Override
-  protected BDDState handleAssumption(CAssumeEdge cfaEdge,
-                                      CExpression expression, boolean truthAssumption) {
+  protected BDDState handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+      throws UnsupportedCCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor());
@@ -463,7 +473,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
-          final Partition partition, final CExpression exp, final CType targetType, final CFANode location) {
+      final Partition partition,
+      final CExpression exp,
+      final CType targetType,
+      final CFANode location)
+      throws UnsupportedCCodeException {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
     if (varClass.getIntBoolPartitions().contains(partition)) {
