@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 /**
@@ -54,6 +53,11 @@ public class JMethodType extends AFunctionType implements JType {
   @Override
   public List<JType> getParameters() {
     return (List<JType>) super.getParameters();
+  }
+
+  @Override
+  public JType getReturnType() {
+    return (JType) super.getReturnType();
   }
 
   /**

@@ -30,10 +30,16 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -49,18 +55,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 
 
 public abstract class PathTranslator {
@@ -349,18 +347,25 @@ public abstract class PathTranslator {
     if (pRelevantChildrenOfElement.size() <= 1) {
       return pRelevantChildrenOfElement;
     }
+    List<ARGState> relevantChildrenOfElement = new ArrayList<>(pRelevantChildrenOfElement);
+    Collections.sort(
+        relevantChildrenOfElement,
+        (a, b) -> Integer.compare(b.getChildren().size(), a.getChildren().size()));
     List<ARGState> result = new ArrayList<>(2);
-    for (ARGState candidate : pRelevantChildrenOfElement) {
+    for (ARGState candidate : relevantChildrenOfElement) {
       boolean valid = true;
       if (!result.isEmpty()) {
-        Set<ARGState> candidateParents = ImmutableSet.copyOf(candidate.getParents());
-        Set<ARGState> candidateChildren = ImmutableSet.copyOf(candidate.getChildren());
+        Set<AbstractState> candidateChildren =
+            FluentIterable.from(candidate.getChildren())
+                .transform(ARGState.getUnwrapFunction())
+                .toSet();
         for (ARGState chosen : result) {
           if (parent.getEdgesToChild(chosen).equals(parent.getEdgesToChild(candidate))) {
-            Set<ARGState> chosenParents = ImmutableSet.copyOf(chosen.getParents());
-            Set<ARGState> chosenChildren = ImmutableSet.copyOf(chosen.getChildren());
-            if (candidateParents.equals(chosenParents)
-                && candidateChildren.equals(chosenChildren)) {
+            Set<AbstractState> chosenChildren =
+                FluentIterable.from(chosen.getChildren())
+                    .transform(ARGState.getUnwrapFunction())
+                    .toSet();
+            if (chosenChildren.containsAll(candidateChildren)) {
               valid = false;
               break;
             }
@@ -381,12 +386,8 @@ public abstract class PathTranslator {
     int maxSizeOfStack = 0;
 
     for (FunctionBody stack : pIncomingStacks) {
-      while (true) {
-        if (stack.getCurrentBlock().isClosedBefore()) {
-          stack.leaveBlock();
-        } else {
-          break;
-        }
+      while (stack.getCurrentBlock().isClosedBefore()) {
+        stack.leaveBlock();
       }
       if (stack.size() > maxSizeOfStack) {
         maxStack = stack;

@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.errorprone.annotations.ForOverride;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -39,12 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Abstract class for the refinement strategy that should be used after a spurious
@@ -90,8 +88,17 @@ public abstract class RefinementStrategy {
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }
 
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
+  /**
+   * @return whether previous counterexamples should be kept for comparison, such that we can
+   *     determine a repeated counterexample through multiple iterations of refinements. To keep
+   *     only the current counterexample, return <code>false</code>.
+   */
+  public boolean performRefinement(
+      ARGReachedSet pReached,
+      List<ARGState> abstractionStatesTrace,
+      List<BooleanFormula> pInterpolants,
+      boolean pRepeatedCounterexample)
+      throws CPAException, InterruptedException {
     // Hook
     startRefinementOfPath();
 
@@ -118,6 +125,8 @@ public abstract class RefinementStrategy {
     // this assert doesn't hold, as the updated elements are removed from the
     // reached set one step later
     // assert !pReached.asReachedSet().contains(lastElement);
+
+    return false; // no tracking of previous counterexamples needed
   }
 
   // returns a pair consisting of the root of the infeasible part of the ARG and a list of all

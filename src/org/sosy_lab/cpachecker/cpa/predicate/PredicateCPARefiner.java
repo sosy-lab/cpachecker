@@ -32,7 +32,18 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -72,18 +83,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -131,7 +130,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   // the previously analyzed counterexample to detect repeated counterexamples
-  private ImmutableList<CFANode> lastErrorPath = null;
+  private final Set<ImmutableList<CFANode>> lastErrorPaths = new HashSet<>();
 
   private final PathChecker pathChecker;
 
@@ -236,8 +235,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final ImmutableList<CFANode> errorPath =
           ImmutableList.copyOf(
               Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
-      final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
-      lastErrorPath = errorPath;
+      final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
+      lastErrorPaths.add(errorPath);
 
       Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
       // No branches/merges in path, it is precise.
@@ -283,11 +282,18 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       if (counterexample.isSpurious()) {
         logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-        strategy.performRefinement(
-            pReached,
-            abstractionStatesTrace,
-            counterexample.getInterpolants(),
-            repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
+        boolean trackFurtherCEX =
+            strategy.performRefinement(
+                pReached,
+                abstractionStatesTrace,
+                counterexample.getInterpolants(),
+                repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
+
+        if (!trackFurtherCEX) {
+          // when trackFurtherCEX is false, we only track 'one' CEX, otherwise we track all of them.
+          lastErrorPaths.clear();
+          lastErrorPaths.add(errorPath);
+        }
 
         // set some invariants flags, they are necessary to make sure we
         // call performRefinement in a way that it doesn't think it is a repeated

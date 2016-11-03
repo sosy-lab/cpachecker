@@ -16,6 +16,8 @@
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <!-- exclude tasks from Forester set -->
+      <exclude>../programs/benchmarks/forester-heap/*</exclude>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>

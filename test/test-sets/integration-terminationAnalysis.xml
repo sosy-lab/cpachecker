@@ -9,6 +9,7 @@
 
   <tasks>  <!--  name="Termination-SV-COMP" -->
     <includesfile>../programs/benchmarks/Termination.set</includesfile>
+    <exclude>../programs/benchmarks/product-lines/*</exclude>
   </tasks>
   
   <!--

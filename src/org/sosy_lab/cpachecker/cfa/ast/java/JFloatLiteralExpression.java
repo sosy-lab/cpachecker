@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.math.BigDecimal;
 
 /**
  * This class represents the float number literal AST node type.
@@ -43,11 +42,6 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
   @Override
   public JType getExpressionType() {
       return (JType) super.getExpressionType();
-  }
-
-  @Override
-  public String toASTString() {
-    return getValue().toString();
   }
 
   @Override

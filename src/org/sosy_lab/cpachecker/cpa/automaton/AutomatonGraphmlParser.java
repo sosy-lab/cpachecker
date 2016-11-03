@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -924,17 +925,7 @@ public class AutomatonGraphmlParser {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
     }
 
-    if (pResultFunction.isPresent() && pScope instanceof CProgramScope) {
-      assumeCode =
-          assumeCode.replace(
-              "\\result",
-              " "
-                  + ((CProgramScope) pScope)
-                      .getFunctionReturnVariable(pResultFunction.get())
-                      .getName());
-    } else {
-      assumeCode = assumeCode.replace("\\result", " ___CPAchecker_foo() ");
-    }
+    assumeCode = replaceResultVar(pResultFunction, pScope, assumeCode);
 
     Splitter splitter = Splitter.on("==>").limit(2);
     while (assumeCode.contains("==>")) {
@@ -943,6 +934,20 @@ public class AutomatonGraphmlParser {
           String.format("!(%s) || (%s)", partIterator.next().trim(), partIterator.next().trim());
     }
     return assumeCode;
+  }
+
+  private String replaceResultVar(
+      Optional<String> pResultFunction, Scope pScope, String assumeCode) {
+    if (pResultFunction.isPresent() && pScope instanceof CProgramScope) {
+      CProgramScope scope = (CProgramScope) pScope;
+      String resultFunctionName = pResultFunction.get();
+      if (scope.hasFunctionReturnVariable(resultFunctionName)) {
+        CSimpleDeclaration functionReturnVariable =
+            scope.getFunctionReturnVariable(resultFunctionName);
+        return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
+      }
+    }
+    return assumeCode.replace("\\result", " ___CPAchecker_foo() ");
   }
 
   private ExpressionTree<AExpression> parseExpression(

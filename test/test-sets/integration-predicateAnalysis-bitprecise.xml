@@ -21,6 +21,8 @@
     <tasks>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <!-- exclude tasks from Forester set -->
+      <exclude>../programs/benchmarks/forester-heap/*</exclude>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <!-- SV-Comp files assume that malloc always succeeds -->
