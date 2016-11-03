@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -129,16 +130,13 @@ public class CEXExporter {
   private final ARGPathExporter witnessExporter;
   private final HarnessExporter harnessExporter;
 
-  public CEXExporter(
-      Configuration config,
-      LogManager logger,
-      ARGPathExporter pARGPathExporter,
-      HarnessExporter pHarnessExporter)
+  public CEXExporter(Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.witnessExporter = pARGPathExporter;
-    this.harnessExporter = pHarnessExporter;
+
+    witnessExporter = new ARGPathExporter(config, logger, cfa);
+    harnessExporter = new HarnessExporter(config, logger, cfa);
 
     if (!exportSource) {
       errorPathSourceFile = null;
