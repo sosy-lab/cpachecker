@@ -547,6 +547,9 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
     // --- //
 
+    PropertyScopeGraph psGraph = PropertyScopeGraph.create(root, ImmutableSet.of(Reason
+        .ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE));
+
     super.printStatistics(pOut, pResult, pReached);
   }
 
