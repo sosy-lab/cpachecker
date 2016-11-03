@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -424,8 +425,9 @@ public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable
 
       if (pCFAEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         if (pCFAEdge instanceof AStatementEdge) {
-          if (((AStatementEdge) pCFAEdge).getStatement() instanceof
-              AFunctionCallAssignmentStatement) {
+          if (((AStatementEdge) pCFAEdge).getStatement() instanceof AFunctionCallAssignmentStatement) {
+            return pCFAEdge.getRawAST();
+          } else if (((AStatementEdge) pCFAEdge).getStatement() instanceof AFunctionCallStatement) {
             return pCFAEdge.getRawAST();
           }
         }
