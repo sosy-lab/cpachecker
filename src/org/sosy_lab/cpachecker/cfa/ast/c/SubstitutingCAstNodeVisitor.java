@@ -46,18 +46,21 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Un
   }
 
   private @Nullable CAstNode findSubstitute(final CAstNode pNode) {
-    final CAstNode preTypeCheck = sp.findSubstitute(pNode);
-    final CAstNode postTypeCheck;
-    if (preTypeCheck != null) {
-      postTypeCheck = sp.adjustTypesAfterSubstitution(preTypeCheck);
-    } else {
-      postTypeCheck = sp.adjustTypesAfterSubstitution(pNode);
+    final CAstNode substResult = sp.findSubstitute(pNode);
+
+    return fixTypes(substResult);
+  }
+
+  private CAstNode fixTypes(CAstNode pSubstResult) {
+    if (pSubstResult == null) {
+      return null;
     }
 
-    if (postTypeCheck == null) {
-      return preTypeCheck;
-    } else {
+    final CAstNode postTypeCheck = sp.adjustTypesAfterSubstitution(pSubstResult);
+    if (postTypeCheck != null) {
       return postTypeCheck;
+    } else {
+      return pSubstResult;
     }
   }
 
@@ -169,7 +172,8 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Un
 
   @Override
   public CAstNode visit(final CBinaryExpression pNode) {
-    CAstNode subst = substituteOnBinExpr(pNode);
+    CAstNode subst = substituteOnBinExpr(pNode)
+        ;
     if (subst == null) {
       return pNode;
     } else {
@@ -178,7 +182,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Un
   }
 
   private CAstNode substituteOnBinExpr(final CBinaryExpression pNode) {
-    final CAstNode result = findSubstitute(pNode);
+    CAstNode result = findSubstitute(pNode);
     if (result != null) {
       return result;
     }
@@ -190,13 +194,15 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Un
     final CExpression newOp2 = (CExpression) pNode.getOperand2().accept(this);
 
     if (oldOp1 != newOp1 || oldOp2 != newOp2) {
-      return new CBinaryExpression(
+      result = new CBinaryExpression(
           pNode.getFileLocation(),
           pNode.getExpressionType(),
           pNode.getCalculationType(),
           firstNotNull(newOp1, oldOp1),
           firstNotNull(newOp2, oldOp2),
           pNode.getOperator());
+
+      return fixTypes(result);
     } else {
       return pNode;
     }
@@ -313,10 +319,11 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Un
     final CExpression newOp1 = (CExpression) pNode.getOperand().accept(this);
 
     if (oldOp1 != newOp1) {
+      CExpression op = firstNotNull(newOp1, oldOp1);
       return new CPointerExpression(
           pNode.getFileLocation(),
-          pNode.getExpressionType(),
-          firstNotNull(newOp1, oldOp1));
+          op.getExpressionType(),
+          op);
     } else {
       return pNode;
     }

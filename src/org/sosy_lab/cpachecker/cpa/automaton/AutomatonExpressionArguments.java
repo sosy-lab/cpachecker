@@ -35,14 +35,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -246,9 +249,35 @@ public class AutomatonExpressionArguments {
             + "\"AutomatonExpressionArguments.setCFA(CFA)\" before calling the method "
             + "\"fixBinaryExpressionType(CBinaryExpression)\"!");
 
-    if (problemTypeExpressionCache.containsKey(pExpression.getOperand2().toASTString())) {
+    {
+      CBinaryExpression cached = problemTypeExpressionCache.get(pExpression.getOperand2().toASTString());
       // Use the cache if possible in order to avoid CFA traversal
-      return problemTypeExpressionCache.get(pExpression.getOperand2().toASTString());
+      if (cached != null) {
+        return cached;
+      }
+
+      cached = problemTypeExpressionCache.get(pExpression.toASTString());
+      if (cached != null) {
+        return cached;
+      }
+    }
+
+    if (!(pExpression.getOperand1().getExpressionType() instanceof CProblemType)
+        && !(pExpression.getOperand2().getExpressionType() instanceof CProblemType)) {
+      // The types of the operands are known,
+      // so we can just fix the type of the binary expression (in some cases)
+      if (pExpression.getOperator().isLogicalOperator()) {
+        final CBinaryExpression fixed =
+            new CBinaryExpression(
+                pExpression.getFileLocation(),
+                CNumericTypes.INT,
+                CNumericTypes.INT,
+                pExpression.getOperand1(),
+                pExpression.getOperand2(),
+                pExpression.getOperator());
+        problemTypeExpressionCache.put(pExpression.toASTString(), fixed);
+        return fixed;
+      }
     }
 
     final SearchDeclarationVisitor visitor =
@@ -349,6 +378,10 @@ public class AutomatonExpressionArguments {
             || pExpr.getExpressionType() instanceof CProblemType;
       }
 
+      private boolean isProblemExpression(CPointerExpression pExpr) {
+        return pExpr.getExpressionType() instanceof CProblemType;
+      }
+
       @Override
       public CAstNode adjustTypesAfterSubstitution(CAstNode pNode) {
         if (pNode instanceof CBinaryExpression) {
@@ -368,6 +401,15 @@ public class AutomatonExpressionArguments {
             throw new IllegalStateException(String.format("The ID expression '%s' is not mapped to a correct type!"
                 + "\nIs the referenced variable declared? Misspelling or missing header file?", idExpr.toString()));
           }
+        } else if (pNode instanceof CPointerExpression) {
+          // Example:
+          //    *CPAchecker_AutomatonAnalysis_JokerExpression_Num1
+          CPointerExpression ptrExpr = (CPointerExpression) pNode;
+          if (ptrExpr.getExpressionType() instanceof CProblemType) {
+            CPointerExpression fixed = fixPointerExpressionType(ptrExpr);
+            Preconditions.checkState(!isProblemExpression(fixed));
+            return fixed;
+          }
         }
 
         return null;
@@ -376,6 +418,21 @@ public class AutomatonExpressionArguments {
 
     final CAstNode result = pNode.accept(visitor);
     return result;
+  }
+
+  private CPointerExpression fixPointerExpressionType(CPointerExpression pPtrExpr) {
+    // Example: *ptr = 1;
+    //    leftHandSide: *ptr
+    //      - operand: ptr
+    //      - type: int
+    //    rightHandSide: 1
+
+    if (pPtrExpr.getExpressionType() instanceof CProblemType) {
+        return new CPointerExpression(pPtrExpr.getOperand().getFileLocation(), pPtrExpr
+            .getOperand().getExpressionType(), pPtrExpr.getOperand());
+    } else {
+      return pPtrExpr;
+    }
   }
 
   ImmutableList<Pair<AStatement, Boolean>> instantiateAssumptions(
