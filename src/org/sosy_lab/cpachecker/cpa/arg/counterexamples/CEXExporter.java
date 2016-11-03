@@ -131,6 +131,13 @@ public class CEXExporter {
 
   @Option(
     secure = true,
+    name = "exportImmediately",
+    description = "export error paths to files immediately after they were found"
+  )
+  private boolean dumpErrorPathImmediately = false;
+
+  @Option(
+    secure = true,
     name = "filters",
     description =
         "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
@@ -169,6 +176,11 @@ public class CEXExporter {
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
     }
+  }
+
+  /** export error paths to files immediately after they were found, or after the whole analysis. */
+  public boolean dumpErrorPathImmediately() {
+    return dumpErrorPathImmediately;
   }
 
   /** @see #exportCounterexample(ARGState, CounterexampleInfo) */

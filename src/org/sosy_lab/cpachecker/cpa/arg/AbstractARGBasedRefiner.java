@@ -29,7 +29,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.errorprone.annotations.ForOverride;
-
+import java.util.Collection;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -44,11 +46,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-
-import java.util.Collection;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Base implementation for {@link Refiner}s that provides access to ARG utilities
@@ -149,7 +146,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
-      argCpa.exportCounterexampleOnTheFly(lastElement, counterexample);
+      argCpa.getARGExporter().exportCounterexampleOnTheFly(lastElement, counterexample);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

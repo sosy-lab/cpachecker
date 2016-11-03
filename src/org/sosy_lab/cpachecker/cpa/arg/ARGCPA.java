@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -58,7 +57,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -80,16 +78,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",
-          description="export error paths to files immediately after they were found")
-  private boolean dumpErrorPathImmediately = false;
-
   private final LogManager logger;
 
   private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
-
-  private final CEXExporter cexExporter;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
@@ -97,9 +89,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     this.logger = logger;
 
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
-    cexExporter = new CEXExporter(config, logger, cfa, cpa);
-    stats =
-        new ARGStatistics(config, logger, this, cfa, dumpErrorPathImmediately ? null : cexExporter);
+    stats = new ARGStatistics(config, logger, this, cfa);
   }
 
   @Override
@@ -164,8 +154,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super.collectStatistics(pStatsCollection);
   }
 
-  ARGToDotWriter getRefinementGraphWriter() {
-    return stats.getRefinementGraphWriter();
+  ARGStatistics getARGExporter() {
+    return stats;
   }
 
   @Override
@@ -207,13 +197,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         "Wrapped CPA has to implement ProofChecker interface");
     ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
-  }
-
-  void exportCounterexampleOnTheFly(ARGState pTargetState,
-    CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
-    if (dumpErrorPathImmediately) {
-      cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
-    }
   }
 
   @Override

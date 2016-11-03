@@ -113,11 +113,7 @@ public class ARGStatistics implements Statistics {
   private final LogManager logger;
 
   public ARGStatistics(
-      Configuration config,
-      LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa,
-      CFA cfa,
-      @Nullable CEXExporter pCexExporter)
+      Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa, CFA cfa)
       throws InvalidConfigurationException {
     config.inject(this);
 
@@ -125,7 +121,7 @@ public class ARGStatistics implements Statistics {
     cpa = pCpa;
     assumptionToEdgeAllocator =
         new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
-    cexExporter = pCexExporter;
+    cexExporter = new CEXExporter(config, logger, cfa, cpa);
     argPathExporter = new ARGPathExporter(config, logger, cfa);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
@@ -177,13 +173,13 @@ public class ARGStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-    if (cexExporter == null && !exportARG) {
+    if (cexExporter.dumpErrorPathImmediately() && !exportARG) {
       return;
     }
 
     final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (cexExporter != null) {
+    if (!cexExporter.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
@@ -351,6 +347,13 @@ public class ARGStatistics implements Statistics {
       return CFAPathWithAssumptions.empty();
     } else {
       return result;
+    }
+  }
+
+  public void exportCounterexampleOnTheFly(
+      ARGState pTargetState, CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
+    if (cexExporter.dumpErrorPathImmediately()) {
+      cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
     }
   }
 
