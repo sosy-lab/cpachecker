@@ -3,17 +3,15 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.templates.Template;
-
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
 
 public class PolicyIterationStatistics implements Statistics {
 

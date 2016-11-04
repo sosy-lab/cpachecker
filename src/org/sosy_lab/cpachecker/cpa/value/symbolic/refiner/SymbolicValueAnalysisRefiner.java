@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import com.google.common.collect.Multimap;
-
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,12 +59,6 @@ import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
 
 /**
  * Refiner for value analysis using symbolic values.

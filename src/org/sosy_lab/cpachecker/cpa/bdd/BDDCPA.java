@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,9 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-
-import java.io.PrintStream;
-import java.util.Collection;
 
 @Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {

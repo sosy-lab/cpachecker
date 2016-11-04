@@ -27,7 +27,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.ForOverride;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,10 +42,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Optional;
 
 public abstract class VariableTrackingPrecision implements Precision {
 

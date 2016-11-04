@@ -36,7 +36,20 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -51,23 +64,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
-import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 
 @Options(prefix = "termination")
 public class TerminationStatistics implements Statistics {

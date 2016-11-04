@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.pcc.util;
 
 import java.io.PrintStream;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;

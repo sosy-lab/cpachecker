@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.statistics;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.TreeMap;
-
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;

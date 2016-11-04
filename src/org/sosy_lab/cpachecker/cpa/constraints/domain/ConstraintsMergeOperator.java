@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import java.io.PrintStream;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;

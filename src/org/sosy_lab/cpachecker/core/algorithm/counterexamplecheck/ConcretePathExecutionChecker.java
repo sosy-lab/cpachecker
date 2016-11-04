@@ -24,7 +24,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,19 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Counterexample checker that creates a C program out of a given path program.

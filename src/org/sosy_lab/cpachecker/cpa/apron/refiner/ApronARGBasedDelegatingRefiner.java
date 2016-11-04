@@ -24,9 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
 import apron.ApronException;
-
 import com.google.common.collect.Multimap;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -66,13 +70,6 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import java.io.PrintStream;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.chc;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;

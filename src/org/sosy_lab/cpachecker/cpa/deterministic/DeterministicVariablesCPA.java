@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.deterministic;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -34,8 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import java.io.PrintStream;
-import java.util.Collection;
 
 public class DeterministicVariablesCPA extends AbstractCPA implements StatisticsProvider {
 

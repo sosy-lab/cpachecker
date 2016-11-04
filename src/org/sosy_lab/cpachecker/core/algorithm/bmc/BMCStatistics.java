@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import java.io.PrintStream;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import java.io.PrintStream;
 
 public class BMCStatistics implements Statistics {
 

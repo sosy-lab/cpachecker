@@ -30,9 +30,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,12 +55,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {

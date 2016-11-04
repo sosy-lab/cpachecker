@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Function;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -46,12 +50,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
 
 
 public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {

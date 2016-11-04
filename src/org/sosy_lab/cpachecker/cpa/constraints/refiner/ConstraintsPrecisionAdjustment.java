@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
+import com.google.common.base.Function;
 import java.io.PrintStream;
 import java.util.Collection;
-
+import java.util.Optional;
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -43,9 +43,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.base.Function;
-import java.util.Optional;
 
 /**
  * {@link PrecisionAdjustment} for

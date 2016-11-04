@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.io.PrintStream;
-
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;

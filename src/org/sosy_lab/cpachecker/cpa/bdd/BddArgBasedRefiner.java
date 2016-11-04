@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -48,8 +48,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.collect.Multimap;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}.

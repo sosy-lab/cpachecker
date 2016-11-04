@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,10 +50,6 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of assignments (per identifier)

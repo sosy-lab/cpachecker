@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
-
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
