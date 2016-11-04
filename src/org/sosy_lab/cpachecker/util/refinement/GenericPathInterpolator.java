@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -377,7 +377,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
     writer.put(timerInterpolation)
         .put(totalInterpolations)

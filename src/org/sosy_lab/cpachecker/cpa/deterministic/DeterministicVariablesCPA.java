@@ -33,8 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import java.io.PrintStream;
 import java.util.Collection;
 
@@ -69,7 +68,7 @@ public class DeterministicVariablesCPA extends AbstractCPA implements Statistics
 
           @Override
           public void printStatistics(
-              final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
             ((DeterministicVariablesTransferRelation) getTransferRelation())
                 .printStatistics(pOut, pResult, pReached);
           }

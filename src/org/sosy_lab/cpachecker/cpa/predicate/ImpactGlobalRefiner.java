@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -458,7 +459,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       }
 
       @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
         ImpactGlobalRefiner.this.printStatistics(pOut);
       }
     });

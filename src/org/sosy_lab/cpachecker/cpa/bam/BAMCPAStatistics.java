@@ -109,7 +109,7 @@ class BAMCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
@@ -117,7 +117,7 @@ class BAMCPAStatistics implements Statistics {
     int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
 
     int sumARTElemets = 0;
-    for (ReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
+    for (UnmodifiableReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
       sumARTElemets += subreached.size();
     }
 

@@ -30,7 +30,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
@@ -71,9 +71,7 @@ class FormulaSlicingStatistics implements Statistics {
   final Timer reachabilityAbstractionTimer = new Timer();
 
   @Override
-  public void printStatistics(PrintStream out,
-                              Result result,
-                              ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     printTimer(out, propagation, "propagating formulas",
         cachingPathFormulaManager.pathFormulaCacheHits);
 

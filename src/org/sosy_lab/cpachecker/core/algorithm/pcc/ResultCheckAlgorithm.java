@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
@@ -70,7 +71,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     private @Nullable Statistics proofGenStats = null;
 
     @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println("Time for Verification:          " + analysisTimer);
       pOut.println("Time for Result Check:      " + checkTimer);
 

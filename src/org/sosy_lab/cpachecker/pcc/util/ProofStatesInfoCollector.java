@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -80,7 +80,7 @@ public class ProofStatesInfoCollector implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     pOut.println(getInfoAsString());
 
   }

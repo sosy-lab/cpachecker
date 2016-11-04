@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 
 public class PredicateAbstractionsWriter {
@@ -69,7 +70,7 @@ public class PredicateAbstractionsWriter {
     return PredicateAbstractState.getPredicateState(state).getAbstractionFormula().getId();
   }
 
-  public void writeAbstractions(Path abstractionsFile, ReachedSet reached) {
+  public void writeAbstractions(Path abstractionsFile, UnmodifiableReachedSet reached) {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!

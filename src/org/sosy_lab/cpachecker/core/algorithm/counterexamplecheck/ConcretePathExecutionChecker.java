@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -199,7 +199,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     out.println("Time for running concrete path check: " + timer);
   }
 

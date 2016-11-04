@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChec
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -1093,7 +1093,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         new StatCounter("Invariant generation tries finishing in time");
 
     @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
 
       int numberOfInvGenTries = totalInvGenTries.getUpdateCount();

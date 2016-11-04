@@ -49,7 +49,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import java.io.IOException;
@@ -224,7 +224,7 @@ public class TerminationStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     pOut.println("Total time :                                        " + totalTime);
     pOut.println("Time for recursion analysis:                        " + recursionTime);
     pOut.println();

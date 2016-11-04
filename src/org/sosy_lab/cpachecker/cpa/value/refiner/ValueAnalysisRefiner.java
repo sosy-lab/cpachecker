@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -423,7 +422,7 @@ public class ValueAnalysisRefiner
   }
 
   @Override
-  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
     writer.put(rootRelocations)

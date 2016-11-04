@@ -34,7 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -72,7 +72,7 @@ public class LoopInvariantsWriter {
     this.rmgr = pRegMgr;
   }
 
-  private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
+  private Map<CFANode, Region> getLoopHeadInvariants(UnmodifiableReachedSet reached) {
     if (!cfa.getAllLoopHeads().isPresent()) {
       logger.log(Level.WARNING, "Cannot dump loop invariants because loop-structure information is not available.");
       return null;
@@ -98,7 +98,7 @@ public class LoopInvariantsWriter {
     return regions;
   }
 
-  public void exportLoopInvariants(Path invariantsFile, ReachedSet reached) {
+  public void exportLoopInvariants(Path invariantsFile, UnmodifiableReachedSet reached) {
     Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
     if (regions == null) {
       return;
@@ -125,7 +125,7 @@ public class LoopInvariantsWriter {
     }
   }
 
-  public void exportLoopInvariantsAsPrecision(Path invariantPrecisionsFile, ReachedSet reached) {
+  public void exportLoopInvariantsAsPrecision(Path invariantPrecisionsFile, UnmodifiableReachedSet reached) {
     Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
     if (regions == null) {
       return;

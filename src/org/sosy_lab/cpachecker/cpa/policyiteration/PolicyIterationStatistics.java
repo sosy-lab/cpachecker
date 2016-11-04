@@ -8,7 +8,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.templates.Template;
 
 import java.io.PrintStream;
@@ -50,7 +50,7 @@ public class PolicyIterationStatistics implements Statistics {
 
   @Override
   public void printStatistics(
-      PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
+      PrintStream out, CPAcheckerResult.Result result, UnmodifiableReachedSet reached) {
 
     printTimer(out, getBoundTimer, "getting policy bound");
     printTimer(out, valueDeterminationTimer, "value determination");

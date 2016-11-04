@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -81,7 +81,7 @@ public class CoverageStatistics extends AbstractStatistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
 
     if (cov.getCoverageMode() == CoverageMode.REACHED) {
       computeCoverageFromReached(pReached);
@@ -105,7 +105,7 @@ public class CoverageStatistics extends AbstractStatistics {
   }
 
   public void computeCoverageFromReached(
-      final ReachedSet pReached) {
+      final UnmodifiableReachedSet pReached) {
 
     Set<CFANode> reachedLocations = getAllLocationsFromReached(pReached);
 
@@ -131,7 +131,7 @@ public class CoverageStatistics extends AbstractStatistics {
 
   }
 
-  private Set<CFANode> getAllLocationsFromReached(ReachedSet pReached) {
+  private Set<CFANode> getAllLocationsFromReached(UnmodifiableReachedSet pReached) {
     if (pReached instanceof ForwardingReachedSet) {
       pReached = ((ForwardingReachedSet)pReached).getDelegate();
     }

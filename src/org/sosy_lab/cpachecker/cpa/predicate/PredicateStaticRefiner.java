@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -543,7 +542,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private class Stats implements Statistics {
     @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter.writingStatisticsTo(pOut)
           .ifUpdatedAtLeastOnce(totalTime)
           .put(foundPredicates)

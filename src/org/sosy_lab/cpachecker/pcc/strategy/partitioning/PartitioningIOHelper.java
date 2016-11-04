@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
@@ -248,8 +247,8 @@ public class PartitioningIOHelper {
       return new Statistics() {
 
         @Override
-        public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        }
+        public void printStatistics(
+            PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {}
 
         @Override
         public @Nullable
@@ -264,7 +263,7 @@ public class PartitioningIOHelper {
   private class PartitioningStatistics implements Statistics {
 
     @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       if (numPartitions > 0 && partitions != null) {
         pOut.format("Number of partitions: %d%n", numPartitions);
         pOut.format("The following numbers are given in number of states.%n");

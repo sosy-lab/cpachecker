@@ -26,8 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import java.io.PrintStream;
 
 import javax.annotation.Nullable;
@@ -37,7 +36,7 @@ public class PDRStatistics implements Statistics {
   private final Timer errorPathCreation = new Timer();
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     if (errorPathCreation.getNumberOfIntervals() > 0) {
       pOut.println("Time for error path creation:        " + errorPathCreation);
     }

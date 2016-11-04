@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -109,7 +110,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
 
     @Override
     public void printStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
+        UnmodifiableReachedSet reached) {
 
       out.println("Number of algorithms provided:    " + noOfAlgorithms);
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
@@ -117,7 +118,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       printSubStatistics(out, result, reached);
     }
 
-    private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+    private void printSubStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
 
       for (Statistics s : subStats) {

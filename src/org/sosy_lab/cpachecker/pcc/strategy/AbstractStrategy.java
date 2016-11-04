@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -248,8 +247,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Number of iterations:                     " + countIterations);
       out.println();
       out.println("Number of proof elements:                     " + proofSize);

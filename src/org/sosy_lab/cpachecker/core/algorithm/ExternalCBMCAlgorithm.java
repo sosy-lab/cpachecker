@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
 
@@ -174,7 +175,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Time for running CBMC: " + cbmcTime);
     }
   }

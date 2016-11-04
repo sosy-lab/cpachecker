@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -200,8 +200,8 @@ public class SymbolicValueAnalysisRefiner
   }
 
   @Override
-  protected void printAdditionalStatistics(PrintStream out, Result pResult,
-      ReachedSet pReached) {
+  protected void printAdditionalStatistics(
+      PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     // DO NOTHING for now
   }
 }

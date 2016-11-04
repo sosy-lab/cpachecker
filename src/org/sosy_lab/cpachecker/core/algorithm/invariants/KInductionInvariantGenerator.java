@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -154,7 +155,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     private int numberOfConfirmedCandidates = 0;
 
     @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
       writer.put("Time for invariant generation", invariantGeneration);
       if (totalNumberOfCandidates != null) {

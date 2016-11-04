@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -314,7 +315,7 @@ public class ValueAnalysisImpactRefiner
   }
 
   @Override
-  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     pOut.println("Total number of restarts:      " + String.format("%9d", restartCounter));
     StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut);
     w.beginLevel()

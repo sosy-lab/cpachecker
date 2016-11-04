@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
@@ -255,7 +255,7 @@ class MainCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     checkNotNull(out);
     checkNotNull(result);
     checkArgument(result == Result.NOT_YET_STARTED || reached != null);
@@ -324,12 +324,12 @@ class MainCPAStatistics implements Statistics {
   }
 
 
-  private void dumpReachedSet(ReachedSet reached) {
+  private void dumpReachedSet(UnmodifiableReachedSet reached) {
     dumpReachedSet(reached, reachedSetFile, false);
     dumpReachedSet(reached, reachedSetGraphDumpPath, true);
   }
 
-  private void dumpReachedSet(ReachedSet reached, Path pOutputFile, boolean writeDotFormat){
+  private void dumpReachedSet(UnmodifiableReachedSet reached, Path pOutputFile, boolean writeDotFormat){
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
@@ -354,7 +354,7 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void dumpLocationMappedReachedSet(
-      final ReachedSet pReachedSet,
+      final UnmodifiableReachedSet pReachedSet,
       CFA cfa,
       Appendable sb) throws IOException {
     final ListMultimap<CFANode, AbstractState> locationIndex
@@ -376,7 +376,7 @@ class MainCPAStatistics implements Statistics {
     DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
   }
 
-  private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+  private void printSubStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     for (Statistics s : subStats) {
@@ -400,7 +400,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
+  private void printReachedSetStatistics(UnmodifiableReachedSet reached, PrintStream out) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (reached instanceof ForwardingReachedSet) {
@@ -421,7 +421,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printReachedSetStatisticsDetails(ReachedSet reached, PrintStream out) {
+  private void printReachedSetStatisticsDetails(UnmodifiableReachedSet reached, PrintStream out) {
     int reachedSize = reached.size();
     Set<CFANode> locations;
     CFANode mostFrequentLocation = null;
@@ -502,7 +502,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
+  private void printTimeStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached,
       Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);

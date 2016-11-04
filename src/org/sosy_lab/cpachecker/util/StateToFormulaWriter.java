@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -132,7 +131,8 @@ public class StateToFormulaWriter implements StatisticsProvider {
         new Statistics() {
 
           @Override
-          public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+          public void printStatistics(
+              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
             if (exportFile != null) {
               try (Writer w = MoreFiles.openOutputFile(exportFile, Charset.defaultCharset())) {
                 write(pReached, w);

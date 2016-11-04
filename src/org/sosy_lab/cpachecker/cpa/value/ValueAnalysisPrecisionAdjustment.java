@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -136,7 +135,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
     statistics = new Statistics() {
       @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
 
         StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
         writer.put(abstractions);

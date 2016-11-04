@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -116,7 +116,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reachedSet) {
     out.println("Max. number of assignments: " + maxNumberOfAssignments);
   }
 

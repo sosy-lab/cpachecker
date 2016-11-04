@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,7 +66,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("  Computing abstraction of itp:       " + impact.abstractionTime);
       out.println("  Checking whether itp is new:        " + impact.itpCheckTime);
       out.println("  Coverage checks:                    " + coverTime);

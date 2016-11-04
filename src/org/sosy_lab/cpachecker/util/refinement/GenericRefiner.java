@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -400,13 +401,13 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       }
 
       @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+      public void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
         GenericRefiner.this.printStatistics(pOut, pResult, pReached);
       }
     });
   }
 
-  private void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+  private void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
     writer.put(refinementCounter)
         .put(numberOfTargets)
@@ -417,7 +418,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     printAdditionalStatistics(pOut, pResult, pReached); //hook
   }
 
-  protected abstract void printAdditionalStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached);
+  protected abstract void printAdditionalStatistics(final PrintStream out, final Result pResult, final UnmodifiableReachedSet pReached);
 
   private int obtainErrorPathId(ARGPath path) {
     return path.toString().hashCode();

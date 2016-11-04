@@ -34,8 +34,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -66,7 +65,7 @@ public class StatisticsCPAStatistics implements Statistics  {
 
   @SuppressWarnings("unchecked")
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsData statistics;
     if (cpa.isAnalysis()) {
       statistics = cpa.getFactory().getGlobalAnalysis();

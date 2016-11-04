@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -88,7 +89,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     private final Timer invariantGeneration = new Timer();
 
     @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       if (invariantGeneration.getNumberOfIntervals() > 0) {
         out.println("Time for invariant generation:   " + invariantGeneration.getSumTime());
       }

@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
@@ -328,7 +329,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new Statistics() {
 
           @Override
-          public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+          public void printStatistics(
+              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {

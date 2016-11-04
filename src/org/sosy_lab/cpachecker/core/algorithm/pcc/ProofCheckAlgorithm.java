@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
@@ -59,8 +60,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println();
       out.println("Proof Checking statistics");
       out.println("-------------------------------------");

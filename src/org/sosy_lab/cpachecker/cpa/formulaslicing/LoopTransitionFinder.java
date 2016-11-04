@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -65,8 +65,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     final Timer LBEencodingTimer = new Timer();
 
     @Override
-    public void printStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.printf("Time spent in LBE Encoding: %s (Max: %s), (Avg: %s)%n",
           LBEencodingTimer,
           LBEencodingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),

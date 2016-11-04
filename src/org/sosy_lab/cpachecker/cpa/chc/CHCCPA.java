@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 @Options(prefix="cpa.chc")
 public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
@@ -159,7 +159,7 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     statsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
         //TODO
         //transferRelation.printStatistics(out);
       }

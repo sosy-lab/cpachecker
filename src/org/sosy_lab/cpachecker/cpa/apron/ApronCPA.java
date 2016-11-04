@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -221,7 +221,7 @@ public final class ApronCPA
     pStatsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
         if (precisionFile != null) {
           exportPrecision(pReached);
         }
@@ -242,7 +242,7 @@ public final class ApronCPA
    *
    * @param reached the set of reached states.
    */
-  private void exportPrecision(ReachedSet reached) {
+  private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
     try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {

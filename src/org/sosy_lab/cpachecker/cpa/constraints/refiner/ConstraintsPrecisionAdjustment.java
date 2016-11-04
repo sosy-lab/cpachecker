@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -124,7 +123,7 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment, Stat
     statsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
         out.println("Most constraints after refinement in state: " + maxRealConstraintNumber);
         out.println("Most constraints before refinement in state: " + maxFullConstraintNumber);
         out.println("Constraints after refinement in state: " + overallRealConstraintNumber);
