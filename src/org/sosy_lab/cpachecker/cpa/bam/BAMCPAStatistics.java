@@ -154,16 +154,17 @@ class BAMCPAStatistics implements Statistics {
     }
 
     //Add to reached set all states from BAM cache
-    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
-    for (ReachedSet set : cachedStates) {
-      set.forEach(
-          (state, precision) -> {
-            // Method 'add' adds state not only in list of reached states, but also in waitlist,
-            // so we should delete it.
-            reached.add(state, precision);
-            reached.removeOnlyFromWaitlist(state);
-          });
-    }
+    // These lines collect all states for 'Coverage Reporting'
+//    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
+//    for (ReachedSet set : cachedStates) {
+//      set.forEach(
+//          (state, precision) -> {
+//            // Method 'add' adds state not only in list of reached states, but also in waitlist,
+//            // so we should delete it.
+//            reached.add(state, precision);
+//            reached.removeOnlyFromWaitlist(state);
+//          });
+//    }
 
     exportAllReachedSets(argFile, indexedArgFile, reached);
     exportUsedReachedSets(simplifiedArgFile, reached);
