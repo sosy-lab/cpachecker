@@ -72,10 +72,6 @@ solver.princess.logAllQueriesAsScalaFile = "princess-query-%03d-"
 # are more identical terms.
 solver.princess.minAtomsForAbbreviation = 100
 
-# Princess needs to copy all symbols for each new prover. This flag allows to
-# reuse old unused provers and avoid the overhead.
-solver.princess.reuseProvers = true
-
 # Random seed for SMT solver.
 solver.randomSeed = 42
 
