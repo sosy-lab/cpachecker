@@ -298,10 +298,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private MemoryLocation toLocation(
       CCompositeType pParent, CCompositeTypeMemberDeclaration pMemberDecl) {
-    Type memberType = pMemberDecl.getType();
-    if (memberType instanceof CType) {
-      memberType = ((CType) memberType).getCanonicalType();
-    }
+    CType memberType = pMemberDecl.getType().getCanonicalType();
     if (memberType instanceof CCompositeType) {
       return toLocation(pMemberDecl.getType(), pMemberDecl.getName());
     }
@@ -443,9 +440,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static Optional<MemoryLocation> fieldReferenceToMemoryLocation(
       CType pFieldOwnerType, boolean pIsPointerDeref, String pFieldName) {
-    Type type = pFieldOwnerType.getCanonicalType();
+    CType type = pFieldOwnerType.getCanonicalType();
     final String prefix;
-    if (pIsPointerDeref && type instanceof CType) {
+    if (pIsPointerDeref) {
       if (!(type instanceof CPointerType)) {
         assert false;
         return Optional.empty();
