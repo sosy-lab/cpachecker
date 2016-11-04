@@ -15,6 +15,7 @@
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+    <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-4.2-rc1/*</exclude>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
@@ -43,10 +44,13 @@
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
     <exclude reason="timeout">../programs/benchmarks/product-lines/elevator*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/product-lines/email_spec3*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/product-lines/email_spec4*</exclude>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+    <exclude reason="timeout">../programs/benchmarks/seq-mthreaded/pals*</exclude>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
