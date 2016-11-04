@@ -25,6 +25,13 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.SortedSetMultimap;
+
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -46,7 +53,7 @@ import java.util.stream.Collectors;
 public class PropertyScopeGraph {
 
   private final ScopeNode rootNode;
-  private final Map<ScopeNode, ScopeEdge> edges = new LinkedHashMap<>();
+  private final Multimap<ScopeNode, ScopeEdge> edges = LinkedHashMultimap.create();
   private final Collection<Reason> scopeReasons;
 
   private PropertyScopeGraph(ScopeNode rootNode, Collection<Reason> pScopeReasons) {
@@ -101,8 +108,8 @@ public class PropertyScopeGraph {
     return rootNode;
   }
 
-  public Map<ScopeNode, ScopeEdge> getEdges() {
-    return Collections.unmodifiableMap(edges);
+  public Multimap<ScopeNode, ScopeEdge> getEdges() {
+    return Multimaps.unmodifiableMultimap(edges);
   }
 
   public Collection<Reason> getScopeReasons() {
@@ -133,6 +140,8 @@ public class PropertyScopeGraph {
     public String toString() {
       return argState.getStateId() + "";
     }
+
+
   }
 
   public static class ScopeEdge {
