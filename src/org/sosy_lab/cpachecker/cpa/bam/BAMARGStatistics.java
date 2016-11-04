@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.MissingBlockExcept
 
 public class BAMARGStatistics extends ARGStatistics {
 
-  private static int magicExportNumber = 0;
   private final BAMCPA bamCpa;
 
   public BAMARGStatistics(
@@ -77,7 +76,7 @@ public class BAMARGStatistics extends ARGStatistics {
     // aggressive caching, and multi-usage of blocks.
 
     ARGReachedSet pMainReachedSet =
-        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, magicExportNumber++);
+        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     ARGState target = (ARGState) pReached.getLastState();
     assert pMainReachedSet.asReachedSet().contains(target);
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
