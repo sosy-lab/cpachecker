@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision.PairedAutomatonPrecision;
 import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.defaults.WrappingPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,7 +53,7 @@ import java.util.List;
 @Options(prefix = "cpa.automaton")
 class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
-  private Table<Pair<AutomatonInternalState, PresenceCondition>, AutomatonPrecision, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
+  private Table<Pair<AutomatonInternalState, PresenceCondition>, AutomatonPrecisionView, List<AutomatonTransition>> relevanTransCache = HashBasedTable.create();
 
   @Option(secure = true, description = "Adjust the automaton transitions")
   private boolean adjustAutomatonTransitions = true;
@@ -74,7 +75,9 @@ class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustment {
           throws CPAException, InterruptedException {
 
     final AutomatonState state = (AutomatonState) pState;
-    final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
+    final AutomatonPrecisionView pi = PairedAutomatonPrecision.of(
+        (AutomatonPrecision) pPrecision, AutomatonPrecision.getGlobalPrecision());
+
     final Automaton a = state.getOwningAutomaton();
 
     final PresenceCondition pc = PresenceConditions.manager().makeTrue();

@@ -33,13 +33,14 @@ import org.sosy_lab.cpachecker.util.presence.PresenceConditions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
-import org.sosy_lab.solver.SolverException;
 
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class AutomatonPrecision implements Precision {
+import javax.annotation.Nonnull;
+
+public class AutomatonPrecision implements Precision, AutomatonPrecisionView {
 
   private static AutomatonPrecision GLOBAL_PRECISION = AutomatonPrecision.emptyBlacklist();
 
@@ -159,7 +160,9 @@ public class AutomatonPrecision implements Precision {
    * @throws InterruptedException
    * @throws CPAException
    */
-  public boolean areBlackListed(Set<? extends SafetyProperty> pViolatedProperties,
+  @Override
+  public boolean areBlackListed(
+      Set<? extends SafetyProperty> pViolatedProperties,
       PresenceCondition pPresenceCondition)
       throws InterruptedException, CPAException {
 
@@ -194,6 +197,7 @@ public class AutomatonPrecision implements Precision {
     return blacklist;
   }
 
+  @Override
   public PresenceCondition getBlacklistedFor(SafetyProperty pSafetyProperty) {
     Optional<PresenceCondition> forCond = blacklist.get(pSafetyProperty);
     return PresenceConditions.orFalse(forCond);
@@ -231,4 +235,38 @@ public class AutomatonPrecision implements Precision {
     return blacklist.toString();
   }
 
+  public static class PairedAutomatonPrecision implements AutomatonPrecisionView {
+
+    @Nonnull private final AutomatonPrecision precision1;
+    @Nonnull private final AutomatonPrecision precision2;
+
+    public static AutomatonPrecisionView of(@Nonnull AutomatonPrecision pPrecision1,
+      @Nonnull AutomatonPrecision pPrecision2) {
+      return new PairedAutomatonPrecision(pPrecision1, pPrecision2);
+    }
+
+    private PairedAutomatonPrecision(
+        @Nonnull AutomatonPrecision pPrecision1,
+        @Nonnull AutomatonPrecision pPrecision2) {
+      precision1 = Preconditions.checkNotNull(pPrecision1);
+      precision2 = Preconditions.checkNotNull(pPrecision2);
+    }
+
+    @Override
+    public boolean areBlackListed(
+        Set<? extends SafetyProperty> pViolatedProperties, PresenceCondition pPresenceCondition)
+      throws InterruptedException, CPAException {
+
+      return precision1.areBlackListed(pViolatedProperties, pPresenceCondition)
+          || precision2.areBlackListed(pViolatedProperties, pPresenceCondition);
+    }
+
+    @Override
+    public PresenceCondition getBlacklistedFor(SafetyProperty pSafetyProperty) {
+      PresenceCondition pc1 = precision1.getBlacklistedFor(pSafetyProperty);
+      PresenceCondition pc2 = precision1.getBlacklistedFor(pSafetyProperty);
+
+      return PresenceConditions.manager().makeOr(pc1, pc2);
+    }
+  }
 }

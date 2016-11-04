@@ -207,7 +207,12 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     if (exhaustedProperties.size() > 0) {
       logger.logf(Level.INFO, "Exhausted: %s", exhaustedProperties);
+
+      // Update the state-specific precision
       final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
+      // Update the global precision
+      AutomatonPrecision.updateGlobalPrecision(AutomatonPrecision.getGlobalPrecision().cloneAndAddBlacklisted(exhaustedProperties));
+
       signalDisablingProperties(exhaustedProperties.keySet()); // FIXME: Make it variability aware!
 
       return Optional.of(PrecisionAdjustmentResult.create(
