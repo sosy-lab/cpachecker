@@ -440,8 +440,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     { // Add predicate "false" to unreachable location
       CFANode loc = AbstractStates.extractLocationMaybeWeavedOn(pUnreachableState);
-      int locInstance = getPredicateState(pUnreachableState)
-                                       .getAbstractionLocationsOnPath().get(loc);
+      Preconditions.checkNotNull(loc);
+
+      Integer locInstance = getPredicateState(pUnreachableState).getAbstractionLocationsOnPath().get(loc);
+      Preconditions.checkNotNull(locInstance);
+
       newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
       pAffectedStates.add(pUnreachableState);
     }

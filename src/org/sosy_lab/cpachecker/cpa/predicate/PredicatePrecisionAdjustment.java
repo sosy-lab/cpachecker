@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -116,7 +117,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
       PredicatePrecision precision = (PredicatePrecision) pPrecision;
-      CFANode location = AbstractStates.extractLocation(fullState);
+      CFANode location = AbstractStates.extractLocationMaybeWeavedOn(fullState);
 
       if (adjustPrecFromStateAssumes) {
         throw new RuntimeException("Re-implement me! It is implemented in 'muauto'!");
