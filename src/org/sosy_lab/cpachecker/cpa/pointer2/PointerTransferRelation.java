@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -72,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -117,8 +120,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
     PointerState resultState = pState;
     switch (pCfaEdge.getEdgeType()) {
-    case AssumeEdge:
-      break;
+      case AssumeEdge:
+        resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
+        break;
     case BlankEdge:
       break;
     case CallToReturnEdge:
@@ -141,6 +145,113 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       throw new UnrecognizedCCodeException("Unrecognized CFA edge.", pCfaEdge);
     }
     return resultState;
+  }
+
+  private PointerState handleAssumeEdge(PointerState pState, AssumeEdge pAssumeEdge)
+      throws UnrecognizedCCodeException {
+    AExpression expression = pAssumeEdge.getExpression();
+    if (expression instanceof ABinaryExpression) {
+      ABinaryExpression binOp = (ABinaryExpression) expression;
+      if (binOp.getOperator() == BinaryOperator.EQUALS) {
+        Optional<Boolean> areEq = areEqual(pState, binOp.getOperand1(), binOp.getOperand2());
+        if (areEq.isPresent() && areEq.get() != pAssumeEdge.getTruthAssumption()) {
+          return null;
+        }
+      }
+    }
+    return pState;
+  }
+
+  private Optional<Boolean> areEqual(
+      PointerState pPointerState, AExpression pOperand1, AExpression pOperand2)
+      throws UnrecognizedCCodeException {
+    if (pOperand1 instanceof CBinaryExpression) {
+      CBinaryExpression op1 = (CBinaryExpression) pOperand1;
+      if (op1.getOperator() == BinaryOperator.EQUALS) {
+        if (pOperand2 instanceof CIntegerLiteralExpression) {
+          CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) pOperand2;
+          if (op2.getValue().equals(BigInteger.ZERO)) {
+            return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
+          }
+        } else if (pOperand2 instanceof CCharLiteralExpression) {
+          CCharLiteralExpression op2 = (CCharLiteralExpression) pOperand2;
+          if (op2.getValue() == 0) {
+            return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
+          }
+        }
+      }
+      return Optional.empty();
+    }
+    if (pOperand1 instanceof CExpression && pOperand2 instanceof CExpression) {
+      CExpression operand1 = (CExpression) pOperand1;
+      CExpression operand2 = (CExpression) pOperand2;
+      LocationSet op1LocationSet = asLocations(operand1, pPointerState);
+      LocationSet op2LocationSet = asLocations(operand2, pPointerState);
+      if (op1LocationSet instanceof ExplicitLocationSet
+          && op2LocationSet instanceof ExplicitLocationSet) {
+        if (op1LocationSet.equals(op2LocationSet)) {
+          if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
+            return Optional.of(true);
+          }
+          if (operand1 instanceof CFieldReference && operand2 instanceof CFieldReference) {
+            CFieldReference op1 = (CFieldReference) operand1;
+            CFieldReference op2 = (CFieldReference) operand2;
+            if (op1.isPointerDereference() == op2.isPointerDereference()) {
+              return areEqual(pPointerState, op1.getFieldOwner(), op2.getFieldOwner());
+            }
+          }
+        }
+      }
+      if (operand1 instanceof CUnaryExpression && op2LocationSet instanceof ExplicitLocationSet) {
+        CUnaryExpression op1 = (CUnaryExpression) operand1;
+        if (op1.getOperator() == UnaryOperator.AMPER) {
+          return pointsTo(pPointerState, (ExplicitLocationSet) op2LocationSet, op1.getOperand());
+        }
+      }
+      if (operand2 instanceof CUnaryExpression && op1LocationSet instanceof ExplicitLocationSet) {
+        CUnaryExpression op2 = (CUnaryExpression) operand2;
+        if (op2.getOperator() == UnaryOperator.AMPER) {
+          return pointsTo(pPointerState, (ExplicitLocationSet) op1LocationSet, op2.getOperand());
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<Boolean> pointsTo(
+      PointerState pState, ExplicitLocationSet pLocations, CExpression pCandidateTarget)
+      throws UnrecognizedCCodeException {
+    if (pLocations.getSize() == 1) {
+      LocationSet candidateTargets = asLocations(pCandidateTarget, pState);
+      if (candidateTargets instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitCandidateTargets = (ExplicitLocationSet) candidateTargets;
+        MemoryLocation location = pLocations.iterator().next();
+        LocationSet actualTargets = pState.getPointsToSet(location);
+        if (actualTargets.isBot()) {
+          return Optional.empty();
+        }
+        if (actualTargets instanceof ExplicitLocationSet && !explicitCandidateTargets.isBot()) {
+          boolean containsAny = false;
+          boolean containsAll = true;
+          for (MemoryLocation candidateTarget : explicitCandidateTargets) {
+            boolean contains = actualTargets.mayPointTo(candidateTarget);
+            containsAny = containsAny || contains;
+            containsAll = containsAll && contains;
+          }
+          if (!containsAny) {
+            return Optional.of(false);
+          }
+          if (containsAll && explicitCandidateTargets.getSize() == 1) {
+            return Optional.of(true);
+          }
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Optional<Boolean> negate(Optional<Boolean> pAreEqual) {
+    return pAreEqual.map(b -> !b);
   }
 
   private PointerState handleReturnStatementEdge(PointerState pState, CReturnStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
