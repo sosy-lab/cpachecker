@@ -101,7 +101,7 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  private final ConfigurableProgramAnalysis cpa;
+  protected final ConfigurableProgramAnalysis cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
@@ -114,7 +114,7 @@ public class ARGStatistics implements Statistics {
   public ARGStatistics(
       Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa, CFA cfa)
       throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, ARGStatistics.class); // needed for sub-classes
 
     logger = pLogger;
     cpa = pCpa;

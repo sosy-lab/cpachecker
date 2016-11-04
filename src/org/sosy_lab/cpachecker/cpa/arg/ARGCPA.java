@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -150,7 +151,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    if (!Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))) {
+      // we do not want to add ARGStatistics twice, if a wrapping CPA also uses it.
+      // This would result in overriding the output-files due to equal file names.
+      // Info: this case is one of the reasons to first collect our own statistics
+      // and afterwards call super.collectStatistics().
+      pStatsCollection.add(stats);
+    }
     super.collectStatistics(pStatsCollection);
   }
 
