@@ -121,12 +121,14 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       @Override
       public boolean hasWaitingState() {
-        throw new UnsupportedOperationException("should not be needed");
+        // BAM-reached-set has no waiting states
+        return false;
       }
 
       @Override
       public Collection<AbstractState> getWaitlist() {
-        throw new UnsupportedOperationException("should not be needed");
+        // BAM-reached-set has no waiting states
+        return Collections.emptySet();
       }
 
       @Override
@@ -146,7 +148,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       @Override
       public boolean isEmpty() {
-        throw new UnsupportedOperationException("should not be needed");
+        return subgraph.isEmpty();
       }
 
       @Override
