@@ -124,12 +124,23 @@ public class PropertyScopeGraphToDotWriter {
 
     sb.append("\"");
 
-    if(scopeNode.isPartOfScope()) {
-      sb.append(",color=\"cornflowerblue\"");
+    sb.append(",color=\"").append(determineNodeColor(scopeNode)).append("\"");
+  }
 
-    } else {
-      sb.append(",color=\"grey\"");
+  private static String determineNodeColor(ScopeNode scopeNode) {
+
+    if (scopeNode.getArgState().isCovered()) {
+      return "green";
     }
+    if (scopeNode.getArgState().isTarget()) {
+      return "red";
+    }
+
+    if (scopeNode.isPartOfScope()) {
+      return "cornflowerblue";
+    }
+
+    return "grey";
   }
 
   private void buildEdgeParams(ScopeEdge scopeEdge, Appendable sb) throws IOException {
