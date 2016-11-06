@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -191,13 +192,31 @@ public class PropertyScopeGraphToDotWriter {
           .append("\\l");
 
       if (!scopeEdge.getPassedFunctionEntryExits().isEmpty()) {
-        sb.append("\\l");
+        sb
+            .append("\\l")
+            .append("Skipped entry/exit:\\l");
         for (String func : scopeEdge.getPassedFunctionEntryExits()) {
           sb.append(func).append("\\l");
         }
       }
-      sb.append("\",");
-      sb.append("color=\"#55007f\",fontcolor=\"#55007f\"");
+
+      Collection<ARGState> argParents = scopeEdge.getEnd().getArgState().getParents();
+      if (argParents.size() == 1) {
+        ARGState argParent = argParents.stream().findAny().get();
+        List<CFAEdge> edgesToChild = argParent.getEdgesToChild(scopeEdge.getEnd().getArgState());
+        if (!edgesToChild.isEmpty()) {
+          CFAEdge lastCfaEdge = edgesToChild.get(edgesToChild.size() - 1);
+          sb
+              .append("\\l")
+              .append("Line ").append(Objects.toString(lastCfaEdge.getLineNumber()))
+              .append(": \\l")
+              .append(lastCfaEdge.getDescription().replaceAll("\n", " ").replace('"', '\'').trim())
+              .append("\\l");
+        }
+      }
+
+      sb.append("\"");
+      sb.append(" color=\"#55007f\"");
     }
 
   }
