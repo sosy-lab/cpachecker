@@ -671,7 +671,11 @@ public class ARGPathExporter {
                   AIdExpression resultFunctionName =
                       (AIdExpression)
                           assignment.getFunctionCallExpression().getFunctionNameExpression();
-                  resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                  if (resultFunctionName.getDeclaration() != null) {
+                    resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                  } else {
+                    resultFunction = Optional.of(resultFunctionName.getName());
+                  }
                 }
               }
             }
