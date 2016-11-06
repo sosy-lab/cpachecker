@@ -1954,6 +1954,9 @@ cpa.propertyscope.callgraphGraphmlFile = "prop_scope_callgraph-%s.graphml"
 # Try to find a scope with ABS_FORMULA_IMPLICATION (many solver queries)
 cpa.propertyscope.collectImplicationScope = false
 
+# Where to export the property scope graph (reduced ARG) to
+cpa.propertyscope.graphDotFile = "prop_scope_graph-%s.graphml"
+
 # Do not collect additional statistics but only try to find a new entry
 # function and closely related statistics
 cpa.propertyscope.onlyFindNewEntryFunction = false
