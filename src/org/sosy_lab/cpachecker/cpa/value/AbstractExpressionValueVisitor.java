@@ -794,6 +794,25 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              final Value parameter = parameterValues.get(0);
+
+              if (parameter.isExplicitlyKnown()) {
+                assert parameter.isNumericValue();
+                Number number = parameter.asNumericValue().getNumber();
+                if (number instanceof BigDecimal) {
+                  return new NumericValue(((BigDecimal) number).signum() < 0 ? 1 : 0);
+                } else if (number instanceof Float) {
+                  return new NumericValue(1 / number.floatValue() < 0 ? 1 : 0);
+                } else if (number instanceof Double) {
+                  return new NumericValue(1 / number.floatValue() < 0 ? 1 : 0);
+                }
+              }
+            }
+          }
         } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
 
           if (parameterValues.size() == 1) {
