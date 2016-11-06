@@ -815,26 +815,33 @@ public abstract class AbstractExpressionValueVisitor
           }
         } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
           if (parameterValues.size() == 1) {
-            Value value = parameterValues.get(0);
-            if (value.isExplicitlyKnown()) {
-              final Value parameter = parameterValues.get(0);
+            Value parameter = parameterValues.get(0);
 
-              if (parameter.isExplicitlyKnown()) {
-                assert parameter.isNumericValue();
-                Number number = parameter.asNumericValue().getNumber();
-                if (number instanceof BigDecimal) {
-                  return new NumericValue(((BigDecimal) number).signum() < 0 ? 1 : 0);
-                } else if (number instanceof Float) {
-                  if (number.floatValue() < 0) {
-                    return new NumericValue(1);
-                  }
-                  return new NumericValue(1 / number.floatValue() < 0 ? 1 : 0);
-                } else if (number instanceof Double) {
-                  if (number.doubleValue() < 0) {
-                    return new NumericValue(1);
-                  }
-                  return new NumericValue(1 / number.doubleValue() < 0 ? 1 : 0);
+            if (parameter.isExplicitlyKnown()) {
+              assert parameter.isNumericValue();
+              Number number = parameter.asNumericValue().getNumber();
+              Optional<Boolean> isNegative = isNegative(number);
+              if (isNegative.isPresent()) {
+                return new NumericValue(isNegative.get() ? 1 : 0);
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+          if (parameterValues.size() == 2) {
+            Value target = parameterValues.get(0);
+            Value source = parameterValues.get(1);
+            if (target.isExplicitlyKnown() && source.isExplicitlyKnown()) {
+              assert target.isNumericValue();
+              assert source.isNumericValue();
+              Number targetNumber = target.asNumericValue().getNumber();
+              Number sourceNumber = source.asNumericValue().getNumber();
+              Optional<Boolean> sourceNegative = isNegative(sourceNumber);
+              Optional<Boolean> targetNegative = isNegative(targetNumber);
+              if (sourceNegative.isPresent() && targetNegative.isPresent()) {
+                if (sourceNegative.get() == targetNegative.get()) {
+                  return new NumericValue(targetNumber);
                 }
+                return target.asNumericValue().negate();
               }
             }
           }
@@ -888,6 +895,19 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     return Value.UnknownValue.getInstance();
+  }
+
+  private Optional<Boolean> isNegative(Number pNumber) {
+    if (pNumber instanceof BigDecimal) {
+      return Optional.of(((BigDecimal) pNumber).signum() < 0);
+    } else if (pNumber instanceof Float) {
+      float number = pNumber.floatValue();
+      return Optional.of(number < 0 || 1 / number < 0);
+    } else if (pNumber instanceof Double) {
+      double number = pNumber.doubleValue();
+      return Optional.of(number < 0 || 1 / number < 0);
+    }
+    return Optional.empty();
   }
 
   private boolean isUnspecifiedType(CType pType) {

@@ -61,6 +61,10 @@ public class BuiltinFloatFunctions {
   private static final String SIGNBIT = "__signbit";
   private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
 
+  private static final String COPYSIGN_FLOAT = "copysignf";
+  private static final String COPYSIGN = "copysign";
+  private static final String COPYSIGN_LONG_DOUBLE = "copysignl";
+
   private static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String IS_FINITE = "__finite";
   private static final String IS_NAN = "__isnan";
@@ -75,6 +79,7 @@ public class BuiltinFloatFunctions {
           CEIL,
           FLOOR,
           FLOAT_CLASSIFY,
+          COPYSIGN,
           SIGNBIT,
           IS_FINITE,
           IS_NAN,
@@ -270,6 +275,24 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesSignbitLongDouble(String pFunctionName) {
     return SIGNBIT_LONG_DOUBLE.equals(pFunctionName);
+  }
+
+  public static boolean matchesCopysign(String pFunctionName) {
+    return matchesCopysignFloat(pFunctionName)
+        || matchesCopysignDouble(pFunctionName)
+        || matchesCopysignLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesCopysignFloat(String pFunctionName) {
+    return COPYSIGN_FLOAT.equals(pFunctionName);
+  }
+
+  public static boolean matchesCopysignDouble(String pFunctionName) {
+    return COPYSIGN.equals(pFunctionName);
+  }
+
+  public static boolean matchesCopysignLongDouble(String pFunctionName) {
+    return COPYSIGN_LONG_DOUBLE.equals(pFunctionName);
   }
 
   /**
