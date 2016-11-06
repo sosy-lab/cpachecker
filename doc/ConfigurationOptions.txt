@@ -1955,7 +1955,7 @@ cpa.propertyscope.callgraphGraphmlFile = "prop_scope_callgraph-%s.graphml"
 cpa.propertyscope.collectImplicationScope = false
 
 # Where to export the property scope graph (reduced ARG) to
-cpa.propertyscope.graphDotFile = "prop_scope_graph-%s.graphml"
+cpa.propertyscope.graphDotFile = "prop_scope_graph-%s.dot"
 
 # Do not collect additional statistics but only try to find a new entry
 # function and closely related statistics

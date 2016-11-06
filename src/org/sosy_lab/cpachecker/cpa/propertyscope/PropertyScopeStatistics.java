@@ -108,7 +108,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
 
   @Option(description = "Where to export the property scope graph (reduced ARG) to")
   @FileOption(Type.OUTPUT_FILE)
-  private Path graphDotFile = Paths.get("prop_scope_graph-%s.graphml");
+  private Path graphDotFile = Paths.get("prop_scope_graph-%s.dot");
 
   private final Configuration config;
   private final LogManager logger;
