@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
@@ -41,9 +42,9 @@ public class BuiltinFloatFunctions {
   private static final String INFINITY_LONG_DOUBLE = "__builtin_infl";
   private static final String HUGE_VAL_LONG_DOUBLE = "__builtin_huge_vall";
 
-  private static final String NOT_A_NUMBER_FLOAT = "__builtin_nanf";
-  private static final String NOT_A_NUMBER = "__builtin_nan";
-  private static final String NOT_A_NUMBER_LONG_DOUBLE = "__builtin_nanl";
+  private static final List<String> NOT_A_NUMBER_FLOAT = ImmutableList.of("__builtin_nanf", "nanf");
+  private static final List<String> NOT_A_NUMBER = ImmutableList.of("__builtin_nan", "nan");
+  private static final List<String> NOT_A_NUMBER_LONG_DOUBLE = ImmutableList.of("__builtin_nanl", "nanl");
 
   private static final String ABSOLUTE_VAL_FLOAT  = "__builtin_fabsf";
   private static final String ABSOLUTE_VAL = "__builtin_fabs";
@@ -71,19 +72,20 @@ public class BuiltinFloatFunctions {
   private static final String IS_INFINITY = "__isinf";
 
   private static final ImmutableList<String> possiblePrefixes =
-      ImmutableList.of(
-          INFINITY,
-          HUGE_VAL,
-          NOT_A_NUMBER,
-          ABSOLUTE_VAL,
-          CEIL,
-          FLOOR,
-          FLOAT_CLASSIFY,
-          COPYSIGN,
-          SIGNBIT,
-          IS_FINITE,
-          IS_NAN,
-          IS_INFINITY);
+      ImmutableList.<String>builder()
+        .add(INFINITY)
+        .add(HUGE_VAL)
+        .add(ABSOLUTE_VAL)
+        .add(CEIL)
+        .add(FLOOR)
+        .add(FLOAT_CLASSIFY)
+        .add(COPYSIGN)
+        .add(SIGNBIT)
+        .add(IS_FINITE)
+        .add(IS_NAN)
+        .add(IS_INFINITY)
+        .addAll(NOT_A_NUMBER)
+        .build();
 
   /**
    * Check whether a given function is a builtin function specific to floats
@@ -189,15 +191,15 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesNaNFloat(String pFunctionName) {
-    return NOT_A_NUMBER_FLOAT.equals(pFunctionName);
+    return NOT_A_NUMBER_FLOAT.contains(pFunctionName);
   }
 
   public static boolean matchesNaNDouble(String pFunctionName) {
-    return NOT_A_NUMBER.equals(pFunctionName);
+    return NOT_A_NUMBER.contains(pFunctionName);
   }
 
   public static boolean matchesNaNLongDouble(String pFunctionName) {
-    return NOT_A_NUMBER_LONG_DOUBLE.equals(pFunctionName);
+    return NOT_A_NUMBER_LONG_DOUBLE.contains(pFunctionName);
   }
 
   /**
@@ -208,7 +210,7 @@ public class BuiltinFloatFunctions {
    *   <code>false</code> otherwise
    */
   public static boolean matchesNaN(String pFunctionName) {
-    return isBuiltinFloatFunctionWithPrefix(pFunctionName, NOT_A_NUMBER);
+    return NOT_A_NUMBER.stream().anyMatch(nan -> isBuiltinFloatFunctionWithPrefix(pFunctionName, nan));
   }
 
   public static boolean matchesAbsoluteFloat(String pFunctionName) {
