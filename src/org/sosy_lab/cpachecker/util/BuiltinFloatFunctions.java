@@ -63,6 +63,14 @@ public class BuiltinFloatFunctions {
   private static final List<String> FDIM = ImmutableList.of("__builtin_fdim", "fdim");
   private static final List<String> FDIM_LONG_DOUBLE = ImmutableList.of("__builtin_fdiml", "fdiml");
 
+  private static final List<String> FMAX_FLOAT = ImmutableList.of("__builtin_fmaxf", "fmaxf");
+  private static final List<String> FMAX = ImmutableList.of("__builtin_fmax", "fmax");
+  private static final List<String> FMAX_LONG_DOUBLE = ImmutableList.of("__builtin_fmaxl", "fmaxl");
+
+  private static final List<String> FMIN_FLOAT = ImmutableList.of("__builtin_fminf", "fminf");
+  private static final List<String> FMIN = ImmutableList.of("__builtin_fmin", "fmin");
+  private static final List<String> FMIN_LONG_DOUBLE = ImmutableList.of("__builtin_fminl", "fminl");
+
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";
   private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
@@ -84,6 +92,8 @@ public class BuiltinFloatFunctions {
           .addAll(CEIL)
           .addAll(FLOOR)
           .addAll(FDIM)
+          .addAll(FMAX)
+          .addAll(FMIN)
           .add(FLOAT_CLASSIFY)
           .add(COPYSIGN)
           .add(SIGNBIT)
@@ -289,6 +299,42 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesFdimLongDouble(String pFunctionName) {
     return FDIM_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmax(String pFunctionName) {
+    return matchesFmaxFloat(pFunctionName)
+        || matchesFmaxDouble(pFunctionName)
+        || matchesFmaxLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFmaxFloat(String pFunctionName) {
+    return FMAX_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmaxDouble(String pFunctionName) {
+    return FMAX.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmaxLongDouble(String pFunctionName) {
+    return FMAX_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmin(String pFunctionName) {
+    return matchesFminFloat(pFunctionName)
+        || matchesFminDouble(pFunctionName)
+        || matchesFminLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFminFloat(String pFunctionName) {
+    return FMIN_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFminDouble(String pFunctionName) {
+    return FMIN.contains(pFunctionName);
+  }
+
+  public static boolean matchesFminLongDouble(String pFunctionName) {
+    return FMIN_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
