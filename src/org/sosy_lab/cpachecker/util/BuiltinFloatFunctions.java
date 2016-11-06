@@ -59,6 +59,10 @@ public class BuiltinFloatFunctions {
   private static final List<String> CEIL = ImmutableList.of("__builtin_ceil", "ceil");
   private static final List<String> CEIL_LONG_DOUBLE = ImmutableList.of("__builtin_ceill", "ceill");
 
+  private static final List<String> FDIM_FLOAT = ImmutableList.of("__builtin_fdimf", "fdimf");
+  private static final List<String> FDIM = ImmutableList.of("__builtin_fdim", "fdim");
+  private static final List<String> FDIM_LONG_DOUBLE = ImmutableList.of("__builtin_fdiml", "fdiml");
+
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";
   private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
@@ -74,19 +78,20 @@ public class BuiltinFloatFunctions {
 
   private static final ImmutableList<String> possiblePrefixes =
       ImmutableList.<String>builder()
-        .addAll(INFINITY)
-        .addAll(HUGE_VAL)
-        .addAll(ABSOLUTE_VAL)
-        .addAll(CEIL)
-        .addAll(FLOOR)
-        .add(FLOAT_CLASSIFY)
-        .add(COPYSIGN)
-        .add(SIGNBIT)
-        .add(IS_FINITE)
-        .add(IS_NAN)
-        .add(IS_INFINITY)
-        .addAll(NOT_A_NUMBER)
-        .build();
+          .addAll(INFINITY)
+          .addAll(HUGE_VAL)
+          .addAll(ABSOLUTE_VAL)
+          .addAll(CEIL)
+          .addAll(FLOOR)
+          .addAll(FDIM)
+          .add(FLOAT_CLASSIFY)
+          .add(COPYSIGN)
+          .add(SIGNBIT)
+          .add(IS_FINITE)
+          .add(IS_NAN)
+          .add(IS_INFINITY)
+          .addAll(NOT_A_NUMBER)
+          .build();
 
   /**
    * Check whether a given function is a builtin function specific to floats
@@ -266,6 +271,24 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesFloorLongDouble(String pFunctionName) {
     return FLOOR_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFdim(String pFunctionName) {
+    return matchesFdimFloat(pFunctionName)
+        || matchesFdimDouble(pFunctionName)
+        || matchesFdimLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFdimFloat(String pFunctionName) {
+    return FDIM_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFdimDouble(String pFunctionName) {
+    return FDIM.contains(pFunctionName);
+  }
+
+  public static boolean matchesFdimLongDouble(String pFunctionName) {
+    return FDIM_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
