@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,6 +55,7 @@ public class PropertyScopeGraph {
 
   private final ScopeNode rootNode;
   private final Multimap<ScopeNode, ScopeEdge> edges = LinkedHashMultimap.create();
+  private final Map<ARGState, ScopeNode> nodes = new LinkedHashMap<>();
   private final Collection<Reason> scopeReasons;
 
   private PropertyScopeGraph(ScopeNode rootNode, Collection<Reason> pScopeReasons) {
@@ -66,6 +68,8 @@ public class PropertyScopeGraph {
     ScopeEdge currentEdge = null;
 
     Deque<ARGState> waitlist = new ArrayDeque<>();
+    Deque<ScopeNode> edgeStartStack = new ArrayDeque<>();
+    edgeStartStack.push(graph.rootNode);
     waitlist.addFirst(root);
     while (!waitlist.isEmpty()) {
       ARGState argState = waitlist.removeFirst();
@@ -78,11 +82,12 @@ public class PropertyScopeGraph {
           .collect(Collectors.toSet());
 
       ScopeNode thisScopeNode = new ScopeNode(argState);
+      graph.nodes.put(argState, thisScopeNode);
       scopeLocations.forEach(sloc -> thisScopeNode.scopeReasons.add(sloc.getReason()));
 
       if (currentEdge == null) {
         currentEdge = new ScopeEdge();
-        currentEdge.start = thisScopeNode;
+        currentEdge.start = edgeStartStack.pop();
       }
 
       if (locstate.getLocationNode() instanceof FunctionEntryNode) {
@@ -93,6 +98,10 @@ public class PropertyScopeGraph {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
         currentEdge = null;
+
+        for (int i = 0; i < argState.getChildren().size(); i++) {
+          edgeStartStack.push(thisScopeNode);
+        }
 
       } else {
         currentEdge.irrelevantARGStates += 1;
@@ -110,6 +119,10 @@ public class PropertyScopeGraph {
 
   public Multimap<ScopeNode, ScopeEdge> getEdges() {
     return Multimaps.unmodifiableMultimap(edges);
+  }
+
+  public Map<ARGState, ScopeNode> getNodes() {
+    return nodes;
   }
 
   public Collection<Reason> getScopeReasons() {
@@ -139,6 +152,10 @@ public class PropertyScopeGraph {
     @Override
     public String toString() {
       return argState.getStateId() + "";
+    }
+
+    public String getId() {
+      return Objects.toString(argState.getStateId());
     }
 
 
