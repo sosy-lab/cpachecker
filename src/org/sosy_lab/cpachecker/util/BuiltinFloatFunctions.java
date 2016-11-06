@@ -53,6 +53,10 @@ public class BuiltinFloatFunctions {
   private static final String FLOOR = "floor";
   private static final String FLOOR_LONG_DOUBLE = "floorl";
 
+  private static final String SIGNBIT_FLOAT = "__signbitf";
+  private static final String SIGNBIT = "__signbit";
+  private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
+
   private static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String IS_FINITE = "__finite";
   private static final String IS_NAN = "__isnan";
@@ -66,6 +70,7 @@ public class BuiltinFloatFunctions {
           ABSOLUTE_VAL,
           FLOOR,
           FLOAT_CLASSIFY,
+          SIGNBIT,
           IS_FINITE,
           IS_NAN,
           IS_INFINITY);
@@ -204,14 +209,14 @@ public class BuiltinFloatFunctions {
     return ABSOLUTE_VAL.equals(pFunctionName);
   }
 
+  public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
+    return ABSOLUTE_VAL_LONG_DOUBLE.equals(pFunctionName);
+  }
+
   public static boolean matchesFloor(String pFunctionName) {
     return matchesFloorFloat(pFunctionName)
         || matchesFloorDouble(pFunctionName)
         || matchesFloorLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
-    return ABSOLUTE_VAL_LONG_DOUBLE.equals(pFunctionName);
   }
 
   public static boolean matchesFloorFloat(String pFunctionName) {
@@ -224,6 +229,24 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesFloorLongDouble(String pFunctionName) {
     return FLOOR_LONG_DOUBLE.equals(pFunctionName);
+  }
+
+  public static boolean matchesSignbit(String pFunctionName) {
+    return matchesSignbitFloat(pFunctionName)
+        || matchesSignbitDouble(pFunctionName)
+        || matchesSignbitLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesSignbitFloat(String pFunctionName) {
+    return SIGNBIT_FLOAT.equals(pFunctionName);
+  }
+
+  public static boolean matchesSignbitDouble(String pFunctionName) {
+    return SIGNBIT.equals(pFunctionName);
+  }
+
+  public static boolean matchesSignbitLongDouble(String pFunctionName) {
+    return SIGNBIT_LONG_DOUBLE.equals(pFunctionName);
   }
 
   /**
