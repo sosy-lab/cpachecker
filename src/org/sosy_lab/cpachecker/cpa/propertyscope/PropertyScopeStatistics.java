@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -104,6 +105,10 @@ public class PropertyScopeStatistics extends AbstractStatistics {
   @Option(description = "Where to export the property scope callgraph to")
   @FileOption(Type.OUTPUT_FILE)
   private Path callgraphGraphmlFile = Paths.get("prop_scope_callgraph-%s.graphml");
+
+  @Option(description = "Where to export the property scope graph (reduced ARG) to")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path graphDotFile = Paths.get("prop_scope_graph-%s.graphml");
 
   private final Configuration config;
   private final LogManager logger;
@@ -545,10 +550,21 @@ public class PropertyScopeStatistics extends AbstractStatistics {
         any_var_class ? "ABS_FORMULA_VAR_CLASSIFICATION" : any_automaton_match ? "AUTOMATON_MATCH"
                                                                                : "<unknown>");
 
-    // --- //
+    // Write psgraph //
 
     PropertyScopeGraph psGraph = PropertyScopeGraph.create(root, ImmutableSet.of(Reason
         .ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE, Reason.AUTOMATON_MATCH));
+    String psGraphReasonsName = psGraph.getScopeReasons().stream()
+        .map(Reason::name).collect(Collectors.joining("-"));
+    Path psGraphOutPath =
+        Paths.get(String.format(this.graphDotFile.toString(), psGraphReasonsName));
+    try (Writer w = MoreFiles.openOutputFile(psGraphOutPath, Charset.defaultCharset())) {
+      PropertyScopeGraphToDotWriter.write(psGraph, w);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeGraph to DOT file");
+    }
+
+    // --- //
 
     super.printStatistics(pOut, pResult, pReached);
   }

@@ -33,6 +33,8 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.SortedSetMultimap;
 
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.FunctionExit;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -82,7 +84,6 @@ public class PropertyScopeGraph {
           .collect(Collectors.toSet());
 
       ScopeNode thisScopeNode = new ScopeNode(argState);
-      graph.nodes.put(argState, thisScopeNode);
       scopeLocations.forEach(sloc -> thisScopeNode.scopeReasons.add(sloc.getReason()));
 
       if (currentEdge == null) {
@@ -91,17 +92,25 @@ public class PropertyScopeGraph {
       }
 
       if (locstate.getLocationNode() instanceof FunctionEntryNode) {
-        currentEdge.passedFunctions.add(locstate.getLocationNode().getFunctionName());
+        currentEdge.passedFunctions.add(locstate.getLocationNode().getFunctionName() + " entry");
+      } else if (locstate.getLocationNode() instanceof FunctionExitNode) {
+        currentEdge.passedFunctions.add(locstate.getLocationNode().getFunctionName() + " exit");
       }
 
       if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty()) {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
+        graph.nodes.put(currentEdge.start.argState, currentEdge.start);
+        graph.nodes.put(currentEdge.end.argState, currentEdge.end);
         currentEdge = null;
+
+
 
         for (int i = 0; i < argState.getChildren().size(); i++) {
           edgeStartStack.push(thisScopeNode);
         }
+
+
 
       } else {
         currentEdge.irrelevantARGStates += 1;
