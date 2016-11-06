@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
-import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -180,9 +179,9 @@ public class PropertyScopeGraphToDotWriter {
           .append(Objects.toString(scopeEdge.getIrrelevantARGStates()))
           .append("\\l");
 
-      if (!scopeEdge.getPassedFunctions().isEmpty()) {
+      if (!scopeEdge.getPassedFunctionEntryExits().isEmpty()) {
         sb.append("\\l");
-        for (String func : scopeEdge.getPassedFunctions()) {
+        for (String func : scopeEdge.getPassedFunctionEntryExits()) {
           sb.append(func).append("\\l");
         }
       }

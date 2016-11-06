@@ -26,15 +26,11 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.SortedSetMultimap;
 
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.FunctionExit;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -91,12 +87,6 @@ public class PropertyScopeGraph {
         currentEdge.start = edgeStartStack.pop();
       }
 
-      if (locstate.getLocationNode() instanceof FunctionEntryNode) {
-        currentEdge.passedFunctions.add(locstate.getLocationNode().getFunctionName() + " entry");
-      } else if (locstate.getLocationNode() instanceof FunctionExitNode) {
-        currentEdge.passedFunctions.add(locstate.getLocationNode().getFunctionName() + " exit");
-      }
-
       if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty()) {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
@@ -104,16 +94,21 @@ public class PropertyScopeGraph {
         graph.nodes.put(currentEdge.end.argState, currentEdge.end);
         currentEdge = null;
 
-
-
         for (int i = 0; i < argState.getChildren().size(); i++) {
           edgeStartStack.push(thisScopeNode);
         }
 
-
-
       } else {
         currentEdge.irrelevantARGStates += 1;
+
+        if (!argState.equals(currentEdge.start.argState)) {
+          if (locstate.getLocationNode() instanceof FunctionEntryNode) {
+            currentEdge.passedFunctionEntryExits
+                .add(locstate.getLocationNode().getFunctionName() + " entry");
+          } else if (locstate.getLocationNode() instanceof FunctionExitNode) {
+            currentEdge.passedFunctionEntryExits.add(locstate.getLocationNode().getFunctionName() + " exit");
+          }
+        }
       }
 
       argState.getChildren().forEach(waitlist::addFirst);
@@ -173,7 +168,7 @@ public class PropertyScopeGraph {
   public static class ScopeEdge {
     private ScopeNode start;
     private ScopeNode end;
-    private List<String> passedFunctions = new ArrayList<>();
+    private List<String> passedFunctionEntryExits = new ArrayList<>();
     private int irrelevantARGStates = 0;
 
     private ScopeEdge() {
@@ -188,8 +183,8 @@ public class PropertyScopeGraph {
       return end;
     }
 
-    public List<String> getPassedFunctions() {
-      return Collections.unmodifiableList(passedFunctions);
+    public List<String> getPassedFunctionEntryExits() {
+      return Collections.unmodifiableList(passedFunctionEntryExits);
     }
 
     public int getIrrelevantARGStates() {
@@ -198,7 +193,7 @@ public class PropertyScopeGraph {
 
     @Override
     public String toString() {
-      return String.format("%s -%d(%s)-> %s", start, irrelevantARGStates, passedFunctions, end);
+      return String.format("%s -%d(%s)-> %s", start, irrelevantARGStates, passedFunctionEntryExits, end);
     }
   }
 
