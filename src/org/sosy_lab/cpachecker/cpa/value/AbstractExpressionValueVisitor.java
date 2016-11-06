@@ -806,9 +806,15 @@ public abstract class AbstractExpressionValueVisitor
                 if (number instanceof BigDecimal) {
                   return new NumericValue(((BigDecimal) number).signum() < 0 ? 1 : 0);
                 } else if (number instanceof Float) {
+                  if (number.floatValue() < 0) {
+                    return new NumericValue(1);
+                  }
                   return new NumericValue(1 / number.floatValue() < 0 ? 1 : 0);
                 } else if (number instanceof Double) {
-                  return new NumericValue(1 / number.floatValue() < 0 ? 1 : 0);
+                  if (number.doubleValue() < 0) {
+                    return new NumericValue(1);
+                  }
+                  return new NumericValue(1 / number.doubleValue() < 0 ? 1 : 0);
                 }
               }
             }
