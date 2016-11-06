@@ -52,8 +52,8 @@ public class BuiltinFloatFunctions {
   private static final List<String> ABSOLUTE_VAL_LONG_DOUBLE = ImmutableList.of("__builtin_fabsl", "fabsl");
 
   private static final List<String> FLOOR_FLOAT = ImmutableList.of("__builtin_floorf", "floorf");
-  private static final List<String> FLOOR = ImmutableList.of("__builtin_", "floor");
-  private static final List<String> FLOOR_LONG_DOUBLE = ImmutableList.of("__builtin_", "floorl");
+  private static final List<String> FLOOR = ImmutableList.of("__builtin_floor", "floor");
+  private static final List<String> FLOOR_LONG_DOUBLE = ImmutableList.of("__builtin_floorl", "floorl");
 
   private static final List<String> CEIL_FLOAT = ImmutableList.of("__builtin_ceilf", "ceilf");
   private static final List<String> CEIL = ImmutableList.of("__builtin_ceil", "ceil");
@@ -143,7 +143,7 @@ public class BuiltinFloatFunctions {
           return CNumericTypes.LONG_DOUBLE;
         default:
           throw new IllegalArgumentException(
-              "Builtin function " + pFunctionName + " with unknown suffix");
+              "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
         }
       }
     }
