@@ -53,6 +53,10 @@ public class BuiltinFloatFunctions {
   private static final String FLOOR = "floor";
   private static final String FLOOR_LONG_DOUBLE = "floorl";
 
+  private static final String CEIL_FLOAT = "ceilf";
+  private static final String CEIL = "ceil";
+  private static final String CEIL_LONG_DOUBLE = "ceill";
+
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";
   private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
@@ -68,6 +72,7 @@ public class BuiltinFloatFunctions {
           HUGE_VAL,
           NOT_A_NUMBER,
           ABSOLUTE_VAL,
+          CEIL,
           FLOOR,
           FLOAT_CLASSIFY,
           SIGNBIT,
@@ -211,6 +216,24 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
     return ABSOLUTE_VAL_LONG_DOUBLE.equals(pFunctionName);
+  }
+
+  public static boolean matchesCeil(String pFunctionName) {
+    return matchesCeilFloat(pFunctionName)
+        || matchesCeilDouble(pFunctionName)
+        || matchesCeilLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesCeilFloat(String pFunctionName) {
+    return CEIL_FLOAT.equals(pFunctionName);
+  }
+
+  public static boolean matchesCeilDouble(String pFunctionName) {
+    return CEIL.equals(pFunctionName);
+  }
+
+  public static boolean matchesCeilLongDouble(String pFunctionName) {
+    return CEIL_LONG_DOUBLE.equals(pFunctionName);
   }
 
   public static boolean matchesFloor(String pFunctionName) {
