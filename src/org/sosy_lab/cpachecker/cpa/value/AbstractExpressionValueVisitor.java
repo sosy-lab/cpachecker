@@ -26,7 +26,15 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.UnsignedLongs;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -106,16 +114,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
 
 
 /**
@@ -772,8 +770,28 @@ public abstract class AbstractExpressionValueVisitor
                 return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(0) : new NumericValue(1);
               case DOUBLE:
                 return Double.isInfinite(numericValue.doubleValue()) ? new NumericValue(0) : new NumericValue(1);
-              default:
-                break;
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              final Value parameter = parameterValues.get(0);
+
+              if (parameter.isExplicitlyKnown()) {
+                assert parameter.isNumericValue();
+                Number number = parameter.asNumericValue().getNumber();
+                final Number resultNumber;
+                if (number instanceof BigDecimal) {
+                  resultNumber = ((BigDecimal) number).setScale(0, BigDecimal.ROUND_FLOOR);
+                } else {
+                  resultNumber = Math.floor(number.doubleValue());
+                }
+
+                return new NumericValue(resultNumber);
               }
             }
           }

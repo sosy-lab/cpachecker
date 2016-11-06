@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class provides methods for checking whether a function is a specific builtin
@@ -50,14 +49,26 @@ public class BuiltinFloatFunctions {
   private static final String ABSOLUTE_VAL = "__builtin_fabs";
   private static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
 
+  private static final String FLOOR_FLOAT = "floorf";
+  private static final String FLOOR = "floor";
+  private static final String FLOOR_LONG_DOUBLE = "floorl";
+
   private static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String IS_FINITE = "__finite";
   private static final String IS_NAN = "__isnan";
   private static final String IS_INFINITY = "__isinf";
 
-  private static final ImmutableList<String> possiblePrefixes = ImmutableList.of(
-      INFINITY, HUGE_VAL, NOT_A_NUMBER, ABSOLUTE_VAL,
-      FLOAT_CLASSIFY, IS_FINITE, IS_NAN, IS_INFINITY);
+  private static final ImmutableList<String> possiblePrefixes =
+      ImmutableList.of(
+          INFINITY,
+          HUGE_VAL,
+          NOT_A_NUMBER,
+          ABSOLUTE_VAL,
+          FLOOR,
+          FLOAT_CLASSIFY,
+          IS_FINITE,
+          IS_NAN,
+          IS_INFINITY);
 
   /**
    * Check whether a given function is a builtin function specific to floats
@@ -193,8 +204,26 @@ public class BuiltinFloatFunctions {
     return ABSOLUTE_VAL.equals(pFunctionName);
   }
 
+  public static boolean matchesFloor(String pFunctionName) {
+    return matchesFloorFloat(pFunctionName)
+        || matchesFloorDouble(pFunctionName)
+        || matchesFloorLongDouble(pFunctionName);
+  }
+
   public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
     return ABSOLUTE_VAL_LONG_DOUBLE.equals(pFunctionName);
+  }
+
+  public static boolean matchesFloorFloat(String pFunctionName) {
+    return FLOOR_FLOAT.equals(pFunctionName);
+  }
+
+  public static boolean matchesFloorDouble(String pFunctionName) {
+    return FLOOR.equals(pFunctionName);
+  }
+
+  public static boolean matchesFloorLongDouble(String pFunctionName) {
+    return FLOOR_LONG_DOUBLE.equals(pFunctionName);
   }
 
   /**
