@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -790,6 +791,8 @@ public abstract class AbstractExpressionValueVisitor
                   return new NumericValue(Math.floor(number.floatValue()));
                 } else if (number instanceof Double) {
                   return new NumericValue(Math.floor(number.doubleValue()));
+                } else if (number instanceof NumericValue.NegativeNaN) {
+                  return parameter;
                 }
               }
             }
@@ -809,6 +812,8 @@ public abstract class AbstractExpressionValueVisitor
                   return new NumericValue(Math.ceil(number.floatValue()));
                 } else if (number instanceof Double) {
                   return new NumericValue(Math.ceil(number.doubleValue()));
+                } else if (number instanceof NumericValue.NegativeNaN) {
+                  return parameter;
                 }
               }
             }
@@ -902,10 +907,18 @@ public abstract class AbstractExpressionValueVisitor
       return Optional.of(((BigDecimal) pNumber).signum() < 0);
     } else if (pNumber instanceof Float) {
       float number = pNumber.floatValue();
+      if (Float.isNaN(number)) {
+        return Optional.of(false);
+      }
       return Optional.of(number < 0 || 1 / number < 0);
     } else if (pNumber instanceof Double) {
       double number = pNumber.doubleValue();
+      if (Double.isNaN(number)) {
+        return Optional.of(false);
+      }
       return Optional.of(number < 0 || 1 / number < 0);
+    } else if (pNumber instanceof NegativeNaN) {
+      return Optional.of(true);
     }
     return Optional.empty();
   }
@@ -1898,7 +1911,9 @@ public abstract class AbstractExpressionValueVisitor
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 
-        if (size == SIZE_OF_JAVA_FLOAT) {
+        if (NumericValue.NegativeNaN.VALUE.equals(numericValue.getNumber())) {
+          result = numericValue;
+        } else if (size == SIZE_OF_JAVA_FLOAT) {
           // 32 bit means Java float
           result = new NumericValue(floatValue);
         } else if (size == SIZE_OF_JAVA_DOUBLE) {
@@ -1922,7 +1937,9 @@ public abstract class AbstractExpressionValueVisitor
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 
-        if (size == SIZE_OF_JAVA_FLOAT) {
+        if (NumericValue.NegativeNaN.VALUE.equals(numericValue.getNumber())) {
+          result = numericValue;
+        } else if (size == SIZE_OF_JAVA_FLOAT) {
           // 32 bit means Java float
           result = new NumericValue((float) doubleValue);
         } else if (size == SIZE_OF_JAVA_DOUBLE) {
