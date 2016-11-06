@@ -784,14 +784,13 @@ public abstract class AbstractExpressionValueVisitor
               if (parameter.isExplicitlyKnown()) {
                 assert parameter.isNumericValue();
                 Number number = parameter.asNumericValue().getNumber();
-                final Number resultNumber;
                 if (number instanceof BigDecimal) {
-                  resultNumber = ((BigDecimal) number).setScale(0, BigDecimal.ROUND_FLOOR);
-                } else {
-                  resultNumber = Math.floor(number.doubleValue());
+                  return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_FLOOR));
+                } else if (number instanceof Float) {
+                  return new NumericValue(Math.floor(number.floatValue()));
+                } else if (number instanceof Double) {
+                  return new NumericValue(Math.floor(number.doubleValue()));
                 }
-
-                return new NumericValue(resultNumber);
               }
             }
           }
