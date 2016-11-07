@@ -316,7 +316,9 @@ class ASTConverter {
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
-    if (!options.simplifyConstExpressions() || !(converted instanceof CExpression)) {
+    if (converted == null
+        || !options.simplifyConstExpressions()
+        || !(converted instanceof CExpression)) {
       return converted;
     }
 
@@ -557,10 +559,17 @@ class ASTConverter {
   }
 
   /**
-   * creates temporary variables with increasing numbers
+   * creates temporary variables with increasing numbers.
+   *
+   * @return the idExpression of the variable for most cases, or <code>Null</code> if the
+   *     return-type is <code>Void</code>.
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
     CType type = convertType(e);
+
+    if (type instanceof CVoidType) {
+      return null;
+    }
 
     return createInitializedTemporaryVariable(
         getLocation(e), type, (CInitializer)null);
@@ -1157,6 +1166,9 @@ class ASTConverter {
     }
 
     final CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    if (operand == null) {
+      return operand;
+    }
     final FileLocation fileLoc = getLocation(e);
     final CType operandType = operand.getExpressionType();
 
