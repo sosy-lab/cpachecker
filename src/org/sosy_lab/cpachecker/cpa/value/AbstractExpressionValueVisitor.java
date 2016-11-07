@@ -992,7 +992,7 @@ public abstract class AbstractExpressionValueVisitor
         } else if (BuiltinFloatFunctions.matchesFmodf(functionName)) {
           if (parameterValues.size() == 2) {
             throw new UnsupportedCCodeException(
-                "Function 'fmodf' not supported " + "due to missing pointer analysis.", null);
+                "Function 'fmodf' not supported due to missing pointer analysis.", null);
           }
         } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
           if (parameterValues.size() == 2) {
