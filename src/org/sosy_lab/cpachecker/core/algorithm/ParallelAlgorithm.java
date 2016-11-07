@@ -49,6 +49,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -340,7 +341,31 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     try {
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
-      ReachedSet oldReached = null;
+      AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
+
+      if (algorithm instanceof ReachedSetUpdater) {
+        ReachedSetUpdater reachedSetUpdater = (ReachedSetUpdater) algorithm;
+        reachedSetUpdater.register(
+            new ReachedSetUpdateListener() {
+
+              @Override
+              public void updated(ReachedSet pReachedSet) {
+                singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
+                ReachedSet oldReachedSet = oldReached.get();
+                ReachedSet currentReached = coreComponents.createReachedSet();
+                for (AbstractState as : pReachedSet) {
+                  currentReached.add(as, pReachedSet.getPrecision(as));
+                  currentReached.removeOnlyFromWaitlist(as);
+                }
+                if (oldReachedSet != null) {
+                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
+                } else {
+                  aggregatedReachedSetManager.addReachedSet(currentReached);
+                }
+                oldReached.set(currentReached);
+              }
+            });
+      }
 
       if (!supplyRefinableReached) {
         status = algorithm.run(currentReached);
@@ -360,8 +385,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (status.isSound()
               && !from(currentReached)
                   .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
-            if (oldReached != null) {
-              aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
+            ReachedSet oldReachedSet = oldReached.get();
+            if (oldReachedSet != null) {
+              aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
             } else {
               aggregatedReachedSetManager.addReachedSet(currentReached);
             }
@@ -380,12 +406,13 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
           if (status.isSound()) {
             singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-            if (oldReached != null) {
-              aggregatedReachedSetManager.updateReachedSet(oldReached, currentReached);
+            ReachedSet oldReachedSet = oldReached.get();
+            if (oldReachedSet != null) {
+              aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
             } else {
               aggregatedReachedSetManager.addReachedSet(currentReached);
             }
-            oldReached = currentReached;
+            oldReached.set(currentReached);
           }
 
           if (!stopAnalysis) {
@@ -585,6 +612,19 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       name = pName;
       rLimit = pRLimit;
     }
+
+  }
+
+  public static interface ReachedSetUpdateListener {
+
+    void updated(ReachedSet pReachedSet);
+  }
+
+  public static interface ReachedSetUpdater {
+
+    void register(ReachedSetUpdateListener pReachedSetUpdateListener);
+
+    void unregister(ReachedSetUpdateListener pReachedSetUpdateListener);
 
   }
 }

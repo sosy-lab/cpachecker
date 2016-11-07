@@ -46,6 +46,8 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -58,8 +60,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-@Options(prefix="counterexample")
-public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+@Options(prefix = "counterexample")
+public class CounterexampleCheckAlgorithm
+    implements Algorithm, StatisticsProvider, Statistics, ReachedSetUpdater {
 
   enum CounterexampleCheckerType {
     CBMC, CPACHECKER, CONCRETE_EXECUTION;
@@ -220,5 +223,19 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public String getName() {
     return "Counterexample-Check Algorithm";
+  }
+
+  @Override
+  public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    }
+  }
+
+  @Override
+  public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    }
   }
 }
