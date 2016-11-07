@@ -100,6 +100,13 @@ public class BuiltinFloatFunctions {
   private static final List<String> FREMAINDER = of("remainder");
   private static final List<String> FREMAINDER_LONG_DOUBLE = of("remainderl");
 
+  private static final List<String> ISGREATER = of("isgreater");
+  private static final List<String> ISGREATEREQUAL = of("isgreaterequal");
+  private static final List<String> ISLESS = of("isless");
+  private static final List<String> ISLESSEQUAL = of("islessequal");
+  private static final List<String> ISLESSGREATER = of("islessgreater");
+  private static final List<String> ISUNORDERED = of("isunordered");
+
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";
   private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
@@ -130,6 +137,15 @@ public class BuiltinFloatFunctions {
           .addAll(FMOD)
           .addAll(MODF)
           .addAll(FREMAINDER)
+
+          // compare-functions are ordered backwards, such that the prefix-search works.
+          .addAll(ISGREATEREQUAL)
+          .addAll(ISGREATER)
+          .addAll(ISLESSGREATER)
+          .addAll(ISLESSEQUAL)
+          .addAll(ISLESS)
+          .addAll(ISUNORDERED)
+
           .add(FLOAT_CLASSIFY)
           .add(COPYSIGN)
           .add(SIGNBIT)
@@ -369,6 +385,30 @@ public class BuiltinFloatFunctions {
     return COPYSIGN_FLOAT.equals(pFunctionName)
         || COPYSIGN.equals(pFunctionName)
         || COPYSIGN_LONG_DOUBLE.equals(pFunctionName);
+  }
+
+  public static boolean matchesIsgreater(String pFunctionName) {
+    return ISGREATER.contains(pFunctionName);
+  }
+
+  public static boolean matchesIsgreaterequal(String pFunctionName) {
+    return ISGREATEREQUAL.contains(pFunctionName);
+  }
+
+  public static boolean matchesIsless(String pFunctionName) {
+    return ISLESS.contains(pFunctionName);
+  }
+
+  public static boolean matchesIslessequal(String pFunctionName) {
+    return ISLESSEQUAL.contains(pFunctionName);
+  }
+
+  public static boolean matchesIslessgreater(String pFunctionName) {
+    return ISLESSGREATER.contains(pFunctionName);
+  }
+
+  public static boolean matchesIsunordered(String pFunctionName) {
+    return ISUNORDERED.contains(pFunctionName);
   }
 
   /**

@@ -1084,6 +1084,54 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 > num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 >= num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 < num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 <= num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+          Value op1 = parameterValues.get(0);
+          Value op2 = parameterValues.get(1);
+          if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
+            double num1 = op1.asNumericValue().doubleValue();
+            double num2 = op2.asNumericValue().doubleValue();
+            return new NumericValue(Double.isNaN(num1) || Double.isNaN(num2) ? 1 : 0);
+          }
         }
       }
     }
