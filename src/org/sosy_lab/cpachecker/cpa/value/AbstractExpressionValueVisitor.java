@@ -603,8 +603,8 @@ public abstract class AbstractExpressionValueVisitor
         break;
       }
       case DOUBLE: {
-        double lVal = l.floatValue();
-        double rVal = r.floatValue();
+        double lVal = l.doubleValue();
+        double rVal = r.doubleValue();
 
         if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
