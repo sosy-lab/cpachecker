@@ -844,11 +844,21 @@ public abstract class AbstractExpressionValueVisitor
               if (number instanceof BigDecimal) {
                 return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_DOWN));
               } else if (number instanceof Float) {
+                float f = number.floatValue();
+                if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
+                  // +/-0.0 and +/-INF and +/-NaN are returned unchanged
+                  return new NumericValue(number);
+                }
                 return new NumericValue(
                     BigDecimal.valueOf(number.floatValue())
                         .setScale(0, BigDecimal.ROUND_DOWN)
                         .floatValue());
               } else if (number instanceof Double) {
+                double d = number.doubleValue();
+                if (0 == d || Double.isInfinite(d) || Double.isNaN(d)) {
+                  // +/-0.0 and +/-INF and +/-NaN are returned unchanged
+                  return new NumericValue(number);
+                }
                 return new NumericValue(
                     BigDecimal.valueOf(number.doubleValue())
                         .setScale(0, BigDecimal.ROUND_DOWN)
