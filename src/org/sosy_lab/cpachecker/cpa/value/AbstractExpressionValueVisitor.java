@@ -1013,15 +1013,8 @@ public abstract class AbstractExpressionValueVisitor
                     if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
                       return new NumericValue(Float.NaN);
                     }
-                    // Java and C use different directions for computing MOD.
                     // TODO computations on float/double are imprecise! Use epsilon environment?
-                    float result = num % den;
-                    if (result < 0) {
-                      result = result + den;
-                    } else {
-                      result = result - den;
-                    }
-                    return new NumericValue(result);
+                    return new NumericValue((float)Math.IEEEremainder(num,  den));
                   }
                 case DOUBLE:
                   {
@@ -1033,15 +1026,8 @@ public abstract class AbstractExpressionValueVisitor
                         || den == 0) {
                       return new NumericValue(Double.NaN);
                     }
-                    // Java and C use different directions for computing MOD.
                     // TODO computations on float/double are imprecise! Use epsilon environment?
-                    double result = num % den;
-                    if (result < 0) {
-                      result = result + den;
-                    } else {
-                      result = result - den;
-                    }
-                    return new NumericValue(result);
+                    return new NumericValue(Math.IEEEremainder(num,  den));
                   }
                 default:
                   break;
