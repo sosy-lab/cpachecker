@@ -278,219 +278,75 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesCeil(String pFunctionName) {
-    return matchesCeilFloat(pFunctionName)
-        || matchesCeilDouble(pFunctionName)
-        || matchesCeilLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesCeilFloat(String pFunctionName) {
-    return CEIL_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesCeilDouble(String pFunctionName) {
-    return CEIL.contains(pFunctionName);
-  }
-
-  public static boolean matchesCeilLongDouble(String pFunctionName) {
-    return CEIL_LONG_DOUBLE.contains(pFunctionName);
+    return CEIL_FLOAT.contains(pFunctionName)
+        || CEIL.contains(pFunctionName)
+        || CEIL_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFloor(String pFunctionName) {
-    return matchesFloorFloat(pFunctionName)
-        || matchesFloorDouble(pFunctionName)
-        || matchesFloorLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesFloorFloat(String pFunctionName) {
-    return FLOOR_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesFloorDouble(String pFunctionName) {
-    return FLOOR.contains(pFunctionName);
-  }
-
-  public static boolean matchesFloorLongDouble(String pFunctionName) {
-    return FLOOR_LONG_DOUBLE.contains(pFunctionName);
+    return FLOOR_FLOAT.contains(pFunctionName)
+        || FLOOR.contains(pFunctionName)
+        || FLOOR_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesRound(String pFunctionName) {
-    return matchesRoundFloat(pFunctionName)
-        || matchesRoundDouble(pFunctionName)
-        || matchesRoundLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesRoundFloat(String pFunctionName) {
-    return ROUND_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesRoundDouble(String pFunctionName) {
-    return ROUND.contains(pFunctionName);
-  }
-
-  public static boolean matchesRoundLongDouble(String pFunctionName) {
-    return ROUND_LONG_DOUBLE.contains(pFunctionName);
+    return ROUND_FLOAT.contains(pFunctionName)
+        || ROUND.contains(pFunctionName)
+        || ROUND_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesTrunc(String pFunctionName) {
-    return matchesTruncFloat(pFunctionName)
-        || matchesTruncDouble(pFunctionName)
-        || matchesTruncLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesTruncFloat(String pFunctionName) {
-    return TRUNC_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesTruncDouble(String pFunctionName) {
-    return TRUNC.contains(pFunctionName);
-  }
-
-  public static boolean matchesTruncLongDouble(String pFunctionName) {
-    return TRUNC_LONG_DOUBLE.contains(pFunctionName);
+    return TRUNC_FLOAT.contains(pFunctionName)
+        || TRUNC.contains(pFunctionName)
+        || TRUNC_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFdim(String pFunctionName) {
-    return matchesFdimFloat(pFunctionName)
-        || matchesFdimDouble(pFunctionName)
-        || matchesFdimLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesFdimFloat(String pFunctionName) {
-    return FDIM_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesFdimDouble(String pFunctionName) {
-    return FDIM.contains(pFunctionName);
-  }
-
-  public static boolean matchesFdimLongDouble(String pFunctionName) {
-    return FDIM_LONG_DOUBLE.contains(pFunctionName);
+    return FDIM_FLOAT.contains(pFunctionName)
+        || FDIM.contains(pFunctionName)
+        || FDIM_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFmax(String pFunctionName) {
-    return matchesFmaxFloat(pFunctionName)
-        || matchesFmaxDouble(pFunctionName)
-        || matchesFmaxLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesFmaxFloat(String pFunctionName) {
-    return FMAX_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesFmaxDouble(String pFunctionName) {
-    return FMAX.contains(pFunctionName);
-  }
-
-  public static boolean matchesFmaxLongDouble(String pFunctionName) {
-    return FMAX_LONG_DOUBLE.contains(pFunctionName);
+    return FMAX_FLOAT.contains(pFunctionName)
+        || FMAX.contains(pFunctionName)
+        || FMAX_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFmin(String pFunctionName) {
-    return matchesFminFloat(pFunctionName)
-        || matchesFminDouble(pFunctionName)
-        || matchesFminLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesFminFloat(String pFunctionName) {
-    return FMIN_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesFminDouble(String pFunctionName) {
-    return FMIN.contains(pFunctionName);
-  }
-
-  public static boolean matchesFminLongDouble(String pFunctionName) {
-    return FMIN_LONG_DOUBLE.contains(pFunctionName);
+    return FMIN_FLOAT.contains(pFunctionName)
+        || FMIN.contains(pFunctionName)
+        || FMIN_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFmod(String pFunctionName) {
-    return matchesFmodFloat(pFunctionName)
-        || matchesFmodDouble(pFunctionName)
-        || matchesFmodLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesFmodFloat(String pFunctionName) {
-    return FMOD_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesFmodDouble(String pFunctionName) {
-    return FMOD.contains(pFunctionName);
-  }
-
-  public static boolean matchesFmodLongDouble(String pFunctionName) {
-    return FMOD_LONG_DOUBLE.contains(pFunctionName);
+    return FMOD_FLOAT.contains(pFunctionName)
+        || FMOD.contains(pFunctionName)
+        || FMOD_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFmodf(String pFunctionName) {
-    return matchesModfFloat(pFunctionName)
-        || matchesModfDouble(pFunctionName)
-        || matchesModfLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesModfFloat(String pFunctionName) {
-    return MODF_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesModfDouble(String pFunctionName) {
-    return MODF.contains(pFunctionName);
-  }
-
-  public static boolean matchesModfLongDouble(String pFunctionName) {
-    return MODF_LONG_DOUBLE.contains(pFunctionName);
+    return MODF_FLOAT.contains(pFunctionName)
+        || MODF.contains(pFunctionName)
+        || MODF_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFremainder(String pFunctionName) {
-    return matchesFremainderFloat(pFunctionName)
-        || matchesFremainderDouble(pFunctionName)
-        || matchesFremainderLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesFremainderFloat(String pFunctionName) {
-    return FREMAINDER_FLOAT.contains(pFunctionName);
-  }
-
-  public static boolean matchesFremainderDouble(String pFunctionName) {
-    return FREMAINDER.contains(pFunctionName);
-  }
-
-  public static boolean matchesFremainderLongDouble(String pFunctionName) {
-    return FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
+    return FREMAINDER_FLOAT.contains(pFunctionName)
+        || FREMAINDER.contains(pFunctionName)
+        || FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
-    return matchesSignbitFloat(pFunctionName)
-        || matchesSignbitDouble(pFunctionName)
-        || matchesSignbitLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesSignbitFloat(String pFunctionName) {
-    return SIGNBIT_FLOAT.equals(pFunctionName);
-  }
-
-  public static boolean matchesSignbitDouble(String pFunctionName) {
-    return SIGNBIT.equals(pFunctionName);
-  }
-
-  public static boolean matchesSignbitLongDouble(String pFunctionName) {
-    return SIGNBIT_LONG_DOUBLE.equals(pFunctionName);
+    return SIGNBIT_FLOAT.equals(pFunctionName)
+        || SIGNBIT.equals(pFunctionName)
+        || SIGNBIT_LONG_DOUBLE.equals(pFunctionName);
   }
 
   public static boolean matchesCopysign(String pFunctionName) {
-    return matchesCopysignFloat(pFunctionName)
-        || matchesCopysignDouble(pFunctionName)
-        || matchesCopysignLongDouble(pFunctionName);
-  }
-
-  public static boolean matchesCopysignFloat(String pFunctionName) {
-    return COPYSIGN_FLOAT.equals(pFunctionName);
-  }
-
-  public static boolean matchesCopysignDouble(String pFunctionName) {
-    return COPYSIGN.equals(pFunctionName);
-  }
-
-  public static boolean matchesCopysignLongDouble(String pFunctionName) {
-    return COPYSIGN_LONG_DOUBLE.equals(pFunctionName);
+    return COPYSIGN_FLOAT.equals(pFunctionName)
+        || COPYSIGN.equals(pFunctionName)
+        || COPYSIGN_LONG_DOUBLE.equals(pFunctionName);
   }
 
   /**
