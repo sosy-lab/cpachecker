@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -262,11 +261,9 @@ class KInductionProver implements AutoCloseable {
         BooleanFormula lhi = bfmgr.makeFalse();
         for (AbstractState state : stopStates) {
           CFANode loopHead = AbstractStates.extractLocation(state);
-          Optional<CallstackWrapper> callstackInfo =
-              AbstractStates.extractOptionalCallstackWraper(state);
           lhi = bfmgr.or(
               lhi,
-              getCurrentLocationInvariants(loopHead, callstackInfo, fmgr, pfmgr, pContext));
+              getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pContext));
         }
         loopHeadInvariants = lhi;
       }
@@ -276,7 +273,6 @@ class KInductionProver implements AutoCloseable {
 
   public BooleanFormula getCurrentLocationInvariants(
       CFANode pLocation,
-      Optional<CallstackWrapper> callstackInformation,
       FormulaManagerView pFMGR,
       PathFormulaManager pPFMGR,
       PathFormula pContext)
@@ -295,7 +291,7 @@ class KInductionProver implements AutoCloseable {
         bfmgr.and(
             invariant,
             currentInvariantsSupplier.getInvariantFor(
-                pLocation, callstackInformation, pFMGR, pPFMGR, pContext));
+                pLocation, Optional.empty(), pFMGR, pPFMGR, pContext));
 
     return invariant;
   }
@@ -436,24 +432,12 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Assert the known invariants at the loop head at the first iteration.
-    FluentIterable<AbstractState> stopStates = getUnslicedStopStates(reached).filter(
-        s -> loopHeads.contains(AbstractStates.extractLocation(s))
-    );
 
-    Iterable<AbstractState> loopHeadStates =
-        stopStates
-            .filter(
-                pArg0 -> {
-                  if (pArg0 == null) {
-                    return false;
-                  }
-                  BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
-                  return ls != null && ls.getDeepestIteration() == 1;
-                });
+    FluentIterable<AbstractState> loopHeadStates = filterLoopHeadStates(reached, loopHeads);
     BooleanFormula loopHeadInv =
         bfmgr.and(
             BMCHelper.assertAt(
-                loopHeadStates, getCurrentLoopHeadInvariants(stopStates), fmgr, 1));
+                loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
     BooleanFormula invariants = loopHeadInv;
     for (CandidateInvariant candidateInvariant : confirmedCandidates) {
       invariants = bfmgr.and(invariants, candidateInvariant.getAssertion(reached, fmgr, pfmgr, 1));
@@ -462,9 +446,7 @@ class KInductionProver implements AutoCloseable {
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
-    stopStates = getUnslicedStopStates(reached).filter(
-        s -> loopHeads.contains(AbstractStates.extractLocation(s))
-    );
+    loopHeadStates = filterLoopHeadStates(reached, loopHeads);
 
     this.previousK = pK + 1;
 
@@ -511,7 +493,7 @@ class KInductionProver implements AutoCloseable {
       loopHeadInv =
           bfmgr.and(
               BMCHelper.assertAt(
-                  loopHeadStates, getCurrentLoopHeadInvariants(stopStates), fmgr, 1));
+                  loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
       while (!isInvariant && !loopHeadInv.equals(oldLoopHeadInv)) {
         invariants = loopHeadInv;
         for (CandidateInvariant ci : confirmedCandidates) {
@@ -530,7 +512,7 @@ class KInductionProver implements AutoCloseable {
         loopHeadInv =
             bfmgr.and(
                 BMCHelper.assertAt(
-                    loopHeadStates, getCurrentLoopHeadInvariants(stopStates), fmgr, 1));
+                    loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
       }
 
       // If the proof is successful, move the problem from the set of open
@@ -568,6 +550,19 @@ class KInductionProver implements AutoCloseable {
     pop(); // Pop loop head invariants
 
     return numberOfSuccessfulProofs == pCandidateInvariants.size();
+  }
+
+  private FluentIterable<AbstractState> filterLoopHeadStates(ReachedSet pReached,
+      ImmutableSet<CFANode> pLoopHeads) {
+    return AbstractStates.filterLocations(pReached, pLoopHeads)
+        .filter(
+            pArg0 -> {
+              if (pArg0 == null) {
+                return false;
+              }
+              BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
+              return ls != null && ls.getDeepestIteration() == 1;
+            });
   }
 
   private static boolean isSizeLessThanOrEqualTo(Iterable<?> pElements, int pLimit) {
@@ -660,12 +655,6 @@ class KInductionProver implements AutoCloseable {
         pReachedSet.add(initialState, precision);
       }
     }
-  }
-
-  private static FluentIterable<AbstractState> getUnslicedStopStates(ReachedSet pReachedSet) {
-    return from(pReachedSet)
-        .filter(AbstractBMCAlgorithm.IS_STOP_STATE)
-        .filter(Predicates.not(AbstractBMCAlgorithm.IS_SLICED_STATE));
   }
 
 }
