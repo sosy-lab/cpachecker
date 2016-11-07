@@ -35,7 +35,16 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -58,17 +67,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 
 public class BackwardTransition {
 
@@ -164,8 +162,7 @@ public class BackwardTransition {
       return FluentIterable.from(cache.get(pSuccessorLocation));
     } catch (ExecutionException e) {
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-      Throwables.propagate(e.getCause());
-      throw new AssertionError("The above statement should always throw and never return.");
+      throw new RuntimeException(e.getCause());
     }
   }
 

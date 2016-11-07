@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
+import java.math.BigDecimal;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import java.io.Serializable;
-import java.math.BigDecimal;
 
 /**
  * Stores a numeric value that can be tracked by the ValueAnalysisCPA.
@@ -143,7 +142,7 @@ public class NumericValue implements Value, Serializable {
         return new NumericValue(Float.POSITIVE_INFINITY);
 
       } else if (number.equals(Float.NaN)) {
-        return this;
+        return new NumericValue(NegativeNaN.VALUE);
       }
     } else if (number instanceof Double) {
       if (number.equals(Double.POSITIVE_INFINITY)) {
@@ -153,10 +152,19 @@ public class NumericValue implements Value, Serializable {
         return new NumericValue(Double.POSITIVE_INFINITY);
 
       } else if (number.equals(Double.NaN)) {
-        return this;
+        return new NumericValue(NegativeNaN.VALUE);
       }
     } else if (number instanceof Rational) {
       return new NumericValue(((Rational) number).negate());
+    } else if (NegativeNaN.VALUE.equals(number)) {
+      return new NumericValue(Double.NaN);
+    }
+
+    if (number instanceof BigDecimal) {
+      BigDecimal bd = (BigDecimal) number;
+      if (bd.signum() == 0) {
+        return new NumericValue(-bd.doubleValue());
+      }
     }
 
     // if the stored number is a 'casual' number, just negate it
@@ -210,6 +218,52 @@ public class NumericValue implements Value, Serializable {
     // fulfills contract that if this.equals(other),
     // then this.hashCode() == other.hashCode()
     return number.hashCode();
+  }
+
+  public static class NegativeNaN extends Number {
+
+    private static final long serialVersionUID = 1L;
+
+    public static final Number VALUE = new NegativeNaN();
+
+    private NegativeNaN() {
+    }
+
+    @Override
+    public double doubleValue() {
+      return Double.NaN;
+    }
+
+    @Override
+    public float floatValue() {
+      return Float.NaN;
+    }
+
+    @Override
+    public int intValue() {
+      return (int) Double.NaN;
+    }
+
+    @Override
+    public long longValue() {
+      return (long) Double.NaN;
+    }
+
+    @Override
+    public String toString() {
+      return "-NaN";
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      return pObj == this || pObj instanceof NegativeNaN;
+    }
+
+    @Override
+    public int hashCode() {
+      return -1;
+    }
+
   }
 
 }

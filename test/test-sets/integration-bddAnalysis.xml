@@ -18,29 +18,50 @@
     <tasks name="va-bdd-bool">
       <option name="-valueAnalysis-BDD-bool"/>
       <include>../programs/benchmarks/ssh/*clnt*.c</include>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
       <exclude>../programs/benchmarks/ssh/*clnt*1*.c</exclude>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/ssh-simplified/*clnt*.c</include>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
       <exclude>../programs/benchmarks/ssh-simplified/*clnt*1*.c</exclude>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/product-lines/*product0*.c</include>
+      <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
       <exclude>../programs/benchmarks/product-lines/email*</exclude>
     </tasks>
 
     <tasks name="va-bdd-eq">
       <option name="-valueAnalysis-BDD-bool-intEQ"/>
       <include>../programs/benchmarks/ssh/*clnt*1*.c</include>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/ssh-simplified/*clnt*1*.c</include>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/product-lines/*product1*.c</include>
+      <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
       <exclude>../programs/benchmarks/product-lines/email*</exclude>
     </tasks>
 
     <tasks name="va-bdd-add">
       <option name="-valueAnalysis-BDD-bool-intEQ-intADD"/>
       <include>../programs/benchmarks/ssh/*srvr*.c</include>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
       <exclude>../programs/benchmarks/ssh/*srvr*1*.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.06_true-unreach-call.i.cil.c</exclude>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/ssh-simplified/*srvr*.c</include>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
       <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*.c</exclude>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/product-lines/*product2*.c</include>
+      <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
       <exclude>../programs/benchmarks/product-lines/email*</exclude>
     </tasks>
 
@@ -48,8 +69,15 @@
       <option name="-bddAnalysis"/>
       <option name="-setprop">cpa.bdd.compressIntEqual=false</option>
       <include>../programs/benchmarks/ssh/*srvr*1*.c</include>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/ssh-simplified/*srvr*1*.c</include>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    </tasks>
+    <tasks>
       <include>../programs/benchmarks/product-lines/*product3*.c</include>
+      <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
       <exclude>../programs/benchmarks/product-lines/email*</exclude>
       <exclude>../programs/benchmarks/product-lines/elevator_spec3_product30_true-unreach-call.cil.c</exclude>
     </tasks>
@@ -57,6 +85,7 @@
     <tasks name="Loops">
       <option name="-bddAnalysis"/>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
       <exclude>../programs/benchmarks/loops/matrix*</exclude>
       <exclude>../programs/benchmarks/loops/for*</exclude>
       <exclude>../programs/benchmarks/loops/bubble*</exclude>
@@ -67,7 +96,5 @@
     </tasks>
 
   </rundefinition>
-
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
 </benchmark>

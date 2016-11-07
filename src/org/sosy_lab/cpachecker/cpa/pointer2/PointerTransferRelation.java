@@ -23,17 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
-import java.util.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -61,16 +73,26 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
@@ -79,14 +101,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
 public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
@@ -106,8 +120,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
     PointerState resultState = pState;
     switch (pCfaEdge.getEdgeType()) {
-    case AssumeEdge:
-      break;
+      case AssumeEdge:
+        resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
+        break;
     case BlankEdge:
       break;
     case CallToReturnEdge:
@@ -130,6 +145,113 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       throw new UnrecognizedCCodeException("Unrecognized CFA edge.", pCfaEdge);
     }
     return resultState;
+  }
+
+  private PointerState handleAssumeEdge(PointerState pState, AssumeEdge pAssumeEdge)
+      throws UnrecognizedCCodeException {
+    AExpression expression = pAssumeEdge.getExpression();
+    if (expression instanceof ABinaryExpression) {
+      ABinaryExpression binOp = (ABinaryExpression) expression;
+      if (binOp.getOperator() == BinaryOperator.EQUALS) {
+        Optional<Boolean> areEq = areEqual(pState, binOp.getOperand1(), binOp.getOperand2());
+        if (areEq.isPresent() && areEq.get() != pAssumeEdge.getTruthAssumption()) {
+          return null;
+        }
+      }
+    }
+    return pState;
+  }
+
+  private Optional<Boolean> areEqual(
+      PointerState pPointerState, AExpression pOperand1, AExpression pOperand2)
+      throws UnrecognizedCCodeException {
+    if (pOperand1 instanceof CBinaryExpression) {
+      CBinaryExpression op1 = (CBinaryExpression) pOperand1;
+      if (op1.getOperator() == BinaryOperator.EQUALS) {
+        if (pOperand2 instanceof CIntegerLiteralExpression) {
+          CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) pOperand2;
+          if (op2.getValue().equals(BigInteger.ZERO)) {
+            return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
+          }
+        } else if (pOperand2 instanceof CCharLiteralExpression) {
+          CCharLiteralExpression op2 = (CCharLiteralExpression) pOperand2;
+          if (op2.getValue() == 0) {
+            return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
+          }
+        }
+      }
+      return Optional.empty();
+    }
+    if (pOperand1 instanceof CExpression && pOperand2 instanceof CExpression) {
+      CExpression operand1 = (CExpression) pOperand1;
+      CExpression operand2 = (CExpression) pOperand2;
+      LocationSet op1LocationSet = asLocations(operand1, pPointerState);
+      LocationSet op2LocationSet = asLocations(operand2, pPointerState);
+      if (op1LocationSet instanceof ExplicitLocationSet
+          && op2LocationSet instanceof ExplicitLocationSet) {
+        if (op1LocationSet.equals(op2LocationSet)) {
+          if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
+            return Optional.of(true);
+          }
+          if (operand1 instanceof CFieldReference && operand2 instanceof CFieldReference) {
+            CFieldReference op1 = (CFieldReference) operand1;
+            CFieldReference op2 = (CFieldReference) operand2;
+            if (op1.isPointerDereference() == op2.isPointerDereference()) {
+              return areEqual(pPointerState, op1.getFieldOwner(), op2.getFieldOwner());
+            }
+          }
+        }
+      }
+      if (operand1 instanceof CUnaryExpression && op2LocationSet instanceof ExplicitLocationSet) {
+        CUnaryExpression op1 = (CUnaryExpression) operand1;
+        if (op1.getOperator() == UnaryOperator.AMPER) {
+          return pointsTo(pPointerState, (ExplicitLocationSet) op2LocationSet, op1.getOperand());
+        }
+      }
+      if (operand2 instanceof CUnaryExpression && op1LocationSet instanceof ExplicitLocationSet) {
+        CUnaryExpression op2 = (CUnaryExpression) operand2;
+        if (op2.getOperator() == UnaryOperator.AMPER) {
+          return pointsTo(pPointerState, (ExplicitLocationSet) op1LocationSet, op2.getOperand());
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<Boolean> pointsTo(
+      PointerState pState, ExplicitLocationSet pLocations, CExpression pCandidateTarget)
+      throws UnrecognizedCCodeException {
+    if (pLocations.getSize() == 1) {
+      LocationSet candidateTargets = asLocations(pCandidateTarget, pState);
+      if (candidateTargets instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitCandidateTargets = (ExplicitLocationSet) candidateTargets;
+        MemoryLocation location = pLocations.iterator().next();
+        LocationSet actualTargets = pState.getPointsToSet(location);
+        if (actualTargets.isBot()) {
+          return Optional.empty();
+        }
+        if (actualTargets instanceof ExplicitLocationSet && !explicitCandidateTargets.isBot()) {
+          boolean containsAny = false;
+          boolean containsAll = true;
+          for (MemoryLocation candidateTarget : explicitCandidateTargets) {
+            boolean contains = actualTargets.mayPointTo(candidateTarget);
+            containsAny = containsAny || contains;
+            containsAll = containsAll && contains;
+          }
+          if (!containsAny) {
+            return Optional.of(false);
+          }
+          if (containsAll && explicitCandidateTargets.getSize() == 1) {
+            return Optional.of(true);
+          }
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Optional<Boolean> negate(Optional<Boolean> pAreEqual) {
+    return pAreEqual.map(b -> !b);
   }
 
   private PointerState handleReturnStatementEdge(PointerState pState, CReturnStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
@@ -171,11 +293,27 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private MemoryLocation toLocation(AbstractSimpleDeclaration pDeclaration) {
-    Type type = pDeclaration.getType();
+    return toLocation(pDeclaration.getType(), pDeclaration.getQualifiedName());
+  }
+
+  private MemoryLocation toLocation(
+      CCompositeType pParent, CCompositeTypeMemberDeclaration pMemberDecl) {
+    CType memberType = pMemberDecl.getType().getCanonicalType();
+    if (memberType instanceof CCompositeType) {
+      return toLocation(pMemberDecl.getType(), pMemberDecl.getName());
+    }
+    return fieldReferenceToMemoryLocation(pParent, false, pMemberDecl.getName()).get();
+  }
+
+  private MemoryLocation toLocation(Type pType, String name) {
+    Type type = pType;
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
     if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
       return MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
     }
-    return MemoryLocation.valueOf(pDeclaration.getQualifiedName());
+    return MemoryLocation.valueOf(name);
   }
 
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
@@ -222,30 +360,63 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     CVariableDeclaration declaration = (CVariableDeclaration) pCfaEdge.getDeclaration();
     CInitializer initializer = declaration.getInitializer();
     if (initializer != null) {
-      LocationSet rhs = initializer.accept(new CInitializerVisitor<LocationSet, UnrecognizedCCodeException>() {
-
-        @Override
-        public LocationSet visit(CInitializerExpression pInitializerExpression) throws UnrecognizedCCodeException {
-          return asLocations(pInitializerExpression.getExpression(), pState, 1);
-        }
-
-        @Override
-        public LocationSet visit(CInitializerList pInitializerList) throws UnrecognizedCCodeException {
-          return LocationSetTop.INSTANCE;
-        }
-
-        @Override
-        public LocationSet visit(CDesignatedInitializer pCStructInitializerPart) throws UnrecognizedCCodeException {
-          return LocationSetTop.INSTANCE;
-        }
-
-      });
-
       MemoryLocation location = toLocation(declaration);
-      return handleAssignment(pState, location, rhs);
-
+      return handleWithInitializer(pState, location, declaration.getType(), initializer);
     }
     return pState;
+  }
+
+  private PointerState handleWithInitializer(
+      PointerState pState, MemoryLocation pLeftHandSide, CType pType, CInitializer pInitializer)
+      throws UnrecognizedCCodeException {
+    if (pInitializer instanceof CInitializerList
+        && pType.getCanonicalType() instanceof CCompositeType) {
+      CCompositeType compositeType = (CCompositeType) pType.getCanonicalType();
+      if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
+        CInitializerList initializerList = (CInitializerList) pInitializer;
+        Iterator<CCompositeTypeMemberDeclaration> memberDecls =
+            compositeType.getMembers().iterator();
+        Iterator<CInitializer> initializers = initializerList.getInitializers().iterator();
+        PointerState current = pState;
+        while (memberDecls.hasNext() && initializers.hasNext()) {
+          CCompositeTypeMemberDeclaration memberDecl = memberDecls.next();
+          CInitializer initializer = initializers.next();
+          if (initializer != null) {
+            current =
+                handleWithInitializer(
+                    current,
+                    toLocation(compositeType, memberDecl),
+                    memberDecl.getType(),
+                    initializer);
+          }
+        }
+        return current;
+      }
+    }
+    LocationSet rhs =
+        pInitializer.accept(
+            new CInitializerVisitor<LocationSet, UnrecognizedCCodeException>() {
+
+              @Override
+              public LocationSet visit(CInitializerExpression pInitializerExpression)
+                  throws UnrecognizedCCodeException {
+                return asLocations(pInitializerExpression.getExpression(), pState, 1);
+              }
+
+              @Override
+              public LocationSet visit(CInitializerList pInitializerList)
+                  throws UnrecognizedCCodeException {
+                return LocationSetTop.INSTANCE;
+              }
+
+              @Override
+              public LocationSet visit(CDesignatedInitializer pCStructInitializerPart)
+                  throws UnrecognizedCCodeException {
+                return LocationSetTop.INSTANCE;
+              }
+            });
+
+    return handleAssignment(pState, pLeftHandSide, rhs);
   }
 
   private static LocationSet toLocationSet(Iterable<? extends MemoryLocation> pLocations) {
@@ -259,171 +430,227 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return ExplicitLocationSet.from(pLocations);
   }
 
-  private static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
-    return pExpression.accept(new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
+  public static Optional<MemoryLocation> fieldReferenceToMemoryLocation(
+      CFieldReference pFieldReference) {
+    return fieldReferenceToMemoryLocation(
+        pFieldReference.getFieldOwner().getExpressionType(),
+        pFieldReference.isPointerDereference(),
+        pFieldReference.getFieldName());
+  }
 
-      @Override
-      public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-          throws UnrecognizedCCodeException {
-        if (pIastArraySubscriptExpression.getSubscriptExpression() instanceof CLiteralExpression) {
-          CLiteralExpression literal = (CLiteralExpression) pIastArraySubscriptExpression.getSubscriptExpression();
-          if (literal instanceof CIntegerLiteralExpression && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)) {
-            LocationSet starredLocations = asLocations(pIastArraySubscriptExpression.getArrayExpression(), pState, pDerefCounter);
-            if (starredLocations.isBot() || starredLocations.isTop()) {
-              return starredLocations;
+  private static Optional<MemoryLocation> fieldReferenceToMemoryLocation(
+      CType pFieldOwnerType, boolean pIsPointerDeref, String pFieldName) {
+    CType type = pFieldOwnerType.getCanonicalType();
+    final String prefix;
+    if (pIsPointerDeref) {
+      if (!(type instanceof CPointerType)) {
+        assert false;
+        return Optional.empty();
+      }
+      final CType innerType = ((CPointerType) type).getType().getCanonicalType();
+      if (innerType instanceof CPointerType) {
+        assert false;
+        return Optional.empty();
+      }
+      prefix = innerType.toString();
+    } else {
+      prefix = type.toString();
+    }
+    String infix = ".";
+    String suffix = pFieldName;
+    // TODO use offsets instead
+    return Optional.of(MemoryLocation.valueOf(prefix + infix + suffix));
+  }
+
+  private static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
+    return pExpression.accept(
+        new CRightHandSideVisitor<LocationSet, UnrecognizedCCodeException>() {
+
+          @Override
+          public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+              throws UnrecognizedCCodeException {
+            if (pIastArraySubscriptExpression.getSubscriptExpression()
+                instanceof CLiteralExpression) {
+              CLiteralExpression literal =
+                  (CLiteralExpression) pIastArraySubscriptExpression.getSubscriptExpression();
+              if (literal instanceof CIntegerLiteralExpression
+                  && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)) {
+                LocationSet starredLocations =
+                    asLocations(
+                        pIastArraySubscriptExpression.getArrayExpression(), pState, pDerefCounter);
+                if (starredLocations.isBot() || starredLocations.isTop()) {
+                  return starredLocations;
+                }
+                if (!(starredLocations instanceof ExplicitLocationSet)) {
+                  return LocationSetTop.INSTANCE;
+                }
+                Set<MemoryLocation> result = new HashSet<>();
+                for (MemoryLocation location : ((ExplicitLocationSet) starredLocations)) {
+                  LocationSet pointsToSet = pState.getPointsToSet(location);
+                  if (pointsToSet.isTop()) {
+                    for (MemoryLocation loc : pState.getKnownLocations()) {
+                      result.add(loc);
+                    }
+                    break;
+                  } else if (!pointsToSet.isBot() && pointsToSet instanceof ExplicitLocationSet) {
+                    ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;
+                    Iterables.addAll(result, explicitLocationSet);
+                  }
+                }
+                return toLocationSet(result);
+              }
             }
-            if (!(starredLocations instanceof ExplicitLocationSet)) {
+            return LocationSetTop.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(final CFieldReference pIastFieldReference)
+              throws UnrecognizedCCodeException {
+            Optional<MemoryLocation> memoryLocation =
+                fieldReferenceToMemoryLocation(pIastFieldReference);
+            if (!memoryLocation.isPresent()) {
               return LocationSetTop.INSTANCE;
             }
-            Set<MemoryLocation> result = new HashSet<>();
-            for (MemoryLocation location : ((ExplicitLocationSet) starredLocations)) {
-              LocationSet pointsToSet = pState.getPointsToSet(location);
-              if (pointsToSet.isTop()) {
-                for (MemoryLocation loc : pState.getKnownLocations()) {
-                  result.add(loc);
-                }
-                break;
-              } else if (!pointsToSet.isBot() && pointsToSet instanceof ExplicitLocationSet) {
-                ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pointsToSet;
-                Iterables.addAll(result, explicitLocationSet);
+            return toLocationSet(Collections.singleton(memoryLocation.get()));
+          }
+
+          @Override
+          public LocationSet visit(CIdExpression pIastIdExpression)
+              throws UnrecognizedCCodeException {
+            Type type = pIastIdExpression.getExpressionType();
+            final MemoryLocation location;
+            if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
+              location =
+                  MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+            } else {
+              CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
+              if (declaration != null) {
+                location = MemoryLocation.valueOf(declaration.getQualifiedName());
+              } else {
+                location = MemoryLocation.valueOf(pIastIdExpression.getName());
               }
+            }
+            return visit(location);
+          }
+
+          private LocationSet visit(MemoryLocation pLocation) {
+            Collection<MemoryLocation> result = Collections.singleton(pLocation);
+            for (int deref = pDerefCounter; deref > 0 && !result.isEmpty(); --deref) {
+              Collection<MemoryLocation> newResult = new HashSet<>();
+              for (MemoryLocation location : result) {
+                LocationSet targets = pState.getPointsToSet(location);
+                if (targets.isTop() || targets.isBot()) {
+                  return targets;
+                }
+                if (!(targets instanceof ExplicitLocationSet)) {
+                  return LocationSetTop.INSTANCE;
+                }
+                Iterables.addAll(newResult, ((ExplicitLocationSet) targets));
+              }
+              result = newResult;
             }
             return toLocationSet(result);
           }
-        }
-        return LocationSetTop.INSTANCE;
-      }
 
-      @Override
-      public LocationSet visit(final CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
-        Type type = pIastFieldReference.getFieldOwner().getExpressionType();
-        String prefix = type.toString();
-        String infix = pIastFieldReference.isPointerDereference() ? "->" : ".";
-        String suffix = pIastFieldReference.getFieldName();
-        // TODO use offsets instead
-        return toLocationSet(Collections.singleton(MemoryLocation.valueOf(prefix + infix + suffix)));
-      }
-
-      @Override
-      public LocationSet visit(CIdExpression pIastIdExpression) throws UnrecognizedCCodeException {
-        Type type = pIastIdExpression.getExpressionType();
-        final MemoryLocation location;
-        if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
-          location = MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
-        } else {
-          CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
-          if (declaration != null) {
-            location = MemoryLocation.valueOf(declaration.getQualifiedName());
-          } else {
-            location = MemoryLocation.valueOf(pIastIdExpression.getName());
+          @Override
+          public LocationSet visit(CPointerExpression pPointerExpression)
+              throws UnrecognizedCCodeException {
+            return asLocations(pPointerExpression.getOperand(), pState, pDerefCounter + 1);
           }
-        }
-        return visit(location);
-      }
 
-      private LocationSet visit(MemoryLocation pLocation) {
-        Collection<MemoryLocation> result = Collections.singleton(pLocation);
-        for (int deref = pDerefCounter; deref > 0 && !result.isEmpty(); --deref) {
-          Collection<MemoryLocation> newResult = new HashSet<>();
-          for (MemoryLocation location : result) {
-            LocationSet targets = pState.getPointsToSet(location);
-            if (targets.isTop() || targets.isBot()) {
-              return targets;
+          @Override
+          public LocationSet visit(CComplexCastExpression pComplexCastExpression)
+              throws UnrecognizedCCodeException {
+            return asLocations(pComplexCastExpression.getOperand(), pState, pDerefCounter);
+          }
+
+          @Override
+          public LocationSet visit(CBinaryExpression pIastBinaryExpression)
+              throws UnrecognizedCCodeException {
+            return toLocationSet(
+                Iterables.concat(
+                    toNormalSet(
+                        pState,
+                        asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
+                    toNormalSet(
+                        pState,
+                        asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
+          }
+
+          @Override
+          public LocationSet visit(CCastExpression pIastCastExpression)
+              throws UnrecognizedCCodeException {
+            return asLocations(pIastCastExpression.getOperand(), pState, pDerefCounter);
+          }
+
+          @Override
+          public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CTypeIdExpression pIastTypeIdExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CUnaryExpression pIastUnaryExpression)
+              throws UnrecognizedCCodeException {
+            if (pDerefCounter > 0 && pIastUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+              return asLocations(pIastUnaryExpression.getOperand(), pState, pDerefCounter - 1);
             }
-            if (!(targets instanceof ExplicitLocationSet)) {
-              return LocationSetTop.INSTANCE;
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression)
+              throws UnrecognizedCCodeException {
+            return LocationSetBot.INSTANCE;
+          }
+
+          @Override
+          public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
+              throws UnrecognizedCCodeException {
+            CFunctionDeclaration declaration = pIastFunctionCallExpression.getDeclaration();
+            if (declaration == null) {
+              LocationSet result =
+                  pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
+              if (result.isTop() || result.isBot()) {
+                return result;
+              }
+              return toLocationSet(
+                  FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
             }
-            Iterables.addAll(newResult, ((ExplicitLocationSet) targets));
+            return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
           }
-          result = newResult;
-        }
-        return toLocationSet(result);
-      }
 
-      @Override
-      public LocationSet visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
-        return asLocations(pPointerExpression.getOperand(), pState, pDerefCounter + 1);
-      }
-
-      @Override
-      public LocationSet visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
-        return asLocations(pComplexCastExpression.getOperand(), pState, pDerefCounter);
-      }
-
-      @Override
-      public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return toLocationSet(Iterables.concat(
-            toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
-            toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
-      }
-
-      @Override
-      public LocationSet visit(CCastExpression pIastCastExpression) throws UnrecognizedCCodeException {
-        return asLocations(pIastCastExpression.getOperand(), pState, pDerefCounter);
-      }
-
-      @Override
-      public LocationSet visit(CCharLiteralExpression pIastCharLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CStringLiteralExpression pIastStringLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CTypeIdExpression pIastTypeIdExpression) throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCCodeException {
-        if (pDerefCounter > 0 && pIastUnaryExpression.getOperator() == UnaryOperator.AMPER) {
-          return asLocations(pIastUnaryExpression.getOperand(), pState, pDerefCounter - 1);
-        }
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CImaginaryLiteralExpression PIastLiteralExpression)
-          throws UnrecognizedCCodeException {
-        return LocationSetBot.INSTANCE;
-      }
-
-      @Override
-      public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
-          throws UnrecognizedCCodeException {
-        CFunctionDeclaration declaration = pIastFunctionCallExpression.getDeclaration();
-        if (declaration == null) {
-          LocationSet result = pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
-          if (result.isTop() || result.isBot()) {
-            return result;
+          @Override
+          public LocationSet visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+              throws UnrecognizedCCodeException {
+            throw new UnrecognizedCCodeException(
+                "Address of labels not supported by pointer analysis", pAddressOfLabelExpression);
           }
-          return toLocationSet(FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
-        }
-        return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
-      }
-
-      @Override
-      public LocationSet visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCCodeException {
-        throw new UnrecognizedCCodeException("Address of labels not supported by pointer analysis", pAddressOfLabelExpression);
-      }
-    });
+        });
   }
 
   /**
@@ -454,5 +681,78 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       return pState.getKnownLocations();
     }
     return (ExplicitLocationSet) pLocationSet;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      List<AbstractState> pOtherStates,
+      @Nullable CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    if (pCfaEdge != null) {
+      Optional<AFunctionCall> functionCall = asFunctionCall(pCfaEdge);
+      if (functionCall.isPresent()) {
+        AFunctionCallExpression functionCallExpression =
+            functionCall.get().getFunctionCallExpression();
+        AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
+        if (functionNameExpression instanceof CPointerExpression) {
+          CExpression derefNameExpr = ((CPointerExpression) functionNameExpression).getOperand();
+          if (derefNameExpr instanceof CFieldReference) {
+            CFieldReference fieldReference = (CFieldReference) derefNameExpr;
+            Optional<CallstackState> callstackState = find(pOtherStates, CallstackState.class);
+            if (callstackState.isPresent()) {
+              return strengthenFieldReference(
+                  (PointerState) pState, callstackState.get(), fieldReference);
+            }
+          }
+        }
+      }
+    }
+    return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+  }
+
+  private static Optional<AFunctionCall> asFunctionCall(CFAEdge pEdge) {
+    if (pEdge instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+      if (statementEdge.getStatement() instanceof AFunctionCall) {
+        return Optional.of((AFunctionCall) statementEdge.getStatement());
+      }
+    } else if (pEdge instanceof FunctionCallEdge) {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
+      return Optional.of(functionCallEdge.getSummaryEdge().getExpression());
+    } else if (pEdge instanceof FunctionSummaryEdge) {
+      FunctionSummaryEdge functionSummaryEdge = (FunctionSummaryEdge) pEdge;
+      return Optional.of(functionSummaryEdge.getExpression());
+    }
+    return Optional.empty();
+  }
+
+  private static Collection<? extends AbstractState> strengthenFieldReference(
+      PointerState pPointerState, CallstackState pCallstackState, CFieldReference pFieldReference) {
+    Optional<MemoryLocation> memoryLocation =
+        PointerTransferRelation.fieldReferenceToMemoryLocation(pFieldReference);
+    if (!memoryLocation.isPresent()) {
+      return Collections.singleton(pPointerState);
+    }
+    LocationSet targets = pPointerState.getPointsToSet(memoryLocation.get());
+    if (targets instanceof ExplicitLocationSet) {
+      ExplicitLocationSet explicitTargets = ((ExplicitLocationSet) targets);
+      for (MemoryLocation target : explicitTargets) {
+        if (target.getIdentifier().equals(pCallstackState.getCurrentFunction())) {
+          return Collections.singleton(pPointerState);
+        }
+      }
+      return Collections.emptySet();
+    }
+    return Collections.singleton(pPointerState);
+  }
+
+  private static <T> Optional<T> find(Iterable<? super T> pIterable, Class<T> pClass) {
+    Object result = Iterables.find(pIterable, Predicates.instanceOf(pClass), null);
+    if (result == null) {
+      return Optional.empty();
+    }
+    return Optional.of(pClass.cast(result));
   }
 }

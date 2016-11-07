@@ -4,22 +4,29 @@
   <option name="-disable-java-assertions"/>
   <option name="-heap">10000M</option>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
   </tasks>
-  <tasks name="BitVectors">
-    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+  <tasks name="BitVectorsReach">
+    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
   </tasks>
   <tasks name="Concurrency">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/Concurrency.prp</propertyfile>
   </tasks>
-  <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  <tasks name="ControlFlow">
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <!-- Demonstration Category
@@ -28,23 +35,37 @@
     <option name="-64"/>
   </tasks>
   -->
-  <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+  <tasks name="HeapReach">
+    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
+  </tasks>
+  <tasks name="HeapMemSafety">
+    <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
-  <tasks name="MemorySafety">
-    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+  <tasks name="ArraysReach">
+    <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
+  </tasks>
+  <tasks name="ArraysMemSafety">
+    <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysMemSafety.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
 
   <rundefinition name="sv-comp14">

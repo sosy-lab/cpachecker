@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class provides methods for checking whether a function is a specific builtin
@@ -35,29 +36,72 @@ import com.google.common.collect.ImmutableList;
  */
 public class BuiltinFloatFunctions {
 
-  private static final String INFINITY_FLOAT = "__builtin_inff";
-  private static final String HUGE_VAL_FLOAT = "__builtin_huge_valf";
-  private static final String INFINITY = "__builtin_inf";
-  private static final String HUGE_VAL = "__builtin_huge_val";
-  private static final String INFINITY_LONG_DOUBLE = "__builtin_infl";
-  private static final String HUGE_VAL_LONG_DOUBLE = "__builtin_huge_vall";
+  private static final List<String> INFINITY_FLOAT = ImmutableList.of("__builtin_inff", "inff");
+  private static final List<String> HUGE_VAL_FLOAT = ImmutableList.of("__builtin_huge_valf", "huge_valf");
+  private static final List<String> INFINITY = ImmutableList.of("__builtin_inf", "inf");
+  private static final List<String> HUGE_VAL = ImmutableList.of("__builtin_huge_val", "huge_val");
+  private static final List<String> INFINITY_LONG_DOUBLE = ImmutableList.of("__builtin_infl", "infl");
+  private static final List<String> HUGE_VAL_LONG_DOUBLE = ImmutableList.of("__builtin_huge_vall", "huge_vall");
 
-  private static final String NOT_A_NUMBER_FLOAT = "__builtin_nanf";
-  private static final String NOT_A_NUMBER = "__builtin_nan";
-  private static final String NOT_A_NUMBER_LONG_DOUBLE = "__builtin_nanl";
+  private static final List<String> NOT_A_NUMBER_FLOAT = ImmutableList.of("__builtin_nanf", "nanf");
+  private static final List<String> NOT_A_NUMBER = ImmutableList.of("__builtin_nan", "nan");
+  private static final List<String> NOT_A_NUMBER_LONG_DOUBLE = ImmutableList.of("__builtin_nanl", "nanl");
 
-  private static final String ABSOLUTE_VAL_FLOAT  = "__builtin_fabsf";
-  private static final String ABSOLUTE_VAL = "__builtin_fabs";
-  private static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
+  private static final List<String> ABSOLUTE_VAL_FLOAT  = ImmutableList.of("__builtin_fabsf", "fabsf");
+  private static final List<String> ABSOLUTE_VAL = ImmutableList.of("__builtin_fabs", "fabs");
+  private static final List<String> ABSOLUTE_VAL_LONG_DOUBLE = ImmutableList.of("__builtin_fabsl", "fabsl");
+
+  private static final List<String> FLOOR_FLOAT = ImmutableList.of("__builtin_floorf", "floorf");
+  private static final List<String> FLOOR = ImmutableList.of("__builtin_floor", "floor");
+  private static final List<String> FLOOR_LONG_DOUBLE = ImmutableList.of("__builtin_floorl", "floorl");
+
+  private static final List<String> CEIL_FLOAT = ImmutableList.of("__builtin_ceilf", "ceilf");
+  private static final List<String> CEIL = ImmutableList.of("__builtin_ceil", "ceil");
+  private static final List<String> CEIL_LONG_DOUBLE = ImmutableList.of("__builtin_ceill", "ceill");
+
+  private static final List<String> FDIM_FLOAT = ImmutableList.of("__builtin_fdimf", "fdimf");
+  private static final List<String> FDIM = ImmutableList.of("__builtin_fdim", "fdim");
+  private static final List<String> FDIM_LONG_DOUBLE = ImmutableList.of("__builtin_fdiml", "fdiml");
+
+  private static final List<String> FMAX_FLOAT = ImmutableList.of("__builtin_fmaxf", "fmaxf");
+  private static final List<String> FMAX = ImmutableList.of("__builtin_fmax", "fmax");
+  private static final List<String> FMAX_LONG_DOUBLE = ImmutableList.of("__builtin_fmaxl", "fmaxl");
+
+  private static final List<String> FMIN_FLOAT = ImmutableList.of("__builtin_fminf", "fminf");
+  private static final List<String> FMIN = ImmutableList.of("__builtin_fmin", "fmin");
+  private static final List<String> FMIN_LONG_DOUBLE = ImmutableList.of("__builtin_fminl", "fminl");
+
+  private static final String SIGNBIT_FLOAT = "__signbitf";
+  private static final String SIGNBIT = "__signbit";
+  private static final String SIGNBIT_LONG_DOUBLE = "__signbitl";
+
+  private static final String COPYSIGN_FLOAT = "copysignf";
+  private static final String COPYSIGN = "copysign";
+  private static final String COPYSIGN_LONG_DOUBLE = "copysignl";
 
   private static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String IS_FINITE = "__finite";
   private static final String IS_NAN = "__isnan";
   private static final String IS_INFINITY = "__isinf";
 
-  private static final ImmutableList<String> possiblePrefixes = ImmutableList.of(
-      INFINITY, HUGE_VAL, NOT_A_NUMBER, ABSOLUTE_VAL,
-      FLOAT_CLASSIFY, IS_FINITE, IS_NAN, IS_INFINITY);
+  private static final ImmutableList<String> possiblePrefixes =
+      ImmutableList.<String>builder()
+          .addAll(INFINITY)
+          .addAll(HUGE_VAL)
+          .addAll(ABSOLUTE_VAL)
+          .addAll(CEIL)
+          .addAll(FLOOR)
+          .addAll(FDIM)
+          .addAll(FMAX)
+          .addAll(FMIN)
+          .add(FLOAT_CLASSIFY)
+          .add(COPYSIGN)
+          .add(SIGNBIT)
+          .add(IS_FINITE)
+          .add(IS_NAN)
+          .add(IS_INFINITY)
+          .addAll(NOT_A_NUMBER)
+          .build();
 
   /**
    * Check whether a given function is a builtin function specific to floats
@@ -71,6 +115,12 @@ public class BuiltinFloatFunctions {
     }
 
     return false;
+  }
+
+  private static boolean isBuiltinFloatFunctionWithPrefix(String pFunctionName,
+      Collection<String> pPrefix) {
+    return pPrefix.stream()
+        .anyMatch(nan -> isBuiltinFloatFunctionWithPrefix(pFunctionName, nan));
   }
 
   private static boolean isBuiltinFloatFunctionWithPrefix(String pFunctionName,
@@ -108,7 +158,7 @@ public class BuiltinFloatFunctions {
           return CNumericTypes.LONG_DOUBLE;
         default:
           throw new IllegalArgumentException(
-              "Builtin function " + pFunctionName + " with unknown suffix");
+              "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
         }
       }
     }
@@ -117,15 +167,15 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesInfinityFloat(String pFunctionName) {
-    return INFINITY_FLOAT.equals(pFunctionName);
+    return INFINITY_FLOAT.contains(pFunctionName);
   }
 
   public static boolean matchesInfinityDouble(String pFunctionName) {
-    return INFINITY.equals(pFunctionName);
+    return INFINITY.contains(pFunctionName);
   }
 
   public static boolean matchesInfinityLongDouble(String pFunctionName) {
-    return INFINITY_LONG_DOUBLE.equals(pFunctionName);
+    return INFINITY_LONG_DOUBLE.contains(pFunctionName);
   }
 
   /**
@@ -140,15 +190,15 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesHugeValFloat(String pFunctionName) {
-    return HUGE_VAL_FLOAT.equals(pFunctionName);
+    return HUGE_VAL_FLOAT.contains(pFunctionName);
   }
 
   public static boolean matchesHugeValDouble(String pFunctionName) {
-    return HUGE_VAL.equals(pFunctionName);
+    return HUGE_VAL.contains(pFunctionName);
   }
 
   public static boolean matchesHugeValLongDouble(String pFunctionName) {
-    return HUGE_VAL_LONG_DOUBLE.equals(pFunctionName);
+    return HUGE_VAL_LONG_DOUBLE.contains(pFunctionName);
   }
 
   /**
@@ -163,15 +213,15 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesNaNFloat(String pFunctionName) {
-    return NOT_A_NUMBER_FLOAT.equals(pFunctionName);
+    return NOT_A_NUMBER_FLOAT.contains(pFunctionName);
   }
 
   public static boolean matchesNaNDouble(String pFunctionName) {
-    return NOT_A_NUMBER.equals(pFunctionName);
+    return NOT_A_NUMBER.contains(pFunctionName);
   }
 
   public static boolean matchesNaNLongDouble(String pFunctionName) {
-    return NOT_A_NUMBER_LONG_DOUBLE.equals(pFunctionName);
+    return NOT_A_NUMBER_LONG_DOUBLE.contains(pFunctionName);
   }
 
   /**
@@ -186,15 +236,141 @@ public class BuiltinFloatFunctions {
   }
 
   public static boolean matchesAbsoluteFloat(String pFunctionName) {
-    return ABSOLUTE_VAL_FLOAT.equals(pFunctionName);
+    return ABSOLUTE_VAL_FLOAT.contains(pFunctionName);
   }
 
   public static boolean matchesAbsoluteDouble(String pFunctionName) {
-    return ABSOLUTE_VAL.equals(pFunctionName);
+    return ABSOLUTE_VAL.contains(pFunctionName);
   }
 
   public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
-    return ABSOLUTE_VAL_LONG_DOUBLE.equals(pFunctionName);
+    return ABSOLUTE_VAL_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesCeil(String pFunctionName) {
+    return matchesCeilFloat(pFunctionName)
+        || matchesCeilDouble(pFunctionName)
+        || matchesCeilLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesCeilFloat(String pFunctionName) {
+    return CEIL_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesCeilDouble(String pFunctionName) {
+    return CEIL.contains(pFunctionName);
+  }
+
+  public static boolean matchesCeilLongDouble(String pFunctionName) {
+    return CEIL_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFloor(String pFunctionName) {
+    return matchesFloorFloat(pFunctionName)
+        || matchesFloorDouble(pFunctionName)
+        || matchesFloorLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFloorFloat(String pFunctionName) {
+    return FLOOR_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFloorDouble(String pFunctionName) {
+    return FLOOR.contains(pFunctionName);
+  }
+
+  public static boolean matchesFloorLongDouble(String pFunctionName) {
+    return FLOOR_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFdim(String pFunctionName) {
+    return matchesFdimFloat(pFunctionName)
+        || matchesFdimDouble(pFunctionName)
+        || matchesFdimLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFdimFloat(String pFunctionName) {
+    return FDIM_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFdimDouble(String pFunctionName) {
+    return FDIM.contains(pFunctionName);
+  }
+
+  public static boolean matchesFdimLongDouble(String pFunctionName) {
+    return FDIM_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmax(String pFunctionName) {
+    return matchesFmaxFloat(pFunctionName)
+        || matchesFmaxDouble(pFunctionName)
+        || matchesFmaxLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFmaxFloat(String pFunctionName) {
+    return FMAX_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmaxDouble(String pFunctionName) {
+    return FMAX.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmaxLongDouble(String pFunctionName) {
+    return FMAX_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmin(String pFunctionName) {
+    return matchesFminFloat(pFunctionName)
+        || matchesFminDouble(pFunctionName)
+        || matchesFminLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFminFloat(String pFunctionName) {
+    return FMIN_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFminDouble(String pFunctionName) {
+    return FMIN.contains(pFunctionName);
+  }
+
+  public static boolean matchesFminLongDouble(String pFunctionName) {
+    return FMIN_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesSignbit(String pFunctionName) {
+    return matchesSignbitFloat(pFunctionName)
+        || matchesSignbitDouble(pFunctionName)
+        || matchesSignbitLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesSignbitFloat(String pFunctionName) {
+    return SIGNBIT_FLOAT.equals(pFunctionName);
+  }
+
+  public static boolean matchesSignbitDouble(String pFunctionName) {
+    return SIGNBIT.equals(pFunctionName);
+  }
+
+  public static boolean matchesSignbitLongDouble(String pFunctionName) {
+    return SIGNBIT_LONG_DOUBLE.equals(pFunctionName);
+  }
+
+  public static boolean matchesCopysign(String pFunctionName) {
+    return matchesCopysignFloat(pFunctionName)
+        || matchesCopysignDouble(pFunctionName)
+        || matchesCopysignLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesCopysignFloat(String pFunctionName) {
+    return COPYSIGN_FLOAT.equals(pFunctionName);
+  }
+
+  public static boolean matchesCopysignDouble(String pFunctionName) {
+    return COPYSIGN.equals(pFunctionName);
+  }
+
+  public static boolean matchesCopysignLongDouble(String pFunctionName) {
+    return COPYSIGN_LONG_DOUBLE.equals(pFunctionName);
   }
 
   /**

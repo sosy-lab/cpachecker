@@ -30,9 +30,14 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,24 +47,21 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-@Options(prefix="cegar")
-public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
+@Options(prefix = "cegar")
+public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
   private static class CEGARStatistics implements Statistics {
 
@@ -83,8 +85,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
 
       out.println("Number of refinements:                " + countRefinements);
 
@@ -105,6 +106,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private final CEGARStatistics stats = new CEGARStatistics();
+
+  private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
+      new CopyOnWriteArrayList<>();
 
   public static interface CEGARMXBean {
     int getNumberOfRefinements();
@@ -191,6 +195,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         // run algorithm
         status = status.update(algorithm.run(reached));
+        notifyReachedSetUpdateListeners(reached);
 
         // if there is any target state do refinement
         if (refinementNecessary(reached, previousLastState)) {
@@ -277,6 +282,28 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)mRefiner).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    }
+    reachedSetUpdateListeners.add(pReachedSetUpdateListener);
+  }
+
+  @Override
+  public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    }
+    reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
+  }
+
+  private void notifyReachedSetUpdateListeners(ReachedSet pReachedSet) {
+    for (ReachedSetUpdateListener rsul : reachedSetUpdateListeners) {
+      rsul.updated(pReachedSet);
+    }
   }
 
 }

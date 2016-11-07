@@ -117,6 +117,7 @@ public class HarnessExporter {
     cfa = pCFA;
     logger = pLogger;
     pConfig.inject(hackyOptions);
+    pConfig.inject(this);
   }
 
   public void writeHarness(

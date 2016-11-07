@@ -6,15 +6,26 @@
   <option name="-heap">2000M</option>
   <option name="-valueAnalysis-symbolic-Cegar"/>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <rundefinition>
     <tasks>
       <include>../programs/simple/explicit/symbolic/*.c</include>
+      <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
@@ -25,6 +36,7 @@
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>

@@ -627,17 +627,29 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode lastNode;
     boolean resultIsUsed = true;
 
-    if (sideAssignmentStack.hasConditionalExpression()
-        && (statement instanceof CExpressionStatement)) {
-      // this may be code where the resulting value of a ternary operator is not used, e.g. (x ? f() : g())
-
-      List<Pair<IASTExpression, CIdExpression>> tempVars = sideAssignmentStack.getConditionalExpressions();
-      if ((tempVars.size() == 1) && (tempVars.get(0).getSecond() == ((CExpressionStatement)statement).getExpression())) {
+    if (sideAssignmentStack.hasConditionalExpression()) {
+      if (statement == null) {
+        // if return-type of expression-list (side-effect-statement) is Void, statement is Null.
+        // Example: void f(){}; int main(){(0, f());}
         resultIsUsed = false;
+
+      } else if (statement instanceof CExpressionStatement) {
+        // this may be code where the resulting value of a ternary operator is not used, e.g. (x ? f() : g())
+        List<Pair<IASTExpression, CIdExpression>> tempVars =
+            sideAssignmentStack.getConditionalExpressions();
+        if ((tempVars.size() == 1)
+            && (tempVars.get(0).getSecond()
+                == ((CExpressionStatement) statement).getExpression())) {
+          resultIsUsed = false;
+        }
       }
     }
 
     prevNode = handleAllSideEffects(prevNode, fileloc, rawSignature, resultIsUsed);
+
+    if (statement == null) {
+      return prevNode;
+    }
 
     statement.accept(checkBinding);
     if (resultIsUsed) {
@@ -963,7 +975,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // this is just a placeholder signalising that the sideeffects do not
       // need to have a return value
-      if (stmt instanceof CExpressionStatement && ((CExpressionStatement)stmt).getExpression() == CIntegerLiteralExpression.ZERO) {
+      if (stmt == null
+          || (stmt instanceof CExpressionStatement
+              && ((CExpressionStatement) stmt).getExpression() == CIntegerLiteralExpression.ZERO)) {
         return handleAllSideEffects(prevNode, fileLocation, rawSignature, false);
       } else {
         prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);

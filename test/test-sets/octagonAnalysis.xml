@@ -1,38 +1,46 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
 <benchmark tool="cpachecker" timelimit="500 s" hardtimelimit="550 s" memlimit="32 GB" cpuCores="2">
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <option name="-heap">2000M</option>
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
 
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </tasks>
-  <tasks name="ControlFlowInteger">
+  <tasks name="ControlFlow">
     <include>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</include>
     <include>../programs/benchmarks/ntdrivers-simplified/*_true-unreach-call*.cil.c</include>
     <include>../programs/benchmarks/ssh-simplified/*_false-unreach-call*.cil.c</include>
     <include>../programs/benchmarks/ssh-simplified/*_true-unreach-call*.cil.c</include>
     <include>../programs/benchmarks/locks/*_false-unreach-call*.c</include>
     <include>../programs/benchmarks/locks/*_true-unreach-call*.c</include>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+  </tasks>
+  <tasks name="ECA">
+    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
     <include>../programs/benchmarks/eca/Problem0*_false-unreach-call*.c</include>
     <include>../programs/benchmarks/eca/Problem0*_true-unreach-call*.c</include>
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <include>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</include>
     <include>../programs/benchmarks/systemc/*_true-unreach-call*.cil.c</include>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
 
 <!-- Analyses with a single run -->

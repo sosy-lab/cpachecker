@@ -3,71 +3,88 @@
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
   <option name="-heap">10000M</option>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <!-- Witness files are several GB in total, ignore them for now.
   <resultfiles>**.graphml</resultfiles>
   -->
 
   <tasks name="ArraysReach">
     <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
   </tasks>
   <tasks name="ArraysMemSafety">
     <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysMemSafety.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
+    <propertyfile>../programs/benchmarks/BitVectorsOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/Floats.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
   <tasks name="Termination">
     <includesfile>../programs/benchmarks/Termination.set</includesfile>
+    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64" />
   </tasks>
   <tasks name="Concurrency">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/Concurrency.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
     <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
+    <propertyfile>../programs/benchmarks/BusyBox.prp</propertyfile>
     <option name="-64"/>
   </tasks>
 

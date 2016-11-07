@@ -146,6 +146,16 @@ import org.w3c.dom.Element;
 @Options(prefix = "cpa.arg.witness")
 public class ARGPathExporter {
 
+  private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
+      EnumSet.of(
+          KeyDef.SOURCECODE,
+          KeyDef.ORIGINLINE,
+          KeyDef.ORIGINFILE,
+          KeyDef.OFFSET,
+          KeyDef.LINECOLS,
+          KeyDef.ASSUMPTIONSCOPE,
+          KeyDef.ASSUMPTIONRESULTFUNCTION);
+
   private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
 
     @Override
@@ -661,7 +671,11 @@ public class ARGPathExporter {
                   AIdExpression resultFunctionName =
                       (AIdExpression)
                           assignment.getFunctionCallExpression().getFunctionNameExpression();
-                  resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                  if (resultFunctionName.getDeclaration() != null) {
+                    resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                  } else {
+                    resultFunction = Optional.of(resultFunctionName.getName());
+                  }
                 }
               }
             }
@@ -1017,6 +1031,10 @@ public class ARGPathExporter {
       return tree;
     }
 
+    private boolean hasFlagsOrProperties(String pNode) {
+      return !nodeFlags.get(pNode).isEmpty() || !violatedProperties.get(pNode).isEmpty();
+    }
+
     private final Predicate<String> isNodeRedundant =
         new Predicate<String>() {
 
@@ -1025,10 +1043,7 @@ public class ARGPathExporter {
             if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
               return false;
             }
-            if (!nodeFlags.get(pNode).isEmpty()) {
-              return false;
-            }
-            if (!violatedProperties.get(pNode).isEmpty()) {
+            if (hasFlagsOrProperties(pNode)) {
               return false;
             }
             if (enteringEdges.get(pNode).isEmpty()) {
@@ -1082,10 +1097,16 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (Iterables.all(leavingEdges.get(pEdge.source),
+            if (Iterables.all(
+                leavingEdges.get(pEdge.source),
                 pLeavingEdge -> pLeavingEdge.label.getMapping().isEmpty())) {
               return true;
             }
+
+            if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
+              return true;
+            }
+
             return false;
           }
         };

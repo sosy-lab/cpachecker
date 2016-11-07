@@ -116,7 +116,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMat
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
@@ -297,6 +296,7 @@ public class AutomatonGraphmlParser {
       String entryNodeId = null;
 
       Set<String> violationStates = Sets.newHashSet();
+      Set<String> sinkStates = Sets.newHashSet();
 
       for (int i = 0; i < edges.getLength(); i++) {
         Node stateTransitionEdge = edges.item(i);
@@ -315,6 +315,12 @@ public class AutomatonGraphmlParser {
         }
         if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
           violationStates.add(sourceStateId);
+        }
+        if (targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
+          sinkStates.add(targetStateId);
+        }
+        if (sourceNodeFlags.contains(NodeFlag.ISSINKNODE)) {
+          sinkStates.add(sourceStateId);
         }
       }
 
@@ -350,7 +356,9 @@ public class AutomatonGraphmlParser {
         }
       }
       // Sink nodes have infinite distance to the target location, encoded as -1
-      distances.put(AutomatonGraphmlCommon.SINK_NODE_ID, -1);
+      for (String sinkStateId : sinkStates) {
+        distances.put(sinkStateId, -1);
+      }
 
       Map<String, AutomatonBoolExpr> stutterConditions = Maps.newHashMap();
 
@@ -365,7 +373,7 @@ public class AutomatonGraphmlParser {
         String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
         if (graphType == GraphType.PROOF_WITNESS
-            && AutomatonGraphmlCommon.SINK_NODE_ID.equals(targetStateId)) {
+            && sinkStates.contains(targetStateId)) {
           throw new WitnessParseException("Proof witnesses do not allow sink nodes.");
         }
 
@@ -633,7 +641,8 @@ public class AutomatonGraphmlParser {
                 candidateInvariants,
                 actions,
                 targetStateId,
-                leadsToViolationNode));
+                leadsToViolationNode,
+                sinkStates));
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
@@ -651,7 +660,8 @@ public class AutomatonGraphmlParser {
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
-                  sourceIsViolationNode));
+                  sourceIsViolationNode,
+                  sinkStates));
         }
       }
 
@@ -692,7 +702,8 @@ public class AutomatonGraphmlParser {
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
-                  violationStates.contains(stateId)));
+                  violationStates.contains(stateId),
+                  sinkStates));
         }
 
         if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
@@ -706,7 +717,8 @@ public class AutomatonGraphmlParser {
                   ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
-                  true));
+                  true,
+                  sinkStates));
         }
 
         if (nodeFlags.contains(NodeFlag.ISENTRY)) {
@@ -1140,8 +1152,9 @@ public class AutomatonGraphmlParser {
       ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pTargetStateId,
-      boolean pLeadsToViolationNode) {
-    if (pTargetStateId.equals(AutomatonGraphmlCommon.SINK_NODE_ID)) {
+      boolean pLeadsToViolationNode,
+      Set<String> pSinkNodeIds) {
+    if (pSinkNodeIds.contains(pTargetStateId)) {
       return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
     }
     if (pLeadsToViolationNode) {

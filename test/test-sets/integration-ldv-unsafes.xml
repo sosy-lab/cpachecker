@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="8 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="180 s" hardtimelimit="200 s" memlimit="3500 MB" cpuCores="2">
   <!-- This file contains regression tests from the LDV project.
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
 
   <option name="-noout"/>
   <option name="-setprop">statistics.memory=true</option>
-  <option name="-heap">7000M</option>
+  <option name="-heap">3000M</option>
   <option name="-ldv"/>
 
   <rundefinition>

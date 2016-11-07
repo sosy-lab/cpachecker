@@ -28,7 +28,17 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,25 +52,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 @Options(prefix="cinvariants")
 public class CExpressionInvariantExporter {
@@ -103,7 +101,7 @@ public class CExpressionInvariantExporter {
    */
   public void exportInvariant(
       String analyzedPrograms,
-      ReachedSet pReachedSet) throws IOException, InterruptedException {
+      UnmodifiableReachedSet pReachedSet) throws IOException, InterruptedException {
 
     Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
     List<String> programs = commaSplitter.splitToList(analyzedPrograms);
@@ -122,10 +120,7 @@ public class CExpressionInvariantExporter {
   }
 
   private void writeProgramWithInvariants(
-      Appendable out,
-      String filename,
-      ReachedSet pReachedSet
-      )
+      Appendable out, String filename, UnmodifiableReachedSet pReachedSet)
       throws IOException, InterruptedException {
 
     Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
@@ -164,7 +159,7 @@ public class CExpressionInvariantExporter {
    * @return Mapping from line numbers to states associated with the given line.
    */
   private Map<Integer, BooleanFormula> getInvariantsForFile(
-      ReachedSet pReachedSet,
+      UnmodifiableReachedSet pReachedSet,
       String filename) {
 
     // One formula per reported state.

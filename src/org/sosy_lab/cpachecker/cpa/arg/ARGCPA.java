@@ -26,15 +26,11 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,8 +40,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -64,14 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.ConjunctiveCounterexampleFilter;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.NullCounterexampleFilter;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampleFilter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 
 @Options
 public class ARGCPA extends AbstractSingleWrapperCPA implements
@@ -91,31 +79,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
-  @Option(
-    secure = true,
-    name = "counterexample.export.filters",
-    deprecatedName = "cpa.arg.errorPath.filters",
-    description =
-        "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-            + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-            + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
-  )
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
-  private List<CounterexampleFilter.Factory> cexFilterClasses =
-      ImmutableList.of(PathEqualityCounterexampleFilter::new);
-  private final CounterexampleFilter cexFilter;
-
-  @Option(secure=true, name="counterexample.export.exportImmediately", deprecatedName="cpa.arg.errorPath.exportImmediately",
-          description="export error paths to files immediately after they were found")
-  private boolean dumpErrorPathImmediately = false;
-
   private final LogManager logger;
 
   private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
-
-  private final CEXExporter cexExporter;
-  private final MachineModel machineModel;
 
   private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(cpa);
@@ -123,29 +90,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     this.logger = logger;
 
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
-    cexFilter = createCounterexampleFilter(config, logger, cpa);
-    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa);
-    HarnessExporter harnessExporter = new HarnessExporter(config, logger, cfa);
-    cexExporter = new CEXExporter(config, logger, argPathExporter, harnessExporter);
-    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
-        dumpErrorPathImmediately ? null : cexExporter, argPathExporter);
-    machineModel = cfa.getMachineModel();
-  }
-
-  private CounterexampleFilter createCounterexampleFilter(Configuration config,
-      LogManager logger, ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
-    switch (cexFilterClasses.size()) {
-    case 0:
-      return new NullCounterexampleFilter();
-      case 1:
-        return cexFilterClasses.get(0).create(config, logger, cpa);
-      default:
-        List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
-        for (CounterexampleFilter.Factory factory : cexFilterClasses) {
-          filters.add(factory.create(config, logger, cpa));
-      }
-      return new ConjunctiveCounterexampleFilter(filters);
-    }
+    stats = new ARGStatistics(config, logger, this, cfa);
   }
 
   @Override
@@ -206,12 +151,18 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    if (!Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))) {
+      // we do not want to add ARGStatistics twice, if a wrapping CPA also uses it.
+      // This would result in overriding the output-files due to equal file names.
+      // Info: this case is one of the reasons to first collect our own statistics
+      // and afterwards call super.collectStatistics().
+      pStatsCollection.add(stats);
+    }
     super.collectStatistics(pStatsCollection);
   }
 
-  ARGToDotWriter getRefinementGraphWriter() {
-    return stats.getRefinementGraphWriter();
+  ARGStatistics getARGExporter() {
+    return stats;
   }
 
   @Override
@@ -253,21 +204,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         "Wrapped CPA has to implement ProofChecker interface");
     ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
     return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
-  }
-
-  void exportCounterexampleOnTheFly(ARGState pTargetState,
-    CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
-    if (dumpErrorPathImmediately) {
-      if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo);
-      } else {
-        logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
-      }
-    }
-  }
-
-  public MachineModel getMachineModel() {
-    return machineModel;
   }
 
   @Override

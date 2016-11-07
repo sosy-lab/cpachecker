@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -57,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -74,10 +77,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final LogManager logger;
   private final TimedReducer reducer;
   private final BAMTransferRelation transfer;
-  private final BAMPrecisionAdjustment prec;
-  private final BAMMergeOperator merge;
-  private final BAMStopOperator stop;
   private final BAMCPAStatistics stats;
+  private final BAMARGStatistics argStats;
   private final PartitioningHeuristic heuristic;
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
@@ -112,6 +113,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Option(secure = true,
       description = "Use more fast partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
+
 
   public BAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -172,7 +174,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
               data,
               pShutdownNotifier,
               blockPartitioning);
-      stop = new BAMStopOperatorForRecursion(pCpa.getStopOperator(), transfer);
     } else {
       transfer =
           new BAMTransferRelation(
@@ -183,17 +184,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
               data,
               pShutdownNotifier,
               blockPartitioning);
-      stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
     }
-
-    prec =
-        new BAMPrecisionAdjustment(
-            pCpa.getPrecisionAdjustment(), data, transfer, bamPccManager,
-            logger, blockPartitioning);
-    merge = new BAMMergeOperator(
-        pCpa.getMergeOperator(), bamPccManager, transfer);
-
     stats = new BAMCPAStatistics(this, data, config, logger);
+    argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pCfa);
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa) {
@@ -215,17 +208,21 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager, transfer);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    return handleRecursiveProcedures
+        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator(), transfer)
+        : new BAMStopOperator(getWrappedCpa().getStopOperator(), transfer);
   }
 
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return new BAMPrecisionAdjustment(
+        getWrappedCpa().getPrecisionAdjustment(), data, transfer, bamPccManager,
+        logger, blockPartitioning);
   }
 
   @Override
@@ -263,6 +260,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    assert !Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))
+        : "exporting ARGs should only be done at this place, when using BAM.";
+    pStatsCollection.add(argStats);
     pStatsCollection.add(stats);
     super.collectStatistics(pStatsCollection);
   }

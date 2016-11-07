@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,8 +47,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -125,20 +129,41 @@ public class CEXExporter {
           description="exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
 
+  @Option(
+    secure = true,
+    name = "exportImmediately",
+    description = "export error paths to files immediately after they were found"
+  )
+  private boolean dumpErrorPathImmediately = false;
+
+  @Option(
+    secure = true,
+    name = "filters",
+    description =
+        "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
+            + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
+            + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
+  )
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
+  private List<CounterexampleFilter.Factory> cexFilterClasses =
+      ImmutableList.of(PathEqualityCounterexampleFilter::new);
+
+  private final CounterexampleFilter cexFilter;
+
   private final LogManager logger;
   private final ARGPathExporter witnessExporter;
   private final HarnessExporter harnessExporter;
 
   public CEXExporter(
-      Configuration config,
-      LogManager logger,
-      ARGPathExporter pARGPathExporter,
-      HarnessExporter pHarnessExporter)
+      Configuration config, LogManager logger, CFA cfa, ConfigurableProgramAnalysis cpa)
       throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.witnessExporter = pARGPathExporter;
-    this.harnessExporter = pHarnessExporter;
+
+    cexFilter =
+        CounterexampleFilter.createCounterexampleFilter(config, logger, cpa, cexFilterClasses);
+    witnessExporter = new ARGPathExporter(config, logger, cfa);
+    harnessExporter = new HarnessExporter(config, logger, cfa);
 
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -150,6 +175,24 @@ public class CEXExporter {
         && errorPathGraphFile == null && errorPathSourceFile == null
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
+    }
+  }
+
+  /** export error paths to files immediately after they were found, or after the whole analysis. */
+  public boolean dumpErrorPathImmediately() {
+    return dumpErrorPathImmediately;
+  }
+
+  /** @see #exportCounterexample(ARGState, CounterexampleInfo) */
+  public void exportCounterexampleIfRelevant(
+      final ARGState pTargetState, final CounterexampleInfo pCounterexampleInfo)
+      throws InterruptedException {
+    if (cexFilter.isRelevant(pCounterexampleInfo)) {
+      exportCounterexample(pTargetState, pCounterexampleInfo);
+    } else {
+      logger.log(
+          Level.FINEST,
+          "Skipping counterexample printing because it is similar to one of already printed.");
     }
   }
 

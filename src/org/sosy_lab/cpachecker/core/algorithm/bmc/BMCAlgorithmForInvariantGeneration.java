@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Verify;
-
+import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,9 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Objects;
-import java.util.Optional;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
@@ -121,7 +119,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
                 PathFormula pContext) {
               try {
                 return prover.getCurrentLocationInvariants(
-                    location, callstackInformation, fmgr, pfmgr, pContext);
+                    location, fmgr, pfmgr, pContext);
               } catch (InterruptedException | CPAException e) {
                 return fmgr.getBooleanFormulaManager().makeTrue();
               }

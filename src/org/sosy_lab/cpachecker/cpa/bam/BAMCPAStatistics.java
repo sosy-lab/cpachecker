@@ -29,7 +29,20 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,22 +60,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Prints some BAM related statistics
@@ -109,7 +106,7 @@ class BAMCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
@@ -117,7 +114,7 @@ class BAMCPAStatistics implements Statistics {
     int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
 
     int sumARTElemets = 0;
-    for (ReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
+    for (UnmodifiableReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
       sumARTElemets += subreached.size();
     }
 
@@ -154,16 +151,17 @@ class BAMCPAStatistics implements Statistics {
     }
 
     //Add to reached set all states from BAM cache
-    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
-    for (ReachedSet set : cachedStates) {
-      set.forEach(
-          (state, precision) -> {
-            // Method 'add' adds state not only in list of reached states, but also in waitlist,
-            // so we should delete it.
-            reached.add(state, precision);
-            reached.removeOnlyFromWaitlist(state);
-          });
-    }
+    // These lines collect all states for 'Coverage Reporting'
+//    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
+//    for (ReachedSet set : cachedStates) {
+//      set.forEach(
+//          (state, precision) -> {
+//            // Method 'add' adds state not only in list of reached states, but also in waitlist,
+//            // so we should delete it.
+//            reached.add(state, precision);
+//            reached.removeOnlyFromWaitlist(state);
+//          });
+//    }
 
     exportAllReachedSets(argFile, indexedArgFile, reached);
     exportUsedReachedSets(simplifiedArgFile, reached);

@@ -27,10 +27,24 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -40,6 +54,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -50,11 +65,13 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
@@ -78,23 +95,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -216,6 +220,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Error found, creating error path");
 
       Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
+      Set<ARGState> redundantStates = redundantStates(targetStates);
+      redundantStates.forEach(state -> {
+        state.removeFromARG();
+      });
+      pReachedSet.removeAll(redundantStates);
+      targetStates = Sets.difference(targetStates, redundantStates);
 
       final boolean shouldCheckBranching;
       if (targetStates.size() == 1) {
@@ -278,7 +288,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       ARGPath targetPath;
       try {
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.asCollection(), branchingInformation);
+        Set<AbstractState> arg = pReachedSet.asCollection();
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
         return;
@@ -321,6 +332,28 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
+  private Set<ARGState> redundantStates(Iterable<ARGState> pStates) {
+    Multimap<ARGState, ARGState> parentToTarget = HashMultimap.create();
+    for (ARGState state : FluentIterable.from(pStates).filter(AbstractStates.IS_TARGET_STATE)) {
+      if (state.getChildren().isEmpty()) {
+        Collection<ARGState> parents = state.getParents();
+        for (ARGState parent : parents) {
+          parentToTarget.put(parent, state);
+        }
+      }
+    }
+    Set<ARGState> redundantStates = Sets.newHashSet();
+    for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
+      ARGState parent = family.getKey();
+      Collection<ARGState> children = family.getValue();
+      Set<CFAEdge> edges = FluentIterable.from(children).transformAndConcat(parent::getEdgesToChild).toSet();
+      if (edges.size() == 1 && !(edges.iterator().next() instanceof AssumeEdge)) {
+        Iterables.addAll(redundantStates, Iterables.skip(children, 1));
+      }
+    }
+    return redundantStates;
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
@@ -328,7 +361,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new Statistics() {
 
           @Override
-          public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+          public void printStatistics(
+              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {

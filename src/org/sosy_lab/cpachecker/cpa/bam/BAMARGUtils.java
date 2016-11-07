@@ -27,14 +27,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -42,6 +34,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
 
 class BAMARGUtils {
   private BAMARGUtils() {}
@@ -55,8 +54,8 @@ class BAMARGUtils {
    * @param cpa CPA object to be used for getting cached information.
    * @param finalReachedSet resached set to partition.
    */
-  public static Multimap<Block, ReachedSet> gatherReachedSets(BAMCPA cpa, ReachedSet finalReachedSet) {
-    Multimap<Block, ReachedSet> result = HashMultimap.create();
+  public static Multimap<Block, UnmodifiableReachedSet> gatherReachedSets(BAMCPA cpa, UnmodifiableReachedSet finalReachedSet) {
+    Multimap<Block, UnmodifiableReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
     return result;
   }
@@ -64,8 +63,8 @@ class BAMARGUtils {
   private static void gatherReachedSets(
       BAMCPA cpa,
       Block block,
-      ReachedSet reachedSet,
-      Multimap<Block, ReachedSet> blockToReachedSet) {
+      UnmodifiableReachedSet reachedSet,
+      Multimap<Block, UnmodifiableReachedSet> blockToReachedSet) {
     if (blockToReachedSet.containsEntry(block, reachedSet)) {
       return; //avoid looping in recursive block calls
     }

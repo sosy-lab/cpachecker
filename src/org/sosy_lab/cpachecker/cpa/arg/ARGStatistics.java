@@ -55,16 +55,16 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
@@ -101,7 +101,7 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  private final ARGCPA cpa;
+  protected final ConfigurableProgramAnalysis cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
@@ -111,16 +111,17 @@ public class ARGStatistics implements Statistics {
 
   private final LogManager logger;
 
-  public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
-      MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
-      ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
-    config.inject(this);
+  public ARGStatistics(
+      Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa, CFA cfa)
+      throws InvalidConfigurationException {
+    config.inject(this, ARGStatistics.class); // needed for sub-classes
 
     logger = pLogger;
     cpa = pCpa;
-    assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, pMachineModel);
-    cexExporter = pCexExporter;
-    argPathExporter = pARGPathExporter;
+    assumptionToEdgeAllocator =
+        new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
+    cexExporter = new CEXExporter(config, logger, cfa, cpa);
+    argPathExporter = new ARGPathExporter(config, logger, cfa);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
@@ -169,15 +170,14 @@ public class ARGStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult,
-      ReachedSet pReached) {
-    if (cexExporter == null && !exportARG) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+    if (cexExporter.dumpErrorPathImmediately() && !exportARG) {
       return;
     }
 
     final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (cexExporter != null) {
+    if (!cexExporter.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
@@ -345,6 +345,13 @@ public class ARGStatistics implements Statistics {
       return CFAPathWithAssumptions.empty();
     } else {
       return result;
+    }
+  }
+
+  public void exportCounterexampleOnTheFly(
+      ARGState pTargetState, CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
+    if (cexExporter.dumpErrorPathImmediately()) {
+      cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
     }
   }
 

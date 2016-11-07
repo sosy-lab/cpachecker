@@ -4,24 +4,36 @@
   <option name="-noout"/>
   <option name="-heap">2000M</option>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <rundefinition>
     <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
+      <propertyfile>../programs/simple/ALL.prp</propertyfile>
       <exclude>../programs/simple/bitvectors/*</exclude>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
       <!-- exclude tasks from Forester set -->
       <exclude>../programs/benchmarks/forester-heap/*</exclude>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
 
       <!--
            The following four tasks need to be removed from the test set,
@@ -60,6 +72,7 @@
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*true-unreach-call*.cil.out.c</include>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</include>
       <option name="-skipRecursion"/>

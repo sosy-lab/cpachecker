@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <option name="-heap">12000M</option>
   <option name="-stack">10M</option>
   <option name="-noout"/>
@@ -11,54 +10,65 @@
   <!-- List of tasks to perform -->
   <tasks name="ArraysReach">
     <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
   </tasks>
   <!-- Begin customized array set—needs the files being available in a special
        location -->
   <!--<tasks name="ArraysReach10">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach10.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
   </tasks>
   <tasks name="ArraysReach25">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach25.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=25</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=25</option>
   </tasks>
   <tasks name="ArraysReach50">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach50.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=50</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=50</option>
   </tasks>
   <tasks name="ArraysReach75">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach75.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=75</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=75</option>
   </tasks>
   <tasks name="ArraysReach100">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach100.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=100</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=100</option>
   </tasks>
   <tasks name="ArraysReach125">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach125.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=125</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=125</option>
   </tasks>
   <tasks name="ArraysReach150">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach150.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=150</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=150</option>
   </tasks>
   <tasks name="ArraysReach175">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach175.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=175</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=175</option>
   </tasks>
   <tasks name="ArraysReach200">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach200.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=200</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=200</option>
   </tasks>
   <tasks name="ArraysReach250">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach250.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=250</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=250</option>
   </tasks>-->
@@ -67,33 +77,42 @@
        special location -->
   <!--<tasks name="Custom">
     <includesfile>../programs/array-simplified-benchmarks/Custom.set</includesfile>
+    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
   </tasks>-->
   <!-- End custom additional files -->
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <!-- <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option> -->
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
   </tasks>
   <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
     <!-- <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option> -->
   </tasks>
 

@@ -6,11 +6,10 @@
     <option name="-formula-slicing"/>
     <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
 
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
     <rundefinition>
         <tasks>
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
+            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
         </tasks>
     </rundefinition>
 

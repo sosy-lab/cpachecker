@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.PrintStream;
-
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 class AutomatonStatistics extends AbstractStatistics {
@@ -44,7 +43,7 @@ class AutomatonStatistics extends AbstractStatistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
 
     put(out, 0, "Number of states", mCpa.getAutomaton().getNumberOfStates());
