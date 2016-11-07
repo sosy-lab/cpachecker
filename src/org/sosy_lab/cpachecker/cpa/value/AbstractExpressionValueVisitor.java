@@ -870,7 +870,10 @@ public abstract class AbstractExpressionValueVisitor
               Number op1 = operand1.asNumericValue().getNumber();
               Number op2 = operand2.asNumericValue().getNumber();
 
-              return fdim(op1, op2, functionName);
+              Value result = fdim(op1, op2, functionName);
+              if (!Value.UnknownValue.getInstance().equals(result)) {
+                return result;
+              }
             }
           }
         } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
