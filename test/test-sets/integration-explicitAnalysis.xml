@@ -21,6 +21,7 @@
 
       <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
+      <exclude reason="timeout">../programs/benchmarks/locks/*_1*true*</exclude>
     </tasks>
     <tasks>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
@@ -37,6 +38,8 @@
 
       <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
+      <exclude reason="timeout">../programs/benchmarks/systemc/transmitter.1*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/systemc/token_ring.1*</exclude>
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
