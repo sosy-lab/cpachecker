@@ -87,6 +87,8 @@ import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
+  public static final String UNEXPECTED_EXCEPTION_MSG = "An unexpected exception occured";
+
   @Option(
     secure = true,
     required = true,
@@ -206,7 +208,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           // cancel other computations
           futures.forEach(future -> future.cancel(true));
           shutdownManager.requestShutdown("cancelling all remaining analyses");
-          throw new CPAException("An unexpected exception occured", cause);
+          throw new CPAException(UNEXPECTED_EXCEPTION_MSG, cause);
         }
       } catch (CancellationException e) {
         // do nothing, this is normal if we cancel other analyses
