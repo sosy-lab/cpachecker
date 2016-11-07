@@ -60,6 +60,14 @@ public class BuiltinFloatFunctions {
   private static final List<String> CEIL = of("ceil");
   private static final List<String> CEIL_LONG_DOUBLE = of("ceill");
 
+  private static final List<String> ROUND_FLOAT = of("roundf");
+  private static final List<String> ROUND = of("round");
+  private static final List<String> ROUND_LONG_DOUBLE = of("roundl");
+
+  private static final List<String> TRUNC_FLOAT = of("truncf");
+  private static final List<String> TRUNC = of("trunc");
+  private static final List<String> TRUNC_LONG_DOUBLE = of("truncl");
+
   private static final List<String> FDIM_FLOAT = of("fdimf");
   private static final List<String> FDIM = of("fdim");
   private static final List<String> FDIM_LONG_DOUBLE = of("fdiml");
@@ -71,6 +79,14 @@ public class BuiltinFloatFunctions {
   private static final List<String> FMIN_FLOAT = of("fminf");
   private static final List<String> FMIN = of("fmin");
   private static final List<String> FMIN_LONG_DOUBLE = of("fminl");
+
+  private static final List<String> FMODF_FLOAT = of("modff");
+  private static final List<String> FMODF = of("modf");
+  private static final List<String> FMODF_LONG_DOUBLE = of("modfl");
+
+  private static final List<String> FREMAINDER_FLOAT = of("remainderf");
+  private static final List<String> FREMAINDER = of("remainder");
+  private static final List<String> FREMAINDER_LONG_DOUBLE = of("remainderl");
 
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";
@@ -92,9 +108,13 @@ public class BuiltinFloatFunctions {
           .addAll(ABSOLUTE_VAL)
           .addAll(CEIL)
           .addAll(FLOOR)
+          .addAll(ROUND)
+          .addAll(TRUNC)
           .addAll(FDIM)
           .addAll(FMAX)
           .addAll(FMIN)
+          .addAll(FMODF)
+          .addAll(FREMAINDER)
           .add(FLOAT_CLASSIFY)
           .add(COPYSIGN)
           .add(SIGNBIT)
@@ -288,6 +308,42 @@ public class BuiltinFloatFunctions {
     return FLOOR_LONG_DOUBLE.contains(pFunctionName);
   }
 
+  public static boolean matchesRound(String pFunctionName) {
+    return matchesRoundFloat(pFunctionName)
+        || matchesRoundDouble(pFunctionName)
+        || matchesRoundLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesRoundFloat(String pFunctionName) {
+    return ROUND_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesRoundDouble(String pFunctionName) {
+    return ROUND.contains(pFunctionName);
+  }
+
+  public static boolean matchesRoundLongDouble(String pFunctionName) {
+    return ROUND_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesTrunc(String pFunctionName) {
+    return matchesTruncFloat(pFunctionName)
+        || matchesTruncDouble(pFunctionName)
+        || matchesTruncLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesTruncFloat(String pFunctionName) {
+    return TRUNC_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesTruncDouble(String pFunctionName) {
+    return TRUNC.contains(pFunctionName);
+  }
+
+  public static boolean matchesTruncLongDouble(String pFunctionName) {
+    return TRUNC_LONG_DOUBLE.contains(pFunctionName);
+  }
+
   public static boolean matchesFdim(String pFunctionName) {
     return matchesFdimFloat(pFunctionName)
         || matchesFdimDouble(pFunctionName)
@@ -340,6 +396,42 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesFminLongDouble(String pFunctionName) {
     return FMIN_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmodf(String pFunctionName) {
+    return matchesFmodfFloat(pFunctionName)
+        || matchesFmodfDouble(pFunctionName)
+        || matchesFmodfLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFmodfFloat(String pFunctionName) {
+    return FMODF_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmodfDouble(String pFunctionName) {
+    return FMODF.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmodfLongDouble(String pFunctionName) {
+    return FMODF_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesFremainder(String pFunctionName) {
+    return matchesFremainderFloat(pFunctionName)
+        || matchesFremainderDouble(pFunctionName)
+        || matchesFremainderLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFremainderFloat(String pFunctionName) {
+    return FREMAINDER_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFremainderDouble(String pFunctionName) {
+    return FREMAINDER.contains(pFunctionName);
+  }
+
+  public static boolean matchesFremainderLongDouble(String pFunctionName) {
+    return FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
