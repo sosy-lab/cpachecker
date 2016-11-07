@@ -823,9 +823,17 @@ public abstract class AbstractExpressionValueVisitor
                 return new NumericValue(
                     ((BigDecimal) number).setScale(0, BigDecimal.ROUND_HALF_UP));
               } else if (number instanceof Float) {
-                return new NumericValue(Math.round(number.floatValue()));
+                float f = number.floatValue();
+                if (0 == f || Float.isInfinite(f)) {
+                  return parameter;
+                }
+                return new NumericValue(Math.round(f));
               } else if (number instanceof Double) {
-                return new NumericValue(Math.round(number.doubleValue()));
+                double d = number.doubleValue();
+                if (0 == d || Double.isInfinite(d)) {
+                  return parameter;
+                }
+                return new NumericValue(Math.round(d));
               } else if (number instanceof NumericValue.NegativeNaN) {
                 return parameter;
               }
