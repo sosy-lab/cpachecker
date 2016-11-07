@@ -837,6 +837,10 @@ public abstract class AbstractExpressionValueVisitor
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
+              if (Double.isInfinite(number.doubleValue())
+                  || Double.isNaN(number.doubleValue())) {
+                return parameter;
+              }
               if (number instanceof BigDecimal) {
                 return new NumericValue(((BigDecimal) number).setScale(0, BigDecimal.ROUND_DOWN));
               } else if (number instanceof Float) {
