@@ -1030,6 +1030,50 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
+        } else if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+          if (parameterValues.size() == 2) {
+            Value numer = parameterValues.get(0);
+            Value denom = parameterValues.get(1);
+            if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
+              NumericValue numerValue = numer.asNumericValue();
+              NumericValue denomValue = denom.asNumericValue();
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName).getType()) {
+                case FLOAT:
+                  {
+                    float num = numerValue.floatValue();
+                    float den = denomValue.floatValue();
+                    if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
+                      return new NumericValue(Float.NaN);
+                    }
+                    if (num == 0 && den != 0) {
+                      // keep the sign on +0 and -0
+                      return numer;
+                    }
+                    // TODO computations on float/double are imprecise! Use epsilon environment?
+                    return new NumericValue(num % den);
+                  }
+                case DOUBLE:
+                  {
+                    double num = numerValue.doubleValue();
+                    double den = denomValue.doubleValue();
+                    if (Double.isNaN(num)
+                        || Double.isNaN(den)
+                        || Double.isInfinite(num)
+                        || den == 0) {
+                      return new NumericValue(Double.NaN);
+                    }
+                    if (num == 0 && den != 0) {
+                      // keep the sign on +0 and -0
+                      return numer;
+                    }
+                    // TODO computations on float/double are imprecise! Use epsilon environment?
+                    return new NumericValue(num % den);
+                  }
+                default:
+                  break;
+              }
+            }
+          }
         }
       }
     }

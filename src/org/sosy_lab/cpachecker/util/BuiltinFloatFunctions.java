@@ -80,9 +80,13 @@ public class BuiltinFloatFunctions {
   private static final List<String> FMIN = of("fmin");
   private static final List<String> FMIN_LONG_DOUBLE = of("fminl");
 
-  private static final List<String> FMODF_FLOAT = of("modff");
-  private static final List<String> FMODF = of("modf");
-  private static final List<String> FMODF_LONG_DOUBLE = of("modfl");
+  private static final List<String> FMOD_FLOAT = of("fmodf");
+  private static final List<String> FMOD = of("fmod");
+  private static final List<String> FMOD_LONG_DOUBLE = of("fmodl");
+
+  private static final List<String> MODF_FLOAT = of("modff");
+  private static final List<String> MODF = of("modf");
+  private static final List<String> MODF_LONG_DOUBLE = of("modfl");
 
   private static final List<String> FREMAINDER_FLOAT = of("remainderf");
   private static final List<String> FREMAINDER = of("remainder");
@@ -113,7 +117,8 @@ public class BuiltinFloatFunctions {
           .addAll(FDIM)
           .addAll(FMAX)
           .addAll(FMIN)
-          .addAll(FMODF)
+          .addAll(FMOD)
+          .addAll(MODF)
           .addAll(FREMAINDER)
           .add(FLOAT_CLASSIFY)
           .add(COPYSIGN)
@@ -398,22 +403,40 @@ public class BuiltinFloatFunctions {
     return FMIN_LONG_DOUBLE.contains(pFunctionName);
   }
 
+  public static boolean matchesFmod(String pFunctionName) {
+    return matchesFmodFloat(pFunctionName)
+        || matchesFmodDouble(pFunctionName)
+        || matchesFmodLongDouble(pFunctionName);
+  }
+
+  public static boolean matchesFmodFloat(String pFunctionName) {
+    return FMOD_FLOAT.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmodDouble(String pFunctionName) {
+    return FMOD.contains(pFunctionName);
+  }
+
+  public static boolean matchesFmodLongDouble(String pFunctionName) {
+    return FMOD_LONG_DOUBLE.contains(pFunctionName);
+  }
+
   public static boolean matchesFmodf(String pFunctionName) {
-    return matchesFmodfFloat(pFunctionName)
-        || matchesFmodfDouble(pFunctionName)
-        || matchesFmodfLongDouble(pFunctionName);
+    return matchesModfFloat(pFunctionName)
+        || matchesModfDouble(pFunctionName)
+        || matchesModfLongDouble(pFunctionName);
   }
 
-  public static boolean matchesFmodfFloat(String pFunctionName) {
-    return FMODF_FLOAT.contains(pFunctionName);
+  public static boolean matchesModfFloat(String pFunctionName) {
+    return MODF_FLOAT.contains(pFunctionName);
   }
 
-  public static boolean matchesFmodfDouble(String pFunctionName) {
-    return FMODF.contains(pFunctionName);
+  public static boolean matchesModfDouble(String pFunctionName) {
+    return MODF.contains(pFunctionName);
   }
 
-  public static boolean matchesFmodfLongDouble(String pFunctionName) {
-    return FMODF_LONG_DOUBLE.contains(pFunctionName);
+  public static boolean matchesModfLongDouble(String pFunctionName) {
+    return MODF_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesFremainder(String pFunctionName) {
