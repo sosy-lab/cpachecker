@@ -561,7 +561,7 @@ class KInductionProver implements AutoCloseable {
                 return false;
               }
               BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
-              return ls != null && ls.getDeepestIteration() == 1;
+              return ls != null && (ls.getDeepestIteration() == 1 || ls.getDeepestIteration() == 2);
             });
   }
 
