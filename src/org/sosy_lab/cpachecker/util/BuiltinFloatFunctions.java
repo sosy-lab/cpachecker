@@ -64,6 +64,14 @@ public class BuiltinFloatFunctions {
   private static final List<String> ROUND = of("round");
   private static final List<String> ROUND_LONG_DOUBLE = of("roundl");
 
+  private static final List<String> LROUND_FLOAT = of("lroundf");
+  private static final List<String> LROUND = of("lround");
+  private static final List<String> LROUND_LONG_DOUBLE = of("lroundl");
+
+  private static final List<String> LLROUND_FLOAT = of("llroundf");
+  private static final List<String> LLROUND = of("llround");
+  private static final List<String> LLROUND_LONG_DOUBLE = of("llroundl");
+
   private static final List<String> TRUNC_FLOAT = of("truncf");
   private static final List<String> TRUNC = of("trunc");
   private static final List<String> TRUNC_LONG_DOUBLE = of("truncl");
@@ -113,6 +121,8 @@ public class BuiltinFloatFunctions {
           .addAll(CEIL)
           .addAll(FLOOR)
           .addAll(ROUND)
+          .addAll(LROUND)
+          .addAll(LLROUND)
           .addAll(TRUNC)
           .addAll(FDIM)
           .addAll(FMAX)
@@ -293,6 +303,18 @@ public class BuiltinFloatFunctions {
     return ROUND_FLOAT.contains(pFunctionName)
         || ROUND.contains(pFunctionName)
         || ROUND_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesLround(String pFunctionName) {
+    return LROUND_FLOAT.contains(pFunctionName)
+        || LROUND.contains(pFunctionName)
+        || LROUND_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesLlround(String pFunctionName) {
+    return LLROUND_FLOAT.contains(pFunctionName)
+        || LLROUND.contains(pFunctionName)
+        || LLROUND_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesTrunc(String pFunctionName) {

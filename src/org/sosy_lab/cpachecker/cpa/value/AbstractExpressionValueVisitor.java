@@ -813,7 +813,9 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesRound(functionName)
+            || BuiltinFloatFunctions.matchesLround(functionName)
+            || BuiltinFloatFunctions.matchesLlround(functionName)) {
           if (parameterValues.size() == 1) {
             Value parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
