@@ -36,40 +36,41 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
  */
 public class BuiltinFloatFunctions {
 
-  private static final List<String> INFINITY_FLOAT = ImmutableList.of("__builtin_inff", "inff");
-  private static final List<String> HUGE_VAL_FLOAT = ImmutableList.of("__builtin_huge_valf", "huge_valf");
-  private static final List<String> INFINITY = ImmutableList.of("__builtin_inf", "inf");
-  private static final List<String> HUGE_VAL = ImmutableList.of("__builtin_huge_val", "huge_val");
-  private static final List<String> INFINITY_LONG_DOUBLE = ImmutableList.of("__builtin_infl", "infl");
-  private static final List<String> HUGE_VAL_LONG_DOUBLE = ImmutableList.of("__builtin_huge_vall", "huge_vall");
+  private static final List<String> INFINITY_FLOAT = of("inff");
+  private static final List<String> INFINITY = of("inf");
+  private static final List<String> INFINITY_LONG_DOUBLE = of("infl");
 
-  private static final List<String> NOT_A_NUMBER_FLOAT = ImmutableList.of("__builtin_nanf", "nanf");
-  private static final List<String> NOT_A_NUMBER = ImmutableList.of("__builtin_nan", "nan");
-  private static final List<String> NOT_A_NUMBER_LONG_DOUBLE = ImmutableList.of("__builtin_nanl", "nanl");
+  private static final List<String> HUGE_VAL_FLOAT = of("huge_valf");
+  private static final List<String> HUGE_VAL = of("huge_val");
+  private static final List<String> HUGE_VAL_LONG_DOUBLE = of("huge_vall");
 
-  private static final List<String> ABSOLUTE_VAL_FLOAT  = ImmutableList.of("__builtin_fabsf", "fabsf");
-  private static final List<String> ABSOLUTE_VAL = ImmutableList.of("__builtin_fabs", "fabs");
-  private static final List<String> ABSOLUTE_VAL_LONG_DOUBLE = ImmutableList.of("__builtin_fabsl", "fabsl");
+  private static final List<String> NOT_A_NUMBER_FLOAT = of("nanf");
+  private static final List<String> NOT_A_NUMBER = of("nan");
+  private static final List<String> NOT_A_NUMBER_LONG_DOUBLE = of("nanl");
 
-  private static final List<String> FLOOR_FLOAT = ImmutableList.of("__builtin_floorf", "floorf");
-  private static final List<String> FLOOR = ImmutableList.of("__builtin_floor", "floor");
-  private static final List<String> FLOOR_LONG_DOUBLE = ImmutableList.of("__builtin_floorl", "floorl");
+  private static final List<String> ABSOLUTE_VAL_FLOAT = of("fabsf");
+  private static final List<String> ABSOLUTE_VAL = of("fabs");
+  private static final List<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
 
-  private static final List<String> CEIL_FLOAT = ImmutableList.of("__builtin_ceilf", "ceilf");
-  private static final List<String> CEIL = ImmutableList.of("__builtin_ceil", "ceil");
-  private static final List<String> CEIL_LONG_DOUBLE = ImmutableList.of("__builtin_ceill", "ceill");
+  private static final List<String> FLOOR_FLOAT = of("floorf");
+  private static final List<String> FLOOR = of("floor");
+  private static final List<String> FLOOR_LONG_DOUBLE = of("floorl");
 
-  private static final List<String> FDIM_FLOAT = ImmutableList.of("__builtin_fdimf", "fdimf");
-  private static final List<String> FDIM = ImmutableList.of("__builtin_fdim", "fdim");
-  private static final List<String> FDIM_LONG_DOUBLE = ImmutableList.of("__builtin_fdiml", "fdiml");
+  private static final List<String> CEIL_FLOAT = of("ceilf");
+  private static final List<String> CEIL = of("ceil");
+  private static final List<String> CEIL_LONG_DOUBLE = of("ceill");
 
-  private static final List<String> FMAX_FLOAT = ImmutableList.of("__builtin_fmaxf", "fmaxf");
-  private static final List<String> FMAX = ImmutableList.of("__builtin_fmax", "fmax");
-  private static final List<String> FMAX_LONG_DOUBLE = ImmutableList.of("__builtin_fmaxl", "fmaxl");
+  private static final List<String> FDIM_FLOAT = of("fdimf");
+  private static final List<String> FDIM = of("fdim");
+  private static final List<String> FDIM_LONG_DOUBLE = of("fdiml");
 
-  private static final List<String> FMIN_FLOAT = ImmutableList.of("__builtin_fminf", "fminf");
-  private static final List<String> FMIN = ImmutableList.of("__builtin_fmin", "fmin");
-  private static final List<String> FMIN_LONG_DOUBLE = ImmutableList.of("__builtin_fminl", "fminl");
+  private static final List<String> FMAX_FLOAT = of("fmaxf");
+  private static final List<String> FMAX = of("fmax");
+  private static final List<String> FMAX_LONG_DOUBLE = of("fmaxl");
+
+  private static final List<String> FMIN_FLOAT = of("fminf");
+  private static final List<String> FMIN = of("fmin");
+  private static final List<String> FMIN_LONG_DOUBLE = of("fminl");
 
   private static final String SIGNBIT_FLOAT = "__signbitf";
   private static final String SIGNBIT = "__signbit";
@@ -102,6 +103,10 @@ public class BuiltinFloatFunctions {
           .add(IS_INFINITY)
           .addAll(NOT_A_NUMBER)
           .build();
+
+  private static ImmutableList<String> of(String suffix) {
+    return ImmutableList.of("__builtin_" + suffix, suffix);
+  }
 
   /**
    * Check whether a given function is a builtin function specific to floats
