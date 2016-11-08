@@ -240,8 +240,6 @@ public class TestSuite implements AlgorithmResult {
   }
 
   public void setGoalInfeasible(Goal pGoal, PresenceCondition pPresenceCondition) throws InterruptedException {
-    setRemainingPresenceCondition(pGoal, pcm().makeFalse());
-
     if (!isGoalPartiallyFeasible(pGoal) || pPresenceCondition == null
         || pcm().checkEqualsTrue(pPresenceCondition)) {
       infeasiblePresenceConditions.put(pGoal, pcm().makeTrue());
@@ -250,11 +248,11 @@ public class TestSuite implements AlgorithmResult {
       infeasiblePresenceConditions.put(pGoal, pPresenceCondition);
       partiallyInfeasibleGoals.add(pGoal);
     }
+
+    setRemainingPresenceCondition(pGoal, pcm().makeFalse());
   }
 
   public void setGoalTimedout(Goal pGoal, PresenceCondition pPresenceCondition) throws InterruptedException {
-    setRemainingPresenceCondition(pGoal, pcm().makeFalse());
-
     if (pPresenceCondition == null || (!isGoalPartiallyCovered(pGoal)
         && pcm().checkEqualsTrue(pPresenceCondition))) {
       timedOutPresenceCondition.put(pGoal, pcm().makeTrue());
@@ -263,6 +261,8 @@ public class TestSuite implements AlgorithmResult {
       timedOutPresenceCondition.put(pGoal, pPresenceCondition);
       partiallyTimedOutGoals.add(pGoal);
     }
+
+    setRemainingPresenceCondition(pGoal, pcm().makeFalse());
   }
 
   public void setGoalsTimedout(Set<Goal> pGoals) throws InterruptedException {
