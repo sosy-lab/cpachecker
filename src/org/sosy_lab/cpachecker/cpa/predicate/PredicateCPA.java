@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -114,6 +115,9 @@ ProofChecker, AutoCloseable, AnalysisCache {
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
+  @Option(secure=true, description="Reuses the SMT solver from the GlobalInfo while creation of the PredicateCPA instance when the solver is not null.")
+  private boolean reuseSolverFromGlobalInfo = false;
+
   protected final Configuration config;
   protected final LogManager logger;
   protected ShutdownNotifier shutdownNotifier;
@@ -164,7 +168,16 @@ ProofChecker, AutoCloseable, AnalysisCache {
     }
     blk.setCFA(cfa);
 
-    solver = Solver.create(config, logger, shutdownNotifierSupplier.get());
+    if (reuseSolverFromGlobalInfo) {
+      Solver globalSolver = GlobalInfo.getInstance().getPredicateSolver();
+      if (globalSolver != null) {
+        solver = globalSolver;
+      } else {
+        solver = Solver.create(config, logger, shutdownNotifierSupplier.get());
+      }
+    } else {
+      solver = Solver.create(config, logger, shutdownNotifierSupplier.get());
+    }
     FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
