@@ -241,7 +241,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           if (!containsAny) {
             return Optional.of(false);
           }
-          if (containsAll && explicitCandidateTargets.getSize() == 1) {
+          if (containsAll && ((ExplicitLocationSet) actualTargets).getSize() == 1) {
             return Optional.of(true);
           }
         }
