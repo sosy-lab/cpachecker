@@ -372,6 +372,7 @@ public class CPAchecker {
           Throwables.throwIfInstanceOf(cause, ParserException.class);
           Throwables.throwIfInstanceOf(cause, InvalidConfigurationException.class);
           Throwables.throwIfInstanceOf(cause, CPAException.class);
+          Throwables.throwIfUnchecked(cause);
         }
         throw e;
       }
