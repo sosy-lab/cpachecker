@@ -574,7 +574,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         out.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
         if (subStats.rLimit != null) {
           out.println(
-              "Time spent in analysis thread: "
+              "Time spent in analysis thread " + subStats.getValue().getSecond() + ": "
                   + subStats.rLimit.getOverallUsedTime().formatAs(TimeUnit.SECONDS));
         }
         for (Statistics s : subStats.subStatistics) {
