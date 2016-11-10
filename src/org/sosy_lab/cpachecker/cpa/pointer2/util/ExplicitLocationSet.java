@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Set;
@@ -33,9 +34,9 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
 
   private final Set<MemoryLocation> explicitSet;
 
-  private ExplicitLocationSet(ImmutableSet<MemoryLocation> pLocations) {
-    assert pLocations.size() >= 1;
-    this.explicitSet = pLocations;
+  private ExplicitLocationSet(Iterable<? extends MemoryLocation> pLocations) {
+    assert pLocations.iterator().hasNext() : "set should not be empty";
+    this.explicitSet = ImmutableSortedSet.copyOf(pLocations);
   }
 
   @Override
@@ -79,8 +80,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     if (getSize() == 1) {
       return LocationSetBot.INSTANCE;
     }
-    return new ExplicitLocationSet(
-        ImmutableSet.copyOf(Sets.filter(explicitSet, l -> !l.equals(pLocation))));
+    return new ExplicitLocationSet(Sets.filter(explicitSet, l -> !l.equals(pLocation)));
   }
 
   public static LocationSet from(MemoryLocation pLocation) {
@@ -88,11 +88,10 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
   }
 
   public static LocationSet from(Iterable<? extends MemoryLocation> pLocations) {
-    Iterator<? extends MemoryLocation> elementIterator = pLocations.iterator();
-    if (!elementIterator.hasNext()) {
+    if (!pLocations.iterator().hasNext()) {
       return LocationSetBot.INSTANCE;
     }
-    return new ExplicitLocationSet(ImmutableSet.copyOf(elementIterator));
+    return new ExplicitLocationSet(pLocations);
   }
 
   @Override
@@ -123,8 +122,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
       return true;
     }
     if (pElements instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
-      return explicitSet.containsAll(explicitLocationSet.explicitSet);
+      return explicitSet.containsAll(((ExplicitLocationSet) pElements).explicitSet);
     }
     return pElements.containsAll(this);
   }
@@ -148,8 +146,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
         return explicitSet.isEmpty();
       }
       if (o instanceof ExplicitLocationSet) {
-        ExplicitLocationSet other = (ExplicitLocationSet) o;
-        return explicitSet.equals(other.explicitSet);
+        return explicitSet.equals(((ExplicitLocationSet) o).explicitSet);
       }
     }
     return false;
