@@ -71,12 +71,14 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private String predicateComputer = "AUXILIARY";
 
   @Option(
-      description = "should we use precision reduction at the BAM block entry"
+      description = "should we use precision reduction at the BAM block entry",
+      secure = true
     )
   private boolean usePrecisionReduction = true;
 
   @Option(
-      description = "should we use abstraction reduction at the BAM block entry"
+      description = "should we use abstraction reduction at the BAM block entry",
+      secure = true
     )
   private boolean useAbstractionReduction = true;
 
