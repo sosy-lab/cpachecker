@@ -63,18 +63,19 @@ public class SteensgaardState extends PointerState {
     if (pTargets.isBot()) {
       return this;
     }
+    PersistentSortedMap<LocationSet, LocationSet> newLocations;
     if (pTargets.isTop()) {
-      return new SteensgaardState(getPointsToMap().putAndCopy(pSource, LocationSetTop.INSTANCE));
+      newLocations = getPointsToMap().putAndCopy(pSource, LocationSetTop.INSTANCE);
+    } else {
+      LocationSet previousPointsToSet = getPointsToSet(pSource);
+      if (previousPointsToSet instanceof LocationSetBot) {
+        newLocations = getPointsToMap().putAndCopy(pSource, pTargets);
+      } else {
+        newLocations = join(getPointsToMap(), previousPointsToSet, pTargets);
+      }
     }
-    LocationSet previousPointsToSet = getPointsToSet(pSource);
-    if (!(previousPointsToSet instanceof LocationSetBot)) {
-      PersistentSortedMap<LocationSet, LocationSet> updatedMap = join(getPointsToMap(), previousPointsToSet, pTargets);
-      PointerState resultState = new SteensgaardState(updatedMap);
-      return resultState;
-    }
-    SteensgaardState resultState = new SteensgaardState(getPointsToMap().putAndCopy(pSource, pTargets));
-    return resultState;
-    }
+    return new SteensgaardState(newLocations);
+  }
 
   public PersistentSortedMap<LocationSet, LocationSet> join(PersistentSortedMap<LocationSet, LocationSet> currentMap, LocationSet pLhs, LocationSet pRhs) {
     if (pLhs.equals(pRhs)) {

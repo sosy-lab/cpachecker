@@ -74,7 +74,6 @@ public class LocationSetBot implements LocationSet {
   @Override
   public String toString() {
     return Character.toString('\u22A5');
-
   }
 
   @Override

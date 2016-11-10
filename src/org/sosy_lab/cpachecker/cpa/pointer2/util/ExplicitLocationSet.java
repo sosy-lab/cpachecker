@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -78,13 +79,8 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     if (getSize() == 1) {
       return LocationSetBot.INSTANCE;
     }
-    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
-    for (MemoryLocation location : this.explicitSet) {
-      if (!location.equals(pLocation)) {
-        builder.add(location);
-      }
-    }
-    return new ExplicitLocationSet(builder.build());
+    return new ExplicitLocationSet(
+        ImmutableSet.copyOf(Sets.filter(explicitSet, l -> !l.equals(pLocation))));
   }
 
   public static LocationSet from(MemoryLocation pLocation) {
@@ -96,12 +92,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     if (!elementIterator.hasNext()) {
       return LocationSetBot.INSTANCE;
     }
-    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
-    while (elementIterator.hasNext()) {
-      MemoryLocation location = elementIterator.next();
-      builder.add(location);
-    }
-    return new ExplicitLocationSet(builder.build());
+    return new ExplicitLocationSet(ImmutableSet.copyOf(elementIterator));
   }
 
   @Override

@@ -52,11 +52,12 @@ public class AndersenState extends PointerState {
     if (pTargets.isBot()) {
       return this;
     }
+    LocationSet newLocs;
     if (pTargets.isTop()) {
-      return new AndersenState(getPointsToMap().putAndCopy(pSource, LocationSetTop.INSTANCE));
+      newLocs = LocationSetTop.INSTANCE;
+    } else {
+      newLocs = getPointsToSet(pSource).addElements(pTargets);
     }
-    LocationSet previousPointsToSet = getPointsToSet(pSource);
-    PointerState resultState = new AndersenState(getPointsToMap().putAndCopy(pSource, previousPointsToSet.addElements(pTargets)));
-    return resultState;
+    return new AndersenState(getPointsToMap().putAndCopy(pSource, newLocs));
   }
 }

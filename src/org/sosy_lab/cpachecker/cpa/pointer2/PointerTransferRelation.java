@@ -224,8 +224,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       return pState;
     }
     LocationSet pRhsLocation = asLocations(pCfaEdge.getExpression().get(), pState, 1);
-    return handleAssignment(pState,
-        toLocationSet(Collections.singleton(MemoryLocation.valueOf(returnVariable.get().getQualifiedName()))),
+    return handleAssignment(
+        pState,
+        toLocationSet(MemoryLocation.valueOf(returnVariable.get().getQualifiedName())),
         pRhsLocation);
   }
 
@@ -242,15 +243,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     for (Pair<CParameterDeclaration, CExpression> param : Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration formalParam = param.getFirst();
-      MemoryLocation location = toLocation(formalParam);
-      LocationSet actualParamLocation = toLocationSet(Collections.singleton(location));
+      LocationSet actualParamLocation = toLocationSet(toLocation(formalParam));
       newState = handleAssignment(pState, actualParamLocation, asLocations(actualParam, pState, 1));
     }
 
     // Handle remaining formal parameters where no actual argument was provided
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
-      MemoryLocation location = toLocation(formalParam);
-      LocationSet formalParamLocation = toLocationSet(Collections.singleton(location));
+      LocationSet formalParamLocation = toLocationSet(toLocation(formalParam));
       newState = handleAssignment(pState, formalParamLocation, LocationSetBot.INSTANCE);
     }
     return newState;
@@ -270,6 +269,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
 
     return MemoryLocation.valueOf(pDeclaration.getQualifiedName());
+  }
+
+  private static LocationSet toLocationSet(MemoryLocation pLocation) {
+    return toLocationSet(Collections.singleton(pLocation));
   }
 
   private static LocationSet toLocationSet(Iterable<? extends MemoryLocation> pLocations) {
