@@ -186,9 +186,18 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
       return 1;
     } else if (pArg0 instanceof LocationSetTop) {
       return -1;
+    } else if (pArg0 instanceof ExplicitLocationSet) {
+      Iterator<MemoryLocation> i1 = iterator();
+      Iterator<MemoryLocation> i2 = ((ExplicitLocationSet) pArg0).iterator();
+      while (i1.hasNext() && i2.hasNext()) {
+        int compare = i1.next().compareTo(i2.next());
+        if (compare != 0) {
+          return compare;
+        }
+      }
+      return i1.hasNext() ? 1 : i2.hasNext() ? -1 : 0;
     } else {
-      ExplicitLocationSet explicitLoc = (ExplicitLocationSet) pArg0;
-      return explicitLoc.getExplicitLocations().iterator().next().compareTo(this.getExplicitLocations().iterator().next());
+      throw new AssertionError();
     }
   }
 
