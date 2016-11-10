@@ -1850,6 +1850,10 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
+# Reuses the SMT solver from the GlobalInfo while creation of the
+# PredicateCPA instance when the solver is not null.
+cpa.predicate.reuseSolverFromGlobalInfo = false
+
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
