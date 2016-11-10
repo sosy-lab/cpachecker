@@ -61,12 +61,17 @@ public class BAMPredicateReducer implements Reducer {
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
 
+  private final boolean reducePrecision;
+  private final boolean reduceAbstraction;
+
   public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
     this.cpa = cpa;
+    this.reducePrecision = cpa.usePrecisionReduction();
+    this.reduceAbstraction = cpa.useAbstractionReduction();
   }
 
   @Override
@@ -74,31 +79,35 @@ public class BAMPredicateReducer implements Reducer {
       AbstractState pExpandedState, Block pContext,
       CFANode pLocation) throws InterruptedException {
 
-    PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
-    Preconditions.checkState(predicateElement.isAbstractionState());
+    if (reduceAbstraction) {
+      PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
+      Preconditions.checkState(predicateElement.isAbstractionState());
 
-    AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
+      AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
 
-    Region oldRegion = oldAbstraction.asRegion();
+      Region oldRegion = oldAbstraction.asRegion();
 
-    Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
-    Collection<AbstractionPredicate> removePredicates =
-        Sets.difference(
-            new HashSet<>(predicates),
-            new HashSet<>(
-                cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates)));
+      Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
+      Collection<AbstractionPredicate> removePredicates =
+          Sets.difference(
+              new HashSet<>(predicates),
+              new HashSet<>(
+                  cpa.getRelevantPredicatesComputer().getRelevantPredicates(pContext, predicates)));
 
-    PathFormula pathFormula = predicateElement.getPathFormula();
+      PathFormula pathFormula = predicateElement.getPathFormula();
 
-    assert bfmgr.isTrue(pathFormula.getFormula());
+      assert bfmgr.isTrue(pathFormula.getFormula());
 
-    AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
+      AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-    PersistentMap<CFANode, Integer> abstractionLocations = predicateElement.getAbstractionLocationsOnPath()
-        .empty();
+      PersistentMap<CFANode, Integer> abstractionLocations = predicateElement.getAbstractionLocationsOnPath()
+          .empty();
 
-    return PredicateAbstractState.mkAbstractionState(pathFormula,
-        newAbstraction, abstractionLocations);
+      return PredicateAbstractState.mkAbstractionState(pathFormula,
+          newAbstraction, abstractionLocations);
+    } else {
+      return pExpandedState;
+    }
   }
 
   @Override
@@ -106,47 +115,51 @@ public class BAMPredicateReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) throws InterruptedException {
 
-    PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
-    PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
+    if (reduceAbstraction) {
+      PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
+      PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
-    Preconditions.checkState(reducedState.isAbstractionState());
-    Preconditions.checkState(rootState.isAbstractionState());
+      Preconditions.checkState(reducedState.isAbstractionState());
+      Preconditions.checkState(rootState.isAbstractionState());
 
-    //Note: BAM might introduce some additional abstraction if root region is not a cube
-    AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
-    AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
+      //Note: BAM might introduce some additional abstraction if root region is not a cube
+      AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
+      AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
-    Collection<AbstractionPredicate> relevantRootPredicates =
-        cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
-    //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
+      Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
+      Collection<AbstractionPredicate> relevantRootPredicates =
+          cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
+      //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
-    PathFormula oldPathFormula = reducedState.getPathFormula();
-    assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
-    SSAMap oldSSA = oldPathFormula.getSsa();
+      PathFormula oldPathFormula = reducedState.getPathFormula();
+      assert bfmgr.isTrue(oldPathFormula.getFormula()) : "Formula should be TRUE, but formula is " + oldPathFormula.getFormula();
+      SSAMap oldSSA = oldPathFormula.getSsa();
 
-    //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
-    //there still should be at least _some_ index for each variable of the abstraction formula.
-    SSAMapBuilder builder = oldSSA.builder();
-    SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    for (String var : rootSSA.allVariables()) {
-      //if we do not have the index in the reduced map..
-      if (!oldSSA.containsVariable(var)) {
-        //add an index (with the value of rootSSA)
-        builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
+      //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
+      //there still should be at least _some_ index for each variable of the abstraction formula.
+      SSAMapBuilder builder = oldSSA.builder();
+      SSAMap rootSSA = rootState.getPathFormula().getSsa();
+      for (String var : rootSSA.allVariables()) {
+        //if we do not have the index in the reduced map..
+        if (!oldSSA.containsVariable(var)) {
+          //add an index (with the value of rootSSA)
+          builder.setIndex(var, rootSSA.getType(var), rootSSA.getIndex(var));
+        }
       }
+      SSAMap newSSA = builder.build();
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
+
+      AbstractionFormula newAbstractionFormula =
+          pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+              relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
+
+      PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
+
+      return PredicateAbstractState.mkAbstractionState(newPathFormula,
+          newAbstractionFormula, abstractionLocations);
+    } else {
+      return pReducedState;
     }
-    SSAMap newSSA = builder.build();
-    PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
-
-    AbstractionFormula newAbstractionFormula =
-        pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
-            relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
-
-    PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
-
-    return PredicateAbstractState.mkAbstractionState(newPathFormula,
-        newAbstractionFormula, abstractionLocations);
   }
 
   @Override
@@ -173,73 +186,82 @@ public class BAMPredicateReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
-    PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
-    PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
 
-    if (rootPrecision instanceof ReducedPredicatePrecision) {
-      rootPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+    if (reducePrecision) {
+      PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
+      PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
+
+      if (rootPrecision instanceof ReducedPredicatePrecision) {
+        rootPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+      }
+      if (reducedPrecision instanceof ReducedPredicatePrecision) {
+        reducedPrecision = ((ReducedPredicatePrecision) reducedPrecision).getRootPredicatePrecision();
+      }
+
+      if (rootPrecision == reducedPrecision) { return pRootPrecision; }
+
+      PredicatePrecision mergedPrecision = rootPrecision.mergeWith(reducedPrecision);
+
+      return getVariableReducedPrecision(mergedPrecision, pRootContext);
+    } else {
+      return pReducedPrecision;
     }
-    if (reducedPrecision instanceof ReducedPredicatePrecision) {
-      reducedPrecision = ((ReducedPredicatePrecision) reducedPrecision).getRootPredicatePrecision();
-    }
-
-    if (rootPrecision == reducedPrecision) { return pRootPrecision; }
-
-    PredicatePrecision mergedPrecision = rootPrecision.mergeWith(reducedPrecision);
-
-    return getVariableReducedPrecision(mergedPrecision, pRootContext);
   }
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block context) {
     PredicatePrecision expandedPredicatePrecision = (PredicatePrecision) pPrecision;
 
-    assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
-      "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
-    /* LocationInstancePredicates is useless, because a block can be visited
-     * several times along a error path and the index would always start from 0 again.
-     * Thus we ignore LocationInstancePredicates and hope nobody is using them.
-     * TODO can we assure this?
-     */
+    if (reducePrecision) {
+      assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
+        "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
+      /* LocationInstancePredicates is useless, because a block can be visited
+       * several times along a error path and the index would always start from 0 again.
+       * Thus we ignore LocationInstancePredicates and hope nobody is using them.
+       * TODO can we assure this?
+       */
 
-    // create reduced precision
+      // create reduced precision
 
-    // we only need global predicates with used variables
-    final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(cpa.getRelevantPredicatesComputer().getRelevantPredicates(
-        context, expandedPredicatePrecision.getGlobalPredicates()));
+      // we only need global predicates with used variables
+      final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(cpa.getRelevantPredicatesComputer().getRelevantPredicates(
+          context, expandedPredicatePrecision.getGlobalPredicates()));
 
-    // we only need function predicates with used variables
-    final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
-    for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
-      // TODO only add vars if functionname is used in block?
-      functionPredicatesBuilder.putAll(functionname, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
-          context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
-    }
-    final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
-
-    // we only need local predicates with used variables and with nodes from the block
-    final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder = ImmutableSetMultimap.builder();
-    for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
-      if (context.getNodes().contains(node)) {
-        // TODO handle location-instance-specific predicates
-        // Without support for them, we can just pass 0 as locInstance parameter
-        localPredicatesBuilder.putAll(node, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
-            context, expandedPredicatePrecision.getPredicates(node, 0)));
+      // we only need function predicates with used variables
+      final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
+      for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
+        // TODO only add vars if functionname is used in block?
+        functionPredicatesBuilder.putAll(functionname, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
+            context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
       }
-    }
-    final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();
+      final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
 
-    PredicatePrecision rootPredicatePrecision = expandedPredicatePrecision;
-    if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
-      rootPredicatePrecision = ((ReducedPredicatePrecision)expandedPredicatePrecision).getRootPredicatePrecision();
-    }
+      // we only need local predicates with used variables and with nodes from the block
+      final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder = ImmutableSetMultimap.builder();
+      for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
+        if (context.getNodes().contains(node)) {
+          // TODO handle location-instance-specific predicates
+          // Without support for them, we can just pass 0 as locInstance parameter
+          localPredicatesBuilder.putAll(node, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
+              context, expandedPredicatePrecision.getPredicates(node, 0)));
+        }
+      }
+      final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();
 
-    return new ReducedPredicatePrecision(
-        rootPredicatePrecision,
-        ImmutableSetMultimap.of(),
-        localPredicates,
-        functionPredicates,
-        globalPredicates);
+      PredicatePrecision rootPredicatePrecision = expandedPredicatePrecision;
+      if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
+        rootPredicatePrecision = ((ReducedPredicatePrecision)expandedPredicatePrecision).getRootPredicatePrecision();
+      }
+
+      return new ReducedPredicatePrecision(
+          rootPredicatePrecision,
+          ImmutableSetMultimap.of(),
+          localPredicates,
+          functionPredicates,
+          globalPredicates);
+    } else {
+      return pPrecision;
+    }
   }
 
   static class ReducedPredicatePrecision extends PredicatePrecision {

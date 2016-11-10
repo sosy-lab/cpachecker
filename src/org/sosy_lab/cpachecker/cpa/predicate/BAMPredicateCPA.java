@@ -70,6 +70,16 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   )
   private String predicateComputer = "AUXILIARY";
 
+  @Option(
+      description = "should we use precision reduction at the BAM block entry"
+    )
+  private boolean usePrecisionReduction = true;
+
+  @Option(
+      description = "should we use abstraction reduction at the BAM block entry"
+    )
+  private boolean useAbstractionReduction = true;
+
   private BAMPredicateCPA(
       Configuration config,
       LogManager logger,
@@ -113,6 +123,14 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   BlockPartitioning getPartitioning() {
     return blk.getPartitioning();
+  }
+
+  boolean usePrecisionReduction() {
+    return usePrecisionReduction;
+  }
+
+  boolean useAbstractionReduction() {
+    return useAbstractionReduction;
   }
 
   @Override
