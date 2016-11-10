@@ -30,7 +30,7 @@ import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation> {
+public class ExplicitLocationSet implements LocationSet {
 
   private final Set<MemoryLocation> explicitSet;
 
@@ -113,7 +113,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
       ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
       return addElements(explicitLocationSet.explicitSet);
     }
-    return pElements.addElements((Iterable<MemoryLocation>) this);
+    return pElements.addElements(this.getExplicitLocations());
   }
 
   @Override
@@ -160,11 +160,6 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     return explicitSet.hashCode();
   }
 
-  @Override
-  public Iterator<MemoryLocation> iterator() {
-    return explicitSet.iterator();
-  }
-
   /**
    * Gets the size of the explicit location set.
    *
@@ -187,8 +182,8 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     } else if (pArg0 instanceof LocationSetTop) {
       return -1;
     } else if (pArg0 instanceof ExplicitLocationSet) {
-      Iterator<MemoryLocation> i1 = iterator();
-      Iterator<MemoryLocation> i2 = ((ExplicitLocationSet) pArg0).iterator();
+      Iterator<MemoryLocation> i1 = explicitSet.iterator();
+      Iterator<MemoryLocation> i2 = ((ExplicitLocationSet) pArg0).explicitSet.iterator();
       while (i1.hasNext() && i2.hasNext()) {
         int compare = i1.next().compareTo(i2.next());
         if (compare != 0) {

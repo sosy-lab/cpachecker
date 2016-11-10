@@ -1446,12 +1446,12 @@ public class ValueAnalysisTransferRelation
       LocationSet pointsToSetRhs = PointerTransferRelation.asLocations(pointerExpRhs, pPointerInfo);
       if (pointsToSetRhs instanceof ExplicitLocationSet) {
         ExplicitLocationSet explicitSetRhs = (ExplicitLocationSet) pointsToSetRhs;
-        MemoryLocation memLoc = explicitSetRhs.iterator().next();
+        MemoryLocation memLoc = explicitSetRhs.getExplicitLocations().iterator().next();
         if (pValueState.contains(memLoc)) {
           isRhsPointerDeref = true;
         if (explicitSetRhs.getSize() == 1) {
           rhsValue = newState.getValueFor(memLoc);
-          pRightHandType = newState.getTypeForMemoryLocation(explicitSetRhs.iterator().next());
+            pRightHandType = newState.getTypeForMemoryLocation(memLoc);
         }
         }
       }

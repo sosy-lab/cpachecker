@@ -303,7 +303,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
       return pState.getKnownLocations();
     }
-    return (ExplicitLocationSet) pLocationSet;
+    return ((ExplicitLocationSet) pLocationSet).getExplicitLocations();
   }
 
   protected static LocationSet asLocations(final CRightHandSide pExpression, final PointerState pState, final int pDerefCounter) throws UnrecognizedCCodeException {
