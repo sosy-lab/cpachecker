@@ -46,29 +46,16 @@ public class ExplicitLocationSet implements LocationSet {
 
   @Override
   public LocationSet addElement(MemoryLocation pLocation) {
-    if (explicitSet.contains(pLocation)) {
-      return this;
-    }
-    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
-    builder.addAll(explicitSet).add(pLocation);
-    return new ExplicitLocationSet(builder.build());
+    return addElements(ImmutableSet.of(pLocation));
   }
 
   @Override
   public LocationSet addElements(Set<MemoryLocation> pLocations) {
-    ImmutableSet.Builder<MemoryLocation> builder = null;
-    for (MemoryLocation target : pLocations) {
-      if (!explicitSet.contains(target)) {
-        if (builder == null) {
-          builder = ImmutableSet.builder();
-          builder.addAll(explicitSet);
-        }
-        builder.add(target);
-      }
-    }
-    if (builder == null) {
+    if (explicitSet.containsAll(pLocations)) {
       return this;
     }
+    ImmutableSortedSet.Builder<MemoryLocation> builder = ImmutableSortedSet.naturalOrder();
+    builder.addAll(explicitSet).addAll(pLocations);
     return new ExplicitLocationSet(builder.build());
   }
 
@@ -88,7 +75,7 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   public static LocationSet from(Set<MemoryLocation> pLocations) {
-    if (!pLocations.iterator().hasNext()) {
+    if (pLocations.isEmpty()) {
       return LocationSetBot.INSTANCE;
     }
     return new ExplicitLocationSet(pLocations);
@@ -110,8 +97,7 @@ public class ExplicitLocationSet implements LocationSet {
       return this;
     }
     if (pElements instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
-      return addElements(explicitLocationSet.explicitSet);
+      return addElements(((ExplicitLocationSet) pElements).explicitSet);
     }
     return pElements.addElements(this.getExplicitLocations());
   }
