@@ -34,7 +34,7 @@ public class AndersenState extends PointerState {
    */
   public static final PointerState INITIAL_STATE = new AndersenState();
 
-  public AndersenState() {
+  private AndersenState() {
     super();
   }
 

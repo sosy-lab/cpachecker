@@ -1314,12 +1314,16 @@ cpa.octagon.refiner.checkForRepeatedRefinements = true
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
+# enable idividual tracking of pointer variables?
+cpa.pointer2.idividualTracking = false
+  allowed values: [true, false]
+
 # which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
 # which pointer-alias analysis to use for PointerCPA
-cpa.pointer2.pointerAnalysis = "Andersen"
+cpa.pointer2.pointerAnalysis = "Steensgaard"
   allowed values: [Steensgaard, Andersen]
 
 # which merge operator to use for PointerACPA

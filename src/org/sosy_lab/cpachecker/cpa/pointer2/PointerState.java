@@ -103,11 +103,7 @@ public abstract class PointerState implements AbstractState {
     if (pointsToSet.equals(LocationSetBot.INSTANCE)) {
       return false;
     }
-    if(pointsToMap.get(pSource).equals(pTarget)) {
-      return true;
-    } else {
-      return false;
-    }
+    return pointsToMap.get(pSource).equals(pTarget);
   }
 
   /**

@@ -50,7 +50,7 @@ public class SteensgaardState extends PointerState {
   }
 
   /**
-   * Gets a pointer state representing the points to information of this state
+   * Gets a pointer state representing the points-to information of this state
    * combined with the information that the first given identifier points to the
    * given target identifiers.
    *
@@ -68,7 +68,7 @@ public class SteensgaardState extends PointerState {
       newLocations = getPointsToMap().putAndCopy(pSource, LocationSetTop.INSTANCE);
     } else {
       LocationSet previousPointsToSet = getPointsToSet(pSource);
-      if (previousPointsToSet instanceof LocationSetBot) {
+      if (previousPointsToSet.isBot()) {
         newLocations = getPointsToMap().putAndCopy(pSource, pTargets);
       } else {
         newLocations = join(getPointsToMap(), previousPointsToSet, pTargets);
