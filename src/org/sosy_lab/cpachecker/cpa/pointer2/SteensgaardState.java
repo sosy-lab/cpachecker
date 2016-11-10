@@ -110,16 +110,4 @@ public class SteensgaardState extends PointerState {
     }
     return currentMap;
   }
-
-  @Override
-  public int hashCode() {
-    return getPointsToMap().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return getPointsToMap().toString();
-  }
-
-
 }

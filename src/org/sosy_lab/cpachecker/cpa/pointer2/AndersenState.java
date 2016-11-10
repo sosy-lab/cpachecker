@@ -59,10 +59,4 @@ public class AndersenState extends PointerState {
     PointerState resultState = new AndersenState(getPointsToMap().putAndCopy(pSource, previousPointsToSet.addElements(pTargets)));
     return resultState;
   }
-
-  @Override
-  public String toString() {
-    return getPointsToMap().toString();
-  }
-
 }
