@@ -34,8 +34,8 @@ public class ExplicitLocationSet implements LocationSet {
 
   private final Set<MemoryLocation> explicitSet;
 
-  private ExplicitLocationSet(Iterable<? extends MemoryLocation> pLocations) {
-    assert pLocations.iterator().hasNext() : "set should not be empty";
+  private ExplicitLocationSet(Set<MemoryLocation> pLocations) {
+    assert !pLocations.isEmpty() : "set should not be empty";
     this.explicitSet = ImmutableSortedSet.copyOf(pLocations);
   }
 
@@ -55,7 +55,7 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   @Override
-  public LocationSet addElements(Iterable<MemoryLocation> pLocations) {
+  public LocationSet addElements(Set<MemoryLocation> pLocations) {
     ImmutableSet.Builder<MemoryLocation> builder = null;
     for (MemoryLocation target : pLocations) {
       if (!explicitSet.contains(target)) {
@@ -87,7 +87,7 @@ public class ExplicitLocationSet implements LocationSet {
     return new ExplicitLocationSet(ImmutableSet.of(pLocation));
   }
 
-  public static LocationSet from(Iterable<? extends MemoryLocation> pLocations) {
+  public static LocationSet from(Set<MemoryLocation> pLocations) {
     if (!pLocations.iterator().hasNext()) {
       return LocationSetBot.INSTANCE;
     }

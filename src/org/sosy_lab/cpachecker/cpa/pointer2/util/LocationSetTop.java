@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
@@ -58,7 +59,7 @@ public class LocationSetTop implements LocationSet {
   }
 
   @Override
-  public LocationSet addElements(Iterable<MemoryLocation> pTargets) {
+  public LocationSet addElements(Set<MemoryLocation> pTargets) {
     return this;
   }
 

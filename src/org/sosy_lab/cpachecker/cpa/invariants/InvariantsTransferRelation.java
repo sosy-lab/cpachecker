@@ -28,6 +28,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -554,7 +555,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (locationSet.isTop()) {
           return Collections.singleton(state.clear());
         }
-        Iterable<MemoryLocation> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
+        Set<MemoryLocation> locations =
+            PointerTransferRelation.toNormalSet(pointerState, locationSet);
         boolean moreThanOneLocation = hasMoreThanNElements(locations, 1);
         for (MemoryLocation location : locations) {
           int lastIndexOfDot = location.getAsSimpleString().lastIndexOf('.');

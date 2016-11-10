@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -159,7 +159,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           }
         });
         MemoryLocation location = toLocation(declaration);
-        LocationSet pLhsLocationSet = toLocationSet(Collections.singleton(location));
+        LocationSet pLhsLocationSet = toLocationSet(location);
         return handleAssignment(pState, pLhsLocationSet, pRhsLocationSet);
 
       }
@@ -190,7 +190,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
         if (sLhs instanceof ExplicitLocationSet) {
           ExplicitLocationSet explicitLhs = (ExplicitLocationSet) sLhs;
           for (MemoryLocation memLoc : explicitLhs.getExplicitLocations()) {
-            pState = handleAssignment(pState, toLocationSet(Collections.singleton(MemoryLocation.valueOf(memLoc.getIdentifier() + "." + fieldRef.getFieldName()))), sRhs);
+            pState = handleAssignment(pState, toLocationSet(MemoryLocation.valueOf(memLoc.getIdentifier() + "." + fieldRef.getFieldName())), sRhs);
           }
           return pState;
         }
@@ -275,12 +275,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return toLocationSet(Collections.singleton(pLocation));
   }
 
-  private static LocationSet toLocationSet(Iterable<? extends MemoryLocation> pLocations) {
+  private static LocationSet toLocationSet(Set<MemoryLocation> pLocations) {
     if (pLocations == null) {
       return LocationSetTop.INSTANCE;
     }
-    Iterator<? extends MemoryLocation> locationIterator = pLocations.iterator();
-    if (!locationIterator.hasNext()) {
+    if (!pLocations.iterator().hasNext()) {
       return LocationSetBot.INSTANCE;
     }
     return ExplicitLocationSet.from(pLocations);
@@ -296,7 +295,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
    *
    * @return the locations represented by the given location set.
    */
-  public static Iterable<MemoryLocation> toNormalSet(PointerState pState, LocationSet pLocationSet) {
+  public static Set<MemoryLocation> toNormalSet(PointerState pState, LocationSet pLocationSet) {
     if (pLocationSet.isBot()) {
       return Collections.emptySet();
     }
@@ -339,9 +338,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
         String suffix = pIastFieldReference.getFieldName();
         // TODO use offsets instead
         if (individualTracking) {
-          return toLocationSet(Collections.singleton(MemoryLocation.valueOf(prefix + " " + pIastFieldReference.getFieldOwner() + infix + suffix)));
+          return toLocationSet(MemoryLocation.valueOf(prefix + " " + pIastFieldReference.getFieldOwner() + infix + suffix));
         }
-        return toLocationSet(Collections.singleton(MemoryLocation.valueOf(prefix + infix + suffix)));
+        return toLocationSet(MemoryLocation.valueOf(prefix + infix + suffix));
       }
 
       @Override
@@ -366,9 +365,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
 
       private LocationSet visit(MemoryLocation pLocation) {
-        Collection<MemoryLocation> result = Collections.singleton(pLocation);
-        LocationSet pLocationSet = toLocationSet(result);
-        for (int deref = pDerefCounter; deref > 0 && !result.isEmpty(); --deref) {
+        LocationSet pLocationSet = toLocationSet(pLocation);
+        for (int deref = pDerefCounter; deref > 0; --deref) {
           pLocationSet = pState.getPointsToSet(pLocationSet);
             if (pLocationSet.isTop() || pLocationSet.isBot()) {
               return pLocationSet;
@@ -392,7 +390,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
       @Override
       public LocationSet visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCCodeException {
-        return toLocationSet(Iterables.concat(
+        return toLocationSet(Sets.union(
             toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand1(), pState, pDerefCounter)),
             toNormalSet(pState, asLocations(pIastBinaryExpression.getOperand2(), pState, pDerefCounter))));
       }
@@ -454,7 +452,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           if (result.isTop() || result.isBot()) {
             return result;
           }
-          return toLocationSet(FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
+          return toLocationSet(Sets.filter(toNormalSet(pState, result), Predicates.notNull()));
         }
         return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
       }

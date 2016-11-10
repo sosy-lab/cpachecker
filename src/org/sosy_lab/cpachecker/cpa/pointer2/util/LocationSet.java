@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
@@ -34,7 +35,7 @@ public interface LocationSet extends Comparable<LocationSet> {
 
   LocationSet removeElement(MemoryLocation pLocation);
 
-  LocationSet addElements(Iterable<MemoryLocation> pLocations);
+  LocationSet addElements(Set<MemoryLocation> pLocations);
 
   LocationSet addElements(LocationSet pLocations);
 
