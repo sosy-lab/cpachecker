@@ -30,18 +30,26 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -608,6 +616,58 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH PATH RELEVANT EDGE";
+    }
+
+  }
+
+  static enum MatchSplitDeclaration implements AutomatonBoolExpr {
+
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof ADeclarationEdge) {
+        ADeclarationEdge declEdge = (ADeclarationEdge) edge;
+        ADeclaration decl = declEdge.getDeclaration();
+        if (decl instanceof AFunctionDeclaration) {
+          return CONST_FALSE;
+        } else if (decl instanceof CTypeDeclaration) {
+          return CONST_FALSE;
+        } else if (decl instanceof AVariableDeclaration) {
+          AVariableDeclaration varDecl = (AVariableDeclaration) decl;
+          CFANode successor = edge.getSuccessor();
+          Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
+          if (!leavingEdges.hasNext()) {
+            return CONST_FALSE;
+          }
+          CFAEdge successorEdge = leavingEdges.next();
+          if (leavingEdges.hasNext()) {
+            return CONST_FALSE;
+          }
+          if (successorEdge instanceof AStatementEdge) {
+            AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+            if (statementEdge.getFileLocation().equals(edge.getFileLocation())
+                && statementEdge.getStatement() instanceof AAssignment) {
+              AAssignment assignment = (AAssignment) statementEdge.getStatement();
+              ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+              if (leftHandSide instanceof AIdExpression) {
+                AIdExpression lhs = (AIdExpression) leftHandSide;
+                if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                  return CONST_TRUE;
+                }
+              }
+            }
+          }
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH SPLIT DECLARATION";
     }
 
   }

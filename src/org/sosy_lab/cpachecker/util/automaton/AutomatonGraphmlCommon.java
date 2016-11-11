@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,18 +52,24 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -469,6 +476,29 @@ public class AutomatonGraphmlCommon {
         CVariableDeclaration varDecl = (CVariableDeclaration) decl;
         if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
           return true; // Dirty hack; would be better if these edges had no file location
+        }
+        CFANode successor = edge.getSuccessor();
+        Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
+        if (!leavingEdges.hasNext()) {
+          return false;
+        }
+        CFAEdge successorEdge = leavingEdges.next();
+        if (leavingEdges.hasNext()) {
+          return false;
+        }
+        if (successorEdge instanceof AStatementEdge) {
+          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+          if (statementEdge.getFileLocation().equals(edge.getFileLocation())
+              && statementEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) statementEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            if (leftHandSide instanceof AIdExpression) {
+              AIdExpression lhs = (AIdExpression) leftHandSide;
+              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                return true;
+              }
+            }
+          }
         }
         return false;
       }

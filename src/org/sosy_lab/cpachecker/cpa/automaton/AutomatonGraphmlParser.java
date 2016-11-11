@@ -456,7 +456,9 @@ public class AutomatonGraphmlParser {
         }
 
         // Never match on the dummy edge directly after the main function entry node
-        AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+        AutomatonBoolExpr conjunctedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+        // Never match on artificially split declarations
+        conjunctedTriggers = and(conjunctedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
         // Match a loop start
         boolean enterLoopHead = false;
