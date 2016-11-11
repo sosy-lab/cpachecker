@@ -69,7 +69,7 @@ __all__ = [
 MEMLIMIT = 'memlimit'
 TIMELIMIT = 'timelimit'
 SOFTTIMELIMIT = 'softtimelimit'
-CORELIMIT = 'corelimit'
+CORELIMIT = 'cpuCores'
 
 RESULT_FILE_LOG = 'output.log'
 RESULT_FILE_STDERR = 'stderr'
