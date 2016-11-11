@@ -29,6 +29,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -46,6 +47,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -100,6 +102,9 @@ public class PropertyScopeGraph {
 
       } else {
         currentEdge.irrelevantARGStates += 1;
+
+        currentEdge.lastCFAEdge = argState.getChildren().stream().findFirst()
+            .map(argState::getEdgesToChild).map(cfae -> cfae.get(cfae.size() - 1)).orElse(null);
 
         if (!argState.equals(currentEdge.start.argState)) {
           if (locstate.getLocationNode() instanceof FunctionEntryNode) {
@@ -168,11 +173,16 @@ public class PropertyScopeGraph {
   public static class ScopeEdge {
     private ScopeNode start;
     private ScopeNode end;
+    private CFAEdge lastCFAEdge;
     private List<String> passedFunctionEntryExits = new ArrayList<>();
     private int irrelevantARGStates = 0;
 
     private ScopeEdge() {
 
+    }
+
+    public Optional<CFAEdge> getLastCFAEdge() {
+      return Optional.ofNullable(lastCFAEdge);
     }
 
     public ScopeNode getStart() {

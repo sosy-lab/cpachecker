@@ -200,19 +200,17 @@ public class PropertyScopeGraphToDotWriter {
         }
       }
 
-      Collection<ARGState> argParents = scopeEdge.getEnd().getArgState().getParents();
-      if (argParents.size() == 1) {
-        ARGState argParent = argParents.stream().findAny().get();
-        List<CFAEdge> edgesToChild = argParent.getEdgesToChild(scopeEdge.getEnd().getArgState());
-        if (!edgesToChild.isEmpty()) {
-          CFAEdge lastCfaEdge = edgesToChild.get(edgesToChild.size() - 1);
-          sb
-              .append("\\l")
-              .append("Line ").append(Objects.toString(lastCfaEdge.getLineNumber()))
-              .append(": \\l")
-              .append(lastCfaEdge.getDescription().replaceAll("\n", " ").replace('"', '\'').trim())
-              .append("\\l");
-        }
+
+
+      if (scopeEdge.getLastCFAEdge().isPresent()) {
+        CFAEdge lastCfaEdge = scopeEdge.getLastCFAEdge().get();
+        sb
+            .append("\\l")
+            .append("Line ").append(Objects.toString(lastCfaEdge.getLineNumber()))
+            .append(": \\l")
+            .append(lastCfaEdge.getDescription().replaceAll("\n", " ").replace('"', '\'').trim())
+            .append("\\l");
+
       }
 
       sb.append("\"");
