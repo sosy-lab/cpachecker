@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeNode;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
@@ -123,9 +125,22 @@ public class PropertyScopeGraphToDotWriter {
       sb.append(reason.name()).append("\\n");
     }
 
+    for (Automaton autom : AbstractStates
+        .extractStateByType(scopeNode.getArgState(), PropertyScopeState.class)
+        .getAutomScopeInsts().keySet()) {
+      sb.append(autom.getName()).append("\\n");
+    }
+
     sb.append("\"");
 
-    sb.append(",color=\"").append(determineNodeColor(scopeNode)).append("\"");
+    sb.append(" color=\"").append(determineNodeColor(scopeNode)).append("\"");
+
+/*    sb.append(" xlabel=\"");
+    for (AutomatonState automatonState : AbstractStates
+        .extractStatesByType(scopeNode.getArgState(), AutomatonState.class)) {
+      sb.append(automatonState.getInternalStateName()).append("\\n");
+    }
+    sb.append("\"");*/
   }
 
   private static String determineNodeColor(ScopeNode scopeNode) {

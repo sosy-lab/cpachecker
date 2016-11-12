@@ -113,7 +113,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
               if (startState.equals(automState)) {
                 automScopeInsts.remove(autom);
               }
-            } else if(!automState.equals(oldAutomState)) {
+            } else if(!automState.equals(oldAutomState) && automState.getPropertyDependantMatches()
+                > oldAutomState.getPropertyDependantMatches()) {
                 automScopeInsts.put(autom, PropertyScopeInstance.create(oldAutomState));
             }
       });
