@@ -564,6 +564,14 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeGraph to DOT file");
     }
 
+    Path psGraphOutPathHinted =
+        Paths.get(String.format(this.graphDotFile.toString(), psGraphReasonsName + "-hinted"));
+    try (Writer w = MoreFiles.openOutputFile(psGraphOutPathHinted, Charset.defaultCharset())) {
+      PropertyScopeGraphToDotWriter.writeHinted(psGraph, w);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeGraph to DOT file");
+    }
+
     // --- //
 
     super.printStatistics(pOut, pResult, pReached);

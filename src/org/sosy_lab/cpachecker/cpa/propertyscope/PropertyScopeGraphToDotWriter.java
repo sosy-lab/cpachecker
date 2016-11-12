@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.propertyscope;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -31,13 +33,12 @@ import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeNode;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -45,13 +46,19 @@ import java.util.stream.Collectors;
 public class PropertyScopeGraphToDotWriter {
 
   private final PropertyScopeGraph graph;
+  private final boolean hinted;
 
-  public PropertyScopeGraphToDotWriter(PropertyScopeGraph pGraph) {
+  public PropertyScopeGraphToDotWriter(PropertyScopeGraph pGraph, boolean pHinted) {
     graph = pGraph;
+    hinted = pHinted;
   }
 
   public static void write(PropertyScopeGraph graph, Appendable sb) throws IOException {
-    new PropertyScopeGraphToDotWriter(graph).write(sb);
+    new PropertyScopeGraphToDotWriter(graph, false).write(sb);
+  }
+
+  public static void writeHinted(PropertyScopeGraph graph, Appendable sb) throws IOException {
+    new PropertyScopeGraphToDotWriter(graph, true).write(sb);
   }
 
   public void write(Appendable sb) throws IOException {
@@ -72,6 +79,10 @@ public class PropertyScopeGraphToDotWriter {
       sb.append("]");
 
       sb.append(";\n");
+
+      if (hinted) {
+        buidNodeHint(scopeNode, sb);
+      }
     }
 
     // specify edges
@@ -98,9 +109,9 @@ public class PropertyScopeGraphToDotWriter {
     ARGState currentElement = scopeNode.getArgState();
     sb.append(Objects.toString(currentElement.getStateId()));
 
-    Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
+    Iterable<CFANode> locs = extractLocations(currentElement);
     if (locs != null) {
-      for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
+      for (CFANode loc : extractLocations(currentElement)) {
         sb.append("@");
         sb.append(loc.toString());
         sb.append(" r ");
@@ -125,8 +136,8 @@ public class PropertyScopeGraphToDotWriter {
       sb.append(reason.name()).append("\\n");
     }
 
-    for (Automaton autom : AbstractStates
-        .extractStateByType(scopeNode.getArgState(), PropertyScopeState.class)
+    for (Automaton autom :
+        extractStateByType(scopeNode.getArgState(), PropertyScopeState.class)
         .getAutomScopeInsts().keySet()) {
       sb.append(autom.getName()).append("\\n");
     }
@@ -141,6 +152,39 @@ public class PropertyScopeGraphToDotWriter {
       sb.append(automatonState.getInternalStateName()).append("\\n");
     }
     sb.append("\"");*/
+  }
+
+  private void buidNodeHint(ScopeNode node, Appendable sb) throws IOException {
+    final String stateNodeId = node.getId();
+    final String hintNodeId = stateNodeId + "hint";
+
+    sb.append("\n {\n  rank=same;\n");
+    sb.append("  \"").append(hintNodeId).append("\" [");
+
+    sb.append(" label=").append("\"");
+
+    for (AutomatonState automst :extractStatesByType(node.getArgState(), AutomatonState.class)) {
+      sb
+          .append(automst.getOwningAutomatonName()).append(": ")
+          .append(automst.getInternalStateName()).append("\\n");
+    }
+
+    PredicateAbstractState predSt =
+        extractStateByType(node.getArgState(), PredicateAbstractState.class);
+    sb
+        .append("PA: ")
+        .append(predSt.getAbstractionFormula().asInstantiatedFormula().toString())
+        .append("\\n");
+
+    sb.append("\"").append(" shape=box style=filled fillcolor=\"#d5d5d5\" fontsize=9];\n");
+
+    sb.append("  \"").append(stateNodeId).append("\"");
+    sb.append(" -> ");
+    sb.append("\"");
+    sb.append(hintNodeId);
+    sb.append("\"");
+    sb.append(" [arrowhead=none color=\"#d5d5d5\" rank=same style=solid];\n }\n");
+
   }
 
   private static String determineNodeColor(ScopeNode scopeNode) {
