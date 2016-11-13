@@ -104,7 +104,7 @@ public class PropertyScopeGraphToDotWriter {
     // specify nodes
 
     for (ScopeNode scopeNode : graph.getNodes().values()) {
-      sb.append(scopeNode.getId()).append(" [");
+      sb.append("\"").append(scopeNode.getId()).append("\" [");
       bulidNodeParams(scopeNode, sb);
       sb.append("]");
 
@@ -118,7 +118,8 @@ public class PropertyScopeGraphToDotWriter {
     // specify edges
     for (ScopeEdge scopeEdge : graph.getEdges().values()) {
       sb
-          .append(scopeEdge.getStart().getId()).append(" -> ").append(scopeEdge.getEnd().getId())
+          .append("\"").append(scopeEdge.getStart().getId()).append("\" -> \"")
+          .append(scopeEdge.getEnd().getId()).append("\"")
           .append(" [");
 
       buildEdgeParams(scopeEdge, sb);
