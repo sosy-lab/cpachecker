@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -36,21 +39,48 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeNode;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AutomatonPropertyScopeInstance;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class PropertyScopeGraphToDotWriter {
 
   private final PropertyScopeGraph graph;
   private final boolean hinted;
+  private final ImmutableMap<String, String> automatonColorMap;
 
   public PropertyScopeGraphToDotWriter(PropertyScopeGraph pGraph, boolean pHinted) {
     graph = pGraph;
     hinted = pHinted;
+
+    /* build color for automatons */
+    List<String> colorList = Arrays.asList("#aa5500", "#aaaa00", "#aa007f", "#aaaaff", "#ff007f",
+        "#ffaaff", "#ffff7f", "#00aaff", "#aaff7f", "#535551");
+    Collection<AutomatonState> automatonStates =
+        extractStatesByType(pGraph.getRootNode().getArgState(), AutomatonState.class);
+    List<String> automNames = automatonStates.stream()
+        .map(AutomatonState::getOwningAutomatonName).sorted().collect(Collectors.toList());
+    Builder<String, String> colorMBuilder = ImmutableMap.builder();
+    Random predictable = new Random(743998);
+    for (int i = 0; i < automNames.size(); i++) {
+      if (i < colorList.size()) {
+        colorMBuilder.put(automNames.get(i), colorList.get(i));
+      } else {
+        colorMBuilder.put(automNames.get(i), String.format("#%h", predictable.nextInt(0xffffff)));
+      }
+    }
+    automatonColorMap = colorMBuilder.build();
+
   }
 
   public static void write(PropertyScopeGraph graph, Appendable sb) throws IOException {
@@ -135,23 +165,24 @@ public class PropertyScopeGraphToDotWriter {
     for (Reason reason : scopeNode.getScopeReasons()) {
       sb.append(reason.name()).append("\\n");
     }
-
-    for (Automaton autom :
-        extractStateByType(scopeNode.getArgState(), PropertyScopeState.class)
-        .getAutomScopeInsts().keySet()) {
+    Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts =
+        extractStateByType(scopeNode.getArgState(), PropertyScopeState.class).getAutomScopeInsts();
+    for (Automaton autom : automScopeInsts.keySet()) {
       sb.append(autom.getName()).append("\\n");
     }
 
     sb.append("\"");
 
-    sb.append(" color=\"").append(determineNodeColor(scopeNode)).append("\"");
-
-/*    sb.append(" xlabel=\"");
-    for (AutomatonState automatonState : AbstractStates
-        .extractStatesByType(scopeNode.getArgState(), AutomatonState.class)) {
-      sb.append(automatonState.getInternalStateName()).append("\\n");
+    if (!scopeNode.isPartOfScope() || automScopeInsts.isEmpty()) {
+      sb.append(" color=\"").append(determineNodeColor(scopeNode)).append("\"");
+    } else {
+      sb.append(" style=\"striped\"");
+      String fillcolor = automScopeInsts.keySet().stream()
+          .map(autom -> automatonColorMap.get(autom.getName()))
+          .collect(Collectors.joining(":"));
+      sb.append(" color=\"").append(fillcolor).append("\"");
     }
-    sb.append("\"");*/
+
   }
 
   private void buidNodeHint(ScopeNode node, Appendable sb) throws IOException {
