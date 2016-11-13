@@ -186,9 +186,6 @@ public class PropertyScopeGraphToDotWriter {
     }
     Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts =
         extractStateByType(scopeNode.getArgState(), PropertyScopeState.class).getAutomScopeInsts();
-    for (Automaton autom : automScopeInsts.keySet()) {
-      sb.append(autom.getName()).append("\\n");
-    }
 
     sb.append("\"");
 
