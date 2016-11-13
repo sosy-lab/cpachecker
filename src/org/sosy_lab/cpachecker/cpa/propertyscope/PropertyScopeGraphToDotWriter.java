@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -100,6 +101,23 @@ public class PropertyScopeGraphToDotWriter {
         .append("node [style=\"filled\" shape=\"box\" color=\"white\"  ")
         //.append("width=0 height=0 margin=0")
         .append("]\n");
+
+    // build Legend
+
+    sb.append(" { rank = sink;\n").append("   Legend [shape=none, margin=0, label=<");
+    sb.append("<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">");
+    sb.append("<TR><TD COLSPAN=\"2\"><B>Legend</B></TD></TR>");
+    for (Entry<String, String> automCol : automatonColorMap.entrySet()) {
+      String automName = automCol.getKey();
+      String automColor = automCol.getValue();
+      sb.append("<TR><TD>").append(automName).append("</TD>");
+      sb.append("<TD ").append("BGCOLOR=\"").append(automColor).append("\"></TD></TR>");
+    }
+
+
+    sb.append("</TABLE>");
+    sb.append(">];").append("\n").append(" }\n");
+
 
     // specify nodes
 
