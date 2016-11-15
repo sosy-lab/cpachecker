@@ -520,26 +520,22 @@ public class ARGPathExporter {
         }
       }
 
-      if (exportLineNumbers) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+      Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
+      if (exportLineNumbers && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result =
+            result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(min.getStartingLineInOrigin()));
       }
 
-      if (exportOffset) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+      if (exportOffset && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
@@ -547,6 +543,22 @@ public class ARGPathExporter {
       }
 
       return result;
+    }
+
+    private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation min = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset() < min.getNodeOffset()) {
+            min = l;
+          }
+        }
+        return Optional.of(min);
+      }
+      return Optional.empty();
     }
 
     private TransitionCondition extractTransitionForStates(
