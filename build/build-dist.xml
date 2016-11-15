@@ -19,7 +19,7 @@
     <!-- Release for GNU/Linux -->
     <target name="dist-unix" depends="jar" description="Make a distributable release for Unix systems">
         <property name="namet" value="CPAchecker-${version}-unix"/>
-        <tar destfile="${namet}.tar.bz2" compression="bzip2">
+        <tar destfile="${namet}.tar.bz2" compression="bzip2" longfile="posix">
             <tarfileset dir="."
                 includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
