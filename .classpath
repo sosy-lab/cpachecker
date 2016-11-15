@@ -42,7 +42,6 @@
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess-assertionless.jar" sourcepath="lib/java-contrib/princess-sources-assertionless.zip"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/scala-actors.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/javasmt.jar" sourcepath="lib/java-contrib/javasmt-sources.jar"/>
 	<classpathentry kind="src" path=".apt-generated">
 		<attributes>

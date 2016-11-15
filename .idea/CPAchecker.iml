@@ -416,15 +416,6 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="scala-actors.jar">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-actors.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
       <library name="javasmt.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/runtime/javasmt.jar!/" />
