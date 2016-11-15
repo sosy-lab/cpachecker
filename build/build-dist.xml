@@ -4,10 +4,10 @@
 
     <!-- Targets for creating distributable artifacts. -->
 
-    <target name="dist" depends="zip, tar" description="Make a distributable release"/>
+    <target name="dist" depends="dist-unix, dist-windows" description="Make a distributable release"/>
 
     <!-- Release for Windows -->
-    <target name="zip" depends="jar">
+    <target name="dist-windows" depends="jar">
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
             <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
@@ -17,7 +17,7 @@
     </target>
 
     <!-- Release for GNU/Linux -->
-    <target name="tar" depends="jar">
+    <target name="dist-unix" depends="jar" description="Make a distributable release for Unix systems">
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2">
             <tarfileset dir="."
@@ -33,6 +33,17 @@
                 excludes="lib/native/source/** lib/native/*win*/**"
                 prefix="${namet}/"/>
         </tar>
+    </target>
+
+    <!-- just an alias for dist-unix -->
+    <target name="dist-linux" depends="dist-unix" description="Make a distributable release for Linux"/>
+
+    <target name="zip" depends="dist-windows">
+        <echo level="warning">"ant zip" is deprecated, please use "ant dist-windows"</echo>
+    </target>
+
+    <target name="tar" depends="dist-unix">
+        <echo level="warning">"ant tar" is deprecated, please use "ant dist-unix"</echo>
     </target>
 
     <target name="starexec" depends="build" description="Pack CPAchecker and configs for starexec upload">
