@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.io.PrintStream;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -60,11 +61,13 @@ public class BAMARGStatistics extends ARGStatistics {
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
 
     if (!(cpa instanceof ARGCPA)) {
+      logger.log(Level.WARNING, "statistic export needs ARG-CPA");
       return; // invalid CPA, nothing to do
     }
 
     if (pReached.size() <= 1) {
       // interrupt, timeout -> no CEX available, ignore reached-set
+      logger.log(Level.WARNING, "could not compute full reached set graph, there is no exit state");
       return;
     }
 
@@ -85,6 +88,7 @@ public class BAMARGStatistics extends ARGStatistics {
     try {
       rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
     } catch (MissingBlockException | InterruptedException e) {
+      logger.log(Level.WARNING, "could not compute full reached set graph:", e);
       return; // invalid ARG, ignore output
     }
 
