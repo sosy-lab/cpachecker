@@ -23,21 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -50,7 +42,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -293,10 +284,8 @@ public class AutomatonGraphmlCommon {
         String pDefaultSourceFileName,
         Language pLanguage,
         MachineModel pMachineModel,
-        String pMemoryModel,
-        Iterable<String> pSpecifications,
-        String pProgramNames)
-        throws ParserConfigurationException, DOMException, IOException {
+        VerificationTaskMetaData pVerificationTaskMetaData)
+        throws ParserConfigurationException, DOMException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
@@ -320,7 +309,7 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
-      for (String specification : pSpecifications) {
+      for (String specification : pVerificationTaskMetaData.getSpecifications()) {
         graph.appendChild(createDataElement(KeyDef.SPECIFICATION, specification));
       }
 
@@ -328,10 +317,15 @@ public class AutomatonGraphmlCommon {
        * TODO: We should allow multiple program files here.
        * As soon as we do, we should also hash each file separately.
        */
-      graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, pProgramNames));
-      graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeProgramHash(pProgramNames)));
+      graph.appendChild(
+          createDataElement(
+              KeyDef.PROGRAMFILE,
+              Joiner.on(", ").join(pVerificationTaskMetaData.getProgramNames())));
+      graph.appendChild(
+          createDataElement(KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash()));
 
-      graph.appendChild(createDataElement(KeyDef.MEMORYMODEL, pMemoryModel));
+      graph.appendChild(
+          createDataElement(KeyDef.MEMORYMODEL, pVerificationTaskMetaData.getMemoryModel()));
       switch (pMachineModel) {
         case LINUX32:
           graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "32bit"));
@@ -414,17 +408,6 @@ public class AutomatonGraphmlCommon {
     public void addDataElementChild(Element childOf, final KeyDef key, final String value) {
       Element result = createDataElement(key, value);
       childOf.appendChild(result);
-    }
-
-    private String computeProgramHash(String pProgramDenotations) throws IOException {
-      List<ByteSource> sources = new ArrayList<>(1);
-      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-      for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
-        Path programPath = Paths.get(programDenotation);
-        sources.add(MoreFiles.asByteSource(programPath));
-      }
-      HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
-      return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
     }
 
     public void appendTo(Appendable pTarget) throws IOException {
