@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -59,12 +62,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -158,9 +155,11 @@ public class ReferencedVariablesCollector {
         if (statement instanceof CAssignment) {
           CAssignment assignment = (CAssignment) statement;
           String lhsVarName = getVarname(assignment.getLeftHandSide());
+          //If we have 'a->b = 1', we need to add not only 'a->b', but also 'a'
+          Set<String> lhsVars = collectVars(assignment.getLeftHandSide());
           Set<String> vars = collectVars(assignment.getRightHandSide());
           varsToRHS.putAll(lhsVarName, vars);
-          allVars.add(lhsVarName);
+          allVars.addAll(lhsVars);
           allVars.addAll(vars);
         } else {
           // other statements are considered side-effect free, ignore variable occurrences in them

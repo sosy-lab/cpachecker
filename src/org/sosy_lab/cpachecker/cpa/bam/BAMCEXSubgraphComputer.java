@@ -126,7 +126,7 @@ public class BAMCEXSubgraphComputer {
       // add parent for further processing
       waitlist.addAll(currentState.getParents());
 
-      final Set<BackwardARGState> childrenInSubgraph = new HashSet<>();
+      final Set<BackwardARGState> childrenInSubgraph = new TreeSet<>();
       for (final ARGState child : currentState.getChildren()) {
         // if a child is not in the subgraph, it does not lead to the target, so ignore it.
         // Because of the ordering, all important children should be finished already.

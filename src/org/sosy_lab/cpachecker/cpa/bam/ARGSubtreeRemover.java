@@ -207,7 +207,7 @@ public class ARGSubtreeRemover {
         // instead of modifying the existing reached-set,
         // we create a new reached-set with a new root with the new precision.
         logger.log(Level.FINER, "creating reached-set with new precision");
-        data.createAndRegisterNewReachedSet(reducedRootState, reducedRootPrecision, rootSubtree);
+        data.createAndRegisterNewReachedSet(reducedRootState, newPrecision.getFirst(), rootSubtree);
       } else {
         argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
       }
