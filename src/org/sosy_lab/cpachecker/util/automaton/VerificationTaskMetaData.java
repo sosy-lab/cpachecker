@@ -45,7 +45,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.VerificationTaskMetaData.HackyOptions;
 
 public class VerificationTaskMetaData {
 
