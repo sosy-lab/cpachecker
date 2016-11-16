@@ -112,13 +112,18 @@ public class VerificationTaskMetaData {
                     }
                   }
                 });
-    Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-    programNames = commaSplitter.split(hackyOptions.programs);
-    try {
-      programHash = computeProgramHash(programNames);
-    } catch (IOException e) {
-      throw new InvalidConfigurationException(
-          "Cannot access the configured source-code files of the verification task", e);
+    if (hackyOptions.programs == null) {
+      programNames = null;
+      programHash = null;
+    } else {
+      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
+      programNames = commaSplitter.split(hackyOptions.programs);
+      try {
+        programHash = computeProgramHash(programNames);
+      } catch (IOException e) {
+        throw new InvalidConfigurationException(
+            "Cannot access the configured source-code files of the verification task", e);
+      }
     }
   }
 
