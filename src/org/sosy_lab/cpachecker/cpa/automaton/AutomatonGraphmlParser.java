@@ -121,6 +121,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -174,6 +175,7 @@ public class AutomatonGraphmlParser {
   private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
   private final ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier(factory);
+  private final VerificationTaskMetaData verificationTaskMetaData;
 
   public AutomatonGraphmlParser(
       Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope)
@@ -187,6 +189,7 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
   }
 
   /**
@@ -254,6 +257,17 @@ public class AutomatonGraphmlParser {
       NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
       checkParsable(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
       Node graphNode = graphs.item(0);
+
+      Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
+      if (programHash.isEmpty()) {
+        logger.log(Level.WARNING, "Witness does not contain the hash sum "
+            + "of the program and may therefore be unrelated to the "
+            + "verification task it is being validated against.");
+      } else if (!programHash.contains(verificationTaskMetaData.getProgramHash())) {
+        throw new WitnessParseException("Hash sum of given verification-task "
+            + "source code does not match the hash sum in the witness. "
+            + "The witness is likely unrelated to the verification task.");
+      }
 
       Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);
       final GraphType graphType;
