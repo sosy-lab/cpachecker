@@ -258,15 +258,20 @@ public class AutomatonGraphmlParser {
       checkParsable(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
       Node graphNode = graphs.item(0);
 
-      Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
-      if (programHash.isEmpty()) {
-        logger.log(Level.WARNING, "Witness does not contain the hash sum "
-            + "of the program and may therefore be unrelated to the "
-            + "verification task it is being validated against.");
-      } else if (!programHash.contains(verificationTaskMetaData.getProgramHash())) {
-        throw new WitnessParseException("Hash sum of given verification-task "
-            + "source code does not match the hash sum in the witness. "
-            + "The witness is likely unrelated to the verification task.");
+      if (verificationTaskMetaData.getProgramHash().isPresent()) {
+        Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
+        if (programHash.isEmpty()) {
+          logger.log(
+              Level.WARNING,
+              "Witness does not contain the hash sum "
+                  + "of the program and may therefore be unrelated to the "
+                  + "verification task it is being validated against.");
+        } else if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
+          throw new WitnessParseException(
+              "Hash sum of given verification-task "
+                  + "source code does not match the hash sum in the witness. "
+                  + "The witness is likely unrelated to the verification task.");
+        }
       }
 
       Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);

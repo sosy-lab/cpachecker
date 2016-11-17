@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -87,9 +88,9 @@ public class VerificationTaskMetaData {
 
   private final Iterable<String> specifications;
 
-  private final Iterable<String> programNames;
+  private final Optional<Iterable<String>> programNames;
 
-  private final String programHash;
+  private String programHash;
 
   public VerificationTaskMetaData(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -113,17 +114,10 @@ public class VerificationTaskMetaData {
                   }
                 });
     if (hackyOptions.programs == null) {
-      programNames = null;
-      programHash = null;
+      programNames = Optional.empty();
     } else {
       Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-      programNames = commaSplitter.split(hackyOptions.programs);
-      try {
-        programHash = computeProgramHash(programNames);
-      } catch (IOException e) {
-        throw new InvalidConfigurationException(
-            "Cannot access the configured source-code files of the verification task", e);
-      }
+      programNames = Optional.of(commaSplitter.split(hackyOptions.programs));
     }
   }
 
@@ -138,18 +132,48 @@ public class VerificationTaskMetaData {
     return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
   }
 
-  public Iterable<String> getProgramNames() {
+  /**
+   * Gets the names of the source-code files of the verification task if this information is
+   * available.
+   *
+   * @return the names of the source-code files of the verification task.
+   */
+  public Optional<Iterable<String>> getProgramNames() {
     return programNames;
   }
 
-  public String getProgramHash() {
-    return programHash;
+  /**
+   * Gets the SHA-1 hash sum of the source-code files of the verification task if they are
+   * available.
+   *
+   * @return the SHA-1 hash sum of the source-code files of the verification task.
+   * @throws IOException if an {@code IOException} occurs while trying to read the source-code
+   *     files.
+   */
+  public Optional<String> getProgramHash() throws IOException {
+    if (!programNames.isPresent()) {
+      return Optional.empty();
+    }
+    if (programHash == null) {
+      programHash = computeProgramHash(programNames.get());
+    }
+    return Optional.of(programHash);
   }
 
+  /**
+   * Gets an identifier for the assumed memory model.
+   *
+   * @return an identifier for the assumed memory model.
+   */
   public String getMemoryModel() {
     return memoryModel;
   }
 
+  /**
+   * Gets the specifications considered for this verification task.
+   *
+   * @return the specifications considered for this verification task.
+   */
   public Iterable<String> getSpecifications() {
     return specifications;
   }

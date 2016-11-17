@@ -285,7 +285,7 @@ public class AutomatonGraphmlCommon {
         Language pLanguage,
         MachineModel pMachineModel,
         VerificationTaskMetaData pVerificationTaskMetaData)
-        throws ParserConfigurationException, DOMException {
+        throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
@@ -317,12 +317,17 @@ public class AutomatonGraphmlCommon {
        * TODO: We should allow multiple program files here.
        * As soon as we do, we should also hash each file separately.
        */
-      graph.appendChild(
-          createDataElement(
-              KeyDef.PROGRAMFILE,
-              Joiner.on(", ").join(pVerificationTaskMetaData.getProgramNames())));
-      graph.appendChild(
-          createDataElement(KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash()));
+      if (pVerificationTaskMetaData.getProgramNames().isPresent()) {
+        graph.appendChild(
+            createDataElement(
+                KeyDef.PROGRAMFILE,
+                Joiner.on(", ").join(pVerificationTaskMetaData.getProgramNames().get())));
+      }
+      if (pVerificationTaskMetaData.getProgramHash().isPresent()) {
+        graph.appendChild(
+            createDataElement(
+                KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash().get()));
+      }
 
       graph.appendChild(
           createDataElement(KeyDef.MEMORYMODEL, pVerificationTaskMetaData.getMemoryModel()));
