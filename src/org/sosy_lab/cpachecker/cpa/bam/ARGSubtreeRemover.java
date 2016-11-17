@@ -201,16 +201,16 @@ public class ARGSubtreeRemover {
     } else {
       final Pair<Precision, Predicate<? super Precision>> newPrecision = getUpdatedPrecision(
           reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
-      if (removeElement.getParents().contains(reachedSet.getFirstState())) {
+      //if (removeElement.getParents().contains(reachedSet.getFirstState())) {
         // after removing the state, only the root-state (and maybe other branches
         // starting at root) would remain, with a new precision for root.
         // instead of modifying the existing reached-set,
         // we create a new reached-set with a new root with the new precision.
-        logger.log(Level.FINER, "creating reached-set with new precision");
-        data.createAndRegisterNewReachedSet(reducedRootState, newPrecision.getFirst(), rootSubtree);
-      } else {
+      //  logger.log(Level.FINER, "creating reached-set with new precision");
+      //  data.createAndRegisterNewReachedSet(reducedRootState, newPrecision.getFirst(), rootSubtree);
+      //} else {
         argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
-      }
+      //}
     }
 
     removeCachedSubtreeTimer.stop();
