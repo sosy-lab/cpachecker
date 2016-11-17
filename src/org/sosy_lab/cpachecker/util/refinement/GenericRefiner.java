@@ -121,7 +121,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
   // statistics
-  private final StatCounter refinementCounter = new StatCounter("Number of refinements");
+  private final StatCounter refinementCounter = new StatCounter("Number of generic refinements");
   private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
   private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
 

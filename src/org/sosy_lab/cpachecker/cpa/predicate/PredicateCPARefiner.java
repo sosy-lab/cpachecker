@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -126,6 +127,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
 
+  private final StatCounter numberOfRepeatedPaths = new StatCounter("Number of repeated paths");
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
@@ -236,6 +238,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           ImmutableList.copyOf(
               Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
       final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
+      if (repeatedCounterexample) {
+        numberOfRepeatedPaths.inc();
+      }
       lastErrorPaths.add(errorPath);
 
       Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
@@ -558,7 +563,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         w0.put(totalPathLength)
           .put(totalPrefixes)
           .spacer()
-          .put(totalRefinement);
+          .put(totalRefinement)
+          .put(numberOfRepeatedPaths);
 
         StatisticsWriter w1 = w0.beginLevel();
         interpolationManager.printStatistics(w1);
