@@ -70,23 +70,25 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   )
   private String predicateComputer = "AUXILIARY";
 
-  @Option(
-      description = "should we use precision reduction at the BAM block entry",
-      secure = true
-    )
+  @Option(description = "should we use precision reduction at the BAM block entry",
+      secure = true)
   private boolean usePrecisionReduction = true;
 
-  @Option(
-      description = "should we use abstraction reduction at the BAM block entry",
-      secure = true
-    )
+  @Option(description = "should we use abstraction reduction at the BAM block entry",
+      secure = true)
   private boolean reduceIrrelevantPrecision = true;
 
-  @Option(
-      description = "should we use precision reduction using relevantComputer",
-      secure = true
-    )
+  @Option(description = "should we use precision reduction using relevantComputer",
+      secure = true)
   private boolean useAbstractionReduction = true;
+
+  @Option(description = "should we fail in case of repeated counterexample." +
+                        "There are cases, when repeated counterexamples occurs " +
+                        "if precision was cut after another refinement with refinement root" +
+                        "higher than the first one. In BAM analysis we can not merge all precision from subgraph" +
+                        "and we may lost it",
+      secure = true)
+  private boolean failAfterRepeatedCounterexample = true;
 
   private BAMPredicateCPA(
       Configuration config,
@@ -143,6 +145,10 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   public boolean reduceIrrelevantPrecision() {
     return reduceIrrelevantPrecision;
+  }
+
+  public boolean failAfterRepeatedCounterexample() {
+    return failAfterRepeatedCounterexample;
   }
 
   @Override

@@ -269,6 +269,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
     private final BAMPredicateCPA predicateCpa;
     private boolean secondRepeatedCEX = false;
+    private final boolean failAfterRepeatedCounterexample;
 
     private BAMPredicateAbstractionRefinementStrategy(
         final Configuration config,
@@ -280,6 +281,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
       super(config, logger, pPredAbsMgr, pSolver);
       this.predicateCpa = predicateCpa;
+      this.failAfterRepeatedCounterexample = predicateCpa.failAfterRepeatedCounterexample();
     }
 
     @Override
@@ -315,7 +317,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
           RelevantPredicatesComputer newRelevantPredicatesComputer =
               refineRelevantPredicatesComputer(abstractionStatesTrace, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
 
-          if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
+          if (failAfterRepeatedCounterexample && newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
             // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
             // TODO if this happens, there might be a bug in the analysis!
             throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
