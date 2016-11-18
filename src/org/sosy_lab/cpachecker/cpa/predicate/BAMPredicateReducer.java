@@ -62,6 +62,7 @@ public class BAMPredicateReducer implements Reducer {
   private final BooleanFormulaManager bfmgr;
 
   private final boolean reducePrecision;
+  private final boolean reduceIrrelevantPrecision;
   private final boolean reduceAbstraction;
 
   public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa) {
@@ -72,6 +73,7 @@ public class BAMPredicateReducer implements Reducer {
     this.cpa = cpa;
     this.reducePrecision = cpa.usePrecisionReduction();
     this.reduceAbstraction = cpa.useAbstractionReduction();
+    this.reduceIrrelevantPrecision = cpa.reduceIrrelevantPrecision();
   }
 
   @Override
@@ -224,15 +226,21 @@ public class BAMPredicateReducer implements Reducer {
       // create reduced precision
 
       // we only need global predicates with used variables
-      final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(cpa.getRelevantPredicatesComputer().getRelevantPredicates(
-          context, expandedPredicatePrecision.getGlobalPredicates()));
+      Collection<AbstractionPredicate> predicates = expandedPredicatePrecision.getGlobalPredicates();
+      if (reduceIrrelevantPrecision) {
+        predicates = cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
+      }
+      final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(predicates);
 
       // we only need function predicates with used variables
       final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
       for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
         // TODO only add vars if functionname is used in block?
-        functionPredicatesBuilder.putAll(functionname, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
-            context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
+        predicates = expandedPredicatePrecision.getFunctionPredicates().get(functionname);
+        if (reduceIrrelevantPrecision) {
+          predicates = cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
+        }
+        functionPredicatesBuilder.putAll(functionname, predicates);
       }
       final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
 
@@ -242,8 +250,11 @@ public class BAMPredicateReducer implements Reducer {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates
           // Without support for them, we can just pass 0 as locInstance parameter
-          localPredicatesBuilder.putAll(node, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
-              context, expandedPredicatePrecision.getPredicates(node, 0)));
+          predicates = expandedPredicatePrecision.getPredicates(node, 0);
+          if (reduceIrrelevantPrecision) {
+            predicates = cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
+          }
+          localPredicatesBuilder.putAll(node, predicates);
         }
       }
       final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();

@@ -80,6 +80,12 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       description = "should we use abstraction reduction at the BAM block entry",
       secure = true
     )
+  private boolean reduceIrrelevantPrecision = true;
+
+  @Option(
+      description = "should we use precision reduction using relevantComputer",
+      secure = true
+    )
   private boolean useAbstractionReduction = true;
 
   private BAMPredicateCPA(
@@ -133,6 +139,10 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   boolean useAbstractionReduction() {
     return useAbstractionReduction;
+  }
+
+  public boolean reduceIrrelevantPrecision() {
+    return reduceIrrelevantPrecision;
   }
 
   @Override
