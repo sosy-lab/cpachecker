@@ -16,6 +16,8 @@
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-4.2-rc1/*</exclude>
+    <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-3.16-rc1/205_9a_array_*safes_linux-3.16-rc1.tar.xz-205_9a-drivers--net*</exclude>
+    <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-3.14/linux-3.14__complex_emg__linux-usb-dev__*</exclude>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
