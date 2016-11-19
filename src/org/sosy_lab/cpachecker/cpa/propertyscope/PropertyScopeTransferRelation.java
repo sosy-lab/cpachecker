@@ -110,10 +110,12 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
           .map(oldAuMa -> oldAuMa.get(autom)).ifPresent(oldAutomState -> {
             if(automScopeInsts.containsKey(autom)) {
               AutomatonState startState = automScopeInsts.get(autom).getStartState();
-              if (startState.getInternalState().equals(automState.getInternalState())) {
+              if (startState.getInternalState().equals(oldAutomState.getInternalState())) {
                 automScopeInsts.remove(autom);
               }
-            } else if(automState.getPropertyDependantMatches()
+            }
+
+            if(!automScopeInsts.containsKey(autom) && automState.getPropertyDependantMatches()
                 > oldAutomState.getPropertyDependantMatches()) {
                 automScopeInsts.put(autom, PropertyScopeInstance.create(oldAutomState));
             }

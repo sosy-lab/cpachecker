@@ -218,10 +218,10 @@ public class PropertyScopeGraphToDotWriter {
 
     PredicateAbstractState predSt =
         extractStateByType(node.getArgState(), PredicateAbstractState.class);
-    sb
+    /*sb
         .append("PA: ")
         .append(predSt.getAbstractionFormula().asInstantiatedFormula().toString())
-        .append("\\n");
+        .append("\\n");*/
 
     sb.append("\"").append(" shape=box style=filled fillcolor=\"#d5d5d5\" fontsize=9];\n");
 
