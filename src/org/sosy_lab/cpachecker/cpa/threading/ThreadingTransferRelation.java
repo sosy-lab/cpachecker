@@ -194,6 +194,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** handle all edges related to thread-management:
    * THREAD_START, THREAD_JOIN, THREAD_EXIT, THREAD_MUTEX_LOCK, VERIFIER_ATOMIC,...
+   *
+   * If nothing changes, then return <code>results</code> unmodified.
    */
   private Collection<ThreadingState> getAbstractSuccessorsForEdge0(
       final CFAEdge cfaEdge, final ThreadingState threadingState,
@@ -241,6 +243,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         // cloning changes the function-name -> we use 'startsWith'.
         // we have 2 different atomic sequences:
         //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //      (@Deprecated, for old benchmark tasks)
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be anything
         final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
         if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
@@ -256,6 +259,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         // cloning changes the function-name -> we use 'startsWith'.
         // we have 2 different atomic sequences:
         //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //      (@Deprecated, for old benchmark tasks)
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be anything
         final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
         if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
@@ -569,8 +573,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return false;
     }
     case FunctionCallEdge:
+      // @Deprecated, for old benchmark tasks
       return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN);
     case FunctionReturnEdge:
+      // @Deprecated, for old benchmark tasks
       return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END);
     default:
       return false;
