@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.threading;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -106,8 +106,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
-  private static final Set<String> THREAD_FUNCTIONS = Sets.newHashSet(
-      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
+  private static final Set<String> THREAD_FUNCTIONS = ImmutableSet.of(
+      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT,
+      VERIFIER_ATOMIC_BEGIN, VERIFIER_ATOMIC_END);
 
   private final CFA cfa;
   private final LogManagerWithoutDuplicates logger;
@@ -217,6 +218,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_EXIT:
             // this function-call is already handled in the beginning with isLastNodeOfThread.
             // return exitThread(threadingState, activeThread, results);
+            break;
+          case VERIFIER_ATOMIC_BEGIN:
+            if (useAtomicLocks) {
+              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+            }
+            break;
+          case VERIFIER_ATOMIC_END:
+            if (useAtomicLocks) {
+              return removeLock(activeThread, ATOMIC_LOCK, results);
+            }
+            break;
           default:
             // nothing to do, return results
           }
