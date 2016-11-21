@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -189,7 +190,17 @@ public class BAMDataManager {
 
   void registerInitialState(AbstractState state, ReachedSet reachedSet) {
     ReachedSet oldReachedSet = initialStateToReachedSet.get(state);
-    assert oldReachedSet == null || oldReachedSet == reachedSet;
+    if (oldReachedSet != null && oldReachedSet != reachedSet) {
+      // TODO This might be a hint for a memory leak, i.e., the old reachedset
+      // is no longer accessible through BAMDataManager, but registered in BAM-cache.
+      // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
+      logger.logf(
+          Level.ALL,
+          "New abstract state %s overrides old reachedset %s with new reachedset %s.",
+          state,
+          oldReachedSet.getFirstState(),
+          reachedSet.getFirstState());
+    }
     initialStateToReachedSet.put(state, reachedSet);
   }
 
