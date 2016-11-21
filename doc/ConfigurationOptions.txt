@@ -2773,10 +2773,6 @@ spec.matchOriginLine = true
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
-# Do not try to "catch up" with witness guards: If they do not match, go to
-# the sink.
-spec.strictMatching = false
-
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
 
