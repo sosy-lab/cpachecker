@@ -268,8 +268,8 @@ class BAMCPAStatistics implements Statistics {
         ARGState targetState = (ARGState) target.getFirstState();
         connections.put(state, targetState);
       }
-      if (data.expandedStateToReducedState.containsKey(state)) {
-        AbstractState sourceState = data.expandedStateToReducedState.get(state);
+      if (data.hasExpandedState(state)) {
+        AbstractState sourceState = data.getReducedStateForExpandedState(state);
         connections.put((ARGState) sourceState, state);
       }
       waitlist.addAll(state.getChildren());

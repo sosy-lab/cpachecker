@@ -249,10 +249,10 @@ public class ARGSubtreeRemover {
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       ARGState tmp = state;
-      while (data.expandedStateToReducedState.containsKey(tmp) && bamCutState != bamState) {
+      while (data.hasExpandedState(tmp) && bamCutState != bamState) {
         assert partitioning.isReturnNode(extractLocation(tmp)) : "the mapping of expanded to reduced state should only exist for block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
-        tmp = (ARGState) data.expandedStateToReducedState.get(tmp);
+        tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
         openCallStates.removeLast();
         // INFO:
         // if we leave several blocks at once, we leave the blocks in reverse order,

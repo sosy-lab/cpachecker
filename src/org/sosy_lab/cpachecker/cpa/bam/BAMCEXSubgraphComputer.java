@@ -191,7 +191,8 @@ public class BAMCEXSubgraphComputer {
     final Map<BackwardARGState, BackwardARGState> newExpandedToNewInnerTargets = new HashMap<>();
 
     for (BackwardARGState newExpandedTarget : newExpandedTargets) {
-      final ARGState reducedTarget = (ARGState) data.expandedStateToReducedState.get(newExpandedTarget.getARGState());
+      final ARGState reducedTarget =
+          (ARGState) data.getReducedStateForExpandedState(newExpandedTarget.getARGState());
 
       // first check, if the cached state is valid.
       if (reducedTarget.isDestroyed()) {

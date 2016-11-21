@@ -66,7 +66,7 @@ public class BAMDataManager {
    * Mapping from expanded states at the end of the block to corresponding
    * reduced states, from which the key state was originally expanded.
    * */
-  final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
+  private final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
 
   /**
    * Mapping from expanded states at a block-end to
@@ -188,6 +188,7 @@ public class BAMDataManager {
     return Lists.reverse(lst);
   }
 
+
   void registerInitialState(AbstractState state, ReachedSet reachedSet) {
     ReachedSet oldReachedSet = initialStateToReachedSet.get(state);
     if (oldReachedSet != null && oldReachedSet != reachedSet) {
@@ -211,5 +212,15 @@ public class BAMDataManager {
 
   boolean hasInitialState(AbstractState state) {
     return initialStateToReachedSet.containsKey(state);
+  }
+
+
+  AbstractState getReducedStateForExpandedState(AbstractState state) {
+    assert expandedStateToReducedState.containsKey(state);
+    return expandedStateToReducedState.get(state);
+  }
+
+  boolean hasExpandedState(AbstractState state) {
+    return expandedStateToReducedState.containsKey(state);
   }
 }
