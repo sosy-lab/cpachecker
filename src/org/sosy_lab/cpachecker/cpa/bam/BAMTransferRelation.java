@@ -440,7 +440,7 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     assert reached != null;
-    data.initialStateToReachedSet.put(initialState, reached);
+    data.registerInitialState(initialState, reached);
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {

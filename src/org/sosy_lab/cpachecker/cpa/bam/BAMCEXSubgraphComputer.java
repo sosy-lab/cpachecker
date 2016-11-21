@@ -133,7 +133,7 @@ public class BAMCEXSubgraphComputer {
         }
       }
 
-      if (data.initialStateToReachedSet.containsKey(currentState)) {
+      if (data.hasInitialState(currentState)) {
 
         // If child-state is an expanded state, the child is at the exit-location of a block.
         // In this case, we enter the block (backwards).
@@ -187,7 +187,7 @@ public class BAMCEXSubgraphComputer {
       throws MissingBlockException, InterruptedException {
 
     ARGState expandedRoot = (ARGState) newExpandedRoot.getWrappedState();
-    final ReachedSet reachedSet = data.initialStateToReachedSet.get(expandedRoot);
+    final ReachedSet reachedSet = data.getReachedSetForInitialState(expandedRoot);
     final Map<BackwardARGState, BackwardARGState> newExpandedToNewInnerTargets = new HashMap<>();
 
     for (BackwardARGState newExpandedTarget : newExpandedTargets) {

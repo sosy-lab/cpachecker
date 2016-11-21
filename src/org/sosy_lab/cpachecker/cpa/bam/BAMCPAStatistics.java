@@ -262,8 +262,8 @@ class BAMCPAStatistics implements Statistics {
       if (!finished.add(state)) {
         continue;
       }
-      if (data.initialStateToReachedSet.containsKey(state)) {
-        ReachedSet target = data.initialStateToReachedSet.get(state);
+      if (data.hasInitialState(state)) {
+        ReachedSet target = data.getReachedSetForInitialState(state);
         referencedReachedSets.add(target);
         ARGState targetState = (ARGState) target.getFirstState();
         connections.put(state, targetState);

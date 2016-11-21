@@ -353,7 +353,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       logger.logf(Level.FINEST, "skipping recursive call with cached result (root is %s)", reached.getFirstState());
     }
 
-    data.initialStateToReachedSet.put(initialState, reached);
+    data.registerInitialState(initialState, reached);
 
     if (bamPccManager.isPCCEnabled()) {
       bamPccManager.addBlockAnalysisInfo(pReducedInitialState);

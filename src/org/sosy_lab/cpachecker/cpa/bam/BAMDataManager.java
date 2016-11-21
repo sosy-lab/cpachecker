@@ -59,7 +59,7 @@ public class BAMDataManager {
    * Mapping of non-reduced initial states
    * to {@link ReachedSet}.
    **/
-  final Map<AbstractState, ReachedSet> initialStateToReachedSet = new HashMap<>();
+  private final Map<AbstractState, ReachedSet> initialStateToReachedSet = new HashMap<>();
 
   /**
    * Mapping from expanded states at the end of the block to corresponding
@@ -185,5 +185,20 @@ public class BAMDataManager {
       lst.add(tmp);
     }
     return Lists.reverse(lst);
+  }
+
+  void registerInitialState(AbstractState state, ReachedSet reachedSet) {
+    ReachedSet oldReachedSet = initialStateToReachedSet.get(state);
+    assert oldReachedSet == null || oldReachedSet == reachedSet;
+    initialStateToReachedSet.put(state, reachedSet);
+  }
+
+  ReachedSet getReachedSetForInitialState(AbstractState state) {
+    assert initialStateToReachedSet.containsKey(state);
+    return initialStateToReachedSet.get(state);
+  }
+
+  boolean hasInitialState(AbstractState state) {
+    return initialStateToReachedSet.containsKey(state);
   }
 }
