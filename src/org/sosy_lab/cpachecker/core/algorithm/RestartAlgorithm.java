@@ -315,10 +315,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         stats.noOfAlgorithmsUsed++;
 
         // run algorithm
+        registerReachedSetUpdateListeners();
         try {
-          registerReachedSetUpdateListeners();
           status = currentAlgorithm.run(currentReached);
-          unregisterReachedSetUpdateListeners();
 
           if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
 
@@ -373,6 +372,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           }
         }
       } finally {
+        unregisterReachedSetUpdateListeners();
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
         singleShutdownManager.requestShutdown("Analysis terminated"); // shutdown any remaining components
         stats.totalTime.stop();
@@ -557,9 +557,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       for (ReachedSetUpdateListener listener : reachedSetUpdateListenersAdded) {
         algorithm.unregister(listener);
       }
-      reachedSetUpdateListeners.clear();
+      reachedSetUpdateListenersAdded.clear();
     } else {
       Preconditions.checkState(reachedSetUpdateListenersAdded.isEmpty());
     }
+    assert reachedSetUpdateListenersAdded.isEmpty();
   }
 }
