@@ -2773,6 +2773,10 @@ spec.matchOriginLine = true
 # Match the source code provided with the witness.
 spec.matchSourcecodeData = false
 
+# Enforce strict validity checks regarding the witness format, such as
+# checking for the presence of required fields.
+spec.strictChecking = true
+
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
 

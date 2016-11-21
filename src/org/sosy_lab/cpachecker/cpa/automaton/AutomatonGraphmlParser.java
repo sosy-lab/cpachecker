@@ -160,6 +160,13 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Match the branching information at a branching location.")
   private boolean matchAssumeCase = true;
 
+  @Option(
+    secure = true,
+    description =
+        "Enforce strict validity checks regarding the witness format, such as checking for the presence of required fields."
+  )
+  private boolean strictChecking = true;
+
   @Option(secure=true, description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
@@ -255,21 +262,8 @@ public class AutomatonGraphmlParser {
       checkParsable(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
       Node graphNode = graphs.item(0);
 
-      if (verificationTaskMetaData.getProgramHash().isPresent()) {
-        Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
-        if (programHash.isEmpty()) {
-          logger.log(
-              Level.WARNING,
-              "Witness does not contain the hash sum "
-                  + "of the program and may therefore be unrelated to the "
-                  + "verification task it is being validated against.");
-        } else if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
-          throw new WitnessParseException(
-              "Hash sum of given verification-task "
-                  + "source code does not match the hash sum in the witness. "
-                  + "The witness is likely unrelated to the verification task.");
-        }
-      }
+      Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
+      checkHashSum(programHash);
 
       Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);
       final GraphType graphType;
@@ -782,6 +776,33 @@ public class AutomatonGraphmlParser {
       throw new InvalidConfigurationException("The automaton provided is invalid!", e);
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
+    }
+  }
+
+  private void checkHashSum(Set<String> programHash) throws IOException {
+    if (programHash.isEmpty()) {
+      String message =
+          "Witness does not contain the hash sum "
+              + "of the program and may therefore be unrelated to the "
+              + "verification task it is being validated against.";
+      if (strictChecking) {
+        throw new WitnessParseException(message);
+      } else {
+        logger.log(Level.WARNING, message);
+      }
+    } else if (verificationTaskMetaData.getProgramHash().isPresent()) {
+      if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
+        throw new WitnessParseException(
+            "Hash sum of given verification-task "
+                + "source code does not match the hash sum in the witness. "
+                + "The witness is likely unrelated to the verification task.");
+      }
+    } else {
+      logger.log(
+          Level.WARNING,
+          "Could not compute the program hash sum, "
+              + "and could therefore not ascertain the validity of the program "
+              + "hash sum given by the witness.");
     }
   }
 
