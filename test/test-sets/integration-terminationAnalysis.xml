@@ -10,6 +10,10 @@
   <tasks>  <!--  name="Termination-SV-COMP" -->
     <includesfile>../programs/benchmarks/Termination.set</includesfile>
     <exclude>../programs/benchmarks/product-lines/*</exclude>
+    <exclude reason="flapping timeout">../programs/benchmarks/termination-memory-alloca/array02-alloca_true-termination.c.i</exclude>
+    <exclude reason="flapping timeout">../programs/benchmarks/termination-restricted-15/DivWithoutMinus_false-termination.c</exclude>
+    <exclude reason="timeout">../programs/benchmarks/termination-memory-alloca/b.*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/termination-memory-alloca/c.*</exclude>
   </tasks>
   
   <!--
