@@ -318,7 +318,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
         try {
           registerReachedSetUpdateListeners();
           status = currentAlgorithm.run(currentReached);
-          unegisterReachedSetUpdateListeners();
+          unregisterReachedSetUpdateListeners();
 
           if (from(currentReached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
 
@@ -551,13 +551,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     }
   }
 
-  private void unegisterReachedSetUpdateListeners() {
+  private void unregisterReachedSetUpdateListeners() {
     if (currentAlgorithm instanceof ReachedSetUpdater) {
       ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
       for (ReachedSetUpdateListener listener : reachedSetUpdateListenersAdded) {
         algorithm.unregister(listener);
-        reachedSetUpdateListenersAdded.add(listener);
       }
+      reachedSetUpdateListeners.clear();
     } else {
       Preconditions.checkState(reachedSetUpdateListenersAdded.isEmpty());
     }
