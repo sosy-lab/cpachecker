@@ -331,17 +331,7 @@ public class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.MEMORYMODEL, pVerificationTaskMetaData.getMemoryModel()));
-      switch (pMachineModel) {
-        case LINUX32:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "32bit"));
-          break;
-        case LINUX64:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "64bit"));
-          break;
-        default:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString()));
-          break;
-      }
+      graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
     }
 
     private Element createElement(GraphMlTag tag) {
@@ -497,5 +487,20 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
+  public static String getArchitecture(MachineModel pMachineModel) {
+    final String architecture;
+    switch (pMachineModel) {
+      case LINUX32:
+        architecture = "32bit";
+        break;
+      case LINUX64:
+        architecture = "64bit";
+        break;
+      default:
+        architecture = pMachineModel.toString();
+        break;
+    }
+    return architecture;
+  }
 
 }

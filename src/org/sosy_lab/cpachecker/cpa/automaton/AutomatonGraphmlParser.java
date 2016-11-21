@@ -116,6 +116,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMat
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
@@ -264,6 +265,17 @@ public class AutomatonGraphmlParser {
 
       Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
       checkHashSum(programHash);
+
+      if (strictChecking) {
+        checkRequiredField(graphNode, KeyDef.GRAPH_TYPE);
+        checkRequiredField(graphNode, KeyDef.SOURCECODELANGUAGE);
+        checkRequiredField(graphNode, KeyDef.PRODUCER);
+        checkRequiredField(graphNode, KeyDef.SPECIFICATION);
+        checkRequiredField(graphNode, KeyDef.PROGRAMFILE);
+      }
+
+      Set<String> architecture = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE);
+      checkArchitecture(architecture);
 
       Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);
       final GraphType graphType;
@@ -779,8 +791,15 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private void checkHashSum(Set<String> programHash) throws IOException {
-    if (programHash.isEmpty()) {
+  private void checkRequiredField(Node pGraphNode, KeyDef pKey) {
+    Set<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
+    if (data.isEmpty()) {
+      throw new WitnessParseException("The witness does not contain the required field");
+    }
+  }
+
+  private void checkHashSum(Set<String> pProgramHash) throws IOException {
+    if (pProgramHash.isEmpty()) {
       String message =
           "Witness does not contain the hash sum "
               + "of the program and may therefore be unrelated to the "
@@ -791,7 +810,7 @@ public class AutomatonGraphmlParser {
         logger.log(Level.WARNING, message);
       }
     } else if (verificationTaskMetaData.getProgramHash().isPresent()) {
-      if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
+      if (!pProgramHash.contains(verificationTaskMetaData.getProgramHash().get())) {
         throw new WitnessParseException(
             "Hash sum of given verification-task "
                 + "source code does not match the hash sum in the witness. "
@@ -803,6 +822,26 @@ public class AutomatonGraphmlParser {
           "Could not compute the program hash sum, "
               + "and could therefore not ascertain the validity of the program "
               + "hash sum given by the witness.");
+    }
+  }
+
+  private void checkArchitecture(Set<String> pArchitecture) {
+    if (pArchitecture.isEmpty()) {
+      String message =
+          "Witness does not contain the architecture assumed for the "
+              + "verification task. If the architecture assumed by the witness "
+              + "differs from the architecture assumed by the validator, "
+              + "meaningful validation results cannot be guaranteed.";
+      if (strictChecking) {
+        throw new WitnessParseException(message);
+      } else {
+        logger.log(Level.WARNING, message);
+      }
+    } else if (!pArchitecture.contains(AutomatonGraphmlCommon.getArchitecture(machine))) {
+      throw new WitnessParseException(
+          "The architecture assumed for the given verification-task differs "
+              + " from the architecture assumed by the witness. "
+              + " Witness validation is meaningless.");
     }
   }
 
