@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -88,9 +89,9 @@ public class CounterexampleCheckAlgorithm
       ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
-    config.inject(this);
+    config.inject(this, CounterexampleCheckAlgorithm.class);
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (!(pCpa instanceof ARGCPA || pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
 
@@ -176,14 +177,11 @@ public class CounterexampleCheckAlgorithm
 
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
       throws InterruptedException {
-    ARGState rootState = (ARGState)reached.getFirstState();
-
-    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
 
     logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
     final boolean feasibility;
     try {
-      feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
+      feasibility = checkErrorPaths(checker, errorState, reached);
     } catch (CPAException e) {
       logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
       return false;
@@ -197,6 +195,25 @@ public class CounterexampleCheckAlgorithm
       logger.log(Level.INFO, "Error path found but identified as infeasible.");
     }
     return feasibility;
+  }
+
+  /**
+   * check whether there is a feasible counterexample in the reachedset.
+   *
+   * @param checker executes a precise counterexample-check
+   * @param errorState where the counterexample ends
+   * @param reached all reached states of the analysis, some of the states are part of the CEX path
+   */
+  protected boolean checkErrorPaths(
+      CounterexampleChecker checker,
+      ARGState errorState,
+      @SuppressWarnings("unused") ReachedSet reached)
+      throws CPAException, InterruptedException {
+
+    ARGState rootState = (ARGState) reached.getFirstState();
+    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+
+    return checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
   }
 
   @Override
