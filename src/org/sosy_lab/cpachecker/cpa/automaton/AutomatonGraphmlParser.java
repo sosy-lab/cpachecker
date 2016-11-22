@@ -792,10 +792,23 @@ public class AutomatonGraphmlParser {
   }
 
   private void checkRequiredField(Node pGraphNode, KeyDef pKey) {
-    Set<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
-    if (data.isEmpty()) {
+    checkRequiredField(pGraphNode, pKey, false);
+  }
+
+  private void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty) {
+    Iterable<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
+    if (Iterables.isEmpty(data)) {
       throw new WitnessParseException(
           String.format("The witness does not contain the required field '%s'", pKey.id));
+    }
+    if (!pAcceptEmpty) {
+      data = FluentIterable.from(data).filter(s -> !s.trim().isEmpty());
+    }
+    if (Iterables.isEmpty(data)) {
+      throw new WitnessParseException(
+          String.format(
+              "The witness does not contain a non-empty entry for the required field '%s'",
+              pKey.id));
     }
   }
 
