@@ -54,11 +54,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 @Options(prefix = "counterexample")
 public class CounterexampleCheckAlgorithm
@@ -83,6 +86,8 @@ public class CounterexampleCheckAlgorithm
                     + "checker can be used.")
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
+  private final boolean isBAMenabled;
+
   public CounterexampleCheckAlgorithm(Algorithm algorithm,
       ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
@@ -90,8 +95,14 @@ public class CounterexampleCheckAlgorithm
     this.logger = logger;
     config.inject(this);
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (CPAs.retrieveCPA(pCpa, ARGCPA.class) == null) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
+    }
+
+    if (CPAs.retrieveCPA(pCpa, BAMCPA.class) != null) {
+      isBAMenabled = true;
+    } else {
+      isBAMenabled = false;
     }
 
     switch (checkerType) {
@@ -178,7 +189,16 @@ public class CounterexampleCheckAlgorithm
       throws InterruptedException {
     ARGState rootState = (ARGState)reached.getFirstState();
 
-    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+    Set<ARGState> statesOnErrorPath;
+    ARGState lastState = (ARGState) reached.getLastState();
+    if (isBAMenabled) {
+      ARGPath path = lastState.getCounterexampleInformation().get().getTargetPath();
+      statesOnErrorPath = path.getStateSet();
+      rootState = path.getFirstState();
+      errorState = path.getLastState();
+    } else {
+      statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+    }
 
     logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
     final boolean feasibility;
