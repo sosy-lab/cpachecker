@@ -794,7 +794,8 @@ public class AutomatonGraphmlParser {
   private void checkRequiredField(Node pGraphNode, KeyDef pKey) {
     Set<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
     if (data.isEmpty()) {
-      throw new WitnessParseException("The witness does not contain the required field");
+      throw new WitnessParseException(
+          String.format("The witness does not contain the required field '%s'", pKey.id));
     }
   }
 
