@@ -113,12 +113,12 @@ class BAMCPAStatistics implements Statistics {
 
     int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
 
-    int sumARTElemets = 0;
-    for (UnmodifiableReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
-      sumARTElemets += subreached.size();
+    int sumARTElements = 0;
+    for (UnmodifiableReachedSet subreached : cpa.getData().bamCache.getAllCachedReachedStates()) {
+      sumARTElements += subreached.size();
     }
 
-    out.println("Total size of all ARGs:                                         " + sumARTElemets);
+    out.println("Total size of all ARGs:                                         " + sumARTElements);
     out.println("Number of blocks:                                               " + cpa.getBlockPartitioning().getBlocks().size());
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
     out.println("Total number of recursive CPA calls:                            " + sumCalls);

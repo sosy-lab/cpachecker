@@ -54,6 +54,7 @@ class BAMARGUtils {
    * @param cpa CPA object to be used for getting cached information.
    * @param finalReachedSet resached set to partition.
    */
+  @Deprecated // reason: unused, possibly misunderstood and maybe error-prone
   public static Multimap<Block, UnmodifiableReachedSet> gatherReachedSets(BAMCPA cpa, UnmodifiableReachedSet finalReachedSet) {
     Multimap<Block, UnmodifiableReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
