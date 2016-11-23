@@ -204,7 +204,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
           // assert that reached set is free of target states,
           // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
           if (refinementSuccessful && initialReachedSetSize == 1) {
-            assert !from(reached).anyMatch(IS_TARGET_STATE);
+            assert !from(reached).anyMatch(IS_TARGET_STATE) : "Target state should not be present"
+                + " in the reached set after refinement.";
           }
         }
 
