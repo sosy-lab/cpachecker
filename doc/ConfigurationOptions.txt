@@ -2655,7 +2655,7 @@ precision.template.templateConstantThreshold = 100
 
 # Strategy for filtering variables out of templates using liveness
 precision.template.varFiltering = ALL_LIVE
-  enum:     [ALL_LIVE, ONE_LIVE, ALL]
+  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, ALL]
 
 # If this option is used, variables that are addressed may get tracked
 # depending on the rest of the precision. When this option is disabled, a
