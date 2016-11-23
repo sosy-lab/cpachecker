@@ -1928,10 +1928,6 @@ cpa.slicing.checkTargetStates = true
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
-# Instead of considering the entire SCC, ignore the function nested in the
-# loop. UNSOUND!
-cpa.slicing.ignoreFunctionCallsInLoop = false
-
 # Depth limit for the 'LEAST_REMOVALS' strategy.
 cpa.slicing.leastRemovalsDepthLimit = 2
 
@@ -2798,11 +2794,13 @@ statesToFormulas.exportOnlyImporantLocations = false
 statesToFormulas.splitFormulas = LOCATION
   enum:     [LOCATION, STATE, ATOM]
 
-# Add all assumtions from the control flow automaton to the precision.
+# Add all assumptions from the control flow automaton to the precision.
 staticRefiner.addAllControlFlowAssumes = false
 
-# Add all assumtions along a error trace to the precision.
+# Add all assumptions along a error trace to the precision.
 staticRefiner.addAllErrorTraceAssumes = false
+
+# Add all assumptions along the error trace to the precision.
 staticRefiner.addAssumesByBoundedBackscan = true
 
 # Apply mined predicates on the corresponding scope. false = add them to the

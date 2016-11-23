@@ -63,10 +63,7 @@ public class LoopTransitionFinderTest {
   @Before
   public void setUp() throws Exception {
     config = TestDataTools.configurationForTest().setOptions(
-        ImmutableMap.of(
-            "solver.solver", "z3",
-            "cpa.predicate.handlePointerAliasing", "false"
-        )
+        ImmutableMap.of("solver.solver", "z3")
     ).build();
     notifier = ShutdownNotifier.createDummy();
     logger = LogManager.createTestLogManager();
