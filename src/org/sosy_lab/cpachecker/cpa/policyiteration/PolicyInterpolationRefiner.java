@@ -90,7 +90,7 @@ public class PolicyInterpolationRefiner implements Refiner {
       LogManager pLogger,
       PathExtractor pPathExtractor,
       ARGCPA pArgCpa,
-      Solver pSolver) throws InvalidConfigurationException {
+      Solver pSolver) {
     fmgr = pSolver.getFormulaManager();
     solver = pSolver;
     policyCPA = pPolicyCPA;
