@@ -52,7 +52,7 @@ import java.util.Optional;
 /**
  * Policy iteration CPA.
  */
-@Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
+@Options(prefix="cpa.lpi")
 public class PolicyCPA extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysisWithBAM,
                AdjustableConditionCPA,

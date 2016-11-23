@@ -80,7 +80,7 @@ import javax.annotation.Nullable;
 /**
  * Main logic in a single class.
  */
-@Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
+@Options(prefix = "cpa.lpi")
 public class PolicyIterationManager {
 
   @Option(secure = true,
