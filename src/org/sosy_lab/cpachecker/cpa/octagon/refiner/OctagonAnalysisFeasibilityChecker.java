@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
-import java.util.Optional;
-
 import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision.createStaticPrecision;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,11 +50,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-
-public class OctagonAnalysisFeasabilityChecker {
+public class OctagonAnalysisFeasibilityChecker {
 
   private final TransferRelation transfer;
 
@@ -61,9 +58,9 @@ public class OctagonAnalysisFeasabilityChecker {
   private final ARGPath checkedPath;
   private final ARGPath foundPath;
 
-  public OctagonAnalysisFeasabilityChecker(Configuration pConfig, ShutdownNotifier pShutdownNotifier,
-      ARGPath pPath, Class<? extends ConfigurableProgramAnalysis> pClass, Optional<VariableClassification> pVarClass, TransferRelation pTransfer,
-      AbstractState pInitialState) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasibilityChecker(Configuration pConfig, ShutdownNotifier pShutdownNotifier,
+                                           ARGPath pPath, Class<? extends ConfigurableProgramAnalysis> pClass, Optional<VariableClassification> pVarClass, TransferRelation pTransfer,
+                                           AbstractState pInitialState) throws InvalidConfigurationException, CPAException, InterruptedException {
 
     shutdownNotifier = pShutdownNotifier;
 
@@ -137,7 +134,7 @@ public class OctagonAnalysisFeasabilityChecker {
               edge));
 
           // computing the feasibility check takes sometimes much time with octagons
-          // so we let the shutdownNotifer cancel the computation if necessary
+          // so we let the shutdownNotifier cancel the computation if necessary
           shutdownNotifier.shutdownIfNecessary();
         }
 

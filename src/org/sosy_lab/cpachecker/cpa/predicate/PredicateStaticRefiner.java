@@ -104,13 +104,13 @@ public class PredicateStaticRefiner extends StaticRefiner
   @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
   private boolean applyScoped = true;
 
-  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumptions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(secure=true, description="Add all assumtions from the control flow automaton to the precision.")
+  @Option(secure=true, description="Add all assumptions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
-  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumptions along the error trace to the precision.")
   private boolean addAssumesByBoundedBackscan = true;
 
   @Option(secure=true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")

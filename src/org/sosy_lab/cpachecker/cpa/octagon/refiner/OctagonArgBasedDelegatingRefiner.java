@@ -162,7 +162,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
     // if the path is infeasible, try to refine the precision, this time
     // only with octagons, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(pErrorPath);
+    OctagonAnalysisFeasibilityChecker octChecker = createOctagonFeasibilityChecker(pErrorPath);
 
     if (!octChecker.isFeasible()) {
       if (performOctagonAnalysisRefinement(reached, octChecker)) {
@@ -222,7 +222,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
   }
 
   private boolean performOctagonAnalysisRefinement(
-      final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker)
+      final ARGReachedSet reached, final OctagonAnalysisFeasibilityChecker checker)
       throws InterruptedException {
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
@@ -310,14 +310,14 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, InterruptedException {
+  private OctagonAnalysisFeasibilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, InterruptedException {
     try {
-      OctagonAnalysisFeasabilityChecker checker;
+      OctagonAnalysisFeasibilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck.isEmpty()) {
         checker =
-            new OctagonAnalysisFeasabilityChecker(
+            new OctagonAnalysisFeasibilityChecker(
                 config,
                 shutdownNotifier,
                 path,
@@ -333,7 +333,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
 
         limits.start();
         checker =
-            new OctagonAnalysisFeasabilityChecker(
+            new OctagonAnalysisFeasibilityChecker(
                 config,
                 shutdown.getNotifier(),
                 path,

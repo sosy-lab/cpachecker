@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasabilityChecker;
+import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
@@ -155,7 +155,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       throws CPAException, InterruptedException {
 
     // if path is infeasible, try to refine the precision
-    if (!isPathFeasable(pErrorPath) && !existsExplicitApronRefinement) {
+    if (!isPathFeasible(pErrorPath) && !existsExplicitApronRefinement) {
       if (performValueAnalysisRefinement(reached, pErrorPath)) {
         return CounterexampleInfo.spurious();
       }
@@ -164,11 +164,11 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     // if the path is infeasible, try to refine the precision, this time
     // only with apron states, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasabilityChecker apronChecker;
+    OctagonAnalysisFeasibilityChecker apronChecker;
     try {
       apronChecker = createApronFeasibilityChecker(pErrorPath);
     } catch (ApronException e) {
-      throw new RuntimeException("An error occured while operating with the apron library", e);
+      throw new RuntimeException("An error occurred while operating with the apron library", e);
     }
     if (!apronChecker.isFeasible()) {
       if (performApronAnalysisRefinement(reached, apronChecker)) {
@@ -187,7 +187,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @returns true, if the value-analysis refinement was successful, else false
+   * @return true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
@@ -229,7 +229,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   }
 
   private boolean performApronAnalysisRefinement(
-      final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker)
+      final ARGReachedSet reached, final OctagonAnalysisFeasibilityChecker checker)
       throws InterruptedException {
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
@@ -311,21 +311,21 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
+  boolean isPathFeasible(ARGPath path) throws CPAException, InterruptedException {
     return valueAnalysisChecker.isFeasible(path);
   }
 
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  private OctagonAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
+  private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
     try {
-      OctagonAnalysisFeasabilityChecker checker;
+      OctagonAnalysisFeasibilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
       if (timeForApronFeasibilityCheck.isEmpty()) {
         checker =
-            new OctagonAnalysisFeasabilityChecker(
+            new OctagonAnalysisFeasibilityChecker(
                 config,
                 shutdownNotifier,
                 path,
@@ -341,7 +341,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
         limits.start();
         checker =
-            new OctagonAnalysisFeasabilityChecker(
+            new OctagonAnalysisFeasibilityChecker(
                 config,
                 shutdown.getNotifier(),
                 path,
