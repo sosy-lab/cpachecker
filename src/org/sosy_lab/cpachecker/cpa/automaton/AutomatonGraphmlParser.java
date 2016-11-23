@@ -116,11 +116,13 @@ import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMat
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -159,8 +161,12 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Match the branching information at a branching location.")
   private boolean matchAssumeCase = true;
 
-  @Option(secure=true, description="Do not try to \"catch up\" with witness guards: If they do not match, go to the sink.")
-  private boolean strictMatching = false;
+  @Option(
+    secure = true,
+    description =
+        "Enforce strict validity checks regarding the witness format, such as checking for the presence of required fields."
+  )
+  private boolean strictChecking = true;
 
   @Option(secure=true, description="File for exporting the path automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -174,6 +180,7 @@ public class AutomatonGraphmlParser {
   private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
   private final ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier(factory);
+  private final VerificationTaskMetaData verificationTaskMetaData;
 
   public AutomatonGraphmlParser(
       Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope)
@@ -187,6 +194,7 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
   }
 
   /**
@@ -254,6 +262,20 @@ public class AutomatonGraphmlParser {
       NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
       checkParsable(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
       Node graphNode = graphs.item(0);
+
+      Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
+      checkHashSum(programHash);
+
+      if (strictChecking) {
+        checkRequiredField(graphNode, KeyDef.GRAPH_TYPE);
+        checkRequiredField(graphNode, KeyDef.SOURCECODELANGUAGE);
+        checkRequiredField(graphNode, KeyDef.PRODUCER);
+        checkRequiredField(graphNode, KeyDef.SPECIFICATION);
+        checkRequiredField(graphNode, KeyDef.PROGRAMFILE);
+      }
+
+      Set<String> architecture = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE);
+      checkArchitecture(architecture);
 
       Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);
       final GraphType graphType;
@@ -456,7 +478,9 @@ public class AutomatonGraphmlParser {
         }
 
         // Never match on the dummy edge directly after the main function entry node
-        AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+        AutomatonBoolExpr conjunctedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+        // Never match on artificially split declarations
+        conjunctedTriggers = and(conjunctedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
         // Match a loop start
         boolean enterLoopHead = false;
@@ -646,7 +670,7 @@ public class AutomatonGraphmlParser {
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
-        if (strictMatching || !assumptions.isEmpty() || !actions.isEmpty() || !candidateInvariants.equals(ExpressionTrees.getTrue()) || leadsToViolationNode) {
+        if (false || !assumptions.isEmpty() || !actions.isEmpty() || !candidateInvariants.equals(ExpressionTrees.getTrue()) || leadsToViolationNode) {
           Element sourceNode = docDat.getNodeWithId(sourceStateId);
           Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
           boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
@@ -683,28 +707,17 @@ public class AutomatonGraphmlParser {
         if (stutterCondition == null) {
           stutterCondition = AutomatonBoolExpr.TRUE;
         }
-        if (graphType == GraphType.ERROR_WITNESS && strictMatching) {
-          // If we are doing strict matching, anything that does not match must go to the sink
-          transitions.add(
-              createAutomatonSinkTransition(
-                  stutterCondition,
-                  Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.<AutomatonAction>emptyList(),
-                  false));
-
-        } else {
-          // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
-          transitions.add(
-              createAutomatonTransition(
-                  stutterCondition,
-                  Collections.<AutomatonBoolExpr>emptyList(),
-                  Collections.emptyList(),
-                  ExpressionTrees.<AExpression>getTrue(),
-                  Collections.<AutomatonAction>emptyList(),
-                  stateId,
-                  violationStates.contains(stateId),
-                  sinkStates));
-        }
+        // Wait in the source state until the witness checker catches up with the witness
+        transitions.add(
+            createAutomatonTransition(
+                stutterCondition,
+                Collections.<AutomatonBoolExpr>emptyList(),
+                Collections.emptyList(),
+                ExpressionTrees.<AExpression>getTrue(),
+                Collections.<AutomatonAction>emptyList(),
+                stateId,
+                violationStates.contains(stateId),
+                sinkStates));
 
         if (nodeFlags.contains(NodeFlag.ISVIOLATION)) {
           AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
@@ -775,6 +788,76 @@ public class AutomatonGraphmlParser {
       throw new InvalidConfigurationException("The automaton provided is invalid!", e);
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
+    }
+  }
+
+  private void checkRequiredField(Node pGraphNode, KeyDef pKey) {
+    checkRequiredField(pGraphNode, pKey, false);
+  }
+
+  private void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty) {
+    Iterable<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
+    if (Iterables.isEmpty(data)) {
+      throw new WitnessParseException(
+          String.format("The witness does not contain the required field '%s'", pKey.id));
+    }
+    if (!pAcceptEmpty) {
+      data = FluentIterable.from(data).filter(s -> !s.trim().isEmpty());
+    }
+    if (Iterables.isEmpty(data)) {
+      throw new WitnessParseException(
+          String.format(
+              "The witness does not contain a non-empty entry for the required field '%s'",
+              pKey.id));
+    }
+  }
+
+  private void checkHashSum(Set<String> pProgramHash) throws IOException {
+    if (pProgramHash.isEmpty()) {
+      String message =
+          "Witness does not contain the hash sum "
+              + "of the program and may therefore be unrelated to the "
+              + "verification task it is being validated against.";
+      if (strictChecking) {
+        throw new WitnessParseException(message);
+      } else {
+        logger.log(Level.WARNING, message);
+      }
+    } else if (verificationTaskMetaData.getProgramHash().isPresent()) {
+      FluentIterable<String> programHash =
+          FluentIterable.from(pProgramHash).transform(String::toLowerCase);
+      if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
+        throw new WitnessParseException(
+            "Hash sum of given verification-task "
+                + "source code does not match the hash sum in the witness. "
+                + "The witness is likely unrelated to the verification task.");
+      }
+    } else {
+      logger.log(
+          Level.WARNING,
+          "Could not compute the program hash sum, "
+              + "and could therefore not ascertain the validity of the program "
+              + "hash sum given by the witness.");
+    }
+  }
+
+  private void checkArchitecture(Set<String> pArchitecture) {
+    if (pArchitecture.isEmpty()) {
+      String message =
+          "Witness does not contain the architecture assumed for the "
+              + "verification task. If the architecture assumed by the witness "
+              + "differs from the architecture assumed by the validator, "
+              + "meaningful validation results cannot be guaranteed.";
+      if (strictChecking) {
+        throw new WitnessParseException(message);
+      } else {
+        logger.log(Level.WARNING, message);
+      }
+    } else if (!pArchitecture.contains(AutomatonGraphmlCommon.getArchitecture(machine))) {
+      throw new WitnessParseException(
+          "The architecture assumed for the given verification-task differs "
+              + " from the architecture assumed by the witness. "
+              + " Witness validation is meaningless.");
     }
   }
 

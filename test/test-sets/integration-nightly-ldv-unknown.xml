@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
   <!-- This file contains regression tests from the LDV project.
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
@@ -15,6 +15,20 @@
   <rundefinition>
     <tasks>
       <include>../programs/ldv-benchmarks/unknown/*/*/*.c</include>
+
+      <!-- exclude flipping timeout or out of memory -->
+      <exclude>../programs/ldv-benchmarks/unknown/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--staging--cxt1e1--cxt1e1.ko-ldv_main4_unknown.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/106_1a/linux-3.12-rc1/drivers--scsi--dpt_i2o.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/132_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-132_1a-drivers--staging--vt6656--vt6656_stage.ko-ldv_main0_unknown.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--scsi--mpt2sas--mpt2sas.ko-ldv_main2_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--f2fs--f2fs.ko-ldv_main3_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--hpfs--hpfs.ko-ldv_main11_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/39_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-39_7a-drivers--net--ethernet--intel--e1000--e1000.ko-ldv_main2_unknown.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/39_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-39_7a-fs--ext2--ext2.ko-ldv_main6_unknown.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-fs--gfs2--gfs2.ko-ldv_main12_true-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-sound--soc--codecs--snd-soc-uda1380.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/68_1/linux-3.12-rc1/linux-3.12-rc1.tar.xz-68_1-drivers--net--usb--pegasus.ko-ldv_main0_unknown.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unknown/43_2a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-drivers--scsi*</exclude>
     </tasks>
   </rundefinition>
 </benchmark>

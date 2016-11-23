@@ -23,20 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -49,20 +42,25 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -286,9 +284,7 @@ public class AutomatonGraphmlCommon {
         String pDefaultSourceFileName,
         Language pLanguage,
         MachineModel pMachineModel,
-        String pMemoryModel,
-        Iterable<String> pSpecifications,
-        String pProgramNames)
+        VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -313,7 +309,7 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
-      for (String specification : pSpecifications) {
+      for (String specification : pVerificationTaskMetaData.getSpecifications()) {
         graph.appendChild(createDataElement(KeyDef.SPECIFICATION, specification));
       }
 
@@ -321,21 +317,21 @@ public class AutomatonGraphmlCommon {
        * TODO: We should allow multiple program files here.
        * As soon as we do, we should also hash each file separately.
        */
-      graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, pProgramNames));
-      graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeProgramHash(pProgramNames)));
-
-      graph.appendChild(createDataElement(KeyDef.MEMORYMODEL, pMemoryModel));
-      switch (pMachineModel) {
-        case LINUX32:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "32bit"));
-          break;
-        case LINUX64:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "64bit"));
-          break;
-        default:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString()));
-          break;
+      if (pVerificationTaskMetaData.getProgramNames().isPresent()) {
+        graph.appendChild(
+            createDataElement(
+                KeyDef.PROGRAMFILE,
+                Joiner.on(", ").join(pVerificationTaskMetaData.getProgramNames().get())));
       }
+      if (pVerificationTaskMetaData.getProgramHash().isPresent()) {
+        graph.appendChild(
+            createDataElement(
+                KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash().get()));
+      }
+
+      graph.appendChild(
+          createDataElement(KeyDef.MEMORYMODEL, pVerificationTaskMetaData.getMemoryModel()));
+      graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
     }
 
     private Element createElement(GraphMlTag tag) {
@@ -409,17 +405,6 @@ public class AutomatonGraphmlCommon {
       childOf.appendChild(result);
     }
 
-    private String computeProgramHash(String pProgramDenotations) throws IOException {
-      List<ByteSource> sources = new ArrayList<>(1);
-      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-      for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
-        Path programPath = Paths.get(programDenotation);
-        sources.add(MoreFiles.asByteSource(programPath));
-      }
-      HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
-      return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
-    }
-
     public void appendTo(Appendable pTarget) throws IOException {
       try {
         pTarget.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
@@ -470,6 +455,29 @@ public class AutomatonGraphmlCommon {
         if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
+        CFANode successor = edge.getSuccessor();
+        Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
+        if (!leavingEdges.hasNext()) {
+          return false;
+        }
+        CFAEdge successorEdge = leavingEdges.next();
+        if (leavingEdges.hasNext()) {
+          return false;
+        }
+        if (successorEdge instanceof AStatementEdge) {
+          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+          if (statementEdge.getFileLocation().equals(edge.getFileLocation())
+              && statementEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) statementEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            if (leftHandSide instanceof AIdExpression) {
+              AIdExpression lhs = (AIdExpression) leftHandSide;
+              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                return true;
+              }
+            }
+          }
+        }
         return false;
       }
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
@@ -479,5 +487,20 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
+  public static String getArchitecture(MachineModel pMachineModel) {
+    final String architecture;
+    switch (pMachineModel) {
+      case LINUX32:
+        architecture = "32bit";
+        break;
+      case LINUX64:
+        architecture = "64bit";
+        break;
+      default:
+        architecture = pMachineModel.toString();
+        break;
+    }
+    return architecture;
+  }
 
 }

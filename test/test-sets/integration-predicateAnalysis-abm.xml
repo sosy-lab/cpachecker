@@ -21,6 +21,8 @@
     <tasks>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
       <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+      <option name="-setprop">analysis.checkCounterexamples=true</option>
+      <option name="-setprop">counterexample.checker=CBMC</option>
       <exclude>../programs/simple/pointer_aliasing/*</exclude>
     </tasks>
     <tasks>
@@ -32,6 +34,8 @@
     <tasks>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+      <option name="-setprop">analysis.checkCounterexamples=true</option>
+      <option name="-setprop">counterexample.checker=CBMC</option>
       <exclude>../programs/benchmarks/loop-acceleration/*</exclude>
     </tasks>
     <tasks>
@@ -58,6 +62,8 @@
       <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
+      <option name="-setprop">analysis.checkCounterexamples=true</option>
+      <option name="-setprop">counterexample.checker=CBMC</option>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>

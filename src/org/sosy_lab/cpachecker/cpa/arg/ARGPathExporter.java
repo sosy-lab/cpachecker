@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -46,7 +45,6 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,15 +60,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -135,6 +130,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -199,8 +195,6 @@ public class ARGPathExporter {
   )
   private boolean revertThreadFunctionRenaming = false;
 
-  private final LogManager logger;
-
   private final CFA cfa;
 
   private final MachineModel machineModel;
@@ -212,31 +206,7 @@ public class ARGPathExporter {
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  /**
-   * This is a temporary hack to easily obtain specification and verification tasks.
-   * TODO: Move the witness export out of the ARG CPA after the new error report has been integrated
-   * and obtain the values without this hack.
-   */
-  @Options
-  private static class HackyOptions {
-
-    @Option(secure=true, name="analysis.programNames",
-        description="A String, denoting the programs to be analyzed")
-    private String programs;
-
-    @Option(secure=true, name="properties",
-        description="List of property files (INTERNAL USAGE ONLY - DO NOT USE)")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private List<Path> propertyFiles = ImmutableList.of();
-
-    @Option(secure=true,
-        name="cpa.predicate.handlePointerAliasing",
-        description = "Handle aliasing of pointers. "
-        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-    private boolean handlePointerAliasing = true;
-  }
-
-  private final HackyOptions hackyOptions = new HackyOptions();
+  private VerificationTaskMetaData verificationTaskMetaData;
 
   public ARGPathExporter(
       final Configuration pConfig,
@@ -245,12 +215,11 @@ public class ARGPathExporter {
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
-    pConfig.inject(hackyOptions);
     this.cfa = pCFA;
     this.machineModel = pCFA.getMachineModel();
     this.language = pCFA.getLanguage();
-    this.logger = pLogger;
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
+    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
   }
 
   public void writeErrorWitness(
@@ -520,26 +489,22 @@ public class ARGPathExporter {
         }
       }
 
-      if (exportLineNumbers) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+      Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
+      if (exportLineNumbers && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result =
+            result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(min.getStartingLineInOrigin()));
       }
 
-      if (exportOffset) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+      if (exportOffset && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
@@ -547,6 +512,22 @@ public class ARGPathExporter {
       }
 
       return result;
+    }
+
+    private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation min = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset() < min.getNodeOffset()) {
+            min = l;
+          }
+        }
+        return Optional.of(min);
+      }
+      return Optional.empty();
     }
 
     private TransitionCondition extractTransitionForStates(
@@ -872,27 +853,7 @@ public class ARGPathExporter {
       try {
         doc =
             new GraphMlBuilder(
-                graphType,
-                defaultSourcefileName,
-                language,
-                machineModel,
-                hackyOptions.handlePointerAliasing ? "precise" : "simple",
-                FluentIterable.from(hackyOptions.propertyFiles)
-                    .transform(
-                        new Function<Path, String>() {
-
-                          @Override
-                          public String apply(Path pArg0) {
-                            try {
-                              return MoreFiles.toString(pArg0, Charsets.UTF_8).trim();
-                            } catch (IOException e) {
-                              logger.logUserException(
-                                  Level.WARNING, e, "Could not export specification to witness.");
-                              return "Unknown specification";
-                            }
-                          }
-                        }),
-                hackyOptions.programs);
+                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }

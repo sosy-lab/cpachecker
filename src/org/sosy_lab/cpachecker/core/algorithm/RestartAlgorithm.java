@@ -29,9 +29,11 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -43,6 +45,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -62,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -82,7 +87,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @Options(prefix="restartAlgorithm")
-public class RestartAlgorithm implements Algorithm, StatisticsProvider {
+public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
   private static class RestartAlgorithmStatistics implements Statistics {
 
@@ -187,6 +192,11 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
   private final Specification specification;
 
   private Algorithm currentAlgorithm;
+
+  private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
+      new CopyOnWriteArrayList<>();
+
+  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded = Lists.newArrayList();
 
   private RestartAlgorithm(
       Configuration config,
@@ -305,6 +315,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
         stats.noOfAlgorithmsUsed++;
 
         // run algorithm
+        registerReachedSetUpdateListeners();
         try {
           status = currentAlgorithm.run(currentReached);
 
@@ -361,6 +372,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           }
         }
       } finally {
+        unregisterReachedSetUpdateListeners();
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
         singleShutdownManager.requestShutdown("Analysis terminated"); // shutdown any remaining components
         stats.totalTime.stop();
@@ -516,5 +528,39 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
+  }
+
+  @Override
+  public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    reachedSetUpdateListeners.add(pReachedSetUpdateListener);
+  }
+
+  @Override
+  public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
+  }
+
+  private void registerReachedSetUpdateListeners() {
+    Preconditions.checkState(reachedSetUpdateListenersAdded.isEmpty());
+    if (currentAlgorithm instanceof ReachedSetUpdater) {
+      ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
+      for (ReachedSetUpdateListener listener : reachedSetUpdateListeners) {
+        algorithm.register(listener);
+        reachedSetUpdateListenersAdded.add(listener);
+      }
+    }
+  }
+
+  private void unregisterReachedSetUpdateListeners() {
+    if (currentAlgorithm instanceof ReachedSetUpdater) {
+      ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
+      for (ReachedSetUpdateListener listener : reachedSetUpdateListenersAdded) {
+        algorithm.unregister(listener);
+      }
+      reachedSetUpdateListenersAdded.clear();
+    } else {
+      Preconditions.checkState(reachedSetUpdateListenersAdded.isEmpty());
+    }
+    assert reachedSetUpdateListenersAdded.isEmpty();
   }
 }

@@ -25,6 +25,14 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -35,16 +43,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 public class BAMCEXSubgraphComputer {
 
@@ -135,7 +133,7 @@ public class BAMCEXSubgraphComputer {
         }
       }
 
-      if (data.initialStateToReachedSet.containsKey(currentState)) {
+      if (data.hasInitialState(currentState)) {
 
         // If child-state is an expanded state, the child is at the exit-location of a block.
         // In this case, we enter the block (backwards).
@@ -189,11 +187,12 @@ public class BAMCEXSubgraphComputer {
       throws MissingBlockException, InterruptedException {
 
     ARGState expandedRoot = (ARGState) newExpandedRoot.getWrappedState();
-    final ReachedSet reachedSet = data.initialStateToReachedSet.get(expandedRoot);
+    final ReachedSet reachedSet = data.getReachedSetForInitialState(expandedRoot);
     final Map<BackwardARGState, BackwardARGState> newExpandedToNewInnerTargets = new HashMap<>();
 
     for (BackwardARGState newExpandedTarget : newExpandedTargets) {
-      final ARGState reducedTarget = (ARGState) data.expandedStateToReducedState.get(newExpandedTarget.getARGState());
+      final ARGState reducedTarget =
+          (ARGState) data.getReducedStateForExpandedState(newExpandedTarget.getARGState());
 
       // first check, if the cached state is valid.
       if (reducedTarget.isDestroyed()) {

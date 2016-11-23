@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -83,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -241,7 +243,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           if (!containsAny) {
             return Optional.of(false);
           }
-          if (containsAll && explicitCandidateTargets.getSize() == 1) {
+          if (containsAll && ((ExplicitLocationSet) actualTargets).getSize() == 1) {
+            if (isStructOrUnion(pCandidateTarget.getExpressionType())) {
+              return Optional.empty();
+            }
             return Optional.of(true);
           }
         }
@@ -310,10 +315,19 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (type instanceof CType) {
       type = ((CType) type).getCanonicalType();
     }
-    if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
+    if (isStructOrUnion(type)) {
       return MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
     }
     return MemoryLocation.valueOf(name);
+  }
+
+  private static boolean isStructOrUnion(Type pType) {
+    Type type = pType instanceof CType ? ((CType) pType).getCanonicalType() : pType;
+    if (type instanceof CComplexType) {
+      return EnumSet.of(ComplexTypeKind.STRUCT, ComplexTypeKind.UNION)
+          .contains(((CComplexType) type).getKind());
+    }
+    return false;
   }
 
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
@@ -519,7 +533,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               throws UnrecognizedCCodeException {
             Type type = pIastIdExpression.getExpressionType();
             final MemoryLocation location;
-            if (type.toString().startsWith("struct ") || type.toString().startsWith("union ")) {
+            if (isStructOrUnion(type)) {
               location =
                   MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
             } else {

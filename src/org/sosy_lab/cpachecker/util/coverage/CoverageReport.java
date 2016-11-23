@@ -184,7 +184,8 @@ public class CoverageReport {
       collector.addExistingAssume((AssumeEdge) pEdge);
     }
 
-    collector.addExistingLine(pEdge.getLineNumber());
+    //Do not extract lines from edge - there are not origin lines
+    collector.addExistingLine(loc.getStartingLineInOrigin());
   }
 
 
@@ -207,7 +208,8 @@ public class CoverageReport {
       collector.addVisitedAssume((AssumeEdge) pEdge);
     }
 
-    collector.addVisitedLine(pEdge.getLineNumber());
+    //Do not extract lines from edge - there are not origin lines
+    collector.addVisitedLine(loc.getStartingLineInOrigin());
   }
 
   private FileCoverageInformation getFileInfoTarget(

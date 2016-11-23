@@ -31,6 +31,7 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -221,7 +222,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       if (exceptions.size() == 1) {
         throw Iterables.getOnlyElement(exceptions);
       } else {
-        throw new CompoundException("Several exceptions occured during the analysis", exceptions);
+        throw new CompoundException(exceptions);
       }
     }
   }
@@ -477,9 +478,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private final List<CPAException> exceptions;
 
-    public CompoundException(String pMsg, List<CPAException> pExceptions) {
-      super(pMsg);
-      exceptions = Collections.unmodifiableList(new ArrayList<>(pExceptions));
+    public CompoundException(List<CPAException> pExceptions) {
+      super(
+          "Several exceptions occured during the analysis:\n -> "
+              + Joiner.on("\n -> ").join(Lists.transform(pExceptions, e -> e.getMessage())));
+      exceptions = Collections.unmodifiableList(pExceptions);
     }
 
     public List<CPAException> getExceptions() {
@@ -571,7 +574,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         out.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
         if (subStats.rLimit != null) {
           out.println(
-              "Time spent in analysis thread: "
+              "Time spent in analysis thread " + subStats.name + ": "
                   + subStats.rLimit.getOverallUsedTime().formatAs(TimeUnit.SECONDS));
         }
         for (Statistics s : subStats.subStatistics) {

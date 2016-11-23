@@ -54,6 +54,7 @@ class BAMARGUtils {
    * @param cpa CPA object to be used for getting cached information.
    * @param finalReachedSet resached set to partition.
    */
+  @Deprecated // reason: unused, possibly misunderstood and maybe error-prone
   public static Multimap<Block, UnmodifiableReachedSet> gatherReachedSets(BAMCPA cpa, UnmodifiableReachedSet finalReachedSet) {
     Multimap<Block, UnmodifiableReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
@@ -108,7 +109,7 @@ class BAMARGUtils {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
 
-    ReachedSet reachSet = cpa.getData().initialStateToReachedSet.get(root);
+    ReachedSet reachSet = cpa.getData().getReachedSetForInitialState(root);
     assert reachSet != null;
     return Pair.of(rootSubtree, reachSet);
   }

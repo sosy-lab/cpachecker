@@ -29,7 +29,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,12 +63,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
-
 public class BAMTransferRelation implements TransferRelation {
   final BAMDataManager data;
 
@@ -89,6 +87,8 @@ public class BAMTransferRelation implements TransferRelation {
 
   boolean breakAnalysis = false;
 
+  final boolean failInCaseOfRecursion;
+
   public BAMTransferRelation(
       Configuration pConfig,
       LogManager pLogger,
@@ -104,6 +104,7 @@ public class BAMTransferRelation implements TransferRelation {
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
     bamCPA = bamCpa;
+    failInCaseOfRecursion = bamCpa.failInCaseOfRecursion();
     data = pData;
     partitioning = pPartitioning;
 
@@ -153,7 +154,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     if (startNewBlockAnalysis(pState, node)) {
 
-      // we are at the entryNode of a new block and we are in a new context,
+      // we are at the entryNode of a new BAMblock and we are in a new context,
       // so we have to start a recursive analysis
       logger.log(Level.FINEST, "Starting recursive analysis of depth", ++depth);
       maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
@@ -172,6 +173,9 @@ public class BAMTransferRelation implements TransferRelation {
     // Thus we check for recursion here and (if we do not handle recursion here)
     // set a flag for the Callstack-CPA, such that it knows about the recursion.
     final boolean foundRecursion = isRecursiveCall(node);
+    if (foundRecursion && failInCaseOfRecursion) {
+      throw new UnsupportedOperationException("Recursion found in " + node.getFunctionName());
+    }
     if (foundRecursion) {
       callstackTransfer.enableRecursiveContext();
     }
@@ -442,7 +446,7 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     assert reached != null;
-    data.initialStateToReachedSet.put(initialState, reached);
+    data.registerInitialState(initialState, reached);
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {

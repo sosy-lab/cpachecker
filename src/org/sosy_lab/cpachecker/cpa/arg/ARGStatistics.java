@@ -109,7 +109,7 @@ public class ARGStatistics implements Statistics {
   private final ARGPathExporter argPathExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
   public ARGStatistics(
       Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa, CFA cfa)

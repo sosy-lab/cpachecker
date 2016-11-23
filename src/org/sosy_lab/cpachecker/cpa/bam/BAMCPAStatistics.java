@@ -113,12 +113,12 @@ class BAMCPAStatistics implements Statistics {
 
     int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
 
-    int sumARTElemets = 0;
-    for (UnmodifiableReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
-      sumARTElemets += subreached.size();
+    int sumARTElements = 0;
+    for (UnmodifiableReachedSet subreached : cpa.getData().bamCache.getAllCachedReachedStates()) {
+      sumARTElements += subreached.size();
     }
 
-    out.println("Total size of all ARGs:                                         " + sumARTElemets);
+    out.println("Total size of all ARGs:                                         " + sumARTElements);
     out.println("Number of blocks:                                               " + cpa.getBlockPartitioning().getBlocks().size());
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
     out.println("Total number of recursive CPA calls:                            " + sumCalls);
@@ -262,14 +262,14 @@ class BAMCPAStatistics implements Statistics {
       if (!finished.add(state)) {
         continue;
       }
-      if (data.initialStateToReachedSet.containsKey(state)) {
-        ReachedSet target = data.initialStateToReachedSet.get(state);
+      if (data.hasInitialState(state)) {
+        ReachedSet target = data.getReachedSetForInitialState(state);
         referencedReachedSets.add(target);
         ARGState targetState = (ARGState) target.getFirstState();
         connections.put(state, targetState);
       }
-      if (data.expandedStateToReducedState.containsKey(state)) {
-        AbstractState sourceState = data.expandedStateToReducedState.get(state);
+      if (data.hasExpandedState(state)) {
+        AbstractState sourceState = data.getReducedStateForExpandedState(state);
         connections.put((ARGState) sourceState, state);
       }
       waitlist.addAll(state.getChildren());

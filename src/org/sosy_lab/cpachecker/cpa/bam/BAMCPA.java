@@ -104,6 +104,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
           + "The current support includes only ValueAnalysis and PredicateAnalysis (with tree interpolation enabled).")
   private boolean handleRecursiveProcedures = false;
 
+  @Option(name = "failInCaseOfRecursion", secure = true,
+      description = "In some cases it is important to know, if there is a recursion in the analyzed code.")
+  private boolean failInCaseOfRecursion = false;
+
   @Option(secure = true,
       description = "This flag determines which precisions should be updated during refinement. "
       + "We can choose between the minimum number of states and all states that are necessary "
@@ -252,6 +256,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   public BAMPCCManager getBamPccManager() {
     return bamPccManager;
+  }
+
+  public boolean failInCaseOfRecursion() {
+    return failInCaseOfRecursion;
   }
 
   LogManager getLogger() {
