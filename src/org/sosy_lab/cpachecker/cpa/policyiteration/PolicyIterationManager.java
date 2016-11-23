@@ -185,7 +185,8 @@ public class PolicyIterationManager {
       FormulaLinearizationManager pLinearizationManager,
       PolyhedraWideningManager pPwm,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
+      TemplatePrecision pPrecision)
       throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
@@ -202,8 +203,7 @@ public class PolicyIterationManager {
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
     rcnfManager = new RCNFManager(pConfig);
-    initialPrecision = new TemplatePrecision(
-        logger, pConfig, cfa, templateToFormulaConversionManager);
+    initialPrecision = pPrecision;
   }
 
   /**
@@ -1282,14 +1282,6 @@ public class PolicyIterationManager {
         a = iState.getBackpointerState();
       }
     }
-  }
-
-  public boolean adjustPrecision() {
-    return initialPrecision.adjustPrecision();
-  }
-
-  void adjustReachedSet(ReachedSet pReachedSet) {
-    pReachedSet.clear();
   }
 
   public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
