@@ -130,7 +130,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
     assert isHeadOfMainFunction(pHeadOfMainFunction) && stack.isEmpty();
 
-    Collection<? extends AbstractState> resultStates;
+    Collection<AbstractState> resultStates;
     int iterationCounter = 0;
     while (true) { // fixpoint-iteration to handle recursive functions
 
