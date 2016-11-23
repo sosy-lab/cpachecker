@@ -163,6 +163,13 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       if (!resultStatesChanged) {
         logger.log(Level.INFO, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
+
+        // the fixpoint algorithm should have coverage for all states and thus return zero new states.
+        // the initially computed successors from pHeadOfMainFunctionState are the successors for the CPA-algorithm.
+        ArrayList<AbstractState> exitStates = new ArrayList<>(((ARGState)pHeadOfMainFunctionState).getChildren());
+        assert getStatesNotCoveredBy(resultStates, exitStates).isEmpty() : "there should not be any new state.";
+        resultStates = exitStates;
+
         break;
       }
 
