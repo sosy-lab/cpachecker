@@ -336,9 +336,8 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       visitedUnreachable = visitedUnreachable || state.equals(unreachableState);
 
       if (visitedUnreachable) {
-        interpolants.add(
-            bfmgr.makeBoolean(
-                false)); // fill up interpolants with false as the states are unreachable
+        // fill up interpolants with false as the states are unreachable.
+        interpolants.add(bfmgr.makeFalse());
       } else {
         interpolants.add(itpProver.getInterpolant(itpStack.subList(0, sublistCounter)));
         sublistCounter++;
