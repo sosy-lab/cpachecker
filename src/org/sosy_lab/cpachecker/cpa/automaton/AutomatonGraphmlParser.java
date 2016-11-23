@@ -824,7 +824,9 @@ public class AutomatonGraphmlParser {
         logger.log(Level.WARNING, message);
       }
     } else if (verificationTaskMetaData.getProgramHash().isPresent()) {
-      if (!pProgramHash.contains(verificationTaskMetaData.getProgramHash().get())) {
+      FluentIterable<String> programHash =
+          FluentIterable.from(pProgramHash).transform(String::toLowerCase);
+      if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
         throw new WitnessParseException(
             "Hash sum of given verification-task "
                 + "source code does not match the hash sum in the witness. "
