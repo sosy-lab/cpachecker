@@ -251,7 +251,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       return true;
     }
     for (final AbstractState coveringState : coveringStates) {
-      if (bamCPA.isCoveredBy(baseState, coveringState)) {
+      if (bamCPA.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
         return true;
       }
     }
