@@ -329,7 +329,7 @@ public class PropertyScopeGraphToDotWriter {
       }
 
       sb.append("\"");
-      sb.append(" color=\"#55007f\"");
+      sb.append(" color=\"#9300dd\"");
     }
 
   }
