@@ -29,7 +29,6 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
-import org.matheclipse.core.reflection.system.Arg;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -66,16 +65,28 @@ public class PropertyScopeGraph {
   }
 
   public static PropertyScopeGraph create(ARGState root, Collection<Reason> pScopeReasons) {
+
+    class WaitListEntry {
+
+      public WaitListEntry(ARGState pArgState, ScopeNode pParentScopeNode) {
+        argState = pArgState;
+        parentScopeNode = pParentScopeNode;
+      }
+
+      private ARGState argState;
+      private ScopeNode parentScopeNode;
+    }
+
     PropertyScopeGraph graph = new PropertyScopeGraph(new ScopeNode(root), pScopeReasons);
     ScopeEdge currentEdge = null;
-
-    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Deque<WaitListEntry> waitlist = new ArrayDeque<>();
     Set<ARGState> visitedARGStates = new HashSet<>();
-    Deque<ScopeNode> edgeStartStack = new ArrayDeque<>();
-    edgeStartStack.push(graph.rootNode);
-    waitlist.addFirst(root);
+    root.getChildren().forEach(
+        child -> waitlist.addFirst(new WaitListEntry(child, graph.getRootNode())));
+
     while (!waitlist.isEmpty()) {
-      ARGState argState = waitlist.removeFirst();
+      WaitListEntry waitListEntry = waitlist.removeFirst();
+      ARGState argState = waitListEntry.argState;
 
       CallstackState csState = extractStateByType(argState, CallstackState.class);
       PropertyScopeState psState = extractStateByType(argState, PropertyScopeState.class);
@@ -85,26 +96,21 @@ public class PropertyScopeGraph {
           .filter(sloc -> pScopeReasons.contains(sloc.getReason()))
           .collect(Collectors.toSet());
 
-      ScopeNode thisScopeNode = new ScopeNode(argState);
+      ScopeNode thisScopeNode = graph.nodes.getOrDefault(argState, new ScopeNode(argState));
       scopeLocations.forEach(sloc -> thisScopeNode.scopeReasons.add(sloc.getReason()));
 
       if (currentEdge == null) {
         currentEdge = new ScopeEdge();
-        currentEdge.start = edgeStartStack.pop();
+        currentEdge.start = waitListEntry.parentScopeNode;
       }
 
-      if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty()) {
+      if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty() ||
+          visitedARGStates.contains(argState)) {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
         graph.nodes.put(currentEdge.start.argState, currentEdge.start);
         graph.nodes.put(currentEdge.end.argState, currentEdge.end);
         currentEdge = null;
-
-        if (!visitedARGStates.contains(argState)) {
-          for (int i = 0; i < argState.getChildren().size(); i++) {
-            edgeStartStack.push(thisScopeNode);
-          }
-        }
 
       } else {
         currentEdge.irrelevantARGStates += 1;
@@ -123,7 +129,8 @@ public class PropertyScopeGraph {
       }
 
       if (!visitedARGStates.contains(argState)) {
-        argState.getChildren().forEach(waitlist::addFirst);
+        argState.getChildren().forEach(
+            child -> waitlist.addFirst(new WaitListEntry(child, thisScopeNode)));
       }
 
       visitedARGStates.add(argState);
