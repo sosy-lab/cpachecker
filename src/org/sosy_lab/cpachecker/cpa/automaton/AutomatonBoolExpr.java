@@ -40,6 +40,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -55,7 +56,9 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -571,17 +574,33 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
-      if (pArgs.getCfaEdge().getSuccessor().getNumLeavingEdges() == 0) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      Iterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(edge.getSuccessor());
+      if (edge instanceof FunctionCallEdge) {
+        FunctionCallEdge callEdge = (FunctionCallEdge) edge;
+        if (callEdge.getSummaryEdge() != null) {
+          FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
+          AFunctionCall call = summaryEdge.getExpression();
+          if (call instanceof AFunctionCallAssignmentStatement) {
+            leavingEdges = Iterables.concat(
+                leavingEdges,
+                CFAUtils.enteringEdges(summaryEdge.getSuccessor())
+                  .filter(AStatementEdge.class)
+                  .filter(statementEdge -> call.equals(statementEdge.getStatement())));
+          }
+        }
+      }
+      if (Iterables.isEmpty(leavingEdges)) {
         return CONST_FALSE;
       }
       ResultValue<Boolean> result = null;
-      for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pArgs.getCfaEdge().getSuccessor())) {
+      for (CFAEdge successorEdge : leavingEdges) {
         result = operandExpression.eval(
             new AutomatonExpressionArguments(
                 pArgs.getState(),
                 pArgs.getAutomatonVariables(),
                 pArgs.getAbstractStates(),
-                cfaEdge,
+                successorEdge,
                 pArgs.getLogger()));
         if (!result.canNotEvaluate() && result.getValue()) {
           return result;
