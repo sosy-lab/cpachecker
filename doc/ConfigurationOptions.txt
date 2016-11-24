@@ -1248,6 +1248,9 @@ cpa.lpi.generateTemplatesUsingConvexHull = false
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
 
+# Attempt to weaken interpolants in order to make them more general
+cpa.lpi.refinement.generalizeInterpolants = true
+
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.lpi.runHopefulValueDetermination = true
 
@@ -1267,9 +1270,6 @@ cpa.lpi.useCachingOptSolver = false
 
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
-
-# Use the new SSA after the merge operation.
-cpa.lpi.useNewSSAAfterMerge = false
 
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
