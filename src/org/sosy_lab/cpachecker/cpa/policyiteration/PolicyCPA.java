@@ -49,7 +49,6 @@ public class PolicyCPA
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA,
                StatisticsProvider,
-               AbstractDomain,
                MergeOperator,
                AutoCloseable {
 
@@ -136,29 +135,8 @@ public class PolicyCPA
   }
 
   @Override
-  public AbstractState join(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
-    throw new UnsupportedOperationException("PolicyCPA should be used with its"
-        + " own merge operator");
-  }
-
-  /**
-   * We only keep one abstract state per node.
-   * {@code #isLessOrEqual} is called after the merge, but as our
-   * merge is always joining two states {@code #isLessOrEqual} should
-   * always return {@code true}.
-   */
-  @Override
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
-    return policyIterationManager.isLessOrEqual(
-        (PolicyState) state1, (PolicyState) state2
-    );
-  }
-
-  @Override
   public AbstractDomain getAbstractDomain() {
-    return this;
+    return new PolicyDomain(policyIterationManager);
   }
 
   @Override
@@ -173,7 +151,7 @@ public class PolicyCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopSepOperator(this);
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
