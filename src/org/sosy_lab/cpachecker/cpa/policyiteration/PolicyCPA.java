@@ -13,11 +13,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,7 +37,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -52,7 +49,7 @@ import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager
  * Policy iteration CPA.
  */
 @Options(prefix="cpa.lpi")
-public class PolicyCPA extends SingleEdgeTransferRelation
+public class PolicyCPA
     implements ConfigurableProgramAnalysisWithBAM,
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA,
@@ -168,24 +165,13 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState,
-      Precision pPrecision,
-      CFAEdge pEdge
-  ) throws CPATransferException, InterruptedException {
-  return policyIterationManager.getAbstractSuccessors(
-      (PolicyState) pState, pEdge
-  );
-}
-
-  @Override
   public AbstractDomain getAbstractDomain() {
     return this;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return this;
+    return new PolicyTransferRelation(policyIterationManager);
   }
 
   @Override
@@ -226,19 +212,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         (PolicyState)state,
         (TemplatePrecision) precision, states,
         fullState);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      List<AbstractState> otherStates,
-      CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException {
-    return policyIterationManager.strengthen(
-        ((PolicyState) state).asIntermediate(),
-        otherStates
-    );
   }
 
   @Override
