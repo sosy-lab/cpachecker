@@ -120,13 +120,22 @@ public class PropertyScopeGraphToDotWriter {
 
 
     // specify nodes
-
     for (ScopeNode scopeNode : graph.getNodes().values()) {
       sb.append("\"").append(scopeNode.getId()).append("\" [");
       bulidNodeParams(scopeNode, sb);
       sb.append("]");
 
       sb.append(";\n");
+
+      // coverage edges
+      for (ARGState covered : scopeNode.getArgState().getCoveredByThis()) {
+        if (graph.getNodes().containsKey(covered)) {
+          sb.append(graph.getNodes().get(covered).getId());
+          sb.append(" -> ");
+          sb.append(scopeNode.getId());
+          sb.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
+        }
+      }
 
       if (hinted) {
         buidNodeHint(scopeNode, sb);
