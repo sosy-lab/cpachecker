@@ -38,12 +38,12 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -347,12 +347,12 @@ public class ARGPathExporter {
 
   private class WitnessWriter implements EdgeAppender {
 
-    private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
+    private final Multimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
     private final Multimap<String, Property> violatedProperties = HashMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
-    private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
-    private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
+    private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
+    private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
     private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
     private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
@@ -905,14 +905,16 @@ public class ARGPathExporter {
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
-          () -> Iterables.filter(leavingEdges.values(), isEdgeRedundant).iterator();
+          () -> FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
 
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {
-        Edge edge = redundantEdgeIterator.next();
-        mergeNodes(edge);
+        while (redundantEdgeIterator.hasNext()) {
+          Edge edge = redundantEdgeIterator.next();
+          mergeNodes(edge);
+          assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+        }
         redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
-        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
 
       // Write elements
