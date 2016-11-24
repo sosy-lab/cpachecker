@@ -23,28 +23,53 @@
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.collect.FluentIterable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 
 public class PolicyTransferRelation extends SingleEdgeTransferRelation {
 
-  private final PolicyIterationManager policyIterationManager;
+  private final PathFormulaManager pfmgr;
+  private final StateFormulaConversionManager stateFormulaConversionManager;
 
-  PolicyTransferRelation(PolicyIterationManager pPolicyIterationManager) {
-    policyIterationManager = pPolicyIterationManager;
+  PolicyTransferRelation(
+      PathFormulaManager pPfmgr, StateFormulaConversionManager pStateFormulaConversionManager) {
+    pfmgr = pPfmgr;
+    stateFormulaConversionManager = pStateFormulaConversionManager;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    return policyIterationManager.getAbstractSuccessors((PolicyState) state, cfaEdge);
+    PolicyState oldState = (PolicyState) state;
+    CFANode node = cfaEdge.getSuccessor();
+    PolicyIntermediateState iOldState;
+
+    if (oldState.isAbstract()) {
+      iOldState =
+          stateFormulaConversionManager.abstractStateToIntermediate(oldState.asAbstracted(), false);
+    } else {
+      iOldState = oldState.asIntermediate();
+    }
+
+    PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), cfaEdge);
+    PolicyIntermediateState out =
+        PolicyIntermediateState.of(node, outPath, iOldState.getBackpointerState());
+
+    return Collections.singleton(out);
   }
 
   @Override
@@ -54,6 +79,25 @@ public class PolicyTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    return policyIterationManager.strengthen(((PolicyState) state).asIntermediate(), otherStates);
+    PolicyIntermediateState pState = ((PolicyState) state).asIntermediate();
+    // Collect assumptions.
+    FluentIterable<CExpression> assumptions =
+        FluentIterable.from(otherStates)
+            .filter(AbstractStateWithAssumptions.class)
+            .transformAndConcat(AbstractStateWithAssumptions::getAssumptions)
+            .filter(CExpression.class);
+
+    if (assumptions.isEmpty()) {
+
+      // No changes required.
+      return Collections.singleton(pState);
+    }
+
+    PathFormula pf = pState.getPathFormula();
+    for (CExpression assumption : assumptions) {
+      pf = pfmgr.makeAnd(pf, assumption);
+    }
+
+    return Collections.singleton(pState.withPathFormula(pf));
   }
 }

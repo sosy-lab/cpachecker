@@ -141,7 +141,7 @@ public class PolicyCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new PolicyTransferRelation(policyIterationManager);
+    return new PolicyTransferRelation(pfmgr, stateFormulaConversionManager);
   }
 
   @Override

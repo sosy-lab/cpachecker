@@ -6,7 +6,6 @@ import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -20,13 +19,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
@@ -63,7 +59,6 @@ import org.sosy_lab.java_smt.api.Tactic;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -210,56 +205,6 @@ public class PolicyIterationManager {
    * Otherwise, we generate a fresh one.
    */
   private final UniqueIdGenerator locationIDGenerator = new UniqueIdGenerator();
-
-  public Collection<? extends PolicyState> getAbstractSuccessors(
-      PolicyState oldState, CFAEdge edge) throws CPATransferException, InterruptedException {
-
-    CFANode node = edge.getSuccessor();
-    PolicyIntermediateState iOldState;
-
-    if (oldState.isAbstract()) {
-      iOldState = stateFormulaConversionManager.abstractStateToIntermediate(
-          oldState.asAbstracted(), false);
-    } else {
-      iOldState = oldState.asIntermediate();
-    }
-
-    PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
-    PolicyIntermediateState out = PolicyIntermediateState.of(
-        node,
-        outPath,
-        iOldState.getBackpointerState());
-
-    return Collections.singleton(out);
-  }
-
-  /**
-   * Pre-abstraction strengthening.
-   */
-  Collection<? extends AbstractState> strengthen(
-      PolicyIntermediateState pState, List<AbstractState> pOtherStates)
-      throws CPATransferException, InterruptedException {
-
-    // Collect assumptions.
-    FluentIterable<CExpression> assumptions =
-        FluentIterable.from(pOtherStates)
-            .filter(AbstractStateWithAssumptions.class)
-            .transformAndConcat(AbstractStateWithAssumptions::getAssumptions)
-            .filter(CExpression.class);
-
-    if (assumptions.isEmpty()) {
-
-      // No changes required.
-      return Collections.singleton(pState);
-    }
-
-    PathFormula pf = pState.getPathFormula();
-    for (CExpression assumption : assumptions) {
-      pf = pfmgr.makeAnd(pf, assumption);
-    }
-
-    return Collections.singleton(pState.withPathFormula(pf));
-  }
 
   public Optional<PrecisionAdjustmentResult> precisionAdjustment(
       final PolicyState inputState,
