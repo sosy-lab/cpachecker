@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -168,7 +167,6 @@ public class PolicyIterationManager {
   private final PolyhedraWideningManager pwm;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final RCNFManager rcnfManager;
-  private final TemplatePrecision initialPrecision;
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
   @Nullable private BlockPartitioning partitioning;
 
@@ -185,8 +183,7 @@ public class PolicyIterationManager {
       FormulaLinearizationManager pLinearizationManager,
       PolyhedraWideningManager pPwm,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
-      TemplatePrecision pPrecision)
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
       throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
@@ -203,7 +200,6 @@ public class PolicyIterationManager {
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
     rcnfManager = new RCNFManager(pConfig);
-    initialPrecision = pPrecision;
   }
 
   /**
@@ -214,21 +210,6 @@ public class PolicyIterationManager {
    * Otherwise, we generate a fresh one.
    */
   private final UniqueIdGenerator locationIDGenerator = new UniqueIdGenerator();
-
-  /**
-   * @param pNode Initial node.
-   * @return Initial state for the analysis, assuming the first node
-   * is {@code pNode}.
-   */
-  public PolicyState getInitialState(CFANode pNode) {
-    return PolicyAbstractedState.empty(
-        pNode,
-        bfmgr.makeTrue(), stateFormulaConversionManager);
-  }
-
-  public Precision getInitialPrecision() {
-    return initialPrecision;
-  }
 
   public Collection<? extends PolicyState> getAbstractSuccessors(
       PolicyState oldState, CFAEdge edge) throws CPATransferException, InterruptedException {

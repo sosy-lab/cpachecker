@@ -124,13 +124,14 @@ public class PolicyCPA
         formulaLinearizationManager,
         pPwm,
         stateFormulaConversionManager,
-        pTemplateToFormulaConversionManager,
-        templatePrecision);
+        pTemplateToFormulaConversionManager);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    return policyIterationManager.getInitialState(node);
+    return PolicyAbstractedState.empty(
+        node,
+        fmgr.getBooleanFormulaManager().makeTrue(), stateFormulaConversionManager);
   }
 
   @Override
@@ -159,9 +160,8 @@ public class PolicyCPA
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode node,
-                                                StateSpacePartition pPartition) {
-    return policyIterationManager.getInitialPrecision();
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition pPartition) {
+    return templatePrecision;
   }
 
   @Override
