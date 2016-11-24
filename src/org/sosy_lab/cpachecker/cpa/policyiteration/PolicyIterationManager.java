@@ -5,6 +5,7 @@ import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -75,7 +78,7 @@ import javax.annotation.Nullable;
  * Main logic in a single class.
  */
 @Options(prefix = "cpa.lpi")
-public class PolicyIterationManager {
+public class PolicyIterationManager implements PrecisionAdjustment {
 
   @Option(secure = true,
       description = "Where to perform abstraction")
@@ -206,12 +209,14 @@ public class PolicyIterationManager {
    */
   private final UniqueIdGenerator locationIDGenerator = new UniqueIdGenerator();
 
-  public Optional<PrecisionAdjustmentResult> precisionAdjustment(
-      final PolicyState inputState,
-      final TemplatePrecision inputPrecision,
+  @Override
+  public Optional<PrecisionAdjustmentResult> prec(
+      final AbstractState inputState,
+      final Precision inputPrecision,
       final UnmodifiableReachedSet states,
+      final Function<AbstractState, AbstractState> projection,
       final AbstractState pArgState) throws CPAException, InterruptedException {
-    return precisionAdjustment0(inputState, inputPrecision, states, pArgState)
+    return precisionAdjustment0((PolicyState)inputState, (TemplatePrecision)inputPrecision, states, pArgState)
         .flatMap(
             s -> Optional.of(PrecisionAdjustmentResult.create(
                 s, inputPrecision, Action.CONTINUE
@@ -301,10 +306,14 @@ public class PolicyIterationManager {
    *
    * <p>Injecting new invariants might force us to re-compute the abstraction.
    */
+  @Override
   public Optional<AbstractState> strengthen(
-      PolicyState pState, TemplatePrecision pPrecision,
-      List<AbstractState> pOtherStates)
+      AbstractState abstractState, Precision precision, List<AbstractState> pOtherStates)
       throws CPAException, InterruptedException {
+
+    PolicyState pState = (PolicyState) abstractState;
+    TemplatePrecision pPrecision = (TemplatePrecision) precision;
+
     if (!pState.isAbstract()) {
       return Optional.of(pState);
     }

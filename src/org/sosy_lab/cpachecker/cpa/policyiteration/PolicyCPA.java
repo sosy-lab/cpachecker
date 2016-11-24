@@ -156,7 +156,7 @@ public class PolicyCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PolicyPrecisionAdjustment(policyIterationManager);
+    return policyIterationManager;
   }
 
   @Override
