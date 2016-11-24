@@ -212,7 +212,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       if (level.getThird() == currentLevel.getThird()
               // && level.getSecond().equals(currentLevel.getSecond())
-              && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
+              && bamCPA.getAbstractDomain().isLessOrEqual(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
         // From currentState we could reach the levelState again (with further unrolling).
         // Thus we would have found an endless recursion (with current information (precision/state)).
