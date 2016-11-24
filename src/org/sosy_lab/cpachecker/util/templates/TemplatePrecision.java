@@ -640,8 +640,7 @@ public class TemplatePrecision implements Precision {
   public boolean injectPrecisionFromInterpolant(CFANode pNode, Set<String> usedVars) {
     LiveVariables liveVars = cfa.getLiveVariables().get();
 
-    FluentIterable<ASimpleDeclaration> liveAtLocation =
-        liveVars.getLiveVariablesForNode(pNode);
+    FluentIterable<ASimpleDeclaration> liveAtLocation = liveVars.getAllLiveVariables();
     Map<String, ASimpleDeclaration> map = new HashMap<>();
     for (ASimpleDeclaration decl : liveAtLocation) {
       map.put(decl.getQualifiedName(), decl);
