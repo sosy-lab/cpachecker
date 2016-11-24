@@ -29,6 +29,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import org.matheclipse.core.reflection.system.Arg;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,11 +70,13 @@ public class PropertyScopeGraph {
     ScopeEdge currentEdge = null;
 
     Deque<ARGState> waitlist = new ArrayDeque<>();
+    Set<ARGState> visitedARGStates = new HashSet<>();
     Deque<ScopeNode> edgeStartStack = new ArrayDeque<>();
     edgeStartStack.push(graph.rootNode);
     waitlist.addFirst(root);
     while (!waitlist.isEmpty()) {
       ARGState argState = waitlist.removeFirst();
+
       CallstackState csState = extractStateByType(argState, CallstackState.class);
       PropertyScopeState psState = extractStateByType(argState, PropertyScopeState.class);
       LocationState locstate = extractStateByType(argState, LocationState.class);
@@ -96,8 +100,10 @@ public class PropertyScopeGraph {
         graph.nodes.put(currentEdge.end.argState, currentEdge.end);
         currentEdge = null;
 
-        for (int i = 0; i < argState.getChildren().size(); i++) {
-          edgeStartStack.push(thisScopeNode);
+        if (!visitedARGStates.contains(argState)) {
+          for (int i = 0; i < argState.getChildren().size(); i++) {
+            edgeStartStack.push(thisScopeNode);
+          }
         }
 
       } else {
@@ -116,7 +122,11 @@ public class PropertyScopeGraph {
         }
       }
 
-      argState.getChildren().forEach(waitlist::addFirst);
+      if (!visitedARGStates.contains(argState)) {
+        argState.getChildren().forEach(waitlist::addFirst);
+      }
+
+      visitedARGStates.add(argState);
     }
 
     return graph;
