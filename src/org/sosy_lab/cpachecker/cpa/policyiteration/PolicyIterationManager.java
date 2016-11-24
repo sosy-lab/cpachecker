@@ -152,9 +152,6 @@ public class PolicyIterationManager {
       + "let other CPAs use the output of LPI.")
   private boolean delayAbstractionUntilStrengthen = false;
 
-  @Option(secure=true, description="Use the new SSA after the merge operation.")
-  private boolean useNewSSAAfterMerge = false;
-
   private final FormulaManagerView fmgr;
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
@@ -590,9 +587,7 @@ public class PolicyIterationManager {
       newAbstraction.put(template, mergedBound);
     }
 
-    // Cache coherence for CachingPathFormulaManager is better with oldSSA,
-    // but newSSA is required for LPI+BAM.
-    SSAMap mergedSSA = useNewSSAAfterMerge ? newState.getSSA() : oldState.getSSA();
+    SSAMap mergedSSA = newState.getSSA();
 
     PolicyAbstractedState merged =
         PolicyAbstractedState.of(
