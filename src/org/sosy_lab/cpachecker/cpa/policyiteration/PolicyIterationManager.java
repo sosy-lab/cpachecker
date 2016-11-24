@@ -498,41 +498,6 @@ public class PolicyIterationManager {
   }
 
   /**
-   * At every join, update all the references to starting states to the
-   * latest ones.
-   */
-  private PolicyIntermediateState joinIntermediateStates(
-      PolicyIntermediateState newState,
-      PolicyIntermediateState oldState
-  ) throws InterruptedException {
-
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
-
-    if (!newState.getBackpointerState().equals(oldState.getBackpointerState())) {
-
-      // Different parents: do not merge.
-      return oldState;
-    }
-
-    if (newState.isMergedInto(oldState)) {
-      return oldState;
-    } else if (oldState.isMergedInto(newState)) {
-      return newState;
-    }
-
-    PathFormula mergedPath = pfmgr.makeOr(newState.getPathFormula(),
-                                          oldState.getPathFormula());
-    PolicyIntermediateState out = PolicyIntermediateState.of(
-        newState.getNode(),
-        mergedPath,
-        oldState.getBackpointerState());
-
-    newState.setMergedInto(out);
-    oldState.setMergedInto(out);
-    return out;
-  }
-
-  /**
    * Merge two states, populate the {@code updated} mapping.
    */
   private PolicyAbstractedState unionAbstractedStates(
@@ -1295,20 +1260,6 @@ public class PolicyIterationManager {
           state2.asIntermediate());
     }
     return out;
-  }
-
-  public PolicyState merge(PolicyState state1, PolicyState state2)
-      throws InterruptedException {
-
-    Preconditions.checkState(state1.isAbstract() == state2.isAbstract(),
-        "Only states with the same abstraction status should be allowed to merge");
-    if (state1.isAbstract()) {
-
-      // No merge.
-      return state2;
-    }
-
-    return joinIntermediateStates(state1.asIntermediate(), state2.asIntermediate());
   }
 
   /**

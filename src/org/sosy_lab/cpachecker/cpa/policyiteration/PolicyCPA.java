@@ -145,7 +145,7 @@ public class PolicyCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return new PolicyMergeOperator(policyIterationManager);
+    return new PolicyMergeOperator(pfmgr);
   }
 
   @Override
