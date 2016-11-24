@@ -1,9 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Function;
 import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,7 +21,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -34,7 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -55,7 +50,6 @@ public class PolicyCPA
                ReachedSetAdjustingCPA,
                StatisticsProvider,
                AbstractDomain,
-               PrecisionAdjustment,
                MergeOperator,
                AutoCloseable {
 
@@ -184,7 +178,7 @@ public class PolicyCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return this;
+    return new PolicyPrecisionAdjustment(policyIterationManager);
   }
 
   @Override
@@ -196,29 +190,6 @@ public class PolicyCPA
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(statistics);
-  }
-
-  @Override
-  public Optional<PrecisionAdjustmentResult> prec(
-      AbstractState state,
-      Precision precision,
-      UnmodifiableReachedSet states,
-      Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
-
-    return policyIterationManager.precisionAdjustment(
-        (PolicyState)state,
-        (TemplatePrecision) precision, states,
-        fullState);
-  }
-
-  @Override
-  public Optional<AbstractState> strengthen(
-      AbstractState pState, Precision pPrecision,
-      List<AbstractState> otherStates)
-      throws CPAException, InterruptedException {
-    return policyIterationManager.strengthen(
-        (PolicyState) pState, (TemplatePrecision) pPrecision, otherStates);
   }
 
   @Override
