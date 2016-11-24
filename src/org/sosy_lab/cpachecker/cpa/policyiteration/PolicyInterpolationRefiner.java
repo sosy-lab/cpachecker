@@ -72,7 +72,6 @@ public class PolicyInterpolationRefiner implements Refiner {
       + "general")
   private boolean generalizeInterpolants = true;
 
-  private final LogManager logger;
   private final PathExtractor pathExtractor;
   private final ARGCPA argCpa;
   private final Solver solver;
@@ -100,14 +99,13 @@ public class PolicyInterpolationRefiner implements Refiner {
     Solver solver = policyCPA.getSolver();
     PathExtractor pathExtractor = new PathExtractor(logger, config);
     return new PolicyInterpolationRefiner(
-        config, policyCPA, logger, pathExtractor, argCPA, solver
+        config, policyCPA, pathExtractor, argCPA, solver
     );
   }
 
   private PolicyInterpolationRefiner(
       Configuration config,
       PolicyCPA pPolicyCPA,
-      LogManager pLogger,
       PathExtractor pPathExtractor,
       ARGCPA pArgCpa,
       Solver pSolver) throws InvalidConfigurationException {
@@ -115,7 +113,6 @@ public class PolicyInterpolationRefiner implements Refiner {
     fmgr = pSolver.getFormulaManager();
     solver = pSolver;
     policyCPA = pPolicyCPA;
-    logger = pLogger;
     pathExtractor = pPathExtractor;
     argCpa = pArgCpa;
     extractedVarsCache = new HashMap<>();
@@ -286,15 +283,11 @@ public class PolicyInterpolationRefiner implements Refiner {
    */
   private class FormulaWeakeningManager extends BooleanFormulaTransformationVisitor {
     private final Set<String> varsToDrop;
-    private final FormulaManagerView fmgr;
-    private final BooleanFormulaManager bfmgr;
 
     FormulaWeakeningManager(FormulaManagerView pFmgr,
                                       Set<String> pVarsToDrop) {
       super(pFmgr);
       varsToDrop = pVarsToDrop;
-      fmgr = pFmgr;
-      bfmgr = fmgr.getBooleanFormulaManager();
     }
 
     @Override
