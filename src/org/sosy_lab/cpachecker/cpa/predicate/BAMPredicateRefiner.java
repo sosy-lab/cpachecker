@@ -261,6 +261,9 @@ public abstract class BAMPredicateRefiner implements Refiner {
     }
   }
 
+  //evil hack, just to get stats
+  public static int repeatedFailCounter = 0;
+
   /**
    * This is an extension of {@link PredicateAbstractionRefinementStrategy}
    * that takes care of updating the BAM state.
@@ -317,7 +320,12 @@ public abstract class BAMPredicateRefiner implements Refiner {
           RelevantPredicatesComputer newRelevantPredicatesComputer =
               refineRelevantPredicatesComputer(abstractionStatesTrace, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
 
-          if (failAfterRepeatedCounterexample && newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
+          boolean eqComputer = newRelevantPredicatesComputer.equals(relevantPredicatesComputer);
+          if(eqComputer) {
+            repeatedFailCounter++;
+          }
+
+          if (failAfterRepeatedCounterexample && eqComputer) {
             // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
             // TODO if this happens, there might be a bug in the analysis!
             throw new RefinementFailedException(Reason.RepeatedCounterexample, null);

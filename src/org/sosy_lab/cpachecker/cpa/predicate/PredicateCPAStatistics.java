@@ -354,6 +354,8 @@ class PredicateCPAStatistics extends AbstractStatistics {
       }
     }
     out.println();
+    out.println("Number of potential repeated counterexamples: " + BAMPredicateRefiner.repeatedFailCounter);
+    out.println();
 
     out.println("Time for post operator:              " + trans.postTimer);
     out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
