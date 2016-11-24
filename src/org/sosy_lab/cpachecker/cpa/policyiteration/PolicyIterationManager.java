@@ -491,7 +491,7 @@ public class PolicyIterationManager {
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
 
-    if (isLessOrEqualAbstracted(newState, oldState)) {
+    if (newState.isLessOrEqual(oldState)) {
 
       // New state does not introduce any updates.
       return oldState;
@@ -559,8 +559,7 @@ public class PolicyIterationManager {
           pwm.generateWideningTemplates(oldState, newState));
     }
 
-    assert isLessOrEqualAbstracted(newState, merged)
-        && isLessOrEqualAbstracted(oldState, merged) :
+    assert newState.isLessOrEqual(merged) && oldState.isLessOrEqual(merged) :
         "Merged state should be larger than the subsumed one";
     return merged;
   }
@@ -1228,51 +1227,6 @@ public class PolicyIterationManager {
         a = iState.getBackpointerState();
       }
     }
-  }
-
-  public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
-    Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
-    boolean out;
-    if (state1.isAbstract()) {
-      out = isLessOrEqualAbstracted(state1.asAbstracted(),
-          state2.asAbstracted());
-    } else {
-      out = isLessOrEqualIntermediate(state1.asIntermediate(),
-          state2.asIntermediate());
-    }
-    return out;
-  }
-
-  /**
-   * @return state1 <= state2
-   */
-  private boolean isLessOrEqualIntermediate(
-      PolicyIntermediateState state1,
-      PolicyIntermediateState state2) {
-    return state1.isMergedInto(state2)
-        || (state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
-            && isLessOrEqualAbstracted(state1.getBackpointerState(), state2.getBackpointerState()));
-  }
-
-  /**
-   * @return state1 <= state2
-   */
-  private boolean isLessOrEqualAbstracted(
-      PolicyAbstractedState aState1,
-      PolicyAbstractedState aState2
-  ) {
-    for (Entry<Template, PolicyBound> e : aState2) {
-      Template t = e.getKey();
-      PolicyBound bound2 = e.getValue();
-
-      Optional<PolicyBound> bound1 = aState1.getBound(t);
-      if (!bound1.isPresent()
-          || bound1.get().getBound().compareTo(bound2.getBound()) >= 1) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   private BooleanFormula extractFormula(AbstractState pFormulaState) {

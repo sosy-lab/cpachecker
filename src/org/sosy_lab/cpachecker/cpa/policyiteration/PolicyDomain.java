@@ -29,12 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class PolicyDomain implements AbstractDomain {
 
-  private final PolicyIterationManager policyIterationManager;
-
-  PolicyDomain(PolicyIterationManager pPolicyIterationManager) {
-    policyIterationManager = pPolicyIterationManager;
-  }
-
   @Override
   public AbstractState join(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
@@ -50,6 +44,6 @@ public class PolicyDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    return policyIterationManager.isLessOrEqual((PolicyState) state1, (PolicyState) state2);
+    return ((PolicyState) state1).isLessOrEqual((PolicyState) state2);
   }
 }

@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -267,5 +268,22 @@ public final class PolicyAbstractedState extends PolicyState
           extraInvariant);
     }
     return hashCache;
+  }
+
+  @Override
+  public boolean isLessOrEqual(PolicyState o) {
+    Preconditions.checkState(this.isAbstract() == o.isAbstract());
+    PolicyAbstractedState other = o.asAbstracted();
+    for (Entry<Template, PolicyBound> e : other) {
+      Template t = e.getKey();
+      PolicyBound bound2 = e.getValue();
+
+      Optional<PolicyBound> bound1 = this.getBound(t);
+      if (!bound1.isPresent() || bound1.get().getBound().compareTo(bound2.getBound()) >= 1) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

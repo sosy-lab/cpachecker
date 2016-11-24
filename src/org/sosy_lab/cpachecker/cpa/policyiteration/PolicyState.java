@@ -36,6 +36,8 @@ public abstract class PolicyState implements AbstractState, Graphable {
 
   public abstract boolean isAbstract();
 
+  public abstract boolean isLessOrEqual(PolicyState other);
+
   @Override
   public boolean shouldBeHighlighted() {
     return false;

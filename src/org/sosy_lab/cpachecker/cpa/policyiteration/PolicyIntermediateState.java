@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -119,5 +120,14 @@ public final class PolicyIntermediateState extends PolicyState {
       hashCache = Objects.hash(pathFormula, startingAbstraction, mergedInto);
     }
     return hashCache;
+  }
+
+  @Override
+  public boolean isLessOrEqual(PolicyState o) {
+    Preconditions.checkState(this.isAbstract() == o.isAbstract());
+    PolicyIntermediateState other = o.asIntermediate();
+    return this.isMergedInto(other)
+        || (this.getPathFormula().getFormula().equals(other.getPathFormula().getFormula())
+            && this.getBackpointerState().isLessOrEqual(other.getBackpointerState()));
   }
 }

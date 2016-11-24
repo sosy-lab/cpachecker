@@ -136,7 +136,7 @@ public class PolicyCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PolicyDomain(policyIterationManager);
+    return new PolicyDomain();
   }
 
   @Override
