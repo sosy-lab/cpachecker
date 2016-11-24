@@ -67,7 +67,6 @@ public class PolicyCPA
   private final PolicyIterationManager policyIterationManager;
   private final LogManager logger;
   private final PolicyIterationStatistics statistics;
-  private final StopOperator stopOperator;
   private final Solver solver;
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
@@ -135,7 +134,6 @@ public class PolicyCPA
         stateFormulaConversionManager,
         pTemplateToFormulaConversionManager,
         templatePrecision);
-    stopOperator = new StopSepOperator(this);
   }
 
   @Override
@@ -181,7 +179,7 @@ public class PolicyCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return new StopSepOperator(this);
   }
 
   @Override
