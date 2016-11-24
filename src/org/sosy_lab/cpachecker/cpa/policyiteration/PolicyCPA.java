@@ -49,7 +49,6 @@ public class PolicyCPA
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA,
                StatisticsProvider,
-               MergeOperator,
                AutoCloseable {
 
   @Option(secure=true,
@@ -146,7 +145,7 @@ public class PolicyCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return this;
+    return new PolicyMergeOperator(policyIterationManager);
   }
 
   @Override
@@ -194,14 +193,6 @@ public class PolicyCPA
 
   Solver getSolver() {
     return solver;
-  }
-
-  @Override
-  public AbstractState merge(AbstractState state1, AbstractState state2,
-      Precision precision) throws CPAException, InterruptedException {
-    return policyIterationManager.merge(
-        (PolicyState) state1, (PolicyState) state2
-    );
   }
 
   @Override
