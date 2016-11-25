@@ -86,7 +86,7 @@ public class ConfigurationFilesTest {
               + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
               + "|Finding target locations was interrupted.*"
-              + "|Shutdown of analysis 0 requested .One of the parallel analyses has finished successfully, cancelling all other runs.*",
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
