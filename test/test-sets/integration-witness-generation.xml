@@ -22,7 +22,7 @@
   </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
+    <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
     <propertyfile>../programs/benchmarks/BitVectorsOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
