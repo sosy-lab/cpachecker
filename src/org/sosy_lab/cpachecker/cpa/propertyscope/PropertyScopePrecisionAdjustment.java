@@ -222,10 +222,6 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         .map(PredicateAbstractState.class::cast)
         .findAny().orElseThrow(() -> new CPAException("Predicate state missing!"));
 
-    //if (!predState.isAbstractionState()) {
-    //  throw new CPAException("Got a non-abstraction predicate state, enable SBE!");
-    //}
-
     return predState;
   }
 
