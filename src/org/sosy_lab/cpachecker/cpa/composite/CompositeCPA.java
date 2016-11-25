@@ -331,4 +331,27 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
     });
   }
+
+  @Override
+  public boolean isCoveredByRecursiveState(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
+    CompositeState state1 = (CompositeState) pState1;
+    CompositeState state2 = (CompositeState) pState2;
+
+    List<AbstractState> states1 = state1.getWrappedStates();
+    List<AbstractState> states2 = state2.getWrappedStates();
+
+    if (states1.size() != cpas.size()) {
+      return false;
+    }
+
+    for (int idx = 0; idx < states1.size(); idx++) {
+      if (!((ConfigurableProgramAnalysisWithBAM) cpas.get(idx))
+          .isCoveredByRecursiveState(states1.get(idx), states2.get(idx))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }

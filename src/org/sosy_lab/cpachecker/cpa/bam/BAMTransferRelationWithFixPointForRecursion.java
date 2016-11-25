@@ -211,14 +211,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
           stack.subList(0, stack.size() - 1)) {
 
       if (level.getThird() == currentLevel.getThird()
-              // && level.getSecond().equals(currentLevel.getSecond())
-              && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
-        // hidden implementation detail:
-        // We use ProofChecker.isCoveredBy instead of Domain.isLessOrEqual,
-        // because of different implementations of both methods in CallStackCPA.
-        // The second method can only compare object-equal callstack-states,
-        // the first one checks for the content, which is better for us.
-
+          // && level.getSecond().equals(currentLevel.getSecond())
+          && bamCPA
+              .getWrappedCpa()
+              .isCoveredByRecursiveState(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
         // From currentState we could reach the levelState again (with further unrolling).
         // Thus we would have found an endless recursion (with current information (precision/state)).

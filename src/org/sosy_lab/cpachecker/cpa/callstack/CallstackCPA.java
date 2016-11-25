@@ -124,6 +124,13 @@ public class CallstackCPA extends AbstractCPA
         .sameStateInProofChecking((CallstackState) pOtherElement);
   }
 
+  @Override
+  public boolean isCoveredByRecursiveState(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return new CallstackStateEqualsWrapper((CallstackState) state1)
+        .equals(new CallstackStateEqualsWrapper((CallstackState) state2));
+  }
+
   @Options(prefix = "cpa.callstack")
   private static class DomainInitializer {
 

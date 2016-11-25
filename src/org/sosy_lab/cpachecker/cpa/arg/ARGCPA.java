@@ -212,4 +212,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     assert cpa instanceof ConfigurableProgramAnalysisWithBAM;
     ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
   }
+
+  @Override
+  public boolean isCoveredByRecursiveState(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
+        .isCoveredByRecursiveState(
+            ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
+  }
 }
