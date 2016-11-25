@@ -99,7 +99,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -303,7 +303,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public BooleanFormula getInvariantFor(
       CFANode pNode,
-      Optional<CallstackWrapper> pCallstackInformation,
+      Optional<CallstackStateEqualsWrapper> pCallstackInformation,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       PathFormula pContext) {
@@ -748,7 +748,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         // the last one will always be false, we don't need it here
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
-          Optional<CallstackWrapper> callstack = extractOptionalCallstackWraper(s);
+          Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
           BooleanFormula invariant = invSup.getInvariantFor(
               location,

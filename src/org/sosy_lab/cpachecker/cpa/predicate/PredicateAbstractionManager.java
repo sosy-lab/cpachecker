@@ -49,7 +49,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -257,7 +257,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
-      Optional<CallstackWrapper> callstackInformation,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       final BooleanFormula f,
       final PathFormula blockFormula,
       final Collection<AbstractionPredicate> predicates)
@@ -292,7 +292,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
-      Optional<CallstackWrapper> callstackInformation,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
       final Collection<AbstractionPredicate> pPredicates)

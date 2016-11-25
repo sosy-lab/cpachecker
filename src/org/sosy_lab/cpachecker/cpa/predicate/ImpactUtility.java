@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -149,7 +149,7 @@ final class ImpactUtility {
     }
 
     CFANode location = AbstractStates.extractLocation(s);
-    Optional<CallstackWrapper>
+    Optional<CallstackStateEqualsWrapper>
         callstackInfo = AbstractStates.extractOptionalCallstackWraper(s);
 
     // Compute an abstraction with the new predicates.

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -113,7 +113,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
             @Override
             public BooleanFormula getInvariantFor(
                 CFANode location,
-                Optional<CallstackWrapper> callstackInformation,
+                Optional<CallstackStateEqualsWrapper> callstackInformation,
                 FormulaManagerView fmgr,
                 PathFormulaManager pfmgr,
                 PathFormula pContext) {

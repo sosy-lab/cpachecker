@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -148,7 +148,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
     Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
-    Optional<CallstackWrapper> callstackWrapper =
+    Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
     numAbstractions++;
