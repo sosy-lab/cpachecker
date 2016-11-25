@@ -87,7 +87,14 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGState rootOfSubgraph = null;
     try {
       rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
-    } catch (MissingBlockException | InterruptedException e) {
+    } catch (MissingBlockException e) {
+      logger.log(
+          Level.INFO,
+          "could not compute full reached set graph (missing block), "
+              + "some output or statistics might be missing");
+      return; // invalid ARG, ignore output.
+
+    } catch (InterruptedException e) {
       logger.log(Level.WARNING, "could not compute full reached set graph:", e);
       return; // invalid ARG, ignore output
     }
