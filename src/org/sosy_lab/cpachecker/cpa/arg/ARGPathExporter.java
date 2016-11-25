@@ -919,12 +919,10 @@ public class ARGPathExporter {
 
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {
-        while (redundantEdgeIterator.hasNext()) {
-          Edge edge = redundantEdgeIterator.next();
-          mergeNodes(edge);
-          assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
-        }
+        Edge edge = redundantEdgeIterator.next();
+        mergeNodes(edge);
         redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
+        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
 
       // Write elements
