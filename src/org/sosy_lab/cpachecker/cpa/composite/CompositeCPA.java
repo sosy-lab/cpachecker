@@ -28,7 +28,9 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -59,10 +61,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 

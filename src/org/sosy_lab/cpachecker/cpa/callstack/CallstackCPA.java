@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -51,8 +51,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import com.google.common.collect.Iterables;
 
 public class CallstackCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
