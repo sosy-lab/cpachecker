@@ -312,11 +312,25 @@ public class CoreComponentsFactory {
         if (cpa instanceof BAMCPA) {
           algorithm =
               new BAMCounterexampleCheckAlgorithm(
-                  algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+                  algorithm,
+                  cpa,
+                  config,
+                  logger,
+                  shutdownNotifier,
+                  specification,
+                  cfa,
+                  programDenotation);
         } else {
           algorithm =
               new CounterexampleCheckAlgorithm(
-                  algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+                  algorithm,
+                  cpa,
+                  config,
+                  specification,
+                  logger,
+                  shutdownNotifier,
+                  cfa,
+                  programDenotation);
         }
       }
 
@@ -416,7 +430,8 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException {
     Preconditions.checkState(useTerminationAlgorithm);
     Specification terminationSpecification =
-        TerminationAlgorithm.loadTerminationSpecification(cfa, config, logger);
+        TerminationAlgorithm.loadTerminationSpecification(
+            originalSpecification.getProperties(), cfa, config, logger);
 
     if (!originalSpecification.equals(Specification.alwaysSatisfied())
         && !originalSpecification.equals(terminationSpecification)) {

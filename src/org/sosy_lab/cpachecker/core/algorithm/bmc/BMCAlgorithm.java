@@ -166,7 +166,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     MachineModel machineModel = pCFA.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
-    argPathExporter = new ARGPathExporter(config, logger, cfa);
+    argPathExporter = new ARGPathExporter(config, logger, specification, cfa);
   }
 
   @Override

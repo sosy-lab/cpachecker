@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuild
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -121,7 +122,9 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       LogManager pLogger,
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa) throws InvalidConfigurationException, CPAException {
+      Specification pSpecification,
+      CFA pCfa)
+      throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
@@ -186,7 +189,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
               blockPartitioning);
     }
     stats = new BAMCPAStatistics(this, data, config, logger);
-    argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pCfa);
+    argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa) {

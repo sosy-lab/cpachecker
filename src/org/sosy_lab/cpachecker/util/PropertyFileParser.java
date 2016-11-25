@@ -75,7 +75,7 @@ public class PropertyFileParser {
   private final Path propertyFile;
 
   private String entryFunction;
-  private final Set<Property> properties = Sets.newHashSetWithExpectedSize(1);
+  private final Set<SpecificationProperty> properties = Sets.newHashSetWithExpectedSize(1);
 
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
@@ -101,7 +101,8 @@ public class PropertyFileParser {
     }
   }
 
-  private Property parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
+  private SpecificationProperty parsePropertyLine(String rawProperty)
+      throws InvalidPropertyFileException {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
@@ -128,11 +129,11 @@ public class PropertyFileParser {
     return entryFunction;
   }
 
-  public Set<Property> getProperties() {
+  public Set<SpecificationProperty> getProperties() {
     return Collections.unmodifiableSet(properties);
   }
 
-  public interface Property {
+  public interface SpecificationProperty {
 
     /**
      * Gets the function entry.
@@ -291,8 +292,8 @@ public class PropertyFileParser {
       return Optional.empty();
     }
 
-    public Property withFunctionEntry(String pFunctionEntry) {
-      return new Property() {
+    public SpecificationProperty withFunctionEntry(String pFunctionEntry) {
+      return new SpecificationProperty() {
 
         @Override
         public String getInitialFunction() {

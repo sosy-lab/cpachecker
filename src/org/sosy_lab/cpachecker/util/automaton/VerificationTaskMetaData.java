@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -35,9 +33,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -64,14 +62,6 @@ public class VerificationTaskMetaData {
 
     @Option(
       secure = true,
-      name = "properties",
-      description = "List of property files (INTERNAL USAGE ONLY - DO NOT USE)"
-    )
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private List<Path> propertyFiles = ImmutableList.of();
-
-    @Option(
-      secure = true,
       name = "specification",
       description =
           "comma-separated list of files with specifications that should be checked"
@@ -93,8 +83,6 @@ public class VerificationTaskMetaData {
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
 
   private final String memoryModel;
-
-  private Set<String> specifications;
 
   private final Optional<Iterable<String>> programNames;
 
@@ -163,19 +151,8 @@ public class VerificationTaskMetaData {
    * Gets the specifications considered for this verification task.
    *
    * @return the specifications considered for this verification task.
-   * @throws IOException if the specification files cannot be parsed.
    */
-  public Set<String> getSpecifications() throws IOException {
-    if (specifications == null) {
-      ImmutableSet.Builder<String> specificationsBuilder = ImmutableSet.builder();
-      for (Path path : hackyOptions.propertyFiles) {
-        specificationsBuilder.add(MoreFiles.toString(path, Charsets.UTF_8).trim());
-      }
-      for (Path path : hackyOptions.specificationFiles) {
-        specificationsBuilder.add(MoreFiles.toString(path, Charsets.UTF_8).trim());
-      }
-      specifications = specificationsBuilder.build();
-    }
-    return specifications;
+  public List<Path> getSpecificationFiles() {
+    return Collections.unmodifiableList(hackyOptions.specificationFiles);
   }
 }

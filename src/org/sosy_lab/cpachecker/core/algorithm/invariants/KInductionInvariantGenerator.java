@@ -492,7 +492,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       CFA pCFA,
       final ShutdownManager pShutdownManager,
       TargetLocationProvider pTargetLocationProvider,
-      Specification specification)
+      Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
@@ -501,14 +501,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       for (AssumeEdge assumeEdge :
           getRelevantAssumeEdges(
               pTargetLocationProvider.tryGetAutomatonTargetLocations(
-                  pCFA.getMainFunction(), specification))) {
+                  pCFA.getMainFunction(), pSpecification))) {
         candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
       }
     }
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
-      ReachedSet reachedSet = analyzeWitness(pConfig, pLogger, pCFA, pShutdownManager, pOptions);
+      ReachedSet reachedSet =
+          analyzeWitness(pConfig, pSpecification, pLogger, pCFA, pShutdownManager, pOptions);
       extractCandidatesFromReachedSet(pShutdownManager, candidates, candidateGroupLocations,
           reachedSet);
     }
@@ -583,6 +584,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
   private static ReachedSet analyzeWitness(
       Configuration pConfig,
+      Specification pSpecification,
       LogManager pLogger,
       CFA pCFA,
       final ShutdownManager pShutdownManager,
@@ -606,7 +608,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     CPABuilder builder = new CPABuilder(config, pLogger, notifier, reachedSetFactory);
     Specification automatonAsSpec =
         Specification.fromFiles(
-            ImmutableList.of(options.invariantsAutomatonFile), pCFA, config, pLogger);
+            pSpecification.getProperties(),
+            ImmutableList.of(options.invariantsAutomatonFile),
+            pCFA,
+            config,
+            pLogger);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);

@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -206,12 +207,15 @@ public class ARGPathExporter {
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  private VerificationTaskMetaData verificationTaskMetaData;
+  private final VerificationTaskMetaData verificationTaskMetaData;
+
+  private final Specification specification;
 
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
-      CFA pCFA)
+      final Specification pSpecification,
+      final CFA pCFA)
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
@@ -220,6 +224,7 @@ public class ARGPathExporter {
     this.language = pCFA.getLanguage();
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
     this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
+    this.specification = pSpecification;
   }
 
   public void writeErrorWitness(
@@ -853,7 +858,12 @@ public class ARGPathExporter {
       try {
         doc =
             new GraphMlBuilder(
-                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
+                graphType,
+                defaultSourcefileName,
+                language,
+                machineModel,
+                verificationTaskMetaData,
+                specification);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }

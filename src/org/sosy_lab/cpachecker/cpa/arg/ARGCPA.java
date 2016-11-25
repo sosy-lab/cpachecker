@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -84,13 +85,19 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
 
-  private ARGCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+  private ARGCPA(
+      ConfigurableProgramAnalysis cpa,
+      Configuration config,
+      LogManager logger,
+      Specification pSpecification,
+      CFA cfa)
+      throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     this.logger = logger;
 
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
-    stats = new ARGStatistics(config, logger, this, cfa);
+    stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
   @Override

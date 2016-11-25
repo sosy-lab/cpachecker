@@ -41,7 +41,16 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -96,18 +105,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -178,7 +176,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
 
-    Specification requiredSpecification = loadTerminationSpecification(pCfa, pConfig, pLogger);
+    Specification requiredSpecification =
+        loadTerminationSpecification(pSpecification.getProperties(), pCfa, pConfig, pLogger);
     Preconditions.checkArgument(
         requiredSpecification.equals(pSpecification),
         "%s requires %s, but %s is given.",
@@ -214,14 +213,14 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
-  /**
-   * Loads the specification required to run the {@link TerminationAlgorithm}.
-   */
+  /** Loads the specification required to run the {@link TerminationAlgorithm}. */
   public static Specification loadTerminationSpecification(
-      CFA pCfa, Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+      Set<SpecificationProperty> pProperties, CFA pCfa, Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     if (terminationSpecification == null) {
       terminationSpecification =
-          Specification.fromFiles(Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
+          Specification.fromFiles(
+              pProperties, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
     }
 
     return terminationSpecification;

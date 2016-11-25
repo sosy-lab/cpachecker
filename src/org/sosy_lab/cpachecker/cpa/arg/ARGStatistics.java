@@ -57,6 +57,7 @@ import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -112,7 +113,11 @@ public class ARGStatistics implements Statistics {
   protected final LogManager logger;
 
   public ARGStatistics(
-      Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa, CFA cfa)
+      Configuration config,
+      LogManager pLogger,
+      ConfigurableProgramAnalysis pCpa,
+      Specification pSpecification,
+      CFA cfa)
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
@@ -120,8 +125,8 @@ public class ARGStatistics implements Statistics {
     cpa = pCpa;
     assumptionToEdgeAllocator =
         new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
-    cexExporter = new CEXExporter(config, logger, cfa, cpa);
-    argPathExporter = new ARGPathExporter(config, logger, cfa);
+    cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
+    argPathExporter = new ARGPathExporter(config, logger, pSpecification, cfa);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;

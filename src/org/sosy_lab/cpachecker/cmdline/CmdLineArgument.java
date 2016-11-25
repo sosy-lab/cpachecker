@@ -27,13 +27,13 @@ import static org.sosy_lab.cpachecker.cmdline.CmdLineArguments.putIfNotExistent;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-
-import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 
 abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
 
@@ -78,16 +78,24 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
   }
 
-  boolean apply(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
+  boolean apply(
+      Map<String, String> properties,
+      Set<SpecificationProperty> pSpecificationProperties,
+      String currentArg,
+      Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException {
     if (names.contains(currentArg)) {
-      apply0(properties, currentArg, argsIt);
+      apply0(properties, pSpecificationProperties, currentArg, argsIt);
       return true;
     }
     return false;
   }
 
-  abstract void apply0(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
+  abstract void apply0(
+      Map<String, String> properties,
+      Set<SpecificationProperty> pSpecificationProperties,
+      String currentArg,
+      Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException;
 
 
@@ -104,7 +112,11 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
 
     @Override
-    final void apply0(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
+    final void apply0(
+        Map<String, String> properties,
+        Set<SpecificationProperty> pSpecificationProperties,
+        String currentArg,
+        Iterator<String> argsIt)
         throws InvalidCmdlineArgumentException {
       putIfNotExistent(properties, option, value);
     }
@@ -135,18 +147,33 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
 
     @Override
-    final void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
+    final void apply0(
+        Map<String, String> properties,
+        Set<SpecificationProperty> pSpecificationProperties,
+        String currentArg,
+        Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       if (args.hasNext()) {
-        handleArg(properties, args.next());
+        handleArg(properties, pSpecificationProperties, args.next());
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
       }
     }
 
-    void handleArg(Map<String, String> properties, String arg)
+    /**
+     * Handles a command-line argument.
+     *
+     * @param pProperties the map of configuration properties.
+     * @param pSpecificationProperties a mutable set where specification properties are put into
+     *     during parsing. Only used in overriding methods.
+     * @param pArg the value of the configuration option represented by this argument.
+     */
+    void handleArg(
+        Map<String, String> pProperties,
+        Set<SpecificationProperty> pSpecificationProperties,
+        String pArg)
         throws InvalidCmdlineArgumentException {
-      putIfNotExistent(properties, option, arg);
+      putIfNotExistent(pProperties, option, pArg);
     }
   }
 
@@ -169,7 +196,11 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
 
     @Override
-    void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
+    void apply0(
+        Map<String, String> properties,
+        Set<SpecificationProperty> pSpecificationProperties,
+        String currentArg,
+        Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       for (Entry<String, String> e : additionalIfNotExistentArgs.entrySet()) {
         putIfNotExistent(properties, e.getKey(), e.getValue());

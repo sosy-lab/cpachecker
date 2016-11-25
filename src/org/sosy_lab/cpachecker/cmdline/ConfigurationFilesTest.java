@@ -28,6 +28,7 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
@@ -220,7 +221,7 @@ public class ConfigurationFilesTest {
 
     final CPAchecker cpachecker;
     try {
-      cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
+      cpachecker = new CPAchecker(config, logger, ShutdownManager.create(), ImmutableSet.of());
     } catch (InvalidConfigurationException e) {
       assert_()
           .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
