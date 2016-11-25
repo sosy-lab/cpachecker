@@ -2689,9 +2689,6 @@ precision.variableBlacklist = ""
 # this precision
 precision.variableWhitelist = ""
 
-# List of property files (INTERNAL USAGE ONLY - DO NOT USE)
-properties = []
-
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
