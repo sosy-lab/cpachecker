@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
-
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -46,10 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
