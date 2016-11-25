@@ -219,7 +219,7 @@ public class ARGPathExporter {
     this.machineModel = pCFA.getMachineModel();
     this.language = pCFA.getLanguage();
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
-    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
+    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
   }
 
   public void writeErrorWitness(

@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -38,14 +37,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Level;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
 
 public class VerificationTaskMetaData {
 
@@ -74,6 +72,16 @@ public class VerificationTaskMetaData {
 
     @Option(
       secure = true,
+      name = "specification",
+      description =
+          "comma-separated list of files with specifications that should be checked"
+              + "\n(see config/specification/ for examples)"
+    )
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+    private List<Path> specificationFiles = ImmutableList.of();
+
+    @Option(
+      secure = true,
       name = "cpa.predicate.handlePointerAliasing",
       description =
           "Handle aliasing of pointers. "
@@ -86,33 +94,15 @@ public class VerificationTaskMetaData {
 
   private final String memoryModel;
 
-  private final Iterable<String> specifications;
+  private Set<String> specifications;
 
   private final Optional<Iterable<String>> programNames;
 
   private String programHash;
 
-  public VerificationTaskMetaData(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
+  public VerificationTaskMetaData(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(hackyOptions);
-
     memoryModel = hackyOptions.handlePointerAliasing ? "precise" : "simple";
-    specifications =
-        FluentIterable.from(hackyOptions.propertyFiles)
-            .transform(
-                new Function<Path, String>() {
-
-                  @Override
-                  public String apply(Path pArg0) {
-                    try {
-                      return MoreFiles.toString(pArg0, Charsets.UTF_8).trim();
-                    } catch (IOException e) {
-                      pLogger.logUserException(
-                          Level.WARNING, e, "Could not export specification to witness.");
-                      return "Unknown specification";
-                    }
-                  }
-                });
     if (hackyOptions.programs == null) {
       programNames = Optional.empty();
     } else {
@@ -173,8 +163,19 @@ public class VerificationTaskMetaData {
    * Gets the specifications considered for this verification task.
    *
    * @return the specifications considered for this verification task.
+   * @throws IOException if the specification files cannot be parsed.
    */
-  public Iterable<String> getSpecifications() {
+  public Set<String> getSpecifications() throws IOException {
+    if (specifications == null) {
+      ImmutableSet.Builder<String> specificationsBuilder = ImmutableSet.builder();
+      for (Path path : hackyOptions.propertyFiles) {
+        specificationsBuilder.add(MoreFiles.toString(path, Charsets.UTF_8).trim());
+      }
+      for (Path path : hackyOptions.specificationFiles) {
+        specificationsBuilder.add(MoreFiles.toString(path, Charsets.UTF_8).trim());
+      }
+      specifications = specificationsBuilder.build();
+    }
     return specifications;
   }
 }

@@ -194,7 +194,7 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
-    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
   }
 
   /**
