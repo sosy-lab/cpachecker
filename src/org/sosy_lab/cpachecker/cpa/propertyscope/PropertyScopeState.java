@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AbstractionPropertyScopeInstance;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AutomatonPropertyScopeInstance;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 
@@ -58,7 +57,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
   private final PropertyScopeState prevState;
   private final AbstractionFormula absFormula;
   private final Map<Automaton, AutomatonState> automatonStates;
-  private final AbstractionPropertyScopeInstance absScopeInstance;
   private final Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts;
   private final AbstractionFormula afterGlobalInitAbsFormula;
   private final AbstractionFormula lastVarClassScopeAbsFormula;
@@ -73,7 +71,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
         null,
         null,
         Collections.emptyMap(),
-        null,
         Collections.emptyMap(),
         null,
         null);
@@ -88,7 +85,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
       PropertyScopeState pPrevState,
       AbstractionFormula pAbsFormula,
       Map<Automaton, AutomatonState> pAutomatonStates,
-      AbstractionPropertyScopeInstance pAbsScopeInstance,
       Map<Automaton, AutomatonPropertyScopeInstance> pAutomScopeInsts,
       AbstractionFormula pAfterGlobalInitAbsFormula,
       AbstractionFormula pLastVarClassScopeAbsFormula) {
@@ -101,7 +97,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
     prevState = pPrevState;
     absFormula = pAbsFormula;
     automatonStates = Collections.unmodifiableMap(pAutomatonStates);
-    absScopeInstance = pAbsScopeInstance;
     automScopeInsts = Collections.unmodifiableMap(pAutomScopeInsts);
     afterGlobalInitAbsFormula = pAfterGlobalInitAbsFormula;
     lastVarClassScopeAbsFormula = pLastVarClassScopeAbsFormula;
@@ -147,10 +142,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
 
   public AbstractionFormula getAfterGlobalInitAbsFormula() {
     return afterGlobalInitAbsFormula;
-  }
-
-  public Optional<AbstractionPropertyScopeInstance> getAbsScopeInstance() {
-    return Optional.ofNullable(absScopeInstance);
   }
 
   public AbstractionFormula getLastVarClassScopeAbsFormula() {

@@ -71,7 +71,7 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
 
     PropertyScopeState newState = new PropertyScopeState(newPrevBlkStates,
         -1, cfaEdge, emptyList(), emptySet(), state, null,
-        Collections.emptyMap(), state.getAbsScopeInstance().orElse(null),
+        Collections.emptyMap(),
         state.getAutomScopeInsts(),
         state.getAfterGlobalInitAbsFormula(),
         state.getLastVarClassScopeAbsFormula());
@@ -146,7 +146,6 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
             state.getPrevState().orElse(null),
             null,
             automatonStateMap,
-            state.getAbsScopeInstance().orElse(null),
             automScopeInsts,
             state.getAfterGlobalInitAbsFormula(),
             state.getLastVarClassScopeAbsFormula()));

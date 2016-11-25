@@ -29,7 +29,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
-import org.matheclipse.core.reflection.system.Hold;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AbstractionPropertyScopeInstance;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -113,8 +111,6 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
 
     PersistentList<PropertyScopeState> prevStates = state.getPrevBlockStates();
     Set<ScopeLocation> scopeLocations = new LinkedHashSet<>();
-
-    java.util.Optional<AbstractionPropertyScopeInstance> absScopeInstance = state.getAbsScopeInstance();
 
     Holder<AbstractionFormula> hVarClassScopeAbsFormula = Holder.of(state
         .getLastVarClassScopeAbsFormula());
@@ -213,7 +209,6 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         state.getPrevState().orElse(null),
         predState.getAbstractionFormula(),
         state.getAutomatonStates(),
-        absScopeInstance.orElse(null),
         state.getAutomScopeInsts(),
         hAfterGlobalInitAbsFormula.value,
         hVarClassScopeAbsFormula.value));

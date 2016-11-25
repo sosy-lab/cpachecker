@@ -31,26 +31,9 @@ import java.util.Set;
 public abstract class PropertyScopeInstance {
   private static int id = 0;
 
-  public static AbstractionPropertyScopeInstance create(AbstractionFormula startFormula) {
-    id++;
-    return new AbstractionPropertyScopeInstance(startFormula);
-  }
-
   public static AutomatonPropertyScopeInstance create(AutomatonState startState) {
     id++;
     return new AutomatonPropertyScopeInstance(startState);
-  }
-
-  public static class AbstractionPropertyScopeInstance extends PropertyScopeInstance {
-    private final AbstractionFormula startFormula;
-
-    private AbstractionPropertyScopeInstance(AbstractionFormula pStartFormula) {
-      startFormula = pStartFormula;
-    }
-
-    public AbstractionFormula getStartFormula() {
-      return startFormula;
-    }
   }
 
   public static class AutomatonPropertyScopeInstance extends PropertyScopeInstance {
