@@ -12,11 +12,13 @@
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+      <exclude>../programs/benchmarks/ntdrivers/floppy_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_clnt.blast.02_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.01_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.02_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.07_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.09_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.12_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.13_true-unreach-call.i.cil.c</exclude>
     </tasks>
@@ -38,6 +40,9 @@
     </tasks>
     <tasks>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <exclude>../programs/benchmarks/loops/lu.cmp_true-unreach-call.i</exclude>
+      <exclude>../programs/benchmarks/loop-acceleration/nested_false-unreach-call1.i</exclude>
+      <exclude>../programs/benchmarks/loop-new/count_by_k_true-unreach-call_true-termination.i</exclude>
       <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
     </tasks>
     <tasks>
