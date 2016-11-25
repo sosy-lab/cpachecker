@@ -65,8 +65,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
@@ -74,7 +73,11 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class ControlAutomatonCPA
+    implements ConfigurableProgramAnalysis,
+        StatisticsProvider,
+        ConfigurableProgramAnalysisWithBAM,
+        ProofCheckerCPA {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
@@ -250,11 +253,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
         pElement, SingletonPrecision.getInstance(), pCfaEdge));
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 
   boolean isTreatingErrorsAsTargets() {
