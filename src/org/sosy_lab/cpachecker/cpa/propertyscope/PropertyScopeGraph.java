@@ -88,6 +88,8 @@ public class PropertyScopeGraph {
       WaitListEntry waitListEntry = waitlist.removeFirst();
       ARGState argState = waitListEntry.argState;
 
+      boolean isVisitedScopeNode = graph.nodes.containsKey(argState);
+
       CallstackState csState = extractStateByType(argState, CallstackState.class);
       PropertyScopeState psState = extractStateByType(argState, PropertyScopeState.class);
       LocationState locstate = extractStateByType(argState, LocationState.class);
@@ -104,8 +106,7 @@ public class PropertyScopeGraph {
         currentEdge.start = waitListEntry.parentScopeNode;
       }
 
-      if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty() ||
-          visitedARGStates.contains(argState)) {
+      if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty()) {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
         graph.nodes.put(currentEdge.start.argState, currentEdge.start);
@@ -128,12 +129,11 @@ public class PropertyScopeGraph {
         }
       }
 
-      if (!visitedARGStates.contains(argState)) {
+      if (!isVisitedScopeNode) {
         argState.getChildren().forEach(
             child -> waitlist.addFirst(new WaitListEntry(child, thisScopeNode)));
       }
 
-      visitedARGStates.add(argState);
     }
 
     return graph;
