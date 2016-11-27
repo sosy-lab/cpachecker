@@ -58,6 +58,7 @@ public class PropertyScopeCallGraph {
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(root);
     PropertyScopeCallGraph graph = new PropertyScopeCallGraph();
+    Set<ARGState> visitedStates = new HashSet<>();
 
     // prepopulate the graph with the given functions
     prepopulateFunctions.forEach(graph::functionNodeFor);
@@ -71,31 +72,35 @@ public class PropertyScopeCallGraph {
       ARGState argState = waitlist.removeFirst();
       CallstackState csState = extractStateByType(argState, CallstackState.class);
 
-      for (ARGState childState: argState.getChildren()) {
+      if(!visitedStates.contains(argState)) {
+        for (ARGState childState : argState.getChildren()) {
 
-        // handle func calls
-        CallstackState chCsState = extractStateByType(childState, CallstackState.class);
-        if (chCsState.getDepth() > csState.getDepth()) {
-          CallEdge callEdge =
-              graph.callEdgeFor(csState.getCurrentFunction(), chCsState.getCurrentFunction());
-          callEdge.sink.argOccurenceCount += 1;
-        }
+          // handle func calls
+          CallstackState chCsState = extractStateByType(childState, CallstackState.class);
+          if (chCsState.getDepth() > csState.getDepth()) {
+            CallEdge callEdge =
+                graph.callEdgeFor(csState.getCurrentFunction(), chCsState.getCurrentFunction());
+            callEdge.sink.argOccurenceCount += 1;
+          }
 
-        PropertyScopeState psState = extractStateByType(childState, PropertyScopeState.class);
+          PropertyScopeState psState = extractStateByType(childState, PropertyScopeState.class);
 
-        for (CFAEdge toChEdge : argState.getEdgesToChild(childState)) {
-          FunctionNode fnode = graph.functionNodeFor(toChEdge.getSuccessor().getFunctionName());
-          fnode.cfaEdges += 1;
-          for (Reason reason : Reason.values()) {
-            if (psState.getScopeLocations().stream()
-                .anyMatch(sloc -> sloc.getEdge().equals(toChEdge)
-                    && sloc.getReason() == reason)) {
-              fnode.scopedCFAEdges.get(reason).add(toChEdge);
+          for (CFAEdge toChEdge : argState.getEdgesToChild(childState)) {
+            FunctionNode fnode = graph.functionNodeFor(toChEdge.getSuccessor().getFunctionName());
+            fnode.cfaEdges += 1;
+            for (Reason reason : Reason.values()) {
+              if (psState.getScopeLocations().stream()
+                  .anyMatch(sloc -> sloc.getEdge().equals(toChEdge)
+                      && sloc.getReason() == reason)) {
+                fnode.scopedCFAEdges.get(reason).add(toChEdge);
+              }
             }
           }
+
+          waitlist.addFirst(childState);
         }
 
-        waitlist.addFirst(childState);
+        visitedStates.add(argState);
       }
     }
 
