@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -82,13 +83,15 @@ public class BAMARGStatistics extends ARGStatistics {
 
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
-    ARGState target = (ARGState) pReached.getLastState();
-    assert pMainReachedSet.asReachedSet().contains(target);
+    ARGState root = (ARGState)pReached.getFirstState();
+    Collection<ARGState> targets = root.getChildren();
+    assert targets.contains(pReached.getLastState());
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
 
     ARGState rootOfSubgraph = null;
     try {
-      rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
+      rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(targets, pMainReachedSet);
     } catch (MissingBlockException e) {
       logger.log(
           Level.INFO,
