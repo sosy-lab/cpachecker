@@ -71,6 +71,7 @@ public class PropertyScopeGraph {
     PropertyScopeGraph graph = new PropertyScopeGraph(new ScopeNode(root), pScopeReasons);
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Deque<ScopeEdge> currentScopeEdges = new ArrayDeque<>();
+    Set<ARGState> visitedStates = new HashSet<>();
     for (ARGState child : root.getChildren()) {
       currentScopeEdges.push(new ScopeEdge(graph.getRootNode()));
       waitlist.addFirst(child);
@@ -79,7 +80,8 @@ public class PropertyScopeGraph {
     while (!waitlist.isEmpty()) {
       ARGState argState = waitlist.removeFirst();
 
-      boolean isVisitedScopeNode = graph.nodes.containsKey(argState);
+      boolean isVisitedState = visitedStates.contains(argState);
+      visitedStates.add(argState);
 
       CallstackState csState = extractStateByType(argState, CallstackState.class);
       PropertyScopeState psState = extractStateByType(argState, PropertyScopeState.class);
@@ -93,7 +95,8 @@ public class PropertyScopeGraph {
       scopeLocations.forEach(sloc -> thisScopeNode.scopeReasons.add(sloc.getReason()));
 
       boolean shouldScopeEdgeEnd = argState.getChildren().isEmpty() || !scopeLocations.isEmpty()
-          || (!skipUnscopedBranchNodes && argState.getChildren().size() > 1);
+          || (!skipUnscopedBranchNodes && (argState.getChildren().size() > 1 ||
+          argState.getParents().size() > 1));
 
       ScopeEdge currentEdge = currentScopeEdges.peek();
       if (shouldScopeEdgeEnd) {
@@ -102,7 +105,7 @@ public class PropertyScopeGraph {
         graph.nodes.put(currentEdge.start.argState, currentEdge.start);
         graph.nodes.put(currentEdge.end.argState, currentEdge.end);
         currentScopeEdges.pop();
-        if (!isVisitedScopeNode) {
+        if (!isVisitedState) {
           for (ARGState child : argState.getChildren()) {
             currentScopeEdges.push(new ScopeEdge(thisScopeNode));
           }
@@ -121,14 +124,16 @@ public class PropertyScopeGraph {
             currentEdge.passedFunctionEntryExits.add(locstate.getLocationNode().getFunctionName() + " exit");
           }
         }
-        if (!isVisitedScopeNode) {
+        if (isVisitedState) {
+          currentScopeEdges.pop();
+        } else {
           for (int i = 0; i < argState.getChildren().size() - 1; i++) {
             currentScopeEdges.push(new ScopeEdge(currentEdge));
           }
         }
       }
 
-      if (!isVisitedScopeNode) {
+      if (!isVisitedState) {
         argState.getChildren().forEach(waitlist::addFirst);
       }
 
