@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -66,27 +67,16 @@ public class PropertyScopeGraph {
 
   public static PropertyScopeGraph create(ARGState root, Collection<Reason> pScopeReasons) {
 
-    class WaitListEntry {
-
-      public WaitListEntry(ARGState pArgState, ScopeNode pParentScopeNode) {
-        argState = pArgState;
-        parentScopeNode = pParentScopeNode;
-      }
-
-      private ARGState argState;
-      private ScopeNode parentScopeNode;
+    PropertyScopeGraph graph = new PropertyScopeGraph(new ScopeNode(root), pScopeReasons);
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Deque<ScopeEdge> currentScopeEdges = new ArrayDeque<>();
+    for (ARGState child : root.getChildren()) {
+      currentScopeEdges.push(new ScopeEdge(graph.getRootNode()));
+      waitlist.addFirst(child);
     }
 
-    PropertyScopeGraph graph = new PropertyScopeGraph(new ScopeNode(root), pScopeReasons);
-    ScopeEdge currentEdge = null;
-    Deque<WaitListEntry> waitlist = new ArrayDeque<>();
-    Set<ARGState> visitedARGStates = new HashSet<>();
-    root.getChildren().forEach(
-        child -> waitlist.addFirst(new WaitListEntry(child, graph.getRootNode())));
-
     while (!waitlist.isEmpty()) {
-      WaitListEntry waitListEntry = waitlist.removeFirst();
-      ARGState argState = waitListEntry.argState;
+      ARGState argState = waitlist.removeFirst();
 
       boolean isVisitedScopeNode = graph.nodes.containsKey(argState);
 
@@ -101,18 +91,18 @@ public class PropertyScopeGraph {
       ScopeNode thisScopeNode = graph.nodes.getOrDefault(argState, new ScopeNode(argState));
       scopeLocations.forEach(sloc -> thisScopeNode.scopeReasons.add(sloc.getReason()));
 
-      if (currentEdge == null) {
-        currentEdge = new ScopeEdge();
-        currentEdge.start = waitListEntry.parentScopeNode;
-      }
-
+      ScopeEdge currentEdge = currentScopeEdges.peek();
       if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty()) {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
         graph.nodes.put(currentEdge.start.argState, currentEdge.start);
         graph.nodes.put(currentEdge.end.argState, currentEdge.end);
-        currentEdge = null;
-
+        currentScopeEdges.pop();
+        if (!isVisitedScopeNode) {
+          for (ARGState child : argState.getChildren()) {
+            currentScopeEdges.push(new ScopeEdge(thisScopeNode));
+          }
+        }
       } else {
         currentEdge.irrelevantARGStates += 1;
 
@@ -130,10 +120,13 @@ public class PropertyScopeGraph {
       }
 
       if (!isVisitedScopeNode) {
-        argState.getChildren().forEach(
-            child -> waitlist.addFirst(new WaitListEntry(child, thisScopeNode)));
+        argState.getChildren().forEach(waitlist::addFirst);
       }
 
+    }
+
+    if (!currentScopeEdges.isEmpty()) {
+      throw new IllegalStateException("CurrentScopeEdges not empty, this indicates a Bug!");
     }
 
     return graph;
@@ -149,6 +142,15 @@ public class PropertyScopeGraph {
 
   public Map<ARGState, ScopeNode> getNodes() {
     return nodes;
+  }
+
+  private ScopeNode getScopeNodeLazy(ARGState state) {
+    if (nodes.containsKey(state)) {
+      return nodes.get(state);
+    }
+    ScopeNode snode = new ScopeNode(state);
+    nodes.put(state, snode);
+    return snode;
   }
 
   public Collection<Reason> getScopeReasons() {
@@ -194,8 +196,8 @@ public class PropertyScopeGraph {
     private List<String> passedFunctionEntryExits = new ArrayList<>();
     private int irrelevantARGStates = 0;
 
-    private ScopeEdge() {
-
+    private ScopeEdge(ScopeNode start) {
+      this.start = start;
     }
 
     public Optional<CFAEdge> getLastCFAEdge() {
