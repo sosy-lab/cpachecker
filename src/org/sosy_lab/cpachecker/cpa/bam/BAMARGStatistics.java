@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -84,7 +85,7 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     ARGState root = (ARGState)pReached.getFirstState();
-    Collection<ARGState> targets = root.getChildren();
+    Collection<ARGState> targets = Collections2.filter(root.getChildren(), s -> !s.isCovered());
     assert targets.contains(pReached.getLastState());
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
