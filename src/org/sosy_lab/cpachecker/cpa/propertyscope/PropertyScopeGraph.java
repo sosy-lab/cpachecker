@@ -65,7 +65,8 @@ public class PropertyScopeGraph {
     scopeReasons = pScopeReasons;
   }
 
-  public static PropertyScopeGraph create(ARGState root, Collection<Reason> pScopeReasons) {
+  public static PropertyScopeGraph create(
+      ARGState root, Collection<Reason> pScopeReasons, boolean skipUnscopedBranchNodes) {
 
     PropertyScopeGraph graph = new PropertyScopeGraph(new ScopeNode(root), pScopeReasons);
     Deque<ARGState> waitlist = new ArrayDeque<>();
@@ -91,8 +92,11 @@ public class PropertyScopeGraph {
       ScopeNode thisScopeNode = graph.nodes.getOrDefault(argState, new ScopeNode(argState));
       scopeLocations.forEach(sloc -> thisScopeNode.scopeReasons.add(sloc.getReason()));
 
+      boolean shouldScopeEdgeEnd = argState.getChildren().isEmpty() || !scopeLocations.isEmpty()
+          || (!skipUnscopedBranchNodes && argState.getChildren().size() > 1);
+
       ScopeEdge currentEdge = currentScopeEdges.peek();
-      if (argState.getChildren().size() != 1 || !scopeLocations.isEmpty()) {
+      if (shouldScopeEdgeEnd) {
         currentEdge.end = thisScopeNode;
         graph.edges.put(currentEdge.start, currentEdge);
         graph.nodes.put(currentEdge.start.argState, currentEdge.start);
@@ -115,6 +119,11 @@ public class PropertyScopeGraph {
                 .add(locstate.getLocationNode().getFunctionName() + " entry");
           } else if (locstate.getLocationNode() instanceof FunctionExitNode) {
             currentEdge.passedFunctionEntryExits.add(locstate.getLocationNode().getFunctionName() + " exit");
+          }
+        }
+        if (!isVisitedScopeNode) {
+          for (int i = 0; i < argState.getChildren().size() - 1; i++) {
+            currentScopeEdges.push(new ScopeEdge(currentEdge));
           }
         }
       }
@@ -185,8 +194,6 @@ public class PropertyScopeGraph {
     public String getId() {
       return Objects.toString(argState.getStateId());
     }
-
-
   }
 
   public static class ScopeEdge {
@@ -198,6 +205,14 @@ public class PropertyScopeGraph {
 
     private ScopeEdge(ScopeNode start) {
       this.start = start;
+    }
+
+    private ScopeEdge(ScopeEdge other) {
+      start = other.start;
+      end = other.end;
+      lastCFAEdge = other.lastCFAEdge;
+      passedFunctionEntryExits = new ArrayList<>(other.passedFunctionEntryExits);
+      irrelevantARGStates = other.irrelevantARGStates;
     }
 
     public Optional<CFAEdge> getLastCFAEdge() {

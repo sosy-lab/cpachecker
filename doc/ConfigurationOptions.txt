@@ -1970,6 +1970,10 @@ cpa.propertyscope.onlyFindNewEntryFunction = false
 # ones
 cpa.propertyscope.prepopulateCallgraph = true
 
+# Skips ARGStates which are irrelevant inside the PropertyScopeGraph, even if
+# the ARG branches after them.
+cpa.propertyscope.skipIrrelevantGraphBranchStates = false
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]

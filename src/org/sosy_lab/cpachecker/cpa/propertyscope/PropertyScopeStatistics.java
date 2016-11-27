@@ -102,6 +102,10 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       + "only the reached ones")
   private boolean prepopulateCallgraph = true;
 
+  @Option(secure = true, description = "Skips ARGStates which are irrelevant inside the "
+      + "PropertyScopeGraph, even if the ARG branches after them.")
+  private boolean skipIrrelevantGraphBranchStates = false;
+
   @Option(description = "Where to export the property scope callgraph to")
   @FileOption(Type.OUTPUT_FILE)
   private Path callgraphGraphmlFile = Paths.get("prop_scope_callgraph-%s.graphml");
@@ -553,7 +557,8 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     // Write psgraph //
 
     PropertyScopeGraph psGraph = PropertyScopeGraph.create(root, ImmutableSet.of(Reason
-        .ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE, Reason.AUTOMATON_MATCH));
+        .ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE, Reason.AUTOMATON_MATCH),
+        skipIrrelevantGraphBranchStates);
     String psGraphReasonsName = psGraph.getScopeReasons().stream()
         .map(Reason::name).collect(Collectors.joining("-"));
     Path psGraphOutPath =
