@@ -1971,7 +1971,8 @@ cpa.propertyscope.onlyFindNewEntryFunction = false
 cpa.propertyscope.prepopulateCallgraph = true
 
 # Skips ARGStates which are irrelevant inside the PropertyScopeGraph, even if
-# the ARG branches after them.
+# the state has multiple parents or children. Results in an edge for every
+# path in between
 cpa.propertyscope.skipIrrelevantGraphBranchStates = false
 
 # which merge operator to use for ReachingDefCPA

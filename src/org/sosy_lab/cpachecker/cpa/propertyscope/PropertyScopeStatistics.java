@@ -103,7 +103,8 @@ public class PropertyScopeStatistics extends AbstractStatistics {
   private boolean prepopulateCallgraph = true;
 
   @Option(secure = true, description = "Skips ARGStates which are irrelevant inside the "
-      + "PropertyScopeGraph, even if the ARG branches after them.")
+      + "PropertyScopeGraph, even if the state has multiple parents or children. Results in an "
+      + "edge for every path in between")
   private boolean skipIrrelevantGraphBranchStates = false;
 
   @Option(description = "Where to export the property scope callgraph to")

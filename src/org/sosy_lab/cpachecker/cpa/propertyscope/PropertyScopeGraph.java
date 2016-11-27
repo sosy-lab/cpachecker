@@ -108,6 +108,7 @@ public class PropertyScopeGraph {
         if (!isVisitedState) {
           for (ARGState child : argState.getChildren()) {
             currentScopeEdges.push(new ScopeEdge(thisScopeNode));
+            waitlist.addFirst(child);
           }
         }
       } else {
@@ -121,20 +122,15 @@ public class PropertyScopeGraph {
             currentEdge.passedFunctionEntryExits
                 .add(locstate.getLocationNode().getFunctionName() + " entry");
           } else if (locstate.getLocationNode() instanceof FunctionExitNode) {
-            currentEdge.passedFunctionEntryExits.add(locstate.getLocationNode().getFunctionName() + " exit");
+            currentEdge.passedFunctionEntryExits
+                .add(locstate.getLocationNode().getFunctionName() + " exit");
           }
         }
-        if (isVisitedState) {
-          currentScopeEdges.pop();
-        } else {
-          for (int i = 0; i < argState.getChildren().size() - 1; i++) {
-            currentScopeEdges.push(new ScopeEdge(currentEdge));
-          }
-        }
-      }
-
-      if (!isVisitedState) {
         argState.getChildren().forEach(waitlist::addFirst);
+        for (int i = 0; i < argState.getChildren().size() - 1; i++) {
+          currentScopeEdges.push(new ScopeEdge(currentEdge));
+
+        }
       }
 
     }
