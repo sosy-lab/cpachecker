@@ -69,20 +69,9 @@ public class VerificationTaskMetaData {
     )
     @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
     private List<Path> specificationFiles = ImmutableList.of();
-
-    @Option(
-      secure = true,
-      name = "cpa.predicate.handlePointerAliasing",
-      description =
-          "Handle aliasing of pointers. "
-              + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction."
-    )
-    private boolean handlePointerAliasing = true;
   }
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
-
-  private final String memoryModel;
 
   private final Optional<Iterable<String>> programNames;
 
@@ -90,7 +79,6 @@ public class VerificationTaskMetaData {
 
   public VerificationTaskMetaData(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(hackyOptions);
-    memoryModel = hackyOptions.handlePointerAliasing ? "precise" : "simple";
     if (hackyOptions.programs == null) {
       programNames = Optional.empty();
     } else {
@@ -136,15 +124,6 @@ public class VerificationTaskMetaData {
       programHash = computeProgramHash(programNames.get());
     }
     return Optional.of(programHash);
-  }
-
-  /**
-   * Gets an identifier for the assumed memory model.
-   *
-   * @return an identifier for the assumed memory model.
-   */
-  public String getMemoryModel() {
-    return memoryModel;
   }
 
   /**

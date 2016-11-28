@@ -114,7 +114,6 @@ public class AutomatonGraphmlCommon {
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
     SPECIFICATION("specification", ElementType.GRAPH, "specification", "string"),
-    MEMORYMODEL("memorymodel", ElementType.GRAPH, "memoryModel", "string"),
     ARCHITECTURE("architecture", ElementType.GRAPH, "architecture", "string"),
     PRODUCER("producer", ElementType.GRAPH, "producer", "string"),
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
@@ -357,8 +356,6 @@ public class AutomatonGraphmlCommon {
                 KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash().get()));
       }
 
-      graph.appendChild(
-          createDataElement(KeyDef.MEMORYMODEL, pVerificationTaskMetaData.getMemoryModel()));
       graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
     }
 
