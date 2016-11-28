@@ -23,37 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.graphexport;
 
+import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /** an immutable map of facts about the transition. */
 public class TransitionCondition implements Comparable<TransitionCondition> {
 
-  private final PersistentSortedMap<KeyDef, String> keyValues;
+  private static final TransitionCondition EMPTY = new TransitionCondition();
 
-  public TransitionCondition() {
-    keyValues = PathCopyingPersistentTreeMap.of();
+  private final EnumMap<KeyDef, String> keyValues;
+
+  private int hashCode = 0;
+
+  private TransitionCondition() {
+    keyValues = new EnumMap<>(KeyDef.class);
   }
 
-  private TransitionCondition(PersistentSortedMap<KeyDef, String> pKeyValues) {
+  private TransitionCondition(EnumMap<KeyDef, String> pKeyValues) {
     keyValues = pKeyValues;
   }
 
   public TransitionCondition putAndCopy(final KeyDef pKey, final String pValue) {
-    return new TransitionCondition(keyValues.putAndCopy(pKey, pValue));
+    if (pValue.equals(keyValues.get(pKey))) {
+      return this;
+    }
+    EnumMap<KeyDef, String> newMap = keyValues.clone();
+    newMap.put(pKey, pValue);
+    return new TransitionCondition(newMap);
   }
 
   public TransitionCondition putAllAndCopy(TransitionCondition tc) {
-    PersistentSortedMap<KeyDef, String> tmp = keyValues;
-    for (Entry<KeyDef, String> e : tc.keyValues.entrySet()) {
-      tmp = tmp.putAndCopy(e.getKey(), e.getValue());
+    EnumMap<KeyDef, String> newMap = null;
+    for (Entry<KeyDef, String> e : keyValues.entrySet()) {
+      if (!tc.keyValues.containsKey(e.getKey())) {
+        if (newMap == null) {
+          newMap = tc.keyValues.clone();
+        }
+        newMap.put(e.getKey(), e.getValue());
+      }
     }
-    return new TransitionCondition(tmp);
+    return newMap == null ? tc : new TransitionCondition(newMap);
   }
 
   @Override
@@ -65,7 +78,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         && this.keyValues.equals(((TransitionCondition)pOther).keyValues);
   }
 
-  public PersistentSortedMap<KeyDef, String> getMapping() {
+  public Map<KeyDef, String> getMapping() {
     return keyValues;
   }
 
@@ -75,7 +88,10 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   @Override
   public int hashCode() {
-    return keyValues.hashCode();
+    if (hashCode == 0) {
+      hashCode = keyValues.hashCode();
+    }
+    return hashCode;
   }
 
   @Override
@@ -129,5 +145,9 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return -1;
     }
     return 1;
+  }
+
+  public static TransitionCondition empty() {
+    return EMPTY;
   }
 }

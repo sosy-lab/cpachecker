@@ -439,7 +439,7 @@ public class ARGPathExporter {
         final Optional<Collection<ARGState>> pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
-      TransitionCondition result = new TransitionCondition();
+      TransitionCondition result = TransitionCondition.empty();
 
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
@@ -487,7 +487,7 @@ public class ARGPathExporter {
                           .anyMatch(
                               sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
             // remove all info from transitionCondition
-            return new TransitionCondition();
+            return TransitionCondition.empty();
           }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());

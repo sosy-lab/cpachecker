@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg.graphexport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import java.util.Objects;
 
 /**
  * An edge corresponds to the transfer from one node to another.
@@ -38,6 +37,8 @@ public class Edge implements Comparable<Edge> {
   public final String target;
 
   public final TransitionCondition label;
+
+  private int hashCode = 0;
 
   public Edge(String pSource, String pTarget, TransitionCondition pLabel) {
     Preconditions.checkNotNull(pSource);
@@ -64,7 +65,13 @@ public class Edge implements Comparable<Edge> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(source, target, label);
+    if (hashCode == 0) {
+      final int prime = 31;
+      hashCode = prime + ((label == null) ? 0 : label.hashCode());
+      hashCode = prime * hashCode + ((source == null) ? 0 : source.hashCode());
+      hashCode = prime * hashCode + ((target == null) ? 0 : target.hashCode());
+    }
+    return hashCode;
   }
 
   @Override
