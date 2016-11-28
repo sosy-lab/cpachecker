@@ -56,6 +56,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -182,14 +183,14 @@ public class ARGStatistics implements Statistics {
 
     final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (!cexExporter.dumpErrorPathImmediately()) {
+    if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
     }
 
     if (exportARG) {
-      exportARG(pReached, counterexamples);
+      exportARG(pReached, counterexamples, pResult);
     }
   }
 
@@ -212,8 +213,10 @@ public class ARGStatistics implements Statistics {
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
-  private void exportARG(UnmodifiableReachedSet pReached,
-      final Map<ARGState, CounterexampleInfo> counterexamples) {
+  private void exportARG(
+      UnmodifiableReachedSet pReached,
+      final Map<ARGState, CounterexampleInfo> counterexamples,
+      Result pResult) {
     final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
     for (CounterexampleInfo cex : counterexamples.values()) {
       allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
@@ -231,17 +234,20 @@ public class ARGStatistics implements Statistics {
         : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState: rootStates) {
-      exportARG0(rootState, Predicates.in(allTargetPathEdges));
+      exportARG0(rootState, Predicates.in(allTargetPathEdges), pResult);
     }
   }
 
   @SuppressWarnings("try")
-  private void exportARG0(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+  private void exportARG0(
+      final ARGState rootState,
+      final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge,
+      Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
-    if (proofWitness != null) {
+    if (proofWitness != null && pResult == Result.TRUE) {
       try (Writer w =
           MoreFiles.openOutputFile(
               adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
@@ -362,7 +368,7 @@ public class ARGStatistics implements Statistics {
 
   public void printIterationStatistics(UnmodifiableReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
-      exportARG(pReached, getAllCounterexamples(pReached));
+      exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);
     }
   }
 }

@@ -363,6 +363,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           @Override
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            if (pResult != Result.TRUE) {
+              return;
+            }
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
