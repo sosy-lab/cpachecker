@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Table;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeEdge.CombiScopeEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 
 import java.util.ArrayDeque;
@@ -59,6 +61,8 @@ public class PropertyScopeGraph {
   private final Multimap<ScopeNode, ScopeEdge> edges = LinkedHashMultimap.create();
   private final Map<ARGState, ScopeNode> nodes = new LinkedHashMap<>();
   private final Collection<Reason> scopeReasons;
+  private final Table<ScopeNode, ScopeNode, CombiScopeEdge> combiScopeEdges =
+      HashBasedTable.create();
 
   private PropertyScopeGraph(ScopeNode rootNode, Collection<Reason> pScopeReasons) {
     this.rootNode = rootNode;
@@ -104,6 +108,7 @@ public class PropertyScopeGraph {
         graph.edges.put(currentEdge.start, currentEdge);
         graph.nodes.put(currentEdge.start.argState, currentEdge.start);
         graph.nodes.put(currentEdge.end.argState, currentEdge.end);
+        graph.addToCombiEdges(currentEdge);
         currentScopeEdges.pop();
         if (!isVisitedState) {
           for (ARGState child : argState.getChildren()) {
@@ -154,14 +159,30 @@ public class PropertyScopeGraph {
     return nodes;
   }
 
-  private ScopeNode getScopeNodeLazy(ARGState state) {
-    if (nodes.containsKey(state)) {
-      return nodes.get(state);
+  private CombiScopeEdge addToCombiEdges(ScopeEdge edge) {
+    CombiScopeEdge combiEdge = combiScopeEdges.get(edge.start, edge.end);
+    if(combiEdge == null) {
+      combiEdge = new CombiScopeEdge(edge);
+      combiScopeEdges.put(combiEdge.start, combiEdge.end, combiEdge);
+    } else {
+      combiEdge.scopeEdges.add(edge);
     }
-    ScopeNode snode = new ScopeNode(state);
-    nodes.put(state, snode);
-    return snode;
+
+    return combiEdge;
   }
+
+  public CombiScopeEdge getCombiScopeEdge(ScopeNode start, ScopeNode end) {
+    return combiScopeEdges.get(start, end);
+  }
+
+  public Collection<CombiScopeEdge> getCombiScopeEdges(ScopeNode start) {
+    return Collections.unmodifiableCollection(combiScopeEdges.row(start).values());
+  }
+
+  public Collection<CombiScopeEdge> getCombiScopeEdges() {
+    return Collections.unmodifiableCollection(combiScopeEdges.values());
+  }
+
 
   public Collection<Reason> getScopeReasons() {
     return Collections.unmodifiableCollection(scopeReasons);
@@ -234,6 +255,42 @@ public class PropertyScopeGraph {
 
     public int getIrrelevantARGStates() {
       return irrelevantARGStates;
+    }
+
+    public static class CombiScopeEdge {
+      private final Set<ScopeEdge> scopeEdges = new LinkedHashSet<>();
+      private final ScopeNode start;
+      private final ScopeNode end;
+
+      private CombiScopeEdge(ScopeEdge initial) {
+        this(initial.getStart(), initial.getEnd());
+        scopeEdges.add(initial);
+      }
+
+      private CombiScopeEdge(ScopeNode pStart, ScopeNode pEnd) {
+        start = pStart;
+        end = pEnd;
+      }
+
+      public Set<ScopeEdge> getScopeEdges() {
+        return Collections.unmodifiableSet(scopeEdges);
+      }
+
+      public int getIrrelevantARGStates() {
+        return scopeEdges.parallelStream()
+            .map(ScopeEdge::getIrrelevantARGStates).reduce(Integer::sum).orElse(0);
+      }
+
+      public Set<CFAEdge> getLastCfaEdges() {
+        return scopeEdges.parallelStream()
+            .map(ScopeEdge::getLastCFAEdge).filter(Optional::isPresent).map(Optional::get)
+            .collect(Collectors.toSet());
+      }
+
+      public Set<List<String>> getPassedFunctionEntryExits() {
+        return scopeEdges.parallelStream()
+            .map(ScopeEdge::getPassedFunctionEntryExits).collect(Collectors.toSet());
+      }
     }
 
     @Override
