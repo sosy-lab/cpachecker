@@ -539,13 +539,13 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ParallelAlgorithmStatistics implements Statistics {
 
-    private final List<StatisticsEntry> allAnalysesStats = Lists.newArrayList();
+    private final List<StatisticsEntry> allAnalysesStats = Lists.newCopyOnWriteArrayList();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
 
     public synchronized Collection<Statistics> getNewSubStatistics(
         ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit) {
-      Collection<Statistics> subStats = new ArrayList<>();
+      Collection<Statistics> subStats = Lists.newCopyOnWriteArrayList();
       StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit);
       allAnalysesStats.add(entry);
       return subStats;

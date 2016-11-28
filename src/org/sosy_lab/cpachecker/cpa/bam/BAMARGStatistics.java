@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.collect.Collections2;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,6 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -51,9 +54,10 @@ public class BAMARGStatistics extends ARGStatistics {
       LogManager pLogger,
       BAMCPA pBamCpa,
       ConfigurableProgramAnalysis pCpa,
+      Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pCfa);
+    super(pConfig, pLogger, pCpa, pSpecification, pCfa);
     bamCpa = pBamCpa;
   }
 
@@ -80,14 +84,23 @@ public class BAMARGStatistics extends ARGStatistics {
 
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
-    ARGState target = (ARGState) pReached.getLastState();
-    assert pMainReachedSet.asReachedSet().contains(target);
+    ARGState root = (ARGState)pReached.getFirstState();
+    Collection<ARGState> targets = Collections2.filter(root.getChildren(), s -> !s.isCovered());
+    assert targets.contains(pReached.getLastState());
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
 
     ARGState rootOfSubgraph = null;
     try {
-      rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
-    } catch (MissingBlockException | InterruptedException e) {
+      rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(targets, pMainReachedSet);
+    } catch (MissingBlockException e) {
+      logger.log(
+          Level.INFO,
+          "could not compute full reached set graph (missing block), "
+              + "some output or statistics might be missing");
+      return; // invalid ARG, ignore output.
+
+    } catch (InterruptedException e) {
       logger.log(Level.WARNING, "could not compute full reached set graph:", e);
       return; // invalid ARG, ignore output
     }

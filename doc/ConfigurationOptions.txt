@@ -1248,6 +1248,9 @@ cpa.lpi.generateTemplatesUsingConvexHull = false
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
 
+# Attempt to weaken interpolants in order to make them more general
+cpa.lpi.refinement.generalizeInterpolants = true
+
 # Run naive value determination first, switch to namespaced if it fails.
 cpa.lpi.runHopefulValueDetermination = true
 
@@ -1267,9 +1270,6 @@ cpa.lpi.useCachingOptSolver = false
 
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
-
-# Use the new SSA after the merge operation.
-cpa.lpi.useNewSSAAfterMerge = false
 
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
@@ -1933,10 +1933,6 @@ cpa.slicing.checkTargetStates = true
 
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
-
-# Instead of considering the entire SCC, ignore the function nested in the
-# loop. UNSOUND!
-cpa.slicing.ignoreFunctionCallsInLoop = false
 
 # Depth limit for the 'LEAST_REMOVALS' strategy.
 cpa.slicing.leastRemovalsDepthLimit = 2
@@ -2665,7 +2661,7 @@ precision.template.templateConstantThreshold = 100
 
 # Strategy for filtering variables out of templates using liveness
 precision.template.varFiltering = ALL_LIVE
-  enum:     [ALL_LIVE, ONE_LIVE, ALL]
+  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, ALL]
 
 # If this option is used, variables that are addressed may get tracked
 # depending on the rest of the precision. When this option is disabled, a
@@ -2698,9 +2694,6 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
-
-# List of property files (INTERNAL USAGE ONLY - DO NOT USE)
-properties = []
 
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
@@ -2804,11 +2797,13 @@ statesToFormulas.exportOnlyImporantLocations = false
 statesToFormulas.splitFormulas = LOCATION
   enum:     [LOCATION, STATE, ATOM]
 
-# Add all assumtions from the control flow automaton to the precision.
+# Add all assumptions from the control flow automaton to the precision.
 staticRefiner.addAllControlFlowAssumes = false
 
-# Add all assumtions along a error trace to the precision.
+# Add all assumptions along a error trace to the precision.
 staticRefiner.addAllErrorTraceAssumes = false
+
+# Add all assumptions along the error trace to the precision.
 staticRefiner.addAssumesByBoundedBackscan = true
 
 # Apply mined predicates on the corresponding scope. false = add them to the

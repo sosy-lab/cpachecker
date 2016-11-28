@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.Collections2;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -84,8 +85,15 @@ public class BAMCEXSubgraphComputer {
   BackwardARGState computeCounterexampleSubgraph(
       final ARGState target, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
-    assert pMainReachedSet.asReachedSet().contains(target);
-    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, Collections.singleton(new BackwardARGState(target)));
+    return computeCounterexampleSubgraph(Collections.singleton(target), pMainReachedSet);
+  }
+
+  BackwardARGState computeCounterexampleSubgraph(
+      final Collection<ARGState> targets, final ARGReachedSet pMainReachedSet)
+      throws MissingBlockException, InterruptedException {
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
+    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet,
+        Collections2.transform(targets, BackwardARGState::new));
     assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
     return root;
   }

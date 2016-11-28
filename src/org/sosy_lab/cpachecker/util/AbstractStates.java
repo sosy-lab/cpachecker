@@ -34,7 +34,10 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeTraverser;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -47,14 +50,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Helper class that provides several useful methods for handling AbstractStates.
@@ -129,9 +127,9 @@ public final class AbstractStates {
     return e == null ? null : e.getLocationNode();
   }
 
-  public static Optional<CallstackWrapper> extractOptionalCallstackWraper(AbstractState pState) {
+  public static Optional<CallstackStateEqualsWrapper> extractOptionalCallstackWraper(AbstractState pState) {
     CallstackState callstack = extractStateByType(pState, CallstackState.class);
-    return callstack == null ? Optional.empty() : Optional.of(callstack.getEquivalenceWrapper());
+    return callstack == null ? Optional.empty() : Optional.of(new CallstackStateEqualsWrapper(callstack));
   }
 
   public static Iterable<CFANode> extractLocations(AbstractState pState) {

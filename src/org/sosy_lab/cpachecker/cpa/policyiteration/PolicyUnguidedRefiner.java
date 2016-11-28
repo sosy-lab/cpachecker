@@ -22,7 +22,7 @@ import java.util.logging.Level;
  * Unguided precision refiner: increase the number of generated templates
  * at each refinement stage.
  */
-@Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
+@Options(prefix="cpa.lpi")
 public class PolicyUnguidedRefiner implements Refiner {
 
   @Option(secure=true,
@@ -85,7 +85,7 @@ public class PolicyUnguidedRefiner implements Refiner {
     }
   }
 
-  public void forceRestart(ReachedSet reached) {
+  private void forceRestart(ReachedSet reached) {
     ARGState firstChild = Iterables
         .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
 

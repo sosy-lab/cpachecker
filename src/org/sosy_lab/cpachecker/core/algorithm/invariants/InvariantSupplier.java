@@ -23,19 +23,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 
 public interface InvariantSupplier {
@@ -49,9 +46,8 @@ public interface InvariantSupplier {
    * e.g. respect the {@linkplain PointerTargetSet} and the {@link SSAMap}.
    *
    * @param node The CFANode.
-   * @param callstackInformation Optional callstack information, to filter invariants
-   *                             by callstack.
-   *                             Obtained from {@link CallstackState#getEquivalenceWrapper()}.
+   * @param callstackInformation Optional callstack information, to filter invariants by callstack.
+   *                             Obtained from {@link CallstackStateEqualsWrapper}.
    *                             Ignored if absent.
    * @param fmgr The formula manager which should be used for creating the invariant formula.
    * @param pfmgr The {@link PathFormulaManager} which should be used for creating the invariant formula.
@@ -60,7 +56,7 @@ public interface InvariantSupplier {
    */
   BooleanFormula getInvariantFor(
       CFANode node,
-      Optional<CallstackWrapper> callstackInformation,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       FormulaManagerView fmgr,
       PathFormulaManager pfmgr,
       @Nullable PathFormula pContext);
@@ -71,7 +67,7 @@ public interface InvariantSupplier {
     @Override
     public BooleanFormula getInvariantFor(
         CFANode pNode,
-        Optional<CallstackWrapper> callstackInformation,
+        Optional<CallstackStateEqualsWrapper> callstackInformation,
         FormulaManagerView pFmgr,
         PathFormulaManager pfmgr,
         PathFormula pContext) {

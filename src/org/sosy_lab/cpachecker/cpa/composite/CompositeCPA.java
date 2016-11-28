@@ -28,7 +28,9 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -59,10 +61,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -330,5 +328,28 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       assert e instanceof ConfigurableProgramAnalysisWithBAM;
       ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
     });
+  }
+
+  @Override
+  public boolean isCoveredByRecursiveState(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
+    CompositeState state1 = (CompositeState) pState1;
+    CompositeState state2 = (CompositeState) pState2;
+
+    List<AbstractState> states1 = state1.getWrappedStates();
+    List<AbstractState> states2 = state2.getWrappedStates();
+
+    if (states1.size() != cpas.size()) {
+      return false;
+    }
+
+    for (int idx = 0; idx < states1.size(); idx++) {
+      if (!((ConfigurableProgramAnalysisWithBAM) cpas.get(idx))
+          .isCoveredByRecursiveState(states1.get(idx), states2.get(idx))) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

@@ -27,7 +27,6 @@ public class PolicyIterationStatistics implements Statistics {
 
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
-  final Timer simplifyTimer = new Timer();
 
   final Timer ackermannizationTimer = new Timer();
   final Timer linearizationTimer = new Timer();
@@ -37,10 +36,6 @@ public class PolicyIterationStatistics implements Statistics {
   private final CFA cfa;
 
   private BigInteger wideningTemplatesGenerated = BigInteger.ZERO;
-
-  public void incWideningTemplatesGenerated() {
-    wideningTemplatesGenerated = wideningTemplatesGenerated.add(BigInteger.ONE);
-  }
 
   public PolicyIterationStatistics(CFA pCFA) {
     cfa = pCFA;
@@ -58,7 +53,6 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, checkSATTimer, "checking bad states (SMT)");
 
     printTimer(out, checkIndependenceTimer, "checking independence");
-    printTimer(out, simplifyTimer, "simplifying formulas");
     printTimer(out, polyhedraWideningTimer, "computing polyhedra widening");
     printTimer(out, ackermannizationTimer, "performing ackermannization on policies");
 

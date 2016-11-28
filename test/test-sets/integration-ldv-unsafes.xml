@@ -86,11 +86,11 @@
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main2_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-drivers--net--arcnet--arcnet.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--gpu--drm--vmwgfx--vmwgfx.ko-ldv_main10_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main2_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--video--console--fbcon.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-39_7a-net--batman-adv--batman-adv.ko-ldv_main8_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-sound--usb--snd-usb-audio.ko-ldv_main7_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-39_7a-net--tipc--tipc.ko-ldv_main17_false-unreach-label.cil.out.c</exclude>
-      <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--phy--dp83640-ldv_main0_sequence_infinite_withcheck_stateful-entry_point_true-unreach-call.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/validator/v0.7/linux-stable-47dffc7-1-144_1a-drivers--net--usb--cdc-phonet.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
     </tasks>
 
@@ -102,6 +102,7 @@
     <tasks>
       <propertyfile>../programs/ldv-benchmarks/bnb/ALL.prp</propertyfile>
       <includesfile>../programs/ldv-benchmarks/bnb/bnb.set</includesfile>
+      <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--phy--dp83640-ldv_main0_sequence_infinite_withcheck_stateful-entry_point_true-unreach-call.cil.out.c</exclude>
     </tasks>
   </rundefinition>
 </benchmark>

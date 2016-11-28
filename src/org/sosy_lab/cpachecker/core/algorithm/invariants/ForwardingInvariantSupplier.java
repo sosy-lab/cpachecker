@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Optional;
 
 
 public class ForwardingInvariantSupplier implements InvariantSupplier {
@@ -43,7 +42,7 @@ public class ForwardingInvariantSupplier implements InvariantSupplier {
 
   @Override
   public BooleanFormula getInvariantFor(CFANode pNode,
-                                        Optional<CallstackWrapper> callstackInformation,
+                                        Optional<CallstackStateEqualsWrapper> callstackInformation,
                                         FormulaManagerView pFmgr,
                                         PathFormulaManager pPfmgr,
                                         PathFormula pContext) {

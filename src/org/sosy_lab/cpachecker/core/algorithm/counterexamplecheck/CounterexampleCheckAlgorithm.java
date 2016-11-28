@@ -45,6 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
@@ -86,11 +87,16 @@ public class CounterexampleCheckAlgorithm
                     + "checker can be used.")
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
-  private final boolean isBAMenabled;
-
-  public CounterexampleCheckAlgorithm(Algorithm algorithm,
-      ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
+  public CounterexampleCheckAlgorithm(
+      Algorithm algorithm,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      Specification pSpecification,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA cfa,
+      String filename)
+      throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this, CounterexampleCheckAlgorithm.class);
@@ -109,9 +115,11 @@ public class CounterexampleCheckAlgorithm
     case CBMC:
       checker = new CBMCChecker(config, logger, cfa);
       break;
-    case CPACHECKER:
-      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename);
-      break;
+      case CPACHECKER:
+        checker =
+            new CounterexampleCPAChecker(
+                config, pSpecification, logger, pShutdownNotifier, cfa, filename);
+        break;
     case CONCRETE_EXECUTION:
       checker = new ConcretePathExecutionChecker(config, logger, cfa);
       break;

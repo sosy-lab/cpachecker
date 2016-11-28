@@ -194,7 +194,7 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
-    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
   }
 
   /**
@@ -670,7 +670,7 @@ public class AutomatonGraphmlParser {
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
-        if (false || !assumptions.isEmpty() || !actions.isEmpty() || !candidateInvariants.equals(ExpressionTrees.getTrue()) || leadsToViolationNode) {
+        if (!assumptions.isEmpty() || !actions.isEmpty() || !candidateInvariants.equals(ExpressionTrees.getTrue()) || leadsToViolationNode) {
           Element sourceNode = docDat.getNodeWithId(sourceStateId);
           Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
           boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
@@ -791,11 +791,12 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private void checkRequiredField(Node pGraphNode, KeyDef pKey) {
+  private void checkRequiredField(Node pGraphNode, KeyDef pKey) throws WitnessParseException {
     checkRequiredField(pGraphNode, pKey, false);
   }
 
-  private void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty) {
+  private void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty)
+      throws WitnessParseException {
     Iterable<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
     if (Iterables.isEmpty(data)) {
       throw new WitnessParseException(
@@ -812,7 +813,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private void checkHashSum(Set<String> pProgramHash) throws IOException {
+  private void checkHashSum(Set<String> pProgramHash) throws IOException, WitnessParseException {
     if (pProgramHash.isEmpty()) {
       String message =
           "Witness does not contain the hash sum "
@@ -841,7 +842,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private void checkArchitecture(Set<String> pArchitecture) {
+  private void checkArchitecture(Set<String> pArchitecture) throws WitnessParseException {
     if (pArchitecture.isEmpty()) {
       String message =
           "Witness does not contain the architecture assumed for the "
@@ -861,7 +862,8 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private Optional<String> determineResultFunction(Set<String> pResultFunctions, Scope pScope) {
+  private Optional<String> determineResultFunction(Set<String> pResultFunctions, Scope pScope)
+      throws WitnessParseException {
     checkParsable(
         pResultFunctions.size() <= 1,
         "At most one result function must be provided for a transition.");
@@ -877,7 +879,8 @@ public class AutomatonGraphmlParser {
     return Optional.empty();
   }
 
-  private Scope determineScope(Set<String> pScopes, Deque<String> pFunctionStack) {
+  private Scope determineScope(Set<String> pScopes, Deque<String> pFunctionStack)
+      throws WitnessParseException {
     checkParsable(pScopes.size() <= 1, "At most one scope must be provided for a transition.");
     Scope result = this.scope;
     if (result instanceof CProgramScope && (!pScopes.isEmpty() || !pFunctionStack.isEmpty())) {
@@ -1482,7 +1485,7 @@ public class AutomatonGraphmlParser {
       return attribute.getTextContent();
     }
 
-    private Optional<String> getDataDefault(KeyDef dataKey) {
+    private Optional<String> getDataDefault(KeyDef dataKey) throws WitnessParseException {
       Optional<String> result = defaultDataValues.get(dataKey.id);
       if (result != null) {
         return result;
@@ -1518,7 +1521,8 @@ public class AutomatonGraphmlParser {
       return result;
     }
 
-    private String getDataValueWithDefault(Node dataOnNode, KeyDef dataKey, final String defaultValue) {
+    private String getDataValueWithDefault(
+        Node dataOnNode, KeyDef dataKey, final String defaultValue) throws WitnessParseException {
       Set<String> values = getDataOnNode(dataOnNode, dataKey);
       if (values.size() == 0) {
         Optional<String> dataDefault = getDataDefault(dataKey);
@@ -1637,13 +1641,14 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static void checkParsable(boolean pParsable, String pMessage) {
+  private static void checkParsable(boolean pParsable, String pMessage)
+      throws WitnessParseException {
     if (!pParsable) {
       throw new WitnessParseException(pMessage);
     }
   }
 
-  public static class WitnessParseException extends RuntimeException {
+  public static class WitnessParseException extends InvalidConfigurationException {
 
     private static final long serialVersionUID = -6357416712866877118L;
 

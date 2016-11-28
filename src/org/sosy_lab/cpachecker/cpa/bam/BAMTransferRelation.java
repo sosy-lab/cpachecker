@@ -244,7 +244,7 @@ public class BAMTransferRelation implements TransferRelation {
    *
    * @return Set of states associated with the block exit.
    **/
-  protected Collection<? extends AbstractState> doRecursiveAnalysis(
+  protected Collection<AbstractState> doRecursiveAnalysis(
           final AbstractState initialState,
           final Precision pPrecision,
           final CFANode node)
@@ -271,7 +271,7 @@ public class BAMTransferRelation implements TransferRelation {
     stack.add(currentLevel);
     logger.log(Level.FINEST, "current Stack:", stack);
 
-    final Collection<? extends AbstractState> resultStates = analyseBlockAndExpand(
+    final Collection<AbstractState> resultStates = analyseBlockAndExpand(
         initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
     final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);

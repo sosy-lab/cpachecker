@@ -166,7 +166,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     MachineModel machineModel = pCFA.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
-    argPathExporter = new ARGPathExporter(config, logger, cfa);
+    argPathExporter = new ARGPathExporter(config, logger, specification, cfa);
   }
 
   @Override
@@ -363,6 +363,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           @Override
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            if (pResult != Result.TRUE) {
+              return;
+            }
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {

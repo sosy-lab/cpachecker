@@ -22,62 +22,76 @@
   <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</option>
 
   <tasks name="BitVectorsReach">
-    <includesfile>../programs/benchmarks/BitVectorsReach-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/BitVectorsOverflows-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
     <propertyfile>../programs/benchmarks/BitVectorsOverflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
-    <includesfile>../programs/benchmarks/HeapReach-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/HeapMemSafety-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-valid-memsafety*</exclude>
     <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
-    <includesfile>../programs/benchmarks/Floats-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/Floats.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlow">
-    <includesfile>../programs/benchmarks/ControlFlow-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
   <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
-    <includesfile>../programs/benchmarks/Recursive-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/BusyBox-validate.set</includesfile>
+    <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
+    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/BusyBox.prp</propertyfile>
     <option name="-64"/>
   </tasks>

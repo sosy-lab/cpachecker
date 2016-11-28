@@ -38,12 +38,12 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -206,12 +207,15 @@ public class ARGPathExporter {
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  private VerificationTaskMetaData verificationTaskMetaData;
+  private final VerificationTaskMetaData verificationTaskMetaData;
+
+  private final Specification specification;
 
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
-      CFA pCFA)
+      final Specification pSpecification,
+      final CFA pCFA)
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
@@ -219,7 +223,8 @@ public class ARGPathExporter {
     this.machineModel = pCFA.getMachineModel();
     this.language = pCFA.getLanguage();
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
-    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pLogger);
+    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
+    this.specification = pSpecification;
   }
 
   public void writeErrorWitness(
@@ -347,12 +352,12 @@ public class ARGPathExporter {
 
   private class WitnessWriter implements EdgeAppender {
 
-    private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
+    private final Multimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
     private final Multimap<String, Property> violatedProperties = HashMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
-    private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
-    private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
+    private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
+    private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
     private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
     private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
@@ -853,7 +858,12 @@ public class ARGPathExporter {
       try {
         doc =
             new GraphMlBuilder(
-                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
+                graphType,
+                defaultSourcefileName,
+                language,
+                machineModel,
+                verificationTaskMetaData,
+                specification);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
@@ -905,7 +915,7 @@ public class ARGPathExporter {
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
-          () -> Iterables.filter(leavingEdges.values(), isEdgeRedundant).iterator();
+          () -> FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
 
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {

@@ -80,7 +80,7 @@ import javax.annotation.Nullable;
 /**
  * Main logic in a single class.
  */
-@Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
+@Options(prefix = "cpa.lpi")
 public class PolicyIterationManager {
 
   @Option(secure = true,
@@ -152,9 +152,6 @@ public class PolicyIterationManager {
       + "let other CPAs use the output of LPI.")
   private boolean delayAbstractionUntilStrengthen = false;
 
-  @Option(secure=true, description="Use the new SSA after the merge operation.")
-  private boolean useNewSSAAfterMerge = false;
-
   private final FormulaManagerView fmgr;
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
@@ -185,7 +182,8 @@ public class PolicyIterationManager {
       FormulaLinearizationManager pLinearizationManager,
       PolyhedraWideningManager pPwm,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
+      TemplatePrecision pPrecision)
       throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
@@ -202,8 +200,7 @@ public class PolicyIterationManager {
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
     rcnfManager = new RCNFManager(pConfig);
-    initialPrecision = new TemplatePrecision(
-        logger, pConfig, cfa, templateToFormulaConversionManager);
+    initialPrecision = pPrecision;
   }
 
   /**
@@ -590,9 +587,7 @@ public class PolicyIterationManager {
       newAbstraction.put(template, mergedBound);
     }
 
-    // Cache coherence for CachingPathFormulaManager is better with oldSSA,
-    // but newSSA is required for LPI+BAM.
-    SSAMap mergedSSA = useNewSSAAfterMerge ? newState.getSSA() : oldState.getSSA();
+    SSAMap mergedSSA = newState.getSSA();
 
     PolicyAbstractedState merged =
         PolicyAbstractedState.of(
@@ -1282,14 +1277,6 @@ public class PolicyIterationManager {
         a = iState.getBackpointerState();
       }
     }
-  }
-
-  public boolean adjustPrecision() {
-    return initialPrecision.adjustPrecision();
-  }
-
-  void adjustReachedSet(ReachedSet pReachedSet) {
-    pReachedSet.clear();
   }
 
   public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {

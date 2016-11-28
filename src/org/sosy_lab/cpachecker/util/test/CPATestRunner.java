@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.BasicLogManager;
@@ -31,9 +34,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * Helper class for running CPA tests.
@@ -57,7 +57,7 @@ public class CPATestRunner {
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
 
     ShutdownManager shutdownManager = ShutdownManager.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
+    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager, ImmutableSet.of());
     CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);

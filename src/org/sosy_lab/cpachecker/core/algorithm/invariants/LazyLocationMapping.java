@@ -25,19 +25,17 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class LazyLocationMapping {
   private final UnmodifiableReachedSet reachedSet;
@@ -51,7 +49,7 @@ public class LazyLocationMapping {
 
   public Iterable<AbstractState> get(
       CFANode pLocation,
-      Optional<CallstackWrapper> callstackInformation) {
+      Optional<CallstackStateEqualsWrapper> callstackInformation) {
     Iterable<AbstractState> out = get0(pLocation);
     if (!callstackInformation.isPresent()) {
       return out;
@@ -62,7 +60,7 @@ public class LazyLocationMapping {
     // explicit filtering feasible.
     List<AbstractState> toReturn = new ArrayList<>();
     for (AbstractState returned : out) {
-      Optional<CallstackWrapper> returnedCallstackInfo =
+      Optional<CallstackStateEqualsWrapper> returnedCallstackInfo =
           AbstractStates.extractOptionalCallstackWraper(returned);
 
       // todo: cache?

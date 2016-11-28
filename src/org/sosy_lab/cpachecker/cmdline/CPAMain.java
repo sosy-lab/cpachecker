@@ -28,6 +28,8 @@ import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -41,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
@@ -66,6 +69,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 public class CPAMain {
@@ -83,11 +87,13 @@ public class CPAMain {
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
     String outputDirectory = null;
+    Set<SpecificationProperty> properties = null;
     try {
       try {
-        Pair<Configuration, String> p = createConfiguration(args);
-        cpaConfig = p.getFirst();
-        outputDirectory = p.getSecond();
+        Config p = createConfiguration(args);
+        cpaConfig = p.configuration;
+        outputDirectory = p.outputPath;
+        properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
         ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
         System.exit(ERROR_EXIT_CODE);
@@ -124,7 +130,7 @@ public class CPAMain {
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
-      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager);
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager, properties);
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
@@ -260,13 +266,15 @@ public class CPAMain {
   }
 
   /**
-   * Parse the command line, read the configuration file,
-   * and setup the program-wide base paths.
-   * @return A Configuration object and the output directory.
+   * Parse the command line, read the configuration file, and setup the program-wide base paths.
+   *
+   * @return A Configuration object, the output directory, and the specification properties.
    */
-  private static Pair<Configuration, String> createConfiguration(String[] args) throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
+  private static Config createConfiguration(String[] args)
+      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
     // if there are some command line arguments, process them
-    Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
+    Set<SpecificationProperty> properties = Sets.newHashSetWithExpectedSize(1);
+    Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args, properties);
 
     boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
     if (secureMode) {
@@ -343,7 +351,7 @@ public class CPAMain {
       config.dumpUsedOptionsTo(System.out);
     }
 
-    return Pair.of(config, outputDirectory);
+    return new Config(config, outputDirectory, properties);
   }
 
   private static Pair<Configuration, String> setupPaths(Configuration pConfig,
@@ -465,4 +473,20 @@ public class CPAMain {
   }
 
   private CPAMain() { } // prevent instantiation
+
+  private static class Config {
+
+    private final Configuration configuration;
+
+    private final String outputPath;
+
+    private final Set<SpecificationProperty> properties;
+
+    public Config(
+        Configuration pConfiguration, String pOutputPath, Set<SpecificationProperty> pProperties) {
+      configuration = pConfiguration;
+      outputPath = pOutputPath;
+      properties = ImmutableSet.copyOf(pProperties);
+    }
+  }
 }

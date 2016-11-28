@@ -28,11 +28,29 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
-
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,26 +74,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
 /**
  * Test that the bundled configuration files are all valid.
  */
@@ -88,7 +86,8 @@ public class ConfigurationFilesTest {
               + "|The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
-              + "|Finding target locations was interrupted.*",
+              + "|Finding target locations was interrupted.*"
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
@@ -222,7 +221,7 @@ public class ConfigurationFilesTest {
 
     final CPAchecker cpachecker;
     try {
-      cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
+      cpachecker = new CPAchecker(config, logger, ShutdownManager.create(), ImmutableSet.of());
     } catch (InvalidConfigurationException e) {
       assert_()
           .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());

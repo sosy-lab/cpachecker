@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -220,6 +221,7 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
+  private final Set<SpecificationProperty> properties;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
@@ -254,9 +256,14 @@ public class CPAchecker {
     return version;
   }
 
-  public CPAchecker(Configuration pConfiguration, LogManager pLogManager,
-      ShutdownManager pShutdownManager) throws InvalidConfigurationException {
+  public CPAchecker(
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownManager pShutdownManager,
+      Set<SpecificationProperty> pProperties)
+      throws InvalidConfigurationException {
     config = pConfiguration;
+    properties = ImmutableSet.copyOf(pProperties);
     logger = pLogManager;
     shutdownManager = pShutdownManager;
     shutdownNotifier = pShutdownManager.getNotifier();
@@ -304,7 +311,8 @@ public class CPAchecker {
           Specification specification;
           stats.cpaCreationTime.start();
           try {
-            specification = Specification.fromFiles(specificationFiles, cfa, config, logger);
+            specification =
+                Specification.fromFiles(properties, specificationFiles, cfa, config, logger);
             cpa = factory.createCPA(cfa, specification);
           } finally {
             stats.cpaCreationTime.stop();
@@ -567,7 +575,8 @@ public class CPAchecker {
           initialLocations =
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
-                  Specification.fromFiles(backwardSpecificationFiles, pCfa, config, logger));
+                  Specification.fromFiles(
+                      properties, backwardSpecificationFiles, pCfa, config, logger));
           break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);

@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleChecker;
@@ -51,10 +52,11 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
       Configuration config,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
       CFA cfa,
       String filename)
       throws InvalidConfigurationException {
-    super(algorithm, pCpa, config, logger, pShutdownNotifier, cfa, filename);
+    super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa, filename);
 
     if (!(pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM counterexample check");

@@ -26,22 +26,18 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
-
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Abstract state that stores callstack information by maintaning a single-linked list of states
@@ -63,55 +59,6 @@ public class CallstackState
   protected final String currentFunction;
   protected transient CFANode callerNode;
   private final int depth;
-  private transient CallstackWrapper equivalenceWrapper = null;
-
-  /**
-   * Callstack wrapper which provides comparison based on stored data.
-   */
-  public static final class CallstackWrapper {
-    private final CallstackState wrapped;
-
-    private CallstackWrapper(CallstackState pWrapped) {
-      wrapped = pWrapped;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (!(o instanceof CallstackWrapper)) {
-        return false;
-      }
-      CallstackWrapper other = (CallstackWrapper) o;
-      return wrapped.currentFunction.equals(other.wrapped.currentFunction)
-          && wrapped.callerNode.equals(other.wrapped.callerNode)
-          && wrapped.depth == other.wrapped.depth
-          && (
-            (wrapped.previousState == null && other.wrapped.previousState == null)
-              ||
-            (wrapped.previousState != null && other.wrapped.previousState != null && Objects.equals(
-                wrapped.previousState.getEquivalenceWrapper(),
-                other.wrapped.previousState.getEquivalenceWrapper()
-            )
-          ));
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(
-          wrapped.currentFunction,
-          wrapped.callerNode,
-          wrapped.depth,
-          wrapped.previousState != null ?
-          wrapped.previousState.getEquivalenceWrapper() : null);
-    }
-  }
-
-  public CallstackWrapper getEquivalenceWrapper() {
-    if (equivalenceWrapper == null) {
-      equivalenceWrapper = new CallstackWrapper(this);
-    }
-    return equivalenceWrapper;
-  }
-
 
   public CallstackState(
       @Nullable CallstackState pPreviousElement,

@@ -82,10 +82,6 @@ public class LoopTransitionFinder implements StatisticsProvider {
       + "transition relation.")
   private boolean applyLBETransformation = true;
 
-  @Option(secure=true, description="Instead of considering the entire SCC, "
-      + "ignore the function nested in the loop. UNSOUND!")
-  private boolean ignoreFunctionCallsInLoop = false;
-
   @Option(
       secure = true,
       description =
@@ -161,27 +157,17 @@ public class LoopTransitionFinder implements StatisticsProvider {
    * or an empty set, if {@code node} is not a loop-head.
    */
   private List<CFAEdge> getEdgesInSCC(CFANode node) {
-    if (ignoreFunctionCallsInLoop) {
-      // Returns *local* loop.
-      Set<CFAEdge> out = new HashSet<>();
-      for (Loop loop :
-          loopStructure.getLoopsForLoopHead(node)) {
-        out.addAll(loop.getInnerLoopEdges());
-      }
-      return ImmutableList.copyOf(out);
-    } else {
-      SummarizingVisitor forwardVisitor = new SummarizingVisitorForward();
-      SummarizingVisitor backwardsVisitor = new SummarizingVisitorBackwards();
+    SummarizingVisitor forwardVisitor = new SummarizingVisitorForward();
+    SummarizingVisitor backwardsVisitor = new SummarizingVisitorBackwards();
 
-      CFATraversal.dfs().traverse(node, forwardVisitor);
-      CFATraversal.dfs().backwards().traverse(node, backwardsVisitor);
+    CFATraversal.dfs().traverse(node, forwardVisitor);
+    CFATraversal.dfs().backwards().traverse(node, backwardsVisitor);
 
-      Set<CFAEdge> forwardsReachable = ImmutableSet.copyOf(forwardVisitor.getVisitedEdges());
-      Set<CFAEdge> backwardsReachable = ImmutableSet.copyOf(backwardsVisitor.getVisitedEdges());
+    Set<CFAEdge> forwardsReachable = ImmutableSet.copyOf(forwardVisitor.getVisitedEdges());
+    Set<CFAEdge> backwardsReachable = ImmutableSet.copyOf(backwardsVisitor.getVisitedEdges());
 
-      Set<CFAEdge> intersection = Sets.intersection(forwardsReachable, backwardsReachable);
-      return ImmutableList.copyOf(intersection);
-    }
+    Set<CFAEdge> intersection = Sets.intersection(forwardsReachable, backwardsReachable);
+    return ImmutableList.copyOf(intersection);
   }
 
 

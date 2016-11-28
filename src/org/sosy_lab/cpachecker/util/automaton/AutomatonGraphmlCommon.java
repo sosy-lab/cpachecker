@@ -23,15 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -42,6 +47,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -60,7 +66,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -106,7 +114,6 @@ public class AutomatonGraphmlCommon {
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
     SPECIFICATION("specification", ElementType.GRAPH, "specification", "string"),
-    MEMORYMODEL("memorymodel", ElementType.GRAPH, "memoryModel", "string"),
     ARCHITECTURE("architecture", ElementType.GRAPH, "architecture", "string"),
     PRODUCER("producer", ElementType.GRAPH, "producer", "string"),
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
@@ -284,7 +291,8 @@ public class AutomatonGraphmlCommon {
         String pDefaultSourceFileName,
         Language pLanguage,
         MachineModel pMachineModel,
-        VerificationTaskMetaData pVerificationTaskMetaData)
+        VerificationTaskMetaData pVerificationTaskMetaData,
+        Specification pSpecification)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -309,8 +317,27 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
-      for (String specification : pVerificationTaskMetaData.getSpecifications()) {
-        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, specification));
+
+      FluentIterable<SpecificationProperty> properties =
+          FluentIterable.from(pSpecification.getProperties());
+      for (SpecificationProperty property : properties) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
+      }
+
+      Set<String> pathsAssociatedWithPropertyFiles =
+          properties
+              .transform(SpecificationProperty::getInternalSpecificationPath)
+              .filter(Optional::isPresent)
+              .transform(Optional::get)
+              .toSet();
+      Iterable<Path> pathsNotAssociatedWithPropertyFiles =
+          Iterables.filter(
+              pSpecification.getSpecFiles(),
+              p -> !pathsAssociatedWithPropertyFiles.contains(p.toString()));
+      for (Path specFile : pathsNotAssociatedWithPropertyFiles) {
+        graph.appendChild(
+            createDataElement(
+                KeyDef.SPECIFICATION, MoreFiles.toString(specFile, Charsets.UTF_8).trim()));
       }
 
       /*
@@ -329,8 +356,6 @@ public class AutomatonGraphmlCommon {
                 KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash().get()));
       }
 
-      graph.appendChild(
-          createDataElement(KeyDef.MEMORYMODEL, pVerificationTaskMetaData.getMemoryModel()));
       graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
     }
 
