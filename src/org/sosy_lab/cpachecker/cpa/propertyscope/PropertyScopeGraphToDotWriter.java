@@ -37,12 +37,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeEdge;
+import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeEdge.CombiScopeEdge;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeGraph.ScopeNode;
 import org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeInstance.AutomatonPropertyScopeInstance;
 import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -143,13 +141,13 @@ public class PropertyScopeGraphToDotWriter {
     }
 
     // specify edges
-    for (ScopeEdge scopeEdge : graph.getEdges().values()) {
+    for (CombiScopeEdge combiScopeEdge : graph.getCombiScopeEdges()) {
       sb
-          .append("\"").append(scopeEdge.getStart().getId()).append("\" -> \"")
-          .append(scopeEdge.getEnd().getId()).append("\"")
+          .append("\"").append(combiScopeEdge.getStart().getId()).append("\" -> \"")
+          .append(combiScopeEdge.getEnd().getId()).append("\"")
           .append(" [");
 
-      buildEdgeParams(scopeEdge, sb);
+      buildEdgeParams(combiScopeEdge, sb);
 
       sb
           .append("]")
@@ -259,10 +257,11 @@ public class PropertyScopeGraphToDotWriter {
     return "grey";
   }
 
-  private void buildEdgeParams(ScopeEdge scopeEdge, Appendable sb) throws IOException {
-    if (scopeEdge.getIrrelevantARGStates() == 0) {
+  private void buildEdgeParams(CombiScopeEdge combiScopeEdge, Appendable sb) throws IOException {
+    int irrelevantARGStateCount = combiScopeEdge.computeIrrelevantARGStateCount();
+    if (irrelevantARGStateCount == 0) {
       List<CFAEdge> edges =
-          scopeEdge.getStart().getArgState().getEdgesToChild(scopeEdge.getEnd().getArgState());
+          combiScopeEdge.getStart().getArgState().getEdgesToChild(combiScopeEdge.getEnd().getArgState());
 
       if (edges.isEmpty()) { // there is no direct edge between the nodes, use a dummy-edge
         sb.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
@@ -303,22 +302,27 @@ public class PropertyScopeGraphToDotWriter {
       sb
           .append("label=\"")
           .append("Irrelevant: ")
-          .append(Objects.toString(scopeEdge.getIrrelevantARGStates()))
+          .append(Objects.toString(irrelevantARGStateCount))
+          .append("\\l")
+          .append("Paths: ")
+          .append(Objects.toString(combiScopeEdge.getScopeEdges().size()))
           .append("\\l");
 
-      if (!scopeEdge.getPassedFunctionEntryExits().isEmpty()) {
+/*
+      if (!combiScopeEdge.getPassedFunctionEntryExits().isEmpty()) {
         sb
             .append("\\l")
             .append("Skipped entry/exit:\\l");
-        for (String func : scopeEdge.getPassedFunctionEntryExits()) {
+        for (String func : combiScopeEdge.getPassedFunctionEntryExits()) {
           sb.append(func).append("\\l");
         }
       }
+*/
 
 
 
-      if (scopeEdge.getLastCFAEdge().isPresent()) {
-        CFAEdge lastCfaEdge = scopeEdge.getLastCFAEdge().get();
+/*      if (combiScopeEdge.getLastCFAEdge().isPresent()) {
+        CFAEdge lastCfaEdge = combiScopeEdge.getLastCFAEdge().get();
         sb
             .append("\\l")
             .append("Line ").append(Objects.toString(lastCfaEdge.getLineNumber()))
@@ -326,7 +330,7 @@ public class PropertyScopeGraphToDotWriter {
             .append(lastCfaEdge.getDescription().replaceAll("\n", " ").replace('"', '\'').trim())
             .append("\\l");
 
-      }
+      }*/
 
       sb.append("\"");
       sb.append(" color=\"#9300dd\"");

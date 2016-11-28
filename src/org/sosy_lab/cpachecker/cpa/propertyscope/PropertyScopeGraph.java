@@ -117,7 +117,7 @@ public class PropertyScopeGraph {
           }
         }
       } else {
-        currentEdge.irrelevantARGStates += 1;
+        currentEdge.irrelevantARGStates.add(argState);
 
         currentEdge.lastCFAEdge = argState.getChildren().stream().findFirst()
             .map(argState::getEdgesToChild).map(cfae -> cfae.get(cfae.size() - 1)).orElse(null);
@@ -161,7 +161,7 @@ public class PropertyScopeGraph {
 
   private CombiScopeEdge addToCombiEdges(ScopeEdge edge) {
     CombiScopeEdge combiEdge = combiScopeEdges.get(edge.start, edge.end);
-    if(combiEdge == null) {
+    if (combiEdge == null) {
       combiEdge = new CombiScopeEdge(edge);
       combiScopeEdges.put(combiEdge.start, combiEdge.end, combiEdge);
     } else {
@@ -219,11 +219,11 @@ public class PropertyScopeGraph {
   }
 
   public static class ScopeEdge {
+    private final List<String> passedFunctionEntryExits = new ArrayList<>();
+    private final List<ARGState> irrelevantARGStates = new ArrayList<>();
     private ScopeNode start;
     private ScopeNode end;
     private CFAEdge lastCFAEdge;
-    private List<String> passedFunctionEntryExits = new ArrayList<>();
-    private int irrelevantARGStates = 0;
 
     private ScopeEdge(ScopeNode start) {
       this.start = start;
@@ -233,8 +233,8 @@ public class PropertyScopeGraph {
       start = other.start;
       end = other.end;
       lastCFAEdge = other.lastCFAEdge;
-      passedFunctionEntryExits = new ArrayList<>(other.passedFunctionEntryExits);
-      irrelevantARGStates = other.irrelevantARGStates;
+      passedFunctionEntryExits.addAll(other.passedFunctionEntryExits);
+      irrelevantARGStates.addAll(other.irrelevantARGStates);
     }
 
     public Optional<CFAEdge> getLastCFAEdge() {
@@ -253,8 +253,14 @@ public class PropertyScopeGraph {
       return Collections.unmodifiableList(passedFunctionEntryExits);
     }
 
-    public int getIrrelevantARGStates() {
-      return irrelevantARGStates;
+    public int getIrrelevantARGStatesCount() {
+      return irrelevantARGStates.size();
+    }
+
+    @Override
+    public String toString() {
+      return String
+          .format("%s -%d(%s)-> %s", start, irrelevantARGStates, passedFunctionEntryExits, end);
     }
 
     public static class CombiScopeEdge {
@@ -276,12 +282,16 @@ public class PropertyScopeGraph {
         return Collections.unmodifiableSet(scopeEdges);
       }
 
-      public int getIrrelevantARGStates() {
-        return scopeEdges.parallelStream()
-            .map(ScopeEdge::getIrrelevantARGStates).reduce(Integer::sum).orElse(0);
+      public int computeIrrelevantARGStateCount() {
+        return computeIrrelevantARGStates().size();
       }
 
-      public Set<CFAEdge> getLastCfaEdges() {
+      public Set<ARGState> computeIrrelevantARGStates() {
+        return scopeEdges.parallelStream()
+            .flatMap(edge -> edge.irrelevantARGStates.stream()).collect(Collectors.toSet());
+      }
+
+      public Set<CFAEdge> computeLastCfaEdges() {
         return scopeEdges.parallelStream()
             .map(ScopeEdge::getLastCFAEdge).filter(Optional::isPresent).map(Optional::get)
             .collect(Collectors.toSet());
@@ -291,11 +301,14 @@ public class PropertyScopeGraph {
         return scopeEdges.parallelStream()
             .map(ScopeEdge::getPassedFunctionEntryExits).collect(Collectors.toSet());
       }
-    }
 
-    @Override
-    public String toString() {
-      return String.format("%s -%d(%s)-> %s", start, irrelevantARGStates, passedFunctionEntryExits, end);
+      public ScopeNode getStart() {
+        return start;
+      }
+
+      public ScopeNode getEnd() {
+        return end;
+      }
     }
   }
 
