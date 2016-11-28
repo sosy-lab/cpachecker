@@ -31,6 +31,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -42,7 +43,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -295,7 +295,7 @@ public class ARGStatistics implements Statistics {
   }
 
   private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
-    Map<ARGState, CounterexampleInfo> counterexamples = new HashMap<>();
+    ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
@@ -324,7 +324,7 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    return counterexamples;
+    return counterexamples.build();
   }
 
   private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
