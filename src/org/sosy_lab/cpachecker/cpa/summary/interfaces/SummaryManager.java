@@ -54,7 +54,7 @@ public interface SummaryManager {
   /**
    *
    * @param pSummary Function summary
-   * @return Projection of the summary to the callsite:
+   * @return Projection of the summary to the function entry point:
    * the summary precondition.
    */
   AbstractState projectToPrecondition(Summary pSummary);
@@ -62,7 +62,7 @@ public interface SummaryManager {
   /**
    *
    * // todo: what if the function has multiple return nodes?
-   * // disjuntion over all possibilities?
+   * // disjunction over all possibilities?
    *
    * @param pSummary Function summary
    * @return Projection of the summary to the return site:
@@ -79,4 +79,14 @@ public interface SummaryManager {
    * @return summary describing subsuming the result.
    */
   Summary generateSummary(ReachedSet pReached);
+
+  /**
+   * Optionally merge two summaries, same interface as
+   * {@link org.sosy_lab.cpachecker.core.interfaces.MergeOperator}.
+   * The result has to subsume the second argument.
+   *
+   * <p>Implementation should return the second argument to refuse
+   * merging and to keep the states separate instead.
+   */
+  Summary merge(Summary pSummary1, Summary pSummary2);
 }

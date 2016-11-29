@@ -21,61 +21,37 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.summary;
+package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
- * Signal the desire to recompute the summary.
+ * TODO: Class Description
  */
-public class ToComputeSummaryState
-    implements AbstractState,
-               Partitionable {
-
-  /**
-   * State associated with {@link FunctionEntryNode},
-   * <em>inside</em> the function.
-   */
+public class SummaryComputationRequestState implements AbstractState {
   private final AbstractState functionEntryState;
-
-  /**
-   * Precision associated with {@link FunctionEntryNode}.
-   */
   private final Precision functionEntryPrecision;
-
-  /**
-   * Function entry node for this summary.
-   */
   private final FunctionEntryNode node;
 
-  public ToComputeSummaryState(
-      AbstractState pFunctionEntryState,
-      Precision pFunctionEntryPrecision,
-      FunctionEntryNode pNode) {
-    functionEntryState = pFunctionEntryState;
-    functionEntryPrecision = pFunctionEntryPrecision;
-    node = pNode;
-  }
-
-  public String getFunctionName() {
-    return node.getFunctionName();
-  }
-
-  public AbstractState getState() {
+  public AbstractState getFunctionEntryState() {
     return functionEntryState;
   }
 
-  public Precision getPrecision() {
+  public Precision getFunctionEntryPrecision() {
     return functionEntryPrecision;
   }
 
-  @Override
-  public Object getPartitionKey() {
+  public FunctionEntryNode getNode() {
+    return node;
+  }
 
-    // Do not merge, do not compare.
-    return this;
+  public SummaryComputationRequestState(
+      AbstractState pFunctionEntryState,
+      Precision pFunctionEntryPrecision, FunctionEntryNode pNode) {
+    functionEntryState = pFunctionEntryState;
+    functionEntryPrecision = pFunctionEntryPrecision;
+    node = pNode;
   }
 }

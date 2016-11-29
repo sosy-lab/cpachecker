@@ -24,5 +24,8 @@
 
 /**
  * Top-level CPA for the intraprocedural analysis.
+ *
+ * <p>Does not have its own abstract states,
+ * operates over the states of the nested analysis directly.
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;

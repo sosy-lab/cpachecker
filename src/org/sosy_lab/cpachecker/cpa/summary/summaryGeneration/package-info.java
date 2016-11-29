@@ -25,6 +25,6 @@
 /**
  * CPA for summary generation.
  *
- * <p>A single abstract state defines a summary.
+ * <p>A single abstract state is a request for summary generation.
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
