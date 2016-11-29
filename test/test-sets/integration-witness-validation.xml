@@ -52,11 +52,6 @@
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-  </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
