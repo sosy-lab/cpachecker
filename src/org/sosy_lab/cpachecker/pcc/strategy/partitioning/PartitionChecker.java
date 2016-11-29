@@ -298,31 +298,23 @@ public class PartitionChecker {
 
           // compute successors
           try {
-            transferTime.start();
             successors = transfer.getAbstractSuccessors(checkedState, initPrec);
-            transferTime.stop();
 
 
             for (AbstractState successor : successors) {
               // check if covered
               loc = AbstractStates.extractLocation(successor);
 
-              stopTime.start();
               isCovered = stop.stop(successor, statesPerLocation.get(loc), initPrec);
-              stopTime.stop();
               if (!isCovered) {
                 recomputedElements.add(successor);
               }
             }
           } catch (CPATransferException | InterruptedException e) {
-            stopTime.stopIfRunning();
-            transferTime.stopIfRunning();
             logger.log(Level.SEVERE, "Checking failed, successor computation failed");
             partitionHelper.abortCheckingPreparation();
             return;
           } catch (CPAException e) {
-            stopTime.stopIfRunning();
-            transferTime.stopIfRunning();
             logger.log(Level.SEVERE, "Checking failed, checking successor coverage failed");
             partitionHelper.abortCheckingPreparation();
             return;
