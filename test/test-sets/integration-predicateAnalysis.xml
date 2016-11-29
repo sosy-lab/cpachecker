@@ -7,8 +7,8 @@
 
   <rundefinition>
     <tasks>
-      <includesfile>../programs/benchmarks/Simple.set</includesfile>
-      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -21,6 +21,9 @@
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.12_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.13_true-unreach-call.i.cil.c</exclude>
+      <exclude reason="partial set only">../programs/benchmarks/ntdrivers-simplified/*</exclude>
+      <exclude reason="partial set only">../programs/benchmarks/ssh-simplified/*</exclude>
+      <exclude reason="partial set only">../programs/benchmarks/locks/*</exclude>
     </tasks>
     <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
@@ -33,6 +36,8 @@
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_4_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
+      <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
+      <exclude reason="partial set only">../programs/benchmarks/ssh/*</exclude>
     </tasks>
     <tasks>
       <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
