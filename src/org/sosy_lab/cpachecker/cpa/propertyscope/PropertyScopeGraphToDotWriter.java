@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -212,28 +213,60 @@ public class PropertyScopeGraphToDotWriter {
       CombiScopeEdge combiScopeEdge, Appendable sb, int irrelevantArgStatesCount)
       throws IOException {
     sb
-        .append("label=\"")
-        .append("Irrelevant: ")
+        .append("label=<")
+        .append("<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">")
+        .append("<TR><TD>")
+        .append("<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"0\">")
+        .append("<TR>")
+        .append("<TD ALIGN=\"CENTER\">Irrelevant:</TD>")
+        .append("<TD>")
         .append(Objects.toString(irrelevantArgStatesCount))
-        .append("\\l")
-        .append("Paths: ")
+        .append("</TD>")
+        .append("</TR>")
+        .append("<TR>")
+        .append("<TD  ALIGN=\"CENTER\">Paths:</TD>")
+        .append("<TD>")
         .append(Objects.toString(combiScopeEdge.getScopeEdges().size()))
-        .append("\\l");
-    sb.append("\"");
+        .append("</TD>")
+        .append("</TR>")
+        .append("</TABLE>")
+        .append("</TD></TR>");
+
+    Set<List<String>> passedFunctionEntryExits = combiScopeEdge.getPassedFunctionEntryExits();
+
+    int entryExitMaxSize = passedFunctionEntryExits.stream()
+        .map(List::size).max(Integer::compareTo).orElse(0);
+    if (entryExitMaxSize > 0) {
+      sb
+          .append("<TR><TD><FONT POINT-SIZE=\"3\"> </FONT></TD></TR>")
+          .append("<TR><TD>")
+          .append("<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"0\">")
+          .append("<TR>")
+          .append("<TD ALIGN=\"CENTER\" COLSPAN=\"")
+          .append(Objects.toString(passedFunctionEntryExits.size()))
+          .append("\">Skipped entry/exit:")
+          .append("</TD>")
+          .append("</TR>");
+
+      for (int i = 0; i < entryExitMaxSize; i++) {
+        sb.append("<TR>");
+
+        for (List<String> passedFunctionEntryExit : passedFunctionEntryExits) {
+          sb.append("<TD>");
+          String fstr = i < passedFunctionEntryExit.size() ? passedFunctionEntryExit.get(i) : "";
+          sb.append(fstr);
+          sb.append("</TD>");
+        }
+        sb.append("</TR>");
+      }
+      sb.append("</TABLE>");
+      sb.append("</TD></TR>");
+
+    }
+    sb.append("</TABLE>");
+    sb.append(">");
     sb.append(" color=\"").append(IRRELEVANT_COLOR).append("\"");
 
-
-    /*      Set<List<String>> passedFunctionEntryExits = combiScopeEdge.getPassedFunctionEntryExits();
-      if (!passedFunctionEntryExits.isEmpty()) {
-        sb
-            .append("\\l")
-            .append("Skipped entry/exit:\\l");
-
-        sb.append(passedFunctionEntryExits.size() + "");
-        //for (String func : passedFunctionEntryExits) {
-        //  sb.append(func).append("\\l");
-        //}
-      }*/
 
   }
 
