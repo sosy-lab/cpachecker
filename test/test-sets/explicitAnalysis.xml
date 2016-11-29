@@ -8,10 +8,6 @@
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
   </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-  </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>

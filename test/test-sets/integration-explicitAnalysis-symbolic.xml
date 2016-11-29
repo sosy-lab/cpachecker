@@ -12,10 +12,6 @@
       <propertyfile>../programs/simple/ALL.prp</propertyfile>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/Simple.set</includesfile>
-      <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-    </tasks>
-    <tasks>
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
       <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
     </tasks>

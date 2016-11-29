@@ -54,10 +54,6 @@
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
     <exclude reason="timeout">../programs/benchmarks/seq-mthreaded/pals*</exclude>
   </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-  </tasks>
 
   <rundefinition>
     <option name="-valueAnalysis"/>

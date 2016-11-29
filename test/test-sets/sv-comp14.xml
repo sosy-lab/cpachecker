@@ -4,10 +4,6 @@
   <option name="-disable-java-assertions"/>
   <option name="-heap">10000M</option>
 
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-  </tasks>
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
     <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>

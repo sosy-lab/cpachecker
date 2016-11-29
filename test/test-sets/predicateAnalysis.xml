@@ -41,11 +41,6 @@
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
   </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </tasks>
 
   <rundefinition name="ABEl">
     <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>

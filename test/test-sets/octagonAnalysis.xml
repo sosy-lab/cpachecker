@@ -5,11 +5,6 @@
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
 
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </tasks>
   <tasks name="ControlFlow">
     <include>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</include>
     <include>../programs/benchmarks/ntdrivers-simplified/*_true-unreach-call*.cil.c</include>
