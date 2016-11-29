@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * Guiding the summary computation.
  *
  * <p>Operates over wrapped states directly.
- * Reached set may contain an instance of {@link ToComputeSummaryState},
+ * Reached set may contain an instance of {@link SummaryComputationRequestState},
  * as a last state in a reached set, as after adding such a state a BREAK
  * action is issued by the precision adjustment.
  */
@@ -72,17 +72,10 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
                                            SummaryManager {
   private final UseSummaryCPA wrapped;
 
-  /**
-   * ReachedSet of {@link org.sosy_lab.cpachecker.cpa.summary.summaryGeneration.SummaryState}
-   * essentially, a mapping from functions to summaries.
-   */
   private final Multimap<String, Summary> summaryMapping;
 
   public TopLevelSummaryCPA(
-
       ConfigurableProgramAnalysis pWrapped,
-
-      // todo: inject via the custom factory?..
       Multimap<String, Summary> pSummaryMapping) {
     summaryMapping = pSummaryMapping;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
@@ -189,7 +182,6 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
       );
     }
 
-    // todo: anything else?
     return Optional.of(
         PrecisionAdjustmentResult.create(state, precision, Action.CONTINUE)
     );
@@ -273,14 +265,9 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
   @Override
   public boolean isLessOrEqual(
       AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
-
-    // todo: what is going on here.
-    // we probably also want subsumption on computation requests.
-    if (state1 instanceof SummaryComputationRequestState
-        || state2 instanceof SummaryComputationRequestState) {
-      return false;
-    }
-    return wrapped.getAbstractDomain().isLessOrEqual(state1, state2);
+    return !(state1 instanceof SummaryComputationRequestState
+        || state2 instanceof SummaryComputationRequestState)
+        && wrapped.getAbstractDomain().isLessOrEqual(state1, state2);
   }
 
   @Override

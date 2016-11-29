@@ -30,13 +30,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public interface SummaryManager {
+
+  // todo: communicating to the CPA
+  // that the abstraction has to be performed,
+  // as the current state is at the function entry/exit.
+  // maybe it is easy to use BAM datastructures for this task.
+
   /**
-   * // todo 1: what if there are multiple summaries available?
-   * // who decides which one to pick?
-   *
-   * // todo 2: if none is available, who decides to
-   * // restart the exploration?
-   *
    * Calculate the abstract successors subject to a summary
    * {@code pSummary}
    *

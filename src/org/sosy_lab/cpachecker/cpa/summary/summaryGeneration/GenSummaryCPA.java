@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -56,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -74,32 +74,35 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 /**
  * Top-level CPA for summary generation.
  *
- * Operates over {@link SummaryComputationState} states,
- * stores generated summaries in a stateful multimap.
+ * Performs computations over {@link SummaryComputationState},
+ * which represents (partial) computation of a summary.
+ * The full computation does not have successors, and is added
+ * to a stateful datastructure for storing summaries.
  *
  */
 @Options(prefix="cpa.summary")
-public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomain,
-                                      TransferRelation, PrecisionAdjustment {
+public class GenSummaryCPA implements ConfigurableProgramAnalysis,
+                                      AbstractDomain,
+                                      TransferRelation,
+                                      PrecisionAdjustment,
+                                      MergeOperator {
 
-  @Option(secure=true, description="Whether to join generated summaries")
-  private boolean joinSummaries = true;
+  @Option(secure=true, description="Whether summaries should be merged")
+  private boolean joinSummaries = false;
 
   private final TopLevelSummaryCPA wrapped;
 
-  // todo: what parameters is this guy created with?
   private final CPAAlgorithmFactory algorithmFactory;
-
-  // todo: what parameters is this guy created with?
   private final ReachedSetFactory reachedSetFactory;
-  private final CFA cfa;
 
   /**
    * Function name to stored summaries mapping.
+   * Order-preserving multimap.
    *
    * <p>Maintains an invariant that no stored summary strictly
    * subsumes the other one.
    */
+
   private final Multimap<String, Summary> computedSummaries;
 
   public GenSummaryCPA(
@@ -107,15 +110,13 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
       Configuration config,
       ShutdownNotifier shutdownNotifier,
       ReachedSetFactory pReachedSetFactory,
-      CFA pCfa,
       ConfigurableProgramAnalysis pWrapped) throws InvalidConfigurationException {
     config.inject(this);
     reachedSetFactory = pReachedSetFactory;
-    cfa = pCfa;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
         "Parameter CPA has to implement the SummaryCPA interface.");
 
-    computedSummaries = HashMultimap.create();
+    computedSummaries = LinkedHashMultimap.create();
     wrapped = new TopLevelSummaryCPA(pWrapped, computedSummaries);
     algorithmFactory = new CPAAlgorithmFactory(
         this, logger, config, shutdownNotifier
@@ -126,12 +127,12 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition)
         throws InterruptedException {
+    ReachedSet reached = reachedSetFactory.create();
+    AbstractState entryState = wrapped.getInitialState(node, partition);
+    Precision entryPrecision = wrapped.getInitialPrecision(node, partition);
+    reached.add(entryState, entryPrecision);
 
-    return new SummaryComputationState(
-        wrapped.getInitialState(node, partition),
-        wrapped.getInitialPrecision(node, partition),
-        node
-    );
+    return new SummaryComputationState(node, entryState, entryPrecision, reached);
   }
 
   @Override
@@ -145,22 +146,28 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
     }
   }
 
-  public Collection<SummaryComputationState> getAbstractSuccessors0(
-      SummaryComputationState recomputeRequest) throws CPAException, InterruptedException {
+  private Collection<SummaryComputationState> getAbstractSuccessors0(
+      SummaryComputationState summaryComputationState)
+      throws CPAException, InterruptedException {
 
-    String functionName = recomputeRequest.getFunctionName();
+    String functionName = summaryComputationState.getFunctionName();
 
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(recomputeRequest.getState(), recomputeRequest.getPrecision());
+    ReachedSet reached = summaryComputationState.getReached();
+
+    FluentIterable<SummaryComputationRequestState> computationRequests =
+        AbstractStates.projectToType(reached, SummaryComputationRequestState.class);
+
+    // Normalize the reached set, remove signal states.
+    reached.removeAll(computationRequests);
+
     CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
     // todo: check the algorithm status.
     // todo: also check for hasWaitingStates: might be early termination
     // due to the counterexample being found.
     AlgorithmStatus status = algorithm.run(reached);
+    assert status.isSound();
 
-    FluentIterable<SummaryComputationRequestState> computationRequests =
-        AbstractStates.projectToType(reached, SummaryComputationRequestState.class);
 
     if (computationRequests.isEmpty()) {
       // No new summaries were needed, can finally generate the summary for this function.
@@ -205,10 +212,25 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
       return ImmutableSet.of();
 
     } else {
-      return computationRequests.transform(
-          s -> new SummaryComputationState(
-              s.getFunctionEntryState(), s.getFunctionEntryPrecision(), s.getNode())
-      ).toList();
+
+      // NB: it is important to make sure that the summary computation request
+      // is expanded *before* the request for recomputing the summary
+      // for "summaryComputationState".
+      List<SummaryComputationState> toReturn = new ArrayList<>();
+      for (SummaryComputationRequestState req : computationRequests) {
+        ReachedSet newReached = reachedSetFactory.create();
+        newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
+        toReturn.add(new SummaryComputationState(
+            req.getNode(),
+            req.getFunctionEntryState(),
+            req.getFunctionEntryPrecision(), newReached));
+      }
+
+      // NB: this is probably redundant, given that the reached set is mutable.
+      toReturn.add(summaryComputationState.withNewReachedSet(reached));
+
+      return toReturn;
+
     }
   }
 
@@ -235,11 +257,52 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
   }
 
   @Override
-  public AbstractState join(
+  public boolean isLessOrEqual(
       AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
+    SummaryComputationState sState1 = (SummaryComputationState) state1;
+    SummaryComputationState sState2 = (SummaryComputationState) state2;
+    if (sState1.equals(sState2)) {
+      return true;
+    }
+    if (joinSummaries
+        && wrapped.getAbstractDomain().isLessOrEqual(state1, state2)) {
 
-    // todo: should we perform the join of two requests for generating the summary?
-    return null;
+      // Stronger precondition: already subsumed by the existing summary.
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public AbstractState merge(
+      AbstractState state1, AbstractState state2, Precision precision)
+      throws CPAException, InterruptedException {
+    SummaryComputationState sState1 = (SummaryComputationState) state1;
+    SummaryComputationState sState2 = (SummaryComputationState) state2;
+    Preconditions.checkState(sState1.getNode() == sState2.getNode());
+
+    if (joinSummaries) {
+      AbstractState merged = wrapped.getMergeOperator().merge(
+          sState1.getEntryState(),
+          sState2.getEntryState(),
+          precision
+      );
+      if (merged == sState2.getEntryState()) {
+        return state2;
+      } else {
+        ReachedSet reached = reachedSetFactory.create();
+        reached.add(merged, precision);
+        return new SummaryComputationState(
+            sState1.getNode(),
+            merged,
+            precision,
+            reached
+        );
+      }
+    } else {
+      return state2;
+    }
   }
 
   @Override
@@ -249,9 +312,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState) throws CPAException, InterruptedException {
-
-    // todo: check for target states being found.
-    return null;
+    return Optional.of(PrecisionAdjustmentResult.create(state, precision, Action.CONTINUE));
   }
 
   @Override
@@ -266,7 +327,9 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
 
   @Override
   public MergeOperator getMergeOperator() {
-    return null;
+
+    // Why not just query the underlying CPA on what do they think about merging?...
+    return this;
   }
 
   @Override
@@ -288,13 +351,10 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
 
 
   @Override
-  public boolean isLessOrEqual(
+  public AbstractState join(
       AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
-
-    // todo: do not store redundant requests for summary recomputation.
-    return false;
+    throw new UnsupportedOperationException("Unexpected API call.");
   }
-
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -306,4 +366,5 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis, AbstractDomai
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(GenSummaryCPA.class);
   }
+
 }
