@@ -565,32 +565,38 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       printSubStatistics(out, result);
     }
 
-    private void printSubStatistics(PrintStream out, Result result) {
+    private void printSubStatistics(PrintStream pOut, Result pResult) {
       for (StatisticsEntry subStats : allAnalysesStats) {
-        out.println();
-        out.println();
+        pOut.println();
+        pOut.println();
         String title = "Statistics for: " + subStats.name;
-        out.println(title);
-        out.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
+        pOut.println(title);
+        pOut.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
         if (subStats.rLimit != null) {
-          out.println(
-              "Time spent in analysis thread " + subStats.name + ": "
+          pOut.println(
+              "Time spent in analysis thread "
+                  + subStats.name
+                  + ": "
                   + subStats.rLimit.getOverallUsedTime().formatAs(TimeUnit.SECONDS));
+        }
+        Result result = pResult;
+        if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
+          result = Result.UNKNOWN;
         }
         for (Statistics s : subStats.subStatistics) {
           String name = s.getName();
           if (!isNullOrEmpty(name)) {
             name = name + " statistics";
-            out.println("");
-            out.println(name);
-            out.println(Strings.repeat("-", name.length()));
+            pOut.println("");
+            pOut.println(name);
+            pOut.println(Strings.repeat("-", name.length()));
           }
-          s.printStatistics(out, result, subStats.reachedSet);
+          s.printStatistics(pOut, result, subStats.reachedSet);
         }
       }
-      out.println("\n");
-      out.println("Other statistics");
-      out.println("================");
+      pOut.println("\n");
+      pOut.println("Other statistics");
+      pOut.println("================");
     }
   }
 
