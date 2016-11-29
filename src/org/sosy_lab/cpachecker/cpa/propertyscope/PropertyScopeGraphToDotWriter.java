@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class PropertyScopeGraphToDotWriter {
@@ -88,6 +89,22 @@ public class PropertyScopeGraphToDotWriter {
 
   public static void writeHinted(PropertyScopeGraph graph, Appendable sb) throws IOException {
     new PropertyScopeGraphToDotWriter(graph, true).write(sb);
+  }
+
+  private static String determineNodeColor(ScopeNode scopeNode) {
+
+    if (scopeNode.getArgState().isCovered()) {
+      return "green";
+    }
+    if (scopeNode.getArgState().isTarget()) {
+      return "red";
+    }
+
+    if (scopeNode.isPartOfScope()) {
+      return "cornflowerblue";
+    }
+
+    return "grey";
   }
 
   public void write(Appendable sb) throws IOException {
@@ -196,14 +213,14 @@ public class PropertyScopeGraphToDotWriter {
 
     sb.append("\"");
 
-    if (!scopeNode.isPartOfScope() || automScopeInsts.isEmpty()) {
-      sb.append(" color=\"").append(determineNodeColor(scopeNode)).append("\"");
-    } else {
+
+    sb.append(" color=\"").append(determineNodeColor(scopeNode)).append("\"");
+    if (scopeNode.isPartOfScope() && !automScopeInsts.isEmpty()) {
       sb.append(" style=\"striped\"");
       String fillcolor = automScopeInsts.keySet().stream()
           .map(autom -> automatonColorMap.get(autom.getName()))
           .collect(Collectors.joining(":"));
-      sb.append(" color=\"").append(fillcolor).append("\"");
+      sb.append(" fillcolor=\"").append(fillcolor).append("\"");
     }
 
   }
@@ -217,7 +234,7 @@ public class PropertyScopeGraphToDotWriter {
 
     sb.append(" label=").append("\"");
 
-    for (AutomatonState automst :extractStatesByType(node.getArgState(), AutomatonState.class)) {
+    for (AutomatonState automst : extractStatesByType(node.getArgState(), AutomatonState.class)) {
       sb
           .append(automst.getOwningAutomatonName()).append(": ")
           .append(automst.getInternalStateName()).append("\\n");
@@ -241,27 +258,12 @@ public class PropertyScopeGraphToDotWriter {
 
   }
 
-  private static String determineNodeColor(ScopeNode scopeNode) {
-
-    if (scopeNode.getArgState().isCovered()) {
-      return "green";
-    }
-    if (scopeNode.getArgState().isTarget()) {
-      return "red";
-    }
-
-    if (scopeNode.isPartOfScope()) {
-      return "cornflowerblue";
-    }
-
-    return "grey";
-  }
-
   private void buildEdgeParams(CombiScopeEdge combiScopeEdge, Appendable sb) throws IOException {
     int irrelevantARGStateCount = combiScopeEdge.computeIrrelevantARGStateCount();
     if (irrelevantARGStateCount == 0) {
       List<CFAEdge> edges =
-          combiScopeEdge.getStart().getArgState().getEdgesToChild(combiScopeEdge.getEnd().getArgState());
+          combiScopeEdge.getStart().getArgState()
+              .getEdgesToChild(combiScopeEdge.getEnd().getArgState());
 
       if (edges.isEmpty()) { // there is no direct edge between the nodes, use a dummy-edge
         sb.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
@@ -308,16 +310,19 @@ public class PropertyScopeGraphToDotWriter {
           .append(Objects.toString(combiScopeEdge.getScopeEdges().size()))
           .append("\\l");
 
-/*
-      if (!combiScopeEdge.getPassedFunctionEntryExits().isEmpty()) {
+
+/*      Set<List<String>> passedFunctionEntryExits = combiScopeEdge.getPassedFunctionEntryExits();
+      if (!passedFunctionEntryExits.isEmpty()) {
         sb
             .append("\\l")
             .append("Skipped entry/exit:\\l");
-        for (String func : combiScopeEdge.getPassedFunctionEntryExits()) {
-          sb.append(func).append("\\l");
-        }
-      }
-*/
+
+        sb.append(passedFunctionEntryExits.size() + "");
+        //for (String func : passedFunctionEntryExits) {
+        //  sb.append(func).append("\\l");
+        //}
+      }*/
+
 
 
 
