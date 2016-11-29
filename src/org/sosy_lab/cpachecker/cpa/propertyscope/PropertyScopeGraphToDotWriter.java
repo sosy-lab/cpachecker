@@ -55,6 +55,7 @@ import java.util.stream.Collectors;
 
 public class PropertyScopeGraphToDotWriter {
 
+  private static final String IRRELEVANT_COLOR = "#b300ff";
   private final PropertyScopeGraph graph;
   private final boolean hinted;
   private final ImmutableMap<String, String> automatonColorMap;
@@ -159,21 +160,80 @@ public class PropertyScopeGraphToDotWriter {
 
     // specify edges
     for (CombiScopeEdge combiScopeEdge : graph.getCombiScopeEdges()) {
-      sb
-          .append("\"").append(combiScopeEdge.getStart().getId()).append("\" -> \"")
-          .append(combiScopeEdge.getEnd().getId()).append("\"")
-          .append(" [");
+      int irrelevantARGStateCount = combiScopeEdge.computeIrrelevantARGStateCount();
+      if (irrelevantARGStateCount == 0) {
+        sb
+            .append("\"").append(combiScopeEdge.getStart().getId()).append("\" -> \"")
+            .append(combiScopeEdge.getEnd().getId()).append("\"")
+            .append(" [");
 
-      buildEdgeParams(combiScopeEdge, sb);
+        buildSingleEdgeParams(combiScopeEdge, sb);
 
-      sb
-          .append("]")
-          .append(";\n");
+        sb
+            .append("]")
+            .append(";\n");
+      } else {
+        String combiNodeId = "combi-" + combiScopeEdge.getStart().getId() + "-" +
+            combiScopeEdge.getEnd().getId();
+
+        // combi node
+        sb.append("\"").append(combiNodeId).append("\" [");
+        bulidCombiNodeParams(combiScopeEdge, sb, irrelevantARGStateCount);
+        sb.append("];\n");
+
+        // incoming edge
+        sb
+            .append("\"").append(combiScopeEdge.getStart().getId()).append("\" -> \"")
+            .append(combiNodeId).append("\"")
+            .append(" [");
+        buildCombiEdgeIncomingParams(combiScopeEdge, sb);
+        sb
+            .append("]")
+            .append(";\n");
+
+        // outgoing edge
+        sb
+            .append("\"").append(combiNodeId).append("\" -> \"")
+            .append(combiScopeEdge.getEnd().getId()).append("\"")
+            .append(" [");
+        buildCombiEdgeOutgoingParams(combiScopeEdge, sb);
+        sb
+            .append("]")
+            .append(";\n");
+      }
     }
 
     // end of graph
     sb.append("}\n");
 
+  }
+
+  private void bulidCombiNodeParams(
+      CombiScopeEdge combiScopeEdge, Appendable sb, int irrelevantArgStatesCount)
+      throws IOException {
+    sb
+        .append("label=\"")
+        .append("Irrelevant: ")
+        .append(Objects.toString(irrelevantArgStatesCount))
+        .append("\\l")
+        .append("Paths: ")
+        .append(Objects.toString(combiScopeEdge.getScopeEdges().size()))
+        .append("\\l");
+    sb.append("\"");
+    sb.append(" color=\"").append(IRRELEVANT_COLOR).append("\"");
+
+
+    /*      Set<List<String>> passedFunctionEntryExits = combiScopeEdge.getPassedFunctionEntryExits();
+      if (!passedFunctionEntryExits.isEmpty()) {
+        sb
+            .append("\\l")
+            .append("Skipped entry/exit:\\l");
+
+        sb.append(passedFunctionEntryExits.size() + "");
+        //for (String func : passedFunctionEntryExits) {
+        //  sb.append(func).append("\\l");
+        //}
+      }*/
 
   }
 
@@ -258,89 +318,75 @@ public class PropertyScopeGraphToDotWriter {
 
   }
 
-  private void buildEdgeParams(CombiScopeEdge combiScopeEdge, Appendable sb) throws IOException {
-    int irrelevantARGStateCount = combiScopeEdge.computeIrrelevantARGStateCount();
-    if (irrelevantARGStateCount == 0) {
-      List<CFAEdge> edges =
-          combiScopeEdge.getStart().getArgState()
-              .getEdgesToChild(combiScopeEdge.getEnd().getArgState());
+  private void buildCombiEdgeIncomingParams(CombiScopeEdge combiScopeEdge, Appendable sb) {
 
-      if (edges.isEmpty()) { // there is no direct edge between the nodes, use a dummy-edge
-        sb.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
+  }
 
-      } else { // edge exists, use info from edge
+  private void buildCombiEdgeOutgoingParams(CombiScopeEdge combiScopeEdge, Appendable sb)
+      throws IOException {
 
-        boolean hasWeavedTrans = false;
-        for (CFAEdge edge : edges) {
-          if (edge.getPredecessor() instanceof ShadowCFANode) {
-            hasWeavedTrans = true;
-            break;
-          }
+    sb.append("label=\"");
+
+    Set<CFAEdge> lastCfaEdges = combiScopeEdge.computeLastCfaEdges();
+    if (!lastCfaEdges.isEmpty()) {
+      sb.append("Lines:\\l");
+      for (CFAEdge cfaEdge : lastCfaEdges) {
+        String linedesc = cfaEdge.getDescription().replaceAll("\n", " ").replace('"', '\'').trim();
+        sb.append(Objects.toString(cfaEdge.getLineNumber()));
+        if (!linedesc.isEmpty()) {
+          sb.append(": ").append(linedesc);
         }
-
-        if (hasWeavedTrans) {
-          sb.append("color=\"green\" ");
-        }
-
-        sb.append("label=\"");
-        if (edges.size() > 1) {
-          sb
-              .append("Lines ")
-              .append(Objects.toString(edges.get(0).getLineNumber()))
-              .append(" - ")
-              .append(Objects.toString(edges.get(edges.size() - 1).getLineNumber()));
-        } else {
-          sb.append("Line ").append(Objects.toString(edges.get(0).getLineNumber()));
-        }
-        sb.append(": \\l");
-
-        for (CFAEdge edge : edges) {
-          sb.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
-          sb.append("\\l");
-        }
-        sb.append("\"");
       }
-    } else {
-      sb
-          .append("label=\"")
-          .append("Irrelevant: ")
-          .append(Objects.toString(irrelevantARGStateCount))
-          .append("\\l")
-          .append("Paths: ")
-          .append(Objects.toString(combiScopeEdge.getScopeEdges().size()))
-          .append("\\l");
+      sb.append("\\l");
 
-
-/*      Set<List<String>> passedFunctionEntryExits = combiScopeEdge.getPassedFunctionEntryExits();
-      if (!passedFunctionEntryExits.isEmpty()) {
-        sb
-            .append("\\l")
-            .append("Skipped entry/exit:\\l");
-
-        sb.append(passedFunctionEntryExits.size() + "");
-        //for (String func : passedFunctionEntryExits) {
-        //  sb.append(func).append("\\l");
-        //}
-      }*/
-
-
-
-
-/*      if (combiScopeEdge.getLastCFAEdge().isPresent()) {
-        CFAEdge lastCfaEdge = combiScopeEdge.getLastCFAEdge().get();
-        sb
-            .append("\\l")
-            .append("Line ").append(Objects.toString(lastCfaEdge.getLineNumber()))
-            .append(": \\l")
-            .append(lastCfaEdge.getDescription().replaceAll("\n", " ").replace('"', '\'').trim())
-            .append("\\l");
-
-      }*/
-
-      sb.append("\"");
-      sb.append(" color=\"#9300dd\"");
     }
 
+    sb.append("\"");
+
+
+  }
+
+  private void buildSingleEdgeParams(CombiScopeEdge combiScopeEdge, Appendable sb)
+      throws IOException {
+    List<CFAEdge> edges =
+        combiScopeEdge.getStart().getArgState()
+            .getEdgesToChild(combiScopeEdge.getEnd().getArgState());
+
+    if (edges.isEmpty()) { // there is no direct edge between the nodes, use a dummy-edge
+      sb.append("style=\"bold\" color=\"blue\" label=\"dummy edge\"");
+
+    } else { // edge exists, use info from edge
+
+      boolean hasWeavedTrans = false;
+      for (CFAEdge edge : edges) {
+        if (edge.getPredecessor() instanceof ShadowCFANode) {
+          hasWeavedTrans = true;
+          break;
+        }
+      }
+
+      if (hasWeavedTrans) {
+        sb.append("color=\"green\" ");
+      }
+
+      sb.append("label=\"");
+      if (edges.size() > 1) {
+        sb
+            .append("Lines ")
+            .append(Objects.toString(edges.get(0).getLineNumber()))
+            .append(" - ")
+            .append(Objects.toString(edges.get(edges.size() - 1).getLineNumber()));
+      } else {
+        sb.append("Line ").append(Objects.toString(edges.get(0).getLineNumber()));
+      }
+      sb.append(": \\l");
+
+      for (CFAEdge edge : edges) {
+        sb.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+        sb.append("\\l");
+      }
+      sb.append("\"");
+    }
   }
 }
 
