@@ -240,7 +240,7 @@ public class PropertyScopeGraphToDotWriter {
       sb
           .append("<TR><TD><FONT POINT-SIZE=\"3\"> </FONT></TD></TR>")
           .append("<TR><TD>")
-          .append("<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"0\">")
+          .append("<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">")
           .append("<TR>")
           .append("<TD ALIGN=\"CENTER\" COLSPAN=\"")
           .append(Objects.toString(passedFunctionEntryExits.size()))
@@ -266,7 +266,7 @@ public class PropertyScopeGraphToDotWriter {
     sb.append("</TABLE>");
     sb.append(">");
     sb.append(" color=\"").append(IRRELEVANT_COLOR).append("\"");
-
+    sb.append(" shape=note");
 
   }
 
@@ -351,8 +351,9 @@ public class PropertyScopeGraphToDotWriter {
 
   }
 
-  private void buildCombiEdgeIncomingParams(CombiScopeEdge combiScopeEdge, Appendable sb) {
-
+  private void buildCombiEdgeIncomingParams(CombiScopeEdge combiScopeEdge, Appendable sb)
+      throws IOException {
+    sb.append("arrowhead=none");
   }
 
   private void buildCombiEdgeOutgoingParams(CombiScopeEdge combiScopeEdge, Appendable sb)
