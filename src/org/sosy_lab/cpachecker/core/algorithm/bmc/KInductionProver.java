@@ -554,15 +554,26 @@ class KInductionProver implements AutoCloseable {
 
   private FluentIterable<AbstractState> filterLoopHeadStates(ReachedSet pReached,
       ImmutableSet<CFANode> pLoopHeads) {
-    return AbstractStates.filterLocations(pReached, pLoopHeads)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
-              return ls != null && (ls.getDeepestIteration() == 1 || ls.getDeepestIteration() == 2);
-            });
+    FluentIterable<AbstractState> loopHeadStates =
+        AbstractStates.filterLocations(pReached, pLoopHeads);
+    FluentIterable<AbstractState> firstItStates = filterIteration(loopHeadStates, 1);
+    FluentIterable<AbstractState> secondItStates = filterIteration(loopHeadStates, 2);
+    if (secondItStates.isEmpty()) {
+      return firstItStates;
+    }
+    return secondItStates;
+  }
+
+  private FluentIterable<AbstractState> filterIteration(
+      FluentIterable<AbstractState> pStates, int pIteration) {
+    return pStates.filter(
+        pArg0 -> {
+          if (pArg0 == null) {
+            return false;
+          }
+          BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
+          return ls != null && ls.getDeepestIteration() == pIteration;
+        });
   }
 
   private static boolean isSizeLessThanOrEqualTo(Iterable<?> pElements, int pLimit) {
