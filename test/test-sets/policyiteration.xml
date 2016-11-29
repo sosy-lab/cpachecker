@@ -105,7 +105,6 @@
             <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
             <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
         </tasks>
-        </tasks>
     </rundefinition>
 
     <rundefinition name="standard-k-induction">
@@ -231,11 +230,6 @@
         <tasks name="Sequentialized">
             <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
             <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
-        </tasks>
-        <tasks name="Simple">
-            <includesfile>../programs/benchmarks/Simple.set</includesfile>
-            <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-            <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
         </tasks>
         <tasks name="Loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>

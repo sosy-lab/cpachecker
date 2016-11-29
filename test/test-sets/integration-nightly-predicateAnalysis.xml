@@ -17,7 +17,6 @@
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-4.2-rc1/*</exclude>
     <option name="-64"/>
   </tasks>
