@@ -118,7 +118,7 @@ public class BAMDataManager {
     }
   }
 
-  /** unused? */
+  @Deprecated /* unused */
   void clearCaches() {
     bamCache.clear();
     initialStateToReachedSet.clear();

@@ -269,6 +269,7 @@ public class BAMCache {
     noSimilarCausedMisses++;
   }
 
+  @Deprecated /* unused */
   public void clear() {
     preciseReachedCache.clear();
     impreciseReachedCache.clear();
