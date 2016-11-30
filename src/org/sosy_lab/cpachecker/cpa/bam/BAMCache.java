@@ -125,8 +125,9 @@ public class BAMCache {
     returnCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
-  public void removeBlockEntry(AbstractState stateKey, Precision precisionKey, Block context) {
+  public void remove(AbstractState stateKey, Precision precisionKey, Block context) {
     blockARGCache.remove(getHashCode(stateKey, precisionKey, context));
+    returnCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
   /**

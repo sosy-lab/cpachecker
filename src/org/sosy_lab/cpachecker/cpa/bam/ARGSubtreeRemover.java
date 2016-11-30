@@ -191,8 +191,7 @@ public class ARGSubtreeRemover {
 
     AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
     Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-    bamCache.removeReturnEntry(reducedRootState, reducedRootPrecision, rootSubtree);
-    bamCache.removeBlockEntry(reducedRootState, reducedRootPrecision, rootSubtree);
+    bamCache.remove(reducedRootState, reducedRootPrecision, rootSubtree);
 
     ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
     if (pNewPrecisions.isEmpty()) {
