@@ -215,7 +215,7 @@ class EclipseCParser implements CParser {
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
-        CProgramScope.empty(),
+        pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
           return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
