@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,12 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.logging.Level;
 
 @Options(prefix = "cpa.bam")
 public class BAMCache {
