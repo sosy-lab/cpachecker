@@ -97,7 +97,7 @@ public class ConfigurationFilesTest {
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
       Pattern.compile(
-          "Skipping one analysis because the configuration file .* could not be read.*",
+          "Warning: Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
@@ -334,7 +334,7 @@ public class ConfigurationFilesTest {
               oneComponentSuccessful = true;
               underlyingIterator = Iterators.filter(
                   underlyingIterator,
-                  r -> result.getLevel() != Level.WARNING
+                  r -> r.getLevel() != Level.WARNING
                     || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
             }
           }
