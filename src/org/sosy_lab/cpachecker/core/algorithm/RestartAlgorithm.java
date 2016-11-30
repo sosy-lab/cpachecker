@@ -39,6 +39,7 @@ import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -298,7 +299,15 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
           logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " is invalid");
           continue;
         } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Skipping one analysis because the configuration file " + singleConfigFileName.toString() + " could not be read");
+          String message =
+              "Skipping one analysis because the configuration file "
+                  + singleConfigFileName.toString()
+                  + " could not be read";
+          if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
+            logger.log(Level.WARNING, message);
+          } else {
+            logger.logUserException(Level.WARNING, e, message);
+          }
           continue;
         }
 
