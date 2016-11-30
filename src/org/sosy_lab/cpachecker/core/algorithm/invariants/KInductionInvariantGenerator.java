@@ -595,6 +595,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             .loadFromResource(KInductionInvariantGenerator.class, "witness-analysis.properties");
     List<String> copyOptions = Arrays.asList(
         "analysis.machineModel",
+        "analysis.programNames",
         "cpa.callstack.skipRecursion",
         "cpa.callstack.skipVoidRecursion",
         "cpa.callstack.skipFunctionPointerRecursion");
