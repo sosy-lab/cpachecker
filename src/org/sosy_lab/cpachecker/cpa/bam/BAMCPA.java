@@ -112,7 +112,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private boolean doPrecisionRefinementForAllStates = false;
 
   @Option(secure = true,
-      description = "Use more fast partitioning builder, which can not handle loops")
+      description = "Use a faster partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
 
 
