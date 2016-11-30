@@ -49,7 +49,7 @@ public abstract class PartitioningHeuristic {
 
   public interface Factory {
     PartitioningHeuristic create(LogManager logger, CFA cfa, Configuration pConfig)
-        throws CPAException, InvalidConfigurationException;
+        throws InvalidConfigurationException;
   }
 
   protected final CFA cfa;
