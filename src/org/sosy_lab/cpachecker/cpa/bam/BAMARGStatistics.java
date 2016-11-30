@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 
 public class BAMARGStatistics extends ARGStatistics {
 
@@ -88,7 +88,7 @@ public class BAMARGStatistics extends ARGStatistics {
     Collection<ARGState> targets = Collections2.filter(root.getChildren(), s -> !s.isCovered());
     assert targets.contains(pReached.getLastState());
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
-    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
 
     ARGState rootOfSubgraph = null;
     try {

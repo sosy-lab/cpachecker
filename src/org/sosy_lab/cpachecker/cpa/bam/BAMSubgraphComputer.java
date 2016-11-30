@@ -45,14 +45,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class BAMCEXSubgraphComputer {
+public class BAMSubgraphComputer {
 
   private final BlockPartitioning partitioning;
   private final Reducer reducer;
   private final BAMDataManager data;
   private final LogManager logger;
 
-  BAMCEXSubgraphComputer(BAMCPA bamCpa) {
+  BAMSubgraphComputer(BAMCPA bamCpa) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();

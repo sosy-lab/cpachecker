@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-/** View on the set of states computed by {@link BAMCEXSubgraphComputer}. */
+/** View on the set of states computed by {@link BAMSubgraphComputer}. */
 final class BAMReachedSetView implements UnmodifiableReachedSet {
 
   private final ARGState rootOfSubgraph;

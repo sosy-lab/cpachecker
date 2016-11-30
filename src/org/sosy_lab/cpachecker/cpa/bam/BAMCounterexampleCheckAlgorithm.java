@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorithm {
@@ -79,7 +79,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
 
     // compute BAM-reachedset for the reachable states,
     // it contains all error-paths and is sufficient to check counterexample.
-    BAMCEXSubgraphComputer graphComputer = new BAMCEXSubgraphComputer(cpa);
+    BAMSubgraphComputer graphComputer = new BAMSubgraphComputer(cpa);
     BackwardARGState rootState =
         graphComputer.computeCounterexampleSubgraph(errorState, mainReachedSet);
     Set<ARGState> statesOnErrorPath = rootState.getSubgraph();
