@@ -59,10 +59,18 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class CompositeCPA implements
+                          ConfigurableProgramAnalysis,
+                          StatisticsProvider,
+                          WrapperCPA,
+                          ConfigurableProgramAnalysisWithBAM,
+                          ProofChecker,
+                          UseSummaryCPA {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -214,6 +222,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
+  }
+
+  @Override
+  public SummaryManager getSummaryManager() {
+    return new CompositeSummaryManager(cpas);
   }
 
   @Override

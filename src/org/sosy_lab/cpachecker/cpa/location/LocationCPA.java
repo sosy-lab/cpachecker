@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -37,7 +39,6 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -46,15 +47,16 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.util.Collection;
-import java.util.Optional;
-
 public class LocationCPA
-    implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
+    implements ConfigurableProgramAnalysisWithBAM,
+               ProofCheckerCPA,
+               UseSummaryCPA {
 
   private final LocationStateFactory stateFactory;
 
@@ -111,5 +113,10 @@ public class LocationCPA
     return pSuccessors.equals(
         getTransferRelation()
             .getAbstractSuccessorsForEdge(pElement, SingletonPrecision.getInstance(), pCfaEdge));
+  }
+
+  @Override
+  public SummaryManager getSummaryManager() {
+    return new LocationCPASummaryManager(stateFactory);
   }
 }

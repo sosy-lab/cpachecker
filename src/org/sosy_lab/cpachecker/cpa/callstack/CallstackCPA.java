@@ -47,13 +47,17 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CallstackCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    implements ConfigurableProgramAnalysisWithBAM,
+               ProofChecker,
+               UseSummaryCPA {
 
   private final CFA cfa;
 
@@ -127,6 +131,11 @@ public class CallstackCPA extends AbstractCPA
       throws CPAException, InterruptedException {
     return new CallstackStateEqualsWrapper((CallstackState) state1)
         .equals(new CallstackStateEqualsWrapper((CallstackState) state2));
+  }
+
+  @Override
+  public SummaryManager getSummaryManager() {
+    return new CallstackCPASummaryManager();
   }
 
   @Options(prefix = "cpa.callstack")
