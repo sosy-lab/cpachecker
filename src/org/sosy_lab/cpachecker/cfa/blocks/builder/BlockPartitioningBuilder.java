@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -167,13 +169,13 @@ public class BlockPartitioningBuilder {
    *
    *  @return all directly called functions (transitive function calls not included) */
   private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
-    Set<FunctionEntryNode> result = new HashSet<>();
+    Builder<FunctionEntryNode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
         result.add(((CFunctionCallEdge)e).getSuccessor());
       }
     }
-    return result;
+    return result.build();
   }
 
   /**
@@ -182,7 +184,7 @@ public class BlockPartitioningBuilder {
    * <p>Precondition: the block does not yet include function-calls
    */
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
-    Set<CFANode> result = new HashSet<>();
+    Builder<CFANode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
 
       // handle a bug in CFA creation: there are ugly CFA-nodes ... and we ignore them.
@@ -206,7 +208,7 @@ public class BlockPartitioningBuilder {
         }
       }
     }
-    return result;
+    return result.build();
   }
 
   /**
@@ -215,7 +217,7 @@ public class BlockPartitioningBuilder {
    * <p>Precondition: the block does not yet include function-calls
    */
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
-    Set<CFANode> result = new HashSet<>();
+    Builder<CFANode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
 
       // handle a bug in CFA creation: there are ugly CFA-nodes ... and we ignore them.
@@ -240,7 +242,7 @@ public class BlockPartitioningBuilder {
         }
       }
     }
-    return result;
+    return result.build();
   }
 
   private Set<ReferencedVariable> collectReferencedVariables(Set<CFANode> nodes) {
