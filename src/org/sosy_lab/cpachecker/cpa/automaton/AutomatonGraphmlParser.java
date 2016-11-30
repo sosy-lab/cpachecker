@@ -214,25 +214,16 @@ public class AutomatonGraphmlParser {
    * Parses a witness specification from a ByteSource and returns the Automata found in the source.
    *
    * @param pInputSource the ByteSource to parse the witness from.
-   *
    * @throws InvalidConfigurationException if the configuration is invalid.
-   *
    * @return the automata representing the witnesses found in the source.
    */
-  public List<Automaton> parseAutomatonFile(ByteSource pInputSource)
+  private List<Automaton> parseAutomatonFile(ByteSource pInputSource)
       throws InvalidConfigurationException {
-    try {
-      try (InputStream inputStream = pInputSource.openStream();
-          InputStream gzipInputStream = new GZIPInputStream(inputStream)) {
-        return parseAutomatonFile(gzipInputStream);
-      } catch (IOException e) {
-        try (InputStream plainInputStream = pInputSource.openStream()) {
-          return parseAutomatonFile(plainInputStream);
-        }
-      }
-    } catch (IOException e) {
-      throw new InvalidConfigurationException("Error while accessing automaton file!", e);
-    }
+    return AutomatonGraphmlParser
+        .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
+            pInputSource,
+            inputStream -> parseAutomatonFile(inputStream),
+            e -> new InvalidConfigurationException("Error while accessing witness file!", e));
   }
 
   /**
@@ -260,14 +251,15 @@ public class AutomatonGraphmlParser {
 
       // (The one) root node of the graph ----
       NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
-      checkParsable(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
+      checkParsable(
+          graphs.getLength() == 1, "The graph file must describe exactly one witness automaton.");
       Node graphNode = graphs.item(0);
 
       Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
       checkHashSum(programHash);
 
       if (strictChecking) {
-        checkRequiredField(graphNode, KeyDef.GRAPH_TYPE);
+        checkRequiredField(graphNode, KeyDef.WITNESS_TYPE);
         checkRequiredField(graphNode, KeyDef.SOURCECODELANGUAGE);
         checkRequiredField(graphNode, KeyDef.PRODUCER);
         checkRequiredField(graphNode, KeyDef.SPECIFICATION);
@@ -277,12 +269,12 @@ public class AutomatonGraphmlParser {
       Set<String> architecture = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE);
       checkArchitecture(architecture);
 
-      Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);
+      Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.WITNESS_TYPE);
       final GraphType graphType;
       if (graphTypeText.isEmpty()) {
         graphType = GraphType.ERROR_WITNESS;
       } else if (graphTypeText.size() > 1) {
-        throw new WitnessParseException("Only one graph type is allowed.");
+        throw new WitnessParseException("Only one witness type is allowed.");
       } else {
         String graphTypeToParse = graphTypeText.iterator().next().trim();
         Optional<GraphType> parsedGraphType = GraphType.tryParse(graphTypeToParse);
@@ -293,7 +285,7 @@ public class AutomatonGraphmlParser {
           logger.log(
               Level.WARNING,
               String.format(
-                  "Unknown graph type %s, assuming %s instead.", graphTypeToParse, graphType));
+                  "Unknown witness type %s, assuming %s instead.", graphTypeToParse, graphType));
         }
       }
 
@@ -350,7 +342,8 @@ public class AutomatonGraphmlParser {
       for (int i = 0; i < nodes.getLength(); ++i) {
         Node node = nodes.item(i);
         if (Boolean.parseBoolean(docDat.getDataValueWithDefault(node, KeyDef.ISENTRYNODE, "false"))) {
-          entryNodeId = GraphMlDocumentData.getAttributeValue(node, "id", "Every node needs an id!");
+          entryNodeId =
+              GraphMlDocumentData.getAttributeValue(node, "id", "Every state needs an id!");
           break;
         }
       }
@@ -735,7 +728,7 @@ public class AutomatonGraphmlParser {
         }
 
         if (nodeFlags.contains(NodeFlag.ISENTRY)) {
-          checkParsable(initialStateName == null, "Only one entrynode is supported!");
+          checkParsable(initialStateName == null, "Only one entry state is supported!");
           initialStateName = stateId;
         }
 
@@ -747,7 +740,7 @@ public class AutomatonGraphmlParser {
       }
 
       // Build and return the result
-      Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
+      Preconditions.checkNotNull(initialStateName, "Every witness needs a specified entry state!");
       Map<String, AutomatonVariable> automatonVariables;
       if (graphType == GraphType.ERROR_WITNESS) {
         AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
@@ -783,19 +776,20 @@ public class AutomatonGraphmlParser {
       return result;
 
     } catch (ParserConfigurationException | SAXException e) {
-      throw new InvalidConfigurationException("Error while accessing automaton file!", e);
+      throw new InvalidConfigurationException("Error while accessing witness file!", e);
     } catch (InvalidAutomatonException e) {
-      throw new InvalidConfigurationException("The automaton provided is invalid!", e);
+      throw new InvalidConfigurationException("The witness automaton provided is invalid!", e);
     } catch (CParserException e) {
-      throw new InvalidConfigurationException("The automaton contains invalid C code!", e);
+      throw new InvalidConfigurationException("The witness automaton contains invalid C code!", e);
     }
   }
 
-  private void checkRequiredField(Node pGraphNode, KeyDef pKey) throws WitnessParseException {
+  private static void checkRequiredField(Node pGraphNode, KeyDef pKey)
+      throws WitnessParseException {
     checkRequiredField(pGraphNode, pKey, false);
   }
 
-  private void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty)
+  private static void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty)
       throws WitnessParseException {
     Iterable<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
     if (Iterables.isEmpty(data)) {
@@ -1567,7 +1561,7 @@ public class AutomatonGraphmlParser {
         // Backwards-compatibility: type/graph-type
         if (alternative == null
             && result.isEmpty()
-            && dataKey.equals(KeyDef.GRAPH_TYPE)
+            && dataKey.equals(KeyDef.WITNESS_TYPE)
             && nodeKey.equals("type")) {
           alternative = Sets.newHashSet();
           alternative.add(dataChild);
@@ -1589,7 +1583,7 @@ public class AutomatonGraphmlParser {
       pLogger.logException(
           Level.WARNING,
           e,
-          "SAX parser configured incorrectly. Could not determine whether or not the path describes a graphml automaton.");
+          "SAX parser configured incorrectly. Could not determine whether or not the file describes a witness automaton.");
       return false;
     }
     DefaultHandler defaultHandler = new DefaultHandler();
@@ -1605,9 +1599,9 @@ public class AutomatonGraphmlParser {
       return true;
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(
-          "Invalid automaton file provided! File not found: " + pPath);
+          "Invalid witness file provided! File not found: " + pPath);
     } catch (IOException e) {
-      throw new InvalidConfigurationException("Error while accessing automaton file", e);
+      throw new InvalidConfigurationException("Error while accessing witness file", e);
     } catch (SAXException e) {
       return false;
     }
@@ -1656,6 +1650,30 @@ public class AutomatonGraphmlParser {
       super(pMessage);
     }
 
+  }
+
+  private static interface InputHandler<T, E extends Throwable> {
+
+    T handleInput(InputStream pInputStream) throws E, IOException;
+  }
+
+  private static <T, E extends Throwable> T handlePotentiallyGZippedInput(
+      ByteSource pInputSource,
+      InputHandler<T, E> pInputHandler,
+      Function<IOException, E> pExceptionHandler)
+      throws E {
+    try {
+      try (InputStream inputStream = pInputSource.openStream();
+          InputStream gzipInputStream = new GZIPInputStream(inputStream)) {
+        return pInputHandler.handleInput(gzipInputStream);
+      } catch (IOException e) {
+        try (InputStream plainInputStream = pInputSource.openStream()) {
+          return pInputHandler.handleInput(plainInputStream);
+        }
+      }
+    } catch (IOException e) {
+      throw pExceptionHandler.apply(e);
+    }
   }
 
 }

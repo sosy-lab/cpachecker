@@ -129,7 +129,7 @@ public class AutomatonGraphmlCommon {
     FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),
     CFAPREDECESSORNODE("predecessor", ElementType.EDGE, "predecessor", "string"),
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
-    GRAPH_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string");
+    WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string");
 
     public final String id;
     public final ElementType keyFor;
@@ -313,7 +313,7 @@ public class AutomatonGraphmlCommon {
       graph = doc.createElement("graph");
       root.appendChild(graph);
       graph.setAttribute("edgedefault", "directed");
-      graph.appendChild(createDataElement(KeyDef.GRAPH_TYPE, pGraphType.toString()));
+      graph.appendChild(createDataElement(KeyDef.WITNESS_TYPE, pGraphType.toString()));
       graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
