@@ -202,13 +202,13 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public enum GraphType {
+  public enum WitnessType {
     ERROR_WITNESS("violation_witness"),
     PROOF_WITNESS("correctness_witness");
 
     public final String text;
 
-    private GraphType(String text) {
+    private WitnessType(String text) {
       this.text = text;
     }
 
@@ -217,8 +217,8 @@ public class AutomatonGraphmlCommon {
       return text;
     }
 
-    public static Optional<GraphType> tryParse(String pTextualRepresentation) {
-      for (GraphType element : values()) {
+    public static Optional<WitnessType> tryParse(String pTextualRepresentation) {
+      for (WitnessType element : values()) {
         if (element.text.equals(pTextualRepresentation)) {
           return Optional.of(element);
         }
@@ -287,7 +287,7 @@ public class AutomatonGraphmlCommon {
     private final Element graph;
 
     public GraphMlBuilder(
-        GraphType pGraphType,
+        WitnessType pGraphType,
         String pDefaultSourceFileName,
         Language pLanguage,
         MachineModel pMachineModel,

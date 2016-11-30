@@ -127,10 +127,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -236,7 +236,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.ERROR_WITNESS);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, WitnessType.ERROR_WITNESS);
     writer.writePath(
         pTarget,
         pRootState,
@@ -320,7 +320,7 @@ public class ARGPathExporter {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer =
-        new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS, pInvariantProvider);
+        new WitnessWriter(defaultFileName, WitnessType.PROOF_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
@@ -365,18 +365,20 @@ public class ARGPathExporter {
     private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
 
     private final String defaultSourcefileName;
-    private final GraphType graphType;
+    private final WitnessType graphType;
 
     private final InvariantProvider invariantProvider;
 
     private boolean isFunctionScope = false;
 
-    public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
+    public WitnessWriter(@Nullable String pDefaultSourcefileName, WitnessType pGraphType) {
       this(pDefaultSourcefileName, pGraphType, InvariantProvider.TrueInvariantProvider.INSTANCE);
     }
 
     public WitnessWriter(
-        String pDefaultSourceFileName, GraphType pGraphType, InvariantProvider pInvariantProvider) {
+        String pDefaultSourceFileName,
+        WitnessType pGraphType,
+        InvariantProvider pInvariantProvider) {
       this.defaultSourcefileName = pDefaultSourceFileName;
       this.graphType = pGraphType;
       this.invariantProvider = pInvariantProvider;
@@ -441,7 +443,7 @@ public class ARGPathExporter {
 
       TransitionCondition result = TransitionCondition.empty();
 
-      if (graphType != GraphType.ERROR_WITNESS) {
+      if (graphType != WitnessType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
         if (exportInvariant(pEdge)) {
           invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
@@ -683,7 +685,7 @@ public class ARGPathExporter {
         }
       }
 
-      if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+      if (graphType != WitnessType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
         ExpressionTree<Object> invariant = factory.or(code);
         CExpressionToOrinalCodeVisitor transformer =
             resultVariable.isPresent()

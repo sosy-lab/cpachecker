@@ -119,9 +119,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -138,6 +138,13 @@ import org.xml.sax.helpers.DefaultHandler;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
+
+  private static final String AMBIGUOUS_TYPE_ERROR_MESSAGE = "Witness type must be unambiguous";
+
+  private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
+      "The witness file must describe exactly one witness automaton.";
+
+  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file!";
 
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
@@ -223,7 +230,7 @@ public class AutomatonGraphmlParser {
         .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
             pInputSource,
             inputStream -> parseAutomatonFile(inputStream),
-            e -> new InvalidConfigurationException("Error while accessing witness file!", e));
+            e -> new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e));
   }
 
   /**
@@ -251,8 +258,7 @@ public class AutomatonGraphmlParser {
 
       // (The one) root node of the graph ----
       NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
-      checkParsable(
-          graphs.getLength() == 1, "The graph file must describe exactly one witness automaton.");
+      checkParsable(graphs.getLength() == 1, TOO_MANY_GRAPHS_ERROR_MESSAGE);
       Node graphNode = graphs.item(0);
 
       Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
@@ -270,18 +276,18 @@ public class AutomatonGraphmlParser {
       checkArchitecture(architecture);
 
       Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.WITNESS_TYPE);
-      final GraphType graphType;
+      final WitnessType graphType;
       if (graphTypeText.isEmpty()) {
-        graphType = GraphType.ERROR_WITNESS;
+        graphType = WitnessType.ERROR_WITNESS;
       } else if (graphTypeText.size() > 1) {
-        throw new WitnessParseException("Only one witness type is allowed.");
+        throw new WitnessParseException(AMBIGUOUS_TYPE_ERROR_MESSAGE);
       } else {
         String graphTypeToParse = graphTypeText.iterator().next().trim();
-        Optional<GraphType> parsedGraphType = GraphType.tryParse(graphTypeToParse);
+        Optional<WitnessType> parsedGraphType = WitnessType.tryParse(graphTypeToParse);
         if (parsedGraphType.isPresent()) {
           graphType = parsedGraphType.get();
         } else {
-          graphType = GraphType.ERROR_WITNESS;
+          graphType = WitnessType.ERROR_WITNESS;
           logger.log(
               Level.WARNING,
               String.format(
@@ -387,8 +393,7 @@ public class AutomatonGraphmlParser {
         String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
-        if (graphType == GraphType.PROOF_WITNESS
-            && sinkStates.contains(targetStateId)) {
+        if (graphType == WitnessType.PROOF_WITNESS && sinkStates.contains(targetStateId)) {
           throw new WitnessParseException("Proof witnesses do not allow sink nodes.");
         }
 
@@ -411,7 +416,7 @@ public class AutomatonGraphmlParser {
           distance = Integer.MAX_VALUE;
         }
         final List<AutomatonAction> actions;
-        if (graphType == GraphType.ERROR_WITNESS) {
+        if (graphType == WitnessType.ERROR_WITNESS) {
           actions =
               Collections.<AutomatonAction>singletonList(
                   new AutomatonAction.Assignment(
@@ -509,12 +514,12 @@ public class AutomatonGraphmlParser {
           assumptions.addAll(
               CParserUtils.convertStatementsToAssumptions(
                   parseStatements(transAssumes, assumptionResultFunction, scope, cparser), machine, logger));
-          if (graphType == GraphType.PROOF_WITNESS && !assumptions.isEmpty()) {
+          if (graphType == WitnessType.PROOF_WITNESS && !assumptions.isEmpty()) {
             throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
           }
         }
 
-        if (graphType == GraphType.ERROR_WITNESS && !assumptionResultFunctions.isEmpty()) {
+        if (graphType == WitnessType.ERROR_WITNESS && !assumptionResultFunctions.isEmpty()) {
           String resultFunctionName = assumptionResultFunction.get();
           conjunctedTriggers = and(conjunctedTriggers, new AutomatonBoolExpr.MatchFunctionCall(resultFunctionName));
         }
@@ -528,7 +533,7 @@ public class AutomatonGraphmlParser {
             GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
         if (!candidates.isEmpty()) {
-          if (graphType == GraphType.ERROR_WITNESS) {
+          if (graphType == WitnessType.ERROR_WITNESS) {
             throw new WitnessParseException("Invariants are not allowed for error witnesses.");
           }
           candidateInvariants =
@@ -742,7 +747,7 @@ public class AutomatonGraphmlParser {
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every witness needs a specified entry state!");
       Map<String, AutomatonVariable> automatonVariables;
-      if (graphType == GraphType.ERROR_WITNESS) {
+      if (graphType == WitnessType.ERROR_WITNESS) {
         AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
         Integer initialStateDistance = distances.get(initialStateName);
         if (initialStateDistance != null) {
@@ -776,7 +781,7 @@ public class AutomatonGraphmlParser {
       return result;
 
     } catch (ParserConfigurationException | SAXException e) {
-      throw new InvalidConfigurationException("Error while accessing witness file!", e);
+      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
     } catch (InvalidAutomatonException e) {
       throw new InvalidConfigurationException("The witness automaton provided is invalid!", e);
     } catch (CParserException e) {
@@ -1601,10 +1606,58 @@ public class AutomatonGraphmlParser {
       throw new InvalidConfigurationException(
           "Invalid witness file provided! File not found: " + pPath);
     } catch (IOException e) {
-      throw new InvalidConfigurationException("Error while accessing witness file", e);
+      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
     } catch (SAXException e) {
       return false;
     }
+  }
+
+  public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
+      throws InvalidConfigurationException {
+    return AutomatonGraphmlParser
+        .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
+            handlePotentiallyGZippedInput(
+                MoreFiles.asByteSource(pPath),
+                inputStream -> getWitnessType(inputStream),
+                e -> new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e));
+  }
+
+  private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
+      throws InvalidConfigurationException, IOException {
+    // Parse the XML document ----
+    DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    Document doc;
+    try {
+      DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+      doc = docBuilder.parse(pInputStream);
+    } catch (ParserConfigurationException | SAXException e) {
+      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
+    }
+    doc.getDocumentElement().normalize();
+
+    // (The one) root node of the graph ----
+    NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
+    checkParsable(graphs.getLength() == 1, TOO_MANY_GRAPHS_ERROR_MESSAGE);
+    Node graphNode = graphs.item(0);
+
+    checkRequiredField(graphNode, KeyDef.WITNESS_TYPE);
+
+    Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.WITNESS_TYPE);
+    final WitnessType graphType;
+    if (graphTypeText.isEmpty()) {
+      graphType = WitnessType.ERROR_WITNESS;
+    } else if (graphTypeText.size() > 1) {
+      throw new WitnessParseException(AMBIGUOUS_TYPE_ERROR_MESSAGE);
+    } else {
+      String witnessTypeToParse = graphTypeText.iterator().next().trim();
+      Optional<WitnessType> parsedWitnessType = WitnessType.tryParse(witnessTypeToParse);
+      if (parsedWitnessType.isPresent()) {
+        graphType = parsedWitnessType.get();
+      } else {
+        throw new WitnessParseException("Witness type not recognized: " + witnessTypeToParse);
+      }
+    }
+    return graphType;
   }
 
   private static AutomatonBoolExpr not(AutomatonBoolExpr pA) {

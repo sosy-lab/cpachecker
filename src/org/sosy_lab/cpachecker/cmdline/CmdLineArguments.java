@@ -40,6 +40,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -48,16 +49,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument0;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.PropertyAddingCmdLineArgument;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 /**
  * This classes parses the CPAchecker command line arguments. To add a new argument, handle it in
@@ -106,6 +110,55 @@ class CmdLineArguments {
   static final String SECURE_MODE_OPTION = "secureMode";
   static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
 
+
+  private static final CmdLineArgument SPECIFICATION_CMD_LINE_ARG =
+      new CmdLineArgument1("-spec", "specification") {
+        @Override
+        void handleArg(
+            Map<String, String> properties,
+            Set<SpecificationProperty> pSpecificationProperties,
+            String arg)
+            throws InvalidCmdlineArgumentException {
+          String newValue =
+              handleSpecificationDefinition(properties, pSpecificationProperties, arg);
+          appendOptionValue(properties, getOption(), newValue);
+        }
+      }.withDescription("set the specification for the main analysis");
+
+  private static final CmdLineArgument CONFIG_CMD_LINE_ARG =
+      new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION)
+          .withDescription("set the configuration for the analysis");
+
+  private static final CmdLineArgument SETPROP_CMD_LINE_ARG =
+      new CmdLineArgument1("-setprop") {
+
+        @Override
+        void handleArg(
+            Map<String, String> properties,
+            Set<SpecificationProperty> pSpecificationProperties,
+            String arg)
+            throws InvalidCmdlineArgumentException {
+          List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(arg);
+          if (bits.size() != 2) {
+            throw new InvalidCmdlineArgumentException(
+                "-setprop argument must be a key=value pair, but \"" + arg + "\" is not.");
+          }
+          putIfNotExistent(properties, bits.get(0), bits.get(1));
+        }
+      }.withDescription("set an option directly");
+
+  private static final CmdLineArgument WITNESS_VALIDATION_CMD_LINE_ARG =
+      new CmdLineArgument1("-witness-validation", "specification") {
+        @Override
+        void handleArg(
+            Map<String, String> properties,
+            Set<SpecificationProperty> pSpecificationProperties,
+            String arg)
+            throws InvalidCmdlineArgumentException {
+          configureWitnessValidation(properties, pSpecificationProperties, arg);
+        }
+      }.withDescription("validate a witness");
+
   private static final Collection<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
           new CmdLineArgument0("-stats", "statistics.print", "true")
@@ -127,26 +180,15 @@ class CmdLineArguments {
           new CmdLineArgument1("-logfile", "log.file").withDescription("set a direct logfile"),
           new CmdLineArgument1("-entryfunction", "analysis.entryFunction")
               .withDescription("set the initial function for the analysis"),
-          new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION)
-              .withDescription("set the configuration for the analysis"),
+          CONFIG_CMD_LINE_ARG,
           new CmdLineArgument1("-timelimit", "limits.time.cpu")
               .withDescription("set a timelimit for the analysis"),
           new CmdLineArgument1("-sourcepath", "java.sourcepath")
               .withDescription("set the sourcepath for the analysis of Java programs"),
           new CmdLineArgument1("-cp", "-classpath", "java.classpath")
               .withDescription("set the classpath for the analysis of Java programs"),
-          new CmdLineArgument1("-spec", "specification") {
-            @Override
-            void handleArg(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String arg)
-                throws InvalidCmdlineArgumentException {
-              String newValue =
-                  handleSpecificationDefinition(properties, pSpecificationProperties, arg);
-              appendOptionValue(properties, getOption(), newValue);
-            }
-          }.withDescription("set the specification for the main analysis"),
+          SPECIFICATION_CMD_LINE_ARG,
+          WITNESS_VALIDATION_CMD_LINE_ARG,
           new CmdLineArgument("-cmc") {
 
             @Override
@@ -181,22 +223,7 @@ class CmdLineArguments {
                   "-skipRecursion",
                   of("analysis.summaryEdges", "true", "cpa.callstack.skipRecursion", "true"))
               .withDescription("skip recursive function calls"),
-          new CmdLineArgument1("-setprop") {
-
-            @Override
-            void handleArg(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String arg)
-                throws InvalidCmdlineArgumentException {
-              List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(arg);
-              if (bits.size() != 2) {
-                throw new InvalidCmdlineArgumentException(
-                    "-setprop argument must be a key=value pair, but \"" + arg + "\" is not.");
-              }
-              putIfNotExistent(properties, bits.get(0), bits.get(1));
-            }
-          }.withDescription("set an option directly"),
+          SETPROP_CMD_LINE_ARG,
           new CmdLineArgument("-printOptions") {
 
             @SuppressFBWarnings("DM_EXIT")
@@ -496,5 +523,40 @@ class CmdLineArguments {
     }
 
     return null;
+  }
+
+  private static void configureWitnessValidation(
+      Map<String, String> properties,
+      Set<SpecificationProperty> pSpecificationProperties,
+      String arg)
+      throws InvalidCmdlineArgumentException {
+    Path path = findFile("%s", arg);
+    AutomatonGraphmlCommon.WitnessType type = AutomatonGraphmlCommon.WitnessType.ERROR_WITNESS;
+    if (path != null) {
+      try {
+        type = AutomatonGraphmlParser.getWitnessType(path);
+      } catch (InvalidConfigurationException e) {
+        throw new InvalidCmdlineArgumentException("Cannot determine witness type of file " + path);
+      }
+    }
+    final String config;
+    if (type == AutomatonGraphmlCommon.WitnessType.ERROR_WITNESS) {
+      config = "violation-witness-validation";
+      SPECIFICATION_CMD_LINE_ARG.apply(
+          properties, pSpecificationProperties, "-spec", Collections.singleton(arg).iterator());
+    } else {
+      config = "correctness-witness-validation";
+      SETPROP_CMD_LINE_ARG.apply(
+          properties,
+          pSpecificationProperties,
+          "-setprop",
+          Collections.singleton("invariantGeneration.kInduction.invariantsAutomatonFile=" + path)
+              .iterator());
+    }
+    CONFIG_CMD_LINE_ARG.apply(
+        properties,
+        pSpecificationProperties,
+        "-config",
+        Collections.singleton(String.format(DEFAULT_CONFIG_FILES_DIR, config)).iterator());
   }
 }
