@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -44,16 +41,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
   private final Timer removeCachedSubtreeTimer;
-
-  private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
-    @Nullable
-    @Override
-    public Precision apply(@Nullable AbstractState state) {
-      return delegate.asReachedSet().getPrecision(delegate.asReachedSet().getLastState());
-      // TODO do we really need the target-precision for refinements and not the actual one?
-      // return transfer.getPrecisionForState(Preconditions.checkNotNull(subgraphStatesToReachedState.get(state)), delegate.asReachedSet());
-    }
-  };
 
   public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       ARGState pRootOfSubgraph,
@@ -70,7 +57,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new BAMReachedSetView(rootOfSubgraph, path.getLastState(), GET_PRECISION);
+    return new BAMReachedSetView(rootOfSubgraph, path.getLastState(),
+        s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
+    // TODO do we really need the target-precision for refinements and not the actual one?
   }
 
   @SuppressWarnings("unchecked")
@@ -110,6 +99,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public String toString(){
-    return "BAMReachedSet {{" + delegate.asReachedSet().asCollection().toString() + "}}";
+    return "BAMReachedSet {{" + asReachedSet().asCollection().toString() + "}}";
   }
 }

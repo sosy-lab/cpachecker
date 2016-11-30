@@ -112,11 +112,8 @@ public class BAMCache {
     lastAnalyzedBlockCache = hash;
   }
 
-  private boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
-    for (AbstractState e : pElements) {
-      if (!reached.contains(e)) { return false; }
-    }
-    return true;
+  private static boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
+    return reached.asCollection().containsAll(pElements);
   }
 
   public void removeReturnEntry(AbstractState stateKey, Precision precisionKey, Block context) {
@@ -124,8 +121,9 @@ public class BAMCache {
   }
 
   public void remove(AbstractState stateKey, Precision precisionKey, Block context) {
-    blockARGCache.remove(getHashCode(stateKey, precisionKey, context));
-    returnCache.remove(getHashCode(stateKey, precisionKey, context));
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
+    blockARGCache.remove(hash);
+    returnCache.remove(hash);
   }
 
   /**
