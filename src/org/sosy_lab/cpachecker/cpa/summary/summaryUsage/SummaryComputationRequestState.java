@@ -23,17 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
- * TODO: Class Description
+ * Request for the summary computation,
+ * appears in the same reached set as intraprocedural states.
  */
 public class SummaryComputationRequestState implements AbstractState {
   private final AbstractState functionEntryState;
   private final Precision functionEntryPrecision;
-  private final FunctionEntryNode node;
+  private final CFANode node;
+  private final Block block;
 
   public AbstractState getFunctionEntryState() {
     return functionEntryState;
@@ -43,15 +46,22 @@ public class SummaryComputationRequestState implements AbstractState {
     return functionEntryPrecision;
   }
 
-  public FunctionEntryNode getNode() {
+  public CFANode getNode() {
     return node;
   }
 
-  public SummaryComputationRequestState(
+  public Block getBlock() {
+    return block;
+  }
+
+  SummaryComputationRequestState(
       AbstractState pFunctionEntryState,
-      Precision pFunctionEntryPrecision, FunctionEntryNode pNode) {
+      Precision pFunctionEntryPrecision,
+      CFANode pNode,
+      Block pBlock) {
     functionEntryState = pFunctionEntryState;
     functionEntryPrecision = pFunctionEntryPrecision;
     node = pNode;
+    block = pBlock;
   }
 }

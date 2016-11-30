@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -49,6 +50,10 @@ class SummaryComputationState
    */
   private final CFANode node;
 
+  /**
+   * Block associated with the summary.
+   */
+  private final Block block;
   private final AbstractState entryState;
   private final Precision entryPrecision;
 
@@ -62,11 +67,16 @@ class SummaryComputationState
 
   SummaryComputationState(
       CFANode pNode,
-      AbstractState pEntryState, Precision pEntryPrecision, ReachedSet pReached) {
+      Block pBlock, AbstractState pEntryState, Precision pEntryPrecision, ReachedSet pReached) {
     node = pNode;
+    block = pBlock;
     entryState = pEntryState;
     entryPrecision = pEntryPrecision;
     reached = pReached;
+  }
+
+  public Block getBlock() {
+    return block;
   }
 
   public CFANode getNode() {
@@ -90,7 +100,7 @@ class SummaryComputationState
    */
   SummaryComputationState withNewReachedSet(ReachedSet pReached) {
     return new SummaryComputationState(
-        node, entryState, entryPrecision, pReached
+        node, block, entryState, entryPrecision, pReached
     );
   }
 
@@ -144,5 +154,9 @@ class SummaryComputationState
     return reached.asCollection().stream().filter(
         s -> s instanceof Targetable
     ).flatMap(s -> ((Targetable) s).getViolatedProperties().stream()).collect(Collectors.toSet());
+  }
+
+  public Precision getPrecision() {
+    return entryPrecision;
   }
 }

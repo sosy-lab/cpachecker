@@ -24,34 +24,41 @@
 package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 
 import java.util.Collection;
+import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public interface SummaryManager {
-
-  // todo: communicating to the CPA
-  // that the abstraction has to be performed,
-  // as the current state is at the function entry/exit.
-  // maybe it is easy to use BAM datastructures for this task.
 
   /**
    * Calculate the abstract successors subject to a summary
    * {@code pSummary}
    *
-   * @param state Initial state, associated with a function call.
-   * @param precision Analysis precision at the to-state.
+   * @param pState Initial state, associated with a function call.
+   * @param pPrecision Analysis precision at the to-state.
    * @param pSummary Summary available for the called function.
+   * @param pBlock The block for which the summary was calculated.
+   *               Contains information obtained from the dataflow analysis,
+   *               which is useful for summary application.
    * @return Set of abstract states resulting from the summary application.
    */
   Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState state,
-      Precision precision,
-      Summary pSummary)
+      AbstractState pState,
+      Precision pPrecision,
+      Summary pSummary,
+      Block pBlock)
       throws CPATransferException, InterruptedException;
 
   /**
+   * Project summary to the function precondition (state at the
+   * entry node for the function).
    *
    * @param pSummary Function summary
    * @return Projection of the summary to the function entry point:
@@ -60,10 +67,6 @@ public interface SummaryManager {
   AbstractState projectToPrecondition(Summary pSummary);
 
   /**
-   *
-   * // todo: what if the function has multiple return nodes?
-   * // disjunction over all possibilities?
-   *
    * @param pSummary Function summary
    * @return Projection of the summary to the return site:
    * the summary postcondition.
@@ -71,14 +74,28 @@ public interface SummaryManager {
   AbstractState projectToPostcondition(Summary pSummary);
 
   /**
-   * Generate summary from the result of intraprocedural analysis.
+   * Generate summary from the result of the intraprocedural analysis,
+   * represented by the {@link ReachedSet} {@code pReached}.
+   * Normally, the implementation would like to get the precondition from the entry
+   * state, postcondition from the exit state,
+   * and weaken the precondition to exclude irrelevant information,
+   * such as global variables which are not read inside the block.
    *
-   * // todo: might just give return/start states.
-   *
+   * @param pEntryNode Entry node for the summarized block.
    * @param pReached Result of intraprocedural analysis.
+   * @param pProjection Function for projecting the whole state to
+   *                   the state associated with the current CPA.
+   * @param pBlock The block for which the summary is generated.
    * @return summary describing subsuming the result.
    */
-  Summary generateSummary(ReachedSet pReached);
+  Summary generateSummary(
+      CFANode pEntryNode,
+      AbstractState pEntryState,
+      Precision pEntryPrecision,
+      ReachedSet pReached,
+      Function<? extends AbstractState, ? extends AbstractState> pProjection,
+      Block pBlock
+  );
 
   /**
    * Optionally merge two summaries, same interface as
@@ -88,5 +105,35 @@ public interface SummaryManager {
    * <p>Implementation should return the second argument to refuse
    * merging and to keep the states separate instead.
    */
-  Summary merge(Summary pSummary1, Summary pSummary2);
+  Summary merge(Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException;
+
+  /**
+   * <p>Coverage relation for summaries: precondition may be weakened,
+   * postcondition may be strengthened.
+   * There is no point in storing a summary with a stronger precondition
+   * and a weaker postcondition of an already existing one.
+   *
+   * <p>An implementation of this interface might be able to provide a
+   * more efficient comparison.
+   *
+   *
+   * @return whether {@code pSummary1} is described by {@code pSummary2}.
+   */
+  default boolean isDescribedBy(Summary pSummary1,
+                                Summary pSummary2,
+                                AbstractDomain domain) throws CPAException, InterruptedException {
+    return domain.isLessOrEqual(
+        projectToPrecondition(pSummary1),
+        projectToPrecondition(pSummary2)
+    ) && domain.isLessOrEqual(
+        projectToPostcondition(pSummary2),
+        projectToPostcondition(pSummary1)
+    );
+  }
+
+  /**
+   * Communicate the block partitioning to the configurable
+   * program analysis.
+   */
+  default void setBlockPartitioning(BlockPartitioning pPartitioning) {}
 }

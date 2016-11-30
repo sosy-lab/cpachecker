@@ -34,11 +34,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -90,10 +96,19 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
   @Option(secure=true, description="Whether summaries should be merged")
   private boolean joinSummaries = false;
 
+  @Option(
+      secure = true,
+      description = "Factory for the class which partitions the CFA "
+          + "into blocks."
+  )
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
+  private PartitioningHeuristic.Factory partitioningHeuristicFactory = FunctionPartitioning::new;
+
   private final TopLevelSummaryCPA wrapped;
 
   private final CPAAlgorithmFactory algorithmFactory;
   private final ReachedSetFactory reachedSetFactory;
+  private final BlockPartitioning blockPartitioning;
 
   /**
    * Function name to stored summaries mapping.
@@ -108,6 +123,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
   public GenSummaryCPA(
       LogManager logger,
       Configuration config,
+      CFA cfa,
       ShutdownNotifier shutdownNotifier,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pWrapped) throws InvalidConfigurationException {
@@ -117,7 +133,11 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
         "Parameter CPA has to implement the SummaryCPA interface.");
 
     computedSummaries = LinkedHashMultimap.create();
-    wrapped = new TopLevelSummaryCPA(pWrapped, computedSummaries);
+    PartitioningHeuristic heuristic = partitioningHeuristicFactory.create(
+        logger, cfa, config
+    );
+    blockPartitioning = heuristic.buildPartitioning(cfa, new BlockPartitioningBuilder());
+    wrapped = new TopLevelSummaryCPA(pWrapped, computedSummaries, blockPartitioning);
     algorithmFactory = new CPAAlgorithmFactory(
         this, logger, config, shutdownNotifier
     );
@@ -132,7 +152,12 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     Precision entryPrecision = wrapped.getInitialPrecision(node, partition);
     reached.add(entryState, entryPrecision);
 
-    return new SummaryComputationState(node, entryState, entryPrecision, reached);
+    return new SummaryComputationState(
+        node,
+        blockPartitioning.getMainBlock(),
+        entryState,
+        entryPrecision,
+        reached);
   }
 
   @Override
@@ -168,17 +193,27 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     AlgorithmStatus status = algorithm.run(reached);
     assert status.isSound();
 
+    // the intraprocedural CPA has already checked that no summary exists for this function
+    // with a matching precondition.
+    // yet what if one has appeared in the meantime => shouldn't we check again?..
 
     if (computationRequests.isEmpty()) {
       // No new summaries were needed, can finally generate the summary for this function.
 
       SummaryManager sManager = wrapped.getSummaryManager();
 
+
       // Merge the summary with the existing ones,
       // and additionally perform the coverage check.
       // The logic duplicates that of CPAAlgorithm
       // for the merge and the subsequent coverage check.
-      Summary generatedSummary = sManager.generateSummary(reached);
+      Summary generatedSummary = sManager.generateSummary(
+          summaryComputationState.getNode(),
+          summaryComputationState.getEntryState(),
+          summaryComputationState.getPrecision(),
+          reached,
+          java.util.function.Function.identity(),
+          summaryComputationState.getBlock());
 
       // Do the merge.
       Collection<Summary> matchingSummaries = computedSummaries.get(functionName);
@@ -197,7 +232,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       // Do the coverage computation.
       boolean add = true;
       for (Summary existingSummary : matchingSummaries) {
-        if (isDescribedBy(generatedSummary, existingSummary)) {
+        if (wrapped.getSummaryManager().isDescribedBy(generatedSummary, existingSummary, wrapped.getAbstractDomain())) {
 
           // Summary is subsumed, do nothing.
           add = false;
@@ -222,6 +257,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
         newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
         toReturn.add(new SummaryComputationState(
             req.getNode(),
+            req.getBlock(),
             req.getFunctionEntryState(),
             req.getFunctionEntryPrecision(), newReached));
       }
@@ -232,28 +268,6 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       return toReturn;
 
     }
-  }
-
-  /**
-   * Coverage relation for summaries: precondition may be weakened,
-   * postcondition may be strengthened.
-   * There is no point in storing a summary with a stronger precondition
-   * and a weaker postcondition of an already existing one.
-   *
-   * @return whether {@code pSummary1} is described by {@code pSummary2}.
-   */
-  private boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
-      throws CPAException, InterruptedException {
-    AbstractDomain wrappedDomain = wrapped.getAbstractDomain();
-    SummaryManager sManager = wrapped.getSummaryManager();
-
-    return wrappedDomain.isLessOrEqual(
-        sManager.projectToPrecondition(pSummary1),
-        sManager.projectToPrecondition(pSummary2)
-    ) && wrappedDomain.isLessOrEqual(
-        sManager.projectToPostcondition(pSummary2),
-        sManager.projectToPostcondition(pSummary1)
-    );
   }
 
   @Override
@@ -280,7 +294,8 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       throws CPAException, InterruptedException {
     SummaryComputationState sState1 = (SummaryComputationState) state1;
     SummaryComputationState sState2 = (SummaryComputationState) state2;
-    Preconditions.checkState(sState1.getNode() == sState2.getNode());
+    Preconditions.checkArgument(sState1.getNode() == sState2.getNode());
+    Preconditions.checkArgument(sState1.getBlock() == sState2.getBlock());
 
     if (joinSummaries) {
       AbstractState merged = wrapped.getMergeOperator().merge(
@@ -295,6 +310,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
         reached.add(merged, precision);
         return new SummaryComputationState(
             sState1.getNode(),
+            sState1.getBlock(),
             merged,
             precision,
             reached
@@ -327,8 +343,6 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
 
   @Override
   public MergeOperator getMergeOperator() {
-
-    // Why not just query the underlying CPA on what do they think about merging?...
     return this;
   }
 

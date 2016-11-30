@@ -26,12 +26,4 @@ package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface Summary extends AbstractState {
-
-  /**
-   * // todo: Any better way to refer to functions rather
-   * // than by strings?...
-   *
-   * Get the function name of the associated function.
-   */
-  String getFunctionName();
 }
