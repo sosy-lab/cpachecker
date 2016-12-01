@@ -618,7 +618,7 @@ counterexample.export.codeStyle = CBMC
   enum:     [CBMC, CONCRETE_EXECUTION]
 
 # compress the produced error-witness automata using GZIP compression.
-counterexample.export.compressErrorWitness = true
+counterexample.export.compressWitness = true
 
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
