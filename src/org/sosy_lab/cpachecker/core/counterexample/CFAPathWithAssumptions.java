@@ -25,7 +25,14 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
@@ -35,16 +42,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 
 /**
@@ -60,22 +57,6 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
   private CFAPathWithAssumptions(
       List<CFAEdgeWithAssumptions> pPathWithAssignments) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
-  }
-
-  private CFAPathWithAssumptions(
-      CFAPathWithAssumptions pPathWithAssignments, CFAPathWithAssumptions pPathWithAssignments2) {
-
-    assert pPathWithAssignments.size() == pPathWithAssignments2.size();
-
-    List<CFAEdgeWithAssumptions> result = new ArrayList<>(pPathWithAssignments.size());
-    Iterator<CFAEdgeWithAssumptions> path2Iterator = pPathWithAssignments2.iterator();
-
-    for (CFAEdgeWithAssumptions edge : pPathWithAssignments) {
-      CFAEdgeWithAssumptions resultEdge = edge.mergeEdge(path2Iterator.next());
-      result.add(resultEdge);
-    }
-
-    pathWithAssignments = ImmutableList.copyOf(result);
   }
 
   public static CFAPathWithAssumptions empty() {
@@ -223,6 +204,18 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       return this;
     }
 
-    return new CFAPathWithAssumptions(this, pOtherPath);
+    List<CFAEdgeWithAssumptions> result = new ArrayList<>(size());
+    Iterator<CFAEdgeWithAssumptions> path2Iterator = iterator();
+
+    for (CFAEdgeWithAssumptions edge : this) {
+      CFAEdgeWithAssumptions other = path2Iterator.next();
+      if (edge.getCFAEdge().equals(other.getCFAEdge())) {
+        return this;
+      }
+      CFAEdgeWithAssumptions resultEdge = edge.mergeEdge(other);
+      result.add(resultEdge);
+    }
+
+    return new CFAPathWithAssumptions(result);
   }
 }
