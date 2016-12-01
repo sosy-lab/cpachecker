@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -40,8 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 /**
  * State representing a (partially) computed function summary.
  */
-class SummaryComputationState
-    implements AbstractState,
+class SummaryComputationState implements AbstractState,
                Partitionable,
                Targetable {
 
@@ -65,14 +64,52 @@ class SummaryComputationState
    */
   private final transient ReachedSet reached;
 
-  SummaryComputationState(
+  /**
+   * Transient properties derived from reached set.
+   */
+  private final transient boolean hasWaitingState;
+  private final transient boolean isTarget;
+  private final transient Set<Property> violatedProperties;
+
+  private SummaryComputationState(
       CFANode pNode,
-      Block pBlock, AbstractState pEntryState, Precision pEntryPrecision, ReachedSet pReached) {
+      Block pBlock,
+      AbstractState pEntryState,
+      Precision pEntryPrecision,
+      ReachedSet pReached,
+      boolean pHasWaitingState,
+      boolean pIsTarget,
+      Set<Property> pViolatedProperties) {
     node = pNode;
     block = pBlock;
     entryState = pEntryState;
     entryPrecision = pEntryPrecision;
     reached = pReached;
+    hasWaitingState = pHasWaitingState;
+    isTarget = pIsTarget;
+    violatedProperties = pViolatedProperties;
+  }
+
+  public static SummaryComputationState initial(
+      CFANode pNode,
+      Block pBlock,
+      AbstractState pState,
+      Precision pPrecision,
+      ReachedSet pReached
+  ) {
+    return new SummaryComputationState(
+        pNode, pBlock, pState, pPrecision, pReached,
+        false, false,
+        ImmutableSet.of()
+    );
+  }
+
+  public static SummaryComputationState of(
+      CFANode pNode, Block pBlock, AbstractState pState, Precision pPrecision, ReachedSet pReached,
+      boolean pInnerAnalysisHasWaitingState, boolean pIsTarget, Set<Property> pViolatedProperties
+  ) {
+    return new SummaryComputationState(pNode, pBlock, pState, pPrecision, pReached,
+        pInnerAnalysisHasWaitingState, pIsTarget, pViolatedProperties);
   }
 
   public Block getBlock() {
@@ -96,18 +133,26 @@ class SummaryComputationState
   }
 
   /**
-   * Update the reached set associated with the state.
+   * Update the transient information associated with the currently performed
+   * computation in the reached set.
    */
-  SummaryComputationState withNewReachedSet(ReachedSet pReached) {
+  SummaryComputationState withUpdatedReached(
+      boolean pInnerAnalysisHasWaitingState,
+      boolean pIsTarget,
+      Set<Property> pViolatedProperties
+  ) {
     return new SummaryComputationState(
-        node, block, entryState, entryPrecision, pReached
-    );
+        node, block, entryState, entryPrecision, reached,
+        pInnerAnalysisHasWaitingState, pIsTarget, pViolatedProperties);
   }
 
   @Override
   public Object getPartitionKey() {
 
     // Partition by the function for which we compute this summary.
+
+    // todo: might make more sense to partition for block instead?
+
     return node;
   }
 
@@ -141,22 +186,20 @@ class SummaryComputationState
 
   @Override
   public boolean isTarget() {
-
-    // State is targetable if any of the contained states is targetable.
-    return reached.asCollection().stream().anyMatch(s -> s instanceof Targetable);
+    return isTarget;
   }
 
   @Nonnull
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-
-    // Collect violated properties for all target states inside.
-    return reached.asCollection().stream().filter(
-        s -> s instanceof Targetable
-    ).flatMap(s -> ((Targetable) s).getViolatedProperties().stream()).collect(Collectors.toSet());
+  public Set<Property> getViolatedProperties() {
+    return violatedProperties;
   }
 
   public Precision getPrecision() {
     return entryPrecision;
+  }
+
+  public boolean hasWaitingState() {
+    return hasWaitingState;
   }
 }

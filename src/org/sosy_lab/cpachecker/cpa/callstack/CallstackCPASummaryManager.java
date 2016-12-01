@@ -26,13 +26,11 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
-import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -68,11 +66,11 @@ public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
   public Summary generateSummary(
-      CFANode pEntryNode,
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      ReachedSet pReached,
-      Function<? extends AbstractState, ? extends AbstractState> pProjection,
+      AbstractState pReturnState,
+      Precision pReturnPrecision,
+      CFANode pEntryNode,
       Block pBlock) {
     return new CallstackSummary(pEntryNode);
   }

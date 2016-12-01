@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -33,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,12 +65,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
@@ -109,6 +114,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
   private final CPAAlgorithmFactory algorithmFactory;
   private final ReachedSetFactory reachedSetFactory;
   private final BlockPartitioning blockPartitioning;
+  private final SummaryManager wrappedSummaryManager;
 
   /**
    * Function name to stored summaries mapping.
@@ -117,7 +123,6 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
    * <p>Maintains an invariant that no stored summary strictly
    * subsumes the other one.
    */
-
   private final Multimap<String, Summary> computedSummaries;
 
   public GenSummaryCPA(
@@ -138,6 +143,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     );
     blockPartitioning = heuristic.buildPartitioning(cfa, new BlockPartitioningBuilder());
     wrapped = new TopLevelSummaryCPA(pWrapped, computedSummaries, blockPartitioning);
+    wrappedSummaryManager= wrapped.getSummaryManager();
     algorithmFactory = new CPAAlgorithmFactory(
         this, logger, config, shutdownNotifier
     );
@@ -152,7 +158,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     Precision entryPrecision = wrapped.getInitialPrecision(node, partition);
     reached.add(entryState, entryPrecision);
 
-    return new SummaryComputationState(
+    return SummaryComputationState.initial(
         node,
         blockPartitioning.getMainBlock(),
         entryState,
@@ -176,9 +182,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       throws CPAException, InterruptedException {
 
     String functionName = summaryComputationState.getFunctionName();
-
     ReachedSet reached = summaryComputationState.getReached();
-
     FluentIterable<SummaryComputationRequestState> computationRequests =
         AbstractStates.projectToType(reached, SummaryComputationRequestState.class);
 
@@ -187,66 +191,40 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
 
     CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
-    // todo: check the algorithm status.
-    // todo: also check for hasWaitingStates: might be early termination
-    // due to the counterexample being found.
+    // todo: check the algorithm status. What about termination?
     AlgorithmStatus status = algorithm.run(reached);
     assert status.isSound();
 
-    // the intraprocedural CPA has already checked that no summary exists for this function
-    // with a matching precondition.
-    // yet what if one has appeared in the meantime => shouldn't we check again?..
+    // We assume the wrapped CPA is always ARGCPA.
+    ARGState lastState = (ARGState) reached.getLastState();
 
-    if (computationRequests.isEmpty()) {
-      // No new summaries were needed, can finally generate the summary for this function.
+    final ImmutableList<ARGState> returnStates;
+    boolean hasTargetState = AbstractStates.isTargetState(lastState);
+    Set<Property> pViolatedProperties = hasTargetState ?
+                                        lastState.getViolatedProperties() :
+                                        ImmutableSet.of();
+    boolean hasWaitingState = reached.hasWaitingState();
 
-      SummaryManager sManager = wrapped.getSummaryManager();
-
-
-      // Merge the summary with the existing ones,
-      // and additionally perform the coverage check.
-      // The logic duplicates that of CPAAlgorithm
-      // for the merge and the subsequent coverage check.
-      Summary generatedSummary = sManager.generateSummary(
-          summaryComputationState.getNode(),
-          summaryComputationState.getEntryState(),
-          summaryComputationState.getPrecision(),
-          reached,
-          java.util.function.Function.identity(),
-          summaryComputationState.getBlock());
-
-      // Do the merge.
-      Collection<Summary> matchingSummaries = computedSummaries.get(functionName);
-      List<Summary> toRemove = new ArrayList<>();
-      List<Summary> toAdd = new ArrayList<>();
-      for (Summary existingSummary : matchingSummaries) {
-        Summary merged = sManager.merge(generatedSummary, existingSummary);
-        if (merged != existingSummary) {
-          toRemove.add(existingSummary);
-          toAdd.add(merged);
-        }
-      }
-      matchingSummaries.removeAll(toRemove);
-      matchingSummaries.addAll(toAdd);
-
-      // Do the coverage computation.
-      boolean add = true;
-      for (Summary existingSummary : matchingSummaries) {
-        if (wrapped.getSummaryManager().isDescribedBy(generatedSummary, existingSummary, wrapped.getAbstractDomain())) {
-
-          // Summary is subsumed, do nothing.
-          add = false;
-          break;
-        }
-      }
-      if (add) {
-        matchingSummaries.add(generatedSummary);
-      }
-
-      // Summary was completely generated, no successors.
-      return ImmutableSet.of();
-
+    if (hasTargetState || hasWaitingState) {
+      assert lastState != null;
+      returnStates = ImmutableList.of(lastState);
     } else {
+      returnStates = AbstractStates.filterLocations(
+          reached, summaryComputationState.getBlock().getReturnNodes()
+      ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
+    }
+
+
+    List<Precision> returnPrecisions = returnStates.stream()
+        .map(s -> reached.getPrecision(s))
+        .collect(Collectors.toList());
+
+    if (!computationRequests.isEmpty()) {
+      // Requests for summary computation is not empty:
+      // put the new requests into the priority queue,
+      // as well as the updated request for the currently processed function.
+
+      // todo: should we check that no summary has appeared in the meantime?
 
       // NB: it is important to make sure that the summary computation request
       // is expanded *before* the request for recomputing the summary
@@ -255,18 +233,97 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       for (SummaryComputationRequestState req : computationRequests) {
         ReachedSet newReached = reachedSetFactory.create();
         newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
-        toReturn.add(new SummaryComputationState(
+
+        toReturn.add(SummaryComputationState.initial(
             req.getNode(),
             req.getBlock(),
             req.getFunctionEntryState(),
-            req.getFunctionEntryPrecision(), newReached));
+            req.getFunctionEntryPrecision(),
+            newReached));
       }
 
       // NB: this is probably redundant, given that the reached set is mutable.
-      toReturn.add(summaryComputationState.withNewReachedSet(reached));
+      toReturn.add(
+          summaryComputationState.withUpdatedReached(
+              hasWaitingState,
+              hasTargetState,
+              pViolatedProperties
+          )
+      );
 
       return toReturn;
 
+    } else if (hasTargetState || hasWaitingState) {
+
+      // Can't generate summary: the inner analysis was interrupted.
+      // Signal it to the outer state.
+      return ImmutableSet.of(
+        summaryComputationState.withUpdatedReached(
+            hasWaitingState, hasTargetState, pViolatedProperties)
+      );
+
+    } else {
+
+      Preconditions.checkState(returnStates.size() == 1,
+          "Only one return state should be present for each function.");
+
+      // No new summaries were needed, can finally generate the summary for this function.
+      Summary generatedSummary = wrappedSummaryManager.generateSummary(
+          summaryComputationState.getEntryState(),
+          summaryComputationState.getPrecision(),
+          returnStates.get(0),
+          returnPrecisions.get(0),
+          summaryComputationState.getNode(),
+          summaryComputationState.getBlock()
+      );
+      storeGeneratedSummary(generatedSummary, functionName);
+      return ImmutableSet.of();
+
+    }
+  }
+
+  /**
+   * Store the generated summary in the {@link #computedSummaries} datastructure.
+   *
+   * <p>Merges the summary with the existing ones,
+   * and additionally perform the coverage check.
+   * The logic duplicates that of {@link CPAAlgorithm}
+   * for the merge and the subsequent coverage check.
+   *
+   * @param generatedSummary Summary which was generated.
+   * @param functionName Name of the function for the generated summary.
+   */
+  private void storeGeneratedSummary(
+      Summary generatedSummary, String functionName)
+      throws CPAException, InterruptedException {
+
+
+    // Do the merge.
+    Collection<Summary> matchingSummaries = computedSummaries.get(functionName);
+    List<Summary> toRemove = new ArrayList<>();
+    List<Summary> toAdd = new ArrayList<>();
+    for (Summary existingSummary : matchingSummaries) {
+      Summary merged = wrappedSummaryManager.merge(generatedSummary, existingSummary);
+      if (merged != existingSummary) {
+        toRemove.add(existingSummary);
+        toAdd.add(merged);
+      }
+    }
+    matchingSummaries.removeAll(toRemove);
+    matchingSummaries.addAll(toAdd);
+
+    // Do the coverage computation.
+    boolean add = true;
+    for (Summary existingSummary : matchingSummaries) {
+      if (wrappedSummaryManager.isDescribedBy(generatedSummary, existingSummary, wrapped.getAbstractDomain())) {
+
+        // Summary is subsumed, do nothing.
+        add = false;
+        break;
+      }
+    }
+    if (add) {
+      matchingSummaries.add(generatedSummary);
     }
   }
 
@@ -296,6 +353,8 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     SummaryComputationState sState2 = (SummaryComputationState) state2;
     Preconditions.checkArgument(sState1.getNode() == sState2.getNode());
     Preconditions.checkArgument(sState1.getBlock() == sState2.getBlock());
+    Preconditions.checkState(!sState1.hasWaitingState() && !sState2.hasWaitingState()
+      && !sState1.isTarget() && !sState2.isTarget());
 
     if (joinSummaries) {
       AbstractState merged = wrapped.getMergeOperator().merge(
@@ -308,13 +367,15 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       } else {
         ReachedSet reached = reachedSetFactory.create();
         reached.add(merged, precision);
-        return new SummaryComputationState(
+        return SummaryComputationState.of(
             sState1.getNode(),
             sState1.getBlock(),
             merged,
             precision,
-            reached
-        );
+            reached,
+            false,
+            false,
+            ImmutableSet.of());
       }
     } else {
       return state2;
@@ -328,7 +389,14 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState) throws CPAException, InterruptedException {
-    return Optional.of(PrecisionAdjustmentResult.create(state, precision, Action.CONTINUE));
+
+    SummaryComputationState sState = (SummaryComputationState) state;
+
+    // Break on target or waiting state present.
+    Action action = sState.isTarget() || sState.hasWaitingState() ?
+        Action.BREAK : Action.CONTINUE;
+
+    return Optional.of(PrecisionAdjustmentResult.create(state, precision, action));
   }
 
   @Override

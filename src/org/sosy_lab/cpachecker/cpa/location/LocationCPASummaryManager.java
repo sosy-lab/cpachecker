@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -75,11 +73,11 @@ public class LocationCPASummaryManager implements SummaryManager {
 
   @Override
   public Summary generateSummary(
-      CFANode pEntryNode,
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      ReachedSet pReached,
-      Function<? extends AbstractState, ? extends AbstractState> pProjection,
+      AbstractState pReturnState,
+      Precision pReturnPrecision,
+      CFANode pEntryNode,
       Block pBlock) {
 
     assert pEntryNode instanceof FunctionEntryNode;

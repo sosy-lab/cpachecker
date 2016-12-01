@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 
 import java.util.Collection;
-import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public interface SummaryManager {
 
@@ -54,7 +52,7 @@ public interface SummaryManager {
       Precision pPrecision,
       Summary pSummary,
       Block pBlock)
-      throws CPATransferException, InterruptedException;
+      throws CPAException, InterruptedException;
 
   /**
    * Project summary to the function precondition (state at the
@@ -76,24 +74,27 @@ public interface SummaryManager {
   /**
    * Generate summary from the result of the intraprocedural analysis,
    * represented by the {@link ReachedSet} {@code pReached}.
-   * Normally, the implementation would like to get the precondition from the entry
-   * state, postcondition from the exit state,
-   * and weaken the precondition to exclude irrelevant information,
-   * such as global variables which are not read inside the block.
+   * Normally, the implementation would like to
+   * weaken the precondition to exclude irrelevant information,
+   * such as global variables which are not read inside the block,
+   * and combine it with postcondition.
    *
-   * @param pEntryNode Entry node for the summarized block.
-   * @param pReached Result of intraprocedural analysis.
-   * @param pProjection Function for projecting the whole state to
-   *                   the state associated with the current CPA.
+   * @param pEntryState Summary precondition, as given by the call
+   *                    from the intraprocedural analysis.
+   * @param pEntryPrecision Entry precision associated with
+   *                        {@code pEntryState}.
+   * @param pReturnState Return state associated with the block return.
+   * @param pReturnPrecision Return precision associated with {@code pReturnState}.
    * @param pBlock The block for which the summary is generated.
+   * @param pEntryNode Entry node for the summarized block.
    * @return summary describing subsuming the result.
    */
   Summary generateSummary(
-      CFANode pEntryNode,
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      ReachedSet pReached,
-      Function<? extends AbstractState, ? extends AbstractState> pProjection,
+      AbstractState pReturnState,
+      Precision pReturnPrecision,
+      CFANode pEntryNode,
       Block pBlock
   );
 

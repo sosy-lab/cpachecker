@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -40,12 +39,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Summary manager for the {@link CompositeCPA}.
@@ -53,7 +50,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CompositeSummaryManager implements SummaryManager {
 
   private final List<SummaryManager> managers;
-  private final List<Function<CompositeState, AbstractState>> projections;
   private final List<AbstractDomain> domains;
 
   CompositeSummaryManager(List<ConfigurableProgramAnalysis> pCpas) {
@@ -63,16 +59,12 @@ public class CompositeSummaryManager implements SummaryManager {
     domains = pCpas.stream().map(
         cpa -> cpa.getAbstractDomain()
     ).collect(Collectors.toList());
-    projections = IntStream.range(0, pCpas.size()).mapToObj(
-        i -> (Function<CompositeState, AbstractState>)
-            pCompositeState -> pCompositeState.get(i)
-    ).collect(Collectors.toList());
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
       AbstractState state, Precision precision, Summary pSummary, Block pBlock)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
     CompositeSummary cSummary = (CompositeSummary) pSummary;
     CompositePrecision cPrecision = (CompositePrecision) precision;
     CompositeState cState = (CompositeState) state;
@@ -124,18 +116,25 @@ public class CompositeSummaryManager implements SummaryManager {
 
   @Override
   public Summary generateSummary(
-      CFANode pEntryNode,
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      ReachedSet pReached,
-      Function<? extends AbstractState, ? extends AbstractState> pProjection,
+      AbstractState pReturnState,
+      Precision pReturnPrecision,
+      CFANode pEntryNode,
       Block pBlock) {
-    CompositeState cState = (CompositeState) pEntryState;
-    CompositePrecision cPrecision = (CompositePrecision) pEntryPrecision;
+    CompositeState cEntryState = (CompositeState) pEntryState;
+    CompositePrecision cEntryPrecision = (CompositePrecision) pEntryPrecision;
+    CompositeState cExitState = (CompositeState) pReturnState;
+    CompositePrecision cExitPrecision = (CompositePrecision) pReturnPrecision;
 
     List<Summary> summaries = IntStream.range(0, managers.size())
         .mapToObj(i -> managers.get(i).generateSummary(
-            pEntryNode, cState.get(i), cPrecision.get(i), pReached, projections.get(i), pBlock
+            cEntryState.get(i),
+            cEntryPrecision.get(i),
+            cExitState.get(i),
+            cExitPrecision.get(i),
+            pEntryNode,
+            pBlock
         )).collect(Collectors.toList());
     return new CompositeSummary(summaries);
   }
