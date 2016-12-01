@@ -2889,3 +2889,14 @@ termination.resultFile = "terminationAnalysisResult.txt"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+
+# When validating a correctness witness, use this configuration file instead
+# of the current one.
+witness.validation.correctness.config = no default value
+
+# The witness to validate.
+witness.validation.file = no default value
+
+# When validating a violation witness, use this configuration file instead of
+# the current one.
+witness.validation.violation.config = no default value
