@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 public class PropertyScopeGraphToDotWriter {
 
   private static final String IRRELEVANT_COLOR = "grey";
+  private static final String PART_OF_SCOPE_COLOR = "cornflowerblue";
   private final PropertyScopeGraph graph;
   private final boolean hinted;
   private final ImmutableMap<String, String> automatonColorMap;
@@ -94,19 +95,23 @@ public class PropertyScopeGraphToDotWriter {
   }
 
   private static String determineNodeColor(ScopeNode scopeNode) {
-
-    if (scopeNode.getArgState().isCovered()) {
-      return "green";
-    }
-    if (scopeNode.getArgState().isTarget()) {
-      return "red";
-    }
-
     if (scopeNode.isPartOfScope()) {
-      return "cornflowerblue";
+      return PART_OF_SCOPE_COLOR;
     }
 
-    return "grey";
+    return IRRELEVANT_COLOR;
+  }
+
+  private static String determineNodeShape(ScopeNode scopeNode) {
+    if (scopeNode.getArgState().isCovered()) {
+      return "egg";
+    }
+
+    if (scopeNode.getArgState().isTarget()) {
+      return "doubleoctagon";
+    }
+
+    return "box";
   }
 
   public void write(Appendable sb) throws IOException {
@@ -306,7 +311,7 @@ public class PropertyScopeGraphToDotWriter {
 
     sb.append("\"");
 
-
+    sb.append(" shape=\"").append(determineNodeShape(scopeNode)).append("\"");
     sb.append(" color=\"").append(determineNodeColor(scopeNode)).append("\"");
     if (scopeNode.isPartOfScope() && !automScopeInsts.isEmpty()) {
       sb.append(" style=\"striped\"");
