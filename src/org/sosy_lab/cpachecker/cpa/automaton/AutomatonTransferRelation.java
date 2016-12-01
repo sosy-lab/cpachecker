@@ -224,10 +224,17 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // SINK state: Do not compute successor states for
-    //  states without outgoing transitions!
+    //    states without outgoing transitions!
+    // Also PRECISION ADJUSTMENT might produce automaton states
+    //    without outgoing transitions!
     if (pState.getLeavingTransitions().isEmpty()) {
-      // shortcut
-      return Collections.singleton(pState);
+      // Stay in same state, no transitions to be executed here
+      // Produce a state without shadow code!!!
+      final AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(
+          pState.getVars(), pState.getInternalState(),
+          cpa, pState.getMatches(), pState.getPropertyDependantMatches(),
+          pState.getFailedMatches(), false, null);
+      return Collections.singleton(stateNewCounters);
     }
 
     final Automaton automaton = pState.getOwningAutomaton();
