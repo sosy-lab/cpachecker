@@ -335,29 +335,29 @@ public class CPAMain {
     // Check if we should switch to another config because we are analyzing memsafety properties.
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
+    Consumer<ConfigurationBuilder> witnessFileOptionSetter = builder -> {};
     if (options.witness != null) {
       WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
       ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
       final Path validationConfigFile;
-      final Consumer<Path> witnessFileOptionSetter;
       switch (witnessType) {
         case ERROR_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
           witnessFileOptionSetter =
-              witnessPath -> {
+              builder -> {
                 String specificationOptionName = "specification";
                 String specs = cmdLineOptions.get(specificationOptionName);
-                specs = Joiner.on(',').join(specs, witnessPath.toString());
-                witnessConfigBuilder.setOption(specificationOptionName, specs);
+                specs = Joiner.on(',').join(specs, options.witness.toString());
+                builder.setOption(specificationOptionName, specs);
               };
           break;
         case PROOF_WITNESS:
           validationConfigFile = options.correctnessWitnessValidationConfig;
           witnessFileOptionSetter =
-              witnessPath ->
-                  witnessConfigBuilder.setOption(
+              builder ->
+                  builder.setOption(
                       "invariantGeneration.kInduction.invariantsAutomatonFile",
-                      witnessPath.toString());
+                      options.witness.toString());
           break;
         default:
           throw new InvalidConfigurationException(
@@ -379,51 +379,58 @@ public class CPAMain {
           .clearOption("witness.validation.correctness.config")
           .clearOption("output.path")
           .clearOption("rootDirectory");
-      witnessFileOptionSetter.accept(options.witness);
+      witnessFileOptionSetter.accept(witnessConfigBuilder);
       config = witnessConfigBuilder.build();
+      config.inject(options);
     }
     if (options.checkMemsafety) {
       if (options.memsafetyConfig == null) {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.memsafetyConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("memorysafety.check")
-                            .clearOption("memorysafety.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.memsafetyConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("memorysafety.check")
+              .clearOption("memorysafety.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
     if (options.checkOverflow) {
       if (options.overflowConfig == null) {
         throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.overflowConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("overflow.check")
-                            .clearOption("overflow.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.overflowConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("overflow.check")
+              .clearOption("overflow.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
     if (options.checkTermination) {
       if (options.terminationConfig == null) {
         throw new InvalidConfigurationException(
             "Verifying termination is not supported if option termination.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.terminationConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("termination.check")
-                            .clearOption("termination.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.terminationConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("termination.check")
+              .clearOption("termination.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
 
     if (options.printUsedOptions) {
