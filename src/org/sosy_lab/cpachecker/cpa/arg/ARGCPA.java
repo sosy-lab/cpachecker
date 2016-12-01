@@ -59,12 +59,16 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options
 public class ARGCPA extends AbstractSingleWrapperCPA implements
-    ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    ConfigurableProgramAnalysisWithBAM,
+    ProofChecker,
+    UseSummaryCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -81,9 +85,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       private boolean deleteInCPAEnabledAnalysis = false;
 
   private final LogManager logger;
-
   private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
+  private final ARGSummaryManager argSummaryManager;
 
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
@@ -98,6 +102,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
+    argSummaryManager = new ARGSummaryManager(cpa);
   }
 
   @Override
@@ -226,5 +231,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
+  }
+
+  @Override
+  public SummaryManager getSummaryManager() {
+    return argSummaryManager;
   }
 }

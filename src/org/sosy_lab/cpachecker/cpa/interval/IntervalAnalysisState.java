@@ -271,7 +271,9 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   /** If there was a recursive function, we have wrong intervals for scoped variables in the returnState.
    * This function rebuilds a new state with the correct intervals from the previous callState.
    * We delete the wrong intervals and insert new intervals, if necessary. */
-  public IntervalAnalysisState rebuildStateAfterFunctionCall(final IntervalAnalysisState callState, final FunctionExitNode functionExit) {
+  public IntervalAnalysisState rebuildStateAfterFunctionCall(
+      final IntervalAnalysisState callState,
+      final FunctionExitNode functionExit) {
 
     // we build a new state from:
     // - local variables from callState,

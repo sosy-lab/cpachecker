@@ -43,13 +43,18 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 import java.util.Collection;
 
 @Options(prefix = "cpa.interval")
 public class IntervalAnalysisCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA {
+    implements ConfigurableProgramAnalysisWithBAM,
+               StatisticsProvider,
+               ProofCheckerCPA,
+               UseSummaryCPA {
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -110,5 +115,10 @@ public class IntervalAnalysisCPA extends AbstractCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     writer.collectStatistics(pStatsCollection);
+  }
+
+  @Override
+  public SummaryManager getSummaryManager() {
+    return new IntervalCPASummaryManager();
   }
 }
