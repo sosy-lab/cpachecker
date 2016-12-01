@@ -32,6 +32,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -92,11 +94,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *
  */
 @Options(prefix="cpa.summary")
-public class GenSummaryCPA implements ConfigurableProgramAnalysis,
-                                      AbstractDomain,
-                                      TransferRelation,
-                                      PrecisionAdjustment,
-                                      MergeOperator {
+public class GenSummaryCPA
+    extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysis,
+               AbstractDomain,
+               TransferRelation,
+               PrecisionAdjustment,
+               MergeOperator {
 
   @Option(secure=true, description="Whether summaries should be merged")
   private boolean joinSummaries = false;
@@ -132,6 +136,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       ShutdownNotifier shutdownNotifier,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pWrapped) throws InvalidConfigurationException {
+    super(pWrapped);
     config.inject(this);
     reachedSetFactory = pReachedSetFactory;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
@@ -144,8 +149,9 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     blockPartitioning = heuristic.buildPartitioning(cfa, new BlockPartitioningBuilder());
     wrapped = new TopLevelSummaryCPA(pWrapped, computedSummaries, blockPartitioning);
     wrappedSummaryManager= wrapped.getSummaryManager();
+
     algorithmFactory = new CPAAlgorithmFactory(
-        this, logger, config, shutdownNotifier
+        pWrapped, logger, config, shutdownNotifier
     );
   }
 
@@ -198,7 +204,7 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
     // We assume the wrapped CPA is always ARGCPA.
     ARGState lastState = (ARGState) reached.getLastState();
 
-    final ImmutableList<ARGState> returnStates;
+    final List<ARGState> returnStates;
     boolean hasTargetState = AbstractStates.isTargetState(lastState);
     Set<Property> pViolatedProperties = hasTargetState ?
                                         lastState.getViolatedProperties() :
@@ -213,7 +219,6 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
           reached, summaryComputationState.getBlock().getReturnNodes()
       ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
     }
-
 
     List<Precision> returnPrecisions = returnStates.stream()
         .map(s -> reached.getPrecision(s))
@@ -255,30 +260,27 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
 
     } else if (hasTargetState || hasWaitingState) {
 
-      // Can't generate summary: the inner analysis was interrupted.
-      // Signal it to the outer state.
-      return ImmutableSet.of(
-        summaryComputationState.withUpdatedReached(
-            hasWaitingState, hasTargetState, pViolatedProperties)
-      );
-
+      List<SummaryComputationState> out = new ArrayList<>(1);
+      out.add(summaryComputationState.withUpdatedReached(
+              hasWaitingState, hasTargetState, pViolatedProperties));
+      return out;
     } else {
 
-      Preconditions.checkState(returnStates.size() == 1,
-          "Only one return state should be present for each function.");
+
 
       // No new summaries were needed, can finally generate the summary for this function.
-      Summary generatedSummary = wrappedSummaryManager.generateSummary(
+      Collection<? extends Summary> generatedSummaries = wrappedSummaryManager.generateSummaries(
           summaryComputationState.getEntryState(),
           summaryComputationState.getPrecision(),
-          returnStates.get(0),
-          returnPrecisions.get(0),
+          returnStates,
+          returnPrecisions,
           summaryComputationState.getNode(),
           summaryComputationState.getBlock()
       );
-      storeGeneratedSummary(generatedSummary, functionName);
-      return ImmutableSet.of();
-
+      for (Summary s : generatedSummaries) {
+        storeGeneratedSummary(s, functionName);
+      }
+      return Collections.emptyList();
     }
   }
 
@@ -332,6 +334,10 @@ public class GenSummaryCPA implements ConfigurableProgramAnalysis,
       AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
     SummaryComputationState sState1 = (SummaryComputationState) state1;
     SummaryComputationState sState2 = (SummaryComputationState) state2;
+    if (sState1.isTarget()) {
+      return false;
+    }
+
     if (sState1.equals(sState2)) {
       return true;
     }

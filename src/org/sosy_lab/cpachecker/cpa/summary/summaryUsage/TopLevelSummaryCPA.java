@@ -66,11 +66,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * action is issued by the precision adjustment.
  */
 public class TopLevelSummaryCPA implements UseSummaryCPA,
-                                           PrecisionAdjustment,
-                                           AbstractDomain,
-                                           TransferRelation,
-                                           SummaryManager {
-
+               PrecisionAdjustment,
+               AbstractDomain,
+               TransferRelation,
+               SummaryManager {
 
   private final UseSummaryCPA wrapped;
   private final BlockPartitioning blockPartitioning;
@@ -246,14 +245,14 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
   }
 
   @Override
-  public Summary generateSummary(
+  public List<? extends Summary> generateSummaries(
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      AbstractState pReturnState,
-      Precision pReturnPrecision,
+      List<? extends AbstractState> pReturnState,
+      List<Precision> pReturnPrecision,
       CFANode pEntryNode,
       Block pBlock) {
-    return wrappedSummaryManager.generateSummary(
+    return wrappedSummaryManager.generateSummaries(
       pEntryState, pEntryPrecision, pReturnState, pReturnPrecision, pEntryNode, pBlock);
   }
 

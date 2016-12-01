@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -53,10 +54,13 @@ public class CompositeSummaryManager implements SummaryManager {
   private final List<AbstractDomain> domains;
 
   CompositeSummaryManager(List<ConfigurableProgramAnalysis> pCpas) {
-    managers = pCpas.stream().map(
-        cpa -> ((UseSummaryCPA) cpa).getSummaryManager()
+    ImmutableList<UseSummaryCPA> summaryCPAs =
+        FluentIterable.from(pCpas).filter(UseSummaryCPA.class)
+            .toList();
+    managers = summaryCPAs.stream().map(
+        cpa -> cpa.getSummaryManager()
     ).collect(Collectors.toList());
-    domains = pCpas.stream().map(
+    domains = summaryCPAs.stream().map(
         cpa -> cpa.getAbstractDomain()
     ).collect(Collectors.toList());
   }
@@ -115,28 +119,36 @@ public class CompositeSummaryManager implements SummaryManager {
   }
 
   @Override
-  public Summary generateSummary(
+  public List<? extends Summary> generateSummaries(
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      AbstractState pReturnState,
-      Precision pReturnPrecision,
+      List<? extends AbstractState> pReturnStates,
+      List<Precision> pReturnPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
     CompositeState cEntryState = (CompositeState) pEntryState;
     CompositePrecision cEntryPrecision = (CompositePrecision) pEntryPrecision;
-    CompositeState cExitState = (CompositeState) pReturnState;
-    CompositePrecision cExitPrecision = (CompositePrecision) pReturnPrecision;
 
-    List<Summary> summaries = IntStream.range(0, managers.size())
-        .mapToObj(i -> managers.get(i).generateSummary(
+    FluentIterable<CompositeState> cReturnStates = FluentIterable.from(pReturnStates)
+        .filter(CompositeState.class);
+    FluentIterable<CompositePrecision> cReturnPrecisions = FluentIterable.from(pReturnPrecisions)
+        .filter(CompositePrecision.class);
+
+    List<List<? extends Summary>> computed = new ArrayList<>(managers.size());
+    for (int i=0; i<managers.size(); i++) {
+      final int idx = i;
+      computed.add(managers.get(i).generateSummaries(
             cEntryState.get(i),
             cEntryPrecision.get(i),
-            cExitState.get(i),
-            cExitPrecision.get(i),
+            cReturnStates.transform(s -> s.get(idx)).toList(),
+            cReturnPrecisions.transform(s -> s.get(idx)).toList(),
             pEntryNode,
             pBlock
-        )).collect(Collectors.toList());
-    return new CompositeSummary(summaries);
+        ));
+    }
+
+    List<List<Summary>> product = Lists.cartesianProduct(computed);
+    return product.stream().map(l -> new CompositeSummary(l)).collect(Collectors.toList());
   }
 
   @Override
@@ -177,8 +189,8 @@ public class CompositeSummaryManager implements SummaryManager {
 
     private final List<Summary> summaries;
 
-    private CompositeSummary(List<Summary> pSummaries) {
-      summaries = pSummaries;
+    private CompositeSummary(Collection<? extends Summary> pSummaries) {
+      summaries = ImmutableList.copyOf(pSummaries);
     }
 
     public Summary get(int idx) {

@@ -23,11 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,20 +90,28 @@ public class IntervalCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public Summary generateSummary(
+  public List<? extends Summary> generateSummaries(
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      AbstractState pReturnState,
-      Precision pReturnPrecision,
+      List<? extends AbstractState> pReturnStates,
+      List<Precision> pReturnPrecisions,
       CFANode pEntryNode,
       Block pBlock
   ) {
+    // this is quite interesting.
+    // to get the entry state I suppose we would have to weaken them.
     IntervalAnalysisState iEntryState = (IntervalAnalysisState) pEntryState;
-    IntervalAnalysisState iReturnState = (IntervalAnalysisState) pReturnState;
 
-    return new IntervalSummary(
-        weaken(iEntryState, pBlock), weaken(iReturnState, pBlock)
-    );
+    Stream<IntervalAnalysisState> stream = StreamSupport.stream(
+        FluentIterable.from(pReturnStates).filter(IntervalAnalysisState.class).spliterator(),
+        false);
+
+    Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b));
+    Preconditions.checkState(out.isPresent());
+
+    return Collections.singletonList(new IntervalSummary(
+        weaken(iEntryState, pBlock), weaken(out.get(), pBlock)
+    ));
   }
 
   /**

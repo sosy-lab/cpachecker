@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -65,14 +66,14 @@ public class CallstackCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public Summary generateSummary(
+  public List<? extends Summary> generateSummaries(
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      AbstractState pReturnState,
-      Precision pReturnPrecision,
+      List<? extends AbstractState> pReturnState,
+      List<Precision> pReturnPrecision,
       CFANode pEntryNode,
       Block pBlock) {
-    return new CallstackSummary(pEntryNode);
+    return Collections.singletonList(new CallstackSummary(pEntryNode));
   }
 
   @Override

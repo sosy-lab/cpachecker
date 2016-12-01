@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -69,7 +67,7 @@ class SummaryComputationState implements AbstractState,
    */
   private final transient boolean hasWaitingState;
   private final transient boolean isTarget;
-  private final transient Set<Property> violatedProperties;
+  private final transient ImmutableSet<Property> violatedProperties;
 
   private SummaryComputationState(
       CFANode pNode,
@@ -79,7 +77,7 @@ class SummaryComputationState implements AbstractState,
       ReachedSet pReached,
       boolean pHasWaitingState,
       boolean pIsTarget,
-      Set<Property> pViolatedProperties) {
+      ImmutableSet<Property> pViolatedProperties) {
     node = pNode;
     block = pBlock;
     entryState = pEntryState;
@@ -106,10 +104,13 @@ class SummaryComputationState implements AbstractState,
 
   public static SummaryComputationState of(
       CFANode pNode, Block pBlock, AbstractState pState, Precision pPrecision, ReachedSet pReached,
-      boolean pInnerAnalysisHasWaitingState, boolean pIsTarget, Set<Property> pViolatedProperties
+      boolean pInnerAnalysisHasWaitingState,
+      boolean pIsTarget,
+      Set<Property> pViolatedProperties
   ) {
     return new SummaryComputationState(pNode, pBlock, pState, pPrecision, pReached,
-        pInnerAnalysisHasWaitingState, pIsTarget, pViolatedProperties);
+        pInnerAnalysisHasWaitingState, pIsTarget,
+        ImmutableSet.copyOf(pViolatedProperties));
   }
 
   public Block getBlock() {
@@ -143,7 +144,8 @@ class SummaryComputationState implements AbstractState,
   ) {
     return new SummaryComputationState(
         node, block, entryState, entryPrecision, reached,
-        pInnerAnalysisHasWaitingState, pIsTarget, pViolatedProperties);
+        pInnerAnalysisHasWaitingState, pIsTarget,
+        ImmutableSet.copyOf(pViolatedProperties));
   }
 
   @Override
@@ -156,24 +158,25 @@ class SummaryComputationState implements AbstractState,
     return node;
   }
 
-  @Override
-  public boolean equals(@Nullable Object pO) {
-    if (this == pO) {
-      return true;
-    }
-    if (pO == null || getClass() != pO.getClass()) {
-      return false;
-    }
-    SummaryComputationState that = (SummaryComputationState) pO;
-    return Objects.equals(node, that.node) &&
-        Objects.equals(entryState, that.entryState) &&
-        Objects.equals(entryPrecision, that.entryPrecision);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(node, entryState, entryPrecision);
-  }
+  // todo: apparently, those don't really work that nice for a top-level CPA.
+//  @Override
+//  public boolean equals(@Nullable Object pO) {
+//    if (this == pO) {
+//      return true;
+//    }
+//    if (pO == null || getClass() != pO.getClass()) {
+//      return false;
+//    }
+//    SummaryComputationState that = (SummaryComputationState) pO;
+//    return Objects.equals(node, that.node) &&
+//        Objects.equals(entryState, that.entryState) &&
+//        Objects.equals(entryPrecision, that.entryPrecision);
+//  }
+//
+//  @Override
+//  public int hashCode() {
+//    return Objects.hash(node, entryState, entryPrecision);
+//  }
 
   @Override
   public String toString() {

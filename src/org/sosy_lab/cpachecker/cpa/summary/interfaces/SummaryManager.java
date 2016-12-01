@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -72,8 +73,10 @@ public interface SummaryManager {
   AbstractState projectToPostcondition(Summary pSummary);
 
   /**
-   * Generate summary from the result of the intraprocedural analysis,
+   * Generate summaries from the result of the intraprocedural analysis,
    * represented by the {@link ReachedSet} {@code pReached}.
+   * A {@link UseSummaryCPA} may choose to generate as
+   * many summaries as it wishes.
    * Normally, the implementation would like to
    * weaken the precondition to exclude irrelevant information,
    * such as global variables which are not read inside the block,
@@ -83,17 +86,18 @@ public interface SummaryManager {
    *                    from the intraprocedural analysis.
    * @param pEntryPrecision Entry precision associated with
    *                        {@code pEntryState}.
-   * @param pReturnState Return state associated with the block return.
-   * @param pReturnPrecision Return precision associated with {@code pReturnState}.
+   * @param pReturnStates Return states associated with the block return.
+   * @param pReturnPrecisions Return precisions associated with {@code pReturnState},
+   *                         in the same order as {@code pReturnStates}.
    * @param pBlock The block for which the summary is generated.
    * @param pEntryNode Entry node for the summarized block.
-   * @return summary describing subsuming the result.
+   * @return summaries which describe the result.
    */
-  Summary generateSummary(
+  List<? extends Summary> generateSummaries(
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      AbstractState pReturnState,
-      Precision pReturnPrecision,
+      List<? extends AbstractState> pReturnStates,
+      List<Precision> pReturnPrecisions,
       CFANode pEntryNode,
       Block pBlock
   );

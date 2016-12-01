@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -72,17 +73,17 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public Summary generateSummary(
+  public List<Summary> generateSummaries(
       AbstractState pEntryState,
       Precision pEntryPrecision,
-      AbstractState pReturnState,
-      Precision pReturnPrecision,
+      List<? extends AbstractState> pReturnState,
+      List<Precision> pReturnPrecision,
       CFANode pEntryNode,
       Block pBlock) {
 
     assert pEntryNode instanceof FunctionEntryNode;
     FunctionEntryNode eNode = (FunctionEntryNode) pEntryNode;
-    return new LocationSummary(eNode);
+    return Collections.singletonList(new LocationSummary(eNode));
   }
 
   @Override
