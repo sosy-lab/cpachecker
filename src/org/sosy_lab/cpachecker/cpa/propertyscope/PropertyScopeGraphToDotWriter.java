@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 
 public class PropertyScopeGraphToDotWriter {
 
-  private static final String IRRELEVANT_COLOR = "#b300ff";
+  private static final String IRRELEVANT_COLOR = "grey";
   private final PropertyScopeGraph graph;
   private final boolean hinted;
   private final ImmutableMap<String, String> automatonColorMap;
