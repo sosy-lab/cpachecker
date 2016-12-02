@@ -40,7 +40,6 @@ public class IntervalSummariesTest {
 
   @Test public void simple_true_assert() throws Exception {
     check("simple_true_assert.c");
-
   }
 
   @Test public void simple_false_assert() throws Exception {
@@ -57,6 +56,14 @@ public class IntervalSummariesTest {
     check("recursive_simple_false_assert.c");
   }
 
+  @Test public void recursive_sum_true_assert() throws Exception {
+    check("recursive_sum_true_assert.c");
+  }
+
+  @Test public void recursive_sum_false_assert() throws Exception {
+    check("recursive_sum_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(
         filename,
@@ -67,7 +74,7 @@ public class IntervalSummariesTest {
   private void check(String filename, Configuration config) throws Exception {
 
     // todo: avoid code duplication w/ PolicyTest,
-    // refactoring here might be very useful.
+    // refactoring here might be useful.
     String fullPath;
     if (filename.contains("test/programs/benchmarks")) {
       fullPath = filename;

@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * State representing a (partially) computed function summary.
@@ -43,22 +46,14 @@ class SummaryComputationState implements AbstractState,
                Targetable {
 
   /**
-   * Entry node associated with this computation.
-   */
-  private final CFANode node;
-
-  /**
    * Block associated with the summary.
    */
   private final Block block;
   private final AbstractState entryState;
   private final Precision entryPrecision;
+  private final @Nullable AbstractState callingContext;
 
   /**
-   * Reached set, representing the state of the summary computation.
-   * Optimization which avoid the redundant computation,
-   * as the summary can be recomputed from the
-   * {@code entryState} and {@code entryPrecision}.
    */
   private final transient ReachedSet reached;
 
@@ -70,67 +65,110 @@ class SummaryComputationState implements AbstractState,
   private final transient ImmutableSet<Property> violatedProperties;
 
   private SummaryComputationState(
-      CFANode pNode,
       Block pBlock,
+      Optional<AbstractState> pCallingContext,
       AbstractState pEntryState,
       Precision pEntryPrecision,
       ReachedSet pReached,
       boolean pHasWaitingState,
       boolean pIsTarget,
       ImmutableSet<Property> pViolatedProperties) {
-    node = pNode;
+
     block = pBlock;
     entryState = pEntryState;
     entryPrecision = pEntryPrecision;
+    callingContext = pCallingContext.orElse(null);
     reached = pReached;
     hasWaitingState = pHasWaitingState;
     isTarget = pIsTarget;
     violatedProperties = pViolatedProperties;
   }
 
+
+  /**
+   * @return calling context for the summary,
+   * empty for the entry function.
+   */
+  public Optional<AbstractState> getCallingContext() {
+    return Optional.ofNullable(callingContext);
+  }
+
+  /**
+   * @return syntactical bounds for the summarized block.
+   */
+  public Block getBlock() {
+    return block;
+  }
+
+  /**
+   * @return function name of the summarized function.
+   */
+  public String getFunctionName() {
+    return AbstractStates.extractLocation(entryState).getFunctionName();
+  }
+
+  /**
+   * Reached set, representing the state of the summary computation.
+   * Optimization which avoid the redundant computation,
+   * as the summary can be recomputed from the
+   * {@link #getEntryState()} and {@link #get}.
+   *
+   * @return reached set representing computation in progress for summary derivation.
+   */
+  public ReachedSet getReached() {
+    return reached;
+  }
+
+  /**
+   * @return state associated with {@link org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode},
+   * first state in the function.
+   */
+  public AbstractState getEntryState() {
+    return entryState;
+  }
+
+  public CFANode getEntryLocation() {
+    return AbstractStates.extractLocation(entryState);
+  }
+
+  /**
+   * @return precision associated with {@link #getEntryState()}.
+   */
+  public Precision getEntryPrecision() {
+    return entryPrecision;
+  }
+
   public static SummaryComputationState initial(
-      CFANode pNode,
       Block pBlock,
-      AbstractState pState,
+      AbstractState pEntryState,
       Precision pPrecision,
       ReachedSet pReached
   ) {
     return new SummaryComputationState(
-        pNode, pBlock, pState, pPrecision, pReached,
+        pBlock, Optional.empty(), pEntryState, pPrecision, pReached,
         false, false,
         ImmutableSet.of()
     );
   }
 
   public static SummaryComputationState of(
-      CFANode pNode, Block pBlock, AbstractState pState, Precision pPrecision, ReachedSet pReached,
+      Block pBlock,
+      AbstractState pCallingContext,
+      AbstractState pEntryState,
+      Precision pPrecision,
+      ReachedSet pReached,
       boolean pInnerAnalysisHasWaitingState,
       boolean pIsTarget,
       Set<Property> pViolatedProperties
   ) {
-    return new SummaryComputationState(pNode, pBlock, pState, pPrecision, pReached,
+    return new SummaryComputationState(
+        pBlock,
+        Optional.of(pCallingContext),
+        pEntryState,
+        pPrecision,
+        pReached,
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties));
-  }
-
-  public Block getBlock() {
-    return block;
-  }
-
-  public CFANode getNode() {
-    return node;
-  }
-
-  public String getFunctionName() {
-    return node.getFunctionName();
-  }
-
-  public ReachedSet getReached() {
-    return reached;
-  }
-
-  public AbstractState getEntryState() {
-    return entryState;
   }
 
   /**
@@ -142,8 +180,13 @@ class SummaryComputationState implements AbstractState,
       boolean pIsTarget,
       Set<Property> pViolatedProperties
   ) {
+    assert callingContext != null;
     return new SummaryComputationState(
-        node, block, entryState, entryPrecision, reached,
+        block,
+        Optional.of(callingContext),
+        entryState,
+        entryPrecision,
+        reached,
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties));
   }
@@ -154,34 +197,13 @@ class SummaryComputationState implements AbstractState,
     // Partition by the function for which we compute this summary.
 
     // todo: might make more sense to partition for block instead?
-
-    return node;
+    return AbstractStates.extractLocation(entryState);
   }
-
-  // todo: apparently, those don't really work that nice for a top-level CPA.
-//  @Override
-//  public boolean equals(@Nullable Object pO) {
-//    if (this == pO) {
-//      return true;
-//    }
-//    if (pO == null || getClass() != pO.getClass()) {
-//      return false;
-//    }
-//    SummaryComputationState that = (SummaryComputationState) pO;
-//    return Objects.equals(node, that.node) &&
-//        Objects.equals(entryState, that.entryState) &&
-//        Objects.equals(entryPrecision, that.entryPrecision);
-//  }
-//
-//  @Override
-//  public int hashCode() {
-//    return Objects.hash(node, entryState, entryPrecision);
-//  }
 
   @Override
   public String toString() {
     return "SummaryComputationState{" +
-        "node=" + node +
+        "node=" +
         ", entryState=" + entryState +
         ", entryPrecision=" + entryPrecision +
         '}';
@@ -196,10 +218,6 @@ class SummaryComputationState implements AbstractState,
   @Override
   public Set<Property> getViolatedProperties() {
     return violatedProperties;
-  }
-
-  public Precision getPrecision() {
-    return entryPrecision;
   }
 
   public boolean hasWaitingState() {

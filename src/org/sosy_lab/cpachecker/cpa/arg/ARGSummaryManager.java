@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,26 +55,31 @@ public class ARGSummaryManager implements SummaryManager {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pState, Precision pPrecision, Summary pSummary, Block pBlock)
+  public AbstractState getAbstractSuccessorsForSummary(
+      AbstractState pState, Precision pPrecision, List<Summary> pSummaries, Block pBlock)
       throws CPAException, InterruptedException {
     ARGState aState = (ARGState) pState;
 
-    Collection<? extends AbstractState> successors =
+    AbstractState successor =
         wrapped.getAbstractSuccessorsForSummary(
-            aState.getWrappedState(), pPrecision, pSummary, pBlock
+            aState.getWrappedState(), pPrecision, pSummaries, pBlock
         );
-
-    return successors.stream().map(
-        s -> new ARGState(
-            s, null
-        )
-    ).collect(Collectors.toList());
+    // todo: should the parent element be null? In BAMReducer it is.
+    return new ARGState(successor, null);
   }
 
   @Override
-  public AbstractState projectToPrecondition(Summary pSummary) {
-    return wrapped.projectToPrecondition(pSummary);
+  public AbstractState getWeakenedCallState(
+      AbstractState pState, Precision pPrecision, Block pBlock) {
+    return new ARGState(
+        wrapped.getWeakenedCallState(pState, pPrecision, pBlock),
+        null
+    );
+  }
+
+  @Override
+  public AbstractState projectToCallsite(Summary pSummary) {
+    return wrapped.projectToCallsite(pSummary);
   }
 
   @Override
@@ -86,14 +89,14 @@ public class ARGSummaryManager implements SummaryManager {
 
   @Override
   public List<? extends Summary> generateSummaries(
-      AbstractState pEntryState,
+      AbstractState pCallState,
       Precision pEntryPrecision,
       List<? extends AbstractState> pReturnStates,
       List<Precision> pReturnPrecision,
       CFANode pEntryNode,
       Block pBlock) {
 
-    ARGState aEntryState = (ARGState) pEntryState;
+    ARGState aEntryState = (ARGState) pCallState;
     FluentIterable<ARGState> aExitStates = FluentIterable.from(pReturnStates).filter(ARGState.class);
     return wrapped.generateSummaries(
         aEntryState.getWrappedState(),

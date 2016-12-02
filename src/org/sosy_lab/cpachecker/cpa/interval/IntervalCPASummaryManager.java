@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -47,19 +46,21 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class IntervalCPASummaryManager implements SummaryManager {
 
-
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
+  public AbstractState getAbstractSuccessorsForSummary(
       AbstractState state,
       Precision precision,
-      Summary pSummary,
+      List<Summary> pSummary,
       Block pBlock)
       throws CPAException, InterruptedException {
 
     // Propagate the intervals for those variables invariant
     // under the function call, use summary for others.
     IntervalAnalysisState iState = (IntervalAnalysisState) state;
-    IntervalSummary iSummary = (IntervalSummary) pSummary;
+
+    // todo: verify the assumption.
+    Preconditions.checkState(pSummary.size() == 1);
+    IntervalSummary iSummary = (IntervalSummary) pSummary.get(0);
 
     IntervalAnalysisState copy = IntervalAnalysisState.copyOf(iState);
     List<String> toRemove = new ArrayList<>();
@@ -74,11 +75,27 @@ public class IntervalCPASummaryManager implements SummaryManager {
     iSummary.getStateAtExit().getIntervalMap().forEach(
         (var, interval) -> copy.addInterval(var, interval, -1)
     );
-    return Collections.singleton(copy);
+    return copy;
   }
 
   @Override
-  public AbstractState projectToPrecondition(Summary pSummary) {
+  public AbstractState getWeakenedCallState(
+      AbstractState pState, Precision pPrecision, Block pBlock) {
+    IntervalAnalysisState iState = (IntervalAnalysisState) pState;
+    IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
+
+    for (String var : iState.getIntervalMap().keySet()) {
+      if (!pBlock.getReferencedVariables().stream().anyMatch(
+          r -> r.getName().equals(var)
+      )) {
+        clone.removeInterval(var);
+      }
+    }
+    return clone;
+  }
+
+  @Override
+  public AbstractState projectToCallsite(Summary pSummary) {
     IntervalSummary iSummary = (IntervalSummary) pSummary;
     return iSummary.getStateAtEntry();
   }
@@ -91,16 +108,14 @@ public class IntervalCPASummaryManager implements SummaryManager {
 
   @Override
   public List<? extends Summary> generateSummaries(
-      AbstractState pEntryState,
+      AbstractState pCallState,
       Precision pEntryPrecision,
       List<? extends AbstractState> pReturnStates,
       List<Precision> pReturnPrecisions,
       CFANode pEntryNode,
       Block pBlock
   ) {
-    // this is quite interesting.
-    // to get the entry state I suppose we would have to weaken them.
-    IntervalAnalysisState iEntryState = (IntervalAnalysisState) pEntryState;
+    IntervalAnalysisState iCallState = (IntervalAnalysisState) pCallState;
 
     Stream<IntervalAnalysisState> stream = StreamSupport.stream(
         FluentIterable.from(pReturnStates).filter(IntervalAnalysisState.class).spliterator(),
@@ -109,28 +124,7 @@ public class IntervalCPASummaryManager implements SummaryManager {
     Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b));
     Preconditions.checkState(out.isPresent());
 
-    return Collections.singletonList(new IntervalSummary(
-        weaken(iEntryState, pBlock), weaken(out.get(), pBlock)
-    ));
-  }
-
-  /**
-   * Weaken the {@code pState} by removing all constraints associated
-   * with variables not read inside the {@code pBlock}.
-   *
-   * @return weakened interval state
-   */
-  private IntervalAnalysisState weaken(IntervalAnalysisState pState, Block pBlock) {
-    IntervalAnalysisState clone = IntervalAnalysisState.copyOf(pState);
-
-    for (String var : pState.getIntervalMap().keySet()) {
-      if (!pBlock.getReferencedVariables().stream().anyMatch(
-          r -> r.getName().equals(var)
-      )) {
-        clone.removeInterval(var);
-      }
-    }
-    return clone;
+    return Collections.singletonList(new IntervalSummary(iCallState, out.get()));
   }
 
   @Override

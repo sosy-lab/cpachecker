@@ -24,44 +24,68 @@
 package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Request for the summary computation,
  * appears in the same reached set as intraprocedural states.
  */
-public class SummaryComputationRequestState implements AbstractState {
+public class SummaryComputationRequestState implements AbstractState, Partitionable {
+
+  private final AbstractState callingContext;
   private final AbstractState functionEntryState;
   private final Precision functionEntryPrecision;
-  private final CFANode node;
   private final Block block;
 
+  SummaryComputationRequestState(
+      AbstractState pCallingContext,
+      AbstractState pFunctionEntryState,
+      Precision pFunctionEntryPrecision,
+      Block pBlock) {
+    functionEntryState = pFunctionEntryState;
+    functionEntryPrecision = pFunctionEntryPrecision;
+    callingContext = pCallingContext;
+    block = pBlock;
+  }
+
+  /**
+   * @return state from which the outgoing
+   * {@link org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge}
+   * was going into {@link #getFunctionEntryState()}.
+   */
+  public AbstractState getCallingContext() {
+    return callingContext;
+  }
+
+  /**
+   * @return state associated with {@link org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode},
+   * first state in the function.
+   */
   public AbstractState getFunctionEntryState() {
     return functionEntryState;
   }
 
+  /**
+   * @return precision associated with {@link #getFunctionEntryState()}.
+   */
   public Precision getFunctionEntryPrecision() {
     return functionEntryPrecision;
   }
 
-  public CFANode getNode() {
-    return node;
-  }
-
+  /**
+   * @return syntactical bounds for the summarized block.
+   */
   public Block getBlock() {
     return block;
   }
 
-  SummaryComputationRequestState(
-      AbstractState pFunctionEntryState,
-      Precision pFunctionEntryPrecision,
-      CFANode pNode,
-      Block pBlock) {
-    functionEntryState = pFunctionEntryState;
-    functionEntryPrecision = pFunctionEntryPrecision;
-    node = pNode;
-    block = pBlock;
+  @Override
+  public Object getPartitionKey() {
+
+    // todo: might we want to group several ones? probably there is only one
+    // at a single time.
+    return this;
   }
 }

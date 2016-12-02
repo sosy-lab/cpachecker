@@ -23,49 +23,74 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 
-import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+
+// todo: starts to have way to many methods as well,
+// maybe now projections could be removed.
 public interface SummaryManager {
 
   /**
    * Calculate the abstract successors subject to a summary
    * {@code pSummary}
    *
-   * @param pState Initial state, associated with a function call.
-   * @param pPrecision Analysis precision at the to-state.
-   * @param pSummary Summary available for the called function.
+   * @param pFunctionCallState Initial state, associated with a function call.
+   *               Usually has an outgoing {@link FunctionCallEdge}.
+   * @param pFunctionCallPrecision Analysis precision at the to-state.
+   * @param pSummaries Summaries which hold for the callsite.
    * @param pBlock The block for which the summary was calculated.
    *               Contains information obtained from the dataflow analysis,
    *               which is useful for summary application.
-   * @return Set of abstract states resulting from the summary application.
+   * @return resulting state
    */
-  Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pState,
-      Precision pPrecision,
-      Summary pSummary,
+  AbstractState getAbstractSuccessorsForSummary(
+      AbstractState pFunctionCallState,
+      Precision pFunctionCallPrecision,
+      List<Summary> pSummaries,
       Block pBlock)
       throws CPAException, InterruptedException;
 
   /**
-   * Project summary to the function precondition (state at the
-   * entry node for the function).
+   * Weaken the call state (the successor from which is associated
+   * with {@link FunctionEntryNode}).
+   *
+   *
+   * @param pState state associated with a call node.
+   * @param pPrecision precision associated with {@code pState}
+   * @param pBlock block for which the function is computed.
+   *
+   * @return Abstract states associated with a block entry node.
+   */
+  AbstractState getWeakenedCallState(
+      AbstractState pState,
+      Precision pPrecision,
+      Block pBlock
+  );
+
+  /**
+   * Project summary to the function precondition: state at the
+   * call node <em>outside</em> of the function.
    *
    * @param pSummary Function summary
    * @return Projection of the summary to the function entry point:
    * the summary precondition.
    */
-  AbstractState projectToPrecondition(Summary pSummary);
+  AbstractState projectToCallsite(Summary pSummary);
 
   /**
+   * Project the summary to the postcondition: state at the return
+   * node <em>inside</em> of the function.
+   *
    * @param pSummary Function summary
    * @return Projection of the summary to the return site:
    * the summary postcondition.
@@ -77,15 +102,13 @@ public interface SummaryManager {
    * represented by the {@link ReachedSet} {@code pReached}.
    * A {@link UseSummaryCPA} may choose to generate as
    * many summaries as it wishes.
-   * Normally, the implementation would like to
-   * weaken the precondition to exclude irrelevant information,
-   * such as global variables which are not read inside the block,
-   * and combine it with postcondition.
+   * Implementation can assume that {@link #getWeakenedCallState}
+   * was already called on the {@code pCallState}.
    *
-   * @param pEntryState Summary precondition, as given by the call
-   *                    from the intraprocedural analysis.
+   * @param pCallState Summary precondition, associated with
+   *                   the call node, which is about to jump into the block.
    * @param pEntryPrecision Entry precision associated with
-   *                        {@code pEntryState}.
+   *                        {@code pCallState}.
    * @param pReturnStates Return states associated with the block return.
    * @param pReturnPrecisions Return precisions associated with {@code pReturnState},
    *                         in the same order as {@code pReturnStates}.
@@ -94,7 +117,7 @@ public interface SummaryManager {
    * @return summaries which describe the result.
    */
   List<? extends Summary> generateSummaries(
-      AbstractState pEntryState,
+      AbstractState pCallState,
       Precision pEntryPrecision,
       List<? extends AbstractState> pReturnStates,
       List<Precision> pReturnPrecisions,
@@ -128,8 +151,8 @@ public interface SummaryManager {
                                 Summary pSummary2,
                                 AbstractDomain domain) throws CPAException, InterruptedException {
     return domain.isLessOrEqual(
-        projectToPrecondition(pSummary1),
-        projectToPrecondition(pSummary2)
+        projectToCallsite(pSummary1),
+        projectToCallsite(pSummary2)
     ) && domain.isLessOrEqual(
         projectToPostcondition(pSummary2),
         projectToPostcondition(pSummary1)

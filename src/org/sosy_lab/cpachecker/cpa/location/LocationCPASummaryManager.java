@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -49,19 +48,26 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
+  public AbstractState getAbstractSuccessorsForSummary(
       AbstractState state,
       Precision precision,
-      Summary pSummary,
+      List<Summary> pSummary,
       Block pBlock) throws CPATransferException, InterruptedException {
 
     LocationSummary lSummary = (LocationSummary) pSummary;
 
-    return Collections.singleton(locationStateFactory.getState(lSummary.getExitNode()));
+    return locationStateFactory.getState(lSummary.getExitNode());
+  }
+
+
+  @Override
+  public AbstractState getWeakenedCallState(
+      AbstractState pState, Precision pPrecision, Block pBlock) {
+    return pState;
   }
 
   @Override
-  public AbstractState projectToPrecondition(Summary pSummary) {
+  public AbstractState projectToCallsite(Summary pSummary) {
     LocationSummary lSummary = (LocationSummary) pSummary;
     return locationStateFactory.getState(lSummary.getEntryNode());
   }
@@ -74,7 +80,7 @@ public class LocationCPASummaryManager implements SummaryManager {
 
   @Override
   public List<Summary> generateSummaries(
-      AbstractState pEntryState,
+      AbstractState pCallState,
       Precision pEntryPrecision,
       List<? extends AbstractState> pReturnState,
       List<Precision> pReturnPrecision,

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -42,17 +41,35 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState state, Precision precision, Summary pSummary, Block pBlock)
+  public AbstractState getAbstractSuccessorsForSummary(
+      AbstractState state,
+      Precision precision,
+      List<Summary> pSummary,
+      Block pBlock)
       throws CPATransferException, InterruptedException {
 
     // Summary application leaves the callstack invariant
     // (we have entered the function and we have left the function)
-    return Collections.singleton(state);
+    return state;
   }
 
   @Override
-  public AbstractState projectToPrecondition(Summary pSummary) {
+  public AbstractState getWeakenedCallState(
+      AbstractState pState, Precision pPrecision, Block pBlock) {
+    CallstackState cState = (CallstackState) pState;
+    if (cState.getDepth() == 1) {
+      return cState;
+    } else {
+
+      return new CallstackState(
+      // Remove all the frames except for the very last one.
+          null, cState.getCurrentFunction(), cState.getCallNode()
+      );
+    }
+  }
+
+  @Override
+  public AbstractState projectToCallsite(Summary pSummary) {
     CallstackSummary cSummary = (CallstackSummary) pSummary;
     return new CallstackState(
         null, cSummary.getFunctionName(), cSummary.getEntryNode());
@@ -67,7 +84,7 @@ public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
   public List<? extends Summary> generateSummaries(
-      AbstractState pEntryState,
+      AbstractState pCallState,
       Precision pEntryPrecision,
       List<? extends AbstractState> pReturnState,
       List<Precision> pReturnPrecision,

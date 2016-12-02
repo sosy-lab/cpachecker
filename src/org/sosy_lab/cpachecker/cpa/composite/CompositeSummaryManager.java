@@ -66,42 +66,47 @@ public class CompositeSummaryManager implements SummaryManager {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState state, Precision precision, Summary pSummary, Block pBlock)
+  public AbstractState getAbstractSuccessorsForSummary(
+      AbstractState state, Precision precision, List<Summary> pSummary, Block pBlock)
       throws CPAException, InterruptedException {
-    CompositeSummary cSummary = (CompositeSummary) pSummary;
+
     CompositePrecision cPrecision = (CompositePrecision) precision;
     CompositeState cState = (CompositeState) state;
     Preconditions.checkState(cState.getNumberOfStates() == managers.size());
 
-    // The code largely minors that of
-    // CompositeTransferRelation#getAbstractSuccessors:
-    // perform cartesian product over return values.
-    List<List<? extends AbstractState>> allResults =
-        new ArrayList<>(cState.getNumberOfStates());
-
+    List<AbstractState> contained = new ArrayList<>(managers.size());
     for (int i=0; i<managers.size(); i++) {
-      List<? extends AbstractState> successors = ImmutableList.copyOf(
-          managers.get(i).getAbstractSuccessorsForSummary(
-              cState.get(i), cPrecision.get(i), cSummary.get(i), pBlock));
-      if (successors.isEmpty()) {
-
-        // Shortcut.
-        return ImmutableList.of();
-      }
-      allResults.add(successors);
+      int idx = i;
+      List<Summary> projectedSummaries = FluentIterable.from(pSummary)
+          .filter(CompositeSummary.class)
+          .transform(c -> c.get(idx)).toList();
+      AbstractState successor = managers.get(idx).getAbstractSuccessorsForSummary(
+          cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock
+      );
+      contained.add(successor);
     }
-
-    List<List<AbstractState>> product = Lists.cartesianProduct(allResults);
-    return product.stream().map(l -> new CompositeState(l)).collect(Collectors.toList());
+    return new CompositeState(contained);
   }
 
   @Override
-  public CompositeState projectToPrecondition(Summary pSummary) {
+  public AbstractState getWeakenedCallState(
+      AbstractState pState, Precision pPrecision, Block pBlock) {
+    CompositeState cState = (CompositeState) pState;
+    CompositePrecision cPrecision = (CompositePrecision) pPrecision;
+    List<AbstractState> weakened = IntStream.range(0, managers.size())
+        .mapToObj(i ->
+            managers.get(i).getWeakenedCallState(
+                cState.get(i), cPrecision.get(i), pBlock
+            )).collect(Collectors.toList());
+    return new CompositeState(weakened);
+  }
+
+  @Override
+  public CompositeState projectToCallsite(Summary pSummary) {
     CompositeSummary cSummary = (CompositeSummary) pSummary;
     return new CompositeState(
         IntStream.range(0, managers.size()).mapToObj(
-            i -> managers.get(i).projectToPrecondition(
+            i -> managers.get(i).projectToCallsite(
                 cSummary.get(i)
             )).collect(Collectors.toList())
     );
@@ -120,13 +125,13 @@ public class CompositeSummaryManager implements SummaryManager {
 
   @Override
   public List<? extends Summary> generateSummaries(
-      AbstractState pEntryState,
+      AbstractState pCallState,
       Precision pEntryPrecision,
       List<? extends AbstractState> pReturnStates,
       List<Precision> pReturnPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
-    CompositeState cEntryState = (CompositeState) pEntryState;
+    CompositeState cEntryState = (CompositeState) pCallState;
     CompositePrecision cEntryPrecision = (CompositePrecision) pEntryPrecision;
 
     FluentIterable<CompositeState> cReturnStates = FluentIterable.from(pReturnStates)
