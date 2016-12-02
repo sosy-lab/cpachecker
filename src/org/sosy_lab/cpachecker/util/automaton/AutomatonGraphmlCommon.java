@@ -32,6 +32,8 @@ import com.google.common.collect.Maps;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -116,6 +118,7 @@ public class AutomatonGraphmlCommon {
     SPECIFICATION("specification", ElementType.GRAPH, "specification", "string"),
     ARCHITECTURE("architecture", ElementType.GRAPH, "architecture", "string"),
     PRODUCER("producer", ElementType.GRAPH, "producer", "string"),
+    CREATIONTIME("creationtime", ElementType.GRAPH, "creationTime", "string"),
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
     ORIGINLINE("startline", ElementType.EDGE, "startline", "int"),
     OFFSET("startoffset", ElementType.EDGE, "startoffset", "int"),
@@ -357,6 +360,10 @@ public class AutomatonGraphmlCommon {
       }
 
       graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
+      ZonedDateTime now = ZonedDateTime.now().withNano(0);
+      graph.appendChild(
+          createDataElement(
+              KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
     }
 
     private Element createElement(GraphMlTag tag) {
