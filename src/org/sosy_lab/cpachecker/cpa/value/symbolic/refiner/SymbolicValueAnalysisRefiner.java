@@ -86,7 +86,7 @@ public class SymbolicValueAnalysisRefiner
     final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
-    final Solver solver = Solver.create(config, logger, shutdownNotifier);
+    final Solver solver = constraintsCpa.getSolver();
 
     final SymbolicStrongestPostOperator strongestPostOperator =
         new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa, shutdownNotifier);
