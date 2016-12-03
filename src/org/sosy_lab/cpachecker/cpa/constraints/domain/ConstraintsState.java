@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -59,7 +61,7 @@ import java.util.Set;
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements AbstractState, Set<Constraint> {
+public class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
 
   /**
    * Stores identifiers and their corresponding constraints
@@ -500,6 +502,22 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     }
 
     return sb.append("] size->  ").append(constraints.size()).toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("[");
+    Joiner.on(", ").appendTo(sb, constraints);
+    sb.append("]");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
   private class ConstraintIterator implements Iterator<Constraint> {
