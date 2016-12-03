@@ -320,9 +320,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   private void computeDefiniteAssignment() throws SolverException, InterruptedException {
     try (Model validAssignment = prover.getModel()) {
       for (ValueAssignment val : validAssignment) {
-        Formula term = val.getKey();
-
-        if (isSymbolicTerm(term)) {
+        if (isSymbolicTerm(val.getName())) {
 
           SymbolicIdentifier identifier = toSymbolicIdentifier(val.getName());
           Value concreteValue = convertToValue(val);
@@ -385,10 +383,10 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     return new IdentifierAssignment(definiteAssignment);
   }
 
-  private boolean isSymbolicTerm(Formula pTerm) {
+  private boolean isSymbolicTerm(String pTerm) {
 
     // TODO: is it valid to get the variable name? use the visitor instead?
-    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.toString());
+    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm);
   }
 
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
