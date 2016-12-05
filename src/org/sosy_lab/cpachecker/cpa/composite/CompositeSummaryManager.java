@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
@@ -52,21 +53,29 @@ public class CompositeSummaryManager implements SummaryManager {
 
   private final List<SummaryManager> managers;
   private final List<AbstractDomain> domains;
+  private final List<StopOperator> stopOperators;
 
   CompositeSummaryManager(List<ConfigurableProgramAnalysis> pCpas) {
     ImmutableList<UseSummaryCPA> summaryCPAs =
         FluentIterable.from(pCpas).filter(UseSummaryCPA.class)
             .toList();
+    Preconditions.checkArgument(summaryCPAs.size() == pCpas.size(),
+        "Not all CPAs implement UseSummaryCPA,"
+            + " the offending element is " + pCpas.stream().filter(
+                s -> !(s instanceof UseSummaryCPA)).findAny());
     managers = summaryCPAs.stream().map(
         cpa -> cpa.getSummaryManager()
     ).collect(Collectors.toList());
     domains = summaryCPAs.stream().map(
         cpa -> cpa.getAbstractDomain()
     ).collect(Collectors.toList());
+    stopOperators = summaryCPAs.stream().map(
+        cpa -> cpa.getStopOperator()
+    ).collect(Collectors.toList());
   }
 
   @Override
-  public AbstractState getAbstractSuccessorsForSummary(
+  public AbstractState getAbstractSuccessorForSummary(
       AbstractState state, Precision precision, List<Summary> pSummary, Block pBlock)
       throws CPAException, InterruptedException {
 
@@ -80,7 +89,7 @@ public class CompositeSummaryManager implements SummaryManager {
       List<Summary> projectedSummaries = FluentIterable.from(pSummary)
           .filter(CompositeSummary.class)
           .transform(c -> c.get(idx)).toList();
-      AbstractState successor = managers.get(idx).getAbstractSuccessorsForSummary(
+      AbstractState successor = managers.get(idx).getAbstractSuccessorForSummary(
           cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock
       );
       contained.add(successor);
@@ -154,6 +163,28 @@ public class CompositeSummaryManager implements SummaryManager {
 
     List<List<Summary>> product = Lists.cartesianProduct(computed);
     return product.stream().map(l -> new CompositeSummary(l)).collect(Collectors.toList());
+  }
+
+
+  @Override
+  public boolean isDescribedBy(Summary pSummary1,
+                               Summary pSummary2,
+                               AbstractDomain pAbstractDomain) throws CPAException,
+                                                                      InterruptedException {
+    CompositeSummary cSummary1 = (CompositeSummary) pSummary1;
+    CompositeSummary cSummary2 = (CompositeSummary) pSummary2;
+    for (int i=0; i<managers.size(); i++) {
+      if (!domains.get(i).isLessOrEqual(
+          managers.get(i).projectToCallsite(cSummary1.get(i)),
+          managers.get(i).projectToCallsite(cSummary2.get(i))
+      ) && domains.get(i).isLessOrEqual(
+          managers.get(i).projectToPostcondition(cSummary1.get(i)),
+          managers.get(i).projectToPostcondition(cSummary2.get(i))
+      )) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

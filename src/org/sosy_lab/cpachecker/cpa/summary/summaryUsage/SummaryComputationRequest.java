@@ -25,21 +25,19 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
- * Request for the summary computation,
- * appears in the same reached set as intraprocedural states.
+ * Request for the summary computation.
  */
-public class SummaryComputationRequestState implements AbstractState, Partitionable {
+public class SummaryComputationRequest {
 
   private final AbstractState callingContext;
   private final AbstractState functionEntryState;
   private final Precision functionEntryPrecision;
   private final Block block;
 
-  SummaryComputationRequestState(
+  SummaryComputationRequest(
       AbstractState pCallingContext,
       AbstractState pFunctionEntryState,
       Precision pFunctionEntryPrecision,
@@ -79,13 +77,5 @@ public class SummaryComputationRequestState implements AbstractState, Partitiona
    */
   public Block getBlock() {
     return block;
-  }
-
-  @Override
-  public Object getPartitionKey() {
-
-    // todo: might we want to group several ones? probably there is only one
-    // at a single time.
-    return this;
   }
 }

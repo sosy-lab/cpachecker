@@ -28,9 +28,11 @@ import com.google.common.collect.FluentIterable;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
@@ -45,6 +47,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class ARGSummaryManager implements SummaryManager {
 
   private final SummaryManager wrapped;
+  private final StopOperator wrappedStopOperator;
+  private final AbstractDomain wrappedAbstractDomain;
 
   ARGSummaryManager(
       ConfigurableProgramAnalysis pCpa) {
@@ -52,16 +56,18 @@ public class ARGSummaryManager implements SummaryManager {
         "For summary generation all nested CPAs have to "
             + "implement UseSummaryCPA interface.");
     wrapped = ((UseSummaryCPA) pCpa).getSummaryManager();
+    wrappedStopOperator = pCpa.getStopOperator();
+    wrappedAbstractDomain = pCpa.getAbstractDomain();
   }
 
   @Override
-  public AbstractState getAbstractSuccessorsForSummary(
+  public AbstractState getAbstractSuccessorForSummary(
       AbstractState pState, Precision pPrecision, List<Summary> pSummaries, Block pBlock)
       throws CPAException, InterruptedException {
     ARGState aState = (ARGState) pState;
 
     AbstractState successor =
-        wrapped.getAbstractSuccessorsForSummary(
+        wrapped.getAbstractSuccessorForSummary(
             aState.getWrappedState(), pPrecision, pSummaries, pBlock
         );
     // todo: should the parent element be null? In BAMReducer it is.
@@ -71,20 +77,40 @@ public class ARGSummaryManager implements SummaryManager {
   @Override
   public AbstractState getWeakenedCallState(
       AbstractState pState, Precision pPrecision, Block pBlock) {
+    ARGState aState = (ARGState) pState;
     return new ARGState(
-        wrapped.getWeakenedCallState(pState, pPrecision, pBlock),
+        wrapped.getWeakenedCallState(aState.getWrappedState(), pPrecision, pBlock),
         null
     );
   }
 
   @Override
   public AbstractState projectToCallsite(Summary pSummary) {
-    return wrapped.projectToCallsite(pSummary);
+    // todo: wait. Fail. That should actually be an ARGState.
+
+    return new ARGState(wrapped.projectToCallsite(pSummary), null);
   }
 
   @Override
   public AbstractState projectToPostcondition(Summary pSummary) {
-    return wrapped.projectToPostcondition(pSummary);
+
+    // todo: fail that should also be an ARGState.
+
+    return new ARGState(wrapped.projectToPostcondition(pSummary), null);
+  }
+
+  @Override
+  public boolean isDescribedBy(Summary pSummary1,
+                                Summary pSummary2,
+                                AbstractDomain pAbstractDomain) throws CPAException,
+                                                                       InterruptedException {
+    return wrappedAbstractDomain.isLessOrEqual(
+        wrapped.projectToCallsite(pSummary1),
+        wrapped.projectToCallsite(pSummary2)
+    ) && wrappedAbstractDomain.isLessOrEqual(
+        wrapped.projectToPostcondition(pSummary2),
+        wrapped.projectToPostcondition(pSummary1)
+    );
   }
 
   @Override

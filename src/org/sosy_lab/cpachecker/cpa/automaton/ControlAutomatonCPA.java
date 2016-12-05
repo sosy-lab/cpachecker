@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
@@ -77,7 +79,8 @@ public class ControlAutomatonCPA
     implements ConfigurableProgramAnalysis,
         StatisticsProvider,
         ConfigurableProgramAnalysisWithBAM,
-        ProofCheckerCPA {
+        ProofCheckerCPA,
+        UseSummaryCPA {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
@@ -257,5 +260,10 @@ public class ControlAutomatonCPA
 
   boolean isTreatingErrorsAsTargets() {
     return treatErrorsAsTargets;
+  }
+
+  @Override
+  public SummaryManager getSummaryManager() {
+    return new AutomatonSummaryManager();
   }
 }

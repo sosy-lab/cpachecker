@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -48,13 +50,16 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState getAbstractSuccessorsForSummary(
+  public AbstractState getAbstractSuccessorForSummary(
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,
       Block pBlock) throws CPATransferException, InterruptedException {
 
-    LocationSummary lSummary = (LocationSummary) pSummary;
+    Preconditions.checkState(!pSummary.isEmpty());
+    Preconditions.checkArgument(pSummary.stream().allMatch(s -> s.equals(pSummary.get(0))));
+
+    LocationSummary lSummary = (LocationSummary) pSummary.get(0);
 
     return locationStateFactory.getState(lSummary.getExitNode());
   }
@@ -114,6 +119,23 @@ public class LocationCPASummaryManager implements SummaryManager {
 
     CFANode getExitNode() {
       return entryNode.getExitNode();
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      LocationSummary that = (LocationSummary) pO;
+      return Objects.equals(entryNode, that.entryNode);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(entryNode);
     }
   }
 }

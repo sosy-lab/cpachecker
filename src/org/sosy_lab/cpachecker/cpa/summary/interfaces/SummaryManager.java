@@ -41,8 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface SummaryManager {
 
   /**
-   * Calculate the abstract successors subject to a summary
-   * {@code pSummary}
+   * Calculate the abstract successors subject to a summary {@code pSummary}
    *
    * @param pFunctionCallState Initial state, associated with a function call.
    *               Usually has an outgoing {@link FunctionCallEdge}.
@@ -53,7 +52,7 @@ public interface SummaryManager {
    *               which is useful for summary application.
    * @return resulting state
    */
-  AbstractState getAbstractSuccessorsForSummary(
+  AbstractState getAbstractSuccessorForSummary(
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
@@ -63,7 +62,6 @@ public interface SummaryManager {
   /**
    * Weaken the call state (the successor from which is associated
    * with {@link FunctionEntryNode}).
-   *
    *
    * @param pState state associated with a call node.
    * @param pPrecision precision associated with {@code pState}
@@ -90,6 +88,8 @@ public interface SummaryManager {
   /**
    * Project the summary to the postcondition: state at the return
    * node <em>inside</em> of the function.
+   *
+   * // todo: the name is not very consistent with {@link #projectToCallsite(Summary)}
    *
    * @param pSummary Function summary
    * @return Projection of the summary to the return site:

@@ -87,7 +87,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final LogManager logger;
   private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
-  private final ARGSummaryManager argSummaryManager;
+  private ARGSummaryManager argSummaryManager;
+  private final ConfigurableProgramAnalysis wrapped;
 
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
@@ -99,10 +100,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super(cpa);
     config.inject(this);
     this.logger = logger;
-
+    wrapped = cpa;
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
-    argSummaryManager = new ARGSummaryManager(cpa);
   }
 
   @Override
@@ -235,6 +235,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public SummaryManager getSummaryManager() {
+    if (argSummaryManager == null) {
+      argSummaryManager = new ARGSummaryManager(wrapped);
+    }
     return argSummaryManager;
   }
 }

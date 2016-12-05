@@ -25,14 +25,15 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,32 +47,33 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class IntervalCPASummaryManager implements SummaryManager {
 
+  private final LogManager logger;
+
+  public IntervalCPASummaryManager(LogManager pLogger) {
+    logger = pLogger;
+  }
+
   @Override
-  public AbstractState getAbstractSuccessorsForSummary(
-      AbstractState state,
-      Precision precision,
-      List<Summary> pSummary,
+  public AbstractState getAbstractSuccessorForSummary(
+      AbstractState pFunctionCallState,
+      Precision pFunctionCallPrecision,
+      List<Summary> pSummaries,
       Block pBlock)
       throws CPAException, InterruptedException {
 
     // Propagate the intervals for those variables invariant
     // under the function call, use summary for others.
-    IntervalAnalysisState iState = (IntervalAnalysisState) state;
 
-    // todo: verify the assumption.
-    Preconditions.checkState(pSummary.size() == 1);
-    IntervalSummary iSummary = (IntervalSummary) pSummary.get(0);
-
-    IntervalAnalysisState copy = IntervalAnalysisState.copyOf(iState);
-    List<String> toRemove = new ArrayList<>();
-    for (String key : copy.getIntervalMap().keySet()) {
-      if (pBlock.getReferencedVariables().stream().anyMatch(
-          v -> v.equals(key)
-      )) {
-        toRemove.add(key);
-      }
+    // todo: less ugly way... maybe should just hardcode a single summary.
+    IntervalSummary iSummary = (IntervalSummary) pSummaries.get(0);
+    for (Summary s : pSummaries.subList(1, pSummaries.size())) {
+      iSummary = merge(iSummary, s);
     }
-    toRemove.forEach(key -> copy.removeInterval(key));
+
+
+    IntervalAnalysisState copy = getWeakenedCallState(
+        pFunctionCallState, pFunctionCallPrecision, pBlock);
+
     iSummary.getStateAtExit().getIntervalMap().forEach(
         (var, interval) -> copy.addInterval(var, interval, -1)
     );
@@ -79,18 +81,15 @@ public class IntervalCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState getWeakenedCallState(
+  public IntervalAnalysisState getWeakenedCallState(
       AbstractState pState, Precision pPrecision, Block pBlock) {
     IntervalAnalysisState iState = (IntervalAnalysisState) pState;
     IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
 
-    for (String var : iState.getIntervalMap().keySet()) {
-      if (!pBlock.getReferencedVariables().stream().anyMatch(
-          r -> r.getName().equals(var)
-      )) {
-        clone.removeInterval(var);
-      }
-    }
+    iState.getIntervalMap().keySet().stream()
+        .filter(v -> !pBlock.referencesVar(v))
+        .forEach(v -> clone.removeInterval(v));
+    logger.log(Level.INFO, "Weakened ", iState, " to ", clone);
     return clone;
   }
 
@@ -128,7 +127,7 @@ public class IntervalCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public Summary merge(
+  public IntervalSummary merge(
       Summary pSummary1,
       Summary pSummary2) throws CPAException, InterruptedException {
 

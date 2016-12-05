@@ -63,6 +63,7 @@ class SummaryComputationState implements AbstractState,
   private final transient boolean hasWaitingState;
   private final transient boolean isTarget;
   private final transient ImmutableSet<Property> violatedProperties;
+  private final transient CFANode entryNode;
 
   private SummaryComputationState(
       Block pBlock,
@@ -82,6 +83,7 @@ class SummaryComputationState implements AbstractState,
     hasWaitingState = pHasWaitingState;
     isTarget = pIsTarget;
     violatedProperties = pViolatedProperties;
+    entryNode = AbstractStates.extractLocation(entryState);
   }
 
 
@@ -175,15 +177,14 @@ class SummaryComputationState implements AbstractState,
    * Update the transient information associated with the currently performed
    * computation in the reached set.
    */
-  SummaryComputationState withUpdatedReached(
+  SummaryComputationState withUpdatedTargetable(
       boolean pInnerAnalysisHasWaitingState,
       boolean pIsTarget,
       Set<Property> pViolatedProperties
   ) {
-    assert callingContext != null;
     return new SummaryComputationState(
         block,
-        Optional.of(callingContext),
+        Optional.ofNullable(callingContext),
         entryState,
         entryPrecision,
         reached,
@@ -197,7 +198,7 @@ class SummaryComputationState implements AbstractState,
     // Partition by the function for which we compute this summary.
 
     // todo: might make more sense to partition for block instead?
-    return AbstractStates.extractLocation(entryState);
+    return entryNode;
   }
 
   @Override

@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
-  public AbstractState getAbstractSuccessorsForSummary(
+  public AbstractState getAbstractSuccessorForSummary(
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,

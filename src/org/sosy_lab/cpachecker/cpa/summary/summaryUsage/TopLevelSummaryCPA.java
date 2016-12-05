@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,16 +39,13 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -57,7 +55,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.summaryGeneration.SummaryComputationStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -66,32 +63,33 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * Guiding the summary computation.
  *
  * <p>Operates over wrapped states directly.
- * Reached set may contain an instance of {@link SummaryComputationRequestState},
+ * Reached set may contain an instance of {@link SummaryComputationRequest},
  * as a last state in a reached set, as after adding such a state a BREAK
  * action is issued by the precision adjustment.
  */
-public class TopLevelSummaryCPA implements UseSummaryCPA,
-               PrecisionAdjustment,
-               AbstractDomain,
-               TransferRelation,
-               SummaryManager,
-               StatisticsProvider {
+public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
+                                           PrecisionAdjustment,
+                                           AbstractDomain,
+                                           TransferRelation,
+                                           StatisticsProvider {
 
   private final UseSummaryCPA wrapped;
   private final BlockPartitioning blockPartitioning;
   private final Multimap<String, Summary> summaryMapping;
   private final SummaryManager wrappedSummaryManager;
   private final AbstractDomain wrappedAbstractDomain;
-  private final SummaryComputationStatistics statistics;
   private final TransferRelation wrappedTransferRelation;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
   private final LogManager logger;
+  private final MergeOperator wrappedMergeOperator;
+  private final StopOperator wrappedStopOperator;
+
+  private final List<SummaryComputationRequest> summaryComputationRequests;
 
   public TopLevelSummaryCPA(
       ConfigurableProgramAnalysis pWrapped,
       Multimap<String, Summary> pSummaryMapping,
       BlockPartitioning pBlockPartitioning,
-      SummaryComputationStatistics pStatistics,
       LogManager pLogger) throws InvalidConfigurationException {
     summaryMapping = pSummaryMapping;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
@@ -103,8 +101,18 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
     wrappedAbstractDomain = wrapped.getAbstractDomain();
     wrappedTransferRelation = wrapped.getTransferRelation();
     wrappedPrecisionAdjustment = wrapped.getPrecisionAdjustment();
-    statistics = pStatistics;
+    wrappedMergeOperator = wrapped.getMergeOperator();
+    wrappedStopOperator = wrapped.getStopOperator();
     logger = pLogger;
+    summaryComputationRequests = new ArrayList<>();
+  }
+
+  public List<SummaryComputationRequest> getSummaryComputationRequests() {
+    return summaryComputationRequests;
+  }
+
+  public void clearComputationRequests() {
+    summaryComputationRequests.clear();
   }
 
   @Override
@@ -127,31 +135,24 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
   private Collection<? extends AbstractState> getAbstractSuccessors0(
       AbstractState state, Precision precision) throws CPAException, InterruptedException {
 
-    AbstractStateWithLocation locState = AbstractStates.extractStateByType(
-        state, AbstractStateWithLocation.class);
-    assert locState != null : "Wrapped state should have a unique location";
-
-    CFANode node = locState.getLocationNode();
+    CFANode node = AbstractStates.extractLocation(state);
     if (blockPartitioning.isReturnNode(node)) {
 
       // Analysis only goes up to the block end.
       return Collections.emptyList();
-    } else if (blockPartitioning.isCallNode(node)
+    } else if (blockPartitioning.isOuterCallNode(node) && !isMain(node)) {
 
-        // Do not request a recursive computation on the first block in the program.
-        && !(node.getNumEnteringEdges() == 0 && node.getEnteringSummaryEdge() == null)) {
+      logger.log(Level.INFO, "IDENTIFIED CALL NODE", node);
 
       // Attempt to calculate a postcondition using summaries
       // we have.
       // If our summaries are not sufficient, request a generation of a new one.
-      AbstractState out = applySummaries(
+      return applySummaries(
           node,
           precision,
           state,
-          blockPartitioning.getBlockForCallNode(node)
+          blockPartitioning.getBlockForOuterCallNode(node)
       );
-
-      return Collections.singleton(out);
     } else {
 
       // Simply delegate.
@@ -159,7 +160,16 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
     }
   }
 
-  private AbstractState applySummaries(
+  /**
+   * @return whether {@code node} is a program entry point.
+   */
+  private boolean isMain(CFANode node) {
+
+    // Do not request a recursive computation on the first block in the program.
+    return node.getNumEnteringEdges() == 0 && node.getEnteringSummaryEdge() == null;
+  }
+
+  private Collection<? extends AbstractState> applySummaries(
       CFANode pCallNode,
       Precision pPrecision,
       AbstractState pCallsite,
@@ -167,13 +177,13 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
   ) throws CPAException, InterruptedException {
     String functionName = pCallNode.getFunctionName();
 
-    Collection<Summary> summaries = summaryMapping.get(functionName);
+    List<Summary> summaries = ImmutableList.copyOf(summaryMapping.get(functionName));
     List<Summary> matchingSummaries = new ArrayList<>();
 
     // We can return multiple postconditions, one for each matching summary.
     for (Summary summary : summaries) {
-      AbstractState projection = getSummaryManager().projectToCallsite(summary);
-      if (getAbstractDomain().isLessOrEqual(pCallsite, projection)) {
+      AbstractState projection = wrappedSummaryManager.projectToCallsite(summary);
+      if (wrappedAbstractDomain.isLessOrEqual(pCallsite, projection)) {
         matchingSummaries.add(summary);
       }
     }
@@ -182,27 +192,39 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
       logger.log(Level.INFO, "No matching summary found for ",
           pCallNode.getFunctionName(), ", requesting recomputation");
 
+      AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
+          pCallsite, pPrecision, pBlock
+      );
+
       Collection<? extends AbstractState> entryState =
-          wrappedTransferRelation.getAbstractSuccessors(pCallsite, pPrecision);
+          wrappedTransferRelation.getAbstractSuccessors(weakenedCallState, pPrecision);
+
+      logger.log(Level.INFO, "Generated entry state to the function ",
+          AbstractStates.extractLocation(entryState.iterator().next()),
+          " starting from the call node", AbstractStates.extractLocation(pCallsite));
 
       // todo: would be nice to remove this assumption.
       Preconditions.checkState(entryState.size() == 1,
           "Processing function call edge should create a unique successor");
 
       // Communicate the desire to recompute the summary.
-      return new SummaryComputationRequestState(
+      summaryComputationRequests.add(new SummaryComputationRequest(
           pCallsite,
           entryState.iterator().next(),
           pPrecision,
-          pBlock);
-
-    } else {
-      logger.log(Level.INFO, "# ", matchingSummaries.size(), " matching summaries "
-          + "found for " + pCallNode.getFunctionName());
-      return wrappedSummaryManager.getAbstractSuccessorsForSummary(
-          pCallsite, pPrecision, matchingSummaries, pBlock
-      );
+          pBlock));
     }
+
+    if (summaries.isEmpty()) {
+
+      // No summaries at all is equivalent to having a "bottom" summary.
+      // Hence no successors are returned.
+      return Collections.emptyList();
+    }
+
+    return Collections.singleton(wrappedSummaryManager.getAbstractSuccessorForSummary(
+        pCallsite, pPrecision, summaries, pBlock
+    ));
   }
 
   @Override
@@ -213,34 +235,10 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
       Function<AbstractState, AbstractState> stateProjection,
       AbstractState fullState) throws CPAException, InterruptedException {
 
-    if (state instanceof SummaryComputationRequestState) {
-      return Optional.of(
-          PrecisionAdjustmentResult.create(
-              state, precision, Action.BREAK
-          )
-      );
-    }
-
-    return wrappedPrecisionAdjustment.prec(state, precision, states, stateProjection, fullState);
+   return wrappedPrecisionAdjustment.prec(
+        state, precision, states, stateProjection, fullState);
   }
 
-
-  @Override
-  public AbstractState getAbstractSuccessorsForSummary(
-      AbstractState state, Precision precision, List<Summary> pSummary, Block pBlock)
-      throws CPAException, InterruptedException {
-    return wrappedSummaryManager.getAbstractSuccessorsForSummary(
-        state, precision, pSummary, pBlock
-    );
-  }
-
-  @Override
-  public AbstractState getWeakenedCallState(
-      AbstractState pState, Precision pPrecision, Block pBlock) {
-    return wrappedSummaryManager.getWeakenedCallState(
-        pState, pPrecision, pBlock
-    );
-  }
 
   @Override
   public TransferRelation getTransferRelation() {
@@ -249,12 +247,12 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
 
   @Override
   public MergeOperator getMergeOperator() {
-    return wrapped.getMergeOperator();
+    return wrappedMergeOperator;
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopSepOperator(this);
+    return wrappedStopOperator;
   }
 
   @Override
@@ -275,58 +273,9 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
-      throws CPATransferException, InterruptedException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public AbstractState projectToCallsite(Summary pSummary) {
-    return wrappedSummaryManager.projectToCallsite(pSummary);
-  }
-
-  @Override
-  public AbstractState projectToPostcondition(Summary pSummary) {
-    return wrappedSummaryManager.projectToPostcondition(pSummary);
-  }
-
-  @Override
-  public List<? extends Summary> generateSummaries(
-      AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnState,
-      List<Precision> pReturnPrecision,
-      CFANode pEntryNode,
-      Block pBlock) {
-    return wrappedSummaryManager.generateSummaries(
-        pCallState, pEntryPrecision, pReturnState, pReturnPrecision, pEntryNode, pBlock);
-  }
-
-  @Override
-  public Summary merge(
-      Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException {
-    return wrappedSummaryManager.merge(pSummary1, pSummary2);
-  }
-
-  @Override
-  public AbstractState join(
-      AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
-    return wrappedAbstractDomain.join(state1, state2);
-  }
-
-  @Override
   public boolean isLessOrEqual(
       AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
-    return !(
-        state1 instanceof SummaryComputationRequestState
-        || state2 instanceof SummaryComputationRequestState)
-        && wrappedAbstractDomain.isLessOrEqual(state1, state2);
-  }
-
-  @Override
-  public SummaryManager getSummaryManager() {
-    return this;
+    return wrappedAbstractDomain.isLessOrEqual(state1, state2);
   }
 
   @Override
@@ -334,5 +283,22 @@ public class TopLevelSummaryCPA implements UseSummaryCPA,
     if (wrapped instanceof StatisticsProvider) {
       ((StatisticsProvider) wrapped).collectStatistics(pStatsCollection);
     }
+  }
+
+  public SummaryManager getSummaryManager() {
+    return wrappedSummaryManager;
+  }
+
+  @Override
+  public AbstractState join(
+      AbstractState state1, AbstractState state2) throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException("Unexpected API call");
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    throw new UnsupportedOperationException("Unexpected API Call");
   }
 }

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -47,7 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -81,7 +80,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryComputationRequestState;
+import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryComputationRequest;
 import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.TopLevelSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -123,6 +122,7 @@ public class SummaryComputationCPA
   private final ReachedSetFactory reachedSetFactory;
   private final BlockPartitioning blockPartitioning;
   private final SummaryManager wrappedSummaryManager;
+  private final StopOperator wrappedStopOperator;
   private final MergeOperator wrappedMergeOperator;
   private final SummaryComputationStatistics statistics;
   private final LogManager logger;
@@ -147,19 +147,22 @@ public class SummaryComputationCPA
     pConfig.inject(this);
     reachedSetFactory = pReachedSetFactory;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
-        "Parameter CPA has to implement the SummaryCPA interface.");
+        "Parameter CPA "
+            + pWrapped.getClass().toString()
+            + " has to implement the SummaryCPA interface.");
 
     computedSummaries = LinkedHashMultimap.create();
     PartitioningHeuristic heuristic = partitioningHeuristicFactory.create(
         pLogger, pCfa, pConfig
     );
-    blockPartitioning = heuristic.buildPartitioning(pCfa, new BlockPartitioningBuilder());
+    blockPartitioning = heuristic.buildPartitioning(pCfa, new ExtendedBlockPartitioningBuilder());
     logger = pLogger;
     statistics = new SummaryComputationStatistics();
     wrapped = new TopLevelSummaryCPA(
-        pWrapped, computedSummaries, blockPartitioning, statistics, pLogger);
-    wrappedSummaryManager= wrapped.getSummaryManager();
+        pWrapped, computedSummaries, blockPartitioning, pLogger);
+    wrappedSummaryManager = wrapped.getSummaryManager();
     wrappedMergeOperator = wrapped.getMergeOperator();
+    wrappedStopOperator = wrapped.getStopOperator();
 
     algorithmFactory = new CPAAlgorithmFactory(
         wrapped, pLogger, pConfig, pShutdownNotifier
@@ -199,57 +202,54 @@ public class SummaryComputationCPA
 
     String functionName = summaryComputationState.getFunctionName();
     ReachedSet reached = summaryComputationState.getReached();
-    FluentIterable<SummaryComputationRequestState> computationRequests =
-        AbstractStates.projectToType(reached, SummaryComputationRequestState.class);
-
-    // Normalize the reached set, remove signal states.
-    reached.removeAll(computationRequests);
 
     CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
     logger.log(Level.INFO, "Requesting intraprocedural analysis for ",
-        functionName, "; current reachedSet (size: " + reached.size() + ") is: ", reached);
+        functionName, "; current reachedSet size is " + reached.size());
 
     // todo: check the algorithm status. What about termination?
     AlgorithmStatus status = algorithm.run(reached);
     assert status.isSound();
 
-    if (!computationRequests.isEmpty()) {
-      // Requests for summary computation is not empty:
-      // put the new requests into the priority queue,
-      // as well as the updated request for the currently processed function.
+    // Requests for summary computation is not empty:
+    // put the new requests into the priority queue,
+    // as well as the updated request for the currently processed function.
 
-      // todo: should we check that no summary has appeared in the meantime?
+    // todo: should we check that no summary has appeared in the meantime?
 
-      // NB: it is important to make sure that the summary computation request
-      // is expanded *before* the request for recomputing the summary
-      // for "summaryComputationState".
-      List<SummaryComputationState> toReturn = new ArrayList<>();
-      for (SummaryComputationRequestState req : computationRequests) {
-        ReachedSet newReached = reachedSetFactory.create();
-        newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
+    // NB: it is important to make sure that the summary computation request
+    // is expanded *before* the request for recomputing the summary
+    // for "summaryComputationState".
+    List<SummaryComputationState> toReturn = new ArrayList<>();
+    for (SummaryComputationRequest req : wrapped.getSummaryComputationRequests()) {
+      ReachedSet newReached = reachedSetFactory.create();
+      newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
+      SummaryComputationState scs = SummaryComputationState.of(
+          req.getBlock(),
+          req.getCallingContext(),
+          req.getFunctionEntryState(),
+          req.getFunctionEntryPrecision(),
+          newReached,
+          false,
+          false,
+          ImmutableSet.of());
 
-        toReturn.add(
-            SummaryComputationState.of(
-                req.getBlock(),
-                req.getCallingContext(),
-                req.getFunctionEntryState(),
-                req.getFunctionEntryPrecision(),
-                newReached,
-                false,
-                false,
-                ImmutableSet.of()));
-      }
+      logger.log(Level.INFO, "Recursive computation requested for function " + scs.getFunctionName()
+      + " with entry state " + req.getFunctionEntryState());
+      toReturn.add(scs);
+    }
+
+    if (!wrapped.getSummaryComputationRequests().isEmpty()) {
 
       // Re-add the summary computation state to the reached set:
       // we want to compute the summary for that one.
       // Important: *relies* on the correct computation order,
       // would get stuck in the infinite loop otherwise.
       toReturn.add(summaryComputationState);
-      return toReturn;
     }
 
-    // We assume the wrapped state is ARGState, unless it was a
+    // We assume the wrapped state is an ARGState, unless it was a
     // computation request.
     ARGState lastState = (ARGState) reached.getLastState();
 
@@ -275,26 +275,40 @@ public class SummaryComputationCPA
 
     if (hasTargetState || hasWaitingState) {
 
-      return Collections.singleton(summaryComputationState.withUpdatedReached(
+      logger.log(Level.INFO, "Has target state = " + hasTargetState,
+          " has waiting state = " + hasWaitingState + " returning same state");
+
+      return Collections.singleton(summaryComputationState.withUpdatedTargetable(
               hasWaitingState, hasTargetState, pViolatedProperties));
     } else {
 
-      Preconditions.checkState(summaryComputationState.getCallingContext().isPresent(),
-          "Summary application only makes sense if the calling context is present.");
+      if (summaryComputationState.getCallingContext().isPresent()) {
 
-      // No new summaries were needed, can finally generate the summary for this function.
-      Collection<? extends Summary> generatedSummaries = wrappedSummaryManager.generateSummaries(
-          summaryComputationState.getCallingContext().get(),
-          summaryComputationState.getEntryPrecision(),
-          returnStates,
-          returnPrecisions,
-          summaryComputationState.getEntryLocation(),
-          summaryComputationState.getBlock()
-      );
-      for (Summary s : generatedSummaries) {
-        storeGeneratedSummary(s, functionName);
+        boolean changed = false;
+
+        // Generate the summaries if we're not in the outer function.
+        // No new summaries were needed, can finally generate the summary for this function.
+        Collection<? extends Summary> generatedSummaries = wrappedSummaryManager.generateSummaries(
+            summaryComputationState.getCallingContext().get(),
+            summaryComputationState.getEntryPrecision(),
+            returnStates,
+            returnPrecisions,
+            summaryComputationState.getEntryLocation(),
+            summaryComputationState.getBlock()
+        );
+        for (Summary s : generatedSummaries) {
+          changed |= storeGeneratedSummary(s, functionName);
+        }
+
+        if (!changed) {
+
+          // The summary was subsumed by the existing ones.
+          return Collections.emptyList();
+        }
       }
-      return Collections.emptyList();
+
+      // todo: can we have empty return from the main? what if "main" is recursive itself?..
+      return toReturn;
     }
   }
 
@@ -308,8 +322,10 @@ public class SummaryComputationCPA
    *
    * @param generatedSummary Summary which was generated.
    * @param functionName Name of the function for the generated summary.
+   *
+   * @return whether the collection was changed (if not, the summary was subsumed).
    */
-  private void storeGeneratedSummary(
+  private boolean storeGeneratedSummary(
       Summary generatedSummary, String functionName)
       throws CPAException, InterruptedException {
 
@@ -331,6 +347,10 @@ public class SummaryComputationCPA
     // Do the coverage computation.
     boolean add = true;
     for (Summary existingSummary : matchingSummaries) {
+
+      // todo: STOP operator should be used instead.
+      // would actually make the API nicer as well.
+
       if (wrappedSummaryManager.isDescribedBy(
           generatedSummary, existingSummary, wrapped.getAbstractDomain())) {
 
@@ -341,6 +361,11 @@ public class SummaryComputationCPA
     }
     if (add) {
       matchingSummaries.add(generatedSummary);
+
+      // todo: what about the matching case?..
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -370,13 +395,13 @@ public class SummaryComputationCPA
     // actually, the statement below is merely an optimization.
     // hmm if we handle the states with deeper callstack
     // first that *might* solve our problem.
-//    if (joinSummaries
-//        && wrappedAbstractDomain.isLessOrEqual(
-//            sState1.getEntryState(), sState2.getEntryState())) {
-//
-//      // Stronger precondition: already subsumed by the existing summary.
-//      return true;
-//    }
+    if (joinSummaries
+        && wrapped.getAbstractDomain().isLessOrEqual(
+            sState1.getEntryState(), sState2.getEntryState())) {
+
+      // Stronger precondition: already subsumed by the existing summary.
+      return true;
+    }
 
     return false;
   }

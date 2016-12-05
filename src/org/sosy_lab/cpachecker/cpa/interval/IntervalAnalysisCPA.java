@@ -65,22 +65,27 @@ public class IntervalAnalysisCPA extends AbstractCPA
     return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-          description="which type of merge operator to use for IntervalAnalysisCPA")
   /**
    * the merge type of the interval analysis
    */
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
+          description="which type of merge operator to use for IntervalAnalysisCPA")
   private String mergeType = "SEP";
 
   private final StateToFormulaWriter writer;
+
+  private final LogManager logger;
 
   /**
    * This method acts as the constructor of the interval analysis CPA.
    *
    * @param config the configuration of the CPAinterval analysis CPA.
    */
-  private IntervalAnalysisCPA(Configuration config, LogManager logger,
-      ShutdownNotifier shutdownNotifier, CFA cfa)
+  private IntervalAnalysisCPA(
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier shutdownNotifier,
+      CFA cfa)
           throws InvalidConfigurationException {
     super(
         "irrelevant",
@@ -89,6 +94,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
         new IntervalAnalysisTransferRelation(config, logger));
     config.inject(this);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+    this.logger = logger;
   }
 
   /* (non-Javadoc)
@@ -119,6 +125,6 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Override
   public SummaryManager getSummaryManager() {
-    return new IntervalCPASummaryManager();
+    return new IntervalCPASummaryManager(logger);
   }
 }
