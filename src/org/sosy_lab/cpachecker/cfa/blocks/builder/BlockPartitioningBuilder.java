@@ -58,6 +58,7 @@ public class BlockPartitioningBuilder {
   protected final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
+  protected final Map<CFANode, Set<CFANode>> outerCallNodesMap = new HashMap<>();
 
   public BlockPartitioningBuilder() {}
 
@@ -106,7 +107,8 @@ public class BlockPartitioningBuilder {
               Iterables.concat(variables),
               entry.getValue(),
               returnNodesMap.get(callNode),
-              Iterables.concat(blockNodes)));
+              Iterables.concat(blockNodes),
+              outerCallNodesMap.get(callNode)));
     }
 
     return new BlockPartitioning(blocks, cfa.getMainFunction());
@@ -156,6 +158,7 @@ public class BlockPartitioningBuilder {
 
     referencedVariablesMap.put(registerNode, referencedVariables);
     callNodesMap.put(registerNode, callNodes);
+    outerCallNodesMap.put(registerNode, collectOuterCallNodes(nodes));
     returnNodesMap.put(registerNode, returnNodes);
     innerFunctionCallsMap.put(registerNode, innerFunctionCalls);
     blockNodesMap.put(registerNode, nodes);
@@ -209,6 +212,19 @@ public class BlockPartitioningBuilder {
     return result;
   }
 
+  private Set<CFANode> collectOuterCallNodes(Set<CFANode> pNodes) {
+    Set<CFANode> result = new HashSet<>();
+    for (CFANode node : pNodes) {
+      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
+        if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge
+            && (node instanceof FunctionEntryNode)) {
+          result.add(edge.getPredecessor());
+        }
+      }
+    }
+    return result;
+  }
+
   /**
    * get all exit-nodes of the current block
    *
@@ -218,7 +234,7 @@ public class BlockPartitioningBuilder {
     Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
 
-      // handle a bug in CFA creation: there are ugly CFA-nodes ... and we ignore them.
+      // handle a bug in CFA creation: ignore disconnected CFA nodes.
       if (node.getNumEnteringEdges() == 0 && node.getNumLeavingEdges() == 0) {
         continue;
       }

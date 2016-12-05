@@ -25,10 +25,11 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * Represents a block as described in the BAM paper.
+ * A partition of CFA nodes.
  */
 public class Block {
 
@@ -36,17 +37,34 @@ public class Block {
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
+  private final Set<CFANode> outerCallNodes;
+  private final Set<String> referencedVarNames;
 
   public Block(
       Iterable<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes,
       Set<CFANode> pReturnNodes,
-      Iterable<CFANode> allNodes) {
+      Iterable<CFANode> allNodes,
+      Set<CFANode> outerCallNodes) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
     callNodes = ImmutableSet.copyOf(pCallNodes);
     returnNodes = ImmutableSet.copyOf(pReturnNodes);
     nodes = ImmutableSet.copyOf(allNodes);
+    referencedVarNames = referencedVariables.stream()
+        .map(r -> r.getName()).collect(Collectors.toSet());
+    this.outerCallNodes = outerCallNodes;
+  }
+
+  public boolean referencesVar(String pVarName) {
+    return referencedVarNames.contains(pVarName);
+  }
+
+  /**
+   * @return nodes which are not in this block, but which successors are.
+   */
+  public Set<CFANode> getOuterCallNodes() {
+    return outerCallNodes;
   }
 
   public Set<CFANode> getCallNodes() {
@@ -58,10 +76,17 @@ public class Block {
     return callNodes.iterator().next();
   }
 
+
+  /**
+   * @return all referenced variables for this and <em>all nested blocks</em> as well.
+   */
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
   }
 
+  /**
+   * @return all nodes contained in this block.
+   */
   public Set<CFANode> getNodes() {
     return nodes;
   }
@@ -70,6 +95,9 @@ public class Block {
     return returnNodes.contains(pNode);
   }
 
+  /**
+   * @return all nodes in this block from which there exist edges to outside of the block.
+   */
   public Set<CFANode> getReturnNodes() {
     return returnNodes;
   }

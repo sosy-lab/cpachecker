@@ -177,10 +177,22 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
       CFANode key = returnNodesEntry.getKey();
       if (immutableVariablesMap.containsKey(key)) {
         assert immutableNodesMap.containsKey(key);
-        blocks.add(new Block(immutableVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), immutableNodesMap.get(key)));
+        blocks.add(
+            new Block(
+                immutableVariablesMap.get(key),
+                callNodesMap.get(key),
+                returnNodesMap.get(key),
+                immutableNodesMap.get(key),
+                outerCallNodesMap.get(key)
+            ));
       } else {
-        blocks.add(new Block(ImmutableSet.copyOf(referencedVariablesMap.get(key)), callNodesMap.get(key),
-            returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key))));
+        blocks.add(new Block(
+            ImmutableSet.copyOf(referencedVariablesMap.get(key)),
+            callNodesMap.get(key),
+            returnNodesEntry.getValue(),
+            ImmutableSet.copyOf(blockNodesMap.get(key)),
+            outerCallNodesMap.get(key)
+            ));
       }
     }
     return new BlockPartitioning(blocks, cfa.getMainFunction());

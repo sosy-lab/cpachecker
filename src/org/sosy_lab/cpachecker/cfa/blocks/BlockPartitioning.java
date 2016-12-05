@@ -27,12 +27,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
@@ -42,10 +41,13 @@ public class BlockPartitioning {
   private final Map<CFANode, Block> callNodeToBlock;
   private final ImmutableMultimap<CFANode, Block> returnNodeToBlock;
   private final ImmutableSet<Block> blocks;
+  private final Map<CFANode, Block> outerCallNodeToBlock;
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = ImmutableMap.builder();
     final ImmutableMultimap.Builder<CFANode, Block> returnNodeToBlock = ImmutableMultimap.builder();
+
+    outerCallNodeToBlock = new HashMap<>();
 
     for (Block subtree : subtrees) {
       for (CFANode callNode : subtree.getCallNodes()) {
@@ -54,6 +56,10 @@ public class BlockPartitioning {
 
       for (CFANode returnNode : subtree.getReturnNodes()) {
         returnNodeToBlock.put(returnNode, subtree);
+      }
+
+      for (CFANode node : subtree.getOuterCallNodes()) {
+        outerCallNodeToBlock.put(node, subtree);
       }
     }
 
@@ -69,6 +75,14 @@ public class BlockPartitioning {
    */
   public boolean isCallNode(CFANode node) {
     return callNodeToBlock.containsKey(node);
+  }
+
+  public boolean isOuterCallNode(CFANode node) {
+    return outerCallNodeToBlock.containsKey(node);
+  }
+
+  public Block getBlockForOuterCallNode(CFANode node) {
+    return outerCallNodeToBlock.get(node);
   }
 
   /**
