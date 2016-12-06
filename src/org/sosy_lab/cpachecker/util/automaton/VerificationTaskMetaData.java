@@ -84,6 +84,7 @@ public class VerificationTaskMetaData {
 
     @Option(
       secure = true,
+      name = "invariantGeneration.kInduction.invariantsAutomatonFile",
       description =
           "Provides additional candidate invariants to the k-induction invariant generator."
     )
