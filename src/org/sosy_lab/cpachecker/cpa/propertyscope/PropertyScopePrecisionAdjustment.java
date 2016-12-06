@@ -182,7 +182,6 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         state.getCallstack(),
         scopeLocations,
         state.getPrevState().orElse(null),
-        predState.getAbstractionFormula(),
         state.getAutomatonStates(),
         state.getAutomScopeInsts(),
         hAfterGlobalInitAbsFormula.value,

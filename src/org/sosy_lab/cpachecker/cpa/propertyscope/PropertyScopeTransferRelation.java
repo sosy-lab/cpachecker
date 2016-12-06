@@ -72,7 +72,7 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
     PersistentList<PropertyScopeState> newPrevBlkStates = prevBlkStates.with(state);
 
     PropertyScopeState newState = new PropertyScopeState(newPrevBlkStates,
-        -1, cfaEdge, emptyList(), emptySet(), state, null,
+        -1, cfaEdge, emptyList(), emptySet(), state,
         Collections.emptyMap(),
         state.getAutomScopeInsts(),
         state.getAfterGlobalInitAbsFormula(),
@@ -151,7 +151,6 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
             callstack,
             scopeLocations,
             state.getPrevState().orElse(null),
-            null,
             automatonStateMap,
             automScopeInsts,
             state.getAfterGlobalInitAbsFormula(),

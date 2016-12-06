@@ -57,7 +57,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
   private final List<String> callstack;
   private final Set<ScopeLocation> scopeLocations;
   private final PropertyScopeState prevState;
-  private final AbstractionFormula absFormula;
   private final Map<Automaton, AutomatonState> automatonStates;
   private final Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts;
   private final AbstractionFormula afterGlobalInitAbsFormula;
@@ -71,7 +70,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
         null,
         singletonList(pNode.getFunctionName()),
         emptySet(),
-        null,
         null,
         Collections.emptyMap(),
         Collections.emptyMap(),
@@ -87,7 +85,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
       List<String> pCallstack,
       Set<ScopeLocation> pScopeLocations,
       PropertyScopeState pPrevState,
-      AbstractionFormula pAbsFormula,
       Map<Automaton, AutomatonState> pAutomatonStates,
       Map<Automaton, AutomatonPropertyScopeInstance> pAutomScopeInsts,
       AbstractionFormula pAfterGlobalInitAbsFormula,
@@ -100,7 +97,6 @@ public class PropertyScopeState implements AbstractState, Graphable {
     callstack = Collections.unmodifiableList(pCallstack);
     scopeLocations = Collections.unmodifiableSet(pScopeLocations);
     prevState = pPrevState;
-    absFormula = pAbsFormula;
     automatonStates = Collections.unmodifiableMap(pAutomatonStates);
     automScopeInsts = Collections.unmodifiableMap(pAutomScopeInsts);
     afterGlobalInitAbsFormula = pAfterGlobalInitAbsFormula;
