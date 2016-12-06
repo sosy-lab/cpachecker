@@ -175,39 +175,6 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
     ImmutableSet<ScopeLocation> candiateScopeLocations =
         predState.isAbstractionState() ? ImmutableSet.of() : state.getCandidateScopeLocations();
 
-    // not really helpful, look again later maybe
-/*    if (absScopeInstance.isPresent()) {
-      AbstractionPropertyScopeInstance absInst = (AbstractionPropertyScopeInstance)
-          absScopeInstance.get();
-
-      BooleanFormula startFormula = absInst.getStartFormula().asInstantiatedFormula();
-      BooleanFormula thisFormula = predState.getAbstractionFormula().asInstantiatedFormula();
-
-      try {
-        boolean implication = solver.implies(startFormula, thisFormula);
-        boolean revImplication = solver.implies(thisFormula, startFormula);
-
-        if (implication && revImplication) {
-          absScopeInstance = java.util.Optional.empty();
-        }
-      } catch (SolverException pE) {
-        throw new CPAException("Solver problem!", pE);
-      }
-
-    }
-
-    if (!absScopeInstance.isPresent() && hIsAbsScopeLoc.value) {
-      java.util.Optional<AbstractionFormula> prevFormula = state.prevStateStream()
-          .map(PropertyScopeState::getAbsFormula)
-          .filter(java.util.Optional::isPresent)
-          .findFirst().flatMap(identity());
-
-      if(prevFormula.isPresent()) {
-        absScopeInstance = java.util.Optional.of(PropertyScopeInstance.create(prevFormula.get()));
-      }
-
-    }*/
-
     return Optional.of(new PropertyScopeState(
         PersistentLinkedList.of(),
         state.getPropertyDependantMatches(),
