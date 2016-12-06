@@ -201,7 +201,7 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
-    verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, Optional.empty());
   }
 
   /**
@@ -823,14 +823,19 @@ public class AutomatonGraphmlParser {
       } else {
         logger.log(Level.WARNING, message);
       }
-    } else if (verificationTaskMetaData.getProgramHash().isPresent()) {
+    } else if (verificationTaskMetaData.getProgramHashes().isPresent()) {
       FluentIterable<String> programHash =
           FluentIterable.from(pProgramHash).transform(String::toLowerCase);
-      if (!programHash.contains(verificationTaskMetaData.getProgramHash().get())) {
-        throw new WitnessParseException(
-            "Hash sum of given verification-task "
-                + "source code does not match the hash sum in the witness. "
-                + "The witness is likely unrelated to the verification task.");
+      for (String actualProgramHash : verificationTaskMetaData.getProgramHashes().get()) {
+        if (!programHash.contains(actualProgramHash)) {
+          throw new WitnessParseException(
+              "Hash sum of given verification-task "
+                  + "source-code file ("
+                  + actualProgramHash
+                  + ") "
+                  + "does not match the hash sum in the witness. "
+                  + "The witness is likely unrelated to the verification task.");
+        }
       }
     } else {
       logger.log(
@@ -1580,16 +1585,26 @@ public class AutomatonGraphmlParser {
 
   }
 
-  public static boolean isGraphmlAutomaton(Path pPath, LogManager pLogger) throws InvalidConfigurationException {
+  public static boolean isGraphmlAutomatonFromConfiguration(Path pPath)
+      throws InvalidConfigurationException {
+    try {
+      return isGraphmlAutomaton(pPath);
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException(
+          "Invalid witness file provided! File not found: " + pPath);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
+    }
+  }
+
+  public static boolean isGraphmlAutomaton(Path pPath) throws IOException {
     SAXParser saxParser;
     try {
       saxParser = SAXParserFactory.newInstance().newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
-      pLogger.logException(
-          Level.WARNING,
-          e,
-          "SAX parser configured incorrectly. Could not determine whether or not the file describes a witness automaton.");
-      return false;
+      throw new AssertionError(
+          "SAX parser configured incorrectly. Could not determine whether or not the file describes a witness automaton.",
+          e);
     }
     DefaultHandler defaultHandler = new DefaultHandler();
     try {
@@ -1602,11 +1617,6 @@ public class AutomatonGraphmlParser {
         }
       }
       return true;
-    } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException(
-          "Invalid witness file provided! File not found: " + pPath);
-    } catch (IOException e) {
-      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
     } catch (SAXException e) {
       return false;
     }

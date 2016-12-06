@@ -24,10 +24,7 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
@@ -38,7 +35,6 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -68,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 import org.w3c.dom.DOMException;
@@ -132,7 +127,8 @@ public class AutomatonGraphmlCommon {
     FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),
     CFAPREDECESSORNODE("predecessor", ElementType.EDGE, "predecessor", "string"),
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
-    WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string");
+    WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
+    INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string");
 
     public final String id;
     public final ElementType keyFor;
@@ -294,8 +290,7 @@ public class AutomatonGraphmlCommon {
         String pDefaultSourceFileName,
         Language pLanguage,
         MachineModel pMachineModel,
-        VerificationTaskMetaData pVerificationTaskMetaData,
-        Specification pSpecification)
+        VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -321,42 +316,28 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
 
-      FluentIterable<SpecificationProperty> properties =
-          FluentIterable.from(pSpecification.getProperties());
-      for (SpecificationProperty property : properties) {
+      for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
         graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
       }
 
-      Set<String> pathsAssociatedWithPropertyFiles =
-          properties
-              .transform(SpecificationProperty::getInternalSpecificationPath)
-              .filter(Optional::isPresent)
-              .transform(Optional::get)
-              .toSet();
-      Iterable<Path> pathsNotAssociatedWithPropertyFiles =
-          Iterables.filter(
-              pSpecification.getSpecFiles(),
-              p -> !pathsAssociatedWithPropertyFiles.contains(p.toString()));
-      for (Path specFile : pathsNotAssociatedWithPropertyFiles) {
+      for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
         graph.appendChild(
             createDataElement(
                 KeyDef.SPECIFICATION, MoreFiles.toString(specFile, Charsets.UTF_8).trim()));
       }
-
-      /*
-       * TODO: We should allow multiple program files here.
-       * As soon as we do, we should also hash each file separately.
-       */
-      if (pVerificationTaskMetaData.getProgramNames().isPresent()) {
-        graph.appendChild(
-            createDataElement(
-                KeyDef.PROGRAMFILE,
-                Joiner.on(", ").join(pVerificationTaskMetaData.getProgramNames().get())));
+      for (String inputWitnessHash : pVerificationTaskMetaData.getInputWitnessHashes()) {
+        graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, inputWitnessHash));
       }
-      if (pVerificationTaskMetaData.getProgramHash().isPresent()) {
-        graph.appendChild(
-            createDataElement(
-                KeyDef.PROGRAMHASH, pVerificationTaskMetaData.getProgramHash().get()));
+
+      if (pVerificationTaskMetaData.getProgramNames().isPresent()) {
+        for (String programName : pVerificationTaskMetaData.getProgramNames().get()) {
+          graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, programName));
+        }
+      }
+      if (pVerificationTaskMetaData.getProgramHashes().isPresent()) {
+        for (String programHash : pVerificationTaskMetaData.getProgramHashes().get()) {
+          graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, programHash));
+        }
       }
 
       graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));

@@ -97,7 +97,7 @@ public final class Specification {
             "Could not load automaton from file " + e.getMessage(), e);
       }
 
-      if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
+      if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
         automata = graphmlParser.parseAutomatonFile(specFile);

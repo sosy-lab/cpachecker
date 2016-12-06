@@ -209,8 +209,6 @@ public class ARGPathExporter {
 
   private final VerificationTaskMetaData verificationTaskMetaData;
 
-  private final Specification specification;
-
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -223,8 +221,8 @@ public class ARGPathExporter {
     this.machineModel = pCFA.getMachineModel();
     this.language = pCFA.getLanguage();
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
-    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
-    this.specification = pSpecification;
+    this.verificationTaskMetaData =
+        new VerificationTaskMetaData(pConfig, Optional.of(pSpecification));
   }
 
   public void writeErrorWitness(
@@ -860,12 +858,7 @@ public class ARGPathExporter {
       try {
         doc =
             new GraphMlBuilder(
-                graphType,
-                defaultSourcefileName,
-                language,
-                machineModel,
-                verificationTaskMetaData,
-                specification);
+                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
