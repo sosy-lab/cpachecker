@@ -1,0 +1,8 @@
+OBSERVER AUTOMATON DummyLabel
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+   MATCH LABEL [ooo] -> ERROR("DUMMY LABEL found. This should not happen!");
+
+END AUTOMATON
