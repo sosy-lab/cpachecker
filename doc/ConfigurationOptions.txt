@@ -1970,6 +1970,10 @@ cpa.propertyscope.onlyFindNewEntryFunction = false
 # ones
 cpa.propertyscope.prepopulateCallgraph = true
 
+# Show skipped function entry/exits in the irrelevantNOdes of the
+# PropertyScopeGraph
+cpa.propertyscope.showEntryExitFunctons = false
+
 # Skips ARGStates which are irrelevant inside the PropertyScopeGraph, even if
 # the state has multiple parents or children.
 cpa.propertyscope.skipIrrelevantGraphBranchStates = true

@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -69,7 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -106,6 +104,10 @@ public class PropertyScopeStatistics extends AbstractStatistics {
       + "PropertyScopeGraph, even if the state has multiple parents or children.")
   private boolean skipIrrelevantGraphBranchStates = true;
 
+  @Option(secure = true, description = "Show skipped function entry/exits in the irrelevant"
+      + "NOdes of the PropertyScopeGraph")
+  private boolean showEntryExitFunctons = false;
+
   @Option(description = "Where to export the property scope callgraph to")
   @FileOption(Type.OUTPUT_FILE)
   private Path callgraphGraphmlFile = Paths.get("prop_scope_callgraph-%s.graphml");
@@ -113,7 +115,6 @@ public class PropertyScopeStatistics extends AbstractStatistics {
   @Option(description = "Where to export the property scope graph (reduced ARG) to")
   @FileOption(Type.OUTPUT_FILE)
   private Path graphDotFile = Paths.get("prop_scope_graph-%s.dot");
-
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
@@ -564,7 +565,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     Path psGraphOutPath =
         Paths.get(String.format(this.graphDotFile.toString(), psGraphReasonsName));
     try (Writer w = MoreFiles.openOutputFile(psGraphOutPath, Charset.defaultCharset())) {
-      PropertyScopeGraphToDotWriter.write(psGraph, w);
+      PropertyScopeGraphToDotWriter.write(psGraph, w, showEntryExitFunctons);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeGraph to DOT file");
     }
@@ -572,7 +573,7 @@ public class PropertyScopeStatistics extends AbstractStatistics {
     Path psGraphOutPathHinted =
         Paths.get(String.format(this.graphDotFile.toString(), psGraphReasonsName + "-hinted"));
     try (Writer w = MoreFiles.openOutputFile(psGraphOutPathHinted, Charset.defaultCharset())) {
-      PropertyScopeGraphToDotWriter.writeHinted(psGraph, w);
+      PropertyScopeGraphToDotWriter.writeHinted(psGraph, w, showEntryExitFunctons);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write PropertyScopeGraph to DOT file");
     }

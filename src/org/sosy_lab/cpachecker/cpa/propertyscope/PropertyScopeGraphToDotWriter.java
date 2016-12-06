@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.propertyscope.ScopeLocation.Reason;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -60,11 +59,14 @@ public class PropertyScopeGraphToDotWriter {
   private static final String PART_OF_SCOPE_COLOR = "cornflowerblue";
   private final PropertyScopeGraph graph;
   private final boolean hinted;
+  private final boolean showEntryExitFunction;
   private final ImmutableMap<String, String> automatonColorMap;
 
-  public PropertyScopeGraphToDotWriter(PropertyScopeGraph pGraph, boolean pHinted) {
+  public PropertyScopeGraphToDotWriter(PropertyScopeGraph pGraph, boolean pHinted, boolean
+      showEntryExitFunction) {
     graph = pGraph;
     hinted = pHinted;
+    this.showEntryExitFunction = showEntryExitFunction;
 
     /* build color for automatons */
     List<String> colorList = Arrays.asList("#aa5500", "#aaaa00", "#aa007f", "#aaaaff", "#ff007f",
@@ -86,12 +88,16 @@ public class PropertyScopeGraphToDotWriter {
 
   }
 
-  public static void write(PropertyScopeGraph graph, Appendable sb) throws IOException {
-    new PropertyScopeGraphToDotWriter(graph, false).write(sb);
+  public static void write(PropertyScopeGraph graph, Appendable sb,
+                           boolean showEntryExitFunctons) throws IOException {
+    new PropertyScopeGraphToDotWriter(graph, false, showEntryExitFunctons).write(sb);
   }
 
-  public static void writeHinted(PropertyScopeGraph graph, Appendable sb) throws IOException {
-    new PropertyScopeGraphToDotWriter(graph, true).write(sb);
+  public static void writeHinted(
+      PropertyScopeGraph graph,
+      Appendable sb,
+      boolean showEntryExitFunctons) throws IOException {
+    new PropertyScopeGraphToDotWriter(graph, true, showEntryExitFunctons).write(sb);
   }
 
   private static String determineNodeColor(ScopeNode scopeNode) {
@@ -241,7 +247,7 @@ public class PropertyScopeGraphToDotWriter {
 
     int entryExitMaxSize = passedFunctionEntryExits.stream()
         .map(List::size).max(Integer::compareTo).orElse(0);
-    if (entryExitMaxSize > 0) {
+    if (entryExitMaxSize > 0 && showEntryExitFunction) {
       sb
           .append("<TR><TD><FONT POINT-SIZE=\"3\"> </FONT></TD></TR>")
           .append("<TR><TD>")
