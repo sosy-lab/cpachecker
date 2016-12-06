@@ -353,7 +353,7 @@ public class PropertyScopeGraphToDotWriter {
               String.join("\n", predSt.getAbstractionFormula().asInstantiatedFormula().toString()
                   .split("(?<=\\G.{60})")))
           .append("\\n");
-    
+
 
     sb.append("\"").append(" shape=box style=filled fillcolor=\"#d5d5d5\" fontsize=8];\n");
 

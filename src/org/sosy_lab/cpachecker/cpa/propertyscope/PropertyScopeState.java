@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.propertyscope;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -60,6 +62,7 @@ public class PropertyScopeState implements AbstractState, Graphable {
   private final Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts;
   private final AbstractionFormula afterGlobalInitAbsFormula;
   private final AbstractionFormula lastVarClassScopeAbsFormula;
+  private final ImmutableSet<ScopeLocation> candidateScopeLocations; // since last abstraction state
 
   public static PropertyScopeState initial(CFANode pNode) {
     return new PropertyScopeState(
@@ -73,7 +76,8 @@ public class PropertyScopeState implements AbstractState, Graphable {
         Collections.emptyMap(),
         Collections.emptyMap(),
         null,
-        null);
+        null,
+        ImmutableSet.of());
   }
 
   public PropertyScopeState(
@@ -87,7 +91,8 @@ public class PropertyScopeState implements AbstractState, Graphable {
       Map<Automaton, AutomatonState> pAutomatonStates,
       Map<Automaton, AutomatonPropertyScopeInstance> pAutomScopeInsts,
       AbstractionFormula pAfterGlobalInitAbsFormula,
-      AbstractionFormula pLastVarClassScopeAbsFormula) {
+      AbstractionFormula pLastVarClassScopeAbsFormula,
+      ImmutableSet<ScopeLocation> pCandidateScopeLocations) {
 
     prevBlockStates = pPrevBlockStates;
     propertyDependantMatches = pPropertyDependantMatches;
@@ -100,6 +105,7 @@ public class PropertyScopeState implements AbstractState, Graphable {
     automScopeInsts = Collections.unmodifiableMap(pAutomScopeInsts);
     afterGlobalInitAbsFormula = pAfterGlobalInitAbsFormula;
     lastVarClassScopeAbsFormula = pLastVarClassScopeAbsFormula;
+    candidateScopeLocations = pCandidateScopeLocations;
   }
 
 
@@ -128,16 +134,16 @@ public class PropertyScopeState implements AbstractState, Graphable {
     return Optional.ofNullable(prevState);
   }
 
-  public Optional<AbstractionFormula> getAbsFormula() {
-    return Optional.ofNullable(absFormula);
-  }
-
   public Map<Automaton, AutomatonState> getAutomatonStates() {
     return automatonStates;
   }
 
   public Map<Automaton, AutomatonPropertyScopeInstance> getAutomScopeInsts() {
     return automScopeInsts;
+  }
+
+  public ImmutableSet<ScopeLocation> getCandidateScopeLocations() {
+    return candidateScopeLocations;
   }
 
   public AbstractionFormula getAfterGlobalInitAbsFormula() {

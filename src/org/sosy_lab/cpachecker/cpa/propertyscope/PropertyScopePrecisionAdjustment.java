@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.genera
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.sosy_lab.common.Optionals;
@@ -115,38 +116,43 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
     Holder<AbstractionFormula> hVarClassScopeAbsFormula = Holder.of(state
         .getLastVarClassScopeAbsFormula());
     // TODO: String equality may not be the finest way to do this
-    boolean considerVarClassScope = hVarClassScopeAbsFormula.value == null || !instFormula
+    boolean considerVarClassScope = hVarClassScopeAbsFormula.value == null ||  !instFormula
         .toString().equals(hVarClassScopeAbsFormula.value.asInstantiatedFormula().toString());
 
+    // collect all already known scope locations from states of the block
+    prevStates.stream()
+        .limit(prevStates.size() - 1)
+        .map(PropertyScopeState::getScopeLocations)
+        .forEach(scopeLocations::addAll);
+    scopeLocations.addAll(state.getScopeLocations());
 
-    Stream.concat(Stream.of(state), prevStates.stream().limit(prevStates.size() - 1))
-        .forEach(st -> {
-          scopeLocations.addAll(st.getScopeLocations());
+    if (predState.isAbstractionState()) {
+      for (ScopeLocation candidScopeLoc : state.getCandidateScopeLocations()) {
 
-          // save the initial abstraction formula after init of globals
-          if(hAfterGlobalInitAbsFormula.value == null &&
-              st.getEnteringEdge().getDescription().equals("Function start dummy edge")) {
-            hAfterGlobalInitAbsFormula.value = predState.getAbstractionFormula();
+        // save the initial abstraction formula after init of globals
+        if (hAfterGlobalInitAbsFormula.value == null &&
+            candidScopeLoc.getEdge().getDescription().equals("Function start dummy edge")) {
+          hAfterGlobalInitAbsFormula.value = predState.getAbstractionFormula();
+        }
+
+        // simple non-true abs formula scope
+        if (!predState.getAbstractionFormula().isTrue()) {
+          scopeLocations.add(candidScopeLoc.copyWithReason(Reason.ABS_FORMULA));
+        }
+
+        // variables in edge occur in abs formula -> edge in scope
+        if (fmgr.extractVariableNames(formula).stream()
+            .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(candidScopeLoc.getEdge(), var))) {
+          scopeLocations.add(candidScopeLoc.copyWithReason(Reason.ABS_FORMULA_VAR_CLASSIFICATION));
+          if (considerVarClassScope) {
+            scopeLocations.add(candidScopeLoc.copyWithReason(
+                Reason.ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE));
+            hVarClassScopeAbsFormula.value = predState.getAbstractionFormula();
           }
+        }
+      }
+    }
 
-          // simple non-true abs formula scope
-          if(!predState.getAbstractionFormula().isTrue()) {
-            scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
-                Reason.ABS_FORMULA));
-          }
-
-          // variables in edge occur in abs formula -> edge in scope
-          if (fmgr.extractVariableNames(formula).stream()
-              .anyMatch(var -> cfaEdgeToUsedVar.containsEntry(st.getEnteringEdge(), var))) {
-            scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
-                Reason.ABS_FORMULA_VAR_CLASSIFICATION));
-            if (considerVarClassScope) {
-              scopeLocations.add(new ScopeLocation(st.getEnteringEdge(), st.getCallstack(),
-                  Reason.ABS_FORMULA_VAR_CLASSIFICATION_FORMULA_CHANGE));
-              hVarClassScopeAbsFormula.value = predState.getAbstractionFormula();
-            }
-          }
-        });
 
     if (collectImplicationScope && predState.isAbstractionState()
         && hAfterGlobalInitAbsFormula.value != null) {
@@ -166,6 +172,8 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
+    ImmutableSet<ScopeLocation> candiateScopeLocations =
+        predState.isAbstractionState() ? ImmutableSet.of() : state.getCandidateScopeLocations();
 
     // not really helpful, look again later maybe
 /*    if (absScopeInstance.isPresent()) {
@@ -211,7 +219,8 @@ public class PropertyScopePrecisionAdjustment implements PrecisionAdjustment {
         state.getAutomatonStates(),
         state.getAutomScopeInsts(),
         hAfterGlobalInitAbsFormula.value,
-        hVarClassScopeAbsFormula.value));
+        hVarClassScopeAbsFormula.value,
+        candiateScopeLocations));
 
   }
   

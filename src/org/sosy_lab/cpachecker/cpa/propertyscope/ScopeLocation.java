@@ -48,6 +48,10 @@ public class ScopeLocation {
     reason = pReason;
   }
 
+  public ScopeLocation copyWithReason(Reason pReason) {
+    return new ScopeLocation(edge, callstack, pReason);
+  }
+
   public CFAEdge getEdge() {
     return edge;
   }

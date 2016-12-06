@@ -27,6 +27,8 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static org.sosy_lab.cpachecker.cpa.propertyscope.PropertyScopeUtil.*;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -74,7 +76,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
         Collections.emptyMap(),
         state.getAutomScopeInsts(),
         state.getAfterGlobalInitAbsFormula(),
-        state.getLastVarClassScopeAbsFormula());
+        state.getLastVarClassScopeAbsFormula(),
+        state.getCandidateScopeLocations());
     return Collections.singleton(newState);
   }
 
@@ -93,6 +96,10 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
 
     List<String> callstack = getStack(callstackState);
     Set<ScopeLocation> scopeLocations = new LinkedHashSet<>(state.getScopeLocations());
+
+    ImmutableSet<ScopeLocation> candidateScopeLocations = new ImmutableSet.Builder<ScopeLocation>()
+        .addAll(state.getCandidateScopeLocations().iterator())
+        .add(new ScopeLocation(cfaEdge, callstack, null)).build();
 
     Map<Automaton, AutomatonPropertyScopeInstance> automScopeInsts = new HashMap<>(state
         .getAutomScopeInsts());
@@ -148,7 +155,8 @@ class PropertyScopeTransferRelation extends SingleEdgeTransferRelation {
             automatonStateMap,
             automScopeInsts,
             state.getAfterGlobalInitAbsFormula(),
-            state.getLastVarClassScopeAbsFormula()));
+            state.getLastVarClassScopeAbsFormula(),
+            candidateScopeLocations));
 
   }
 }
