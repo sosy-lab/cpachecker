@@ -109,6 +109,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       description = "In some cases it is important to know, if there is a recursion in the analyzed code.")
   private boolean failInCaseOfRecursion = false;
 
+  @Option(name = "collectPrecisionFromAllSubgraph", secure = true,
+      description = "In case of BAM precision can not be easily collected from the removed subgraph")
+  private boolean collectPrecisionFromAllSubgraph = false;
+
   @Option(secure = true,
       description = "This flag determines which precisions should be updated during refinement. "
       + "We can choose between the minimum number of states and all states that are necessary "
@@ -263,6 +267,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   public boolean failInCaseOfRecursion() {
     return failInCaseOfRecursion;
+  }
+
+  public boolean collectPrecisionFromAllSubgraph() {
+    return collectPrecisionFromAllSubgraph;
   }
 
   LogManager getLogger() {
