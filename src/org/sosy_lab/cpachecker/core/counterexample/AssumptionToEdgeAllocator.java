@@ -114,6 +114,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -1532,16 +1533,15 @@ public class AssumptionToEdgeAllocator {
     }
 
     /**
-     * Creates a value literal for the given value and adds a cast if the value
-     * does not fit into the specified type.
+     * Creates a value literal for the given value or computes its wrap-around if it does not fit
+     * into the specified type.
      *
      * @param pIntegerValue the value.
      * @param pType the type.
-     *
      * @return the value literal.
      */
-    private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
-      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue, pType);
+    private ValueLiteral handlePotentialIntegerOverflow(
+        BigInteger pIntegerValue, CSimpleType pType) {
 
       BigInteger lowerInclusiveBound = machineModel.getMinimalIntegerValue(pType);
       BigInteger upperInclusiveBound = machineModel.getMaximalIntegerValue(pType);
@@ -1553,10 +1553,28 @@ public class AssumptionToEdgeAllocator {
         if (assumeLinearArithmetics) {
           return UnknownValueLiteral.getInstance();
         }
-        result = result.addCast(pType);
+        LogManagerWithoutDuplicates logManager =
+            logger instanceof LogManagerWithoutDuplicates
+                ? (LogManagerWithoutDuplicates) logger
+                : new LogManagerWithoutDuplicates(logger);
+        Value value =
+            ExpressionValueVisitor.castCValue(
+                new NumericValue(pIntegerValue),
+                pType,
+                machineModel,
+                logManager,
+                FileLocation.DUMMY);
+        Number number = value.asNumericValue().getNumber();
+        final BigInteger valueAsBigInt;
+        if (number instanceof BigInteger) {
+          valueAsBigInt = (BigInteger) number;
+        } else {
+          valueAsBigInt = BigInteger.valueOf(number.longValue());
+        }
+        return ExplicitValueLiteral.valueOf(valueAsBigInt, pType);
       }
 
-      return result;
+      return ExplicitValueLiteral.valueOf(pIntegerValue, pType);
     }
 
     /**
