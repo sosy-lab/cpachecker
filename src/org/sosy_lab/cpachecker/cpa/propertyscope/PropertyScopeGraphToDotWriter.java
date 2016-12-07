@@ -167,6 +167,26 @@ public class PropertyScopeGraphToDotWriter {
 
       sb.append(";\n");
 
+      // specify irrelevant leaf graph combi nodes
+      if(irrelevantLeafGraphs != null) {
+
+        Collection<CombiScopeEdge> irrelevantEdges = irrelevantLeafGraphs.row(scopeNode).values();
+        String irrelevantnodeId = "irrelevantleaf-" + scopeNode.getId();
+        sb.append("\"").append(irrelevantnodeId).append("\" [");
+        buildCombinedLeafNodeParams(sb, irrelevantEdges);
+        sb.append("]");
+
+        sb
+            .append("\"").append(scopeNode.getId()).append("\" -> \"")
+            .append(irrelevantnodeId).append("\"")
+            .append(" [");
+        // edge params here
+        sb
+            .append("]")
+            .append(";\n");
+
+      }
+
       if (hinted) {
         buidNodeHint(scopeNode, sb);
       }
@@ -229,6 +249,14 @@ public class PropertyScopeGraphToDotWriter {
 
   }
 
+  private void buildCombinedLeafNodeParams(
+      Appendable sb, Collection<CombiScopeEdge> pIrrelevantEdges) throws IOException {
+    sb.append(" color=\"").append(IRRELEVANT_COLOR).append("\"");
+    sb.append(" label=\"").append("Irrelevant Leaf").append("\"");
+    sb.append(" style=\"").append("diagonals").append("\"");
+
+  }
+
   private void bulidCombiNodeParams(
       CombiScopeEdge combiScopeEdge, Appendable sb, int irrelevantArgStatesCount)
       throws IOException {
@@ -287,6 +315,7 @@ public class PropertyScopeGraphToDotWriter {
     sb.append(">");
     sb.append(" color=\"").append(IRRELEVANT_COLOR).append("\"");
     sb.append(" shape=note");
+    sb.append(" style=solid");
 
   }
 
