@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.ScopeEndEdge;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -190,6 +191,10 @@ public final class ErrorPathShrinker {
 
       case BlankEdge:
         handleBlankEdge((BlankEdge) cfaEdge);
+        break;
+
+      case ScopeEndEdge:
+        addCurrentCFAEdgeToShortPath();
         break;
 
       case CallToReturnEdge:

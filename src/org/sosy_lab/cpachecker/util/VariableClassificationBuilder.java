@@ -635,6 +635,7 @@ public class VariableClassificationBuilder {
     }
 
     case BlankEdge:
+    case ScopeEndEdge:
     case CallToReturnEdge:
       // other cases are not interesting
       break;

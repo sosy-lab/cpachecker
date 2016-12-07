@@ -31,5 +31,6 @@ public enum CFAEdgeType {
     ReturnStatementEdge,
     FunctionCallEdge,
     FunctionReturnEdge,
-    CallToReturnEdge
+    CallToReturnEdge,
+    ScopeEndEdge
 }

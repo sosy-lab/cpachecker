@@ -81,6 +81,9 @@ class CReferencedFunctionsCollector {
     case BlankEdge:
       //nothing to do
       break;
+    case ScopeEndEdge:
+      //nothing to do
+      break;
     case CallToReturnEdge:
       //nothing to do
       assert false;

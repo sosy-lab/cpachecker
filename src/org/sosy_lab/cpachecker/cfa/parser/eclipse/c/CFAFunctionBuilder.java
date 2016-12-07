@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,6 +83,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -103,6 +105,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -110,6 +113,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ScopeEndEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -129,7 +133,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 /**
@@ -184,6 +190,10 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   @Option(secure=true, description="Show messages when dead code is encountered during parsing.")
   private boolean showDeadCode = true;
+
+  @Option(secure=true, description="Add edges that indicate that the scope of some variables was "
+      + "left.")
+  private boolean addScopeLeftEdges = false;
 
   @Option(secure=true, description="Allow then/else branches to be swapped in order to obtain simpler conditions.")
   private boolean allowBranchSwapping = true;
@@ -475,7 +485,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     sideAssignmentStack.leaveBlock();
 
     if (declaration instanceof IASTFunctionDefinition) {
-
       if (locStack.size() != 1) {
         throw new CFAGenerationRuntimeException("Depth wrong. Geoff needs to do more work");
       }
@@ -778,7 +787,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       returnstmt.getReturnValue().get().accept(checkBinding);
     }
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
-    returnstmt, fileloc, prevNode, functionExitNode);
+      returnstmt, fileloc, prevNode, functionExitNode);
     addToCFA(edge);
 
     CFANode nextNode = newCFANode();
@@ -829,7 +838,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         return PROCESS_SKIP;
       }
 
-      scope.leaveBlock();
+      leaveBlockScope(astCreator.getLocation(statement), locStack.peek());
 
     } else if (statement instanceof IASTWhileStatement
             || statement instanceof IASTDoStatement) {
@@ -1368,7 +1377,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       assert loopEnd == loopStart;
     }
 
-    scope.leaveBlock();
+    leaveBlockScope(fileLocation, loopEnd);
 
     // skip visiting children of loop, because loopbody was handled before
     return PROCESS_SKIP;
@@ -1807,8 +1816,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (!(lastStatement instanceof IASTExpressionStatement)) {
        if (tempVar == null) {
          CFANode lastNode = handleAllSideEffects(middleNode, fileLocation, lastStatement.getRawSignature(), true);
-         scope.leaveBlock();
-         return lastNode;
+         return leaveBlockScope(fileLocation, lastNode);
        }
 
       throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement, niceFileNameFunction);
@@ -1828,9 +1836,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, fileLocation, middleNode, lastNode);
     addToCFA(edge);
 
-    scope.leaveBlock();
-
-    return lastNode;
+    return leaveBlockScope(fileLocation, lastNode);
   }
 
   /**
@@ -2040,4 +2046,26 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     }
   }
+
+  private CFANode leaveBlockScope(final FileLocation pLocation, final CFANode pLastNode) {
+    Map<String, ? extends ASimpleDeclaration> popped = scope.leaveBlock();
+
+    if (!addScopeLeftEdges || popped.isEmpty()) {
+      return pLastNode;
+    }
+
+    Preconditions.checkArgument(pLastNode.getNumLeavingEdges() == 0);
+
+    final CFANode newLastNode = newCFANode();
+    final ScopeEndEdge scopeLeftEdge = new ScopeEndEdge(pLocation, pLastNode, newLastNode, popped);
+
+    addToCFA(scopeLeftEdge);
+
+    assert locStack.peek() == pLastNode;
+    locStack.pop();
+    locStack.push(newLastNode);
+
+    return newLastNode;
+  }
+
 }

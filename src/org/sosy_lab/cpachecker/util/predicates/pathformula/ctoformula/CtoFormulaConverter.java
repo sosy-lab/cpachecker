@@ -120,6 +120,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import jdk.nashorn.internal.codegen.CompilerConstants;
+
 /**
  * Class containing all the code that converts C code into a formula.
  */
@@ -849,6 +851,7 @@ public class CtoFormulaConverter {
           assumeEdge, function, ssa, pts, constraints, errorConditions);
     }
 
+    case ScopeEndEdge:
     case BlankEdge: {
       return bfmgr.makeBoolean(true);
     }

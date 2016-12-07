@@ -32,6 +32,8 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -141,13 +143,16 @@ class FunctionScope extends AbstractScope {
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }
 
-  public void leaveBlock() {
+  public Map<String, ? extends ASimpleDeclaration> leaveBlock() {
     checkState(varsStack.size() > 2);
-    varsStack.removeLast();
+    final Map<String, ? extends ASimpleDeclaration> result = varsStack.removeLast();
+
     varsStackWitNewNames.removeLast();
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
+
+    return result;
   }
 
   @Override

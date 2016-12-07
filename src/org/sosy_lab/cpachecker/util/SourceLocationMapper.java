@@ -57,6 +57,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import jdk.nashorn.internal.runtime.regexp.joni.constants.AsmConstants;
+
 
 public class SourceLocationMapper {
 
@@ -346,6 +348,7 @@ public class SourceLocationMapper {
       case StatementEdge:
         result.add(((CStatementEdge) edge).getStatement());
       break;
+      case ScopeEndEdge:
       case BlankEdge:
         // do nothing
         break;

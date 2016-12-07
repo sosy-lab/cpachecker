@@ -67,6 +67,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import jdk.nashorn.internal.runtime.regexp.joni.constants.AsmConstants;
+
 
 public abstract class PathTranslator {
 
@@ -383,7 +385,7 @@ public abstract class PathTranslator {
   protected String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
     switch (pCFAEdge.getEdgeType()) {
-
+    case ScopeEndEdge:
     case BlankEdge:
     case StatementEdge:
     case ReturnStatementEdge:
