@@ -360,6 +360,11 @@ class DynamicMemoryHandler {
     return result;
   }
 
+  String makeAllocVariableName(final String functionName, final CType type,
+      final SSAMapBuilder ssa, final CtoFormulaConverter conv, int line) {
+    return makeAllocVariableName(functionName, type, ssa, conv, line, useLocationsInMallocDescription);
+  }
+
   /**
    * Creates a name for an allocation.
    *
@@ -370,16 +375,24 @@ class DynamicMemoryHandler {
    * @return A name for allocations.
    */
   static String makeAllocVariableName(final String functionName, final CType type,
-      final SSAMapBuilder ssa, final CtoFormulaConverter conv, int line) {
-    return functionName
-        + "_"
-        + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
-        + MALLOC_INDEX_SEPARATOR
-        + conv.makeFreshIndex(
-            CToFormulaConverterWithPointerAliasing.SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX
-                + functionName,
-            type,
-            ssa);
+      final SSAMapBuilder ssa, final CtoFormulaConverter conv, int line, boolean useLocationsInMallocEncoding) {
+    if (useLocationsInMallocEncoding) {
+      return functionName
+          + "_"
+          + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
+          + MALLOC_INDEX_SEPARATOR
+          + line;
+    } else {
+      return functionName
+          + "_"
+          + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
+          + MALLOC_INDEX_SEPARATOR
+          + conv.makeFreshIndex(
+              CToFormulaConverterWithPointerAliasing.SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX
+                  + functionName,
+              type,
+              ssa);
+    }
   }
 
   /**
