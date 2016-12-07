@@ -252,7 +252,7 @@ public class PropertyScopeGraphToDotWriter {
   private void buildCombinedLeafNodeParams(
       Appendable sb, Collection<CombiScopeEdge> pIrrelevantEdges) throws IOException {
     sb.append(" color=\"").append(IRRELEVANT_COLOR).append("\"");
-    sb.append(" label=\"").append("Irrelevant Leaf").append("\"");
+    sb.append(" label=\"").append("Irrelevant Leafs").append("\"");
     sb.append(" style=\"").append("diagonals").append("\"");
 
   }
@@ -363,6 +363,8 @@ public class PropertyScopeGraphToDotWriter {
           .map(autom -> automatonColorMap.get(autom.getName()))
           .collect(Collectors.joining(":"));
       sb.append(" fillcolor=\"").append(fillcolor).append("\"");
+    } else if (!scopeNode.isPartOfScope()){
+      sb.append(" style=solid");
     }
 
   }
@@ -393,7 +395,7 @@ public class PropertyScopeGraphToDotWriter {
           .append("\\n");
 
 
-    sb.append("\"").append(" shape=box style=filled fillcolor=\"#d5d5d5\" fontsize=8];\n");
+    sb.append("\"").append(" shape=box style=filled fillcolor=\"#eaffbb\" fontsize=8];\n");
 
     sb.append("  \"").append(stateNodeId).append("\"");
     sb.append(" -> ");
