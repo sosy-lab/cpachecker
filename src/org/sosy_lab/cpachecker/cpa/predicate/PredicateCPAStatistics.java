@@ -45,10 +45,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -240,6 +242,37 @@ class PredicateCPAStatistics extends AbstractStatistics {
     int maxPredsPerLocation = -1;
     int allLocs = -1;
     int avgPredsPerLocation = -1;
+    if (precisionStatistics) {
+      MutablePredicateSets predicates = new MutablePredicateSets();
+      {
+        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        for (Precision precision : reached.getPrecisions()) {
+          PredicatePrecision preds =
+              Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
+          if (preds != null && seenPrecisions.add(preds)) {
+            predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
+            predicates.location.putAll(preds.getLocalPredicates());
+            predicates.function.putAll(preds.getFunctionPredicates());
+            predicates.global.addAll(preds.getGlobalPredicates());
+          }
+        }
+      }
+
+      // check if/where to dump the predicate map
+      if (exportPredmap && predmapFile != null) {
+        exportPredmapToFile(predmapFile, predicates);
+      }
+
+      maxPredsPerLocation = 0;
+      for (Collection<AbstractionPredicate> p : predicates.location.asMap().values()) {
+        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
+      }
+
+      allLocs = predicates.location.keySet().size();
+      int totPredsUsed = predicates.location.size();
+      avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
+    }
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
 
