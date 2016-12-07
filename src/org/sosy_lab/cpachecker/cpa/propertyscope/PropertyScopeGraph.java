@@ -147,6 +147,16 @@ public class PropertyScopeGraph {
     return graph;
   }
 
+  public Table<ScopeNode, ScopeNode, CombiScopeEdge> computeIrrelevantLeafGraphs() {
+    Table<ScopeNode, ScopeNode, CombiScopeEdge> irrelevantLeafGraphs = HashBasedTable.create();
+    for (CombiScopeEdge combiScopeEdge : combiScopeEdges.values()) {
+      if (!edges.containsKey(combiScopeEdge.end)) {
+        irrelevantLeafGraphs.put(combiScopeEdge.start, combiScopeEdge.end, combiScopeEdge);
+      }
+    }
+    return irrelevantLeafGraphs;
+  }
+
   public ScopeNode getRootNode() {
     return rootNode;
   }
@@ -310,6 +320,8 @@ public class PropertyScopeGraph {
         return end;
       }
     }
+
+
   }
 
 }

@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Table;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,9 +62,12 @@ public class PropertyScopeGraphToDotWriter {
   private final boolean hinted;
   private final boolean showEntryExitFunction;
   private final ImmutableMap<String, String> automatonColorMap;
+  private final Table<ScopeNode, ScopeNode, CombiScopeEdge> irrelevantLeafGraphs;
 
-  public PropertyScopeGraphToDotWriter(PropertyScopeGraph pGraph, boolean pHinted, boolean
-      showEntryExitFunction) {
+
+  public PropertyScopeGraphToDotWriter(
+      PropertyScopeGraph pGraph, boolean pHinted, boolean
+      showEntryExitFunction, boolean collapseIrrelevantLeaveGraphs) {
     graph = pGraph;
     hinted = pHinted;
     this.showEntryExitFunction = showEntryExitFunction;
@@ -86,18 +90,21 @@ public class PropertyScopeGraphToDotWriter {
     }
     automatonColorMap = colorMBuilder.build();
 
+    irrelevantLeafGraphs = collapseIrrelevantLeaveGraphs
+                           ? graph.computeIrrelevantLeafGraphs() : null;
+
   }
 
   public static void write(PropertyScopeGraph graph, Appendable sb,
                            boolean showEntryExitFunctons) throws IOException {
-    new PropertyScopeGraphToDotWriter(graph, false, showEntryExitFunctons).write(sb);
+    new PropertyScopeGraphToDotWriter(graph, false, showEntryExitFunctons, true).write(sb);
   }
 
   public static void writeHinted(
       PropertyScopeGraph graph,
       Appendable sb,
       boolean showEntryExitFunctons) throws IOException {
-    new PropertyScopeGraphToDotWriter(graph, true, showEntryExitFunctons).write(sb);
+    new PropertyScopeGraphToDotWriter(graph, true, showEntryExitFunctons, false).write(sb);
   }
 
   private static String determineNodeColor(ScopeNode scopeNode) {
@@ -148,22 +155,17 @@ public class PropertyScopeGraphToDotWriter {
 
 
     // specify nodes
-    for (ScopeNode scopeNode : graph.getNodes().values()) {
+    Collection<ScopeNode> scopeNodes = irrelevantLeafGraphs == null ? graph.getNodes().values() :
+               graph.getNodes().values().parallelStream()
+                   .filter(node -> !irrelevantLeafGraphs.containsColumn(node))
+                   .collect(Collectors.toSet());
+
+    for(ScopeNode scopeNode : scopeNodes) {
       sb.append("\"").append(scopeNode.getId()).append("\" [");
       bulidNodeParams(scopeNode, sb);
       sb.append("]");
 
       sb.append(";\n");
-
-      // coverage edges
-      for (ARGState covered : scopeNode.getArgState().getCoveredByThis()) {
-        if (graph.getNodes().containsKey(covered)) {
-          sb.append(graph.getNodes().get(covered).getId());
-          sb.append(" -> ");
-          sb.append(scopeNode.getId());
-          sb.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
-        }
-      }
 
       if (hinted) {
         buidNodeHint(scopeNode, sb);
@@ -171,7 +173,14 @@ public class PropertyScopeGraphToDotWriter {
     }
 
     // specify edges
-    for (CombiScopeEdge combiScopeEdge : graph.getCombiScopeEdges()) {
+    Collection<CombiScopeEdge> combiScopeEdges =
+        irrelevantLeafGraphs == null ? graph.getCombiScopeEdges() :
+        graph.getCombiScopeEdges().parallelStream()
+            .filter(edge -> !irrelevantLeafGraphs.containsValue(edge))
+            .collect(Collectors.toSet());
+
+    for (CombiScopeEdge combiScopeEdge : combiScopeEdges) {
+
       int irrelevantARGStateCount = combiScopeEdge.computeIrrelevantARGStateCount();
       if (irrelevantARGStateCount == 0) {
         sb
