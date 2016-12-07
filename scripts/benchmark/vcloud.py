@@ -57,6 +57,10 @@ def init(config, benchmark):
     _justReprocessResults = config.reprocessResults
     benchmark.executable = benchmark.tool.executable()
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
+    environment = benchmark.environment()
+    if (environment.get("keepEnv", None) or environment.get("additionalEnv", None)):
+        sys.exit('Unsupported environment configuration in tool-info module, '
+                 'only "newEnv" is supported by VerifierCloud')
 
 def get_system_info():
     return None
@@ -135,7 +139,7 @@ def stop():
     # kill cloud-client, should be done automatically, when the subprocess is aborted
 
 def formatEnvironment(environment):
-    return ",".join(k + "=" + v for k,v in environment.get("additionalEnv", {}).items())
+    return ",".join(k + "=" + v for k,v in environment.get("newEnv", {}).items())
 
 def toTabList(l):
     return "\t".join(map(str, l))
