@@ -401,7 +401,8 @@ public class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Statistics
             // On the size of the set 'reached' (assertions and statistics)
             final Integer reachedSetSize = pReachedSet.size();
             logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s. %d properties remain to be checked.", reachedSetSize, active.toString(), remain.size());
-            Preconditions.checkState(reachedSetSize >= 10, "The set reached has too few states for a correct analysis run! Bug?");
+            Preconditions.checkState(reachedSetSize >= 3, "The set reached has too few states for"
+                + " a correct analysis run! Bug?");
             stats.reachedStatesWithFixpoint.add(reachedSetSize);
             if (Sets.intersection(relevant, runProperties).size() > 0) {
               stats.reachedStatesForRelPropsWithFixpoint.add(reachedSetSize);
