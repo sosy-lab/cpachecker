@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class collects some configurations options for
@@ -98,6 +96,9 @@ public class FormulaEncodingOptions {
       + "which returns either the normal value or an UF representing the overflow.")
   private boolean encodeOverflowsWithUFs = false;
 
+  @Option(secure=true, description = "Use locations in malloc encoding.")
+  private boolean encodeMallocsWithLocations = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -149,5 +150,9 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public boolean encodeMallocsWithLocations() {
+    return encodeMallocsWithLocations;
   }
 }

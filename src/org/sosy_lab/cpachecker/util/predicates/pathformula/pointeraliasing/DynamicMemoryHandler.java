@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSortedSet;
-
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -58,16 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 /**
  * This class is responsible for handling everything related to dynamic memory,
  * e.g. calls to malloc() and free(),
@@ -88,6 +85,7 @@ class DynamicMemoryHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
+  private final boolean useLocationsInMallocDescription;
 
   /**
    * Creates a new DynamicMemoryHandler
@@ -104,6 +102,7 @@ class DynamicMemoryHandler {
       PointerTargetSetBuilder pPts, Constraints pConstraints,
       ErrorConditions pErrorConditions, MemoryRegionManager pRegionMgr) {
     conv = pConv;
+    useLocationsInMallocDescription = conv.options.encodeMallocsWithLocations();
     typeHandler = pConv.typeHandler;
     edge = pEdge;
     ssa = pSsa;
@@ -269,12 +268,12 @@ class DynamicMemoryHandler {
     }
     Formula address;
     if (newType != null) {
-      final String newBase = makeAllocVariableName(functionName, newType, ssa, conv);
+      final String newBase = makeAllocVariableName(functionName, newType, ssa, conv, e.getFileLocation().getStartingLineNumber());
       address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID, ssa, conv);
+      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID, ssa, conv, e.getFileLocation().getStartingLineNumber());
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
@@ -371,7 +370,7 @@ class DynamicMemoryHandler {
    * @return A name for allocations.
    */
   static String makeAllocVariableName(final String functionName, final CType type,
-      final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
+      final SSAMapBuilder ssa, final CtoFormulaConverter conv, int line) {
     return functionName
         + "_"
         + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
