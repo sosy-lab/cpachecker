@@ -370,7 +370,7 @@ class PointerTargetSetManager {
       // so we create an additional fake one.
       final CType fakeBaseType = getFakeBaseType(0);
       final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
-          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, resultSSA, conv, 0, false);
+          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, resultSSA, conv, 0, options.encodeMallocsWithLocations());
       mergedBases = mergedBases.putAndCopy(fakeBaseName, fakeBaseType);
       lastBase = fakeBaseName;
       basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.getBases(), pts1.getLastBase()),
