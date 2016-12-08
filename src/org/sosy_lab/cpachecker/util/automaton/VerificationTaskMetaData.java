@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -208,6 +209,7 @@ public class VerificationTaskMetaData {
           specification.isPresent()
               ? specification.get().getSpecFiles()
               : hackyOptions.specificationFiles;
+      specs = FluentIterable.from(specs).transform(Path::normalize);
       for (Path path : specs) {
         if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
           witnessAutomatonFilesBuilder.add(path);
@@ -215,14 +217,16 @@ public class VerificationTaskMetaData {
           nonWitnessAutomatonFilesBuilder.add(path);
         }
       }
-      if (hackyOptions.inputWitness != null
-          && !hackyOptions.specificationFiles.contains(hackyOptions.inputWitness)) {
-        witnessAutomatonFilesBuilder.add(hackyOptions.inputWitness);
+      Optional<Path> inputWitness = Optional.of(hackyOptions.inputWitness).map(Path::normalize);
+      if (inputWitness.isPresent() && !Iterables.contains(specs, inputWitness.get())) {
+        witnessAutomatonFilesBuilder.add(inputWitness.get());
       }
-      if (hackyOptions.invariantsAutomatonFile != null
-          && !hackyOptions.invariantsAutomatonFile.equals(hackyOptions.inputWitness)
-          && !hackyOptions.specificationFiles.contains(hackyOptions.invariantsAutomatonFile)) {
-        witnessAutomatonFilesBuilder.add(hackyOptions.invariantsAutomatonFile);
+      Optional<Path> correctnessWitness =
+          Optional.of(hackyOptions.invariantsAutomatonFile).map(Path::normalize);
+      if (correctnessWitness.isPresent()
+          && !correctnessWitness.equals(inputWitness)
+          && !Iterables.contains(specs, correctnessWitness.get())) {
+        witnessAutomatonFilesBuilder.add(correctnessWitness.get());
       }
       witnessAutomatonFiles = witnessAutomatonFilesBuilder.build();
       nonWitnessAutomatonFiles = nonWitnessAutomatonFilesBuilder.build();
