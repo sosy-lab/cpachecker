@@ -31,10 +31,12 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
@@ -61,6 +63,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final ARGState rootOfSubgraph;
   private final Timer removeCachedSubtreeTimer;
   private final boolean collectPreisionFromAllSubgraph;
+  private final Map<ReachedSet, Precision> collectedPrecision;
 
   private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
     @Nullable
@@ -81,6 +84,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     this.rootOfSubgraph = pRootOfSubgraph;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
     this.collectPreisionFromAllSubgraph = bamCpa.collectPrecisionFromAllSubgraph();
+    this.collectedPrecision = new HashMap<>();
 
     assert rootOfSubgraph.getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
     assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
@@ -193,6 +197,10 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       private Precision collectPrecision(ReachedSet reached, AbstractState state, Precision pTargetPrecision,
           Collection<ReachedSet> handledSets) {
+
+        if (collectedPrecision.containsKey(reached)) {
+          return collectedPrecision.get(reached);
+        }
         Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
         Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
         Queue<ARGState> worklist = new LinkedList<>();
@@ -244,6 +252,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         }
         pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newValuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
         pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
+        collectedPrecision.put(reached, pTargetPrecision);
         return pTargetPrecision;
       }
 
