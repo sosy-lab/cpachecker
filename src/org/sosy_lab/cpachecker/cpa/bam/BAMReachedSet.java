@@ -38,6 +38,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.time.Timer;
@@ -204,11 +205,13 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
         Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
         Queue<ARGState> worklist = new LinkedList<>();
+        Set<ARGState> handledStates = new HashSet<>();
         BAMDataManager data = bamCpa.getData();
         ARGState currentState;
         Precision currentPrecision;
 
         worklist.add((ARGState) state);
+        handledStates.add((ARGState) state);
 
         while (!worklist.isEmpty()) {
           currentState = worklist.poll();
@@ -225,7 +228,12 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           if (!newPPrecision.isEmpty()) {
             predicatePrecisions.add(newPPrecision);
           }
-          worklist.addAll(currentState.getChildren());
+          for (ARGState child : currentState.getChildren()) {
+            if (!handledStates.contains(child)) {
+              handledStates.add(child);
+              worklist.add(child);
+            }
+          }
           if (data.hasInitialState(currentState)) {
             ReachedSet other = data.getReachedSetForInitialState(currentState);
             if (!handledSets.contains(other)) {
@@ -261,8 +269,10 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         ARGState currentARG;
         ARGState targetState = state.getARGState();
         Queue<ARGState> worklist = new LinkedList<>();
+        Set<ARGState> handledStates = new HashSet<>();
         BAMDataManager data = bamCpa.getData();
         worklist.add(currentState);
+        handledStates.add(currentState);
 
         while (!worklist.isEmpty()) {
           currentState = (BackwardARGState) worklist.poll();
@@ -273,7 +283,12 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
               return rSet;
             }
           }
-          worklist.addAll(currentState.getParents());
+          for (ARGState child : currentState.getChildren()) {
+            if (!handledStates.contains(child)) {
+              handledStates.add(child);
+              worklist.add(child);
+            }
+          }
         }
         return null;
       }
