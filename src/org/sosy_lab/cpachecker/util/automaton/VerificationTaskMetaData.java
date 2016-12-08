@@ -217,12 +217,13 @@ public class VerificationTaskMetaData {
           nonWitnessAutomatonFilesBuilder.add(path);
         }
       }
-      Optional<Path> inputWitness = Optional.of(hackyOptions.inputWitness).map(Path::normalize);
+      Optional<Path> inputWitness =
+          Optional.ofNullable(hackyOptions.inputWitness).map(Path::normalize);
       if (inputWitness.isPresent() && !Iterables.contains(specs, inputWitness.get())) {
         witnessAutomatonFilesBuilder.add(inputWitness.get());
       }
       Optional<Path> correctnessWitness =
-          Optional.of(hackyOptions.invariantsAutomatonFile).map(Path::normalize);
+          Optional.ofNullable(hackyOptions.invariantsAutomatonFile).map(Path::normalize);
       if (correctnessWitness.isPresent()
           && !correctnessWitness.equals(inputWitness)
           && !Iterables.contains(specs, correctnessWitness.get())) {
