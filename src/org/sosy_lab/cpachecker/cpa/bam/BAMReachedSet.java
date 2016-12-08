@@ -29,11 +29,11 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import de.uni_freiburg.informatik.ultimate.smtinterpol.util.ArrayQueue;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.function.BiConsumer;
@@ -195,7 +195,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           Collection<ReachedSet> handledSets) {
         Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
         Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
-        Queue<ARGState> worklist = new ArrayQueue<>();
+        Queue<ARGState> worklist = new LinkedList<>();
         BAMDataManager data = bamCpa.getData();
         ARGState currentState;
         Precision currentPrecision;
@@ -209,8 +209,14 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           }
 
           currentPrecision = reached.getPrecision(currentState);
-          valuePrecisions.add(Precisions.extractPrecisionByType(currentPrecision, VariableTrackingPrecision.class));
-          predicatePrecisions.add(Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class));
+          VariableTrackingPrecision newVPrecision = Precisions.extractPrecisionByType(currentPrecision, VariableTrackingPrecision.class);
+          if (!newVPrecision.isEmpty()) {
+            valuePrecisions.add(newVPrecision);
+          }
+          PredicatePrecision newPPrecision = Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class);
+          if (!newPPrecision.isEmpty()) {
+            predicatePrecisions.add(newPPrecision);
+          }
           worklist.addAll(currentState.getChildren());
           if (data.hasInitialState(currentState)) {
             ReachedSet other = data.getReachedSetForInitialState(currentState);
@@ -218,8 +224,14 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
               AbstractState reducedState = other.getFirstState();
               handledSets.add(other);
               Precision collectedPrecision = collectPrecision(other, reducedState, pTargetPrecision, handledSets);
-              valuePrecisions.add(Precisions.extractPrecisionByType(collectedPrecision, VariableTrackingPrecision.class));
-              predicatePrecisions.add(Precisions.extractPrecisionByType(collectedPrecision, PredicatePrecision.class));
+              newVPrecision = Precisions.extractPrecisionByType(collectedPrecision, VariableTrackingPrecision.class);
+              if (!newVPrecision.isEmpty()) {
+                valuePrecisions.add(newVPrecision);
+              }
+              newPPrecision = Precisions.extractPrecisionByType(collectedPrecision, PredicatePrecision.class);
+              if (!newPPrecision.isEmpty()) {
+                predicatePrecisions.add(newPPrecision);
+              }
             }
           }
         }
@@ -239,7 +251,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         BackwardARGState currentState = state;
         ARGState currentARG;
         ARGState targetState = state.getARGState();
-        Queue<ARGState> worklist = new ArrayQueue<>();
+        Queue<ARGState> worklist = new LinkedList<>();
         BAMDataManager data = bamCpa.getData();
         worklist.add(currentState);
 
