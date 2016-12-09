@@ -166,13 +166,13 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           return newPrecision;
         }
 
-        if (data.hasInitialState(argState)) {
+        /*if (data.hasInitialState(argState)) {
           ReachedSet rSet = data.getReachedSetForInitialState(argState);
           Precision prec = rSet.getPrecision(rSet.getLastState());
           return prec;
           //PredicatePrecision pPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
           //VariableTrackingPrecision vPrec = Precisions.extractPrecisionByType(prec, VariableTrackingPrecision.class);
-        }
+        }*/
         return GET_PRECISION.apply(state);
       }
 
