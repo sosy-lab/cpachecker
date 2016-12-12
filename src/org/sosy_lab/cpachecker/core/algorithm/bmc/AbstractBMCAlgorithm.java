@@ -463,17 +463,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected abstract CandidateGenerator getCandidateInvariants();
 
   /**
-   * Adjusts the conditions of the CPAs which support the adjusting of
-   * conditions.
+   * Adjusts the conditions of the CPAs which support the adjusting of conditions.
    *
-   * @return {@code true} if all CPAs supporting the feature agreed on
-   * adjusting their conditions, {@code false} if one of the CPAs does not
-   * support any further adjustment of conditions.
+   * @return {@code true} if the conditions were adjusted, {@code false} if the BoundsCPA used to
+   *     unroll the loops does not support any further adjustment of conditions.
    */
   private boolean adjustConditions() {
     Iterable<AdjustableConditionCPA> conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
     for (AdjustableConditionCPA condCpa : conditionCPAs) {
-      if (!condCpa.adjustPrecision()) {
+      if (!condCpa.adjustPrecision() && condCpa instanceof BoundsCPA) {
         // this cpa said "do not continue"
         logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
         return false;
