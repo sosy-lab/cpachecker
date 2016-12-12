@@ -25,9 +25,11 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
@@ -67,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -103,10 +107,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -141,6 +147,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -1359,6 +1366,9 @@ public class ValueAnalysisTransferRelation
           super.setInfo(element, precision, cfaEdge);
           ValueAnalysisState newState =
               strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable);
+
+          newState = handleModf(rightHandSide, pointerState, newState);
+
           result.add(newState);
         }
         toStrengthen.clear();
@@ -1384,44 +1394,140 @@ public class ValueAnalysisTransferRelation
     return postProcessedResult;
   }
 
+  /**
+   * Handle a special built-in library function that required pointer-alias handling while computing
+   * a floating-point operation.
+   *
+   * @param pRightHandSide the right-hand side of an assignment edge.
+   * @param pPointerState the current pointer-alias information.
+   * @param pState the state to strengthen.
+   * @return the strengthened state.
+   * @throws UnrecognizedCCodeException if the C code involved is not recognized.
+   */
+  private ValueAnalysisState handleModf(
+      ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
+      throws UnrecognizedCCodeException, AssertionError {
+    ValueAnalysisState state = pState;
+    if (pRightHandSide instanceof AFunctionCallExpression) {
+      AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
+      AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
+      if (functionNameExpression instanceof AIdExpression) {
+        String functionName = ((AIdExpression) functionNameExpression).getName();
+        if (BuiltinFloatFunctions.matchesModf(functionName)) {
+          List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
+          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
+            AExpression exp = parameters.get(0);
+            CExpression targetPointer = (CExpression) parameters.get(1);
+            CLeftHandSide target =
+                new CPointerExpression(
+                    targetPointer.getFileLocation(),
+                    targetPointer.getExpressionType(),
+                    targetPointer);
+            ExpressionValueVisitor evv = getVisitor();
+            Value value;
+            if (exp instanceof JRightHandSide) {
+              value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
+            } else if (exp instanceof CRightHandSide) {
+              value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
+            } else {
+              throw new AssertionError("unknown righthandside-expression: " + exp);
+            }
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
+                  .contains(paramType.getType())) {
+                CExpression integralPart;
+                switch (paramType.getType()) {
+                  case FLOAT:
+                    integralPart =
+                        new CFloatLiteralExpression(
+                            functionCallExpression.getFileLocation(),
+                            paramType,
+                            BigDecimal.valueOf((float) ((long) numericValue.floatValue())));
+                    break;
+                  case DOUBLE:
+                    integralPart =
+                        new CFloatLiteralExpression(
+                            functionCallExpression.getFileLocation(),
+                            paramType,
+                            BigDecimal.valueOf((double) ((long) numericValue.doubleValue())));
+                    break;
+                  default:
+                    throw new AssertionError("Unsupported float type: " + paramType);
+                }
+                state =
+                    strengthenWithPointerInformation(
+                        state,
+                        pPointerState,
+                        integralPart,
+                        target.getExpressionType(),
+                        target,
+                        null);
+              }
+            }
+          }
+        }
+      }
+    }
+    return state;
+  }
+
   private ValueAnalysisState strengthenWithPointerInformation(
       ValueAnalysisState pValueState,
       PointerState pPointerInfo,
       ARightHandSide pRightHandSide,
-      Type pLeftHandType,
+      Type pTargetType,
       ALeftHandSide pLeftHandSide,
-      String pLeftHandVariable) throws UnrecognizedCCodeException {
+      String pLeftHandVariable)
+      throws UnrecognizedCCodeException {
 
     ValueAnalysisState newState = pValueState;
 
-    Value value = UnknownValue.getInstance();
+    Value value;
+    ExpressionValueVisitor evv = getVisitor();
+    if (pRightHandSide instanceof JRightHandSide) {
+      value =
+          evv.evaluate((JRightHandSide) pRightHandSide, (JType) pRightHandSide.getExpressionType());
+    } else if (pRightHandSide instanceof CRightHandSide) {
+      value =
+          evv.evaluate((CRightHandSide) pRightHandSide, (CType) pRightHandSide.getExpressionType());
+    } else {
+      value = UnknownValue.getInstance();
+    }
     MemoryLocation target = null;
     if (pLeftHandVariable != null) {
       target = MemoryLocation.valueOf(pLeftHandVariable);
     }
-    Type type = pLeftHandType;
+    Type type = pTargetType;
     boolean shouldAssign = false;
 
     if (target == null && pLeftHandSide instanceof CPointerExpression) {
       CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
-      CExpression addressExpression = pointerExpression.getOperand();
 
-      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+      LocationSet directLocation =
+          PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
 
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariable = pointsToIterator.next();
-            if (!pointsToIterator.hasNext()) {
-              target = otherVariable;
-              shouldAssign = true;
-            }
+      if (!(directLocation instanceof ExplicitLocationSet)) {
+        CExpression addressExpression = pointerExpression.getOperand();
+        LocationSet indirectLocation =
+            PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+        if (indirectLocation instanceof ExplicitLocationSet) {
+          ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
+          if (explicitSet.getSize() == 1) {
+            MemoryLocation variable = explicitSet.iterator().next();
+            directLocation = pPointerInfo.getPointsToSet(variable);
           }
+        }
+      }
+      if (directLocation instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitDirectLocation = (ExplicitLocationSet) directLocation;
+        Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
+        MemoryLocation otherVariable = locationIterator.next();
+        if (!locationIterator.hasNext()) {
+          target = otherVariable;
+          shouldAssign = true;
         }
       }
 

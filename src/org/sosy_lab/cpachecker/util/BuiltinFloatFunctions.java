@@ -363,7 +363,7 @@ public class BuiltinFloatFunctions {
         || FMOD_LONG_DOUBLE.contains(pFunctionName);
   }
 
-  public static boolean matchesFmodf(String pFunctionName) {
+  public static boolean matchesModf(String pFunctionName) {
     return MODF_FLOAT.contains(pFunctionName)
         || MODF.contains(pFunctionName)
         || MODF_LONG_DOUBLE.contains(pFunctionName);

@@ -113,7 +113,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
@@ -999,10 +998,30 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmodf(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
           if (parameterValues.size() == 2) {
-            throw new UnsupportedCCodeException(
-                "Function 'fmodf' not supported due to missing pointer analysis.", null);
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  {
+                    long integralPart = (long) numericValue.floatValue();
+                    float fractionalPart = numericValue.floatValue() - integralPart;
+                    return new NumericValue(fractionalPart);
+                  }
+                case DOUBLE:
+                  {
+                    long integralPart = (long) numericValue.doubleValue();
+                    double fractionalPart = numericValue.doubleValue() - integralPart;
+                    return new NumericValue(fractionalPart);
+                  }
+                default:
+                  break;
+              }
+            }
           }
         } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
           if (parameterValues.size() == 2) {
