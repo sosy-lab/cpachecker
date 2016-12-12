@@ -8,78 +8,78 @@
   -->
 
   <tasks name="ArraysReach">
-    <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
-    <propertyfile>../programs/benchmarks/ArraysReach.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ArraysMemSafety">
-    <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/ArraysMemSafety.prp</propertyfile>
+    <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsReach">
-    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
-    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
-    <propertyfile>../programs/benchmarks/BitVectorsOverflows.prp</propertyfile>
+    <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="HeapReach">
-    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
-    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
-    <includesfile>../programs/benchmarks/Floats.set</includesfile>
-    <propertyfile>../programs/benchmarks/Floats.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
   </tasks>
   <tasks name="ControlFlow">
-    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA.set</includesfile>
-    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
-    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Termination">
-    <includesfile>../programs/benchmarks/Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64" />
   </tasks>
   <tasks name="Concurrency">
-    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-    <propertyfile>../programs/benchmarks/Concurrency.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+    <propertyfile>../programs/benchmarks/ConcurrencySafety.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
-    <propertyfile>../programs/benchmarks/BusyBox.prp</propertyfile>
+    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
 

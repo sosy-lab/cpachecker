@@ -22,72 +22,72 @@
   <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</option>
 
   <tasks name="BitVectorsReach">
-    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
+    <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
-    <propertyfile>../programs/benchmarks/BitVectorsOverflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
-    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-valid-memsafety*</exclude>
-    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
-    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/Floats.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlow">
-    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
-    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_BusyBox_ReachSafety.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/BusyBox.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
 

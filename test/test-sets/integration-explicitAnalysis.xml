@@ -12,22 +12,22 @@
 
   <rundefinition>
     <tasks>
-      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
 
       <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
       <exclude reason="timeout">../programs/benchmarks/locks/*_1*true*</exclude>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
-      <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
+      <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- exclude tasks from Forester set -->
       <exclude>../programs/benchmarks/forester-heap/*</exclude>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-      <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+      <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
@@ -39,7 +39,7 @@
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-      <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>

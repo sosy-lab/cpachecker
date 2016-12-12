@@ -1,88 +1,61 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="7 GB" cpuCores="2">
-  <option name="-heap">6000M</option>
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
+  <option name="-heap">10000M</option>
 
-  <!--
-  The benchmarks "integration-error-witness-generation" and
-  "integration-error-witness-validation" depend on each other.
-  If one file is changed, please also update the other one.
-  -->
+  <resultfiles>**.graphml</resultfiles>
 
-  <resultfiles>**.graphml.gz</resultfiles>
-
-  <rundefinition name="witness-generation">
-    <option name="-sv-comp16"/>
-  </rundefinition>
-
+  <tasks name="ArraysReach">
+    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
-    <option name="-64"/>
-  </tasks>
-    <tasks name="HeapReach">
+  <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-  </tasks>
-  <tasks name="HeapMemSafety">
-    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-valid-memsafety-call*</exclude>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-    <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
+  <tasks name="Concurrency">
+    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+    <propertyfile>../programs/benchmarks/ConcurrencySafety.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
-  <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
-    <option name="-64"/>
-  </tasks>
 
+  <rundefinition name="sv-comp17-k-induction">
+    <option name="-sv-comp17-k-induction"/>
+  </rundefinition>
 </benchmark>

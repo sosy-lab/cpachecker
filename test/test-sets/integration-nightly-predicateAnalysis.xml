@@ -7,22 +7,22 @@
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <tasks name="BitVectors">
-    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
-    <propertyfile>../programs/benchmarks/BitVectorsReach.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-    <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-4.2-rc1/*</exclude>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA.set</includesfile>
-    <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem04*</exclude>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem05*</exclude>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem06*</exclude>
@@ -32,20 +32,20 @@
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem1*</exclude>
   </tasks>
   <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
-    <propertyfile>../programs/benchmarks/HeapReach.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-    <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <exclude reason="timeout">../programs/benchmarks/seq-mthreaded/rek*</exclude>
   </tasks>
 
