@@ -155,7 +155,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         assert state instanceof BackwardARGState;
 
         ARGState argState = ((BackwardARGState)state).getARGState();
-        BAMDataManager data = bamCpa.getData();
 
         ReachedSet currentReachedSet = getReachedSet((BackwardARGState) state);
         if (currentReachedSet == null) {
@@ -283,10 +282,10 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
               return rSet;
             }
           }
-          for (ARGState child : currentState.getChildren()) {
-            if (!handledStates.contains(child)) {
-              handledStates.add(child);
-              worklist.add(child);
+          for (ARGState parent : currentState.getParents()) {
+            if (!handledStates.contains(parent)) {
+              handledStates.add(parent);
+              worklist.add(parent);
             }
           }
         }
