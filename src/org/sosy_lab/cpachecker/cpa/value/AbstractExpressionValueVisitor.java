@@ -597,8 +597,11 @@ public abstract class AbstractExpressionValueVisitor
         if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
         }
-
-        cmp = Float.compare(lVal, rVal);
+        if (lVal == 0 && rVal == 0) {
+          cmp = 0;
+        } else {
+          cmp = Float.compare(lVal, rVal);
+        }
         break;
       }
       case DOUBLE: {
@@ -609,7 +612,11 @@ public abstract class AbstractExpressionValueVisitor
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
         }
 
-        cmp = Double.compare(lVal, rVal);
+        if (lVal == 0 && rVal == 0) {
+          cmp = 0;
+        } else {
+          cmp = Double.compare(lVal, rVal);
+        }
         break;
       }
       default: {
@@ -1038,8 +1045,7 @@ public abstract class AbstractExpressionValueVisitor
                     if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
                       return new NumericValue(Float.NaN);
                     }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return new NumericValue((float)Math.IEEEremainder(num,  den));
+                    return new NumericValue((float) Math.IEEEremainder(num,  den));
                   }
                 case DOUBLE:
                   {
@@ -1051,7 +1057,6 @@ public abstract class AbstractExpressionValueVisitor
                         || den == 0) {
                       return new NumericValue(Double.NaN);
                     }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
                     return new NumericValue(Math.IEEEremainder(num,  den));
                   }
                 default:
