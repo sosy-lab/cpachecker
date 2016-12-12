@@ -593,7 +593,7 @@ class KInductionProver implements AutoCloseable {
           return true;
         })
         .filter(Predicates.not(Predicates.in(confirmedCandidates)));
-    if (remainingLoopHeadCandidateInvariants.isEmpty()) {
+    if (remainingLoopHeadCandidateInvariants.size() <= 1) {
       return Collections.emptySet();
     }
     CandidateInvariantConjunction artificialConjunction = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);
