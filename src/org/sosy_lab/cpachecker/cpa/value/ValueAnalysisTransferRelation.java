@@ -1365,7 +1365,7 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           ValueAnalysisState newState =
-              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable);
+              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
 
           newState = handleModf(rightHandSide, pointerState, newState);
 
@@ -1438,25 +1438,22 @@ public class ValueAnalysisTransferRelation
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
                   .contains(paramType.getType())) {
-                CExpression integralPart;
+                final BigDecimal integralPartValue;
                 switch (paramType.getType()) {
                   case FLOAT:
-                    integralPart =
-                        new CFloatLiteralExpression(
-                            functionCallExpression.getFileLocation(),
-                            paramType,
-                            BigDecimal.valueOf((float) ((long) numericValue.floatValue())));
+                    integralPartValue = BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
                     break;
                   case DOUBLE:
-                    integralPart =
-                        new CFloatLiteralExpression(
-                            functionCallExpression.getFileLocation(),
-                            paramType,
-                            BigDecimal.valueOf((double) ((long) numericValue.doubleValue())));
+                    integralPartValue = BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
                     break;
                   default:
                     throw new AssertionError("Unsupported float type: " + paramType);
                 }
+                CFloatLiteralExpression integralPart =
+                    new CFloatLiteralExpression(
+                        functionCallExpression.getFileLocation(),
+                        paramType,
+                        integralPartValue);
                 state =
                     strengthenWithPointerInformation(
                         state,
@@ -1464,7 +1461,8 @@ public class ValueAnalysisTransferRelation
                         integralPart,
                         target.getExpressionType(),
                         target,
-                        null);
+                        null,
+                        new NumericValue(integralPartValue));
               }
             }
           }
@@ -1480,22 +1478,13 @@ public class ValueAnalysisTransferRelation
       ARightHandSide pRightHandSide,
       Type pTargetType,
       ALeftHandSide pLeftHandSide,
-      String pLeftHandVariable)
+      String pLeftHandVariable,
+      Value pValue)
       throws UnrecognizedCCodeException {
 
     ValueAnalysisState newState = pValueState;
 
-    Value value;
-    ExpressionValueVisitor evv = getVisitor();
-    if (pRightHandSide instanceof JRightHandSide) {
-      value =
-          evv.evaluate((JRightHandSide) pRightHandSide, (JType) pRightHandSide.getExpressionType());
-    } else if (pRightHandSide instanceof CRightHandSide) {
-      value =
-          evv.evaluate((CRightHandSide) pRightHandSide, (CType) pRightHandSide.getExpressionType());
-    } else {
-      value = UnknownValue.getInstance();
-    }
+    Value value = pValue;
     MemoryLocation target = null;
     if (pLeftHandVariable != null) {
       target = MemoryLocation.valueOf(pLeftHandVariable);
@@ -1533,7 +1522,7 @@ public class ValueAnalysisTransferRelation
 
     }
 
-    if (pRightHandSide instanceof CPointerExpression) {
+    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression) {
       if (target == null) {
         return pValueState;
       }
