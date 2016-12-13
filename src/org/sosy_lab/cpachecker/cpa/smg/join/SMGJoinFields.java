@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
