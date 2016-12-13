@@ -1737,8 +1737,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       int offsetAtStartOfStruct,
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
-      CFAEdge pEdge,
-      SMGState pNewState,
       CCompositeType pLValueType) throws UnrecognizedCCodeException {
 
     // TODO More Designators?
@@ -1813,7 +1811,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (initializer instanceof CDesignatedInitializer) {
         Pair<Integer, Integer> offsetAndPosition =
             calculateOffsetAndPositionOfFieldFromDesignator(pOffset, memberTypes,
-                (CDesignatedInitializer) initializer, pEdge, pNewState, pLValueType);
+                (CDesignatedInitializer) initializer, pLValueType);
         int offset = offsetAndPosition.getFirst();
         listCounter = offsetAndPosition.getSecond();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
