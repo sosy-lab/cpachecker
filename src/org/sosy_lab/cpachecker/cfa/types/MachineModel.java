@@ -84,82 +84,13 @@ public enum MachineModel {
       4, //pointer
 
       //bitfields support
-      false
-  ),
-
-  /**
-   * Machine model representing a 64bit Linux machine with alignment:
-   */
-  LINUX64(
-      // numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
-      16, // long double
-
-      // other
-      1, // void
-      1, // bool
-      8, // pointer
-
-      //  alignof numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
-      16, // long double
-
-      // alignof other
-      1, // void
-      1, // bool
-      8, // pointer
-
-      //bitfields support
-      false
-  ),
-
-  LINUX32_BITFIELD(
-      // numeric types
-      2,  // short
-      4,  // int
-      4,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
-      12, // long double
-
-      // other
-      1, // void
-      1, // bool
-      4, // pointer
-
-      // alignof numeric types
-      2, // short
-      4, //int
-      4, //long int
-      8, // long long int
-      4, //float
-      4, //double
-      4, //long double
-
-      // alignof other
-      1, // void
-      1, //bool
-      4, //pointer
-
-      //bitfields support
       true
   ),
 
   /**
    * Machine model representing a 64bit Linux machine with alignment:
    */
-  LINUX64_BITFIELD(
+  LINUX64(
       // numeric types
       2,  // short
       4,  // int
