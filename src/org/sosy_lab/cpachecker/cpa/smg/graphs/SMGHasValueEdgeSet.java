@@ -40,7 +40,6 @@ import java.util.Set;
 
 public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdges {
 
-  private static final long serialVersionUID = 2898673244970871322L;
   private TreeMultimap<SMGObject, SMGEdgeHasValue> map = TreeMultimap.create(
       new SMGObjectComparator(), new SMGEdgeHasValueComparator());
 
