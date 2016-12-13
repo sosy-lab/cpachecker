@@ -430,9 +430,6 @@ public class InvariantsState implements AbstractState,
     if (isUnsupportedVariableName(pMemoryLocation)) {
       return this;
     }
-    if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
-      return assignInternal(pMemoryLocation, allPossibleValuesFormula(pValue.getTypeInfo()));
-    }
 
     // Check if the assigned variable is selected (newVariableSelection != null)
     VariableSelection<CompoundInterval> newVariableSelection = this.variableSelection.acceptAssignment(pMemoryLocation, pValue);
@@ -840,11 +837,6 @@ public class InvariantsState implements AbstractState,
 
     if (assumption instanceof BooleanConstant) {
       return BooleanConstant.isTrue(assumption) ? this : null;
-    }
-
-    // Only use information from supported variables
-    if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
-      return this;
     }
 
     BooleanConstant<CompoundInterval> assumptionEvaluation = assumption.accept(pEvaluationVisitor, getEnvironment());
