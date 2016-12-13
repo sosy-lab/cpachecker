@@ -71,27 +71,23 @@ public abstract class SMGObject {
   }
 
   protected SMGObject(int pSize, String pLabel, SMGObjectKind pKind) {
-    size = pSize;
-    label = pLabel;
-    level = 0;
-    kind = pKind;
-    id = getNewId();
+    this(pSize, pLabel, 0, pKind);
   }
 
   protected SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
+    this(pSize, pLabel, pLevel, pKind, getNewId());
+  }
+
+  protected SMGObject(SMGObject pOther) {
+    this(pOther.size, pOther.label, pOther.level, pOther.kind, pOther.id);
+  }
+
+  private SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind, int pId) {
     size = pSize;
     label = pLabel;
     level = pLevel;
     kind = pKind;
-    id = getNewId();
-  }
-
-  protected SMGObject(SMGObject pOther) {
-    size = pOther.size;
-    label = pOther.label;
-    level = pOther.level;
-    kind = pOther.kind;
-    id = pOther.id;
+    id = pId;
   }
 
   public abstract SMGObject copy();
@@ -148,7 +144,7 @@ public abstract class SMGObject {
     return level;
   }
 
-  private int getNewId() {
+  private static int getNewId() {
     count++;
     return count;
   }
