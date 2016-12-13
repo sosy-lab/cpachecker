@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,8 +48,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.Map;
+import java.util.Set;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -373,7 +374,9 @@ public class CLangSMGTest {
     smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
     Integer some_value = Integer.valueOf(5);
-    SMGEdgeHasValue edge = new SMGEdgeHasValue(mock(CType.class), 0, null_object, some_value);
+    CType type = mock(CType.class);
+    when(type.getCanonicalType()).thenReturn(type);
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(type, 0, null_object, some_value);
 
     smg.addValue(some_value);
     smg.addHasValueEdge(edge);
