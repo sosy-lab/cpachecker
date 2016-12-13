@@ -171,6 +171,7 @@ public final class CElaboratedType implements CComplexType {
       result = prime * result + Objects.hashCode(kind);
       result = prime * result + Objects.hashCode(name);
       result = prime * result + Objects.hashCode(realType);
+      result = prime * result + Objects.hashCode(bitFieldSize);
       hashCache = result;
     }
     return hashCache;
@@ -195,7 +196,8 @@ public final class CElaboratedType implements CComplexType {
 
     return isConst == other.isConst && isVolatile == other.isVolatile
            && kind == other.kind && Objects.equals(name, other.name)
-           && Objects.equals(realType, other.realType);
+           && Objects.equals(realType, other.realType)
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override
@@ -214,7 +216,8 @@ public final class CElaboratedType implements CComplexType {
            && isVolatile == other.isVolatile
            && kind == other.kind
            && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(realType, other.realType);
+           && Objects.equals(realType, other.realType)
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override

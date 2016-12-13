@@ -148,6 +148,7 @@ public final class CSimpleType implements CType, Serializable {
           result = prime * result + Objects.hashCode(isSigned);
           result = prime * result + Objects.hashCode(isUnsigned);
           result = prime * result + Objects.hashCode(type);
+          result = prime * result + Objects.hashCode(bitFieldSize);
           hashCache = result;
       }
       return hashCache;
@@ -174,7 +175,8 @@ public final class CSimpleType implements CType, Serializable {
            && isVolatile == other.isVolatile && isImaginary == other.isImaginary
            && isLong == other.isLong && isLongLong == other.isLongLong
            && isShort == other.isShort && isSigned == other.isSigned
-           && isUnsigned == other.isUnsigned && type == other.type;
+           && isUnsigned == other.isUnsigned && type == other.type
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override

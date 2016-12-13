@@ -297,6 +297,7 @@ public final class CEnumType implements CComplexType {
       result = prime * result + Objects.hashCode(isConst);
       result = prime * result + Objects.hashCode(isVolatile);
       result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(bitFieldSize);
       hashCache = result;
     }
     return hashCache;
@@ -321,7 +322,8 @@ public final class CEnumType implements CComplexType {
 
     return isConst == other.isConst && isVolatile == other.isVolatile
            && Objects.equals(name, other.name)
-           && Objects.equals(enumerators, other.enumerators);
+           && Objects.equals(enumerators, other.enumerators)
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override
@@ -339,7 +341,8 @@ public final class CEnumType implements CComplexType {
     return isConst == other.isConst
            && isVolatile == other.isVolatile
            && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(enumerators, other.enumerators);
+           && Objects.equals(enumerators, other.enumerators)
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override
