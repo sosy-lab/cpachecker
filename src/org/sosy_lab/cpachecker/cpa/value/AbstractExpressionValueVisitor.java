@@ -580,7 +580,7 @@ public abstract class AbstractExpressionValueVisitor
     switch (type.getType()) {
       case INT: {
         CSimpleType canonicalType = type.getCanonicalType();
-        int sizeInBits = machineModel.getSizeof(canonicalType) * MachineModel.getSizeofCharInBits();
+        int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
         if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
             || sizeInBits > SIZE_OF_JAVA_LONG) {
           BigInteger leftBigInt = l.getNumber() instanceof BigInteger ? (BigInteger) l.getNumber() : BigInteger.valueOf(l.longValue());
@@ -1805,7 +1805,7 @@ public abstract class AbstractExpressionValueVisitor
         float floatValue = numericValue.floatValue();
         Value result;
 
-        final int bitPerByte = MachineModel.getSizeofCharInBits();
+        final int bitPerByte = machineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 
@@ -1829,7 +1829,7 @@ public abstract class AbstractExpressionValueVisitor
         double doubleValue = numericValue.doubleValue();
         Value result;
 
-        final int bitPerByte = MachineModel.getSizeofCharInBits();
+        final int bitPerByte = machineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
 

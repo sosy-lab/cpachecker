@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static java.lang.Character.isDigit;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import com.google.common.base.Function;
 
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -42,7 +41,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import com.google.common.base.Function;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /** This Class contains functions,
  * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
@@ -468,7 +468,7 @@ class ASTLiteralConverter {
     public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
       CSimpleType type = getTypeForValue(pValue, pMachineModel);
       if (type != null) {
-        return pMachineModel.getSizeof(type) * MachineModel.getSizeofCharInBits();
+        return pMachineModel.getSizeof(type) * pMachineModel.getSizeofCharInBits();
       }
       return pValue.bitLength();
     }
@@ -479,7 +479,7 @@ class ASTLiteralConverter {
       int numberOfBits = pValue.bitLength();
       CSimpleType bestCandidate = null;
       for (CSimpleType candidate : pCandidates) {
-        int candidateBitSize = pMachineModel.getSizeof(candidate) * MachineModel.getSizeofCharInBits();
+        int candidateBitSize = pMachineModel.getSizeof(candidate) * pMachineModel.getSizeofCharInBits();
         int actualCandidateBitSize = isSigned() ? candidateBitSize - 1 : candidateBitSize;
         if (actualCandidateBitSize >= numberOfBits) {
           return candidate;

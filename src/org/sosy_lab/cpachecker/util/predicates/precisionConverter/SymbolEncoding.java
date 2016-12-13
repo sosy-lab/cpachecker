@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 
@@ -59,6 +58,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 
@@ -150,7 +150,7 @@ public class SymbolEncoding {
     if (cType instanceof CSimpleType && ((CSimpleType)cType).getType().isFloatingPointType()) {
       fType = FormulaType.RationalType;
     } else {
-      int length = machineModel.getSizeof(cType) * MachineModel.getSizeofCharInBits();
+      int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
       fType = BitvectorType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);

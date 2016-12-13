@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -34,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.solver.api.FormulaType;
+
+import java.util.logging.Level;
 
 
 public class CtoFormulaTypeHandler {
@@ -52,7 +52,7 @@ public class CtoFormulaTypeHandler {
     sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
 
     final int pointerSize = machineModel.getSizeofPtr();
-    final int bitsPerByte = MachineModel.getSizeofCharInBits();
+    final int bitsPerByte = machineModel.getSizeofCharInBits();
     pointerType = FormulaType.getBitvectorTypeWithSize(pointerSize * bitsPerByte);
   }
 
@@ -95,7 +95,7 @@ public class CtoFormulaTypeHandler {
 
     int byteSize = getSizeof(type);
 
-    int bitsPerByte = MachineModel.getSizeofCharInBits();
+    int bitsPerByte = machineModel.getSizeofCharInBits();
     // byte to bits
     return FormulaType.getBitvectorTypeWithSize(byteSize * bitsPerByte);
   }

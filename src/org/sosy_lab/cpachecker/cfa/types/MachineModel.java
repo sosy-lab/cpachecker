@@ -158,7 +158,7 @@ public enum MachineModel {
   private final int mAlignofChar = 1;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
-  private static final int mSizeofCharInBits = 8;
+  private final int mSizeofCharInBits = 8;
   private final CSimpleType ptrEquivalent;
 
   private MachineModel(
@@ -287,7 +287,7 @@ public enum MachineModel {
     }
   }
 
-  public static int getSizeofCharInBits() {
+  public int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }
 
@@ -538,8 +538,8 @@ public enum MachineModel {
         return 0;
       }
 
-      int result = bitFieldsSize / getSizeofCharInBits();
-      if (bitFieldsSize % getSizeofCharInBits() > 0) {
+      int result = bitFieldsSize / model.getSizeofCharInBits();
+      if (bitFieldsSize % model.getSizeofCharInBits() > 0) {
         result++;
       }
       return result;

@@ -314,12 +314,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (ch.equals(SMGKnownSymValue.ZERO)) {
         // Create one large edge
-        currentState = writeValue(currentState, bufferMemory, offset, count * MachineModel.getSizeofCharInBits(), ch, cfaEdge);
+        currentState = writeValue(currentState, bufferMemory, offset, count * machineModel.getSizeofCharInBits(), ch, cfaEdge);
       } else {
         // We need to create many edges, one for each character written
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
-          currentState = writeValue(currentState, bufferMemory, offset + (c  * MachineModel.getSizeofCharInBits()),
+          currentState = writeValue(currentState, bufferMemory, offset + (c  * machineModel.getSizeofCharInBits()),
               CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
         }
 
@@ -439,7 +439,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label = "alloc_ID" + SMGValueFactory.getNewValue();
       SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt() *
-          MachineModel.getSizeofCharInBits(), allocation_label);
+          machineModel.getSizeofCharInBits(), allocation_label);
 
       possibleMallocFail = true;
       return SMGAddressValueAndState.of(currentState, addressValue);
@@ -559,11 +559,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         // TODO line numbers are not unique when we have multiple input files!
         String allocation_label = functionName + "_ID" + SMGValueFactory.getNewValue() + "_Line:"
             + functionCall.getFileLocation().getStartingLineNumber();
-        SMGAddressValue new_address = currentState.addNewHeapAllocation(size * MachineModel.getSizeofCharInBits(),
+        SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
             allocation_label);
 
         if (zeroingMemoryAllocation.contains(functionName)) {
-          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * MachineModel.getSizeofCharInBits()),
+          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
               SMGKnownSymValue.ZERO, cfaEdge);
         }
         possibleMallocFail = true;
@@ -695,12 +695,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
                   .getValueAndStateList()) {
                 SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-                int sourceRangeOffset = sourceObject.getOffset().getAsInt() / MachineModel.getSizeofCharInBits();
-                int sourceSize = sourceObject.getObject().getSize() / MachineModel.getSizeofCharInBits();
+                int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
+                int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
                 int availableSource = sourceSize - sourceRangeOffset;
 
-                int targetRangeOffset = targetObject.getOffset().getAsInt() / MachineModel.getSizeofCharInBits();
-                int targetSize = targetObject.getObject().getSize() / MachineModel.getSizeofCharInBits();
+                int targetRangeOffset = targetObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
+                int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
                 int availableTarget = targetSize - targetRangeOffset;
 
                 if (explicitSizeValue.isUnknown()) {
@@ -754,7 +754,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject target = targetStr1Address.getObject();
 
       int sourceRangeOffset = sourceStr2Address.getOffset().getAsInt();
-      int sourceRangeSize = sizeValue.getAsInt() * MachineModel.getSizeofCharInBits() + sourceRangeOffset;
+      int sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() + sourceRangeOffset;
       int targetRangeOffset = targetStr1Address.getOffset().getAsInt();
 
       currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
@@ -1755,11 +1755,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
           offset += machineModel.getBitSizeof(memberDcl.getType());
           if (!(machineModel.isBitFieldsSupportEnabled() && memberDcl.getType().isBitField())) {
-            int overByte = offset % MachineModel.getSizeofCharInBits();
+            int overByte = offset % machineModel.getSizeofCharInBits();
             if (overByte > 0) {
-              offset += MachineModel.getSizeofCharInBits() - overByte;
+              offset += machineModel.getSizeofCharInBits() - overByte;
             }
-            offset += machineModel.getPadding(offset / MachineModel.getSizeofCharInBits(), memberDcl.getType()) * MachineModel.getSizeofCharInBits();
+            offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberDcl.getType()) * machineModel.getSizeofCharInBits();
           }
         }
       }
@@ -1839,11 +1839,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         int offset = offsetAndState.getSecond();
         if (!(machineModel.isBitFieldsSupportEnabled() && memberType.isBitField())) {
-          int overByte = offset % MachineModel.getSizeofCharInBits();
+          int overByte = offset % machineModel.getSizeofCharInBits();
           if (overByte > 0) {
-            offset += MachineModel.getSizeofCharInBits() - overByte;
+            offset += machineModel.getSizeofCharInBits() - overByte;
           }
-          offset += machineModel.getPadding(offset / MachineModel.getSizeofCharInBits(), memberType) * MachineModel.getSizeofCharInBits();
+          offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType) * machineModel.getSizeofCharInBits();
         }
         SMGState newState = offsetAndState.getFirst();
 

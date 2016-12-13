@@ -343,13 +343,13 @@ public class SMGExpressionEvaluator {
       } else {
         if (bitFieldsSize > 0) {
           offset += bitFieldsSize;
-          if (bitFieldsSize % MachineModel.getSizeofCharInBits() > 0) {
-            offset += MachineModel.getSizeofCharInBits() - (bitFieldsSize % MachineModel.getSizeofCharInBits());
+          if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
+            offset += machineModel.getSizeofCharInBits() - (bitFieldsSize % machineModel.getSizeofCharInBits());
           }
           bitFieldsSize = 0;
         }
-        int padding = machineModel.getPadding(offset / MachineModel.getSizeofCharInBits(), typeMember.getType()) *
-            MachineModel.getSizeofCharInBits();
+        int padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
+            machineModel.getSizeofCharInBits();
 
         if (memberName.equals(fieldName)) {
           offset += padding;
@@ -440,7 +440,7 @@ public class SMGExpressionEvaluator {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
         if (address.getObject() == SMGObject.getNullObject()) { return SMGExplicitValueAndState.of(newState,
-            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / MachineModel.getSizeofCharInBits())); }
+            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / machineModel.getSizeofCharInBits())); }
       }
     }
 
@@ -2630,7 +2630,7 @@ public class SMGExpressionEvaluator {
       state = pState;
       expression = pExpression;
       eval = new SMGExpressionEvaluator(logger, pModel);
-      sizeofCharInBits = MachineModel.getSizeofCharInBits();
+      sizeofCharInBits = pModel.getSizeofCharInBits();
     }
 
     public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
@@ -2641,7 +2641,7 @@ public class SMGExpressionEvaluator {
       state = pState;
       expression = null;
       eval = new SMGExpressionEvaluator(pLogger, pModel);
-      sizeofCharInBits = MachineModel.getSizeofCharInBits();
+      sizeofCharInBits = pModel.getSizeofCharInBits();
     }
 
     @Override

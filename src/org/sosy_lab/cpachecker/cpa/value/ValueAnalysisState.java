@@ -602,7 +602,7 @@ public class ValueAnalysisState
         if (!memoryLocation.isReference() && type instanceof CSimpleType) {
           CSimpleType simpleType = (CSimpleType) type;
           if (simpleType.getType().isIntegerType()) {
-            int bitSize = machineModel.getSizeof(simpleType) * MachineModel.getSizeofCharInBits();
+            int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
             BitvectorFormula var =
                 bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
 

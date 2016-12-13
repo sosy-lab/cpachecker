@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -44,10 +40,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+
+import java.math.BigInteger;
+
+import javax.annotation.Nullable;
 
 /**
  * This Visitor implements evaluation of simply typed expressions.
@@ -157,7 +157,7 @@ public class BDDVectorCExpressionVisitor
         if (calculationType instanceof CSimpleType) {
           final CSimpleType st = (CSimpleType) calculationType;
           if (st.getType() == CBasicType.INT || st.getType() == CBasicType.CHAR) {
-            final int bitPerByte = MachineModel.getSizeofCharInBits();
+            final int bitPerByte = machineModel.getSizeofCharInBits();
             final int numBytes = machineModel.getSizeof(st);
             size = bitPerByte * numBytes;
           }
@@ -320,7 +320,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   private int getSize(CType pType) {
-    return machineModel.getSizeof(pType) * MachineModel.getSizeofCharInBits();
+    return machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
   }
 
   /**
@@ -358,7 +358,7 @@ public class BDDVectorCExpressionVisitor
     if (type instanceof CSimpleType) {
       final CSimpleType st = (CSimpleType) type;
       if (st.getType() == CBasicType.INT || st.getType() == CBasicType.CHAR) {
-        final int bitPerByte = MachineModel.getSizeofCharInBits();
+        final int bitPerByte = machineModel.getSizeofCharInBits();
         final int numBytes = machineModel.getSizeof(st);
         final int size = bitPerByte * numBytes;
         final Region[] result = bvmgr.toBitsize(size, st.isSigned(), value);

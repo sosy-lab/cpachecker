@@ -477,7 +477,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         // cast to correct length
         final CType sourceType = exp.getExpressionType().getCanonicalType();
         value = bvmgr.toBitsize(
-                machineModel.getSizeof(targetType) * MachineModel.getSizeofCharInBits(),
+                machineModel.getSizeof(targetType) * machineModel.getSizeofCharInBits(),
                 sourceType instanceof CSimpleType && machineModel.isSigned((CSimpleType) sourceType),
                 value);
       }
@@ -533,7 +533,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
     } else {
-      return machineModel.getSizeof(type) * MachineModel.getSizeofCharInBits();
+      return machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
     }
   }
 
