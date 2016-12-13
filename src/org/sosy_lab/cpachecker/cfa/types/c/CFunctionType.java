@@ -212,9 +212,9 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   @Override
-  public CType setBitFieldSize(Integer pBitFieldSize) {
-    //Unsupported operation
-    assert(pBitFieldSize == null);
+  public CType setBitFieldSize(int pBitFieldSize) {
+    // Bit field size not supported
+    assert false;
     return this;
   }
 }

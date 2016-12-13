@@ -53,7 +53,7 @@ public final class CTypedefType implements CType, Serializable {
   }
 
   @Override
-  public CType setBitFieldSize(Integer pBitFieldSize) {
+  public CType setBitFieldSize(int pBitFieldSize) {
     CTypedefType result = new CTypedefType(isConst, isVolatile, name, realType);
     result.bitFieldSize = pBitFieldSize;
     final int prime = 31;
@@ -112,6 +112,7 @@ public final class CTypedefType implements CType, Serializable {
       result = prime * result + Objects.hashCode(isConst);
       result = prime * result + Objects.hashCode(isVolatile);
       result = prime * result + Objects.hashCode(realType);
+      result = prime * result + Objects.hashCode(bitFieldSize);
       hashCache = result;
     }
     return hashCache;
@@ -135,7 +136,9 @@ public final class CTypedefType implements CType, Serializable {
     CTypedefType other = (CTypedefType) obj;
 
     return Objects.equals(name, other.name) && isConst == other.isConst
-           && isVolatile == other.isVolatile && Objects.equals(realType, other.realType);
+           && isVolatile == other.isVolatile
+           && Objects.equals(bitFieldSize, other.bitFieldSize)
+           && Objects.equals(realType, other.realType);
   }
 
   @Override

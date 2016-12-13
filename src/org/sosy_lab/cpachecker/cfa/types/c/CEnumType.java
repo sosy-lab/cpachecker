@@ -135,7 +135,7 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
-  public CType setBitFieldSize(Integer pBitFieldSize) {
+  public CType setBitFieldSize(int pBitFieldSize) {
     CEnumType result = new CEnumType(isConst, isVolatile, enumerators, name, origName);
     result.bitFieldSize = pBitFieldSize;
     final int prime = 31;
@@ -320,7 +320,8 @@ public final class CEnumType implements CComplexType {
     CEnumType other = (CEnumType) obj;
 
     return isConst == other.isConst && isVolatile == other.isVolatile
-           && Objects.equals(name, other.name) && Objects.equals(enumerators, other.enumerators);
+           && Objects.equals(name, other.name)
+           && Objects.equals(enumerators, other.enumerators);
   }
 
   @Override

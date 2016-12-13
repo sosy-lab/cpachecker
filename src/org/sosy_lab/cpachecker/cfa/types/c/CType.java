@@ -66,5 +66,5 @@ public interface CType extends Type {
 
   int getBitFieldSize();
 
-  public CType setBitFieldSize(Integer pBitFieldSize);
+  public CType setBitFieldSize(int pBitFieldSize);
 }

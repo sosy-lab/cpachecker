@@ -72,7 +72,7 @@ public final class CSimpleType implements CType, Serializable {
   }
 
   @Override
-  public CType setBitFieldSize(Integer pBitFieldSize) {
+  public CType setBitFieldSize(int pBitFieldSize) {
     CSimpleType result = new CSimpleType(isConst, isVolatile, type, isLong, isShort, isSigned,
         isUnsigned, isComplex, isImaginary, isLongLong);
     result.bitFieldSize = pBitFieldSize;
