@@ -2067,8 +2067,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   /**
    *
-   * @param pKey
-   * @param pValue
+   * @param pKey the key.
+   * @param pValue the value.
    * @return explicit value merged with pKey, or Null if not merged
    */
   public SMGKnownSymValue putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
