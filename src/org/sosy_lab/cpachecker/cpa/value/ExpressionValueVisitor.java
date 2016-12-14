@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.List;
-
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -125,10 +125,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     if (getState().contains(varLoc)) {
-      return readableState.getValueFor(varLoc);
-    } else {
-      return Value.UnknownValue.getInstance();
+
+      Type actualType = readableState.getTypeForMemoryLocation(varLoc);
+      CType readType = pLValue.getExpressionType();
+      MachineModel machineModel = getMachineModel();
+      if (!(actualType instanceof CType)
+          || machineModel.getSizeof(readType) == machineModel.getSizeof((CType) actualType)) {
+        return readableState.getValueFor(varLoc);
+      }
     }
+    return Value.UnknownValue.getInstance();
   }
 
   @Override

@@ -23,21 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.Typed;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * The singleton instance of this class is a compound state invariants formula
@@ -76,6 +76,26 @@ public class PartialEvaluator implements
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.environment = pEnvironment;
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof PartialEvaluator) {
+      PartialEvaluator other = (PartialEvaluator) pObj;
+      return compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
+          && compoundIntervalFormulaManager.equals(other.compoundIntervalFormulaManager)
+          && environment.equals(other.environment);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        compoundIntervalManagerFactory, compoundIntervalFormulaManager, environment);
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {

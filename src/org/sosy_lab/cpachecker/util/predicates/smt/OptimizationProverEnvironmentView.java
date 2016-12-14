@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
-import org.sosy_lab.solver.api.OptimizationProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
 
 import java.util.Optional;
 

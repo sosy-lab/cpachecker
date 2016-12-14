@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -86,8 +86,9 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         Iterables.getOnlyElement(AbstractStates.extractLocations(others));
     String function = currentLocation.getFunctionName();
 
-    BooleanFormula assumption =  bfmgr.makeBoolean(true);
-    BooleanFormula stopFormula = bfmgr.makeBoolean(false); // initialize with false because we create a disjunction
+    BooleanFormula assumption =  bfmgr.makeTrue();
+    BooleanFormula stopFormula = bfmgr.makeFalse(); // initialize with false because we create a
+    // disjunction
 
     // process stop flag
     boolean stop = false;
@@ -113,7 +114,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     Preconditions.checkState(!bfmgr.isTrue(stopFormula));
 
     if (!stop) {
-      stopFormula = bfmgr.makeBoolean(true);
+      stopFormula = bfmgr.makeTrue();
     }
 
     if (bfmgr.isTrue(assumption) && bfmgr.isTrue(stopFormula)) {

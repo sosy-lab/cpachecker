@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -44,17 +44,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import java.util.List;
-
 class CParserUtils {
 
   static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
-      throws InvalidAutomatonException, InvalidConfigurationException {
+      throws InvalidAutomatonException {
     return parse(addFunctionDeclaration(pSource), parser, scope);
   }
 
   static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
-      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+      throws InvalidAutomatonException, CParserException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
   }
 
@@ -111,8 +109,8 @@ class CParserUtils {
   }
 
   /**
-   * Parse the content of a file into an AST with the Eclipse CDT parser.
-   * If an error occurs, the program is halted.
+   * Parse the content of a file into an AST with the Eclipse CDT parser. If an error occurs, the
+   * program is halted.
    *
    * @param code The C code to parse.
    * @param parser The parser to use
@@ -120,7 +118,7 @@ class CParserUtils {
    * @return The AST.
    */
   private static CStatement parse(String code, CParser parser, Scope scope)
-      throws InvalidAutomatonException, InvalidConfigurationException {
+      throws InvalidAutomatonException {
     try {
       CAstNode statement = parser.parseSingleStatement(code, scope);
       if (!(statement instanceof CStatement)) {
@@ -134,17 +132,15 @@ class CParserUtils {
   }
 
   /**
-   * Parse the assumption of a automaton, which are C assignments,
-   * return statements or function calls, into a list of
-   * CStatements with the Eclipse CDT parser. If an error occurs,
-   * an empty list will be returned, and the error will be logged.
-   *
+   * Parse the assumption of a automaton, which are C assignments, return statements or function
+   * calls, into a list of CStatements with the Eclipse CDT parser. If an error occurs, an empty
+   * list will be returned, and the error will be logged.
    *
    * @param code The C code to parse.
    * @return The AST.
    */
   private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope)
-      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+      throws InvalidAutomatonException, CParserException {
     List<CAstNode> statements = parser.parseStatements(code, scope);
 
     for (CAstNode statement : statements) {
@@ -154,6 +150,6 @@ class CParserUtils {
       }
     }
 
-    return ImmutableList.copyOf(Lists.transform(statements, statement -> (CStatement) statement));
+    return transformedImmutableListCopy(statements, statement -> (CStatement) statement);
   }
 }

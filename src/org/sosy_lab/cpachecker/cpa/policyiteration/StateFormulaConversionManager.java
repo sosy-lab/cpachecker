@@ -1,8 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -10,21 +16,34 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Class responsible for converting states to formulas.
  */
+@Options(prefix="cpa.lpi")
 public class StateFormulaConversionManager {
+
+  @Option(description="Remove redundant items when abstract values.")
+  private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -32,23 +51,32 @@ public class StateFormulaConversionManager {
       templateToFormulaConversionManager;
   private final Configuration configuration;
   private final CFA cfa;
-  private final LogManager logManager;
+  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final PolicyDotWriter dotWriter;
+  private final PathFormulaManager pfmgr;
+  private final Solver solver;
 
   public StateFormulaConversionManager(
       FormulaManagerView pFmgr,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
       Configuration pConfiguration,
       CFA pCfa,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier) {
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      PathFormulaManager pPfmgr,
+      Solver pSolver) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     configuration = pConfiguration;
     cfa = pCfa;
-    logManager = pLogManager;
+    logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    pfmgr = pPfmgr;
+    solver = pSolver;
+    dotWriter = new PolicyDotWriter();
   }
 
   /**
@@ -67,7 +95,7 @@ public class StateFormulaConversionManager {
     PathFormulaManager pfmgrv;
     try {
       pfmgrv = new PathFormulaManagerImpl(
-          fmgrv, configuration, logManager,
+          fmgrv, configuration, logger,
           shutdownNotifier,
           cfa,
           AnalysisDirection.FORWARD
@@ -93,14 +121,24 @@ public class StateFormulaConversionManager {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      Formula t = templateToFormulaConversionManager.toFormula(
-          pfmgrv, fmgrv, template, inputPath);
-
-      BooleanFormula constraint = fmgrv.makeLessOrEqual(
-          t, fmgrv.makeNumber(t, bound.getBound()), true);
-      constraints.add(constraint);
+      constraints.add(
+          templateToConstraint(template, bound, pfmgrv, fmgrv, inputPath));
     }
     return constraints;
+  }
+
+  BooleanFormula templateToConstraint(
+      Template template,
+      PolicyBound bound,
+      PathFormulaManager pfmgrv,
+      FormulaManagerView fmgrv,
+      PathFormula inputPath
+      ) {
+    Formula t = templateToFormulaConversionManager.toFormula(
+        pfmgrv, fmgrv, template, inputPath);
+    return fmgrv.makeLessOrEqual(
+        t, fmgrv.makeNumber(t, bound.getBound()), true);
+
   }
 
   public BooleanFormula getStartConstraintsWithExtraInvariant(
@@ -139,9 +177,61 @@ public class StateFormulaConversionManager {
       extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
           abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
+      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);
+  }
+
+  public String toDOTLabel(Map<Template, PolicyBound> pAbstraction) {
+    if (!simplifyDotOutput) {
+      return dotWriter.toDOTLabel(pAbstraction);
+    }
+
+    PathFormula inputPath = new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet
+        .emptyPointerTargetSet(), 0
+    );
+
+    Map<Template, BooleanFormula> templatesToConstraints = pAbstraction
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey(),
+            entry -> templateToConstraint(
+                entry.getKey(),
+                entry.getValue(),
+                pfmgr,
+                fmgr,
+                inputPath
+            )
+        ));
+    List<Template> templates = new ArrayList<>(pAbstraction.keySet());
+    Set<Template> nonRedundant = new HashSet<>(templates);
+    for (Template t : templates) {
+      // mark redundant templates as such
+      BooleanFormula constraint = templatesToConstraints.get(t);
+
+      Set<Template> others = Sets.filter(nonRedundant, t2 -> t2 != t);
+
+      // if others imply the constraint, remove it.
+      BooleanFormula othersConstraint =
+          bfmgr.and(Collections2.transform(others, tb -> templatesToConstraints.get(tb)));
+
+      try {
+        if (solver.implies(othersConstraint, constraint)) {
+          nonRedundant.remove(t);
+        }
+      } catch (SolverException|InterruptedException pE) {
+        logger.logException(Level.WARNING, pE, "Failed simplifying the "
+            + "abstraction before rendering, converting as it is.");
+        simplifyDotOutput = false;
+        return dotWriter.toDOTLabel(pAbstraction);
+      }
+    }
+
+    Map<Template, PolicyBound> filteredAbstraction = Maps.filterKeys(
+        pAbstraction, t -> nonRedundant.contains(t));
+    return dotWriter.toDOTLabel(filteredAbstraction);
   }
 }

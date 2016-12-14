@@ -8,7 +8,7 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.templates.Template;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,6 +48,7 @@ public class PolicyBound {
 
   private int hashCache = 0;
 
+  // TODO: static fields may fall dreadfully if multiple LPI CPAs are running in parallel.
   private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
       serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
@@ -55,7 +56,8 @@ public class PolicyBound {
   private PolicyBound(
       PathFormula pFormula, Rational pBound,
       PolicyAbstractedState pPredecessor,
-      Collection<Template> pDependencies, boolean pComputedByValueDetermination) {
+      Collection<Template> pDependencies,
+      boolean pComputedByValueDetermination) {
     formula = pFormula;
     bound = pBound;
     predecessor = pPredecessor;
@@ -63,11 +65,13 @@ public class PolicyBound {
     computedByValueDetermination = pComputedByValueDetermination;
   }
 
-  public boolean isComputedByValueDetermination() {
+  boolean isComputedByValueDetermination() {
     return computedByValueDetermination;
   }
 
-  public static PolicyBound of(PathFormula pFormula, Rational bound,
+  public static PolicyBound of(
+      PathFormula pFormula,
+      Rational bound,
       PolicyAbstractedState pUpdatedFrom,
       Collection<Template> pDependencies
   ) {
@@ -75,20 +79,20 @@ public class PolicyBound {
         pDependencies, false);
   }
 
-  public PolicyBound updateValueFromValueDetermination(Rational newValue) {
+  PolicyBound updateValueFromValueDetermination(Rational newValue) {
     return new PolicyBound(formula, newValue, predecessor, dependencies, true);
   }
 
-  public PolicyBound withNoDependencies() {
+  PolicyBound withNoDependencies() {
     return new PolicyBound(formula, bound, predecessor, ImmutableSet.of(), false);
   }
 
   /**
    * @return Unique identifier for value determination.
    *
-   * Based on triple (from, to, policy).
+   * <p>Based on triple {@code from, to, policy}.
    */
-  public int serializePolicy(PolicyAbstractedState toState) {
+  int serializePolicy(PolicyAbstractedState toState) {
     Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState> p = Triple.of(
         predecessor, formula.getFormula(), toState);
     Integer serialization = serializationMap.get(p);
@@ -127,7 +131,7 @@ public class PolicyBound {
   public String toString() {
 
     // Converting the predecessor to string is very costly.
-    return bound.toString();
+    return String.format("%s (<- %s)", bound.toString(), predecessor.getNode());
   }
 
   @Override

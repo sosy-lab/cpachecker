@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static org.sosy_lab.solver.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
+import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
@@ -42,20 +42,19 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
-import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
-import org.sosy_lab.solver.SolverContextFactory;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.solver.api.OptimizationProverEnvironment;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.SolverContextFactory;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -220,32 +219,28 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
     InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
-
-    InterpolatingProverEnvironmentWithAssumptions<?> ipeA = (InterpolatingProverEnvironmentWithAssumptions<?>) ipe;
 
     if (solvingContext != interpolatingContext) {
       // If interpolatingContext is not the normal solver,
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipeA = new SeparateInterpolatingProverEnvironment<>(
-          solvingContext.getFormulaManager(),
-          interpolatingContext.getFormulaManager(),
-          ipeA
-      );
+      ipe =
+          new SeparateInterpolatingProverEnvironment<>(
+              solvingContext.getFormulaManager(), interpolatingContext.getFormulaManager(), ipe);
     }
 
     if (checkUFs) {
-      ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr, ufCheckingProverOptions);
+      ipe =
+          new UFCheckingInterpolatingProverEnvironment<>(
+              logger, ipe, fmgr, ufCheckingProverOptions);
     }
 
-    ipeA = new InterpolatingProverEnvironmentWithAssumptionsView<>(
-        ipeA,
-        fmgr.getFormulaWrappingHandler());
+    ipe = new InterpolatingProverEnvironmentView<>(ipe, fmgr.getFormulaWrappingHandler());
 
-    return ipeA;
+    return ipe;
   }
 
   /**
@@ -261,9 +256,10 @@ public final class Solver implements AutoCloseable {
   }
 
   public OptimizationProverEnvironment newCachedOptEnvironment() {
-    OptimizationProverEnvironment environment = solvingContext.newCachedOptimizationProverEnvironment();
-    environment = new OptimizationProverEnvironmentView(environment, fmgr);
-    return environment;
+    throw new UnsupportedOperationException("Java-SMT does not support cached prover enviroments.");
+    // OptimizationProverEnvironment environment = solvingContext.newCachedOptimizationProverEnvironment();
+    // environment = new OptimizationProverEnvironmentView(environment, fmgr);
+    // return environment;
   }
 
   /**

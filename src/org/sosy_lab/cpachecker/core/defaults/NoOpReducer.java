@@ -64,23 +64,6 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
-  }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return pExpandedState;
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return pReducedState;
-  }
-
-  @Override
   public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation) {
     return expandedState;

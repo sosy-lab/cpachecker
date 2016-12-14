@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import java.util.Collection;
-
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,14 +35,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This class implements the core of all the approaches that are similar
@@ -147,23 +148,27 @@ final class ImpactUtility {
     }
 
     CFANode location = AbstractStates.extractLocation(s);
+    Optional<CallstackStateEqualsWrapper>
+        callstackInfo = AbstractStates.extractOptionalCallstackWraper(s);
 
     // Compute an abstraction with the new predicates.
     abstractionTime.start();
     AbstractionFormula newAbstraction;
     if (!doAbstractionComputation) {
       // Only create a region from itp without abstraction computation.
-      newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
+      newAbstraction = predAbsMgr.asAbstraction(fmgr.uninstantiate(itp), blockFormula);
 
     } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp" using the predicates from "itp".
       Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
-      newAbstraction = predAbsMgr.buildAbstraction(location, itp, blockFormula, preds);
+      newAbstraction = predAbsMgr.buildAbstraction(
+          location, callstackInfo, itp, blockFormula, preds);
 
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula" using the predicates from "itp".
       Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
-      newAbstraction = predAbsMgr.buildAbstraction(location, lastAbstraction, blockFormula, preds);
+      newAbstraction = predAbsMgr.buildAbstraction(
+          location, callstackInfo, lastAbstraction, blockFormula, preds);
     }
     abstractionTime.stop();
 

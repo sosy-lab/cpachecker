@@ -27,32 +27,45 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
 
 class BAMARGUtils {
   private BAMARGUtils() {}
 
-  public static Multimap<Block, ReachedSet> gatherReachedSets(BAMCPA cpa, ReachedSet finalReachedSet) {
-    Multimap<Block, ReachedSet> result = HashMultimap.create();
+  /**
+   * Convert a {@link ReachedSet} into a map from blocks to the reached
+   * sets they contain.
+   *
+   * <p>Only used for statistics.
+   *
+   * @param cpa CPA object to be used for getting cached information.
+   * @param finalReachedSet resached set to partition.
+   */
+  @Deprecated // reason: unused, possibly misunderstood and maybe error-prone
+  public static Multimap<Block, UnmodifiableReachedSet> gatherReachedSets(BAMCPA cpa, UnmodifiableReachedSet finalReachedSet) {
+    Multimap<Block, UnmodifiableReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
     return result;
   }
 
-  private static void gatherReachedSets(BAMCPA cpa, Block block, ReachedSet reachedSet, Multimap<Block, ReachedSet> blockToReachedSet) {
+  private static void gatherReachedSets(
+      BAMCPA cpa,
+      Block block,
+      UnmodifiableReachedSet reachedSet,
+      Multimap<Block, UnmodifiableReachedSet> blockToReachedSet) {
     if (blockToReachedSet.containsEntry(block, reachedSet)) {
       return; //avoid looping in recursive block calls
     }
@@ -61,7 +74,7 @@ class BAMARGUtils {
 
     ARGState firstElement = (ARGState)reachedSet.getFirstState();
 
-    Deque<ARGState> worklist = new LinkedList<>();
+    Deque<ARGState> worklist = new ArrayDeque<>();
     Set<ARGState> processed = new HashSet<>();
 
     worklist.add(firstElement);
@@ -77,8 +90,8 @@ class BAMARGUtils {
       processed.add(currentElement);
 
       for (ARGState child : currentElement.getChildren()) {
-        List<CFAEdge> edge = currentElement.getEdgesToChild(child);
-        if (edge.isEmpty()) {
+        List<CFAEdge> edges = currentElement.getEdgesToChild(child);
+        if (edges.isEmpty()) {
           //this is a summary edge
           Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement);
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
@@ -96,11 +109,14 @@ class BAMARGUtils {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
 
-    ReachedSet reachSet = cpa.getData().initialStateToReachedSet.get(root);
+    ReachedSet reachSet = cpa.getData().getReachedSetForInitialState(root);
     assert reachSet != null;
     return Pair.of(rootSubtree, reachSet);
   }
 
+  /**
+   * Only used for PCC.
+   */
   public static ARGState copyARG(ARGState pRoot) {
     HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<>();
     HashSet<ARGState> visited = new HashSet<>();

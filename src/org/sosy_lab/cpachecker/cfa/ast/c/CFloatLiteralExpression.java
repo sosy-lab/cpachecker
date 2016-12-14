@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigDecimal;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
@@ -34,8 +35,25 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
                                     BigDecimal pValue) {
-    super(pFileLocation, pType, pValue);
+    super(pFileLocation, pType, adjustPrecision(pValue, pType));
+  }
 
+  private static BigDecimal adjustPrecision(BigDecimal pValue, CType pType) {
+    BigDecimal value = pValue;
+    if (pType instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType) pType).getType();
+      switch (basicType) {
+        case FLOAT:
+          value = BigDecimal.valueOf(pValue.floatValue());
+          break;
+        case DOUBLE:
+          value = BigDecimal.valueOf(pValue.doubleValue());
+          break;
+        default:
+          break;
+      }
+    }
+    return value;
   }
 
   @Override
@@ -56,11 +74,6 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   @Override
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    return getValue().toString();
   }
 
   @Override

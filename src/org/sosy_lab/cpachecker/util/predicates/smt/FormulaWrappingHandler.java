@@ -25,21 +25,20 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingBitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingFloatingPointFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
-import org.sosy_lab.solver.api.FormulaType.BitvectorType;
-import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import java.util.List;
 
 /**
  * Class that takes care of all the (un-)wrapping of formulas and types
@@ -116,12 +115,7 @@ final class FormulaWrappingHandler {
   }
 
   List<Formula> unwrap(List<? extends Formula> f) {
-    return Lists.transform(f, new Function<Formula, Formula>() {
-      @Override
-      public Formula apply(Formula pInput) {
-        return unwrap(pInput);
-      }
-    });
+    return Lists.transform(f, pInput -> unwrap(pInput));
   }
 
   FormulaType<?> unwrapType(FormulaType<?> type) {
@@ -162,11 +156,6 @@ final class FormulaWrappingHandler {
   }
 
   final List<FormulaType<?>> unwrapType(List<? extends FormulaType<?>> pTypes) {
-    return Lists.transform(pTypes, new Function<FormulaType<?>, FormulaType<?>>() {
-          @Override
-          public FormulaType<?> apply(FormulaType<?> pInput) {
-            return unwrapType(pInput);
-          }
-        });
+    return Lists.transform(pTypes, pInput -> unwrapType(pInput));
   }
 }

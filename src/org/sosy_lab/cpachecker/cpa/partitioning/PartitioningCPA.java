@@ -24,48 +24,23 @@
 package org.sosy_lab.cpachecker.cpa.partitioning;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-
-import com.google.common.base.Objects;
 
 /**
  * CPA for partitioning the state space of an analysis;
  * one set of reached states can be used to analyze
  * disjoint partitions of the state space.
  */
-public class PartitioningCPA implements ConfigurableProgramAnalysis {
+public class PartitioningCPA extends AbstractCPA {
 
-  /**
-   * The abstract domain of the PartitioningCPA is a flat lattice.
-   * The elements of the lattice are the partitions.
-   */
-  private final AbstractDomain abstractDomain = new FlatLatticeDomain();
-  private final StopOperator stopOperator = new StopJoinOperator(abstractDomain);
-  private final MergeOperator mergeOperator = new MergeJoinOperator(abstractDomain);
-
-  /**
-   * The transfer relation keeps the partition of the predecessor state.
-   * (the successor state is the predecessor state).
-   *
-   * The partition is determined by the initial state.
-   */
-  private final TransferRelation transferRelation = IdentityTransferRelation.INSTANCE;
+  protected PartitioningCPA() {
+    super("JOIN", "JOIN", IdentityTransferRelation.INSTANCE);
+  }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PartitioningCPA.class);
@@ -96,54 +71,17 @@ public class PartitioningCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Objects.hashCode(partition);
-      return result;
+      return partition.hashCode();
     }
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof PartitionState)) {
-        return false;
-      }
-      return Objects.equal(this.partition, ((PartitionState) pObj).partition);
+      return pObj instanceof PartitionState && partition.equals(((PartitionState) pObj).partition);
     }
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new PartitionState(pPartition);
   }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
 }

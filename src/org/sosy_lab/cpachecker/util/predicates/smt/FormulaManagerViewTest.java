@@ -44,16 +44,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.solver.SolverContextFactory.Solvers;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType.NumeralType;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 import java.util.Set;
 
@@ -163,22 +163,34 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
       throws SolverException, InterruptedException {
     BooleanFormula atom1 = bvmgr.equal(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1));
     BooleanFormula atom1ineq =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), false);
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "a"), bvmgr.makeBitvector(32, 1), true);
     BooleanFormula atom2 =
-        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), false);
+        bvmgr.greaterThan(bvmgr.makeVariable(32, "b"), bvmgr.makeBitvector(32, 2), true);
     BooleanFormula atom3 =
-        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), false);
+        bvmgr.greaterOrEquals(bvmgr.makeVariable(32, "c"), bvmgr.makeBitvector(32, 3), true);
     BooleanFormula atom4 =
-        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), false);
+        bvmgr.lessThan(bvmgr.makeVariable(32, "d"), bvmgr.makeBitvector(32, 4), true);
     BooleanFormula atom5 =
-        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), false);
+        bvmgr.lessOrEquals(bvmgr.makeVariable(32, "e"), bvmgr.makeBitvector(32, 5), true);
 
     testExtractAtoms_SplitEqualities(atom1, atom1ineq, atom2, atom3, atom4, atom5);
   }
 
   @Test
-  public void testExtractAtoms_SplitEqualities_bv() throws SolverException, InterruptedException {
+  public void testExtractAtoms_SplitEqualities_bv() throws Exception {
     requireBitvectors();
+
+    // Create a FormulaManagerView which does not re-wrap bitvectors.
+    Configuration viewConfig = Configuration.builder()
+        .copyFrom(config)
+        // use only theory supported by all solvers:
+        .setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR")
+        .setOption("cpa.predicate.encodeFloatAs", "FLOAT")
+        .build();
+    mgrv = new FormulaManagerView(context.getFormulaManager(),
+        viewConfig, LogManager.createTestLogManager());
+    bmgrv = mgrv.getBooleanFormulaManager();
+    imgrv = mgrv.getIntegerFormulaManager();
     testExtractAtoms_SplitEqualities_bitvectors(bvmgr);
   }
 
@@ -204,8 +216,8 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   @Test
   public void testIsPurelyConjunctive_Simple() {
-    assertIsConjunctive(bmgrv.makeBoolean(true));
-    assertIsConjunctive(bmgrv.makeBoolean(false));
+    assertIsConjunctive(bmgrv.makeTrue());
+    assertIsConjunctive(bmgrv.makeFalse());
     assertIsConjunctive(bmgrv.makeVariable("a"));
     assertIsConjunctive(bmgrv.not(bmgrv.makeVariable("a")));
     assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));

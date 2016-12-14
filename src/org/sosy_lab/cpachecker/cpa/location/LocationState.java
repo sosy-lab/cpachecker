@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.or;
@@ -32,38 +31,23 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -72,81 +56,12 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   private final static Predicate<CFAEdge> NOT_FUNCTIONCALL =
       not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class)));
 
-  @Options(prefix="cpa.location")
-  public static class LocationStateFactory {
-
-    private final LocationState[] states;
-
-    private final LocationStateType locationType;
-    private final CFA cfa;
-
-    enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
-
-    @Option(secure=true, description="With this option enabled, unction calls that occur"
-        + " in the CFA are followed. By disabling this option one can traverse a function"
-        + " without following function calls (in this case FunctionSummaryEdges are used)")
-    private boolean followFunctionCalls = true;
-
-    public LocationStateFactory(CFA pCfa, LocationStateType pLocationType, Configuration config)
-        throws InvalidConfigurationException {
-      config.inject(this);
-      locationType = checkNotNull(pLocationType);
-      cfa = checkNotNull(pCfa);
-
-      ImmutableSortedSet<CFANode> allNodes;
-      Collection<CFANode> tmpNodes = pCfa.getAllNodes();
-      if (tmpNodes instanceof ImmutableSortedSet) {
-        allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
-      } else {
-        allNodes = ImmutableSortedSet.copyOf(tmpNodes);
-      }
-
-      int maxNodeNumber = allNodes.last().getNodeNumber();
-      states = new LocationState[maxNodeNumber+1];
-      for (CFANode node : allNodes) {
-        LocationState state = createLocationState(node);
-        states[node.getNodeNumber()] = state;
-      }
-    }
-
-    public LocationState getState(CFANode node) {
-      int nodeNumber = checkNotNull(node).getNodeNumber();
-
-      if (nodeNumber >= 0 && nodeNumber < states.length) {
-        return Preconditions.checkNotNull(
-            states[nodeNumber],
-            "LocationState for CFANode %s in function %s requested,"
-                + " but this node is not part of the current CFA.",
-            node,
-            node.getFunctionName());
-
-      } else {
-        return createLocationState(node);
-      }
-    }
-
-    private LocationState createLocationState(CFANode node) {
-      return locationType == LocationStateType.BACKWARD
-          ? new BackwardsLocationState(node, cfa, followFunctionCalls)
-          : locationType == LocationStateType.BACKWARDNOTARGET
-              ? new BackwardsLocationStateNoTarget(node, cfa, followFunctionCalls)
-              : new LocationState(node, followFunctionCalls);
-    }
-  }
-
-  private static class BackwardsLocationState extends LocationState implements Targetable {
+  static class BackwardsLocationState extends LocationState {
 
     private static final long serialVersionUID = 6825257572921009531L;
 
-    @SuppressFBWarnings(
-      value = "SE_BAD_FIELD",
-      justification = "backwards analysis not serializable"
-    )
-    private final CFA cfa;
-
-    protected BackwardsLocationState(CFANode locationNode, CFA pCfa, boolean pFollowFunctionCalls) {
+    BackwardsLocationState(CFANode locationNode, boolean pFollowFunctionCalls) {
       super(locationNode, pFollowFunctionCalls);
-      cfa = pCfa;
     }
 
     @Override
@@ -159,36 +74,12 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       return super.getOutgoingEdges();
     }
 
-    @Override
-    public boolean isTarget() {
-      return cfa.getMainFunction() == getLocationNode();
-    }
-
-    @Override
-    public Set<Property> getViolatedProperties() throws IllegalStateException {
-      return ImmutableSet.<Property>of(NamedProperty.create("Entry node reached backwards."));
-    }
-
-  }
-
-  private static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
-
-    private static final long serialVersionUID = -2918748452708606128L;
-
-    protected BackwardsLocationStateNoTarget(CFANode pLocationNode, CFA pCfa, boolean pFollowFunctionCalls) {
-      super(pLocationNode, pCfa, pFollowFunctionCalls);
-    }
-
-    @Override
-    public boolean isTarget() {
-      return false;
-    }
   }
 
   private transient CFANode locationNode;
   private boolean followFunctionCalls;
 
-  private LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
+  LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;
     followFunctionCalls = pFollowFunctionCalls;
   }

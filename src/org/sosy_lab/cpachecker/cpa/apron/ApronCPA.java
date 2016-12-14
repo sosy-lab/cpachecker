@@ -23,10 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import apron.ApronException;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -36,7 +49,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -55,32 +67,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
-import apron.ApronException;
-
-@Options(prefix="cpa.apron")
-public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker, StatisticsProvider {
+@Options(prefix = "cpa.apron")
+public final class ApronCPA
+    implements ConfigurableProgramAnalysis, ProofCheckerCPA, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
@@ -218,42 +213,11 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    try {
-      Collection<? extends AbstractState> computedSuccessors =
-          transferRelation.getAbstractSuccessorsForEdge(
-              pState, precision, pCfaEdge);
-      boolean found;
-      for (AbstractState comp:computedSuccessors) {
-        found = false;
-        for (AbstractState e:pSuccessors) {
-          if (isCoveredBy(comp, e)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          return false;
-        }
-      }
-    } catch (CPAException e) {
-      throw new CPATransferException("Cannot compare abstract successors", e);
-    }
-    return true;
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-     return abstractDomain.isLessOrEqual(pState, pOtherState);
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
         if (precisionFile != null) {
           exportPrecision(pReached);
         }
@@ -274,7 +238,7 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
    *
    * @param reached the set of reached states.
    */
-  private void exportPrecision(ReachedSet reached) {
+  private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
     try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {

@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.ArrayFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.ArrayFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 
 /**
  * Implements some methods for easier interaction with the formula manager for

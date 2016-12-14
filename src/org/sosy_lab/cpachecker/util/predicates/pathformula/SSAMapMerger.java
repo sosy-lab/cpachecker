@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,8 +88,8 @@ public class SSAMapMerger {
     final List<MapsDifference.Entry<String, Integer>> symbolDifferences = new ArrayList<>();
     final SSAMap resultSSA = SSAMap.merge(ssa1, ssa2, collectMapsDifferenceTo(symbolDifferences));
 
-    BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
-    BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
+    BooleanFormula mergeFormula1 = bfmgr.makeTrue();
+    BooleanFormula mergeFormula2 = bfmgr.makeTrue();
 
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
@@ -116,7 +116,7 @@ public class SSAMapMerger {
       }
     }
 
-    return new MergeResult<>(resultSSA, mergeFormula1, mergeFormula2, bfmgr.makeBoolean(true));
+    return new MergeResult<>(resultSSA, mergeFormula1, mergeFormula2, bfmgr.makeTrue());
   }
 
   /**
@@ -185,7 +185,7 @@ public class SSAMapMerger {
         // ssa2 is not the merge result of ssa1 and further ssa maps
         // simplify following PCC coverage check which will likely fail anyway
         // and return coarsest overapproximation
-        return bfmgr.makeBoolean(true);
+        return bfmgr.makeTrue();
 
       } else if (index2 > 1) {
         assert index1 < index2;
@@ -224,7 +224,7 @@ public class SSAMapMerger {
     }
 
     public static <T> MergeResult<T> trivial(T result, BooleanFormulaManagerView bfmgr) {
-      BooleanFormula trueFormula = bfmgr.makeBoolean(true);
+      BooleanFormula trueFormula = bfmgr.makeTrue();
       return new MergeResult<>(result, trueFormula, trueFormula, trueFormula);
     }
 

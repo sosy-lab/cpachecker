@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,7 +111,18 @@ public class InfeasiblePrefix {
 
       depth++;
     }
-    throw new AssertionError("There must be at least one trivial interpolant along the prefix");
+
+    // For the predicate analysis (with block size > 1), it can happen
+    // that there are only trivial interpolants available, i.e., an
+    // immediate change from [true] to [false] in the interpolant sequence.
+    // So, only for the predicate analysis (<=> pathFormulas != null),
+    // return the current depth in such a scenario
+    if (pathFormulas != null) {
+      return depth;
+    }
+
+    // for the value analysis, this must never be reached
+    throw new AssertionError("There must be at least one non-trivial interpolant along the prefix.");
   }
 
   public ARGPath getPath() {

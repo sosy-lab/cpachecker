@@ -23,20 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.collect.ImmutableMap.of;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-
-import org.sosy_lab.common.configuration.OptionCollector;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.util.PropertyFileParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
-
+import com.google.common.collect.ImmutableSortedSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
@@ -45,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -52,13 +47,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.OptionCollector;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument0;
+import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
+import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.PropertyAddingCmdLineArgument;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.util.PropertyFileParser;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
 
 /**
- * This classes parses the CPAchecker command line arguments.
- * To add a new argument, handle it in {@link #processArguments(String[])}
- * and list it in {@link #printHelp(PrintStream)}.
+ * This classes parses the CPAchecker command line arguments. To add a new argument, handle it in
+ * {@link #processArguments(String[], Set)} and list it in {@link #printHelp(PrintStream)}.
  */
 class CmdLineArguments {
 
@@ -71,7 +74,7 @@ class CmdLineArguments {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
-    private InvalidCmdlineArgumentException(final String msg) {
+    InvalidCmdlineArgumentException(final String msg) {
       super(msg);
     }
 
@@ -97,35 +100,159 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
-  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp-errorlabel.spc";
-  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "config/specification/memorysafety-deref.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "config/specification/memorysafety-free.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "config/specification/memorysafety-memtrack.spc";
-  private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
-  private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
-
-  /**
-   * Option name for hack to allow witness export to access specified property files.
-   * DO NOT USE otherwise.
-   */
-  private static final String PROPERTY_OPTION = "properties";
 
   static final String SECURE_MODE_OPTION = "secureMode";
   static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
 
+  private static final Collection<CmdLineArgument> CMD_LINE_ARGS =
+      ImmutableSortedSet.of(
+          new CmdLineArgument0("-stats", "statistics.print", "true")
+              .withDescription("collect statistics during the analysis and print them afterwards"),
+          new CmdLineArgument0("-noout", "output.disable", "true")
+              .withDescription("disable all output (except directly specified files)"),
+          new CmdLineArgument0("-java", "language", "JAVA")
+              .withDescription("language of the sourcefile"),
+          new CmdLineArgument0("-32", "analysis.machineModel", "Linux32")
+              .withDescription("set machine model to LINUX32"),
+          new CmdLineArgument0("-64", "analysis.machineModel", "Linux64")
+              .withDescription("set machine model to LINUX64"),
+          new CmdLineArgument0("-preprocess", "parser.usePreprocessor", "true")
+              .withDescription("execute a preprocessor before starting the analysis"),
+          new CmdLineArgument0("-secureMode", SECURE_MODE_OPTION, "true")
+              .withDescription("allow to use only secure options"),
+          new CmdLineArgument1("-witness", "witness.validation.file")
+              .withDescription("the witness to validate"),
+          new CmdLineArgument1("-outputpath", "output.path")
+              .withDescription("where to store the files with results, statistics, logs"),
+          new CmdLineArgument1("-logfile", "log.file").withDescription("set a direct logfile"),
+          new CmdLineArgument1("-entryfunction", "analysis.entryFunction")
+              .withDescription("set the initial function for the analysis"),
+          new CmdLineArgument1("-config", CONFIGURATION_FILE_OPTION)
+              .withDescription("set the configuration for the analysis"),
+          new CmdLineArgument1("-timelimit", "limits.time.cpu")
+              .withDescription("set a timelimit for the analysis"),
+          new CmdLineArgument1("-sourcepath", "java.sourcepath")
+              .withDescription("set the sourcepath for the analysis of Java programs"),
+          new CmdLineArgument1("-cp", "-classpath", "java.classpath")
+              .withDescription("set the classpath for the analysis of Java programs"),
+          new CmdLineArgument1("-spec", "specification") {
+            @Override
+            void handleArg(
+                Map<String, String> properties,
+                Set<SpecificationProperty> pSpecificationProperties,
+                String arg)
+                throws InvalidCmdlineArgumentException {
+              String newValue =
+                  handleSpecificationDefinition(properties, pSpecificationProperties, arg);
+              appendOptionValue(properties, getOption(), newValue);
+            }
+          }.withDescription("set the specification for the main analysis"),
+          new CmdLineArgument("-cmc") {
+
+            @Override
+            void apply0(
+                Map<String, String> properties,
+                Set<SpecificationProperty> pSpecificationProperties,
+                String pCurrentArg,
+                Iterator<String> argsIt)
+                throws InvalidCmdlineArgumentException {
+              handleCmc(argsIt, properties);
+            }
+          }.withDescription("use conditional model checking"),
+          new CmdLineArgument1("-cpas") {
+
+            @Override
+            void handleArg(
+                Map<String, String> properties,
+                Set<SpecificationProperty> pSpecificationProperties,
+                String arg) {
+              properties.put("cpa", CompositeCPA.class.getName());
+              properties.put(CompositeCPA.class.getSimpleName() + ".cpas", arg);
+            }
+          }.withDescription("set CPAs for the analysis"),
+          new PropertyAddingCmdLineArgument(
+                  "-cbmc",
+                  of("analysis.checkCounterexamples", "true", "counterexample.checker", "CBMC"))
+              .withDescription("use CBMC as counterexample checker"),
+          new PropertyAddingCmdLineArgument(
+                  "-nolog", of("log.level", "off", "log.consoleLevel", "off"))
+              .withDescription("disable logging"),
+          new PropertyAddingCmdLineArgument(
+                  "-skipRecursion",
+                  of("analysis.summaryEdges", "true", "cpa.callstack.skipRecursion", "true"))
+              .withDescription("skip recursive function calls"),
+          new CmdLineArgument1("-setprop") {
+
+            @Override
+            void handleArg(
+                Map<String, String> properties,
+                Set<SpecificationProperty> pSpecificationProperties,
+                String arg)
+                throws InvalidCmdlineArgumentException {
+              List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(arg);
+              if (bits.size() != 2) {
+                throw new InvalidCmdlineArgumentException(
+                    "-setprop argument must be a key=value pair, but \"" + arg + "\" is not.");
+              }
+              putIfNotExistent(properties, bits.get(0), bits.get(1));
+            }
+          }.withDescription("set an option directly"),
+          new CmdLineArgument("-printOptions") {
+
+            @SuppressFBWarnings("DM_EXIT")
+            @Override
+            void apply0(
+                Map<String, String> properties,
+                Set<SpecificationProperty> pSpecificationProperties,
+                String pCurrentArg,
+                Iterator<String> argsIt)
+                throws InvalidCmdlineArgumentException {
+              boolean verbose = false;
+              if (argsIt.hasNext()) {
+                final String nextArg = argsIt.next();
+                verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
+              }
+              PrintStream out = System.out;
+              OptionCollector.collectOptions(verbose, true, out);
+              System.exit(0);
+            }
+          }.withDescription("print all possible options on StdOut"),
+          new PropertyAddingCmdLineArgument(
+                  "-printUsedOptions",
+                  of(PRINT_USED_OPTIONS_OPTION, "true", "analysis.disable", "true"),
+                  of("log.consoleLevel", "SEVERE"))
+              .withDescription("print all used options"),
+          new CmdLineArgument("-h", "-help") {
+
+            @SuppressFBWarnings("DM_EXIT")
+            @Override
+            void apply0(
+                Map<String, String> pProperties,
+                Set<SpecificationProperty> pSpecificationProperties,
+                String pCurrentArg,
+                Iterator<String> pArgsIt)
+                throws InvalidCmdlineArgumentException {
+              printHelp(System.out);
+              System.exit(0);
+            }
+          }.withDescription("print help message"));
+
   /**
    * Reads the arguments and process them.
    *
-   * In some special cases this method may terminate the VM.
+   * <p>In some special cases this method may terminate the VM.
    *
    * @param args commandline arguments
+   * @param pSpecificationProperties a mutable set where specification properties are put into
+   *     during parsing.
    * @return a map with all options found in the command line
    * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
-  static Map<String, String> processArguments(final String[] args) throws InvalidCmdlineArgumentException {
+  static Map<String, String> processArguments(
+      final String[] args, Set<SpecificationProperty> pSpecificationProperties)
+      throws InvalidCmdlineArgumentException {
     Map<String, String> properties = new HashMap<>();
     List<String> programs = new ArrayList<>();
 
@@ -133,80 +260,15 @@ class CmdLineArguments {
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
-          || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
-          || handleArgument0("-java",    "language",         "JAVA",            arg, properties)
-          || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
-          || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
-          || handleArgument0("-preprocess",    "parser.usePreprocessor", "true", arg, properties)
-          || handleArgument0("-secureMode",    SECURE_MODE_OPTION, "true",      arg, properties)
-          || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
-          || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
-          || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
-          || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-          || handleArgument1("-timelimit",     "limits.time.cpu", arg, argsIt, properties)
-          || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
-          || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
-          || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
-          || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
-      ) {
+      boolean foundMatchingArg = false;
+      for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
+        if (cmdLineArg.apply(properties, pSpecificationProperties, arg, argsIt)) {
+          foundMatchingArg = true;
+          break;
+        }
+      }
+      if (foundMatchingArg) {
         // nothing left to do
-      } else if (arg.equals("-cmc")) {
-        handleCmc(argsIt, properties);
-
-      } else if (arg.equals("-cpas")) {
-        if (argsIt.hasNext()) {
-          properties.put("cpa", CompositeCPA.class.getName());
-          properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argsIt.next());
-        } else {
-          throw new InvalidCmdlineArgumentException("-cpas argument missing.");
-        }
-
-      } else if (arg.equals("-cbmc")) {
-        putIfNotExistent(properties, "analysis.checkCounterexamples", "true");
-        putIfNotExistent(properties, "counterexample.checker", "CBMC");
-
-      } else if (arg.equals("-nolog")) {
-        putIfNotExistent(properties, "log.level", "off");
-        putIfNotExistent(properties, "log.consoleLevel", "off");
-
-      } else if (arg.equals("-skipRecursion")) {
-        putIfNotExistent(properties, "analysis.summaryEdges", "true");
-        putIfNotExistent(properties, "cpa.callstack.skipRecursion", "true");
-
-      } else if (arg.equals("-setprop")) {
-        if (argsIt.hasNext()) {
-          String s = argsIt.next();
-          List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(s);
-          if (bits.size() != 2) {
-            throw new InvalidCmdlineArgumentException("-setprop argument must be a key=value pair, but \"" + s + "\" is not.");
-          }
-          putIfNotExistent(properties, bits.get(0), bits.get(1));
-        } else {
-          throw new InvalidCmdlineArgumentException("-setprop argument missing.");
-        }
-
-      } else if ("-printOptions".equals(arg)) {
-        boolean verbose = false;
-        if (argsIt.hasNext()) {
-          final String nextArg = argsIt.next();
-          verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
-        }
-        PrintStream out = System.out;
-        OptionCollector.collectOptions(verbose, true, out);
-        System.exit(0);
-
-      } else if ("-printUsedOptions".equals(arg)) {
-        putIfNotExistent(properties, PRINT_USED_OPTIONS_OPTION, "true");
-        putIfNotExistent(properties, "analysis.disable", "true");
-
-        // this will disable all other output
-        properties.put("log.consoleLevel", "SEVERE");
-
-      } else if (arg.equals("-help") || arg.equals("-h")) {
-        printHelp(System.out);
-        System.exit(0);
-
       } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
@@ -282,26 +344,9 @@ class CmdLineArguments {
     out.println("CPAchecker " + CPAchecker.getVersion());
     out.println();
     out.println("OPTIONS:");
-    out.println(" -config");
-    out.println(" -cpas");
-    out.println(" -spec");
-    out.println(" -outputpath");
-    out.println(" -logfile");
-    out.println(" -entryfunction");
-    out.println(" -timelimit");
-    out.println(" -cbmc");
-    out.println(" -stats");
-    out.println(" -nolog");
-    out.println(" -noout");
-    out.println(" -java");
-    out.println(" -32");
-    out.println(" -64");
-    out.println(" -secureMode");
-    out.println(" -skipRecursion");
-    out.println(" -setprop");
-    out.println(" -printOptions [-v|-verbose]");
-    out.println(" -printUsedOptions");
-    out.println(" -help");
+    for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
+      out.println(" " + cmdLineArg);
+    }
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");
     out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
@@ -309,11 +354,13 @@ class CmdLineArguments {
     out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
   }
 
-  private static void putIfNotExistent(final Map<String, String> properties, final String key, final String value)
+  static void putIfNotExistent(
+      final Map<String, String> properties, final String key, final String value)
       throws InvalidCmdlineArgumentException {
 
     if (properties.containsKey(key)) {
-      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line.");
+      throw new InvalidCmdlineArgumentException(
+          "Duplicate option " + key + " specified on command-line.");
     }
 
     properties.put(key, value);
@@ -330,7 +377,8 @@ class CmdLineArguments {
     properties.put(key, value);
   }
 
-  private static void appendOptionValue(final Map<String, String> options, final String option, String newValue) {
+  static void appendOptionValue(
+      final Map<String, String> options, final String option, String newValue) {
     if (newValue != null) {
       String value = options.get(option);
       if (value != null) {
@@ -342,136 +390,66 @@ class CmdLineArguments {
     }
   }
 
-  /**
-   * Handle a command line argument with no value.
-   */
-  private static boolean handleArgument0(final String arg, final String option, final String value, final String currentArg,
-        final Map<String, String> properties) throws InvalidCmdlineArgumentException {
-    if (currentArg.equals(arg)) {
-      putIfNotExistent(properties, option, value);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * Handle a command line argument with one value.
-   */
-  private static boolean handleArgument1(final String arg, final String option, final String currentArg,
-        final Iterator<String> args, final Map<String, String> properties)
-        throws InvalidCmdlineArgumentException {
-    if (currentArg.equals(arg)) {
-      if (args.hasNext()) {
-        putIfNotExistent(properties, option, args.next());
-      } else {
-        throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
-      }
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * Handle a command line argument with one value that may appear several times.
-   */
-  private static boolean handleMultipleArgument1(final String arg, final String option, final String currentArg,
-      final Iterator<String> args, final Map<String, String> options)
+  private static String handleSpecificationDefinition(
+      final Map<String, String> options,
+      Set<SpecificationProperty> pSpecificationProperties,
+      String specification)
       throws InvalidCmdlineArgumentException {
-    if (currentArg.equals(arg)) {
-      if (args.hasNext()) {
+    // handle normal specification definitions
+    if (SPECIFICATION_FILES_PATTERN.matcher(specification).matches()) {
+      Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, specification);
+      if (specFile != null) {
+        specification = specFile.toString();
+      } else {
+        ERROR_OUTPUT.println(
+            "Checking for property "
+                + specification
+                + " is currently not supported by CPAchecker.");
+        System.exit(ERROR_EXIT_CODE);
+      }
+    }
 
-        String newValue = args.next();
-        if (arg.equals("-spec")) {
-          // handle normal specification definitions
-          if (SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
-            Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
-            if (specFile != null) {
-              newValue = specFile.toString();
-            } else {
-              ERROR_OUTPUT.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-              System.exit(ERROR_EXIT_CODE);
-            }
-          }
-
-          // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
-          // the respective specification definition
-          else if(PROPERTY_FILE_PATTERN.matcher(newValue).matches()) {
-            Path propertyFile = Paths.get(newValue);
-            if (propertyFile.toFile().exists()) {
-              PropertyFileParser parser = new PropertyFileParser(propertyFile);
-              try {
-                parser.parse();
-              } catch (InvalidPropertyFileException e) {
-                throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
-              }
-              putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
-              appendOptionValue(options, PROPERTY_OPTION, newValue);
-
-              // set the file from where to read the specification automaton
-              Set<PropertyType> properties = parser.getProperties();
-              assert !properties.isEmpty();
-
-              newValue = getSpecifications(options, properties);
-
-            } else {
-              ERROR_OUTPUT.println("The property file " + newValue + " does not exist.");
-              System.exit(ERROR_EXIT_CODE);
-            }
-          }
+    // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
+    // the respective specification definition
+    else if (PROPERTY_FILE_PATTERN.matcher(specification).matches()) {
+      Path propertyFile = Paths.get(specification);
+      if (propertyFile.toFile().exists()) {
+        PropertyFileParser parser = new PropertyFileParser(propertyFile);
+        try {
+          parser.parse();
+        } catch (InvalidPropertyFileException e) {
+          throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
         }
-        appendOptionValue(options, option, newValue);
+        putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
+
+        // set the file from where to read the specification automaton
+        Set<SpecificationProperty> properties = parser.getProperties();
+        pSpecificationProperties.addAll(properties);
+        assert !properties.isEmpty();
+
+        specification = getSpecifications(options, properties);
 
       } else {
-        throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
+        ERROR_OUTPUT.println("The property file " + specification + " does not exist.");
+        System.exit(ERROR_EXIT_CODE);
       }
-      return true;
-    } else {
-      return false;
     }
+    return specification;
   }
 
-  /** This method returns all specifications for the given properties.
-   * If needed for the analysis, some options can be set. */
-  private static String getSpecifications(final Map<String, String> options,
-      Set<PropertyType> properties) throws InvalidCmdlineArgumentException {
+  /**
+   * This method returns all specifications for the given properties. If needed for the analysis,
+   * some options can be set.
+   */
+  private static String getSpecifications(
+      final Map<String, String> options, Set<SpecificationProperty> properties)
+      throws InvalidCmdlineArgumentException {
     final List<String> specifications = new ArrayList<>();
-    for (PropertyType property : properties) {
-      Optional<String> newSpec = null;
-      switch (property) {
-      case VALID_DEREF:
-        putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_DEREF);
-        break;
-      case VALID_FREE:
-        putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_FREE);
-        break;
-      case VALID_MEMTRACK:
-        putIfNotDifferent(options, "memorysafety.check", "true");
-        newSpec = Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK);
-        break;
-      case REACHABILITY_LABEL:
-        newSpec = Optional.of(REACHABILITY_LABEL_SPECIFICATION_FILE);
-        break;
-      case OVERFLOW:
-        putIfNotExistent(options, "overflow.check", "true");
-        newSpec = Optional.of(OVERFLOW_SPECIFICATION_FILE);
-        break;
-      case DEADLOCK:
-        newSpec = Optional.of(DEADLOCK_SPECIFICATION_FILE);
-        break;
-      case TERMINATION:
-        putIfNotExistent(options, "termination.check", "true");
-        newSpec = Optional.empty();
-        break;
-      case REACHABILITY:
-        newSpec = Optional.of(REACHABILITY_SPECIFICATION_FILE);
-        break;
-      default:
-        ERROR_OUTPUT.println("Checking for the property " + property + " is currently not supported by CPAchecker.");
-        System.exit(ERROR_EXIT_CODE);
+    for (SpecificationProperty property : properties) {
+      Optional<String> newSpec = property.getInternalSpecificationPath();
+      for (Map.Entry<String, String> additionalOptions :
+          property.getAssociatedOptions().entrySet()) {
+        putIfNotDifferent(options, additionalOptions.getKey(), additionalOptions.getValue());
       }
       assert newSpec != null;
       newSpec.ifPresent(specifications::add);

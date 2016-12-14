@@ -26,27 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.ImmutableList.copyOf;
 
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,8 +34,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider {
+public class ExceptionHandlingAlgorithm
+    implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
   @Options
   private static class ExceptionHandlingOptions {
@@ -104,7 +106,7 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (!(pCpa instanceof ARGCPA || pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
   }
@@ -369,6 +371,20 @@ public class ExceptionHandlingAlgorithm implements Algorithm, StatisticsProvider
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    }
+  }
+
+  @Override
+  public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    }
+  }
+
+  @Override
+  public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
     }
   }
 }

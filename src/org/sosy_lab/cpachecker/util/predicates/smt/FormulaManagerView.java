@@ -27,6 +27,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -52,30 +53,31 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.FloatingPointFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-import org.sosy_lab.solver.api.FunctionDeclarationKind;
-import org.sosy_lab.solver.api.Model;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.FormulaVisitor;
-import org.sosy_lab.solver.visitors.TraversalProcess;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.Tactic;
+import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -95,7 +97,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -290,10 +291,10 @@ public class FormulaManagerView {
     return rawFloatingPointFormulaManager;
   }
 
-  private NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager0() {
-    NumeralFormulaManager<IntegerFormula, IntegerFormula> ifmgr = manager.getIntegerFormulaManager();
+  private IntegerFormulaManager getIntegerFormulaManager0() {
+    IntegerFormulaManager ifmgr = manager.getIntegerFormulaManager();
     if (useUFsForNonLinearArithmetic) {
-      ifmgr = new NonLinearUFNumeralFormulaManager<>(
+      ifmgr = new IntegerNonLinearUFNumeralFormulaManager(
           wrappingHandler, ifmgr, functionFormulaManager);
     }
     return ifmgr;
@@ -566,9 +567,21 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = getRationalFormulaManager().modularCongruence((NumeralFormula) pF1, (NumeralFormula) pF2, pModulo);
+      t = booleanFormulaManager.makeTrue();
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.modularCongruence((BitvectorFormula) pF1, (BitvectorFormula) pF2, pModulo);
+      Formula unwrapped1 = unwrap(pF1);
+      Formula unwrapped2 = unwrap(pF2);
+      if (unwrapped1 instanceof IntegerFormula && unwrapped2 instanceof IntegerFormula) {
+        t = integerFormulaManager.modularCongruence(
+            (IntegerFormula) unwrapped1, (IntegerFormula) unwrapped2, pModulo);
+      } else {
+        BitvectorFormula constant = bitvectorFormulaManager.makeBitvector(
+            bitvectorFormulaManager.getLength((BitvectorFormula) pF1), pModulo);
+        t = bitvectorFormulaManager.equal(
+            bitvectorFormulaManager.modulo((BitvectorFormula) pF1, constant, true),
+            bitvectorFormulaManager.modulo((BitvectorFormula) pF2, constant, true)
+        );
+      }
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -913,7 +926,7 @@ public class FormulaManagerView {
    *  @see #instantiate(Formula, SSAMap)
    */
   public <F extends Formula> List<F> instantiate(Collection<F> pFormulas, final SSAMap pSsa) {
-    return pFormulas.stream().map(f -> instantiate(f, pSsa)).collect(Collectors.toList());
+    return transformedImmutableListCopy(pFormulas, f -> instantiate(f, pSsa));
   }
 
   public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
@@ -1191,12 +1204,45 @@ public class FormulaManagerView {
   }
 
   /**
-   * @see FormulaManager#splitNumeralEqualityIfPossible(Formula) for
-   * documentation.
+   * For an equality {@code x = y} where {@code x} and {@code y} are
+   * not boolean, return a list {@code x<=y, x>=y}.
+   *
+   * <p>Otherwise, return the list consisting of the input formula.
+   * Note:
+   *  1) Returned list always has one or two elements.
+   *  2) Conjunction over the returned list is equivalent to the input formula.
    */
   public List<BooleanFormula> splitNumeralEqualityIfPossible(BooleanFormula formula) {
-    // only exported here for BooleanFormula because otherwise it is not type-safe
-    return manager.splitNumeralEqualityIfPossible(formula);
+    return visit(formula, new DefaultFormulaVisitor<List<BooleanFormula>>() {
+      @Override
+      protected List<BooleanFormula> visitDefault(Formula f) {
+        return ImmutableList.of((BooleanFormula) f);
+      }
+
+      @Override
+      public List<BooleanFormula> visitFunction(
+          Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+        if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
+            || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
+            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
+
+          Formula arg1 = args.get(0);
+          Formula arg2;
+
+          if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO) {
+            arg2 = makeNumber(getFormulaType(arg1), 0);
+          } else {
+            arg2 = args.get(1);
+          }
+          return ImmutableList.of(
+              makeLessOrEqual(arg1, arg2, true),
+              makeGreaterOrEqual(arg1, arg2, true)
+          );
+        } else {
+          return ImmutableList.of((BooleanFormula) f);
+        }
+      }
+    });
   }
 
   /**
@@ -1362,7 +1408,7 @@ public class FormulaManagerView {
       }
     });
 
-    BooleanFormula result = booleanFormulaManager.makeBoolean(true);
+    BooleanFormula result = booleanFormulaManager.makeTrue();
     if (andFound.get()) {
       // Note: We can assume that we have no real bitvectors here, so size should be not important
       // If it ever should be we can just add an method to the unsafe-manager to read the size.
@@ -1625,7 +1671,7 @@ public class FormulaManagerView {
               @Override
               public BooleanFormula visitNot(BooleanFormula pOperand) {
                 if (!toKeep.apply(pOperand)) {
-                  return booleanFormulaManager.makeBoolean(true);
+                  return booleanFormulaManager.makeTrue();
                 }
                 return super.visitNot(pOperand);
               }
@@ -1637,7 +1683,7 @@ public class FormulaManagerView {
               BooleanFormula pOperand,
               FunctionDeclaration<BooleanFormula> decl) {
             if (!toKeep.apply(pOperand)) {
-              return booleanFormulaManager.makeBoolean(true);
+              return booleanFormulaManager.makeTrue();
             }
             return super.visitAtom(pOperand, decl);
           }
@@ -1653,7 +1699,7 @@ public class FormulaManagerView {
    * View wrapper for {@link #transformRecursively}.
    */
   public static class FormulaTransformationVisitor
-      extends org.sosy_lab.solver.visitors.FormulaTransformationVisitor {
+      extends org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor {
 
     protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
       super(fmgr.manager);

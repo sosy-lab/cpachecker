@@ -27,14 +27,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,8 +35,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialReachedSetDirectedGraph implements Statistics {
 
@@ -162,8 +159,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
 
   @Override
-  public void printStatistics(final PrintStream pOut, final Result pResult,
-      final ReachedSet pReached) {
+  public void printStatistics(
+      final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     int edges = 0, maxin = 0, minin = Integer.MAX_VALUE, maxout = 0, minout = Integer.MAX_VALUE;
     double avgin = 0, avgout = 0;
     //store distribution of nodes over there degrees

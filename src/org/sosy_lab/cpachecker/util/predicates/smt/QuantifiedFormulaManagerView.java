@@ -27,14 +27,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.IntegerFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.QuantifiedFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,8 +61,9 @@ public class QuantifiedFormulaManagerView
     return manager.exists(unwrap(pVariables), pBody);
   }
 
-  public <T extends Formula> BooleanFormula exists(T pVariable, BooleanFormula pBody) {
-    return manager.exists(Collections.singletonList(unwrap(pVariable)), pBody);
+  @Override
+  public BooleanFormula exists(Formula pVariable, BooleanFormula pBody) {
+    return manager.exists(unwrap(pVariable), pBody);
   }
 
   @Override
@@ -72,25 +72,14 @@ public class QuantifiedFormulaManagerView
   }
 
   @Override
-  public BooleanFormula forall(
-      BooleanFormula pBody, Formula... quantifiedArgs) {
-    return forall(Arrays.asList(quantifiedArgs), pBody);
-  }
-
-  @Override
-  public BooleanFormula exists(
-      BooleanFormula pBody, Formula... quantifiedArgs) {
-    return exists(Arrays.asList(quantifiedArgs), pBody);
-  }
-
-  @Override
   public BooleanFormula mkQuantifier(Quantifier q,
       List<? extends Formula> pVariables, BooleanFormula pBody) {
     return manager.mkQuantifier(q, unwrap(pVariables), pBody);
   }
 
-  public <T extends Formula> BooleanFormula forall(T pVariable, BooleanFormula pBody) {
-    return manager.forall(Collections.singletonList(unwrap(pVariable)), pBody);
+  @Override
+  public BooleanFormula forall(Formula pVariable, BooleanFormula pBody) {
+    return manager.forall(unwrap(pVariable), pBody);
   }
 
   @Override

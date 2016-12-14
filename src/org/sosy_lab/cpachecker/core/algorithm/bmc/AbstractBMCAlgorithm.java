@@ -34,7 +34,12 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -68,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -79,18 +85,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.SolverContext.ProverOptions;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="bmc")
 abstract class AbstractBMCAlgorithm implements StatisticsProvider {
@@ -103,6 +101,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
                              }
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
+
+  static final Predicate<AbstractState> IS_SLICED_STATE = (state) ->
+    AbstractStates.extractStateByType(state, ReachabilityState.class) == ReachabilityState.IRRELEVANT_TO_TARGET;
 
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
@@ -135,7 +136,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
-  private final Set<CFANode> loopHeads;
   private final Specification specification;
 
   protected final ShutdownNotifier shutdownNotifier;
@@ -166,7 +166,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     logger = pLogger;
     reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
-    loopHeads = BMCHelper.getLoopHeads(pCFA);
     specification = checkNotNull(pSpecification);
 
     shutdownNotifier = pShutdownManager.getNotifier();
@@ -175,7 +174,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (induction) {
       induction = checkIfInductionIsPossible(pCFA, pLogger);
       // if there is no loop we do not need induction, although loop information is available
-      induction = induction && cfa.getLoopStructure().get().getCount() > 0 && !loopHeads.isEmpty();
+      induction = induction && cfa.getLoopStructure().get().getCount() > 0 && !getLoopHeads().isEmpty();
     }
 
     if (induction) {
@@ -232,7 +231,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           new AbstractInvariantGenerator() {
 
             @Override
-            public void start(CFANode pInitialLocation) {
+            protected void startImpl(CFANode pInitialLocation) {
               // do nothing
             }
 
@@ -464,17 +463,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected abstract CandidateGenerator getCandidateInvariants();
 
   /**
-   * Adjusts the conditions of the CPAs which support the adjusting of
-   * conditions.
+   * Adjusts the conditions of the CPAs which support the adjusting of conditions.
    *
-   * @return {@code true} if all CPAs supporting the feature agreed on
-   * adjusting their conditions, {@code false} if one of the CPAs does not
-   * support any further adjustment of conditions.
+   * @return {@code true} if the conditions were adjusted, {@code false} if the BoundsCPA used to
+   *     unroll the loops does not support any further adjustment of conditions.
    */
   private boolean adjustConditions() {
     Iterable<AdjustableConditionCPA> conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
     for (AdjustableConditionCPA condCpa : conditionCPAs) {
-      if (!condCpa.adjustPrecision()) {
+      if (!condCpa.adjustPrecision() && condCpa instanceof BoundsCPA) {
         // this cpa said "do not continue"
         logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
         return false;
@@ -548,7 +545,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover)
       throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
-                                                    .filter(IS_STOP_STATE);
+        .filter(IS_STOP_STATE)
+        .filter(Predicates.not(IS_SLICED_STATE));
 
     if (boundingAssertions) {
       // create formula for unwinding assertions
@@ -611,6 +609,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the loop heads.
    */
   protected Set<CFANode> getLoopHeads() {
-    return loopHeads;
+    return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 }

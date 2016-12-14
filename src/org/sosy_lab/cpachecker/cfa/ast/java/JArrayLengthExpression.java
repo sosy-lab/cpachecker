@@ -67,11 +67,6 @@ public abstract class JArrayLengthExpression extends AbstractExpression implemen
     return v.visit(this);
   }
 
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
   private static class JSubArrayLengthExpression extends JArrayLengthExpression {
     private final JArraySubscriptExpression qualifier;
 

@@ -30,15 +30,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class represents the character literal AST node type.
  */
-public class JCharLiteralExpression extends ACharLiteralExpression implements JLiteralExpression {
+public final class JCharLiteralExpression extends ACharLiteralExpression
+    implements JLiteralExpression {
 
   public JCharLiteralExpression(FileLocation pFileLocation, JType pType, char pCharacter) {
     super(pFileLocation, pType, pCharacter);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

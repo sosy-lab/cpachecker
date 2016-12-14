@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import javax.annotation.CheckReturnValue;
-
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import javax.annotation.CheckReturnValue;
 
 public interface Algorithm {
 
@@ -46,6 +46,7 @@ public interface Algorithm {
    * should be interpreted. It is defined as:
    * - if SOUND is false, any proof should be interpreted as potentially flawed and ignored
    * - if PRECISE is false, any counterexample found should be interpreted as potentially flawed and ignored
+   * - if NEVER TERMINATING is true, no execution of the program will terminate.
    *
    * If SOUND and PRECISE are true, this means that the algorithm instance
    * to its best knowledge produces correct proofs and counterexamples.
@@ -58,13 +59,15 @@ public interface Algorithm {
   final class AlgorithmStatus {
     private final boolean isPrecise;
     private final boolean isSound;
+    private final boolean isProgramNeverTerminating;
 
-    public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true);
-    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false);
+    public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true, false);
+    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false, false);
 
-    private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
+    private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound, boolean pIsProgramNeverTerminates) {
       isPrecise = pIsPrecise;
       isSound = pIsSound;
+      isProgramNeverTerminating = pIsProgramNeverTerminates;
     }
 
     /**
@@ -75,7 +78,8 @@ public interface Algorithm {
     public AlgorithmStatus update(AlgorithmStatus other) {
       return new AlgorithmStatus(
           isPrecise && other.isPrecise,
-          isSound && other.isSound
+          isSound && other.isSound,
+          isProgramNeverTerminating || other.isProgramNeverTerminating
       );
     }
 
@@ -85,7 +89,7 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
-      return new AlgorithmStatus(isPrecise, pIsSound);
+      return new AlgorithmStatus(isPrecise, pIsSound, isProgramNeverTerminating);
     }
 
     /**
@@ -94,7 +98,16 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
-      return new AlgorithmStatus(pIsPrecise, isSound);
+      return new AlgorithmStatus(pIsPrecise, isSound, isProgramNeverTerminating);
+    }
+
+    /**
+     * Create a new instance of {@link AlgorithmStatus} where PRECISE and SOUND is as in this
+     * instance.
+     */
+    @CheckReturnValue
+    public AlgorithmStatus withProgramNeverTerminates(boolean pIsProgramNeverTerminating) {
+      return new AlgorithmStatus(isPrecise, isSound, pIsProgramNeverTerminating);
     }
 
     public boolean isSound() {
@@ -105,12 +118,17 @@ public interface Algorithm {
       return isPrecise;
     }
 
+    public boolean isProramNeverTerminating() {
+      return isProgramNeverTerminating;
+    }
+
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
       result = prime * result + (isPrecise ? 1231 : 1237);
       result = prime * result + (isSound ? 1231 : 1237);
+      result = prime * result + (isProgramNeverTerminating ? 1231 : 1237);
       return result;
     }
 
@@ -124,7 +142,8 @@ public interface Algorithm {
       }
       AlgorithmStatus other = (AlgorithmStatus) obj;
       return isPrecise == other.isPrecise
-          && isSound == other.isSound;
+          && isSound == other.isSound
+          && isProgramNeverTerminating == other.isProgramNeverTerminating;
     }
   }
 }

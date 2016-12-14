@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 import java.math.BigInteger;
 import java.util.Map;
@@ -294,9 +294,9 @@ public class ToBitvectorFormulaVisitor implements
         right = pEqual.getOperand1();
       }
       CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
-      BooleanFormula bf = bfmgr.makeBoolean(false);
+      BooleanFormula bf = bfmgr.makeFalse();
       for (SimpleInterval interval : rightValue.getIntervals()) {
-        BooleanFormula intervalFormula = bfmgr.makeBoolean(true);
+        BooleanFormula intervalFormula = bfmgr.makeTrue();
         if (interval.isSingleton()) {
           BitvectorFormula value = asBitVectorFormula(typeInfo, interval.getLowerBound());
           intervalFormula = bfmgr.and(intervalFormula, bvfmgr.equal(left, value));
@@ -343,7 +343,7 @@ public class ToBitvectorFormulaVisitor implements
       }
       CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
       if (rightValue.isBottom()) {
-        return bfmgr.makeBoolean(false);
+        return bfmgr.makeFalse();
       }
       if (lessThan) {
         if (rightValue.hasUpperBound()) {
@@ -375,12 +375,12 @@ public class ToBitvectorFormulaVisitor implements
 
   @Override
   public BooleanFormula visitFalse(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return bfmgr.makeBoolean(false);
+    return bfmgr.makeFalse();
   }
 
   @Override
   public BooleanFormula visitTrue(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return bfmgr.makeBoolean(true);
+    return bfmgr.makeTrue();
   }
 
 }

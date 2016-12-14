@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
@@ -55,8 +57,17 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
 
     Set<InvariantsState> invStates = Sets.newHashSet();
     boolean otherReportingStates = false;
+    Iterable<AbstractState> locationStates = lazyLocationMapping.get(
+        pLocation,
+        Optional.empty());
+    if (Iterables.isEmpty(locationStates)) {
+      // Location is not necessarily unreachable, but might have been skipped,
+      // e.g. by the multi-edge/basic-block optimization of the CompositeCPA.
+      // In this case, we err on the side of caution.
+      return ExpressionTrees.getTrue();
+    }
 
-    for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
+    for (AbstractState locState : locationStates) {
       ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
 
       for (ExpressionTreeReportingState expressionTreeReportingState :

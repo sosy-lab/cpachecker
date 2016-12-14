@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.Template.Kind;
 import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BitvectorFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -205,7 +205,7 @@ public class CongruenceManager implements
 
   public BooleanFormula toFormula(CongruenceState state) {
     return toFormula(pfmgr, fmgr, state, new PathFormula(
-        bfmgr.makeBoolean(true),
+        bfmgr.makeTrue(),
         state.getSSAMap(),
         state.getPointerTargetSet(),
         1
@@ -236,7 +236,7 @@ public class CongruenceManager implements
             fmgr,
             state,
             new PathFormula(
-                fmgr.getBooleanFormulaManager().makeBoolean(true),
+                fmgr.getBooleanFormulaManager().makeTrue(),
                 state.getSSAMap(),
                 state.getPointerTargetSet(),
                 1

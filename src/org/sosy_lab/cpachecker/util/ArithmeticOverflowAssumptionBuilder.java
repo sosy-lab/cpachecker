@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -99,6 +100,11 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     pConfiguration.inject(this);
     this.logger = logger;
     this.cfa = cfa;
+    if (useLiveness) {
+      Preconditions.checkState(cfa.getLiveVariables().isPresent(),
+          "Liveness information is required for overflow analysis.");
+    }
+
     CIntegerLiteralExpression INT_MIN = new CIntegerLiteralExpression(
         FileLocation.DUMMY,
         CNumericTypes.INT,

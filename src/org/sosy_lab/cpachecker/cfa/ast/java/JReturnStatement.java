@@ -37,6 +37,8 @@ import java.util.Optional;
  */
 public class JReturnStatement extends AbstractReturnStatement implements JAstNode {
 
+  // TODO refactor to be either abstract or final
+
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special variable with the return type of the function.
     super(pFileLocation, pExpression, Optional.empty());
@@ -47,6 +49,11 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
   @Override
   public Optional<JExpression> getReturnValue() {
     return (Optional<JExpression>) super.getReturnValue();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override

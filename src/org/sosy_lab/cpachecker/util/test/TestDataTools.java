@@ -97,8 +97,6 @@ public class TestDataTools {
         .addConverter(FileOption.class, fileTypeConverter);
   }
 
-  public static final CFANode DUMMY_CFA_NODE = new CFANode("DUMMY");
-
   private static int dummyNodeCounter = 0;
 
   private static CFANode newDummyNode() {
@@ -199,21 +197,22 @@ public class TestDataTools {
     return makeAssume(pAssumeExr, newDummyNode(), newDummyNode());
   }
 
-  public static CFA makeCFA(String cProgram) throws IOException, ParserException, InterruptedException {
+  public static CFA makeCFA(String... lines)
+      throws IOException, ParserException, InterruptedException {
     try {
-      return makeCFA(cProgram, configurationForTest().build());
+      return makeCFA(configurationForTest().build(), lines);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
   }
 
-  public static CFA makeCFA(String cProgram, Configuration config) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException {
+  public static CFA makeCFA(Configuration config, String... lines)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     CFACreator creator =
         new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
-    return creator.parseFileAndCreateCFA(cProgram);
+    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(lines));
   }
 
   /**
@@ -239,7 +238,7 @@ public class TestDataTools {
     CFANode start = cfa.getMainFunction();
 
     PathFormula initial = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeBoolean(true), initialSSA,
+        fmgr.getBooleanFormulaManager().makeTrue(), initialSSA,
         PointerTargetSet.emptyPointerTargetSet(),
         0
     );
@@ -289,9 +288,14 @@ public class TestDataTools {
    * Convert a given string to a {@link CFA},
    * assuming it is a body of a single function.
    */
-  public static CFA toCFA(CFACreator creator, String... parts)
+  public static CFA toSingleFunctionCFA(CFACreator creator, String... parts)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-    return creator.parseFileAndCreateCFA(getProgram(parts));
+    return creator.parseSourceAndCreateCFA(getProgram(parts));
+  }
+
+  public static CFA toMultiFunctionCFA(CFACreator creator, String... parts)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(parts));
   }
 
   private static String getProgram(String... parts) {

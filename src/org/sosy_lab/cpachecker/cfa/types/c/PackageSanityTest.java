@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import com.google.common.testing.AbstractPackageSanityTests;
-
 import org.junit.Ignore;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
@@ -33,6 +32,7 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
 
   {
     setDefault(ComplexTypeKind.class, ComplexTypeKind.STRUCT);
+    setDefault(CType.class, CVoidType.VOID);
   }
 
   @Ignore

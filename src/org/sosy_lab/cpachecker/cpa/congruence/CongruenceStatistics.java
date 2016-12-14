@@ -23,21 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.congruence;
 
+import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
-import java.io.PrintStream;
-import java.util.concurrent.TimeUnit;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class CongruenceStatistics implements Statistics {
 
   public final Timer congruenceTimer = new Timer();
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     printTimer(out, congruenceTimer, "computing congruence");
   }
 

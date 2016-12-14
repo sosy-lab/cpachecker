@@ -26,22 +26,11 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -51,6 +40,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 
 public class PredicateAbstractionsWriter {
@@ -68,7 +67,7 @@ public class PredicateAbstractionsWriter {
     return PredicateAbstractState.getPredicateState(state).getAbstractionFormula().getId();
   }
 
-  public void writeAbstractions(Path abstractionsFile, ReachedSet reached) {
+  public void writeAbstractions(Path abstractionsFile, UnmodifiableReachedSet reached) {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
@@ -79,15 +78,20 @@ public class PredicateAbstractionsWriter {
     Map<ARGState, String> stateToAssert = Maps.newHashMap();
 
     // Get list of all abstraction states in the set reached
-    ARGState rootState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-    SetMultimap<ARGState, ARGState> successors =
-        ARGUtils.projectARG(
-            rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
-
-    Set<ARGState> done = Sets.newHashSet();
     Deque<ARGState> worklist = Queues.newArrayDeque();
+    SetMultimap<ARGState, ARGState> successors;
+    if (!reached.isEmpty()) {
+      ARGState rootState =
+          AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
+      successors =
+          ARGUtils.projectARG(
+              rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
 
-    worklist.add(rootState);
+      worklist.add(rootState);
+    } else {
+      successors = ImmutableSetMultimap.of();
+    }
+    Set<ARGState> done = Sets.newHashSet();
 
     // Write abstraction formulas of the abstraction states to the file
     try (Writer writer = MoreFiles.openOutputFile(abstractionsFile, Charset.defaultCharset())) {

@@ -24,23 +24,40 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableMap;
-
-import org.sosy_lab.cpachecker.cfa.CFACreator;
-
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
  * and maps the proposition to a file from where to read the specification automaton.
  */
 public class PropertyFileParser {
+
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE =
+      "config/specification/sv-comp-errorlabel.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE =
+      "config/specification/sv-comp-reachability.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF =
+      "config/specification/memorysafety-deref.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE =
+      "config/specification/memorysafety-free.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK =
+      "config/specification/memorysafety-memtrack.spc";
+  private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
+  private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
 
   public static class InvalidPropertyFileException extends Exception {
 
@@ -58,7 +75,7 @@ public class PropertyFileParser {
   private final Path propertyFile;
 
   private String entryFunction;
-  private final EnumSet<PropertyType> properties = EnumSet.noneOf(PropertyType.class);
+  private final Set<SpecificationProperty> properties = Sets.newHashSetWithExpectedSize(1);
 
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
@@ -84,7 +101,8 @@ public class PropertyFileParser {
     }
   }
 
-  private PropertyType parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
+  private SpecificationProperty parsePropertyLine(String rawProperty)
+      throws InvalidPropertyFileException {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
@@ -99,42 +117,209 @@ public class PropertyFileParser {
           "Specifying two different entry functions %s and %s is not supported.", entryFunction, matcher.group(1)));
     }
 
-    PropertyType property = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
-    if (property == null) {
+    PropertyType propertyType = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
+    if (propertyType == null) {
       throw new InvalidPropertyFileException(String.format(
           "The property '%s' is not supported.", matcher.group(2)));
     }
-    return property;
+    return propertyType.withFunctionEntry(entryFunction);
   }
 
   public String getEntryFunction() {
     return entryFunction;
   }
 
-  public EnumSet<PropertyType> getProperties() {
-    return properties;
+  public Set<SpecificationProperty> getProperties() {
+    return Collections.unmodifiableSet(properties);
   }
 
-  public enum PropertyType {
-    REACHABILITY_LABEL,
-    REACHABILITY,
-    VALID_FREE,
-    VALID_DEREF,
-    VALID_MEMTRACK,
-    OVERFLOW,
-    DEADLOCK,
-    TERMINATION,
+  public interface SpecificationProperty {
+
+    /**
+     * Gets the function entry.
+     *
+     * @return the function entry.
+     */
+    String getInitialFunction();
+
+    /**
+     * Gets the options that are associated with this property by default.
+     *
+     * @return the options that are associated with this property by default.
+     */
+    Map<String, String> getAssociatedOptions();
+
+    /**
+     * Gets the path to the specification automaton used to represent the property, if it exists.
+     *
+     * @return the path to the specification automaton used to represent the property, if it exists.
+     */
+    Optional<String> getInternalSpecificationPath();
+
+  }
+
+  private enum PropertyType {
+    REACHABILITY_LABEL {
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(REACHABILITY_LABEL_SPECIFICATION_FILE);
+      }
+
+      @Override
+      public String toString() {
+        return "G ! label(ERROR)";
+      }
+    },
+
+    REACHABILITY {
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(REACHABILITY_SPECIFICATION_FILE);
+      }
+
+      @Override
+      public String toString() {
+        return "G ! call(__VERIFIER_error())";
+      }
+    },
+
+    VALID_FREE {
+
+      @Override
+      public Map<String, String> getAssociatedOptions() {
+        return ImmutableMap.of("memorysafety.check", "true");
+      }
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_FREE);
+      }
+
+      @Override
+      public String toString() {
+        return "G valid-free";
+      }
+    },
+
+    VALID_DEREF {
+
+      @Override
+      public Map<String, String> getAssociatedOptions() {
+        return ImmutableMap.of("memorysafety.check", "true");
+      }
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_DEREF);
+      }
+
+      @Override
+      public String toString() {
+        return "G valid-deref";
+      }
+    },
+
+    VALID_MEMTRACK {
+
+      @Override
+      public Map<String, String> getAssociatedOptions() {
+        return ImmutableMap.of("memorysafety.check", "true");
+      }
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK);
+      }
+
+      @Override
+      public String toString() {
+        return "G valid-memtrack";
+      }
+    },
+
+    OVERFLOW {
+
+      @Override
+      public Map<String, String> getAssociatedOptions() {
+        return ImmutableMap.of("overflow.check", "true");
+      }
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(OVERFLOW_SPECIFICATION_FILE);
+      }
+
+      @Override
+      public String toString() {
+        return "G ! overflow";
+      }
+    },
+
+    DEADLOCK {
+
+      @Override
+      public Optional<String> getInternalSpecificationPath() {
+        return Optional.of(DEADLOCK_SPECIFICATION_FILE);
+      }
+
+      @Override
+      public String toString() {
+        return "G ! deadlock";
+      }
+    },
+
+    TERMINATION {
+
+      @Override
+      public Map<String, String> getAssociatedOptions() {
+        return ImmutableMap.of("termination.check", "true");
+      }
+
+      @Override
+      public String toString() {
+        return "F end";
+      }
+    },
     ;
 
-    private static ImmutableMap<String, PropertyType> AVAILABLE_PROPERTIES = ImmutableMap.<String, PropertyType>builder()
-        .put("G ! label(ERROR)", PropertyType.REACHABILITY_LABEL)
-        .put("G ! call(__VERIFIER_error())", PropertyType.REACHABILITY)
-        .put("G valid-free",     PropertyType.VALID_FREE)
-        .put("G valid-deref",    PropertyType.VALID_DEREF)
-        .put("G valid-memtrack", PropertyType.VALID_MEMTRACK)
-        .put("G ! overflow",     PropertyType.OVERFLOW)
-        .put("G ! deadlock",     PropertyType.DEADLOCK)
-        .put("F end",            PropertyType.TERMINATION)
-        .build();
+    public Map<String, String> getAssociatedOptions() {
+      return Collections.emptyMap();
+    }
+
+    public Optional<String> getInternalSpecificationPath() {
+      return Optional.empty();
+    }
+
+    public SpecificationProperty withFunctionEntry(String pFunctionEntry) {
+      return new SpecificationProperty() {
+
+        @Override
+        public String getInitialFunction() {
+          return pFunctionEntry;
+        }
+
+        @Override
+        public Map<String, String> getAssociatedOptions() {
+          return PropertyType.this.getAssociatedOptions();
+        }
+
+        @Override
+        public Optional<String> getInternalSpecificationPath() {
+          return PropertyType.this.getInternalSpecificationPath();
+        }
+
+        @Override
+        public String toString() {
+          return String.format(
+              "CHECK( init(%s()), LTL(%s) )", getInitialFunction(), PropertyType.this.toString());
+        }
+      };
+    }
+
+    private static Map<String, PropertyType> AVAILABLE_PROPERTIES =
+        Maps.<String, PropertyType>uniqueIndex(
+            EnumSet.allOf(PropertyType.class), PropertyType::toString);
   }
 }

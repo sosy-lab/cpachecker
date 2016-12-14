@@ -24,17 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.collect.FluentIterable;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
-import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.Typed;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -44,8 +33,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class CompoundIntervalFormulaManager {
@@ -70,6 +69,29 @@ public class CompoundIntervalFormulaManager {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
     this.partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
+  }
+
+  CompoundIntervalManagerFactory getCompoundIntervalManagerFactory() {
+    return compoundIntervalManagerFactory;
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof CompoundIntervalFormulaManager) {
+      CompoundIntervalFormulaManager other = (CompoundIntervalFormulaManager) pObj;
+      return compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
+          && evaluationVisitor.equals(other.evaluationVisitor)
+          && partialEvaluator.equals(other.partialEvaluator);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(compoundIntervalManagerFactory, evaluationVisitor, partialEvaluator);
   }
 
   public static Set<MemoryLocation> collectVariableNames(NumeralFormula<CompoundInterval> pFormula) {

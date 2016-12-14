@@ -28,11 +28,34 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
-
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,26 +79,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
 /**
  * Test that the bundled configuration files are all valid.
  */
@@ -88,7 +91,13 @@ public class ConfigurationFilesTest {
               + "|The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
-              + "|Finding target locations was interrupted.*",
+              + "|Finding target locations was interrupted.*"
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+          Pattern.DOTALL);
+
+  private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
+      Pattern.compile(
+          ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
@@ -117,7 +126,9 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config");
+          "counterexample.checker.config",
+          // LoopstackCPA can be removed from inhering configuration.
+          "cpa.loopstack.loopIterationsBeforeAbstraction");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
@@ -215,12 +226,12 @@ public class ConfigurationFilesTest {
     final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
-    logHandler.setLevel(Level.INFO);
+    logHandler.setLevel(Level.ALL);
     final LogManager logger = BasicLogManager.createWithHandler(logHandler);
 
     final CPAchecker cpachecker;
     try {
-      cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
+      cpachecker = new CPAchecker(config, logger, ShutdownManager.create(), ImmutableSet.of());
     } catch (InvalidConfigurationException e) {
       assert_()
           .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
@@ -239,13 +250,7 @@ public class ConfigurationFilesTest {
       return;
     }
 
-    Stream<String> severeMessages =
-        logHandler
-            .getStoredLogRecords()
-            .stream()
-            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
-            .map(LogRecord::getMessage)
-            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+    Stream<String> severeMessages = getSevereMessages(options, logHandler);
 
     if (severeMessages.count() > 0) {
       assert_()
@@ -301,5 +306,47 @@ public class ConfigurationFilesTest {
       program = cFile.toString();
     }
     return program;
+  }
+
+  private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
+    // After one component of a parallel algorithm finishes successfully,
+    // other components are interrupted, potentially causing warnings that can be ignored.
+    // One such example is if another component uses a RestartAlgorithm that is interrupted
+    // during the parsing of configuration files
+    Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
+    if (pOptions.useParallelAlgorithm) {
+      Iterator<LogRecord> logRecordIterator = new Iterator<LogRecord>() {
+
+        private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
+
+        private boolean oneComponentSuccessful = false;
+
+        @Override
+        public boolean hasNext() {
+          return underlyingIterator.hasNext();
+        }
+
+        @Override
+        public LogRecord next() {
+          LogRecord result = underlyingIterator.next();
+          if (!oneComponentSuccessful && result.getLevel() == Level.INFO ) {
+            if (result.getMessage().endsWith("finished successfully.")) {
+              oneComponentSuccessful = true;
+              underlyingIterator = Iterators.filter(
+                  underlyingIterator,
+                  r -> r.getLevel() != Level.WARNING
+                    || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
+            }
+          }
+          return result;
+        }
+
+      };
+      logRecords = StreamSupport.stream(Spliterators.spliteratorUnknownSize(logRecordIterator, Spliterator.ORDERED), false);
+    }
+    return logRecords
+            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
+            .map(LogRecord::getMessage)
+            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
   }
 }

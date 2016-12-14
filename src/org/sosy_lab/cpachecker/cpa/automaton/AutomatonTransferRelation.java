@@ -31,10 +31,18 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -45,15 +53,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
@@ -61,6 +60,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
+  private final MachineModel machineModel;
 
   Timer totalPostTime = new Timer();
   Timer matchTime = new Timer();
@@ -69,9 +69,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, LogManager pLogger) {
+  public AutomatonTransferRelation(
+      ControlAutomatonCPA pCpa, LogManager pLogger, MachineModel pMachineModel) {
     this.cpa = pCpa;
     this.logger = pLogger;
+    this.machineModel = pMachineModel;
   }
 
   @Override
@@ -231,7 +233,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                 newVars,
                 t.getFollowState(),
                 cpa,
-                t.getAssumptions(),
+                t.getAssumptions(edge, logger, machineModel),
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),

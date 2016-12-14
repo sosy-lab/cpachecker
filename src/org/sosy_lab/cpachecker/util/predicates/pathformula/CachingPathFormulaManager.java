@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
+
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -32,10 +34,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,8 +148,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
-    return delegate.makeFormulaForVariable(pContext, pVarName, pType);
+  public Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
+    return delegate.makeFormulaForVariable(pContext, pVarName, pType, forcePointerDereference);
   }
 
   @Override
@@ -192,4 +196,18 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     return delegate.buildImplicationTestAsUnsat(pF1, pF2);
   }
 
+  @Override
+  public void printStatistics(PrintStream out) {
+    int pathFormulaCacheHits = this.pathFormulaCacheHits;
+    int totalPathFormulaComputations = this.pathFormulaComputationTimer.getNumberOfIntervals() + pathFormulaCacheHits;
+    out.println("Number of path formula cache hits:   " + pathFormulaCacheHits + " (" + toPercent(pathFormulaCacheHits, totalPathFormulaComputations) + ")");
+    out.println();
+
+    out.println("Inside post operator:                  ");
+    out.println("  Inside path formula creation:        ");
+    out.println("    Time for path formula computation: " + pathFormulaComputationTimer);
+    out.println();
+
+    delegate.printStatistics(out);
+  }
 }

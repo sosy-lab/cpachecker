@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +104,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     List<RawInfeasiblePrefix> rawPrefixes;
 
-    try (InterpolatingProverEnvironmentWithAssumptions<?> prover = solver.newProverEnvironmentWithInterpolation()) {
+    try (InterpolatingProverEnvironment<?> prover =
+        solver.newProverEnvironmentWithInterpolation()) {
       rawPrefixes = extractInfeasiblePrefixes(pPath, blockFormulas, prover);
     }
 
@@ -118,8 +119,10 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return infeasiblePrefixes;
   }
 
-  private <T> List<RawInfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath pPath, List<BooleanFormula> blockFormulas,
-      InterpolatingProverEnvironmentWithAssumptions<T> prover)
+  private <T> List<RawInfeasiblePrefix> extractInfeasiblePrefixes(
+      final ARGPath pPath,
+      List<BooleanFormula> blockFormulas,
+      InterpolatingProverEnvironment<T> prover)
       throws CPAException, InterruptedException {
     List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
     List<T> terms = new ArrayList<>(blockFormulas.size());
@@ -212,8 +215,9 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return rawPrefixes;
   }
 
-  private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
-      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException, InterruptedException {
+  private <T> List<BooleanFormula> extractInterpolantSequence(
+      final List<T> pTerms, final InterpolatingProverEnvironment<T> pProver)
+      throws SolverException, InterruptedException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 
@@ -226,7 +230,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
   /**
    * This method checks if a unsat call is necessary. It the path is not single-block encoded,
-   * then unsatisfiability has to be check always. In case it is single-block encoded,
+   * then unsatisfiability has to be checked always. In case it is single-block encoded,
    * then it suffices to check unsatisfiability at assume edges.
    *
    * @param pPath the path to check
@@ -236,6 +240,14 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   private boolean checkUnsat(final ARGPath pPath, final CFAEdge pCfaEdge) {
     if (!isSingleBlockEncoded(pPath)) {
       return true;
+    }
+
+    // since replacing multi-edges with aggregateBasicBlocks,
+    // (cf. option cpa.composite.aggregateBasicBlocks) there
+    // may be holes in the path, represented by nulls,
+    // therefore the special handling of null is required
+    if (pCfaEdge == null) {
+      return false;
     }
 
     return pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
@@ -261,6 +273,6 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   private BooleanFormula makeTrue() {
-    return solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
+    return solver.getFormulaManager().getBooleanFormulaManager().makeTrue();
   }
 }

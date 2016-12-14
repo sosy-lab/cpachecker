@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * Linear expression over program variables.
@@ -44,6 +45,12 @@ import java.util.Objects;
 public class Template {
   // todo: switch to MemoryLocation, additionally track type.
   private final LinearExpression<CIdExpression> linearExpression;
+
+  public Stream<String> getUsedVars() {
+    return linearExpression.getMap().keySet()
+        .stream()
+        .map(s -> s.getDeclaration().getQualifiedName());
+  }
 
   /**
    * Template type.
@@ -148,11 +155,17 @@ public class Template {
     return linearExpression.hashCode();
   }
 
+
+  public int size() {
+    return linearExpression.size();
+  }
+
   /**
-   * @return String suitable for formula serialization. Guarantees that two
-   * equal templates will get an equal serialization.
+   * @return String suitable for formula serialization.
+   * Guarantees that two equal templates will get an equal serialization.
    */
-  public String toFormulaString() {
+  @Override
+  public String toString() {
 
     // Sort by .getQualifiedName() first.
     Map<String, CIdExpression> mapping = new HashMap<>();
@@ -175,14 +188,5 @@ public class Template {
       LinearExpression.writeMonomial(varName, coeff, b);
     }
     return b.toString();
-  }
-
-  public int size() {
-    return linearExpression.size();
-  }
-
-  @Override
-  public String toString() {
-    return toFormulaString();
   }
 }

@@ -24,9 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.threading;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,16 +63,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -106,8 +103,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
-  private static final Set<String> THREAD_FUNCTIONS = Sets.newHashSet(
-      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
+  private static final Set<String> THREAD_FUNCTIONS = ImmutableSet.of(
+      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT,
+      VERIFIER_ATOMIC_BEGIN, VERIFIER_ATOMIC_END);
 
   private final CFA cfa;
   private final LogManagerWithoutDuplicates logger;
@@ -136,6 +134,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     ThreadingState threadingState = exitThreads(state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
+    if (null == activeThread) {
+      return Collections.emptySet();
+    }
 
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK)
@@ -165,12 +166,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   /** Search for the thread, where the current edge is available.
-   * The result should be exactly one thread, that is denoted as 'active'.
+   * The result should be exactly one thread, that is denoted as 'active',
+   * or NULL, if no active thread is available.
    *
    * This method is needed, because we use the CompositeCPA to choose the edge,
    * and when we have several locations in the threadingState,
    * only one of them has an outgoing edge matching the current edge.
    */
+  @Nullable
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     final Set<String> activeThreads = new HashSet<>();
     for (String id : threadingState.getThreadIds()) {
@@ -179,15 +182,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    assert activeThreads.size() == 1 : "multiple active threads are not allowed: " + activeThreads;
+    assert activeThreads.size() <= 1 : "multiple active threads are not allowed: " + activeThreads;
     // then either the same function is called in different threads -> not supported.
     // (or CompositeCPA and ThreadingCPA do not work together)
 
-    return Iterables.getOnlyElement(activeThreads);
+    return activeThreads.isEmpty() ? null : Iterables.getOnlyElement(activeThreads);
   }
 
   /** handle all edges related to thread-management:
    * THREAD_START, THREAD_JOIN, THREAD_EXIT, THREAD_MUTEX_LOCK, VERIFIER_ATOMIC,...
+   *
+   * If nothing changes, then return <code>results</code> unmodified.
    */
   private Collection<ThreadingState> getAbstractSuccessorsForEdge0(
       final CFAEdge cfaEdge, final ThreadingState threadingState,
@@ -212,7 +217,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_EXIT:
             // this function-call is already handled in the beginning with isLastNodeOfThread.
             // return exitThread(threadingState, activeThread, results);
-            // TODO check for code like "x=4; pthread_exit(); x=5; return 0;", that would be invalid.
+            break;
+          case VERIFIER_ATOMIC_BEGIN:
+            if (useAtomicLocks) {
+              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+            }
+            break;
+          case VERIFIER_ATOMIC_END:
+            if (useAtomicLocks) {
+              return removeLock(activeThread, ATOMIC_LOCK, results);
+            }
+            break;
           default:
             // nothing to do, return results
           }
@@ -225,6 +240,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         // cloning changes the function-name -> we use 'startsWith'.
         // we have 2 different atomic sequences:
         //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //      (@Deprecated, for old benchmark tasks)
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be anything
         final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
         if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
@@ -240,6 +256,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         // cloning changes the function-name -> we use 'startsWith'.
         // we have 2 different atomic sequences:
         //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //      (@Deprecated, for old benchmark tasks)
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be anything
         final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
         if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
@@ -287,7 +304,30 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** checks whether the location is the last node of a thread,
    * i.e. the current thread will terminate after this node. */
   static boolean isLastNodeOfThread(CFANode node) {
-    return 0 == node.getNumLeavingEdges();
+
+    if (0 == node.getNumLeavingEdges()) {
+      return true;
+    }
+
+    if (1 == node.getNumEnteringEdges()) {
+      return isThreadExit(node.getEnteringEdge(0));
+    }
+
+    return false;
+  }
+
+  private static boolean isThreadExit(CFAEdge cfaEdge) {
+    if (CFAEdgeType.StatementEdge == cfaEdge.getEdgeType()) {
+      AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp =
+            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          return THREAD_EXIT.equals(((AIdExpression) functionNameExp).getName());
+        }
+      }
+    }
+    return false;
   }
 
   /** the whole program will terminate after this edge */
@@ -305,14 +345,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // this is done before applying any other step.
     for (String id : tmp.getThreadIds()) {
       if (isLastNodeOfThread(tmp.getThreadLocation(id).getLocationNode())) {
-        tmp = exitThread(tmp, id);
+        tmp = removeThreadId(tmp, id);
       }
     }
     return tmp;
   }
 
   /** remove the thread-id from the state, and cleanup remaining locks of this thread. */
-  private ThreadingState exitThread(ThreadingState ts, final String id) {
+  private ThreadingState removeThreadId(ThreadingState ts, final String id) {
     if (useLocalAccessLocks) {
       ts = ts.removeLockAndCopy(id, LOCAL_ACCESS_LOCK);
     }
@@ -530,8 +570,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return false;
     }
     case FunctionCallEdge:
+      // @Deprecated, for old benchmark tasks
       return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN);
     case FunctionReturnEdge:
+      // @Deprecated, for old benchmark tasks
       return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END);
     default:
       return false;

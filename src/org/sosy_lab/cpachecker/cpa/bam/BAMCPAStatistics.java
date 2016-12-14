@@ -29,7 +29,20 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,22 +60,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Prints some BAM related statistics
@@ -109,19 +106,20 @@ class BAMCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
     int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
 
-    int sumARTElemets = 0;
-    for (ReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
-      sumARTElemets += subreached.size();
+    int sumARTElements = 0;
+    for (UnmodifiableReachedSet subreached : cpa.getData().bamCache.getAllCachedReachedStates()) {
+      sumARTElements += subreached.size();
     }
 
-    out.println("Total size of all ARGs:                                         " + sumARTElemets);
+    out.println("Total size of all ARGs:                                         " + sumARTElements);
+    out.println("Number of blocks:                                               " + cpa.getBlockPartitioning().getBlocks().size());
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
     out.println("Total number of recursive CPA calls:                            " + sumCalls);
     out.println("  Number of cache misses:                                       " + data.bamCache.cacheMisses + " (" + toPercent(data.bamCache.cacheMisses, sumCalls) + " of all calls)");
@@ -133,6 +131,7 @@ class BAMCPAStatistics implements Statistics {
       out.println("  Number of precision caused misses:                            " + data.bamCache.precisionCausedMisses + " (" + toPercent(data.bamCache.precisionCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
       out.println("  Number of misses with no similar elements:                    " + data.bamCache.noSimilarCausedMisses + " (" + toPercent(data.bamCache.noSimilarCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
     }
+    out.println("Time for building block partitioning:                         " + cpa.blockPartitioningTimer);
     out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
     out.println("Time for checking equality of abstract states:                " + data.bamCache.equalsTimer + " (Calls: " + data.bamCache.equalsTimer.getNumberOfIntervals() + ")");
@@ -152,16 +151,17 @@ class BAMCPAStatistics implements Statistics {
     }
 
     //Add to reached set all states from BAM cache
-    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
-    for (ReachedSet set : cachedStates) {
-      set.forEach(
-          (state, precision) -> {
-            // Method 'add' adds state not only in list of reached states, but also in waitlist,
-            // so we should delete it.
-            reached.add(state, precision);
-            reached.removeOnlyFromWaitlist(state);
-          });
-    }
+    // These lines collect all states for 'Coverage Reporting'
+//    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
+//    for (ReachedSet set : cachedStates) {
+//      set.forEach(
+//          (state, precision) -> {
+//            // Method 'add' adds state not only in list of reached states, but also in waitlist,
+//            // so we should delete it.
+//            reached.add(state, precision);
+//            reached.removeOnlyFromWaitlist(state);
+//          });
+//    }
 
     exportAllReachedSets(argFile, indexedArgFile, reached);
     exportUsedReachedSets(simplifiedArgFile, reached);
@@ -262,14 +262,14 @@ class BAMCPAStatistics implements Statistics {
       if (!finished.add(state)) {
         continue;
       }
-      if (data.initialStateToReachedSet.containsKey(state)) {
-        ReachedSet target = data.initialStateToReachedSet.get(state);
+      if (data.hasInitialState(state)) {
+        ReachedSet target = data.getReachedSetForInitialState(state);
         referencedReachedSets.add(target);
         ARGState targetState = (ARGState) target.getFirstState();
         connections.put(state, targetState);
       }
-      if (data.expandedStateToReducedState.containsKey(state)) {
-        AbstractState sourceState = data.expandedStateToReducedState.get(state);
+      if (data.hasExpandedState(state)) {
+        AbstractState sourceState = data.getReducedStateForExpandedState(state);
         connections.put((ARGState) sourceState, state);
       }
       waitlist.addAll(state.getChildren());

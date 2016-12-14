@@ -54,8 +54,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -178,7 +178,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       return true;
     }
     if (satCheckAtAbstraction) {
-      CFANode loc = getAnalysisSuccesor(edge);
+      CFANode loc = getAnalysisSuccessor(edge);
       if (blk.isBlockEnd(loc, pathFormula.getLength())) {
         return true;
       }
@@ -186,7 +186,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
-  private CFANode getAnalysisSuccesor(CFAEdge pEdge) {
+  private CFANode getAnalysisSuccessor(CFAEdge pEdge) {
     if (direction == AnalysisDirection.BACKWARD) {
       return pEdge.getPredecessor();
     } else {
@@ -317,7 +317,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       if (edge == null) {
         currentLocation = null;
       } else {
-        currentLocation = getAnalysisSuccesor(edge);
+        currentLocation = getAnalysisSuccessor(edge);
       }
 
       boolean errorFound = false;

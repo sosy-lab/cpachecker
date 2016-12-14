@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -34,7 +34,6 @@ body {
 }
 
 .sections{
-    position: relative;
     height: 100%;
     padding: 0;
 }
@@ -121,11 +120,13 @@ body {
 #externalFiles_section{
     float: right;
     width: 75%;
-    height: inherit;
+    height: 100%;
     background-color: white;
     padding: 5px;
     border: solid 4px;
     border-color: lightgrey;
+    overflow: hidden;
+    position:  relative;
 }
 
 .popover{
@@ -162,16 +163,19 @@ body {
     overflow: auto;
 }
 #externalFiles_section .fileContent {
-    position: fixed;
-    height: calc(100% - 50px); /* 100% - Header height */
+    height: calc(100% - 50px);
     width: 100%;
     margin: 5px;
+    position:  relative;
 }
 
 #externalFiles_section div.content {
-    height: calc(100% - 100px - 2em); /* 100% - navigation - scrollbar */
-    width: calc(100% - 2em);
     overflow: auto;
+    position:  absolute;
+    top:  50px;
+    bottom: 5px;
+    left: 5px;
+    right:  5px;
 }
 table {
     border-collapse: separate;

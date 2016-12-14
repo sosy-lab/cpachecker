@@ -136,7 +136,7 @@ parser code {:
 
     switch (pLanguage) {
     case C:
-      CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
+      CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
       automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
       break;
     default:
@@ -158,7 +158,12 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
+    CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
+    ERROR, STOP, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
+    MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
+    MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
+    TARGET, IS_TARGET_STATE ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -327,7 +332,9 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | MATCH ASSERT
               {: RESULT = new AutomatonBoolExpr.MatchJavaAssert(); :}
             | MATCH EXIT
-              {: RESULT = new AutomatonBoolExpr.MatchProgramExit(); :}
+              {: RESULT = AutomatonBoolExpr.MatchProgramExit.INSTANCE; :}
+            | MATCH ENTRY
+              {: RESULT = AutomatonBoolExpr.MatchProgramEntry.INSTANCE; :}
 /*next statement is deprecated*/ 
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}

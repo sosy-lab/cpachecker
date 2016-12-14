@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
 import static java.util.logging.Level.FINEST;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
@@ -54,8 +55,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.core.algorithm.termination.RankingRelation;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -220,8 +221,8 @@ public class TerminationTransferRelation implements TransferRelation {
     // loopHead - [!(rankingFunction)] -> potentialNonTerminationNode
     CFANode potentialNonTerminationNode = creatCfaNode(functionName);
     CFAEdge negativeRankingRelation =
-        terminationInformation.createNegatedRankingRelationAssumeEdge(
-            loopHead, potentialNonTerminationNode);
+        terminationInformation.createRankingRelationAssumeEdge(
+            loopHead, potentialNonTerminationNode, false);
 
     Collection<? extends TerminationState> potentialNonTerminationStates =
         getAbstractSuccessorsForEdge0(
@@ -242,12 +243,10 @@ public class TerminationTransferRelation implements TransferRelation {
       CFAEdge edgeToTargetState =
           terminationInformation.createNegatedRankingRelationAssumeEdgeToTargetNode(loopHead);
       Optional<RankingRelation> rankingRelation = terminationInformation.getRankingRelation();
-      resultingSuccessors.addAll(
-          targetStates
-              .stream()
-              .map(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
-              .map(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
-              .collect(Collectors.toList()));
+      from(targetStates)
+          .transform(ts -> ts.withDummyLocation(Collections.singleton(edgeToTargetState)))
+          .transform(ts -> rankingRelation.map(ts::withUnsatisfiedRankingRelation).orElse(ts))
+          .copyInto(resultingSuccessors);
     }
 
     CFANode node1 = creatCfaNode(functionName);
@@ -260,8 +259,7 @@ public class TerminationTransferRelation implements TransferRelation {
 
     // loopHead --> node1
     CFAEdge positiveRankingRelation =
-        createAssumeEdge(
-            terminationInformation.getRankingRelationAsCExpression(), loopHead, node1, true);
+        terminationInformation.createRankingRelationAssumeEdge(loopHead, node1, true);
     statesAtNode1.addAll(
         getAbstractSuccessorsForEdge0(
             Collections.singleton(loopHeadState), pPrecision, positiveRankingRelation));
@@ -418,7 +416,7 @@ public class TerminationTransferRelation implements TransferRelation {
     return new CFANode(functionName);
   }
 
-  public BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {
+  private BlankEdge createBlankEdge(CFANode pPredecessor, CFANode pSuccessor, String pDescription) {
     BlankEdge edge =
         new BlankEdge(pDescription + ";", DUMMY, pPredecessor, pSuccessor, pDescription);
     addToCfa(edge);
@@ -454,7 +452,7 @@ public class TerminationTransferRelation implements TransferRelation {
   /**
    * Removes all temporarily added {@link CFAEdge}s from the CFA.
    */
-  public void resetCfa() {
+  private void resetCfa() {
     createdCfaEdges.forEach(CFACreationUtils::removeEdgeFromNodes);
     createdCfaEdges.clear();
     terminationInformation.resetCfa();

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -31,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 public class IntervalAnalysisReducer implements Reducer {
@@ -107,23 +107,6 @@ public class IntervalAnalysisReducer implements Reducer {
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     IntervalAnalysisState elementKey = (IntervalAnalysisState)pElementKey;
     return Pair.of(elementKey.getIntervalMap(), pPrecisionKey);
-  }
-
-  @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
-  }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return getVariableReducedState(pExpandedState, pContext, pCallNode);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return getVariableExpandedState(pRootState, pReducedContext, pReducedState);
   }
 
   @Override

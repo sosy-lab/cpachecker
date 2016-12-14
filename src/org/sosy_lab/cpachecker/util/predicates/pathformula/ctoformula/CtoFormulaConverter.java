@@ -105,13 +105,14 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -410,10 +411,15 @@ public class CtoFormulaConverter {
    * @param pContextPTS the PointerTargetSet which should be used for formula generation
    * @param pVarName the name of the variable
    * @param pType the type of the variable
+   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
    * @return the created formula
    */
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+      SSAMap pContextSSA,
+      PointerTargetSet pContextPTS,
+      String pVarName,
+      CType pType,
+      boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CEnumType));
 
     SSAMapBuilder ssa = pContextSSA.builder();
@@ -749,8 +755,13 @@ public class CtoFormulaConverter {
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
     if (edge.getPredecessor() instanceof CFunctionEntryNode) {
-      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, (CFunctionEntryNode)edge.getPredecessor());
+      final CFunctionEntryNode entryNode = (CFunctionEntryNode) edge.getPredecessor();
+      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, entryNode);
       addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
+
+      if (entryNode.getNumEnteringEdges() == 0) {
+        handleEntryFunctionParameters(entryNode, ssa, constraints);
+      }
     }
 
     // handle the edge
@@ -780,16 +791,31 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
+  /**
+   * Ensure parameters of entry function are added to the SSAMap.
+   * Otherwise they would be missing and (un)instantiate would not work correctly,
+   * leading to a wrong analysis if their value is relevant.
+   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
+   *
+   * Also add range constraints for these non-deterministic parameters to strengthen analysis.
+   */
+  private void handleEntryFunctionParameters(
+      final CFunctionEntryNode entryNode, final SSAMapBuilder ssa, final Constraints constraints) {
+    for (CParameterDeclaration param : entryNode.getFunctionDefinition().getParameters()) {
+      // has side-effect of adding to SSAMap!
+      final Formula var = makeFreshVariable(param.getQualifiedName(), param.getType(), ssa);
+
+      if (options.addRangeConstraintsForNondet()) {
+        addRangeConstraint(var, param.getType(), constraints);
+      }
+    }
+  }
 
   /**
    * Create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
    * The tmp-variables are also used before the function-entry as "argument-constraints".
    *
    * This function is usually only relevant with options.useParameterVariables().
-   * We also add the same constraints for the entry function, though,
-   * to ensure that the parameters of the entry function have been assigned once
-   * and are in the SSAMap (otherwise instantiate and uninstantiate will be wrong).
-   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
    */
   private void addParameterConstraints(final CFAEdge edge, final String function,
                                        final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
@@ -797,8 +823,7 @@ public class CtoFormulaConverter {
                                        final CFunctionEntryNode entryNode)
           throws UnrecognizedCCodeException, InterruptedException {
 
-    if (options.useParameterVariables()
-        || entryNode.getNumEnteringEdges() == 0 /* entry function */ ) {
+    if (options.useParameterVariables()) {
       for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
 
         // create expressions for each formal param: "f::x" --> "f::x__param__"
@@ -889,7 +914,7 @@ public class CtoFormulaConverter {
     }
 
     case BlankEdge: {
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     case FunctionCallEdge: {
@@ -933,7 +958,7 @@ public class CtoFormulaConverter {
       }
 
       // side-effect free statement, ignore
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
   }
 
@@ -946,7 +971,7 @@ public class CtoFormulaConverter {
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
@@ -955,7 +980,7 @@ public class CtoFormulaConverter {
     if (!isRelevantVariable(decl)) {
       logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
           decl.getFileLocation(), decl.toASTString());
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CType declarationType = decl.getType().getCanonicalType();
@@ -997,7 +1022,7 @@ public class CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
 
     if (decl.getInitializer() instanceof CInitializerList) {
       // If there is an initializer, all fields/elements not mentioned
@@ -1040,7 +1065,7 @@ public class CtoFormulaConverter {
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
@@ -1126,7 +1151,7 @@ public class CtoFormulaConverter {
     }
 
     int i = 0;
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
     for (CParameterDeclaration formalParam : formalParams) {
       CExpression paramExpression = actualParams.get(i++);
       CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
@@ -1157,7 +1182,7 @@ public class CtoFormulaConverter {
           throws UnrecognizedCCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     } else {
 
       return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
@@ -1200,7 +1225,7 @@ public class CtoFormulaConverter {
 
     if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CType lhsType = lhs.getExpressionType().getCanonicalType();
@@ -1208,7 +1233,7 @@ public class CtoFormulaConverter {
     if (lhsType instanceof CArrayType) {
       // Probably a (string) initializer, ignore assignments to arrays
       // as they cannot behandled precisely anyway.
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     if (rhs instanceof CExpression) {
@@ -1515,4 +1540,11 @@ public class CtoFormulaConverter {
       InterruptedException e) throws T {
     throw (T) e;
   }
+
+  /**
+   * Prints some information about the RegionManager.
+   *
+   * @param out - output stream
+   */
+  public void printStatistics(PrintStream out) {}
 }

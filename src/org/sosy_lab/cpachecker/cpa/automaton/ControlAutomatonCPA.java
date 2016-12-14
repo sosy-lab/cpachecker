@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,7 +50,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotat
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -55,29 +61,23 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class ControlAutomatonCPA
+    implements ConfigurableProgramAnalysis,
+        StatisticsProvider,
+        ConfigurableProgramAnalysisWithBAM,
+        ProofCheckerCPA {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
@@ -115,10 +115,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
-  private final MergeOperator mergeOperator;
   private final Statistics stats = new AutomatonStatistics(this);
 
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
@@ -127,14 +125,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger);
+    this.transferRelation = new AutomatonTransferRelation(this, pLogger, pCFA.getMachineModel());
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
-
-    if (mergeOnTop) {
-      this.mergeOperator = new AutomatonTopMergeOperator(automatonDomain, topState);
-    } else {
-      this.mergeOperator = MergeSepOperator.getInstance();
-    }
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
@@ -222,7 +214,11 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    if (mergeOnTop) {
+      return new AutomatonTopMergeOperator(automatonDomain, topState);
+    } else {
+      return MergeSepOperator.getInstance();
+    }
   }
 
   @Override
@@ -232,17 +228,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
     return transferRelation ;
-  }
-
-  @Override
-  public Reducer getReducer() {
-    return NoOpReducer.getInstance();
   }
 
   public AutomatonState getBottomState() {
@@ -262,11 +253,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
         pElement, SingletonPrecision.getInstance(), pCfaEdge));
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 
   boolean isTreatingErrorsAsTargets() {

@@ -34,10 +34,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.predicate.BAMFreshValueProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
@@ -58,7 +58,7 @@ public class PathFormulaTest {
         PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
         null,
         PathCopyingPersistentTreeMap.of(),
-        PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of(),
         PathCopyingPersistentTreeMap.of()
         );
 
@@ -136,14 +136,14 @@ public class PathFormulaTest {
 
 
     // latest used var
-    BAMFreshValueProvider bamfvp = new BAMFreshValueProvider();
+    FreshValueProvider bamfvp = new FreshValueProvider();
     bamfvp.put("c", 7);
     builder.mergeFreshValueProviderWith(bamfvp);
 
     assertThat(builder.getIndex("c")).isEqualTo(3);
     assertThat(builder.getFreshIndex("c")).isEqualTo(8);
 
-    BAMFreshValueProvider bamfvp2 = new BAMFreshValueProvider();
+    FreshValueProvider bamfvp2 = new FreshValueProvider();
     bamfvp2.put("c", 9);
     builder.mergeFreshValueProviderWith(bamfvp2);
     assertThat(builder.getFreshIndex("c")).isEqualTo(10);

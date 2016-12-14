@@ -49,7 +49,8 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   @Override
   public String getDescription() {
-    return "Return edge from " + getPredecessor().getFunctionName() + " to " + getSuccessor().getFunctionName();
+    return "Return edge from " + getPredecessor().getFunctionName() + " to "
+        + getSuccessor().getFunctionName() + ": " + summaryEdge.getExpression();
   }
 
   @Override

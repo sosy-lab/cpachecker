@@ -69,10 +69,10 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.solver.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 import java.math.BigInteger;
 import java.util.Collections;
@@ -252,7 +252,6 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
             Collections.<CParameterDeclaration>emptyList()
         ),
         new FunctionExitNode(name),
-        Collections.<String>emptyList(),
         Optional.empty()
     );
 
@@ -265,11 +264,10 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     CFAEdge a_to_b = data.getFirst();
 
     int customIdx = 1337;
-    PathFormula p = makePathFormulaWithCustomIdx(
-        a_to_b, customIdx);
+    PathFormula p = makePathFormulaWithCustomIdx(a_to_b, customIdx);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + FreshValueProvider.DefaultFreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
+    Assert.assertEquals(customIdx + FreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
   }
 
   @Test
@@ -355,7 +353,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
   public void testEmpty() {
     PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula expected = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeBoolean(true),
+        fmgr.getBooleanFormulaManager().makeTrue(),
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         0);

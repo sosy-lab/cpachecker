@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -79,7 +79,7 @@ public class ExternModelLoader {
       ArrayList<String> predicates = new ArrayList<>(10000);
       //var ids in dimacs files start with 1, so we want the first var at position 1
       predicates.add("RheinDummyVar");
-      BooleanFormula externalModel = bfmgr.makeBoolean(true);
+      BooleanFormula externalModel = bfmgr.makeTrue();
       Formula zero = fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(32), 0);
 
       String line = "";
@@ -103,7 +103,7 @@ public class ExternModelLoader {
         } else if (line.trim().length()>0) {
           //-17552 -11882 1489 48905 0
           // constraints
-          BooleanFormula constraint = bfmgr.makeBoolean(false);
+          BooleanFormula constraint = bfmgr.makeFalse();
           String[] parts = line.split(" ");
           for (String elementStr : parts) {
             if (!elementStr.equals("0") && !elementStr.isEmpty()) {

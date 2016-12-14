@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.math.BigDecimal;
-
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.FloatingPointFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+
+import java.math.BigDecimal;
 
 
 public class FloatingPointFormulaManagerView
@@ -54,10 +55,27 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
+  public <T extends Formula> T castTo(
+      FloatingPointFormula number,
+      FormulaType<T> targetType,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return wrap(targetType, manager.castTo(number, unwrapType(targetType), pFloatingPointRoundingMode));
+  }
+
+  @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
     // This method needs to unwrap pNumber,
     // in case it is replaced with another formula type.
     return manager.castFrom(unwrap(pNumber), pSigned, pTargetType);
+  }
+
+  @Override
+  public FloatingPointFormula castFrom(
+      Formula number,
+      boolean signed,
+      FloatingPointType targetType,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.castFrom(unwrap(number), signed, targetType, pFloatingPointRoundingMode);
   }
 
   @Override
@@ -71,17 +89,52 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
+  public FloatingPointFormula add(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.add(number1, number2, pFloatingPointRoundingMode);
+  }
+
+  @Override
   public FloatingPointFormula subtract(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.subtract(pNumber1, pNumbe2);
   }
+
+  @Override
+  public FloatingPointFormula subtract(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.subtract(number1, number2, pFloatingPointRoundingMode);
+  }
+
   @Override
   public FloatingPointFormula divide(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.divide(pNumber1, pNumbe2);
   }
+
+  @Override
+  public FloatingPointFormula divide(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.divide(number1, number2, pFloatingPointRoundingMode);
+  }
+
   @Override
   public FloatingPointFormula multiply(FloatingPointFormula pNumber1, FloatingPointFormula pNumbe2) {
     return manager.multiply(pNumber1, pNumbe2);
   }
+
+  @Override
+  public FloatingPointFormula multiply(
+      FloatingPointFormula number1,
+      FloatingPointFormula number2,
+      FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.multiply(number1, number2, pFloatingPointRoundingMode);
+  }
+
   @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return manager.assignment(pNumber1, pNumber2);
@@ -130,8 +183,20 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
+  public FloatingPointFormula makeNumber(
+      double n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.makeNumber(n, type, pFloatingPointRoundingMode);
+  }
+
+  @Override
   public FloatingPointFormula makeNumber(BigDecimal pN, FormulaType.FloatingPointType type) {
     return manager.makeNumber(pN, type);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(
+      BigDecimal n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.makeNumber(n, type, pFloatingPointRoundingMode);
   }
 
   @Override
@@ -140,8 +205,20 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
+  public FloatingPointFormula makeNumber(
+      String n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.makeNumber(n, type, pFloatingPointRoundingMode);
+  }
+
+  @Override
   public FloatingPointFormula makeNumber(Rational pN, FormulaType.FloatingPointType type) {
     return manager.makeNumber(pN, type);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(
+      Rational n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.makeNumber(n, type, pFloatingPointRoundingMode);
   }
 
   @Override

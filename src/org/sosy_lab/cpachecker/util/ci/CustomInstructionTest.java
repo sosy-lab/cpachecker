@@ -23,19 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import com.google.common.truth.Truth;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +43,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 public class CustomInstructionTest {
   private CustomInstructionApplications cia;
@@ -73,12 +73,16 @@ public class CustomInstructionTest {
   public void init() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException,
       IllegalArgumentException, InvocationTargetException, IOException,
       ParserException, InterruptedException {
-    String testProgram = ""
-        + "void main(int a){"
-        + "int a;"
-        + "if(a>0) {a=a+1;} else {a=a-1;}"
-        + "}";
-    cfa = TestDataTools.makeCFA(testProgram);
+    cfa =
+        TestDataTools.makeCFA(
+            "void main(int a) {",
+            "  int a;",
+            "  if (a>0) {",
+            "    a=a+1;",
+            "  } else {",
+            "    a=a-1;",
+            "  }",
+            "}");
 
     locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
     locConstructor.setAccessible(true);
@@ -271,36 +275,36 @@ public class CustomInstructionTest {
   @Test
   public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException,
     InterruptedException, IOException, ParserException, SecurityException, IllegalArgumentException {
-    String testProgram = ""
-        + "extern int f2(int);"
-        + "int f(int x) {"
-          + "return x * x;"
-        + "}"
-        + "void main() {"
-          + "int z;"
-          + "int y;"
-          + "start_ci: int x = 5 * z;"
-          + "if (!(x>y)) {"
-            + "if (z>0) {"
-              + "x + y;"
-              + "z = x + y;"
-              + "z = f(x);"
-              + "x = f2(y);"
-            + "}"
-          + "}"
-          + "end_ci_1: int b;"
-          + "int a = 5 * b;"
-          + "if (!(a>7)) {"
-            + "if (b>0) {"
-              + "a + 7;"
-              + "b = a + 7;"
-              + "b = f(a);"
-              + "a = f2(7);"
-            + "}"
-          + "}"
-          + "x = x + 1;"
-        + "}";
-    cfa = TestDataTools.makeCFA(testProgram);
+    cfa =
+        TestDataTools.makeCFA(
+            "extern int f2(int);",
+            "int f(int x) {",
+            "  return x * x;",
+            "}",
+            "void main() {",
+            "  int z;",
+            "  int y;",
+            "  start_ci: int x = 5 * z;",
+            "  if (!(x>y)) {",
+            "    if (z>0) {",
+            "      x + y;",
+            "      z = x + y;",
+            "      z = f(x);",
+            "      x = f2(y);",
+            "    }",
+            "  }",
+            "  end_ci_1: int b;",
+            "  int a = 5 * b;",
+            "  if (!(a>7)) {",
+            "    if (b>0) {",
+            "      a + 7;",
+            "      b = a + 7;",
+            "      b = f(a);",
+            "      a = f2(7);",
+            "    }",
+            "  }",
+            "  x = x + 1;",
+            "}");
 
     CFANode aciStartNode = null, aciEndNode = null;
 

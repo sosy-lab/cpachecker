@@ -24,28 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.base.Splitter;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTParser;
-import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
-import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.exceptions.JParserException;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -63,6 +42,23 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.Parser;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 
 /**
@@ -151,11 +147,11 @@ class EclipseJavaParser implements Parser {
   /**
    * Parse the program of the Main class in this file into a CFA.
    *
-   * @param mainClassName  The Main Class File of the program to parse.
+   * @param mainClassName The Main Class File of the program to parse.
    * @return The CFA.
    */
   @Override
-  public ParseResult parseFile(String mainClassName, CSourceOriginMapping sourceOriginMapping) throws JParserException {
+  public ParseResult parseFile(String mainClassName) throws JParserException {
     Path mainClassFile = getMainClassFile(mainClassName);
     Scope scope = prepareScope(mainClassName);
     ParseResult result = buildCFA(parse(mainClassFile), scope);
@@ -279,7 +275,7 @@ class EclipseJavaParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws JParserException {
+  public ParseResult parseString(String pFilename, String pCode) throws JParserException {
 
     throw new JParserException("Function not yet implemented");
   }

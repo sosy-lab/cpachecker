@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.base.Preconditions.*;
-
-import java.util.Objects;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+
+import java.util.Objects;
 
 /**
  * This class represents variable declarations.
@@ -55,9 +57,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO,
         "CStorageClass is %s", cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
-    // TODO enable if we do not have unnecessary temporary variables of type void anymore
-//    checkArgument(!(pType.getCanonicalType() instanceof CVoidType),
-//        "Cannot declare variable of type void: " + this);
+    checkArgument(!(pType.getCanonicalType() instanceof CVoidType),
+        "Cannot declare variable of type void: " + this);
   }
 
   @Override

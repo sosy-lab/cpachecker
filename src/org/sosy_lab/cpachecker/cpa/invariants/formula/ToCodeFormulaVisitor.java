@@ -144,23 +144,30 @@ public class ToCodeFormulaVisitor
       int size = bitVectorInfo.getSize();
       BigInteger value = (BigInteger) pValue;
       // Get only the [size] least significant bits
-      BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);
+      BigInteger upperExclusive = BigInteger.valueOf(2).pow(size - 1);
       boolean negative = value.signum() < 0;
-      if (negative && !value.equals(upperExclusive.shiftRight(1).negate())) {
+      if (negative && !value.equals(upperExclusive.negate())) {
         value = value.negate();
         value =
             value.and(BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.valueOf(1))).negate();
       } else if (!negative) {
         value = value.and(BigInteger.valueOf(2).pow(size).subtract(BigInteger.valueOf(1)));
       }
-      String result = value.toString();
+      String typeSuffix = "";
       if (!bitVectorInfo.isSigned()) {
-        result += "U";
+        typeSuffix += "U";
       }
       if (bitVectorInfo.getSize() > 32) {
-        result += "LL";
+        typeSuffix += "LL";
       }
-      return result;
+
+      // Handle min-int: must not write e.g. "-9223372036854775808", because
+      // that is a unary negation of a value exceeding the range of the type;
+      // instead write e.g. (-9223372036854775807LL - 1)
+      if (bitVectorInfo.isSigned() && value.equals(upperExclusive.negate())) {
+        return "(" + value.add(BigInteger.ONE).toString() + typeSuffix + " - 1)";
+      }
+      return value.toString() + typeSuffix;
     }
     throw new AssertionError("Unsupported type: " + pInfo);
   }
@@ -355,22 +362,19 @@ public class ToCodeFormulaVisitor
     // Check not equals
     ExpressionTree<String> inversion = ExpressionTrees.getTrue();
     CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
+    // TODO check changes, possibly have to be reverted
     if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
-      inversion =
-          And.of(
-              inversion,
+      return
               not(
                   Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
-                      .accept(this, pEnvironment)));
+                      .accept(this, pEnvironment));
     }
     CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
     if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
-      inversion =
-          And.of(
-              inversion,
+      return
               not(
                   Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
-                      .accept(this, pEnvironment)));
+                      .accept(this, pEnvironment));
     }
 
     // General case
