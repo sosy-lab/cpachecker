@@ -37,7 +37,7 @@ public abstract class SMGObject {
 
 
 
-  static private final SMGObject nullObject = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
+  private static final SMGObject NULL_OBJECT = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
 
     @Override
     public String toString() {
@@ -64,7 +64,7 @@ public abstract class SMGObject {
   };
 
   static public SMGObject getNullObject() {
-    return nullObject;
+    return NULL_OBJECT;
   }
 
   public SMGObjectKind getKind() {
@@ -104,11 +104,11 @@ public abstract class SMGObject {
   }
 
   public boolean notNull() {
-    return (! equals(nullObject));
+    return (! equals(NULL_OBJECT));
   }
 
   public boolean isAbstract() {
-    if (equals(nullObject)) {
+    if (equals(NULL_OBJECT)) {
       return false;
     }
 
