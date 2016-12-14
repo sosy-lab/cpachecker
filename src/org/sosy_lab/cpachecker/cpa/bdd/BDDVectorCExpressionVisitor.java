@@ -49,10 +49,6 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
-
 /**
  * This Visitor implements evaluation of simply typed expressions.
  * An expression is defined as simply typed iff it is not an
