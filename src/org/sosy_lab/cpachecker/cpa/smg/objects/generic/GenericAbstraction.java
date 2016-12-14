@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
@@ -81,9 +82,10 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   public static GenericAbstraction valueOf(
+      MachineModel pMachineModel,
       Map<Integer, List<MaterlisationStep>> pMaterlisationSteps,
       Map<Integer, Integer> pAbstractToConcretePointerMap) {
-    return new GenericAbstraction(100, "generic abtraction ID " + SMGValueFactory.getNewValue(),
+    return new GenericAbstraction(100 * pMachineModel.getSizeofCharInBits(), "generic abtraction ID " + SMGValueFactory.getNewValue(),
         pMaterlisationSteps, pAbstractToConcretePointerMap);
   }
 
@@ -125,8 +127,8 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
         + "materlisationSteps " + materlisationStepMap.toString();
   }
 
-  public GenericAbstractionCandidateTemplate createCandidateTemplate() {
-    return GenericAbstractionCandidateTemplate.valueOf(materlisationStepMap);
+  public GenericAbstractionCandidateTemplate createCandidateTemplate(MachineModel pMachineModel) {
+    return GenericAbstractionCandidateTemplate.valueOf(pMachineModel, materlisationStepMap);
   }
 
   @Override

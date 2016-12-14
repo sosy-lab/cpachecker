@@ -606,10 +606,10 @@ public class SMGExpressionEvaluator {
           CVariableDeclaration varDcl = (CVariableDeclaration) dcl;
 
           if (varDcl.isGlobal()) {
-            object = state.addGlobalVariable(getSizeof(getCfaEdge(), varDcl.getType(), state),
+            object = state.addGlobalVariable(getBitSizeof(getCfaEdge(), varDcl.getType(), state),
                 varDcl.getName());
           } else {
-            object = state.addLocalVariable(getSizeof(getCfaEdge(), varDcl.getType(), state),
+            object = state.addLocalVariable(getBitSizeof(getCfaEdge(), varDcl.getType(), state),
                 varDcl.getName());
           }
         }

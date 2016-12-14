@@ -1072,7 +1072,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         int size = machineModel.getBitSizeofPtr();
         paramObj = new SMGRegion(size, varName);
       } else {
-        int size = expressionEvaluator.getSizeof(callEdge, cParamType, initialNewState);
+        int size = expressionEvaluator.getBitSizeof(callEdge, cParamType, initialNewState);
         paramObj = new SMGRegion(size, varName);
       }
 
@@ -1146,7 +1146,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGRegion newObject = values.get(i).getFirst();
         SMGSymbolicValue symbolicValue = values.get(i).getSecond();
 
-        int typeSize = expressionEvaluator.getSizeof(callEdge, cParamType, newState);
+        int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
 
         newState.addLocalVariable(typeSize, varName, newObject);
 
@@ -1636,7 +1636,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
      *  already processed the declaration, we do nothing.
      */
     if (newObject == null) {
-      int typeSize = expressionEvaluator.getSizeof(pEdge, cType, pState);
+      int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
