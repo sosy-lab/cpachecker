@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 public abstract class SMGObject {
@@ -153,7 +154,9 @@ public abstract class SMGObject {
     return id;
   }
 
-  static public class SMGObjectComparator implements Comparator<SMGObject> {
+  public static class SMGObjectComparator implements Serializable, Comparator<SMGObject> {
+
+    private static final long serialVersionUID = 1L;
 
     @Override
     public int compare(SMGObject o1, SMGObject o2) {
