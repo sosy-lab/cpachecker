@@ -1,3 +1,16 @@
+Profiling
+=========
+
+There exist many tools that allow to monitor Java processes, e.g. VisualVM.
+Most of these connect to the JVM via a special file in `/tmp/hsperfdata_*`.
+CPAchecker when started with `scripts/cpa.sh`
+disables this file by default for performance reasons
+(cf. [http://www.evanjones.ca/jvm-mmap-pause.html](http://www.evanjones.ca/jvm-mmap-pause.html)),
+so these tools won't see the CPAchecker process.
+Just run CPAchecker with the environment variable
+`JAVA_VM_ARGUMENTS=-XX:-PerfDisableSharedMem` set to enable this again.
+
+
 Time profiling
 --------------
 

@@ -8,7 +8,7 @@ struct Recursive {
 int foo() {
   struct Recursive *a;
   a = malloc(sizeof(struct Recursive));
-  switch (a.q) {
+  switch (a->q) {
     case 5:
     case 10:
       a->s = 5;

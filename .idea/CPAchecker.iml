@@ -5,6 +5,10 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/output" />
+      <excludeFolder url="file://$MODULE_DIR$/results" />
+      <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
+      <excludeFolder url="file://$MODULE_DIR$/test/results" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -406,15 +410,6 @@
       <library name="scala-library.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-library.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library name="scala-actors.jar">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-actors.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

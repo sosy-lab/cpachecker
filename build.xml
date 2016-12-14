@@ -111,7 +111,7 @@
             var revision = project.getProperty("version.revision");
             project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
         ]]></script>
-        <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <get src="https://vcloud.sosy-lab.org/cpachecker/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
         <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
             <patternset>
                 <include name="cpachecker.jar"/>

@@ -23,14 +23,6 @@ This allows you to view exactly what the reformatter changed after running it.
 Please do not use the Eclipse code formatter,
 it destroys a lot of meaningful manual formatting.
 
-We use javac, Google Error-Prone, the Eclipse Java Compiler, and FindBugs
-to findings bugs in the source, and we want to keep CPAchecker
-free of warnings from all these tools.
-You can run them all at once (plus the unit tests) with "ant all-checks".
-Our [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall)
-will also execute them and send a mail to the developer list
-(cf. [`Mailing.md`](Mailing.md), please apply for membership if you commit to CPAchecker).
-
 Additional rules and hints:
 
 Spelling:
@@ -131,6 +123,14 @@ Coding:
   use the interface as type instead of the implementation (e.g., `List` instead of `ArrayList`).
   This is especially true for fields, parameters, and return types.
   Do use the `Immutable*` types from Guava, though, to show that your collection is immutable.
+- Avoid Collectors.toList() and Collectors.toSet().
+  These guarantee neither mutability nor immutability.
+  Use a solution that returns an immutable collection instead,
+  or one that is guaranteed to return a mutable one if you need it.
+  We have utility methods for this in MoreCollectors and Collections3.
+- Do not over-use functional idioms!
+  When an imperative version of the code is shorter and easier to read,
+  it should be preferred.
 - Use `Integer`, `Double`, `Long`, `Boolean` etc. only when necessary (this is, inside generics like in `List<Integer>`).
   In fields, method parameters and return values, and local parameters,
   it is better to use the corresponding primitive types like int.
