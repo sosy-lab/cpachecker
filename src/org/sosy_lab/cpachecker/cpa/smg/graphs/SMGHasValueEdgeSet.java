@@ -189,4 +189,21 @@ public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdge
   public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
     return map.get(pObject);
   }
+
+  @Override
+  public int hashCode() {
+    return map.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof SMGHasValueEdgeSet) {
+      SMGHasValueEdgeSet other = (SMGHasValueEdgeSet) pObj;
+      return map.equals(other.map);
+    }
+    return false;
+  }
 }
