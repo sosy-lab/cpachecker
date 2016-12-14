@@ -31,7 +31,17 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -110,20 +120,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 
 @Options(prefix = "cpa.smg")
@@ -757,7 +755,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       int sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() + sourceRangeOffset;
       int targetRangeOffset = targetStr1Address.getOffset().getAsInt();
 
-      currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
+      if (sourceRangeSize > source.getSize() - sourceRangeOffset) {
+        currentState = currentState.setInvalidRead();
+      } else {
+        currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
+      }
 
       return SMGAddressValueAndState.of(currentState, targetStr1Address);
     }
