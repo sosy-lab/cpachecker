@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.math.BigInteger;
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -43,9 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-
-import java.math.BigInteger;
-import java.util.Iterator;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -533,13 +532,13 @@ public enum MachineModel {
       }
     }
 
-    private int calculateByteSize(int bitFieldsSize) {
-      if (bitFieldsSize == 0) {
+    public int calculateByteSize(int pBitFieldsSize) {
+      if (pBitFieldsSize == 0) {
         return 0;
       }
 
-      int result = bitFieldsSize / model.getSizeofCharInBits();
-      if (bitFieldsSize % model.getSizeofCharInBits() > 0) {
+      int result = pBitFieldsSize / model.getSizeofCharInBits();
+      if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
         result++;
       }
       return result;
