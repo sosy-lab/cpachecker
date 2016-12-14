@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -463,19 +464,27 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   protected abstract CandidateGenerator getCandidateInvariants();
 
   /**
-   * Adjusts the conditions of the CPAs which support the adjusting of conditions.
+   * Adjusts the conditions of those CPAs that support the adjustment of conditions.
    *
-   * @return {@code true} if the conditions were adjusted, {@code false} if the BoundsCPA used to
-   *     unroll the loops does not support any further adjustment of conditions.
+   * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
+   *     possible.
    */
   private boolean adjustConditions() {
-    Iterable<AdjustableConditionCPA> conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
+    FluentIterable<AdjustableConditionCPA> conditionCPAs =
+        CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
+    boolean adjusted = false;
     for (AdjustableConditionCPA condCpa : conditionCPAs) {
-      if (!condCpa.adjustPrecision() && condCpa instanceof BoundsCPA) {
-        // this cpa said "do not continue"
-        logger.log(Level.INFO, "Terminating because of", condCpa.getClass().getSimpleName());
-        return false;
+      if (condCpa.adjustPrecision()) {
+        adjusted = true;
       }
+    }
+    if (!adjusted) {
+      // these cpas said "do not continue"
+      logger.log(
+          Level.INFO,
+          "Terminating because none of the following CPAs' precision can be adjusted any further ",
+          Joiner.on(", ").join(conditionCPAs.transform(cpa -> cpa.getClass().getSimpleName())));
+      return false;
     }
     return !Iterables.isEmpty(conditionCPAs);
   }

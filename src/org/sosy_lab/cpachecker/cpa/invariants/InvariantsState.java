@@ -430,6 +430,12 @@ public class InvariantsState implements AbstractState,
     if (isUnsupportedVariableName(pMemoryLocation)) {
       return this;
     }
+    if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
+      NumeralFormula<CompoundInterval> newEnvValue = InvariantsFormulaManager.INSTANCE.asConstant(
+          pValue.getTypeInfo(),
+          pValue.accept(getFormulaResolver(), environment));
+      return assignInternal(pMemoryLocation, newEnvValue);
+    }
 
     // Check if the assigned variable is selected (newVariableSelection != null)
     VariableSelection<CompoundInterval> newVariableSelection = this.variableSelection.acceptAssignment(pMemoryLocation, pValue);
@@ -844,6 +850,11 @@ public class InvariantsState implements AbstractState,
     if (BooleanConstant.isFalse(assumptionEvaluation)) { return null; }
     // If the invariant evaluates to true, it adds no value for now
     if (BooleanConstant.isTrue(assumptionEvaluation)) { return this; }
+
+    // Only use information from supported variables
+    if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
+      return this;
+    }
 
     NonRecursiveEnvironment.Builder environmentBuilder = new NonRecursiveEnvironment.Builder(this.environment);
     PushAssumptionToEnvironmentVisitor patev =
