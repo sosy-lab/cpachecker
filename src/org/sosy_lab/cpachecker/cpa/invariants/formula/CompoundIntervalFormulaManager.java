@@ -102,12 +102,20 @@ public class CompoundIntervalFormulaManager {
     return pFormula.accept(COLLECT_VARS_VISITOR);
   }
 
-  public CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
+  private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
+    return evaluate(pFormula, false);
+  }
+
+  private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula, boolean pDisableOverflowCheck) {
+    if (pDisableOverflowCheck) {
+      FormulaCompoundStateEvaluationVisitor evaluator = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false);
+      return pFormula.accept(evaluator, EMPTY_ENVIRONMENT);
+    }
     return pFormula.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
   }
 
-  public boolean isDefinitelyTrue(NumeralFormula<CompoundInterval> pFormula) {
-    if (evaluate(pFormula).isDefinitelyTrue()) {
+  private boolean isDefinitelyTrue(NumeralFormula<CompoundInterval> pFormula) {
+    if (evaluate(pFormula, true).isDefinitelyTrue()) {
       return true;
     }
     return isDefinitelyTrue(fromNumeral(pFormula));
@@ -119,7 +127,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean isDefinitelyFalse(NumeralFormula<CompoundInterval> pFormula) {
-    return evaluate(pFormula).isDefinitelyFalse();
+    return evaluate(pFormula, true).isDefinitelyFalse();
   }
 
   private boolean isDefinitelyFalse(BooleanFormula<CompoundInterval> pFormula) {
@@ -128,7 +136,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean isDefinitelyBottom(NumeralFormula<CompoundInterval> pFormula) {
-    return evaluate(pFormula).isBottom();
+    return evaluate(pFormula, true).isBottom();
   }
 
   public boolean containsAllPossibleValues(NumeralFormula<CompoundInterval> pFormula) {
@@ -786,7 +794,7 @@ public class CompoundIntervalFormulaManager {
         if (otherValue != null) {
           newValue = union(value, p2.getOperand2());
           newValue = newValue.accept(new PartialEvaluator(compoundIntervalManagerFactory), evaluationVisitor);
-          CompoundInterval val = evaluate(newValue);
+          CompoundInterval val = evaluate(newValue, true);
           if (val.containsAllPossibleValues() && newValue instanceof Constant<?>) {
             return BooleanConstant.getTrue();
           }
@@ -910,7 +918,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   private boolean isMinusOne(NumeralFormula<CompoundInterval> pFormula) {
-    CompoundInterval value = evaluate(pFormula);
+    CompoundInterval value = evaluate(pFormula, true);
     return value.isSingleton() && value.contains(BigInteger.valueOf(-1));
   }
 

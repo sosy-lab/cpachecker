@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
@@ -43,11 +44,22 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
+  private final boolean withOverflowEventHandlers;
+
   public FormulaCompoundStateEvaluationVisitor(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
+    this(pCompoundIntervalManagerFactory, true);
+  }
+
+  public FormulaCompoundStateEvaluationVisitor(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, boolean pWithOverflowEventHandlers) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    this.withOverflowEventHandlers = pWithOverflowEventHandlers;
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo, withOverflowEventHandlers);
+    }
     return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
@@ -267,7 +279,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.compoundIntervalManagerFactory);
+    return Objects.hash(withOverflowEventHandlers, compoundIntervalManagerFactory);
   }
 
   @Override
@@ -276,7 +288,9 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
       return true;
     }
     if (pOther instanceof FormulaCompoundStateEvaluationVisitor) {
-      return compoundIntervalManagerFactory.equals(((FormulaCompoundStateEvaluationVisitor) pOther).compoundIntervalManagerFactory);
+      FormulaCompoundStateEvaluationVisitor other = (FormulaCompoundStateEvaluationVisitor) pOther;
+      return withOverflowEventHandlers == other.withOverflowEventHandlers
+          && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
     }
     return false;
   }
