@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 
 import com.google.common.collect.Sets;
@@ -57,15 +59,22 @@ public class TestGoalUtils {
   private GuardedEdgeLabel mAlphaLabel;
   private GuardedEdgeLabel mOmegaLabel;
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
+  private Pattern variableWhitelist;
 
   public TestGoalUtils(LogManager pLogger, boolean pUseTigerAlgorithm_with_pc,
       NamedRegionManager pBddCpaNamedRegionManager, GuardedEdgeLabel pAlphaLabel,
-      InverseGuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
+      InverseGuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel, String bdpvwl) {
     logger = pLogger;
 
     mAlphaLabel = pAlphaLabel;
     mInverseAlphaLabel = pInverseAlphaLabel;
     mOmegaLabel = pOmegaLabel;
+
+    bdpvwl = bdpvwl.replaceAll("%28", "(");
+    bdpvwl = bdpvwl.replaceAll("%29", ")");
+    bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
+    bdpvwl = bdpvwl.replaceAll("%2A", "*");
+    variableWhitelist = Pattern.compile(bdpvwl);
   }
 
   public FQLSpecification parseFQLQuery(String fqlQuery) throws InvalidConfigurationException {
@@ -124,7 +133,9 @@ public class TestGoalUtils {
     for (int i = 0; i < goalPatterns.size(); i++) {
       Goal lGoal = constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
           pOptimizeGoalAutomata, pUseOmegaLabel);
-      goalsToCover.add(lGoal);
+      if (lGoal != null) {
+        goalsToCover.add(lGoal);
+      }
     }
 
     return goalsToCover;
@@ -192,7 +203,26 @@ public class TestGoalUtils {
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
+    if (isFeatureAutomaton(automaton)) {
+      return null;
+    }
+
     return lGoal;
+  }
+
+  private boolean isFeatureAutomaton(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    for (State state : pAutomaton.getStates()) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton
+          .getIncomingEdges(state)) {
+        String label = edge.getLabel().toString();
+
+        if (variableWhitelist.matcher(label).find()) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
 }

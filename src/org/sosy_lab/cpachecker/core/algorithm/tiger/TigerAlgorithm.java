@@ -438,7 +438,7 @@ public class TigerAlgorithm
     targetStateFormulas = new HashMap<>();
 
     testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, bddCpaNamedRegionManager, mAlphaLabel,
-        mInverseAlphaLabel, mOmegaLabel);
+        mInverseAlphaLabel, mOmegaLabel, config.getProperty("BDDCPA.precision.variableWhitelist"));
 
     // get internal representation of FQL query
     fqlSpecification = testGoalUtils.parseFQLQuery(fqlQuery);
