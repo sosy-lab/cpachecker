@@ -27,12 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 public final class CSimpleType implements CType, Serializable {
@@ -73,11 +71,13 @@ public final class CSimpleType implements CType, Serializable {
 
   @Override
   public CType setBitFieldSize(int pBitFieldSize) {
+    if (isBitField() && bitFieldSize == pBitFieldSize) {
+      return this;
+    }
     CSimpleType result = new CSimpleType(isConst, isVolatile, type, isLong, isShort, isSigned,
         isUnsigned, isComplex, isImaginary, isLongLong);
     result.bitFieldSize = pBitFieldSize;
-    final int prime = 31;
-    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
+    result.hashCache = 0;
     return result;
   }
 
@@ -248,7 +248,8 @@ public final class CSimpleType implements CType, Serializable {
     if ((isConst == pForceConst)
         && (isVolatile == pForceVolatile)
         && (type == newType)
-        && (isSigned == newIsSigned)) {
+        && (isSigned == newIsSigned)
+        && !isBitField()) {
       return this;
     }
 

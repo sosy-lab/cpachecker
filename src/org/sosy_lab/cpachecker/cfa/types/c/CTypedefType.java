@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 /**
@@ -40,7 +39,6 @@ public final class CTypedefType implements CType, Serializable {
   private final CType realType; // the real type this typedef points to
   private boolean   isConst;
   private boolean   isVolatile;
-  private Integer   bitFieldSize;
   private int hashCache = 0;
 
   public CTypedefType(final boolean pConst, final boolean pVolatile,
@@ -54,11 +52,10 @@ public final class CTypedefType implements CType, Serializable {
 
   @Override
   public CType setBitFieldSize(int pBitFieldSize) {
-    CTypedefType result = new CTypedefType(isConst, isVolatile, name, realType);
-    result.bitFieldSize = pBitFieldSize;
-    final int prime = 31;
-    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
-    return result;
+    if (isBitField() && getBitFieldSize() == pBitFieldSize) {
+      return this;
+    }
+    return new CTypedefType(isConst, isVolatile, name, realType.setBitFieldSize(pBitFieldSize));
   }
   public String getName() {
     return name;
@@ -112,7 +109,6 @@ public final class CTypedefType implements CType, Serializable {
       result = prime * result + Objects.hashCode(isConst);
       result = prime * result + Objects.hashCode(isVolatile);
       result = prime * result + Objects.hashCode(realType);
-      result = prime * result + Objects.hashCode(bitFieldSize);
       hashCache = result;
     }
     return hashCache;
@@ -137,7 +133,6 @@ public final class CTypedefType implements CType, Serializable {
 
     return Objects.equals(name, other.name) && isConst == other.isConst
            && isVolatile == other.isVolatile
-           && Objects.equals(bitFieldSize, other.bitFieldSize)
            && Objects.equals(realType, other.realType);
   }
 
@@ -153,11 +148,11 @@ public final class CTypedefType implements CType, Serializable {
 
   @Override
   public boolean isBitField() {
-    return bitFieldSize != null;
+    return realType.isBitField();
   }
 
   @Override
   public int getBitFieldSize() {
-    return bitFieldSize == null ? 0 : bitFieldSize;
+    return realType.getBitFieldSize();
   }
 }

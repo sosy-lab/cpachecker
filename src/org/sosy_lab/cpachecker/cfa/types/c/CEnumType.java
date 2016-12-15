@@ -29,20 +29,16 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
 
 public final class CEnumType implements CComplexType {
 
@@ -136,10 +132,12 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CType setBitFieldSize(int pBitFieldSize) {
+    if (isBitField() && bitFieldSize == pBitFieldSize) {
+      return this;
+    }
     CEnumType result = new CEnumType(isConst, isVolatile, enumerators, name, origName);
     result.bitFieldSize = pBitFieldSize;
-    final int prime = 31;
-    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
+    result.hashCache = 0;
     return result;
   }
 
@@ -352,7 +350,7 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+    if ((isConst == pForceConst) && (isVolatile == pForceVolatile) && !isBitField()) {
       return this;
     }
     return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
