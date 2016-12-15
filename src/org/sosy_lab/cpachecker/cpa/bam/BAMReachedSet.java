@@ -198,9 +198,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       private Precision collectPrecision(ReachedSet reached, AbstractState state, Precision pTargetPrecision,
           Collection<ReachedSet> handledSets) {
 
-        if (collectedPrecision.containsKey(reached)) {
-          return collectedPrecision.get(reached);
-        }
         Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
         Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
         Queue<ARGState> worklist = new LinkedList<>();
@@ -236,14 +233,22 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           if (data.hasInitialState(currentState)) {
             ReachedSet other = data.getReachedSetForInitialState(currentState);
             if (!handledSets.contains(other)) {
-              AbstractState reducedState = other.getFirstState();
-              handledSets.add(other);
-              Precision collectedPrecision = collectPrecision(other, reducedState, pTargetPrecision, handledSets);
-              newVPrecision = Precisions.extractPrecisionByType(collectedPrecision, VariableTrackingPrecision.class);
+              Precision pPrecision;
+              if (collectedPrecision.containsKey(other)) {
+                pPrecision = collectedPrecision.get(other);
+              } else {
+
+                AbstractState reducedState = other.getFirstState();
+                handledSets.add(other);
+                pPrecision = collectPrecision(other, reducedState, pTargetPrecision, handledSets);
+                collectedPrecision.put(reached, pPrecision);
+
+              }
+              newVPrecision = Precisions.extractPrecisionByType(pPrecision, VariableTrackingPrecision.class);
               if (!newVPrecision.isEmpty()) {
                 valuePrecisions.add(newVPrecision);
               }
-              newPPrecision = Precisions.extractPrecisionByType(collectedPrecision, PredicatePrecision.class);
+              newPPrecision = Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
               if (!newPPrecision.isEmpty()) {
                 predicatePrecisions.add(newPPrecision);
               }
@@ -259,7 +264,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         }
         pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newValuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
         pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
-        collectedPrecision.put(reached, pTargetPrecision);
         return pTargetPrecision;
       }
 
