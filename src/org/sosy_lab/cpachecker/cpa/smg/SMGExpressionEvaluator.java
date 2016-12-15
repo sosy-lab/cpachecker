@@ -26,7 +26,13 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -89,14 +95,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * This class evaluates expressions using {@link SMGState}.
@@ -640,8 +638,8 @@ public class SMGExpressionEvaluator {
        */
       CExpression operand = pointerExpression.getOperand();
 
-      assert operand.getExpressionType().getCanonicalType() instanceof CPointerType
-      || operand.getExpressionType().getCanonicalType() instanceof CArrayType;
+      assert getRealExpressionType(operand) instanceof CPointerType
+        || getRealExpressionType(operand) instanceof CArrayType;
 
       SMGAddressValueAndStateList addressValueAndState = evaluateAddress(
           getInitialSmgState(), getCfaEdge(), operand);
@@ -900,7 +898,7 @@ public class SMGExpressionEvaluator {
       "to be a pointer.", binaryExp);
       }
 
-      CType typeOfPointer = addressType.getType().getCanonicalType();
+      CType typeOfPointer = getRealExpressionType(addressType.getType());
 
       return handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
           address, pointerOffset, typeOfPointer, lVarIsAddress,
@@ -1753,7 +1751,7 @@ public class SMGExpressionEvaluator {
           continue;
         }
 
-        CType fieldType = fieldReference.getExpressionType().getCanonicalType();
+        CType fieldType = getRealExpressionType(fieldReference);
 
         SMGValueAndState resultState = readValue(newState, addressOfField.getObject(), addressOfField.getOffset(), fieldType, cfaEdge);
 
