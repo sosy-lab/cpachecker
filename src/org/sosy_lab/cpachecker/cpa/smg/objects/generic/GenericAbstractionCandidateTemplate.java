@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
@@ -36,26 +35,31 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
+  private final MachineModel machineModel;
+
   private Map<Integer, List<MaterlisationStep>> abstractPointerToMaterlisationSteps;
 
-  private GenericAbstractionCandidateTemplate() {}
-
-  private GenericAbstractionCandidateTemplate(
+  private GenericAbstractionCandidateTemplate(MachineModel pMachineModel,
       Map<Integer, List<MaterlisationStep>> pMaterlisationStep) {
+    machineModel = pMachineModel;
     abstractPointerToMaterlisationSteps = pMaterlisationStep;
   }
 
-  private GenericAbstractionCandidateTemplate(Set<SMGEdgeHasValue> sharedFields,
+  private GenericAbstractionCandidateTemplate(MachineModel pMachineModel,
+      Set<SMGEdgeHasValue> sharedFields,
       Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer,
       Set<SMGEdgeHasValue> nonSharedOPointer,
       SMGRegion root) {
+    machineModel = pMachineModel;
     Map<Integer, List<MaterlisationStep>> result = new HashMap<>();
     abstractPointerToMaterlisationSteps = result;
 
@@ -89,7 +93,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
     for (SMGEdgeHasValue oPointer : pNonSharedOPointer) {
       GenericAbstractionCandidateTemplate abstraction =
-          new GenericAbstractionCandidateTemplate(abstractPointerToMaterlisationSteps);
+          new GenericAbstractionCandidateTemplate(machineModel, abstractPointerToMaterlisationSteps);
 
       abstractObjects.add(abstraction);
 
@@ -195,7 +199,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
 
   @Override
   public SMGObject createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap) {
-    return new GenericAbstraction(100,
+    return new GenericAbstraction(100 * machineModel.getSizeofCharInBits(),
         "generic abtraction ID " + SMGValueFactory.getNewValue(),
         abstractPointerToMaterlisationSteps,
         pAbstractToConcretePointerMap);
@@ -210,7 +214,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    * of the abstraction. Based on which pointer they share, that lead to and from these objects,
    * and which pointer they don't share, a simple inductive abstraction is generated.
    *
-   *
+   * @param pMachineModel the machine model
    * @param sharedFields shared Fields
    * @param sharedIPointer shared Pointer
    * @param sharedOPointer shared Pointer
@@ -219,20 +223,21 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    * @return abstraction
    */
   public static GenericAbstractionCandidateTemplate createSimpleInductiveGenericAbstractionTemplate(
+      MachineModel pMachineModel,
       Set<SMGEdgeHasValue> sharedFields, Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer,
       Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer,
       Set<SMGEdgeHasValue> nonSharedOPointer, SMGRegion pRoot) {
-    return new GenericAbstractionCandidateTemplate(sharedFields, sharedIPointer, sharedOPointer, nonSharedOPointer, pRoot);
+    return new GenericAbstractionCandidateTemplate(pMachineModel, sharedFields, sharedIPointer, sharedOPointer, nonSharedOPointer, pRoot);
   }
 
-  public static GenericAbstractionCandidateTemplate valueOf(
+  public static GenericAbstractionCandidateTemplate valueOf(MachineModel pMachineModel,
       Map<Integer, List<MaterlisationStep>> abstractPointerToMaterlisationSteps) {
 
-    return new GenericAbstractionCandidateTemplate(ImmutableMap.copyOf(abstractPointerToMaterlisationSteps));
+    return new GenericAbstractionCandidateTemplate(pMachineModel, ImmutableMap.copyOf(abstractPointerToMaterlisationSteps));
   }
 
-  public static GenericAbstractionCandidateTemplate valueOf(GenericAbstraction abstraction) {
-    return new GenericAbstractionCandidateTemplate(abstraction.getMaterlisationStepMap());
+  public static GenericAbstractionCandidateTemplate valueOf(MachineModel pMachineModel,GenericAbstraction abstraction) {
+    return new GenericAbstractionCandidateTemplate(pMachineModel, abstraction.getMaterlisationStepMap());
   }
 
   public boolean matchesSpecificShape(@SuppressWarnings("unused") GenericAbstractionCandidateTemplate pTemplate) {

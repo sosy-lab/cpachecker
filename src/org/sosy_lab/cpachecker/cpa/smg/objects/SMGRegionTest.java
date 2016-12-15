@@ -34,35 +34,35 @@ public class SMGRegionTest {
 
   @Test
   public void testIsAbstract() {
-    SMGRegion region = new SMGRegion(8, "region");
+    SMGRegion region = new SMGRegion(64, "region");
     Assert.assertFalse(region.isAbstract());
   }
 
   @Test
   public void testJoin() {
-    SMGRegion region = new SMGRegion(8, "region");
-    SMGRegion region_same = new SMGRegion(8, "region");
+    SMGRegion region = new SMGRegion(64, "region");
+    SMGRegion region_same = new SMGRegion(64, "region");
     SMGObject objectJoint = region.join(region_same, region_same.getLevel());
     Assert.assertTrue(objectJoint instanceof SMGRegion);
     SMGRegion regionJoint = (SMGRegion)objectJoint;
 
-    Assert.assertEquals(8, regionJoint.getSize());
+    Assert.assertEquals(64, regionJoint.getSize());
     Assert.assertEquals("region", regionJoint.getLabel());
   }
 
   @Test(expected=UnsupportedOperationException.class)
   public void testJoinDiffSize() {
-    SMGRegion region = new SMGRegion(8, "region");
-    SMGRegion regionDiff = new SMGRegion(10, "region");
+    SMGRegion region = new SMGRegion(64, "region");
+    SMGRegion regionDiff = new SMGRegion(80, "region");
     region.join(regionDiff, regionDiff.getLevel());
   }
 
   @Test
   public void testPropertiesEqual() {
-    SMGRegion one = new SMGRegion(8, "region");
-    SMGRegion two = new SMGRegion(8, "region");
-    SMGRegion three = new SMGRegion(10, "region");
-    SMGRegion four = new SMGRegion(8, "REGION");
+    SMGRegion one = new SMGRegion(64, "region");
+    SMGRegion two = new SMGRegion(64, "region");
+    SMGRegion three = new SMGRegion(80, "region");
+    SMGRegion four = new SMGRegion(64, "REGION");
 
     Assert.assertTrue(one.propertiesEqual(two));
     Assert.assertFalse(one.propertiesEqual(three));

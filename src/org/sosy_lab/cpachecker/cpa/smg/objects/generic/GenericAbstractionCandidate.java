@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
@@ -35,15 +36,17 @@ import java.util.Set;
 
 public class GenericAbstractionCandidate implements SMGGenericAbstractionCandidate {
 
+  private final MachineModel machineModel;
   private final Set<SMGObject> objectsToBeRemoved;
   private final Map<Integer, Integer> abstractToConcretePointerMap;
   private final Map<Integer, List<MaterlisationStep>> materlisationStep;
   private final int score;
 
-  private GenericAbstractionCandidate(Set<SMGObject> pObjectsToBeRemoved,
+  private GenericAbstractionCandidate(MachineModel pMachineModel, Set<SMGObject> pObjectsToBeRemoved,
       Map<Integer, Integer> pAbstractToConcretePointerMap,
       Map<Integer, List<MaterlisationStep>> pMaterlisationStep,
       int pScore) {
+    machineModel = pMachineModel;
     objectsToBeRemoved = pObjectsToBeRemoved;
     abstractToConcretePointerMap = pAbstractToConcretePointerMap;
     materlisationStep = pMaterlisationStep;
@@ -58,10 +61,10 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     return abstractToConcretePointerMap;
   }
 
-  public static GenericAbstractionCandidate valueOf(Set<SMGObject> pObjectsToBeRemoved,
+  public static GenericAbstractionCandidate valueOf(MachineModel pMachineModel, Set<SMGObject> pObjectsToBeRemoved,
       Map<Integer, Integer> pAbstractToConcretePointerMap,
       Map<Integer, List<MaterlisationStep>> pMaterlisationStep, int pScore) {
-    return new GenericAbstractionCandidate(pObjectsToBeRemoved, pAbstractToConcretePointerMap,
+    return new GenericAbstractionCandidate(pMachineModel, pObjectsToBeRemoved, pAbstractToConcretePointerMap,
         pMaterlisationStep, pScore);
   }
 
@@ -75,7 +78,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
 
     /*First, generate the abstraction object. */
     GenericAbstraction genericAbstraction =
-        GenericAbstraction.valueOf(materlisationStep, abstractToConcretePointerMap);
+        GenericAbstraction.valueOf(machineModel, materlisationStep, abstractToConcretePointerMap);
 
     /* Second, create the pointer that lead from/to this abstraction. */
     Set<SMGEdgePointsTo> pointsToThisAbstraction = new HashSet<>();
@@ -133,7 +136,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     return false;
   }
 
-  public GenericAbstractionCandidateTemplate createTemplate() {
-    return GenericAbstractionCandidateTemplate.valueOf(materlisationStep);
+  public GenericAbstractionCandidateTemplate createTemplate(MachineModel pMachineModel) {
+    return GenericAbstractionCandidateTemplate.valueOf(pMachineModel, materlisationStep);
   }
 }

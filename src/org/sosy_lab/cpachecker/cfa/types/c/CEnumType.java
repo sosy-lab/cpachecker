@@ -29,20 +29,16 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
 
 public final class CEnumType implements CComplexType {
 
@@ -53,6 +49,8 @@ public final class CEnumType implements CComplexType {
   private final String origName;
   private boolean isConst;
   private boolean isVolatile;
+  private Integer bitFieldSize;
+  private int hashCache = 0;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName, final String pOrigName) {
@@ -122,7 +120,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 
-    return lASTString.toString();
+    return lASTString.toString() + (isBitField() ? " : " + getBitFieldSize() : "");
   }
 
   @Override
@@ -130,6 +128,27 @@ public final class CEnumType implements CComplexType {
     return (isConst() ? "const " : "") +
            (isVolatile() ? "volatile " : "") +
            "enum " + name;
+  }
+
+  @Override
+  public CEnumType withBitFieldSize(int pBitFieldSize) {
+    if (isBitField() && bitFieldSize == pBitFieldSize) {
+      return this;
+    }
+    CEnumType result = new CEnumType(isConst, isVolatile, enumerators, name, origName);
+    result.bitFieldSize = pBitFieldSize;
+    result.hashCache = 0;
+    return result;
+  }
+
+  @Override
+  public boolean isBitField() {
+    return bitFieldSize != null;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return bitFieldSize == null ? 0 : bitFieldSize;
   }
 
   @SuppressFBWarnings(
@@ -270,12 +289,16 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(name);
-    return result;
+    if (hashCache == 0) {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(bitFieldSize);
+      hashCache = result;
+    }
+    return hashCache;
   }
 
   /**
@@ -296,7 +319,9 @@ public final class CEnumType implements CComplexType {
     CEnumType other = (CEnumType) obj;
 
     return isConst == other.isConst && isVolatile == other.isVolatile
-           && Objects.equals(name, other.name) && Objects.equals(enumerators, other.enumerators);
+           && Objects.equals(name, other.name)
+           && Objects.equals(enumerators, other.enumerators)
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override
@@ -314,7 +339,8 @@ public final class CEnumType implements CComplexType {
     return isConst == other.isConst
            && isVolatile == other.isVolatile
            && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(enumerators, other.enumerators);
+           && Objects.equals(enumerators, other.enumerators)
+           && Objects.equals(bitFieldSize, other.bitFieldSize);
   }
 
   @Override
@@ -324,9 +350,13 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+    if ((isConst == pForceConst) && (isVolatile == pForceVolatile) && !isBitField()) {
       return this;
     }
-    return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
+    CEnumType result = new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
+    if (isBitField()) {
+      result = result.withBitFieldSize(bitFieldSize);
+    }
+    return result;
   }
 }

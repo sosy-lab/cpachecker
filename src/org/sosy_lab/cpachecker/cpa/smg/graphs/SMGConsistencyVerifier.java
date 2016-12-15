@@ -119,7 +119,7 @@ final class SMGConsistencyVerifier {
    */
   static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
-      if (pSmg.isObjectValid(obj) && !pSmg.isObjectExternallyAllocated(obj)) {
+      if (pSmg.isObjectValid(obj) || pSmg.isObjectExternallyAllocated(obj)) {
         continue;
       }
       // Verify that the HasValue edge set for this invalid object is empty
@@ -149,7 +149,7 @@ final class SMGConsistencyVerifier {
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
     for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
-      if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(pSmg.getMachineModel())) > pObject.getSize()) {
+      if ((hvEdge.getOffset() + hvEdge.getSizeInBits(pSmg.getMachineModel())) > pObject.getSize()) {
         pLogger.log(Level.SEVERE, "SMG inconistent: field exceedes boundary of the object");
         pLogger.log(Level.SEVERE, "Object: ", pObject);
         pLogger.log(Level.SEVERE, "Field: ", hvEdge);

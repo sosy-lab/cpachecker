@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.io.Serializable;
+import java.util.Comparator;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-
-import java.util.Objects;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
@@ -39,9 +40,9 @@ public class SMGEdgeHasValue extends SMGEdge {
     offset = pOffset;
   }
 
-  public SMGEdgeHasValue(int pSizeInBytes, int pOffset, SMGObject pObject, int pValue) {
+  public SMGEdgeHasValue(int pSizeInBits, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
-    type = AnonymousTypes.createTypeWithLength(pSizeInBytes);
+    type = AnonymousTypes.createTypeWithLength(pSizeInBits);
     offset = pOffset;
   }
 
@@ -58,8 +59,8 @@ public class SMGEdgeHasValue extends SMGEdge {
     return type;
   }
 
-  public int getSizeInBytes(MachineModel pMachineModel) {
-    return pMachineModel.getSizeof(type);
+  public int getSizeInBits(MachineModel pMachineModel) {
+    return pMachineModel.getBitSizeof(type);
   }
 
   @Override
@@ -84,7 +85,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     int otStart = other.getOffset();
 
-    int otEnd = otStart + pModel.getSizeof(other.getType());
+    int otEnd = otStart + pModel.getBitSizeof(other.getType());
 
     return overlapsWith(otStart, otEnd, pModel);
   }
@@ -93,7 +94,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     int myStart = offset;
 
-    int myEnd = myStart + pModel.getSizeof(type);
+    int myEnd = myStart + pModel.getBitSizeof(type);
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);
@@ -111,7 +112,7 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (offset == other.offset) && object == other.object;
+    return pModel.getBitSizeof(type) == pModel.getBitSizeof(other.type) && (offset == other.offset) && object == other.object;
   }
 
   @Override
@@ -129,4 +130,25 @@ public class SMGEdgeHasValue extends SMGEdge {
         && offset == other.offset
         && type.getCanonicalType().equals(other.type.getCanonicalType());
   }
+
+  public static class SMGEdgeHasValueComparator
+      implements Serializable, Comparator<SMGEdgeHasValue> {
+
+    private static final long serialVersionUID = 1L;
+
+      @Override
+      public int compare(SMGEdgeHasValue o1, SMGEdgeHasValue o2) {
+        int result = Integer.compare(o1.getObject().getId(), o2.getObject().getId());
+        if (result == 0) {
+          result = Integer.compare(o1.offset, o2.offset);
+          if (result == 0) {
+            result = Integer.compare(o1.getValue(), o2.getValue());
+            if (result == 0) {
+              result = o1.type.getCanonicalType().toString().compareTo(o2.type.getCanonicalType().toString());
+            }
+          }
+        }
+        return result;
+      }
+    }
 }

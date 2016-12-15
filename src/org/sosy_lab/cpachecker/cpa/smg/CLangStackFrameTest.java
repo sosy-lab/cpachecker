@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,7 +37,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 
 public class CLangStackFrameTest {
@@ -74,7 +74,7 @@ public class CLangStackFrameTest {
 
   @Test
   public void CLangStackFrameAddVariableTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(8, "fooVarObject"));
+    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     Assert.assertTrue("Added variable is present", sf.containsVariable("fooVar"));
 
     Map<String, SMGRegion> variables = sf.getVariables();
@@ -82,12 +82,12 @@ public class CLangStackFrameTest {
                         variables.size(), 1);
     SMGObject smg_object = variables.get("fooVar");
     Assert.assertEquals("Added variable present in variable map", smg_object.getLabel(), "fooVarObject");
-    Assert.assertEquals("Added variable present in variable map", smg_object.getSize(), 8);
+    Assert.assertEquals("Added variable present in variable map", smg_object.getSize(), 64);
 
     smg_object = null;
     smg_object = sf.getVariable("fooVar");
     Assert.assertEquals("Correct variable is returned: label", smg_object.getLabel(), "fooVarObject");
-    Assert.assertEquals("Correct variable is returned: size", smg_object.getSize(), 8);
+    Assert.assertEquals("Correct variable is returned: size", smg_object.getSize(), 64);
   }
 
   @Test
@@ -96,7 +96,7 @@ public class CLangStackFrameTest {
     // Test that there is an return value object at
     Assert.assertEquals(1, objects.size());
 
-    sf.addStackVariable("fooVar", new SMGRegion(8, "fooVarObject"));
+    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     objects = sf.getAllObjects();
     Assert.assertEquals(2, objects.size());
   }
@@ -105,13 +105,14 @@ public class CLangStackFrameTest {
   @Test
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
-    Assert.assertEquals(usedMachineModel.getSizeof(CNumericTypes.UNSIGNED_LONG_INT), retval.getSize());
+    Assert.assertEquals(usedMachineModel.getBitSizeof(CNumericTypes.UNSIGNED_LONG_INT), retval
+        .getSize());
   }
 
   @Test(expected=IllegalArgumentException.class)
   public void CLangStackFrameAddVariableTwiceTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(8, "fooVarObject"));
-    sf.addStackVariable("fooVar", new SMGRegion(16, "newFooVarObject"));
+    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
   }
 
   @Test(expected=NoSuchElementException.class)

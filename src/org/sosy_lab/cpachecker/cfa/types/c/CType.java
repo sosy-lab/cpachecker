@@ -61,4 +61,10 @@ public interface CType extends Type {
   public CType getCanonicalType();
 
   public CType getCanonicalType(boolean forceConst, boolean forceVolatile);
+
+  public boolean isBitField();
+
+  int getBitFieldSize();
+
+  public CType withBitFieldSize(int pBitFieldSize);
 }

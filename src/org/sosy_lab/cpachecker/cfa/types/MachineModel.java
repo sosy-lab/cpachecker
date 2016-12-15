@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.math.BigInteger;
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -43,9 +45,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-
-import java.math.BigInteger;
-import java.util.Iterator;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -81,7 +80,10 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4  //pointer
+      4, //pointer
+
+      //bitfields support
+      true
   ),
 
   /**
@@ -114,9 +116,13 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8  // pointer
+      8, // pointer
+
+      //bitfields support
+      true
   );
 
+  private final boolean isBitFieldsSupportEnabled;
   // numeric types
   private final int     sizeofShort;
   private final int     sizeofInt;
@@ -174,7 +180,9 @@ public enum MachineModel {
       int pAlignofLongDouble,
       int pAlignofVoid,
       int pAlignofBool,
-      int pAlignofPtr) {
+      int pAlignofPtr,
+      boolean pBitFieldsEnabled) {
+    isBitFieldsSupportEnabled = pBitFieldsEnabled;
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -208,6 +216,10 @@ public enum MachineModel {
     } else {
       throw new AssertionError("No ptr-Equivalent found");
     }
+  }
+
+  public boolean isBitFieldsSupportEnabled() {
+    return isBitFieldsSupportEnabled;
   }
 
   public CSimpleType getPointerEquivalentSimpleType() {
@@ -323,6 +335,13 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
+    if (isBitFieldsSupportEnabled() && type.isBitField()) {
+      int size = type.getBitFieldSize() / mSizeofCharInBits;
+      if (type.getBitFieldSize() % mSizeofCharInBits > 0) {
+        size++;
+      }
+      return size;
+    }
     switch (type.getType()) {
     case BOOL:        return getSizeofBool();
     case CHAR:        return getSizeofChar();
@@ -513,8 +532,21 @@ public enum MachineModel {
       }
     }
 
+    public int calculateByteSize(int pBitFieldsSize) {
+      if (pBitFieldsSize == 0) {
+        return 0;
+      }
+
+      int result = pBitFieldsSize / model.getSizeofCharInBits();
+      if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
+        result++;
+      }
+      return result;
+    }
+
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
+      int bitFieldsSize = 0;
       Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
       while (declIt.hasNext()) {
         CCompositeTypeMemberDeclaration decl = declIt.next();
@@ -530,10 +562,17 @@ public enum MachineModel {
                 "Cannot compute size of incomplete type " + decl.getType());
           }
         } else {
-          size += model.getPadding(size, decl.getType());
-          size += decl.getType().accept(this);
+          if (model.isBitFieldsSupportEnabled() && decl.getType().isBitField()) {
+              bitFieldsSize += decl.getType().getBitFieldSize();
+          } else {
+            size += calculateByteSize(bitFieldsSize);
+            bitFieldsSize = 0;
+            size += model.getPadding(size, decl.getType());
+            size += decl.getType().accept(this);
+          }
         }
       }
+      size += calculateByteSize(bitFieldsSize);
       size += model.getPadding(size, pCompositeType);
       return size;
     }
@@ -608,6 +647,18 @@ public enum MachineModel {
         "Cannot compute size of incomplete type %s",
         type);
     return type.accept(sizeofVisitor);
+  }
+
+  public int getBitSizeofPtr() {
+    return getSizeofPtr() * getSizeofCharInBits();
+  }
+
+  public int getBitSizeof(CType pType) {
+    if (pType.isBitField()) {
+      return pType.getBitFieldSize();
+    } else {
+      return getSizeof(pType) * getSizeofCharInBits();
+    }
   }
 
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor = new BaseAlignofVisitor(this);

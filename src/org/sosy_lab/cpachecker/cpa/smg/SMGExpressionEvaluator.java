@@ -26,7 +26,13 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -63,10 +69,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -84,14 +95,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 
 /**
  * This class evaluates expressions using {@link SMGState}.
@@ -169,6 +172,21 @@ public class SMGExpressionEvaluator {
     }
   }
 
+  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
+    CSizeOfVisitor v;
+    if (machineModel.isBitFieldsSupportEnabled()) {
+      v = getBitSizeOfVisitor(pEdge, pState);
+    } else {
+      v = getSizeOfVisitor(pEdge, pState);
+    }
+
+    try {
+      return pType.accept(v);
+    } catch (IllegalArgumentException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);
+    }
+  }
   /**
    * This visitor evaluates the address of a LValue. It is predominantly
    * used to evaluate the left hand side of a Assignment.
@@ -306,19 +324,41 @@ public class SMGExpressionEvaluator {
     List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
     int offset = 0;
+    int bitFieldsSize = 0;
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      int padding = machineModel.getPadding(offset, typeMember.getType());
+      if (machineModel.isBitFieldsSupportEnabled() && typeMember.getType().isBitField()) {
+        if (memberName.equals(fieldName)) {
+          offset += bitFieldsSize;
+          return new SMGField(SMGKnownExpValue.valueOf(offset),
+              getRealExpressionType(typeMember.getType()));
+        }
 
-      if (memberName.equals(fieldName)) {
-        offset += padding;
-        return new SMGField(SMGKnownExpValue.valueOf(offset),
-          getRealExpressionType(typeMember.getType())); }
+        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
+          bitFieldsSize += typeMember.getType().getBitFieldSize();
+        }
+      } else {
+        if (bitFieldsSize > 0) {
+          offset += bitFieldsSize;
+          if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
+            offset += machineModel.getSizeofCharInBits() - (bitFieldsSize % machineModel.getSizeofCharInBits());
+          }
+          bitFieldsSize = 0;
+        }
+        int padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
+            machineModel.getSizeofCharInBits();
 
-      if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-        offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
-            pState, expression);
+        if (memberName.equals(fieldName)) {
+          offset += padding;
+          return new SMGField(SMGKnownExpValue.valueOf(offset),
+            getRealExpressionType(typeMember.getType()));
+        }
+
+        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
+          offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
+              pState, expression);
+        }
       }
     }
 
@@ -398,7 +438,7 @@ public class SMGExpressionEvaluator {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
         if (address.getObject() == SMGObject.getNullObject()) { return SMGExplicitValueAndState.of(newState,
-            SMGKnownExpValue.valueOf(address.getOffset().getAsLong())); }
+            SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / machineModel.getSizeofCharInBits())); }
       }
     }
 
@@ -564,10 +604,10 @@ public class SMGExpressionEvaluator {
           CVariableDeclaration varDcl = (CVariableDeclaration) dcl;
 
           if (varDcl.isGlobal()) {
-            object = state.addGlobalVariable(getSizeof(getCfaEdge(), varDcl.getType(), state),
+            object = state.addGlobalVariable(getBitSizeof(getCfaEdge(), varDcl.getType(), state),
                 varDcl.getName());
           } else {
-            object = state.addLocalVariable(getSizeof(getCfaEdge(), varDcl.getType(), state),
+            object = state.addLocalVariable(getBitSizeof(getCfaEdge(), varDcl.getType(), state),
                 varDcl.getName());
           }
         }
@@ -598,8 +638,8 @@ public class SMGExpressionEvaluator {
        */
       CExpression operand = pointerExpression.getOperand();
 
-      assert operand.getExpressionType().getCanonicalType() instanceof CPointerType
-      || operand.getExpressionType().getCanonicalType() instanceof CArrayType;
+      assert getRealExpressionType(operand) instanceof CPointerType
+        || getRealExpressionType(operand) instanceof CArrayType;
 
       SMGAddressValueAndStateList addressValueAndState = evaluateAddress(
           getInitialSmgState(), getCfaEdge(), operand);
@@ -858,7 +898,7 @@ public class SMGExpressionEvaluator {
       "to be a pointer.", binaryExp);
       }
 
-      CType typeOfPointer = addressType.getType().getCanonicalType();
+      CType typeOfPointer = getRealExpressionType(addressType.getType());
 
       return handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
           address, pointerOffset, typeOfPointer, lVarIsAddress,
@@ -918,7 +958,8 @@ public class SMGExpressionEvaluator {
             continue;
           }
 
-          SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer, newState, address));
+          SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer,
+              newState, address));
 
           SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -1007,8 +1048,7 @@ public class SMGExpressionEvaluator {
                 int size = arrayAddress.getObject().getSize();
                 int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
                 int index = (size / typeSize) + 1;
-                int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp)
-                    * machineModel.getSizeofCharInBits();
+                int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp);
                 newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
                     subscriptSize, cfaEdge);
               }
@@ -1354,10 +1394,8 @@ public class SMGExpressionEvaluator {
                 //TODO: separate modifiable and unmodifiable visitor
                 int leftSideTypeSize = getSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
                 int rightSideTypeSize = getSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
-                newState.addPredicateRelation(leftSideVal,
-                    leftSideTypeSize * machineModel.getSizeofCharInBits(),
-                    rightSideVal, rightSideTypeSize * machineModel.getSizeofCharInBits(),
-                    binaryOperator, cfaEdge);
+                newState.addPredicateRelation(leftSideVal, leftSideTypeSize,
+                    rightSideVal, rightSideTypeSize, binaryOperator, cfaEdge);
                 result.add(SMGValueAndState.of(newState, resultValue));
               }
           }
@@ -1713,7 +1751,7 @@ public class SMGExpressionEvaluator {
           continue;
         }
 
-        CType fieldType = fieldReference.getExpressionType().getCanonicalType();
+        CType fieldType = getRealExpressionType(fieldReference);
 
         SMGValueAndState resultState = readValue(newState, addressOfField.getObject(), addressOfField.getOffset(), fieldType, cfaEdge);
 
@@ -2273,6 +2311,10 @@ public class SMGExpressionEvaluator {
     return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
   }
 
+  protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
+    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger);
+  }
+
   protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
       CExpression pExpression) {
     return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
@@ -2512,8 +2554,67 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  public static class CSizeOfVisitor extends BaseSizeofVisitor {
+  public static class CBitSizeOfVisitor extends CSizeOfVisitor {
 
+    public CBitSizeOfVisitor(
+        MachineModel pModel,
+        CFAEdge pEdge,
+        SMGState pState,
+        LogManagerWithoutDuplicates logger,
+        CExpression pExpression) {
+      super(pModel, pEdge, pState, logger, pExpression);
+    }
+
+    public CBitSizeOfVisitor(
+        MachineModel pModel,
+        CFAEdge pEdge,
+        SMGState pState, LogManagerWithoutDuplicates pLogger) {
+      super(pModel, pEdge, pState, pLogger);
+    }
+
+    @Override
+    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
+      if (pEnumType.isBitField()) {
+        return pEnumType.getBitFieldSize();
+      }
+      return super.visit(pEnumType);
+    }
+
+    @Override
+    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      if (pSimpleType.isBitField()) {
+        return pSimpleType.getBitFieldSize();
+      }
+      return super.visit(pSimpleType);
+    }
+
+    @Override
+    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+      if (pTypedefType.isBitField()) {
+        return pTypedefType.getBitFieldSize();
+      }
+      return super.visit(pTypedefType);
+    }
+
+    @Override
+    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+      if (pCompositeType.isBitField()) {
+        return pCompositeType.getBitFieldSize();
+      }
+      return super.visit(pCompositeType);
+    }
+
+    @Override
+    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+      if (pElaboratedType.isBitField()) {
+        return pElaboratedType.getBitFieldSize();
+      }
+      return super.visit(pElaboratedType);
+    }
+  }
+
+  public static class CSizeOfVisitor extends BaseSizeofVisitor {
+    int sizeofCharInBits;
     private final CFAEdge edge;
     private final SMGState state;
     private final CExpression expression;
@@ -2527,6 +2628,7 @@ public class SMGExpressionEvaluator {
       state = pState;
       expression = pExpression;
       eval = new SMGExpressionEvaluator(logger, pModel);
+      sizeofCharInBits = pModel.getSizeofCharInBits();
     }
 
     public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
@@ -2537,6 +2639,79 @@ public class SMGExpressionEvaluator {
       state = pState;
       expression = null;
       eval = new SMGExpressionEvaluator(pLogger, pModel);
+      sizeofCharInBits = pModel.getSizeofCharInBits();
+    }
+
+    @Override
+    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pCompositeType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pElaboratedType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pEnumType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pFunctionType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pPointerType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pProblemType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pSimpleType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pTypedefType);
+      return result;
+    }
+
+    @Override
+    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
+      int result = sizeofCharInBits;
+      sizeofCharInBits = 1;
+      result *= super.visit(pVoidType);
+      return result;
     }
 
     @Override
@@ -2555,7 +2730,10 @@ public class SMGExpressionEvaluator {
 
       if(arrayLength == null) {
         // treat size of unknown array length type as ptr
-        return super.visit(pArrayType);
+        int result = sizeofCharInBits;
+        sizeofCharInBits = 1;
+        result *= super.visit(pArrayType);
+        return result;
       } else if (arrayLength instanceof CIntegerLiteralExpression) {
         length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
       } else if (edge instanceof CDeclarationEdge) {

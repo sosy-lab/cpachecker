@@ -41,13 +41,13 @@ public class SMGJoinMapTargetAddressTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  final SMGRegion obj1 = new SMGRegion(8, "ze label");
+  final SMGRegion obj1 = new SMGRegion(64, "ze label");
   final Integer value1 = SMGValueFactory.getNewValue();
   final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, 0);
 
   final Integer value2 = SMGValueFactory.getNewValue();
 
-  final SMGObject destObj = new SMGRegion(8, "destination");
+  final SMGObject destObj = new SMGRegion(64, "destination");
   final Integer destValue = SMGValueFactory.getNewValue();
 
   @Before

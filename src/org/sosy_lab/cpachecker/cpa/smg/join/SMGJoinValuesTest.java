@@ -42,7 +42,7 @@ public class SMGJoinValuesTest {
   private SMG smgDest;
 
   SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
-      null, 4, false, false);
+      null, 32, false, false);
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -136,7 +136,7 @@ public class SMGJoinValuesTest {
     smg2.addValue(value2);
     smgDest.addValue(value3);
 
-    SMGRegion obj1 = new SMGRegion(8, "Object");
+    SMGRegion obj1 = new SMGRegion(64, "Object");
     SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, 0);
     smg1.addPointsToEdge(pt);
     SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
