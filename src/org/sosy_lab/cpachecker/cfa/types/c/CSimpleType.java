@@ -70,7 +70,7 @@ public final class CSimpleType implements CType, Serializable {
   }
 
   @Override
-  public CType setBitFieldSize(int pBitFieldSize) {
+  public CSimpleType setBitFieldSize(int pBitFieldSize) {
     if (isBitField() && bitFieldSize == pBitFieldSize) {
       return this;
     }
@@ -253,7 +253,11 @@ public final class CSimpleType implements CType, Serializable {
       return this;
     }
 
-    return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
+    CSimpleType result = new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
+    if (isBitField()) {
+      result = result.setBitFieldSize(bitFieldSize);
+    }
+    return result;
   }
 
   @Override
