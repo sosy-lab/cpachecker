@@ -102,7 +102,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-55-g548be91" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-57-gf31139c" conf="runtime->runtime; contrib->sources" />
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
@@ -110,8 +110,5 @@
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.12"/>
-
-        <!-- Z3 4.5.0 crashes in policy iteration tests -->
-        <override org="org.sosy_lab" module="javasmt-solver-z3" rev="z3-4.4.1-1698-ge8f4dd7"/>
     </dependencies>
 </ivy-module>
