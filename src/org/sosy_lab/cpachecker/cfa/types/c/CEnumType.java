@@ -131,7 +131,7 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
-  public CEnumType setBitFieldSize(int pBitFieldSize) {
+  public CEnumType withBitFieldSize(int pBitFieldSize) {
     if (isBitField() && bitFieldSize == pBitFieldSize) {
       return this;
     }
@@ -355,7 +355,7 @@ public final class CEnumType implements CComplexType {
     }
     CEnumType result = new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
     if (isBitField()) {
-      result = result.setBitFieldSize(bitFieldSize);
+      result = result.withBitFieldSize(bitFieldSize);
     }
     return result;
   }

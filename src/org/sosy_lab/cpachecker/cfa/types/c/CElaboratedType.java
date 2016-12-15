@@ -248,7 +248,7 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
-  public CType setBitFieldSize(int pBitFieldSize) {
+  public CType withBitFieldSize(int pBitFieldSize) {
     CElaboratedType result = new CElaboratedType(isConst, isVolatile, kind, name, origName, realType);
     result.bitFieldSize = pBitFieldSize;
     final int prime = 31;

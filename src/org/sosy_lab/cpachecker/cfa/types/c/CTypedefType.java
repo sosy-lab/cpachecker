@@ -51,11 +51,11 @@ public final class CTypedefType implements CType, Serializable {
   }
 
   @Override
-  public CType setBitFieldSize(int pBitFieldSize) {
+  public CType withBitFieldSize(int pBitFieldSize) {
     if (isBitField() && getBitFieldSize() == pBitFieldSize) {
       return this;
     }
-    return new CTypedefType(isConst, isVolatile, name, realType.setBitFieldSize(pBitFieldSize));
+    return new CTypedefType(isConst, isVolatile, name, realType.withBitFieldSize(pBitFieldSize));
   }
   public String getName() {
     return name;

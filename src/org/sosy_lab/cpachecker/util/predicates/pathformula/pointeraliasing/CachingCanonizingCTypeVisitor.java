@@ -153,7 +153,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                            t.getName(),
                            t.getOrigName());
       if (t.isBitField() && (!result.isBitField() || result.getBitFieldSize() != t.getBitFieldSize())) {
-        return result.setBitFieldSize(t.getBitFieldSize());
+        return result.withBitFieldSize(t.getBitFieldSize());
       }
       return result;
     }
@@ -177,7 +177,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                               t.isImaginary(),
                               t.isLongLong());
       if (t.isBitField() && (!result.isBitField() || result.getBitFieldSize() != t.getBitFieldSize())) {
-        return result.setBitFieldSize(t.getBitFieldSize());
+        return result.withBitFieldSize(t.getBitFieldSize());
       }
       return result;
     }

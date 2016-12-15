@@ -42,7 +42,7 @@ public class AnonymousTypes {
       return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
       CSimpleType fieldType = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-      CType bitFieldType = fieldType.setBitFieldSize(pSizeInBits);
+      CType bitFieldType = fieldType.withBitFieldSize(pSizeInBits);
       return bitFieldType;
     }
   }
