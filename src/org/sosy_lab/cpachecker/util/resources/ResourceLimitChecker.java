@@ -32,7 +32,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Longs;
-
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import javax.management.JMException;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -44,13 +48,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-
-import java.math.RoundingMode;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.management.JMException;
 
 /**
  * This class handles one or more limits for the usage of external resources.
@@ -125,7 +122,17 @@ public final class ResourceLimitChecker {
     if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
       limits.add(WalltimeLimit.fromNowOn(options.walltime));
     }
-    if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
+    boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
+    if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
+      if (!options.cpuTimeRequired.equals(options.cpuTime)) {
+        if (!cpuTimeLimitSet) {
+          throw new InvalidConfigurationException("CPU time limit was not specified but is required to be explicitly set to " + options.cpuTimeRequired + " in this configuration.");
+        } else {
+          throw new InvalidConfigurationException("CPU time limit was set to " + options.cpuTime + "  but is required to be explicitly set to " + options.cpuTimeRequired + " in this configuration.");
+        }
+      }
+    }
+    if (cpuTimeLimitSet) {
       try {
         limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
       } catch (JMException e) {
@@ -163,6 +170,13 @@ public final class ResourceLimitChecker {
         defaultUserUnit=TimeUnit.SECONDS,
         min=-1)
     private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
+
+    @Option(secure=true, name="time.cpu::required",
+        description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
 
     @Option(
       secure = true,
