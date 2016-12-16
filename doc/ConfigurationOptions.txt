@@ -2412,6 +2412,10 @@ limits.time.cpu = -1ns
 # great caution! (use seconds or specify a unit; -1 for infinite)
 limits.time.cpu.thread = -1ns
 
+# Enforce that the given CPU time limit is set as the value of
+# limits.time.cpu.
+limits.time.cpu::required = -1ns
+
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.wall = -1ns
