@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
@@ -71,11 +72,13 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 
@@ -107,6 +110,7 @@ public class ConfigurationFilesTest {
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
+          "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "memorysafety.config",
           "overflow.config",
@@ -151,6 +155,13 @@ public class ConfigurationFilesTest {
               + " analysis finishing in time. All other analyses are terminated."
     )
     private boolean useParallelAlgorithm = false;
+
+    @Option(secure=true, name="limits.time.cpu::required",
+        description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
   private static final Path CONFIG_DIR = Paths.get("config");
@@ -220,9 +231,15 @@ public class ConfigurationFilesTest {
       assume().that((Iterable<?>) configFile).doesNotContain(Paths.get("includes"));
     }
 
-    final Configuration config = createConfigurationForTestInstantiation();
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
+    Configuration config = createConfigurationForTestInstantiation();
     config.inject(options);
+    if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
+      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
+      configBuilder.setOption("limits.time.cpu", options.cpuTimeRequired.toString());
+      configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
+      config = configBuilder.build();
+    }
     final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
