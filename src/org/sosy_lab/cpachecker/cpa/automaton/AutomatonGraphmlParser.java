@@ -136,7 +136,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-@Options(prefix="spec")
+@Options(prefix="witness")
 public class AutomatonGraphmlParser {
 
   private static final String AMBIGUOUS_TYPE_ERROR_MESSAGE = "Witness type must be unambiguous";
@@ -169,7 +169,7 @@ public class AutomatonGraphmlParser {
   )
   private boolean strictChecking = true;
 
-  @Option(secure=true, description="File for exporting the path automaton in DOT format.")
+  @Option(secure=true, description="File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
 

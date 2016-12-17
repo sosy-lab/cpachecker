@@ -2754,26 +2754,6 @@ solver.interpolationSolver = no default value
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
-# File for exporting the path automaton in DOT format.
-spec.automatonDumpFile = no default value
-
-# Consider assumptions that are provided with the path automaton?
-spec.considerAssumptions = true
-
-# Match the branching information at a branching location.
-spec.matchAssumeCase = true
-
-# Match the character offset within the file.
-spec.matchOffset = true
-
-# Match the line numbers within the origin (mapping done by preprocessor line
-# markers).
-spec.matchOriginLine = true
-
-# Enforce strict validity checks regarding the witness format, such as
-# checking for the presence of required fields.
-spec.strictChecking = true
-
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = []
@@ -2890,6 +2870,26 @@ termination.resultFile = "terminationAnalysisResult.txt"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+
+# File for exporting the witness automaton in DOT format.
+witness.automatonDumpFile = no default value
+
+# Consider assumptions that are provided with the path automaton?
+witness.considerAssumptions = true
+
+# Match the branching information at a branching location.
+witness.matchAssumeCase = true
+
+# Match the character offset within the file.
+witness.matchOffset = true
+
+# Match the line numbers within the origin (mapping done by preprocessor line
+# markers).
+witness.matchOriginLine = true
+
+# Enforce strict validity checks regarding the witness format, such as
+# checking for the presence of required fields.
+witness.strictChecking = true
 
 # When validating a correctness witness, use this configuration file instead
 # of the current one.
