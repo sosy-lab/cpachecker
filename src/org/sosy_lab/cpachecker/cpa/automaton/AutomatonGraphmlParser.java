@@ -165,6 +165,13 @@ public class AutomatonGraphmlParser {
   @Option(
     secure = true,
     description =
+        "Check that the value of the programhash field of the witness matches the hash sum computed for the source code."
+  )
+  private boolean checkProgramHash = true;
+
+  @Option(
+    secure = true,
+    description =
         "Enforce strict validity checks regarding the witness format, such as checking for the presence of required fields."
   )
   private boolean strictChecking = true;
@@ -792,37 +799,44 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private void checkHashSum(Set<String> pProgramHash) throws IOException, WitnessParseException {
-    if (pProgramHash.isEmpty()) {
-      String message =
-          "Witness does not contain the hash sum "
-              + "of the program and may therefore be unrelated to the "
-              + "verification task it is being validated against.";
+  private void checkHashSum(Set<String> pProgramHashes) throws IOException, WitnessParseException {
+    if (pProgramHashes.isEmpty()) {
+      final String message;
+      if (checkProgramHash) {
+        message =
+            "Witness does not contain the hash sum "
+                + "of the program and may therefore be unrelated to the "
+                + "verification task it is being validated against.";
+      } else {
+        message = "Witness does not contain the hash sum of the program.";
+      }
       if (strictChecking) {
         throw new WitnessParseException(message);
       } else {
         logger.log(Level.WARNING, message);
       }
-    } else if (verificationTaskMetaData.getProgramHashes().isPresent()) {
-      FluentIterable<String> programHash =
-          FluentIterable.from(pProgramHash).transform(String::toLowerCase);
-      for (String actualProgramHash : verificationTaskMetaData.getProgramHashes().get()) {
-        if (!programHash.contains(actualProgramHash)) {
-          throw new WitnessParseException(
-              "Hash sum of given verification-task "
-                  + "source-code file ("
-                  + actualProgramHash
-                  + ") "
-                  + "does not match the hash sum in the witness. "
-                  + "The witness is likely unrelated to the verification task.");
+    } else if (checkProgramHash) {
+      if (verificationTaskMetaData.getProgramHashes().isPresent()) {
+        FluentIterable<String> programHash =
+            FluentIterable.from(pProgramHashes).transform(String::toLowerCase);
+        for (String actualProgramHash : verificationTaskMetaData.getProgramHashes().get()) {
+          if (!programHash.contains(actualProgramHash)) {
+            throw new WitnessParseException(
+                "Hash sum of given verification-task "
+                    + "source-code file ("
+                    + actualProgramHash
+                    + ") "
+                    + "does not match the hash sum in the witness. "
+                    + "The witness is likely unrelated to the verification task.");
+          }
         }
+      } else {
+        logger.log(
+            Level.WARNING,
+            "Could not compute the program hash sum, "
+                + "and could therefore not ascertain the validity of the program "
+                + "hash sum given by the witness.");
       }
-    } else {
-      logger.log(
-          Level.WARNING,
-          "Could not compute the program hash sum, "
-              + "and could therefore not ascertain the validity of the program "
-              + "hash sum given by the witness.");
     }
   }
 
