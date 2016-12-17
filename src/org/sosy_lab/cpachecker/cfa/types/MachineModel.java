@@ -556,6 +556,8 @@ public enum MachineModel {
           CType type = decl.getType().getCanonicalType();
           if (type instanceof CArrayType) {
             CType elementType = ((CArrayType) type).getType();
+            size += calculateByteSize(bitFieldsSize);
+            bitFieldsSize = 0;
             size += model.getPadding(size, elementType);
           } else {
             throw new IllegalArgumentException(
