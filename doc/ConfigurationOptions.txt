@@ -2770,15 +2770,9 @@ spec.matchOffset = true
 # markers).
 spec.matchOriginLine = true
 
-# Match the source code provided with the witness.
-spec.matchSourcecodeData = false
-
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 spec.strictChecking = true
-
-# Legacy option for token-based matching with path automatons.
-spec.transitionToStopForNegatedTokensetMatch = false
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)

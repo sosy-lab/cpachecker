@@ -153,12 +153,6 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Consider assumptions that are provided with the path automaton?")
   private boolean considerAssumptions = true;
 
-  @Option(secure=true, description="Legacy option for token-based matching with path automatons.")
-  private boolean transitionToStopForNegatedTokensetMatch = false; // legacy: tokenmatching
-
-  @Option(secure=true, description="Match the source code provided with the witness.")
-  private boolean matchSourcecodeData = false;
-
   @Option(secure=true, description="Match the line numbers within the origin (mapping done by preprocessor line markers).")
   private boolean matchOriginLine = true;
 
@@ -598,20 +592,6 @@ public class AutomatonGraphmlParser {
             conjunctedTriggers = and(conjunctedTriggers, offsetMatchingExpr);
           }
 
-        }
-
-        if (matchSourcecodeData) {
-          Set<String> sourceCodeDataTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
-          checkParsable(
-              sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided.");
-          final String sourceCode;
-          if (sourceCodeDataTags.isEmpty()) {
-            sourceCode = "";
-          } else {
-            sourceCode = sourceCodeDataTags.iterator().next();
-          }
-          final AutomatonBoolExpr exactEdgeMatch = new AutomatonBoolExpr.MatchCFAEdgeExact(sourceCode);
-          conjunctedTriggers = and(conjunctedTriggers, exactEdgeMatch);
         }
 
         // If the triggers do not apply, none of the above transitions is taken,
