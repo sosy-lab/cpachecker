@@ -477,6 +477,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       CType returnType = exp.getExpressionType();
       FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+      if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
+        ret = conv.makeCast(t, returnType, ret, constraints, edge);
+      }
       assert returnFormulaType.equals(mgr.getFormulaType(ret))
             : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
       return ret;
