@@ -32,7 +32,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -61,18 +70,6 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.function.BiConsumer;
-
-import javax.annotation.Nullable;
 
 /**
  * Implements a handler for assignments.
@@ -565,7 +562,7 @@ class AssignmentHandler {
                                                      useOldSSAIndices,
                                                      updatedRegions,
                                                      updatedVariables));
-         offset += conv.getSizeof(lvalueArrayType.getType());
+         offset += conv.getBitSizeof(lvalueArrayType.getType());
       }
       return result;
     } else if (lvalueType instanceof CCompositeType) {
@@ -584,7 +581,7 @@ class AssignmentHandler {
       result = bfmgr.makeTrue();
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getOffset(lvalueCompositeType, memberName);
+        final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
         final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
         // Optimizing away the assignments from uninitialized fields
         if (conv.isRelevantField(lvalueCompositeType, memberName)
@@ -768,7 +765,7 @@ class AssignmentHandler {
     }
 
     checkIsSimplified(lvalueType);
-    final int size = conv.getSizeof(lvalueType);
+    final int size = conv.getBitSizeof(lvalueType);
 
     if (options.useQuantifiersOnArrays()) {
       addRetentionConstraintsWithQuantifiers(

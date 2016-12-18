@@ -138,9 +138,9 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    *
    * @param compositeType The composite type.
    * @param memberName The name of the member of the composite type.
-   * @return The offset of the member in the composite type.
+   * @return The offset of the member in the composite type in bits.
    */
-  int getOffset(CCompositeType compositeType, final String memberName) {
+  int getBitOffset(CCompositeType compositeType, final String memberName) {
     checkIsSimplified(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     Multiset<String> multiset = offsets.get(compositeType);
@@ -177,7 +177,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
     while (memberIt.hasNext()) {
       final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
-      members.setCount(memberDeclaration.getName(), offset);
+      int bitPreciseOffset = offset * machineModel.getSizeofCharInBits() + bitFieldsSize;
+      members.setCount(memberDeclaration.getName(), bitPreciseOffset);
       final CType memberType = getSimplifiedType(memberDeclaration);
       final CCompositeType memberCompositeType;
       if (memberType instanceof CCompositeType) {

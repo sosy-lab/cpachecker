@@ -32,7 +32,14 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -66,16 +73,6 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
 
 /**
  * A manager for pointer target sets.
@@ -572,7 +569,7 @@ class PointerTargetSetManager {
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getOffset(compositeType, memberName);
+        final int offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
@@ -648,7 +645,7 @@ class PointerTargetSetManager {
               ? options.defaultAllocationSize()
               : typeHandler.getSizeof(lastType);
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
-                                                  formulaManager.makeNumber(pointerType, lastSize));
+                                                  formulaManager.makeNumber(pointerType, lastSize * typeHandler.getBitsPerByte()));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
                                     formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));
@@ -725,7 +722,7 @@ class PointerTargetSetManager {
       for (int i = 0; i < length; ++i) {
         //TODO: create region with arrayType.getType()
         targets = addToTargets(base, null, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
-        offset += typeHandler.getSizeof(arrayType.getType());
+        offset += typeHandler.getBitSizeof(arrayType.getType());
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
@@ -733,7 +730,7 @@ class PointerTargetSetManager {
       final String type = CTypeUtils.typeToString(compositeType);
       typeHandler.addCompositeTypeToCache(compositeType);
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final int offset = typeHandler.getOffset(compositeType, memberDeclaration.getName());
+        final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration.getType(), memberDeclaration.getName());
           targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);

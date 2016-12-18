@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -41,8 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern.PointerTargetPatternBuilder;
-
-import javax.annotation.Nullable;
 
 
 class LvalueToPointerTargetPatternVisitor
@@ -99,7 +98,7 @@ class LvalueToPointerTargetPatternVisitor
           final Integer offset = tryEvaluateExpression(operand2);
           final Integer oldOffset = result.getProperOffset();
           if (offset != null && oldOffset != null && offset < oldOffset) {
-            result.setProperOffset(oldOffset - offset);
+            result.setProperOffset(oldOffset - offset * typeHandler.getBitsPerByte());
           } else {
             result.retainBase();
           }
@@ -210,7 +209,7 @@ class LvalueToPointerTargetPatternVisitor
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * typeHandler.getSizeof(elementType));
+        result.setProperOffset(index * typeHandler.getBitSizeof(elementType));
       }
       return result;
     } else {
@@ -235,7 +234,7 @@ class LvalueToPointerTargetPatternVisitor
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
         result.shift(
-            containerType, typeHandler.getOffset((CCompositeType) containerType, e.getFieldName()));
+            containerType, typeHandler.getBitOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {
         throw new UnrecognizedCCodeException("Field owner expression has incompatible type", cfaEdge, e);
