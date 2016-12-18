@@ -113,7 +113,7 @@ public class SMGExpressionEvaluator {
   }
 
   /**
-   * Get the size of the given type in Bytes.
+   * Get the size of the given type in bits.
    *
    * When handling variable array type length,
    * additionally to the type itself, we also need the
@@ -128,11 +128,11 @@ public class SMGExpressionEvaluator {
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @param expression The expression, which evaluates to the value with the given type.
-   * @return The size of the given type in bytes.
+   * @return The size of the given type in bits.
    */
-  public int getSizeof(CFAEdge edge, CType pType, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
+  public int getBitSizeof(CFAEdge edge, CType pType, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
 
-    CSizeOfVisitor v = getSizeOfVisitor(edge, pState, expression);
+    CSizeOfVisitor v = getBitSizeOfVisitor(edge, pState, expression);
 
     try {
       return pType.accept(v);
@@ -143,7 +143,7 @@ public class SMGExpressionEvaluator {
   }
 
   /**
-   * Get the size of the given type in Bytes.
+   * Get the size of the given type in bits.
    *
    * When handling variable array type length,
    * additionally to the type itself, we also need the
@@ -154,31 +154,14 @@ public class SMGExpressionEvaluator {
    * This method can't calculate variable array type length for
    * arrays that are not declared in the cfa edge.
    *
-   * @param edge The cfa edge which determines the location
+   * @param pEdge The cfa edge which determines the location
    *             of the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
-   * @return The size of the given type in bytes.
+   * @return The size of the given type in bits.
    */
-  public int getSizeof(CFAEdge edge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
-
-    CSizeOfVisitor v = getSizeOfVisitor(edge, pState);
-
-    try {
-      return pType.accept(v);
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Could not resolve type.", edge);
-    }
-  }
-
   public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
-    CSizeOfVisitor v;
-    if (machineModel.isBitFieldsSupportEnabled()) {
-      v = getBitSizeOfVisitor(pEdge, pState);
-    } else {
-      v = getSizeOfVisitor(pEdge, pState);
-    }
+    CSizeOfVisitor v = getBitSizeOfVisitor(pEdge, pState);
 
     try {
       return pType.accept(v);
@@ -273,7 +256,7 @@ public class SMGExpressionEvaluator {
 
     //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -328,7 +311,7 @@ public class SMGExpressionEvaluator {
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      if (machineModel.isBitFieldsSupportEnabled() && typeMember.getType().isBitField()) {
+      if (typeMember.getType().isBitField()) {
         if (memberName.equals(fieldName)) {
           offset += bitFieldsSize;
           return new SMGField(SMGKnownExpValue.valueOf(offset),
@@ -356,7 +339,7 @@ public class SMGExpressionEvaluator {
         }
 
         if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          offset = offset + padding + getSizeof(pEdge, getRealExpressionType(typeMember.getType()),
+          offset = offset + padding + getBitSizeof(pEdge, getRealExpressionType(typeMember.getType()),
               pState, expression);
         }
       }
@@ -805,7 +788,7 @@ public class SMGExpressionEvaluator {
 
           SMGExplicitValue arrayOffset = arrayAddress.getOffset();
 
-          int typeSize = getSizeof(getCfaEdge(), getRealExpressionType(lValue), newState, lValue);
+          int typeSize = getBitSizeof(getCfaEdge(), getRealExpressionType(lValue), newState, lValue);
 
           SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
 
@@ -958,7 +941,7 @@ public class SMGExpressionEvaluator {
             continue;
           }
 
-          SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer,
+          SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getBitSizeof(cfaEdge, typeOfPointer,
               newState, address));
 
           SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
@@ -1046,9 +1029,9 @@ public class SMGExpressionEvaluator {
               if (!value.isUnknown() && !newState
                   .isObjectExternallyAllocated(arrayAddress.getObject())) {
                 int size = arrayAddress.getObject().getSize();
-                int typeSize = getSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
+                int typeSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
                 int index = (size / typeSize) + 1;
-                int subscriptSize = getSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp);
+                int subscriptSize = getBitSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp);
                 newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
                     subscriptSize, cfaEdge);
               }
@@ -1062,7 +1045,7 @@ public class SMGExpressionEvaluator {
           continue;
         }
 
-        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge,
+        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getBitSizeof(cfaEdge,
             exp.getExpressionType(), newState, exp));
 
         SMGExplicitValue subscriptOffset = subscriptValue.multiply(typeSize);
@@ -1392,8 +1375,8 @@ public class SMGExpressionEvaluator {
                 SMGSymbolicValue resultValue = resultValueAndState.getObject();
 
                 //TODO: separate modifiable and unmodifiable visitor
-                int leftSideTypeSize = getSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
-                int rightSideTypeSize = getSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
+                int leftSideTypeSize = getBitSizeof(cfaEdge, leftSideExpression.getExpressionType(), newState);
+                int rightSideTypeSize = getBitSizeof(cfaEdge, rightSideExpression.getExpressionType(), newState);
                 newState.addPredicateRelation(leftSideVal, leftSideTypeSize,
                     rightSideVal, rightSideTypeSize, binaryOperator, cfaEdge);
                 result.add(SMGValueAndState.of(newState, resultValue));
@@ -1831,7 +1814,7 @@ public class SMGExpressionEvaluator {
         return SMGValueAndStateList.copyOf(result);
 
       case SIZEOF:
-        int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand), getInitialSmgState(), unaryOperand);
+        int size = getBitSizeof(cfaEdge, getRealExpressionType(unaryOperand), getInitialSmgState(), unaryOperand);
         SMGSymbolicValue val = (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
         return SMGValueAndStateList.of(getInitialSmgState(), val);
       case TILDE:
@@ -1866,7 +1849,7 @@ public class SMGExpressionEvaluator {
       switch (typeOperator) {
       case SIZEOF:
         SMGSymbolicValue val =
-            getSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+            getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
         return SMGValueAndStateList.of(getInitialSmgState(), val);
       default:
         return SMGValueAndStateList.of(getInitialSmgState());
@@ -2315,9 +2298,9 @@ public class SMGExpressionEvaluator {
     return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger);
   }
 
-  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
+  protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState,
       CExpression pExpression) {
-    return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
+    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {

@@ -80,10 +80,7 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4, //pointer
-
-      //bitfields support
-      true
+      4  //pointer
   ),
 
   /**
@@ -116,13 +113,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8, // pointer
-
-      //bitfields support
-      true
+      8  // pointer
   );
-
-  private final boolean isBitFieldsSupportEnabled;
   // numeric types
   private final int     sizeofShort;
   private final int     sizeofInt;
@@ -180,9 +172,7 @@ public enum MachineModel {
       int pAlignofLongDouble,
       int pAlignofVoid,
       int pAlignofBool,
-      int pAlignofPtr,
-      boolean pBitFieldsEnabled) {
-    isBitFieldsSupportEnabled = pBitFieldsEnabled;
+      int pAlignofPtr) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -216,10 +206,6 @@ public enum MachineModel {
     } else {
       throw new AssertionError("No ptr-Equivalent found");
     }
-  }
-
-  public boolean isBitFieldsSupportEnabled() {
-    return isBitFieldsSupportEnabled;
   }
 
   public CSimpleType getPointerEquivalentSimpleType() {
@@ -335,7 +321,7 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
-    if (isBitFieldsSupportEnabled() && type.isBitField()) {
+    if (type.isBitField()) {
       int size = type.getBitFieldSize() / mSizeofCharInBits;
       if (type.getBitFieldSize() % mSizeofCharInBits > 0) {
         size++;
@@ -564,7 +550,7 @@ public enum MachineModel {
                 "Cannot compute size of incomplete type " + decl.getType());
           }
         } else {
-          if (model.isBitFieldsSupportEnabled() && decl.getType().isBitField()) {
+          if (decl.getType().isBitField()) {
               bitFieldsSize += decl.getType().getBitFieldSize();
           } else {
             size += calculateByteSize(bitFieldsSize);

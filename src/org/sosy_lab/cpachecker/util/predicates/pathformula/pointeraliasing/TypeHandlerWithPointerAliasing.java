@@ -208,7 +208,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           bitFieldsSize = 0;
           offset += machineModel.getPadding(offset, elementType);
         } else {
-          if (machineModel.isBitFieldsSupportEnabled() && memberDeclaration.getType().isBitField()) {
+          if (memberDeclaration.getType().isBitField()) {
             bitFieldsSize += memberDeclaration.getType().getBitFieldSize();
           } else {
             offset += sizeofVisitor.calculateByteSize(bitFieldsSize);

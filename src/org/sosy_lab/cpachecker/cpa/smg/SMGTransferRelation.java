@@ -687,7 +687,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
               SMGValueAndStateList sizeSymbolicValueAndStates =
                   evaluateExpressionValue(sizeState, pCfaEdge, sizeExpr);
-              int symbolicValueSize = expressionEvaluator.getSizeof(pCfaEdge, sizeExpr
+              int symbolicValueSize = expressionEvaluator.getBitSizeof(pCfaEdge, sizeExpr
                   .getExpressionType(), sizeState);
               for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
                   .getValueAndStateList()) {
@@ -1527,7 +1527,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject memoryOfField, int fieldOffset, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
-    int sizeOfField = expressionEvaluator.getSizeof(cfaEdge, rValueType, newState);
+    int sizeOfField = expressionEvaluator.getBitSizeof(cfaEdge, rValueType, newState);
 
     //FIXME Does not work with variable array length.
     if (memoryOfField.getSize() < sizeOfField) {
@@ -1560,7 +1560,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       int structOffset = structAddress.getOffset().getAsInt();
 
       //FIXME Does not work with variable array length.
-      int structSize = structOffset + expressionEvaluator.getSizeof(pCfaEdge, pRValueType, pNewState);
+      int structSize = structOffset + expressionEvaluator.getBitSizeof(pCfaEdge, pRValueType, pNewState);
       return pNewState.copy(source, pMemoryOfField,
           structOffset, structSize, pFieldOffset);
     }
@@ -1756,7 +1756,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
           offset += machineModel.getBitSizeof(memberDcl.getType());
-          if (!(machineModel.isBitFieldsSupportEnabled() && memberDcl.getType().isBitField())) {
+          if (!(memberDcl.getType().isBitField())) {
             int overByte = offset % machineModel.getSizeofCharInBits();
             if (overByte > 0) {
               offset += machineModel.getSizeofCharInBits() - overByte;
@@ -1794,7 +1794,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         int offset = offsetAndState.getSecond();
         SMGState newState = offsetAndState.getFirst();
 
-        int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
+        int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
         if (offset - pOffset < sizeOfType) {
           newState = writeValue(newState, pNewObject, offset,
@@ -1840,7 +1840,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
 
         int offset = offsetAndState.getSecond();
-        if (!(machineModel.isBitFieldsSupportEnabled() && memberType.isBitField())) {
+        if (!(memberType.isBitField())) {
           int overByte = offset % machineModel.getSizeofCharInBits();
           if (overByte > 0) {
             offset += machineModel.getSizeofCharInBits() - overByte;
@@ -1898,7 +1898,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfElementType = expressionEvaluator.getSizeof(pEdge, elementType, pNewState);
+    int sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
 
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
@@ -1924,7 +1924,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       for (SMGState newState : newStates) {
         if (!GCCZeroLengthArray || pLValueType.getLength() != null) {
-          int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
+          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
           int offset = pOffset + listCounter * sizeOfElementType;
           if (offset - pOffset < sizeOfType) {
@@ -1994,7 +1994,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       //FIXME Does not work with variable array length.
       boolean doesNotFitIntoObject = fieldOffset < 0
-          || fieldOffset + getSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+          || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
@@ -2139,7 +2139,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           assignableState = writeValue(assignableState, addressOfField.getObject(),
               addressOfField.getOffset().getAsInt(), getRealExpressionType(lValue), rSymValue, edge);
         }
-        int size = getSizeof(edge, getRealExpressionType(lValue), assignableState);
+        int size = getBitSizeof(edge, getRealExpressionType(lValue), assignableState);
         if (truthValue) {
           if (op == BinaryOperator.EQUALS) {
             assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
@@ -2548,7 +2548,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
+    protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState,
         CExpression pExpression) {
       return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
     }
