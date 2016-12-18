@@ -1167,8 +1167,8 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
 cpa.invariants.includeTypeInformation = true
 
 # the maximum number of variables to consider as interesting. -1 one disables
-# the limit, but this is not recommended. 0 means that guessing interesting
-# variables is disabled.
+# the limit, but this is not recommended. 0 means that no variables are
+# considered to be interesting.
 cpa.invariants.interestingVariableLimit = 2
 
 # the maximum number of adjustments of the interestingVariableLimit. -1 one
