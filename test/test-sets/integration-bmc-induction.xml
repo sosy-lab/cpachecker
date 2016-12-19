@@ -11,13 +11,13 @@
       <exclude>../programs/simple/bitvectors/*</exclude>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
       <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
       <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- exclude tasks from Forester set -->
       <exclude>../programs/benchmarks/forester-heap/*</exclude>
@@ -25,13 +25,13 @@
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
       <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
       <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
