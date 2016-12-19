@@ -1592,6 +1592,9 @@ class ASTConverter {
       if (cStorageClass == CStorageClass.EXTERN && initializer != null) {
         throw parseContext.parseError("Extern declarations cannot have initializers", d);
       }
+      if (cStorageClass != CStorageClass.EXTERN && type instanceof CVoidType) {
+        throw parseContext.parseError("Variable cannot have type void", d);
+      }
 
       String origName = name;
 
