@@ -5,43 +5,43 @@
 
   <resultfiles>**.graphml</resultfiles>
 
-  <tasks name="ArraysReach">
+  <tasks name="ReachSafety-ArraysReach">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="BitVectorsReach">
+  <tasks name="ReachSafety-BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="HeapReach">
+  <tasks name="ReachSafety-HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="Floats">
+  <tasks name="ReachSafety-Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="ControlFlow">
+  <tasks name="ReachSafety-ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="ECA">
+  <tasks name="ReachSafety-ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="Loops">
+  <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="Recursive">
+  <tasks name="ReachSafety-Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="ProductLines">
+  <tasks name="ReachSafety-ProductLines">
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
-  <tasks name="Sequentialized">
+  <tasks name="ReachSafety-Sequentialized">
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
@@ -49,7 +49,7 @@
     <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
     <propertyfile>../programs/benchmarks/ConcurrencySafety.prp</propertyfile>
   </tasks>
-  <tasks name="DeviceDriversLinux64">
+  <tasks name="Systems_DeviceDriversLinux64_ReachSafety">
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>

@@ -5,16 +5,16 @@
 
   <resultfiles>**.graphml</resultfiles>
 
-  <tasks name="ArraysMemSafety">
+  <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
-  <tasks name="BusyBoxMemSafety">
+  <tasks name="Systems_BusyBox_MemSafety">
     <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
-  <tasks name="HeapMemSafety">
+  <tasks name="MemSafety-Heap">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
