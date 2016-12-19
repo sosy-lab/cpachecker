@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -1017,15 +1016,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     return result;
-  }
-
-  @Override
-  protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
-      throws UnsupportedCCodeException {
-    if (options.useArraysForHeap() || options.useQuantifiersOnArrays()) {
-      return; // unbounded heap encodings should be able to handle large arrays
-    }
-    super.checkForLargeArray(declarationEdge, declarationType);
   }
 
   /**

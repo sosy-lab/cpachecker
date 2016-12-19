@@ -1322,6 +1322,10 @@ cpa.pointerA.merge = "JOIN"
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# Whether to give up immediately if a very large array is encountered
+# (heuristic, often we would just waste time otherwise)
+cpa.predicate.abortOnLargeArrays = true
+
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
   enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,

@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class collects some configurations options for
@@ -80,6 +78,13 @@ public class FormulaEncodingOptions {
 
   @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
   private boolean trackFunctionPointers = true;
+
+  @Option(
+    secure = true,
+    description =
+        "Whether to give up immediately if a very large array is encountered (heuristic, often we would just waste time otherwise)"
+  )
+  private boolean abortOnLargeArrays = true;
 
   @Option(secure=true, description = "Insert tmp-variables for parameters at function-entries. " +
           "The variables are similar to return-variables at function-exit.")
@@ -133,6 +138,10 @@ public class FormulaEncodingOptions {
 
   public boolean trackFunctionPointers() {
     return trackFunctionPointers;
+  }
+
+  public boolean shouldAbortOnLargeArrays() {
+    return abortOnLargeArrays;
   }
 
   public boolean useParameterVariables() {
