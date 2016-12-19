@@ -39,7 +39,7 @@ class CSizeofVisitor extends BaseSizeofVisitor
 
   @Override
   public Integer visit(final CArrayType t) throws IllegalArgumentException {
-    int length = CTypeUtils.getArrayLength(t).orElse(options.defaultArrayLength());
+    int length = t.getLengthAsInt().orElse(options.defaultArrayLength());
     final int sizeOfType = t.getType().accept(this);
     return length * sizeOfType;
   }

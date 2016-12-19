@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.OptionalInt;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -37,8 +36,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import java.util.OptionalInt;
 
 /**
  * Utility class with helper methods for CTypes.
@@ -50,22 +47,10 @@ class CTypeUtils {
   private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
 
   /**
-   * Return the length of an array if statically given.
-   */
-  static OptionalInt getArrayLength(CArrayType t) {
-    final CExpression arrayLength = t.getLength();
-    if (arrayLength instanceof CIntegerLiteralExpression) {
-      return OptionalInt.of(((CIntegerLiteralExpression) arrayLength).getValue().intValue());
-    }
-
-    return OptionalInt.empty();
-  }
-
-  /**
    * Return the length of an array, honoring the options for maximum and default array length.
    */
   static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
-    OptionalInt length = getArrayLength(t);
+    OptionalInt length = t.getLengthAsInt();
     return length.isPresent()
         ? Integer.min(options.maxArrayLength(), length.getAsInt())
         : options.defaultArrayLength();

@@ -536,11 +536,11 @@ class AssignmentHandler {
           rvalueType,
           lvalueType);
 
-      OptionalInt lvalueLength = CTypeUtils.getArrayLength(lvalueArrayType);
+      OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
       // Try to fix the length if it's unknown (or too big)
       // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
       if (!lvalueLength.isPresent() && rvalue.isLocation()) {
-        lvalueLength = CTypeUtils.getArrayLength((CArrayType) rvalueType);
+        lvalueLength = ((CArrayType) rvalueType).getLengthAsInt();
       }
       int length =
           lvalueLength.isPresent()

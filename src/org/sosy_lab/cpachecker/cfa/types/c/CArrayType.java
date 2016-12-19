@@ -26,18 +26,16 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.AArrayType;
-
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Objects;
-
+import java.util.OptionalInt;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 @SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
     justification="handled by serialization proxy")
@@ -64,6 +62,13 @@ public final class CArrayType extends AArrayType implements CType {
 
   public @Nullable CExpression getLength() {
     return length;
+  }
+
+  /** Return the length of this array if statically known and small enough for an int. */
+  public OptionalInt getLengthAsInt() {
+    return length instanceof CIntegerLiteralExpression
+        ? OptionalInt.of(((CIntegerLiteralExpression) length).getValue().intValueExact())
+        : OptionalInt.empty();
   }
 
   @Override

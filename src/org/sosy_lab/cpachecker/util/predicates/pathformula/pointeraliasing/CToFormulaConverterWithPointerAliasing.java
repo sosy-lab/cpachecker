@@ -32,7 +32,18 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -98,20 +109,6 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
@@ -572,7 +569,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // The string is either NULL terminated, or not.
     // If the length is not provided explicitly, NULL termination is used
     final String s = e.getContentString();
-    final int length = CTypeUtils.getArrayLength(type).orElse(s.length() + 1);
+    final int length = type.getLengthAsInt().orElse(s.length() + 1);
     assert length >= s.length();
 
     // create one CharLiteralExpression for each character of the string
@@ -686,7 +683,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
       final CType elementType = checkIsSimplified(arrayType.getType());
-      final OptionalInt length = CTypeUtils.getArrayLength(arrayType);
+      final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
         final int l = Math.min(length.getAsInt(), options.maxArrayLength());
         for (int i = 0; i < l; i++) {
@@ -1044,14 +1041,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (elementType instanceof CSimpleType
         && ((CSimpleType) elementType).getType().isFloatingPointType()) {
-      if (CTypeUtils.getArrayLength(arrayType).orElse(0) > 100) {
+      if (arrayType.getLengthAsInt().orElse(0) > 100) {
         throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
       }
     }
 
     if (elementType instanceof CSimpleType
         && ((CSimpleType) elementType).getType() == CBasicType.INT) {
-      if (CTypeUtils.getArrayLength(arrayType).orElse(0) >= 10000) {
+      if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
         throw new UnsupportedCCodeException("large integer array", declarationEdge);
       }
     }
