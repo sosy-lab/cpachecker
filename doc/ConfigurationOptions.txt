@@ -2875,7 +2875,7 @@ testHarnessExport.useModel = true
 witness.automatonDumpFile = no default value
 
 # Check that the value of the programhash field of the witness matches the
-# hash sum computed for the source code.
+# SHA-1 hash value computed for the source code.
 witness.checkProgramHash = true
 
 # Consider assumptions that are provided with the path automaton?

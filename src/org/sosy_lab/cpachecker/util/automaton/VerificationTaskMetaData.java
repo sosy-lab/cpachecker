@@ -135,10 +135,10 @@ public class VerificationTaskMetaData {
   }
 
   /**
-   * Gets the SHA-1 hash sums of the source-code files of the verification task if they are
+   * Gets the SHA-1 hash values of the source-code files of the verification task if they are
    * available.
    *
-   * @return the SHA-1 hash sums of the source-code files of the verification task.
+   * @return the SHA-1 hash values of the source-code files of the verification task.
    * @throws IOException if an {@code IOException} occurs while trying to read the source-code
    *     files.
    */

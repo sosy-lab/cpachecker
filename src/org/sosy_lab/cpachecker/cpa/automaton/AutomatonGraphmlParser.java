@@ -165,7 +165,7 @@ public class AutomatonGraphmlParser {
   @Option(
     secure = true,
     description =
-        "Check that the value of the programhash field of the witness matches the hash sum computed for the source code."
+        "Check that the value of the programhash field of the witness matches the SHA-1 hash value computed for the source code."
   )
   private boolean checkProgramHash = true;
 
@@ -804,11 +804,11 @@ public class AutomatonGraphmlParser {
       final String message;
       if (checkProgramHash) {
         message =
-            "Witness does not contain the hash sum "
+            "Witness does not contain the SHA-1 hash value "
                 + "of the program and may therefore be unrelated to the "
                 + "verification task it is being validated against.";
       } else {
-        message = "Witness does not contain the hash sum of the program.";
+        message = "Witness does not contain the SHA-1 hash value of the program.";
       }
       if (strictChecking) {
         throw new WitnessParseException(message);
@@ -822,20 +822,20 @@ public class AutomatonGraphmlParser {
         for (String actualProgramHash : verificationTaskMetaData.getProgramHashes().get()) {
           if (!programHash.contains(actualProgramHash)) {
             throw new WitnessParseException(
-                "Hash sum of given verification-task "
+                "SHA-1 hash value of given verification-task "
                     + "source-code file ("
                     + actualProgramHash
                     + ") "
-                    + "does not match the hash sum in the witness. "
+                    + "does not match the SHA-1 hash value in the witness. "
                     + "The witness is likely unrelated to the verification task.");
           }
         }
       } else {
         logger.log(
             Level.WARNING,
-            "Could not compute the program hash sum, "
+            "Could not compute the program SHA-1 hash value, "
                 + "and could therefore not ascertain the validity of the program "
-                + "hash sum given by the witness.");
+                + "SHA-1 hash value given by the witness.");
       }
     }
   }
