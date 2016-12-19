@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -1008,19 +1009,7 @@ public class CtoFormulaConverter {
       return bfmgr.makeTrue();
     }
 
-    CType declarationType = decl.getType().getCanonicalType();
-    if (declarationType instanceof CArrayType) {
-      CType elementType = ((CArrayType)declarationType).getType();
-      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType().isFloatingPointType()) {
-
-        CExpression length = ((CArrayType)declarationType).getLength();
-        if (length instanceof CIntegerLiteralExpression) {
-          if (((CIntegerLiteralExpression) length).getValue().longValue() > 100) {
-            throw new UnsupportedCCodeException("large floating-point array", edge);
-          }
-        }
-      }
-    }
+    checkForLargeArray(edge, decl.getType().getCanonicalType());
 
     if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
       globalDeclarations.add(decl);
@@ -1077,6 +1066,34 @@ public class CtoFormulaConverter {
     }
 
     return result;
+  }
+
+  /**
+   * Check whether a large array is declared and abort analysis in this case. This is a heuristic
+   * for SV-COMP to avoid wasting a lot of time for programs we probably cannot handle anyway or
+   * returning a wrong answer.
+   */
+  protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
+      throws UnsupportedCCodeException {
+    if (!(declarationType instanceof CArrayType)) {
+      return;
+    }
+    CArrayType arrayType = (CArrayType) declarationType;
+    CType elementType = arrayType.getType();
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+      if (arrayType.getLengthAsInt().orElse(0) > 100) {
+        throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+      }
+    }
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+      if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
+        throw new UnsupportedCCodeException("large integer array", declarationEdge);
+      }
+    }
   }
 
   protected BooleanFormula makeExitFunction(
