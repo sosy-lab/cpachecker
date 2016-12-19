@@ -126,21 +126,37 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 public class CtoFormulaConverter {
 
   // list of functions that are pure (no side-effects from the perspective of this analysis)
-  public static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("abort", "exit", "__assert_fail", "__VERIFIER_error",
-          "free", "kfree",
-          "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
-          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
-          );
+  static final Set<String> PURE_EXTERNAL_FUNCTIONS =
+      ImmutableSet.of(
+          "abort",
+          "exit",
+          "__assert_fail",
+          "__VERIFIER_error",
+          "free",
+          "kfree",
+          "fprintf",
+          "printf",
+          "puts",
+          "printk",
+          "sprintf",
+          "swprintf",
+          "strcasecmp",
+          "strchr",
+          "strcmp",
+          "strlen",
+          "strncmp",
+          "strrchr",
+          "strstr");
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  public static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("fesetround", "floating-point rounding modes");
+  static final Map<String, String> UNSUPPORTED_FUNCTIONS =
+      ImmutableMap.of("fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
   @Deprecated
-  public static final String RETURN_VARIABLE_NAME = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
+  private static final String RETURN_VARIABLE_NAME =
+      VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
   public static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
