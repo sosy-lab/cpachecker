@@ -27,7 +27,15 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
 import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
@@ -67,17 +75,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.ArrayDeque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
  *<p>
@@ -698,7 +695,10 @@ public final class VariableAndFieldRelevancyComputer {
 
     @Override
     protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
-      throw new AssertionError("The expression should not occur in the left hand side");
+      throw new AssertionError(
+          String.format(
+              "The expression %s from %s should not occur in the left hand side",
+              e, e.getFileLocation()));
     }
 
     private static final CollectingLHSVisitor INSTANCE = new CollectingLHSVisitor();
