@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
 
+  private static final BigDecimal APPROX_INFINITY = BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
+
   public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
                                     BigDecimal pValue) {
@@ -44,10 +46,30 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
       CBasicType basicType = ((CSimpleType) pType).getType();
       switch (basicType) {
         case FLOAT:
-          value = BigDecimal.valueOf(pValue.floatValue());
+          float fValue = pValue.floatValue();
+          if (Float.isNaN(fValue)) {
+            return value;
+          }
+          if (Float.isInfinite(fValue)) {
+            if (fValue < 0) {
+              return APPROX_INFINITY.negate();
+            }
+            return APPROX_INFINITY;
+          }
+          value = BigDecimal.valueOf(fValue);
           break;
         case DOUBLE:
-          value = BigDecimal.valueOf(pValue.doubleValue());
+          double dValue = pValue.doubleValue();
+          if (Double.isNaN(dValue)) {
+            return value;
+          }
+          if (Double.isInfinite(dValue)) {
+            if (dValue < 0) {
+              return APPROX_INFINITY.negate();
+            }
+            return APPROX_INFINITY;
+          }
+          value = BigDecimal.valueOf(dValue);
           break;
         default:
           break;
