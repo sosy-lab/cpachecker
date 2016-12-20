@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import static com.google.common.base.Verify.verify;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -144,15 +142,11 @@ class ParseContext {
 
     final CodePosition endingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, endingLineInInput);
-    verify(
-        startingInOrigin.getFileName().equals(endingInOrigin.getFileName()),
-        "Unexpected token '%s' of class %s spanning files %s and %s",
-        n.getRawSignature(),
-        n.getClass().getSimpleName(),
-        startingInOrigin.getFileName(),
-        endingInOrigin.getFileName());
     final int endingLineInOrigin = endingInOrigin.getLineNumber();
 
+    if (!startingInOrigin.getFileName().equals(endingInOrigin.getFileName())) {
+      return FileLocation.MULTIPLE_FILES;
+    }
     final String originFileName = startingInOrigin.getFileName();
 
     return new FileLocation(
