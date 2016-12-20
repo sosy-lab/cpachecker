@@ -415,9 +415,9 @@ class PointerTargetSetManager {
      */
     @Override
     public CType resolveConflict(final String key, final CType type1, final CType type2) {
-      if (isFakeBaseType(type1)) {
+      if (isFakeBaseType(type1) || type1.isIncomplete()) {
         return type2;
-      } else if (isFakeBaseType(type2)) {
+      } else if (isFakeBaseType(type2) || type2.isIncomplete()) {
         return type1;
       }
       int currentFieldIndex = 0;
